@@ -1,4 +1,4 @@
-FROM node:16.13.2-alpine
+FROM node:17.8.0-alpine
 
 WORKDIR /opt/hsd
 
