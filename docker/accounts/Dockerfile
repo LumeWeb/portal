@@ -1,4 +1,4 @@
-FROM golang:1.16.7
+FROM golang:1.18.0
 LABEL maintainer="SkynetLabs <devs@siasky.net>"
 
 ENV GOOS linux
