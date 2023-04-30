@@ -16,11 +16,11 @@ import (
 var embedFrontend embed.FS
 
 func main() {
-	// Initialize the database connection
-	db.Init()
-
 	// Initialize the configuration settings
 	config.Init()
+
+	// Initialize the database connection
+	db.Init()
 
 	// Create a new Iris app instance
 	app := iris.New()
