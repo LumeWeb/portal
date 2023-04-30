@@ -48,7 +48,7 @@ type ChallengeResponse struct {
 }
 
 type PubkeyLoginRequest struct {
-	Pubkey    string `json:"public_key"`
+	Pubkey    string `json:"pubkey"`
 	Challenge string `json:"challenge"`
 	Signature string `json:"signature"`
 }
