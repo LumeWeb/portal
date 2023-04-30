@@ -46,12 +46,15 @@ func main() {
 	// Serve static files from the embedded directory at the app's root path
 	app.HandleDir("/", embedFrontend)
 
+	api := app.Party("/api")
+	v1 := api.Party("/v1")
+
 	// Register the AccountService with the MVC framework and attach it to the "/api/account" path
-	mvc.Configure(app.Party("/api/account"), func(app *mvc.Application) {
+	mvc.Configure(v1.Party("/account"), func(app *mvc.Application) {
 		app.Handle(new(service.AccountService))
 	})
 
-	mvc.Configure(app.Party("/api/auth"), func(app *mvc.Application) {
+	mvc.Configure(v1.Party("/auth"), func(app *mvc.Application) {
 		app.Handle(new(service.AuthService))
 	})
 
