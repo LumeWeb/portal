@@ -34,7 +34,13 @@ func Init() {
 
 	err = viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
+			// Config file not found, this is not an error.
+			fmt.Println("Config file not found, using default settings.")
+		} else {
+			// Other error, panic.
+			panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		}
 	}
 
 }
