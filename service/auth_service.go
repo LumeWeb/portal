@@ -119,7 +119,7 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 
 	// Save the token to the database.
 	keyChallenge := model.KeyChallenge{
-		Account:    model.Account{ID: accountID},
+		AccountID:  accountID,
 		Challenge:  token,
 		Expiration: claim.ExpiresAt(),
 	}
@@ -242,7 +242,7 @@ func (a *AuthService) PostPubkeyLogin() {
 	}
 
 	// Generate a JWT token for the authenticated user.
-	token, err := generateAndSaveLoginToken(challenge.Account.ID, 24*time.Hour)
+	token, err := generateAndSaveLoginToken(challenge.AccountID, 24*time.Hour)
 	if err != nil {
 		a.ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to generate token"))
 		return
