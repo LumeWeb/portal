@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -15,12 +16,13 @@ func Init() {
 	viper.AddConfigPath(".")
 	viper.SetEnvPrefix("LUME_WEB_PORTAL")
 
-	pflag.String("database.type", "mysql", "Database type")
+	pflag.String("database.type", "sqlite", "Database type")
 	pflag.String("database.host", "localhost", "Database host")
 	pflag.Int("database.port", 3306, "Database port")
 	pflag.String("database.user", "root", "Database user")
 	pflag.String("database.password", "", "Database password")
-	pflag.String("database.name", "mydb", "Database name")
+	pflag.String("database.name", "lumeweb_portal", "Database name")
+	pflag.String("database.path", "./db.sqlite", "Database path for SQLite")
 	pflag.Parse()
 
 	err := viper.BindPFlags(pflag.CommandLine)
