@@ -53,7 +53,7 @@ func Init() {
 	}
 
 	// Automatically migrate the database schema based on the model definitions.
-	err = db.Migrator().AutoMigrate(&model.Account{}, &model.Key{}, &model.KeyChallenge{})
+	err = db.Migrator().AutoMigrate(&model.Account{}, &model.Key{}, &model.KeyChallenge{}, &model.LoginSession{})
 	if err != nil {
 		panic(fmt.Errorf("Database setup failed database type: %s \n", err))
 	}
