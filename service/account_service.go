@@ -10,7 +10,7 @@ import (
 )
 
 type AccountService struct {
-	ctx iris.Context
+	Ctx iris.Context
 }
 
 type RegisterRequest struct {
@@ -34,15 +34,15 @@ func hashPassword(password string) (string, error) {
 func (a *AccountService) PostRegister() {
 	var r RegisterRequest
 
-	if err := a.ctx.ReadJSON(&r); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, err)
+	if err := a.Ctx.ReadJSON(&r); err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
 
 	// Hash the password before saving it to the database.
 	hashedPassword, err := hashPassword(r.Password)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, err)
+		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
 		return
 	}
 
@@ -52,12 +52,12 @@ func (a *AccountService) PostRegister() {
 	if err == nil {
 		// An account with the same email address already exists.
 		// Return an error response to the client.
-		a.ctx.StopWithError(iris.StatusConflict, errors.New("an account with this email address already exists"))
+		a.Ctx.StopWithError(iris.StatusConflict, errors.New("an account with this email address already exists"))
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		// An unexpected error occurred while querying the database.
 		// Return an error response to the client.
-		a.ctx.StopWithError(iris.StatusInternalServerError, err)
+		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
 		return
 	}
 
@@ -70,10 +70,10 @@ func (a *AccountService) PostRegister() {
 	// Save the new account to the database.
 	err = db.Get().Create(&account).Error
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, err)
+		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
 		return
 	}
 
 	// Return a success response to the client.
-	a.ctx.StatusCode(iris.StatusCreated)
+	a.Ctx.StatusCode(iris.StatusCreated)
 }
