@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
@@ -19,7 +21,7 @@ type AccountService struct {
 type RegisterRequest struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password"`
-	Pubkey   []byte `json:"pubkey"`
+	Pubkey   string `json:"pubkey"`
 }
 
 func init() {
@@ -32,10 +34,22 @@ func ValidateRegisterRequest(structLevel validator.StructLevel) {
 
 	request := structLevel.Current().Interface().(RegisterRequest)
 
-	if len(request.Pubkey) == 0 && len(request.Password) == 0 {
-		structLevel.ReportError(reflect.ValueOf(request.Email), "Email", "email", "emailorpubkey", "")
-		structLevel.ReportError(reflect.ValueOf(request.Pubkey), "Pubkey", "pubkey", "emailorpubkey", "")
+	pubkey := len(request.Pubkey) == 0
+	pass := len(request.Password) == 0
+
+	if pubkey == pass {
+		structLevel.ReportError(reflect.ValueOf(request.Email), "email", "Email", "emailorpubkey", "")
+		structLevel.ReportError(reflect.ValueOf(request.Pubkey), "pubkey", "Pubkey", "emailorpubkey", "")
 	}
+
+	if !pubkey {
+		pubkeyBytes, err := hex.DecodeString(request.Pubkey)
+		if err != nil || len(pubkeyBytes) != ed25519.PublicKeySize {
+			structLevel.ReportError(reflect.ValueOf(request.Pubkey), "pubkey", "Pubkey", "pubkey", "")
+			return
+		}
+	}
+
 }
 
 func hashPassword(password string) (string, error) {
@@ -58,16 +72,9 @@ func (a *AccountService) PostRegister() {
 		return
 	}
 
-	// Hash the password before saving it to the database.
-	hashedPassword, err := hashPassword(r.Password)
-	if err != nil {
-		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
-		return
-	}
-
 	// Check if an account with the same email address already exists.
 	existingAccount := model.Account{}
-	err = db.Get().Where("email = ?", r.Email).First(&existingAccount).Error
+	err := db.Get().Where("email = ?", r.Email).First(&existingAccount).Error
 	if err == nil {
 		// An account with the same email address already exists.
 		// Return an error response to the client.
@@ -82,12 +89,35 @@ func (a *AccountService) PostRegister() {
 
 	// Create a new Account model with the provided email and hashed password.
 	account := model.Account{
-		Email:    r.Email,
-		Password: &hashedPassword,
+		Email: r.Email,
 	}
 
-	// Save the new account to the database.
-	err = db.Get().Create(&account).Error
+	// Hash the password before saving it to the database.
+	if len(r.Password) > 0 {
+		hashedPassword, err := hashPassword(r.Password)
+		if err != nil {
+			a.Ctx.StopWithError(iris.StatusInternalServerError, err)
+			return
+		}
+
+		account.Password = &hashedPassword
+	}
+
+	err = db.Get().Transaction(func(tx *gorm.DB) error {
+		// do some database operations in the transaction (use 'tx' from this point, not 'db')
+		if err := tx.Create(&account).Error; err != nil {
+			return err
+		}
+
+		if len(r.Pubkey) > 0 {
+			if err := tx.Create(&model.Key{Account: account, Pubkey: r.Pubkey}).Error; err != nil {
+				return err
+			}
+		}
+
+		// return nil will commit the whole transaction
+		return nil
+	})
 	if err != nil {
 		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
 		return
