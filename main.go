@@ -58,7 +58,7 @@ func main() {
 		app.Handle(new(service.AuthService))
 	})
 
-	config := swagger.Config{
+	swaggerConfig := swagger.Config{
 		// The url pointing to API definition.
 		URL:          "http://localhost:8080/swagger/doc.json",
 		DeepLinking:  true,
@@ -67,7 +67,7 @@ func main() {
 		// The UI prefix URL (see route).
 		Prefix: "/swagger",
 	}
-	swaggerUI := swagger.Handler(swaggerFiles.Handler, config)
+	swaggerUI := swagger.Handler(swaggerFiles.Handler, swaggerConfig)
 
 	app.Get("/swagger", swaggerUI)
 	// And the wildcard one for index.html, *.js, *.css and e.t.c.
@@ -77,5 +77,10 @@ func main() {
 	//go renterd.Main()
 
 	// Start the Iris app and listen for incoming requests on port 80
-	log.Fatal(app.Listen(":80"))
+	log.Fatal(app.Listen(":8080", func(app *iris.Application) {
+		routes := app.GetRoutes()
+		for _, route := range routes {
+			log.Println(route)
+		}
+	}))
 }
