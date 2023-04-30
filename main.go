@@ -17,19 +17,19 @@ import (
 //go:embed app/*
 var embedFrontend embed.FS
 
-// @title           Lume Web Portal
-// @version         1.0
-// @description     A decentralized data storage portal for the open web
+//	@title			Lume Web Portal
+//	@version		1.0
+//	@description	A decentralized data storage portal for the open web
 
-// @contact.name   Lume Web Project
-// @contact.url    https://lumeweb.com
-// @contact.email  contact@lumeweb.com
+//	@contact.name	Lume Web Project
+//	@contact.url	https://lumeweb.com
+//	@contact.email	contact@lumeweb.com
 
-// @license.name  MIT
-// @license.url   https://opensource.org/license/mit/
+//	@license.name	MIT
+//	@license.url	https://opensource.org/license/mit/
 
-// @externalDocs.description  OpenAPI
-// @externalDocs.url          https://swagger.io/resources/open-api/
+//	@externalDocs.description	OpenAPI
+//	@externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
 	// Initialize the configuration settings
 	config.Init()
