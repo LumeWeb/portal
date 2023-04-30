@@ -168,7 +168,7 @@ func (a *AuthService) PostLogin() {
 	}
 }
 
-// PostChallenge handles the POST /api/auth/pubkey-challenge request to generate a challenge for a user's public key.
+// PostChallenge handles the POST /api/auth/pubkey/challenge request to generate a challenge for a user's public key.
 func (a *AuthService) PostPubkeyChallenge() {
 	var r LoginRequest
 
@@ -199,7 +199,7 @@ func (a *AuthService) PostPubkeyChallenge() {
 	}
 }
 
-// PostKeyLogin handles the POST /api/auth/pubkey-login request to authenticate a user using a public key challenge and return a JWT token.
+// PostKeyLogin handles the POST /api/auth/pubkey/login request to authenticate a user using a public key challenge and return a JWT token.
 func (a *AuthService) PostPubkeyLogin() {
 	var r PubkeyLoginRequest
 
