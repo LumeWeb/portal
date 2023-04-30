@@ -7,8 +7,9 @@ import (
 
 type KeyChallenge struct {
 	gorm.Model
-	ID         uint    `gorm:"primaryKey"`
-	Account    Account `gorm:"foreignKey:AccountID"`
-	Challenge  string  `gorm:"not null"`
+	ID         uint `gorm:"primaryKey"`
+	AccountID  uint
+	Account    Account
+	Challenge  string `gorm:"not null"`
 	Expiration time.Time
 }

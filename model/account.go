@@ -12,6 +12,6 @@ type Account struct {
 	Password    *string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	LoginTokens []LoginSession `gorm:"references:ID"`
-	Keys        []Key          `gorm:"references:ID"`
+	LoginTokens []LoginSession
+	Keys        []Key
 }

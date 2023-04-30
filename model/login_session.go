@@ -7,9 +7,10 @@ import (
 
 type LoginSession struct {
 	gorm.Model
-	ID         uint    `gorm:"primaryKey"`
-	Token      string  `gorm:"uniqueIndex"`
-	Account    Account `gorm:"foreignKey:AccountID"`
+	ID         uint `gorm:"primaryKey"`
+	AccountID  uint
+	Token      string `gorm:"uniqueIndex"`
+	Account    Account
 	Expiration time.Time
 	CreatedAt  time.Time
 	UpdatedAt  time.Time

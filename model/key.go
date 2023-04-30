@@ -7,8 +7,9 @@ import (
 
 type Key struct {
 	gorm.Model
-	ID         uint    `gorm:"primaryKey"`
-	Account    Account `gorm:"references:ID"`
+	ID         uint `gorm:"primaryKey"`
+	AccountID  uint
+	Account    Account
 	PublicKey  string
 	PrivateKey string
 	CreatedAt  time.Time
