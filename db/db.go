@@ -27,6 +27,7 @@ func Init() {
 	dbUser := viper.GetString("database.user")
 	dbPassword := viper.GetString("database.password")
 	dbName := viper.GetString("database.name")
+	dbPath := viper.GetString("database.path")
 
 	var err error
 	var dsn string
@@ -41,7 +42,7 @@ func Init() {
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	// Connect to a SQLite database.
 	case "sqlite":
-		db, err = gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+		db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	// If the database type is unsupported, panic.
 	default:
 		panic(fmt.Errorf("Unsupported database type: %s \n", dbType))
