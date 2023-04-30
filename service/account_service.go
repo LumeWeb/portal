@@ -4,9 +4,12 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	_validator "git.lumeweb.com/LumeWeb/portal/validator"
+	"github.com/go-playground/validator/v10"
 	"github.com/kataras/iris/v12"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"reflect"
 )
 
 type AccountService struct {
@@ -14,9 +17,25 @@ type AccountService struct {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
+	Email    string `json:"email" validate:"required"`
 	Password string `json:"password"`
 	Pubkey   []byte `json:"pubkey"`
+}
+
+func init() {
+	jsonValidator := _validator.Get()
+
+	jsonValidator.RegisterStructValidation(ValidateRegisterRequest, RegisterRequest{})
+}
+
+func ValidateRegisterRequest(structLevel validator.StructLevel) {
+
+	request := structLevel.Current().Interface().(RegisterRequest)
+
+	if len(request.Pubkey) == 0 && len(request.Password) == 0 {
+		structLevel.ReportError(reflect.ValueOf(request.Email), "Email", "email", "emailorpubkey", "")
+		structLevel.ReportError(reflect.ValueOf(request.Pubkey), "Pubkey", "pubkey", "emailorpubkey", "")
+	}
 }
 
 func hashPassword(password string) (string, error) {

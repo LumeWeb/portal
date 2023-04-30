@@ -6,6 +6,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/service"
+	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
@@ -39,6 +40,8 @@ func main() {
 
 	// Create a new Iris app instance
 	app := iris.New()
+
+	app.Validator = validator.Get()
 
 	// Enable Gzip compression for responses
 	app.Use(iris.Compression)
