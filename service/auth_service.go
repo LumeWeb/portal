@@ -23,7 +23,7 @@ func init() {
 }
 
 type AuthService struct {
-	ctx iris.Context
+	Ctx iris.Context
 }
 
 type LoginRequest struct {
@@ -136,33 +136,33 @@ func (a *AuthService) PostLogin() {
 	var r LoginRequest
 
 	// Read the login request from the client.
-	if err := a.ctx.ReadJSON(&r); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, err)
+	if err := a.Ctx.ReadJSON(&r); err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
 
 	// Retrieve the account for the given email.
 	account := model.Account{}
 	if err := db.Get().Where("email = ?", r.Email).First(&account).Error; err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
 		return
 	}
 
 	// Verify the provided password against the hashed password stored in the database.
 	if err := verifyPassword(*account.Password, r.Password); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
 		return
 	}
 
 	// Generate a JWT token for the authenticated user.
 	token, err := generateAndSaveLoginToken(account.ID, 24*time.Hour)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, fmt.Errorf("failed to generate token: %s", err))
+		a.Ctx.StopWithError(iris.StatusInternalServerError, fmt.Errorf("failed to generate token: %s", err))
 		return
 	}
 
 	// Return the JWT token to the client.
-	err = a.ctx.JSON(&LoginResponse{Token: token})
+	err = a.Ctx.JSON(&LoginResponse{Token: token})
 	if err != nil {
 		panic(fmt.Errorf("Error with login attempt: %s \n", err))
 	}
@@ -173,27 +173,27 @@ func (a *AuthService) PostPubkeyChallenge() {
 	var r LoginRequest
 
 	// Read the login request from the client.
-	if err := a.ctx.ReadJSON(&r); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, err)
+	if err := a.Ctx.ReadJSON(&r); err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
 
 	// Retrieve the account for the given email.
 	account := model.Account{}
 	if err := db.Get().Where("email = ?", r.Email).First(&account).Error; err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
 		return
 	}
 
 	// Generate a random challenge string.
 	challenge, err := generateAndSaveChallengeToken(account.ID, time.Minute)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, errors.New("failed to generate challenge"))
+		a.Ctx.StopWithError(iris.StatusInternalServerError, errors.New("failed to generate challenge"))
 		return
 	}
 
 	// Return the challenge to the client.
-	err = a.ctx.JSON(&ChallengeResponse{Challenge: challenge})
+	err = a.Ctx.JSON(&ChallengeResponse{Challenge: challenge})
 	if err != nil {
 		panic(fmt.Errorf("Error with challenge request: %s \n", err))
 	}
@@ -204,33 +204,33 @@ func (a *AuthService) PostPubkeyLogin() {
 	var r PubkeyLoginRequest
 
 	// Read the key login request from the client.
-	if err := a.ctx.ReadJSON(&r); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, err)
+	if err := a.Ctx.ReadJSON(&r); err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
 
 	// Retrieve the key challenge for the given challenge.
 	challenge := model.KeyChallenge{}
 	if err := db.Get().Where("challenge = ?", r.Challenge).Preload("Key").First(&challenge).Error; err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
 		return
 	}
 
 	verifiedToken, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Challenge), blocklist)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
 		return
 	}
 
 	rawPubKey, err := hex.DecodeString(r.Pubkey)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid pubkey"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid pubkey"))
 		return
 	}
 
 	rawSignature, err := hex.DecodeString(r.Signature)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid signature"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid signature"))
 		return
 	}
 
@@ -238,29 +238,29 @@ func (a *AuthService) PostPubkeyLogin() {
 
 	// Verify the challenge signature.
 	if !ed25519.Verify(publicKeyDecoded, []byte(r.Challenge), rawSignature) {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid challenge"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid challenge"))
 	}
 
 	// Generate a JWT token for the authenticated user.
 	token, err := generateAndSaveLoginToken(challenge.AccountID, 24*time.Hour)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to generate token"))
+		a.Ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to generate token"))
 		return
 	}
 
 	err = blocklist.InvalidateToken(verifiedToken.Token, verifiedToken.StandardClaims)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to invalidate token"))
+		a.Ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to invalidate token"))
 		return
 	}
 
 	if err := db.Get().Delete(&challenge).Error; err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("failed to delete key challenge"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("failed to delete key challenge"))
 		return
 	}
 
 	// Return the JWT token to the client.
-	err = a.ctx.JSON(&LoginResponse{Token: token})
+	err = a.Ctx.JSON(&LoginResponse{Token: token})
 	if err != nil {
 		panic(fmt.Errorf("Error with login attempt: %s \n", err))
 	}
@@ -272,15 +272,15 @@ func (a *AuthService) PostLogout() {
 	var r LogoutRequest
 
 	// Read the logout request from the client.
-	if err := a.ctx.ReadJSON(&r); err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, err)
+	if err := a.Ctx.ReadJSON(&r); err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
 
 	// Verify the provided token.
 	claims, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Token), blocklist)
 	if err != nil {
-		a.ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid token"))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid token"))
 		return
 	}
 
@@ -290,5 +290,5 @@ func (a *AuthService) PostLogout() {
 	}
 
 	// Return a success response to the client.
-	a.ctx.StatusCode(iris.StatusNoContent)
+	a.Ctx.StatusCode(iris.StatusNoContent)
 }
