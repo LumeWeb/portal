@@ -1,0 +1,14 @@
+[package]
+name = "bao"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+abao = { version = "0.2.0", features = ["group_size_256k", "tokio_io"], default-features = false }
+wasmedge-bindgen = "0.4.1"
+wasmedge-bindgen-macro = "0.4.1"
+
+[lib]
+name = "bao"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
