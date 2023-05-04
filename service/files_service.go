@@ -35,7 +35,7 @@ func InitFiles() {
 func (f *FilesService) PostUpload() {
 	ctx := f.Ctx
 
-	file, _, err := f.Ctx.FormFile("file")
+	file, meta, err := f.Ctx.FormFile("file")
 	if internalErrorCustom(ctx, err, errors.New("invalid file data")) {
 		return
 	}
@@ -49,7 +49,7 @@ func (f *FilesService) PostUpload() {
 
 	hashBytes := blake3.Sum256(buf.Bytes())
 	hashHex := hex.EncodeToString(hashBytes[:])
-	fileCid, err := cid.EncodeHashSimple(hashBytes)
+	fileCid, err := cid.EncodeHashSimple(hashBytes, uint64(meta.Size))
 
 	if internalError(ctx, err) {
 		return
