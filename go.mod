@@ -4,15 +4,19 @@ go 1.18
 
 require (
 	github.com/go-playground/validator/v10 v10.13.0
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/iris-contrib/swagger v0.0.0-20230311205341-32127a753a68
 	github.com/joomcode/errorx v1.1.0
 	github.com/kataras/iris/v12 v12.2.0
 	github.com/kataras/jwt v0.1.8
+	github.com/multiformats/go-multibase v0.2.0
+	github.com/second-state/WasmEdge-go v0.12.0
+	github.com/second-state/wasmedge-bindgen v0.4.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/swaggo/swag v1.16.1
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe
-	go.sia.tech/core v0.1.11
+	go.sia.tech/core v0.1.12-0.20230428165632-55bb40d9006f
 	go.sia.tech/jape v0.9.0
 	go.sia.tech/renterd v0.3.0-beta
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca
@@ -23,6 +27,7 @@ require (
 	gorm.io/driver/mysql v1.5.0
 	gorm.io/driver/sqlite v1.5.0
 	gorm.io/gorm v1.25.0
+	lukechampine.com/blake3 v1.1.7
 	lukechampine.com/frand v1.4.2
 )
 
@@ -79,7 +84,7 @@ require (
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/klauspost/reedsolomon v1.11.7 // indirect
-	github.com/leodido/go-urn v1.2.3 // indirect
+	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailgun/raymond/v2 v2.0.48 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -87,6 +92,9 @@ require (
 	github.com/mediocregopher/radix/v3 v3.8.1 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.23 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/multiformats/go-base32 v0.1.0 // indirect
+	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/nats-io/nats.go v1.25.0 // indirect
 	github.com/nats-io/nkeys v0.4.4 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
@@ -119,17 +127,17 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e // indirect
 	gitlab.com/NebulousLabs/siamux v0.0.2-0.20220630142132-142a1443a259 // indirect
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.41.0 // indirect
-	go.opentelemetry.io/otel v1.15.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.15.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.15.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.15.0 // indirect
-	go.opentelemetry.io/otel/metric v0.38.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.15.0 // indirect
-	go.opentelemetry.io/otel/trace v1.15.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.41.1 // indirect
+	go.opentelemetry.io/otel v1.15.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.15.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.15.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.15.1 // indirect
+	go.opentelemetry.io/otel/metric v0.38.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.15.1 // indirect
+	go.opentelemetry.io/otel/trace v1.15.1 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.sia.tech/mux v1.2.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
@@ -143,3 +151,19 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace go.uber.org/multierr => go.uber.org/multierr v1.9.0
+
+replace (
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
+	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.14.0
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry => go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.12.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace => go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.12.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp => go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.12.0
+	go.opentelemetry.io/otel/metric => go.opentelemetry.io/otel/metric v0.37.0
+	go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.12.0
+	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.14.0
+	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v0.19.0
+)
+
+replace go.sia.tech/renterd => github.com/SiaFoundation/renterd v0.3.0-beta.0.20230503134537-9a6bd1c83cef
