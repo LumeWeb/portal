@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
+	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/service"
 	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
@@ -15,6 +16,7 @@ import (
 )
 
 // Embed a directory of static files for serving from the app's root path
+//
 //go:embed app/*
 var embedFrontend embed.FS
 
@@ -43,6 +45,8 @@ func main() {
 
 	renterd.Ready()
 
+	service.InitFiles()
+
 	// Create a new Iris app instance
 	app := iris.New()
 
@@ -64,6 +68,10 @@ func main() {
 
 	mvc.Configure(v1.Party("/auth"), func(app *mvc.Application) {
 		app.Handle(new(service.AuthService))
+	})
+
+	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
+		app.Handle(new(service.FilesService))
 	})
 
 	swaggerConfig := swagger.Config{
