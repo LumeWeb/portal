@@ -84,12 +84,17 @@ func (f *FilesService) PostUpload() {
 	}
 
 	ret, err := client.R().SetBody(file).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
+	if ret.StatusCode() != 200 {
+		err = errors.New(string(ret.Body()))
+	}
 	if internalError(ctx, err) {
 		return
 	}
-	fmt.Println(ret)
 
-	_, err = client.R().SetBody(tree).Put(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
+	ret, err = client.R().SetBody(tree).Put(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
+	if ret.StatusCode() != 200 {
+		err = errors.New(string(ret.Body()))
+	}
 	if internalError(ctx, err) {
 		return
 	}
