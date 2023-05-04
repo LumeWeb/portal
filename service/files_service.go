@@ -40,17 +40,24 @@ func (f *FilesService) PostUpload() {
 		return
 	}
 
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(file)
+	buf, err := io.ReadAll(file)
+	if internalError(ctx, err) {
+		return
+	}
 
 	if internalErrorCustom(ctx, err, errors.New("failed to read file data")) {
 		return
 	}
 
-	hashBytes := blake3.Sum256(buf.Bytes())
+	hashBytes := blake3.Sum256(buf)
 	hashHex := hex.EncodeToString(hashBytes[:])
 	fileCid, err := cid.EncodeHashSimple(hashBytes, uint64(meta.Size))
 
+	if internalError(ctx, err) {
+		return
+	}
+
+	_, err = file.Seek(0, io.SeekStart)
 	if internalError(ctx, err) {
 		return
 	}
@@ -67,7 +74,7 @@ func (f *FilesService) PostUpload() {
 		return
 	}
 
-	tree, err := bao.ComputeBaoTree(file)
+	tree, err := bao.ComputeBaoTree(bytes.NewReader(buf))
 	if internalError(ctx, err) {
 		return
 	}
@@ -83,7 +90,11 @@ func (f *FilesService) PostUpload() {
 		return
 	}
 
-	ret, err := client.R().SetBody(file).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
+	if internalError(ctx, err) {
+		return
+	}
+
+	ret, err := client.R().SetBody(buf).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
 	if ret.StatusCode() != 200 {
 		err = errors.New(string(ret.Body()))
 	}
