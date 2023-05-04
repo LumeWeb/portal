@@ -9,8 +9,8 @@ type LoginSession struct {
 	gorm.Model
 	ID         uint `gorm:"primaryKey"`
 	AccountID  uint
-	Token      string `gorm:"uniqueIndex"`
 	Account    Account
+	Token      string `gorm:"uniqueIndex"`
 	Expiration time.Time
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
