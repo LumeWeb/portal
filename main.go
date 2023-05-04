@@ -29,14 +29,19 @@ var embedFrontend embed.FS
 //	@license.name	MIT
 //	@license.url	https://opensource.org/license/mit/
 
-//	@externalDocs.description	OpenAPI
-//	@externalDocs.url			https://swagger.io/resources/open-api/
+// @externalDocs.description	OpenAPI
+// @externalDocs.url			https://swagger.io/resources/open-api/
 func main() {
 	// Initialize the configuration settings
 	config.Init()
 
 	// Initialize the database connection
 	db.Init()
+
+	// Start the renterd process in a goroutine
+	go renterd.Main()
+
+	renterd.Ready()
 
 	// Create a new Iris app instance
 	app := iris.New()
@@ -75,9 +80,6 @@ func main() {
 	app.Get("/swagger", swaggerUI)
 	// And the wildcard one for index.html, *.js, *.css and e.t.c.
 	app.Get("/swagger/{any:path}", swaggerUI)
-
-	// Start the renterd process in a goroutine
-	//go renterd.Main()
 
 	// Start the Iris app and listen for incoming requests on port 80
 	log.Fatal(app.Listen(":8080", func(app *iris.Application) {
