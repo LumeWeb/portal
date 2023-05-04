@@ -47,7 +47,10 @@ var (
 
 	// fetched once, then cached
 	apiPassword *string
+	apiAddr     *string
 	seed        *types.PrivateKey
+	ready       = make(chan bool)
+	readyFired  = false
 )
 
 func check(context string, err error) {
@@ -56,7 +59,7 @@ func check(context string, err error) {
 	}
 }
 
-func getAPIPassword() string {
+func GetAPIPassword() string {
 	if apiPassword == nil {
 		pw := os.Getenv("RENTERD_API_PASSWORD")
 		if pw != "" {
@@ -76,7 +79,7 @@ func getAPIPassword() string {
 	return *apiPassword
 }
 
-func getSeed() types.PrivateKey {
+func GetSeed() types.PrivateKey {
 	if seed == nil {
 		phrase := os.Getenv("RENTERD_SEED")
 		if phrase != "" {
@@ -156,12 +159,14 @@ func Main() {
 		apiPassword string
 		node.WorkerConfig
 	}
+	workerCfg.ContractLockTimeout = 30 * time.Second
+
 	var autopilotCfg struct {
 		enabled bool
 		node.AutopilotConfig
 	}
 
-	apiAddr := flag.String("http", build.DefaultAPIAddress, "address to serve API on")
+	apiAddr = flag.String("http", build.DefaultAPIAddress, "address to serve API on")
 	tracingEnabled := flag.Bool("tracing-enabled", false, "Enables tracing through OpenTelemetry. If RENTERD_TRACING_ENABLED is set, it overwrites the CLI flag's value. Tracing can be configured using the standard OpenTelemetry environment variables. https://github.com/open-telemetry/opentelemetry-specification/blob/v1.8.0/specification/protocol/exporter.md")
 	tracingServiceInstanceId := flag.String("tracing-service-instance-id", "cluster", "ID of the service instance used for tracing. If RENTERD_TRACING_SERVICE_INSTANCE_ID is set, it overwrites the CLI flag's value.")
 	dir := flag.String("dir", ".", "directory to store node state in")
@@ -179,7 +184,8 @@ func Main() {
 	flag.DurationVar(&workerCfg.SessionTTL, "worker.sessionTTL", 2*time.Minute, "the time a host session is valid for before reconnecting")
 	flag.DurationVar(&workerCfg.DownloadSectorTimeout, "worker.downloadSectorTimeout", 3*time.Second, "timeout applied to sector downloads when downloading a slab")
 	flag.DurationVar(&workerCfg.UploadSectorTimeout, "worker.uploadSectorTimeout", 5*time.Second, "timeout applied to sector uploads when uploading a slab")
-	flag.IntVar(&workerCfg.UploadMaxOverdrive, "worker.uploadMaxOverdrive", 5, "maximum number of active overdrive workers when uploading a slab")
+	flag.Uint64Var(&workerCfg.DownloadMaxOverdrive, "worker.downloadMaxOverdrive", 5, "maximum number of active overdrive workers when downloading a slab")
+	flag.Uint64Var(&workerCfg.UploadMaxOverdrive, "worker.uploadMaxOverdrive", 5, "maximum number of active overdrive workers when uploading a slab")
 	flag.DurationVar(&autopilotCfg.AccountsRefillInterval, "autopilot.accountRefillInterval", defaultAccountRefillInterval, "interval at which the autopilot checks the workers' accounts balance and refills them if necessary")
 	flag.BoolVar(&autopilotCfg.enabled, "autopilot.enabled", true, "enable/disable the autopilot - can be overwritten using the RENTERD_AUTOPILOT_ENABLED environment variable")
 	flag.DurationVar(&autopilotCfg.Heartbeat, "autopilot.heartbeat", 10*time.Minute, "interval at which autopilot loop runs")
@@ -246,7 +252,7 @@ func Main() {
 	})
 	*apiAddr = "http://" + l.Addr().String()
 
-	auth := jape.BasicAuth(getAPIPassword())
+	auth := jape.BasicAuth(GetAPIPassword())
 	mux := treeMux{
 		h:   createUIHandler(),
 		sub: make(map[string]treeMux),
@@ -262,7 +268,7 @@ func Main() {
 
 	busAddr, busPassword := busCfg.remoteAddr, busCfg.apiPassword
 	if busAddr == "" {
-		b, shutdownFn, err := node.NewBus(busCfg.BusConfig, *dir, getSeed(), logger)
+		b, shutdownFn, err := node.NewBus(busCfg.BusConfig, *dir, GetSeed(), logger)
 		if err != nil {
 			log.Fatal("failed to create bus, err: ", err)
 		}
@@ -270,7 +276,7 @@ func Main() {
 
 		mux.sub["/api/bus"] = treeMux{h: auth(b)}
 		busAddr = *apiAddr + "/api/bus"
-		busPassword = getAPIPassword()
+		busPassword = GetAPIPassword()
 	} else {
 		fmt.Println("connecting to remote bus at", busAddr)
 	}
@@ -280,7 +286,7 @@ func Main() {
 	workerAddrs, workerPassword := workerCfg.remoteAddrs, workerCfg.apiPassword
 	if workerAddrs == "" {
 		if workerCfg.enabled {
-			w, shutdownFn, err := node.NewWorker(workerCfg.WorkerConfig, bc, getSeed(), logger)
+			w, shutdownFn, err := node.NewWorker(workerCfg.WorkerConfig, bc, GetSeed(), logger)
 			if err != nil {
 				log.Fatal("failed to create worker", err)
 			}
@@ -288,7 +294,7 @@ func Main() {
 
 			mux.sub["/api/worker"] = treeMux{h: auth(w)}
 			workerAddr := *apiAddr + "/api/worker"
-			workerPassword = getAPIPassword()
+			workerPassword = GetAPIPassword()
 			workers = append(workers, worker.NewClient(workerAddr, workerPassword))
 		}
 	} else {
@@ -337,6 +343,9 @@ func Main() {
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	ready <- true
+
 	select {
 	case <-signalCh:
 		log.Println("Shutting down...")
@@ -358,4 +367,18 @@ func Main() {
 			log.Fatalf("Shutdown function %v failed: %v", i+1, err)
 		}
 	}
+}
+
+func GetApiAddr() string {
+	return *apiAddr
+}
+
+func Ready() bool {
+	if readyFired {
+		return true
+	}
+
+	readyFired = <-ready
+
+	return true
 }
