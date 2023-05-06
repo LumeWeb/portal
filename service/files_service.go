@@ -30,6 +30,7 @@ func InitFiles() {
 	client = resty.New()
 	client.SetBaseURL(renterd.GetApiAddr() + "/api")
 	client.SetBasicAuth("", renterd.GetAPIPassword())
+	client.SetDisableWarn(true)
 }
 
 func (f *FilesService) PostUpload() {
