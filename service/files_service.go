@@ -52,7 +52,7 @@ func (f *FilesService) PostUpload() {
 
 	hashBytes := blake3.Sum256(buf)
 	hashHex := hex.EncodeToString(hashBytes[:])
-	fileCid, err := cid.EncodeHashSimple(hashBytes, uint64(meta.Size))
+	fileCid, err := cid.Encode(hashBytes, uint64(meta.Size))
 
 	if internalError(ctx, err) {
 		return
