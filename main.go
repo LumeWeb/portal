@@ -90,10 +90,16 @@ func main() {
 	app.Get("/swagger/{any:path}", swaggerUI)
 
 	// Start the Iris app and listen for incoming requests on port 80
-	log.Fatal(app.Listen(":8080", func(app *iris.Application) {
+	err := app.Listen(":8080", func(app *iris.Application) {
 		routes := app.GetRoutes()
 		for _, route := range routes {
 			log.Println(route)
 		}
-	}))
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	renterd.ShutdownComplete()
 }

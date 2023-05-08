@@ -46,11 +46,13 @@ var (
 	builddate = "?"
 
 	// fetched once, then cached
-	apiPassword *string
-	apiAddr     *string
-	seed        *types.PrivateKey
-	ready       = make(chan bool)
-	readyFired  = false
+	apiPassword   *string
+	apiAddr       *string
+	seed          *types.PrivateKey
+	ready         = make(chan bool)
+	readyFired    = false
+	shutdown      = make(chan bool)
+	shutdownFired = false
 )
 
 func check(context string, err error) {
@@ -367,6 +369,8 @@ func Main() {
 			log.Fatalf("Shutdown function %v failed: %v", i+1, err)
 		}
 	}
+
+	shutdown <- true
 }
 
 func GetApiAddr() string {
@@ -379,6 +383,16 @@ func Ready() bool {
 	}
 
 	readyFired = <-ready
+
+	return true
+}
+
+func ShutdownComplete() bool {
+	if shutdownFired {
+		return true
+	}
+
+	shutdownFired = <-shutdown
 
 	return true
 }
