@@ -123,17 +123,66 @@ func (f *FilesService) PostUpload() {
 	ctx.JSON(&UploadResponse{Cid: fileCid})
 }
 
-func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
+func (f *FilesService) GetDownload() {
+	ctx := f.Ctx
+
+	cidString := ctx.URLParam("cid")
+
+	_, err := cid.Valid(cidString)
+	if sendError(ctx, err, iris.StatusBadRequest) {
+		return
+	}
+
+	cidObject, _ := cid.Decode(cidString)
+	hashHex := hex.EncodeToString(cidObject.Hash[:])
+
+	result := db.Get().Table("uploads").Where("hash = ?", hashHex).Row()
+
+	if result.Err() != nil {
+		sendError(ctx, result.Err(), iris.StatusNotFound)
+		return
+	}
+
+	fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hashHex))
+	if err != nil {
+		if fetch.StatusCode() == 404 {
+			sendError(ctx, err, iris.StatusNotFound)
+			return
+		}
+		internalError(ctx, err)
+		return
+	}
+
+	ctx.Header("Transfer-Encoding", "chunked")
+
+	internalError(ctx, err)
+
+	err = ctx.StreamWriter(func(w io.Writer) error {
+		_, err = io.Copy(w, fetch.RawBody())
+		_ = fetch.RawBody().Close()
+		return err
+	})
+	internalError(ctx, err)
+
+}
+
+func sendErrorCustom(ctx iris.Context, err error, customError error, irisError int) bool {
 	if err != nil {
 		if customError != nil {
 			err = customError
 		}
-		ctx.StopWithError(iris.StatusInternalServerError, err)
+		ctx.StopWithError(irisError, err)
 		return true
 	}
 
 	return false
 }
 func internalError(ctx iris.Context, err error) bool {
-	return internalErrorCustom(ctx, err, nil)
+	return sendErrorCustom(ctx, err, nil, iris.StatusInternalServerError)
+}
+func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
+	return sendErrorCustom(ctx, err, customError, iris.StatusInternalServerError)
+}
+func sendError(ctx iris.Context, err error, irisError int) bool {
+	return sendErrorCustom(ctx, err, nil, irisError)
 }
