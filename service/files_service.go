@@ -155,7 +155,9 @@ func (f *FilesService) GetDownload() {
 
 	ctx.Header("Transfer-Encoding", "chunked")
 
-	internalError(ctx, err)
+	if internalError(ctx, err) {
+		return
+	}
 
 	err = ctx.StreamWriter(func(w io.Writer) error {
 		_, err = io.Copy(w, fetch.RawBody())
