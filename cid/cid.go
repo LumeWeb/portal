@@ -14,7 +14,14 @@ type CID struct {
 	Size uint64
 }
 
-func Encode(hash [32]byte, size uint64) (string, error) {
+func Encode(hash []byte, size uint64) (string, error) {
+	var hashBytes [32]byte
+	copy(hashBytes[:], hash)
+
+	return EncodeFixed(hashBytes, size)
+}
+
+func EncodeFixed(hash [32]byte, size uint64) (string, error) {
 	sizeBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(sizeBytes, size)
 
