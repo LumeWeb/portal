@@ -63,11 +63,11 @@ func main() {
 
 	// Register the AccountController with the MVC framework and attach it to the "/api/account" path
 	mvc.Configure(v1.Party("/account"), func(app *mvc.Application) {
-		app.Handle(new(service.AccountService))
+		app.Handle(new(controller.AccountController))
 	})
 
 	mvc.Configure(v1.Party("/auth"), func(app *mvc.Application) {
-		app.Handle(new(service.AuthService))
+		app.Handle(new(controller.AuthController))
 	})
 
 	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
