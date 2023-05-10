@@ -15,6 +15,10 @@ type CID struct {
 	Size uint64
 }
 
+func (c CID) StringHash() string {
+	return hex.EncodeToString(c.Hash[:])
+}
+
 func Encode(hash []byte, size uint64) (string, error) {
 	var hashBytes [32]byte
 	copy(hashBytes[:], hash)
