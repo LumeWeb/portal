@@ -1,4 +1,4 @@
-package service
+package controller
 
 import (
 	"crypto/ed25519"
@@ -22,7 +22,7 @@ func init() {
 	blocklist = jwt.NewBlocklist(1 * time.Hour)
 }
 
-type AuthService struct {
+type AuthController struct {
 	Ctx iris.Context
 }
 
@@ -132,7 +132,7 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 }
 
 // PostLogin handles the POST /api/auth/login request to authenticate a user and return a JWT token.
-func (a *AuthService) PostLogin() {
+func (a *AuthController) PostLogin() {
 	var r LoginRequest
 
 	// Read the login request from the client.
@@ -169,7 +169,7 @@ func (a *AuthService) PostLogin() {
 }
 
 // PostChallenge handles the POST /api/auth/pubkey/challenge request to generate a challenge for a user's public key.
-func (a *AuthService) PostPubkeyChallenge() {
+func (a *AuthController) PostPubkeyChallenge() {
 	var r LoginRequest
 
 	// Read the login request from the client.
@@ -200,7 +200,7 @@ func (a *AuthService) PostPubkeyChallenge() {
 }
 
 // PostKeyLogin handles the POST /api/auth/pubkey/login request to authenticate a user using a public key challenge and return a JWT token.
-func (a *AuthService) PostPubkeyLogin() {
+func (a *AuthController) PostPubkeyLogin() {
 	var r PubkeyLoginRequest
 
 	// Read the key login request from the client.
@@ -268,7 +268,7 @@ func (a *AuthService) PostPubkeyLogin() {
 }
 
 // PostLogout handles the POST /api/auth/logout request to invalidate a JWT token.
-func (a *AuthService) PostLogout() {
+func (a *AuthController) PostLogout() {
 	var r LogoutRequest
 
 	// Read the logout request from the client.

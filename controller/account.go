@@ -1,4 +1,4 @@
-package service
+package controller
 
 import (
 	"crypto/ed25519"
@@ -14,7 +14,7 @@ import (
 	"reflect"
 )
 
-type AccountService struct {
+type AccountController struct {
 	Ctx iris.Context
 }
 
@@ -64,7 +64,7 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func (a *AccountService) PostRegister() {
+func (a *AccountController) PostRegister() {
 	var r RegisterRequest
 
 	if err := a.Ctx.ReadJSON(&r); err != nil {

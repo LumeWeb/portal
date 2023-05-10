@@ -1,4 +1,4 @@
-package service
+package controller
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 	"lukechampine.com/blake3"
 )
 
-type FilesService struct {
+type FilesController struct {
 	Ctx iris.Context
 }
 
@@ -33,7 +33,7 @@ func InitFiles() {
 	client.SetDisableWarn(true)
 }
 
-func (f *FilesService) PostUpload() {
+func (f *FilesController) PostUpload() {
 	ctx := f.Ctx
 
 	file, meta, err := f.Ctx.FormFile("file")
@@ -52,7 +52,7 @@ func (f *FilesService) PostUpload() {
 
 	hashBytes := blake3.Sum256(buf)
 	hashHex := hex.EncodeToString(hashBytes[:])
-	fileCid, err := cid.Encode(hashBytes, uint64(meta.Size))
+	fileCid, err := cid.EncodeFixed(hashBytes, uint64(meta.Size))
 
 	if internalError(ctx, err) {
 		return
@@ -123,7 +123,7 @@ func (f *FilesService) PostUpload() {
 	ctx.JSON(&UploadResponse{Cid: fileCid})
 }
 
-func (f *FilesService) GetDownload() {
+func (f *FilesController) GetDownload() {
 	ctx := f.Ctx
 
 	cidString := ctx.URLParam("cid")

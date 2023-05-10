@@ -3,10 +3,10 @@ package main
 import (
 	"embed"
 	"git.lumeweb.com/LumeWeb/portal/config"
+	"git.lumeweb.com/LumeWeb/portal/controller"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
-	"git.lumeweb.com/LumeWeb/portal/service"
 	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
@@ -45,7 +45,7 @@ func main() {
 
 	renterd.Ready()
 
-	service.InitFiles()
+	controller.InitFiles()
 
 	// Create a new Iris app instance
 	app := iris.New()
@@ -61,7 +61,7 @@ func main() {
 	api := app.Party("/api")
 	v1 := api.Party("/v1")
 
-	// Register the AccountService with the MVC framework and attach it to the "/api/account" path
+	// Register the AccountController with the MVC framework and attach it to the "/api/account" path
 	mvc.Configure(v1.Party("/account"), func(app *mvc.Application) {
 		app.Handle(new(service.AccountService))
 	})
@@ -71,7 +71,7 @@ func main() {
 	})
 
 	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
-		app.Handle(new(service.FilesService))
+		app.Handle(new(controller.FilesController))
 	})
 
 	swaggerConfig := swagger.Config{
