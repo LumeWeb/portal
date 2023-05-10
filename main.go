@@ -7,12 +7,14 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
+	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"log"
+	"net/http"
 )
 
 // Embed a directory of static files for serving from the app's root path
@@ -45,7 +47,7 @@ func main() {
 
 	renterd.Ready()
 
-	controller.InitFiles()
+	files.Init()
 
 	// Create a new Iris app instance
 	app := iris.New()
@@ -73,6 +75,10 @@ func main() {
 	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
 		app.Handle(new(controller.FilesController))
 	})
+
+	tus := initTus()
+
+	app.Any(API_PATH+"{fileparam:path}", iris.FromStd(http.StripPrefix(API_PATH, tus)))
 
 	swaggerConfig := swagger.Config{
 		// The url pointing to API definition.
