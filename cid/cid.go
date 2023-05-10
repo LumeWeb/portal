@@ -3,6 +3,7 @@ package cid
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"github.com/multiformats/go-multibase"
 )
@@ -29,6 +30,15 @@ func EncodeFixed(hash [32]byte, size uint64) (string, error) {
 	prefixedHash = append(prefixedHash, sizeBytes...)
 
 	return multibase.Encode(multibase.Base58BTC, prefixedHash)
+}
+
+func EncodeString(hash string, size uint64) (string, error) {
+	hashBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		return "", err
+	}
+
+	return Encode(hashBytes, size)
 }
 
 func Valid(cid string) (bool, error) {
