@@ -95,3 +95,17 @@ func Upload(r io.ReadSeeker) (model.Upload, error) {
 
 	return upload, nil
 }
+func Download(hash string) (io.Reader, error) {
+	result := db.Get().Table("uploads").Where("hash = ?", hash).Row()
+
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hash))
+	if err != nil {
+		return nil, err
+	}
+
+	return fetch.RawBody(), nil
+}
