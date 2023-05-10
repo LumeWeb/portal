@@ -38,10 +38,8 @@ func (f *FilesController) PostUpload() {
 	_ = ctx.JSON(&UploadResponse{Cid: cidString})
 }
 
-func (f *FilesController) GetDownload() {
+func (f *FilesController) GetDownloadBy(cidString string) {
 	ctx := f.Ctx
-
-	cidString := ctx.URLParam("cid")
 
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
