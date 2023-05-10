@@ -1,6 +1,7 @@
 package files
 
 import (
+	"bufio"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -62,7 +63,7 @@ func Upload(r io.ReadSeeker) (model.Upload, error) {
 		return upload, errors.New("file already exists in network, but missing in database")
 	}
 
-	tree, err := bao.ComputeBaoTree(r)
+	tree, err := bao.ComputeBaoTree(bufio.NewReader(r))
 
 	if err != nil {
 		return upload, err
