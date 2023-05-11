@@ -46,7 +46,7 @@ func Upload(r io.ReadSeeker) (model.Upload, error) {
 		return upload, err
 	}
 
-	result := db.Get().Where("hash = ?", hashHex).First(&upload)
+	result := db.Get().Where(&model.Upload{Hash: hashHex}).First(&upload)
 	if (result.Error != nil && result.Error.Error() != "record not found") || result.RowsAffected > 0 {
 		err := result.Row().Scan(&upload)
 		if err != nil {
@@ -98,7 +98,7 @@ func Upload(r io.ReadSeeker) (model.Upload, error) {
 	return upload, nil
 }
 func Download(hash string) (io.Reader, error) {
-	result := db.Get().Table("uploads").Where("hash = ?", hash).Row()
+	result := db.Get().Table("uploads").Where(&model.Upload{Hash: hash}).Row()
 
 	if result.Err() != nil {
 		return nil, result.Err()
