@@ -26,7 +26,7 @@ func Init() {
 func Upload(r io.ReadSeeker) (model.Upload, error) {
 	var upload model.Upload
 
-	hasher := blake3.New(0, nil)
+	hasher := blake3.New(32, nil)
 
 	_, err := io.Copy(hasher, r)
 	if err != nil {
@@ -34,6 +34,7 @@ func Upload(r io.ReadSeeker) (model.Upload, error) {
 	}
 
 	hashBytes := hasher.Sum(nil)
+
 	hashHex := hex.EncodeToString(hashBytes[:])
 
 	if err != nil {
