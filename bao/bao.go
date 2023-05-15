@@ -23,6 +23,7 @@ type Bao interface {
 	Write(id uint32, data []byte) error
 	Finalize(id uint32) ([]byte, error)
 	Destroy(id uint32) error
+	ComputeFile(path string) ([]byte, error)
 }
 
 func init() {
@@ -88,8 +89,7 @@ func init() {
 
 }
 
-func ComputeBaoTree(reader io.Reader) ([]byte, error) {
-
+func ComputeTreeStreaming(reader io.Reader) ([]byte, error) {
 	instance, err := baoInstance.Init()
 	if err != nil {
 		return nil, err
@@ -117,6 +117,15 @@ func ComputeBaoTree(reader io.Reader) ([]byte, error) {
 			return nil, err
 		}
 	}
+}
+
+func ComputeTreeFile(file *os.File) ([]byte, error) {
+	tree, err := baoInstance.ComputeFile(file.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
 }
 
 func write(instance uint32, bytes *[]byte) error {

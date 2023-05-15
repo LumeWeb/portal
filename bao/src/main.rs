@@ -1,8 +1,11 @@
 #![feature(async_fn_in_trait)]
 #![allow(incomplete_features)]
 
+use io::Read;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::fs::{File};
+use std::io;
 use std::io::{Cursor, Write};
 use std::sync::{Arc};
 
@@ -16,7 +19,7 @@ use tonic_health::server::HealthReporter;
 
 use crate::proto::bao::bao_server::{Bao, BaoServer};
 use crate::proto::bao::WriteRequest;
-use crate::proto::google::protobuf::{BytesValue, Empty, UInt32Value};
+use crate::proto::google::protobuf::{BytesValue, Empty, StringValue, UInt32Value};
 use crate::unique_port::UniquePort;
 
 mod proto;
@@ -64,7 +67,7 @@ impl Bao for BaoService {
         let next_id = self.counter.inc() as u32;
         let tree = Vec::new();
         let cursor = Cursor::new(tree);
-        let encoder = Encoder::new(cursor);
+        let encoder = Encoder::new_outboard(cursor);
 
         let mut req = self.requests.lock();
         req.insert(next_id, encoder);
@@ -112,5 +115,37 @@ impl Bao for BaoService {
         }
 
         Ok(Response::new(Empty::default()))
+    }
+
+    async fn compute_file(&self, request: Request<StringValue>) -> Result<Response<BytesValue>, Status> {
+        let r = request.into_inner();
+        let tree = Vec::new();
+        let cursor = Cursor::new(tree);
+        let mut encoder = Encoder::new_outboard(cursor);
+        let mut input =  File::open(r.value)?;
+
+        copy_reader_to_writer(&mut input, &mut encoder)?;
+
+        let ret = encoder.finalize().unwrap();
+        let bytes = ret.as_bytes().to_vec();
+        Ok(Response::new(BytesValue { value: bytes }))
+    }
+}
+fn copy_reader_to_writer(
+    reader: &mut impl Read,
+    writer: &mut impl Write,
+) -> io::Result<u64> {
+    // At least 16 KiB is necessary to use AVX-512 with BLAKE3.
+    let mut buf = [0; 65536];
+    let mut written = 0;
+    loop {
+        let len = match reader.read(&mut buf) {
+            Ok(0) => return Ok(written),
+            Ok(len) => len,
+            Err(ref e) if e.kind() == io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e),
+        };
+        writer.write_all(&buf[..len])?;
+        written += len as u64;
     }
 }

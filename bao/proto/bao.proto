@@ -17,4 +17,5 @@ service bao {
     rpc Write(WriteRequest) returns (google.protobuf.Empty);
     rpc Finalize (google.protobuf.UInt32Value) returns (google.protobuf.BytesValue);
     rpc Destroy (google.protobuf.UInt32Value) returns (google.protobuf.Empty);
+    rpc ComputeFile (google.protobuf.StringValue) returns (google.protobuf.BytesValue);
 }

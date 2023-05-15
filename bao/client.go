@@ -45,3 +45,11 @@ func (g *GRPCClient) Destroy(id uint32) error {
 
 	return nil
 }
+func (g *GRPCClient) ComputeFile(path string) ([]byte, error) {
+	tree, err := g.client.ComputeFile(context.Background(), &wrappers.StringValue{Value: path})
+	if err != nil {
+		return nil, err
+	}
+
+	return tree.Value, nil
+}
