@@ -2,46 +2,96 @@ package bao
 
 import (
 	_ "embed"
-	"errors"
-	"github.com/second-state/WasmEdge-go/wasmedge"
-	bindgen "github.com/second-state/wasmedge-bindgen/host/go"
+	"github.com/hashicorp/go-plugin"
 	"io"
+	"io/fs"
+	"log"
 	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
 )
 
-//go:embed target/wasm32-wasi/release/bao.wasm
-var wasm []byte
+//go:generate protoc --proto_path=proto/ bao.proto --go_out=proto  --go_opt=paths=source_relative --go-grpc_out=proto --go-grpc_opt=paths=source_relative
 
-var conf *wasmedge.Configure
+//go:embed target/release/bao
+var baoPlugin []byte
+var baoInstance Bao
+
+type Bao interface {
+	Init() (uint32, error)
+	Write(id uint32, data []byte) error
+	Finalize(id uint32) ([]byte, error)
+	Destroy(id uint32) error
+}
 
 func init() {
-	wasmedge.SetLogErrorLevel()
-	conf = wasmedge.NewConfigure(wasmedge.WASI)
+	baoExec, err := os.CreateTemp("", "lumeportal")
+
+	_, err = baoExec.Write(baoPlugin)
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+
+	err = baoExec.Sync()
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+
+	err = baoExec.Chmod(fs.ModePerm)
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+
+	err = baoExec.Close()
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+	pluginMap := map[string]plugin.Plugin{
+		"bao": &BAOPlugin{},
+	}
+	client := plugin.NewClient(&plugin.ClientConfig{
+		HandshakeConfig: plugin.HandshakeConfig{
+			ProtocolVersion:  1,
+			MagicCookieKey:   "foo",
+			MagicCookieValue: "bar",
+		},
+		Plugins:          pluginMap,
+		Cmd:              exec.Command("sh", "-c", baoExec.Name()),
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+	})
+
+	// Connect via RPC
+	rpcClient, err := client.Client()
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+
+	// Request the plugin
+	raw, err := rpcClient.Dispense("bao")
+	if err != nil {
+		log.Fatalf("Error:", err.Error())
+	}
+
+	baoInstance = raw.(Bao)
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-signalCh
+		err := os.Remove(baoExec.Name())
+		if err != nil {
+			log.Fatalf("Error:", err.Error())
+		}
+	}()
+
 }
 
 func ComputeBaoTree(reader io.Reader) ([]byte, error) {
-	var vm = wasmedge.NewVMWithConfig(conf)
-	var wasi = vm.GetImportModule(wasmedge.WASI)
-	wasi.InitWasi(
-		os.Args[1:],     // The args
-		os.Environ(),    // The envs
-		[]string{".:."}, // The mapping preopens
-	)
-	err := vm.LoadWasmBuffer(wasm)
-	if err != nil {
-		return nil, err
-	}
-	err = vm.Validate()
-	if err != nil {
-		return nil, err
-	}
 
-	bg := bindgen.New(vm)
-	bg.Instantiate()
-
-	_, _, err = bg.Execute("init")
+	instance, err := baoInstance.Init()
 	if err != nil {
-		bg.Release()
 		return nil, err
 	}
 
@@ -50,7 +100,7 @@ func ComputeBaoTree(reader io.Reader) ([]byte, error) {
 		n, err := reader.Read(b)
 
 		if n > 0 {
-			err := write(*bg, &b)
+			err := write(instance, &b)
 			if err != nil {
 				return nil, err
 			}
@@ -59,7 +109,7 @@ func ComputeBaoTree(reader io.Reader) ([]byte, error) {
 		if err != nil {
 			var result []byte
 			if err == io.EOF {
-				result, err = finalize(*bg)
+				result, err = finalize(instance)
 				if err == nil {
 					return result, nil
 				}
@@ -69,37 +119,38 @@ func ComputeBaoTree(reader io.Reader) ([]byte, error) {
 	}
 }
 
-func write(bg bindgen.Bindgen, bytes *[]byte) error {
-	_, _, err := bg.Execute("write", *bytes)
+func write(instance uint32, bytes *[]byte) error {
+	err := baoInstance.Write(instance, *bytes)
 	if err != nil {
-		bg.Release()
+		derr := destroy(instance)
+		if derr != nil {
+			return derr
+		}
+		return err
+	}
+	if err != nil {
+		derr := destroy(instance)
+		if derr != nil {
+			return derr
+		}
 		return err
 	}
 
 	return nil
 }
 
-func finalize(bg bindgen.Bindgen) ([]byte, error) {
-	var byteResult []byte
-
-	result, _, err := bg.Execute("finalize")
+func finalize(instance uint32) ([]byte, error) {
+	result, err := baoInstance.Finalize(instance)
 	if err != nil {
-		bg.Release()
+		derr := destroy(instance)
+		if derr != nil {
+			return nil, derr
+		}
 		return nil, err
 	}
 
-	// Iterate over each element in the result slice
-	for _, elem := range result {
-		// Type assert the element to []byte
-		byteSlice, ok := elem.([]byte)
-		if !ok {
-			// If the element is not a byte slice, return an error
-			return nil, errors.New("result element is not a byte slice")
-		}
-
-		// Concatenate the byte slice to the byteResult slice
-		byteResult = append(byteResult, byteSlice...)
-	}
-
-	return byteResult, nil
+	return result, nil
+}
+func destroy(instance uint32) error {
+	return baoInstance.Destroy(instance)
 }
