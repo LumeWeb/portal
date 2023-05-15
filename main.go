@@ -78,7 +78,8 @@ func main() {
 
 	tus := initTus()
 
-	app.Any(API_PATH+"{fileparam:path}", iris.FromStd(http.StripPrefix(API_PATH, tus)))
+	v1.Any(TUS_API_PATH+"/{fileparam:path}", iris.FromStd(http.StripPrefix(v1.GetRelPath()+TUS_API_PATH+"/", tus)))
+	v1.Post(TUS_API_PATH, iris.FromStd(http.StripPrefix(v1.GetRelPath()+TUS_API_PATH, tus)))
 
 	swaggerConfig := swagger.Config{
 		// The url pointing to API definition.
