@@ -23,7 +23,7 @@ func (f *FilesController) PostUpload() {
 		return
 	}
 
-	upload, err := files.Upload(file)
+	upload, err := files.Upload(file, nil)
 
 	if internalError(ctx, err) {
 		return
