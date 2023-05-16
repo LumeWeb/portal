@@ -8,6 +8,7 @@ import (
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
+	"git.lumeweb.com/LumeWeb/portal/tus"
 	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
@@ -76,10 +77,10 @@ func main() {
 		app.Handle(new(controller.FilesController))
 	})
 
-	tus := initTus()
+	tusHandler := tus.Init()
 
-	v1.Any(TUS_API_PATH+"/{fileparam:path}", iris.FromStd(http.StripPrefix(v1.GetRelPath()+TUS_API_PATH+"/", tus)))
-	v1.Post(TUS_API_PATH, iris.FromStd(http.StripPrefix(v1.GetRelPath()+TUS_API_PATH, tus)))
+	v1.Any(tus.TUS_API_PATH+"/{fileparam:path}", iris.FromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH+"/", tusHandler)))
+	v1.Post(tus.TUS_API_PATH, iris.FromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH, tusHandler)))
 
 	swaggerConfig := swagger.Config{
 		// The url pointing to API definition.

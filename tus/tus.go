@@ -1,4 +1,4 @@
-package main
+package tus
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/golang-queue/queue"
 	"github.com/tus/tusd/pkg/filestore"
 	tusd "github.com/tus/tusd/pkg/handler"
@@ -21,14 +22,12 @@ const TUS_API_PATH = "/files/tus"
 
 const HASH_META_HEADER = "blake3-hash"
 
-var tusQueue *queue.Queue
-var store *filestore.FileStore
-var composer *tusd.StoreComposer
-
-func initTus() *tusd.Handler {
-	store = &filestore.FileStore{
+func Init() *tusd.Handler {
+	store := &filestore.FileStore{
 		Path: "/tmp",
 	}
+
+	shared.SetTusStore(store)
 
 	composer := tusd.NewStoreComposer()
 	composer.UseCore(store)
@@ -73,7 +72,7 @@ func initTus() *tusd.Handler {
 		},
 		PreFinishResponseCallback: func(hook tusd.HookEvent) error {
 			tusEntry := &model.Tus{
-				Path: hook.Upload.Storage["Path"],
+				Id:   hook.Upload.ID,
 				Hash: hook.Upload.MetaData[HASH_META_HEADER],
 			}
 
@@ -81,7 +80,7 @@ func initTus() *tusd.Handler {
 				return err
 			}
 
-			if err := tusQueue.QueueTask(func(ctx context.Context) error {
+			if err := shared.GetTusQueue().QueueTask(func(ctx context.Context) error {
 				upload, err := store.GetUpload(nil, hook.Upload.ID)
 				if err != nil {
 					return err
@@ -97,7 +96,8 @@ func initTus() *tusd.Handler {
 	if err != nil {
 		panic(err)
 	}
-	tusQueue = queue.NewPool(5)
+
+	shared.SetTusQueue(queue.NewPool(5))
 
 	go tusStartup()
 
@@ -107,6 +107,9 @@ func initTus() *tusd.Handler {
 func tusStartup() {
 	result := map[int]model.Tus{}
 	db.Get().Table("tus").Take(&result)
+
+	tusQueue := shared.GetTusQueue()
+	store := shared.GetTusStore()
 
 	for _, item := range result {
 		if err := tusQueue.QueueTask(func(ctx context.Context) error {
@@ -150,7 +153,7 @@ func tusWorker(upload *tusd.Upload) error {
 
 	ret = db.Get().Delete(&tusUpload)
 
-	err = composer.Terminater.AsTerminatableUpload(*upload).Terminate(context.Background())
+	err = shared.GetTusComposer().Terminater.AsTerminatableUpload(*upload).Terminate(context.Background())
 
 	if err != nil {
 		log.Print(err)
