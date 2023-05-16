@@ -7,6 +7,6 @@ import (
 type Tus struct {
 	gorm.Model
 	UploadID string `gorm:"primaryKey"`
-	Path     string
+	Id       string
 	Hash     string
 }
