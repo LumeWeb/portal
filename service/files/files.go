@@ -2,6 +2,7 @@ package files
 
 import (
 	"bufio"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/go-resty/resty/v2"
 	"io"
 	"lukechampine.com/blake3"
@@ -134,16 +136,35 @@ func Upload(r io.ReadSeeker, file *os.File) (model.Upload, error) {
 	return upload, nil
 }
 func Download(hash string) (io.Reader, error) {
-	result := db.Get().Table("uploads").Where(&model.Upload{Hash: hash}).Row()
+	uploadItem := db.Get().Table("uploads").Where(&model.Upload{Hash: hash}).Row()
+	tusItem := db.Get().Table("tus").Where(&model.Tus{Hash: hash}).Row()
 
-	if result.Err() != nil {
-		return nil, result.Err()
+	if uploadItem.Err() == nil {
+		fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hash))
+		if err != nil {
+			return nil, err
+		}
+
+		return fetch.RawBody(), nil
+	} else if tusItem.Err() == nil {
+		var tusData model.Tus
+		err := tusItem.Scan(&tusData)
+		if err != nil {
+			return nil, err
+		}
+
+		upload, err := shared.GetTusStore().GetUpload(context.Background(), tusData.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		reader, err := upload.GetReader(context.Background())
+		if err != nil {
+			return nil, err
+		}
+
+		return reader, nil
+	} else {
+		return nil, errors.New("invalid file")
 	}
-
-	fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hash))
-	if err != nil {
-		return nil, err
-	}
-
-	return fetch.RawBody(), nil
 }
