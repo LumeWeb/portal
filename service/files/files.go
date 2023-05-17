@@ -54,6 +54,10 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 		return upload, err
 	}
 
+	if objectExistsResult.StatusCode() == 500 {
+		return upload, errors.New(fmt.Sprintf("error fetching file: %s", objectExistsResult.String()))
+	}
+
 	if objectExistsResult.StatusCode() != 404 {
 		return upload, errors.New("file already exists in network, but missing in database")
 	}
