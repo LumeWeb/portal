@@ -34,6 +34,7 @@ func Init() *tusd.Handler {
 	composer.UseConcater(store)
 	composer.UseLocker(memorylocker.New())
 	composer.UseTerminater(store)
+	shared.SetTusComposer(composer)
 
 	handler, err := tusd.NewHandler(tusd.Config{
 		BasePath:      "/api/v1" + TUS_API_PATH,
