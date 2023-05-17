@@ -140,6 +140,10 @@ func tusWorker(upload *tusd.Upload) error {
 	_, err = files.Upload(file.(io.ReadSeeker), info.Size)
 	if err != nil {
 		log.Print(err)
+		err1 := terminateUpload(*upload)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 
@@ -147,14 +151,29 @@ func tusWorker(upload *tusd.Upload) error {
 
 	var tusUpload model.Tus
 	ret := db.Get().Where(&model.Tus{Hash: hash}).First(&tusUpload)
+
 	if ret.Error != nil && ret.Error.Error() != "record not found" {
 		log.Print(ret.Error)
+		err1 := terminateUpload(*upload)
+		if err1 != nil {
+			return err1
+		}
 		return err
 	}
 
 	ret = db.Get().Delete(&tusUpload)
 
-	err = shared.GetTusComposer().Terminater.AsTerminatableUpload(*upload).Terminate(context.Background())
+	err = terminateUpload(*upload)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func terminateUpload(upload tusd.Upload) error {
+	err := shared.GetTusComposer().Terminater.AsTerminatableUpload(upload).Terminate(context.Background())
 
 	if err != nil {
 		log.Print(err)
