@@ -4,11 +4,15 @@ import (
 	"github.com/golang-queue/queue"
 	"github.com/tus/tusd/pkg/filestore"
 	tusd "github.com/tus/tusd/pkg/handler"
+	"go.uber.org/zap"
+	_ "go.uber.org/zap"
+	"log"
 )
 
 var tusQueue *queue.Queue
 var tusStore *filestore.FileStore
 var tusComposer *tusd.StoreComposer
+var logger *zap.Logger
 
 func SetTusQueue(q *queue.Queue) {
 	tusQueue = q
@@ -32,4 +36,18 @@ func SetTusComposer(c *tusd.StoreComposer) {
 
 func GetTusComposer() *tusd.StoreComposer {
 	return tusComposer
+}
+
+func Init() {
+	newLogger, err := zap.NewProduction()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	logger = newLogger
+}
+
+func GetLogger() *zap.Logger {
+	return logger
 }

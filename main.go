@@ -8,6 +8,7 @@ import (
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"git.lumeweb.com/LumeWeb/portal/tus"
 	"git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/iris-contrib/swagger"
@@ -48,6 +49,7 @@ func main() {
 
 	renterd.Ready()
 
+	shared.Init()
 	files.Init()
 
 	// Create a new Iris app instance
