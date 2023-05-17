@@ -18,9 +18,9 @@ require (
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe
 	go.sia.tech/core v0.1.12-0.20230503202148-581dd00ac1d2
 	go.sia.tech/jape v0.9.0
-	go.sia.tech/renterd v0.3.0-beta
+	go.sia.tech/renterd v0.3.0-beta.0.20230516200305-8097423dbe64
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca
-	go.sia.tech/web/renterd v0.14.0
+	go.sia.tech/web/renterd v0.15.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.8.0
 	golang.org/x/term v0.8.0
@@ -167,5 +167,3 @@ replace (
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.14.0
 	go.opentelemetry.io/proto/otlp => go.opentelemetry.io/proto/otlp v0.19.0
 )
-
-replace go.sia.tech/renterd => github.com/SiaFoundation/renterd v0.3.0-beta.0.20230505211942-7b55caed4740
