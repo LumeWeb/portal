@@ -1953,6 +1953,8 @@ lukechampine.com/blake3 v1.1.8-0.20230515191509-85fa20df84c1 h1:NTVGxhcZ8DAwAZny
 lukechampine.com/blake3 v1.1.8-0.20230515191509-85fa20df84c1/go.mod h1:tkKEOtDkNtklkXtLNEOGNq5tcV90tJiA1vAA12R78LA=
 lukechampine.com/blake3 v1.2.0 h1:xBP4eLyBtfzoNTBaeECFxxoLyPX7hD1xntcqc1xywQE=
 lukechampine.com/blake3 v1.2.0/go.mod h1:0OFRp7fBtAylGVCO40o87sbupkyIGgbpv1+M1k1LM6k=
+lukechampine.com/blake3 v1.2.1 h1:YuqqRuaqsGV71BV/nm9xlI0MKUv4QC54jQnBChWbGnI=
+lukechampine.com/blake3 v1.2.1/go.mod h1:0OFRp7fBtAylGVCO40o87sbupkyIGgbpv1+M1k1LM6k=
 lukechampine.com/frand v1.4.2 h1:RzFIpOvkMXuPMBb9maa4ND4wjBn71E1Jpf8BzJHMaVw=
 lukechampine.com/frand v1.4.2/go.mod h1:4S/TM2ZgrKejMcKMbeLjISpJMO+/eZ1zu3vYX9dtj3s=
 lukechampine.com/uint128 v1.1.1/go.mod h1:c4eWIwlEGaxC/+H1VguhU4PHXNWDCDMUlWdIWl2j1gk=
