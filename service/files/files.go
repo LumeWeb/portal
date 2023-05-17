@@ -1,7 +1,6 @@
 package files
 
 import (
-	"bufio"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -13,8 +12,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/go-resty/resty/v2"
 	"io"
-	"lukechampine.com/blake3"
-	"os"
 )
 
 var client *resty.Client
@@ -26,40 +23,18 @@ func Init() {
 	client.SetDisableWarn(true)
 }
 
-func Upload(r io.ReadSeeker, file *os.File) (model.Upload, error) {
+func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	var upload model.Upload
 
-	if r == nil && file == nil {
-		return upload, errors.New("invalid upload mode")
-	}
-
-	hasher := blake3.New(32, nil)
-
-	var err error
-
-	if r != nil {
-		_, err = io.Copy(hasher, r)
-	} else {
-		_, err = io.Copy(hasher, file)
-	}
+	tree, hashBytes, err := bao.ComputeTree(r, size)
 
 	if err != nil {
 		return upload, err
 	}
-
-	hashBytes := hasher.Sum(nil)
 
 	hashHex := hex.EncodeToString(hashBytes[:])
 
-	if err != nil {
-		return upload, err
-	}
-
-	if r != nil {
-		_, err = r.Seek(0, io.SeekStart)
-	} else {
-		_, err = file.Seek(0, io.SeekStart)
-	}
+	_, err = r.Seek(0, io.SeekStart)
 
 	if err != nil {
 		return upload, err
@@ -83,37 +58,11 @@ func Upload(r io.ReadSeeker, file *os.File) (model.Upload, error) {
 		return upload, errors.New("file already exists in network, but missing in database")
 	}
 
-	var tree []byte
-
-	if r != nil {
-		tree, err = bao.ComputeTreeStreaming(bufio.NewReader(r))
-	} else {
-		tree, err = bao.ComputeTreeFile(file)
-	}
-
 	if err != nil {
 		return upload, err
 	}
 
-	if r != nil {
-		_, err = r.Seek(0, io.SeekStart)
-	} else {
-		_, err = file.Seek(0, io.SeekStart)
-	}
-
-	if err != nil {
-		return upload, err
-	}
-
-	var body interface{}
-
-	if r != nil {
-		body = r
-	} else {
-		body = file
-	}
-
-	ret, err := client.R().SetBody(body).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
+	ret, err := client.R().SetBody(r).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
 	if ret.StatusCode() != 200 {
 		err = errors.New(string(ret.Body()))
 		return upload, err

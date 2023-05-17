@@ -14,8 +14,8 @@ import (
 	"github.com/tus/tusd/pkg/filestore"
 	tusd "github.com/tus/tusd/pkg/handler"
 	"github.com/tus/tusd/pkg/memorylocker"
+	"io"
 	"log"
-	"os"
 )
 
 const TUS_API_PATH = "/files/tus"
@@ -136,7 +136,7 @@ func tusWorker(upload *tusd.Upload) error {
 		return err
 	}
 
-	_, err = files.Upload(nil, file.(*os.File))
+	_, err = files.Upload(file.(io.ReadSeeker), info.Size)
 	if err != nil {
 		log.Print(err)
 		return err
