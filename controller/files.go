@@ -4,7 +4,9 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/cid"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/kataras/iris/v12"
+	"go.uber.org/zap"
 	"io"
 )
 
@@ -20,22 +22,29 @@ func (f *FilesController) PostUpload() {
 
 	file, meta, err := f.Ctx.FormFile("file")
 	if internalErrorCustom(ctx, err, errors.New("invalid file data")) {
+		shared.GetLogger().Debug("invalid file data", zap.Error(err))
 		return
 	}
 
 	upload, err := files.Upload(file, meta.Size)
 
 	if internalError(ctx, err) {
+		shared.GetLogger().Debug("failed uploading file", zap.Error(err))
 		return
 	}
 
 	cidString, err := cid.EncodeString(upload.Hash, uint64(meta.Size))
 
 	if internalError(ctx, err) {
+		shared.GetLogger().Debug("failed creating cid", zap.Error(err))
 		return
 	}
 
-	_ = ctx.JSON(&UploadResponse{Cid: cidString})
+	err = ctx.JSON(&UploadResponse{Cid: cidString})
+
+	if err != nil {
+		shared.GetLogger().Error("failed to create response", zap.Error(err))
+	}
 }
 
 func (f *FilesController) GetDownloadBy(cidString string) {
@@ -43,18 +52,15 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
+		shared.GetLogger().Debug("invalid cid", zap.Error(err))
 		return
 	}
 
 	cidObject, _ := cid.Decode(cidString)
 	hashHex := cidObject.StringHash()
-
-	if internalError(ctx, err) {
-		return
-	}
-
 	download, err := files.Download(hashHex)
 	if internalError(ctx, err) {
+		shared.GetLogger().Debug("failed fetching file", zap.Error(err))
 		return
 	}
 
@@ -63,7 +69,9 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 		_ = download.(io.Closer).Close()
 		return err
 	})
-	internalError(ctx, err)
+	if internalError(ctx, err) {
+		shared.GetLogger().Debug("failed streaming file", zap.Error(err))
+	}
 }
 
 func sendErrorCustom(ctx iris.Context, err error, customError error, irisError int) bool {

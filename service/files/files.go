@@ -11,7 +11,9 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
 	"io"
+	"strings"
 )
 
 var client *resty.Client
@@ -29,6 +31,7 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	tree, hashBytes, err := bao.ComputeTree(r, size)
 
 	if err != nil {
+		shared.GetLogger().Error("Failed to hash file", zap.Error(err))
 		return upload, err
 	}
 
@@ -44,6 +47,7 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	if (result.Error != nil && result.Error.Error() != "record not found") || result.RowsAffected > 0 {
 		err := result.Row().Scan(&upload)
 		if err != nil {
+			shared.GetLogger().Error("Failed to query uploads table", zap.Error(err))
 			return upload, err
 		}
 	}
@@ -51,6 +55,7 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	objectExistsResult, err := client.R().Get(fmt.Sprintf("/worker/objects/%s", hashHex))
 
 	if err != nil {
+		shared.GetLogger().Error("Failed query object", zap.Error(err))
 		return upload, err
 	}
 
@@ -68,13 +73,15 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 
 	ret, err := client.R().SetBody(r).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
 	if ret.StatusCode() != 200 {
-		err = errors.New(string(ret.Body()))
+		shared.GetLogger().Error("Failed uploading object", zap.String("error", ret.String()))
+		err = errors.New(ret.String())
 		return upload, err
 	}
 
 	ret, err = client.R().SetBody(tree).Put(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
 	if ret.StatusCode() != 200 {
-		err = errors.New(string(ret.Body()))
+		shared.GetLogger().Error("Failed uploading proof", zap.String("error", ret.String()))
+		err = errors.New(ret.String())
 		return upload, err
 	}
 
@@ -83,6 +90,7 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	}
 
 	if err = db.Get().Create(&upload).Error; err != nil {
+		shared.GetLogger().Error("Failed adding upload to db", zap.Error(err))
 		return upload, err
 	}
 
@@ -95,6 +103,7 @@ func Download(hash string) (io.Reader, error) {
 	if uploadItem.Err() == nil {
 		fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hash))
 		if err != nil {
+			shared.GetLogger().Error("Failed downloading object", zap.Error(err))
 			return nil, err
 		}
 
@@ -103,21 +112,25 @@ func Download(hash string) (io.Reader, error) {
 		var tusData model.Tus
 		err := tusItem.Scan(&tusData)
 		if err != nil {
+			shared.GetLogger().Error("Failed querying upload from db", zap.Error(err))
 			return nil, err
 		}
 
 		upload, err := shared.GetTusStore().GetUpload(context.Background(), tusData.Id)
 		if err != nil {
+			shared.GetLogger().Error("Failed querying tus upload", zap.Error(err))
 			return nil, err
 		}
 
 		reader, err := upload.GetReader(context.Background())
 		if err != nil {
+			shared.GetLogger().Error("Failed reading tus upload", zap.Error(err))
 			return nil, err
 		}
 
 		return reader, nil
 	} else {
+		shared.GetLogger().Error("invalid file")
 		return nil, errors.New("invalid file")
 	}
 }

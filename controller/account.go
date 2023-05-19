@@ -6,9 +6,11 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	_validator "git.lumeweb.com/LumeWeb/portal/validator"
 	"github.com/go-playground/validator/v10"
 	"github.com/kataras/iris/v12"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"reflect"
@@ -57,6 +59,7 @@ func hashPassword(password string) (string, error) {
 	// Generate a new bcrypt hash from the provided password.
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		shared.GetLogger().Error("failed to hash password", zap.Error(err))
 		return "", err
 	}
 
@@ -68,6 +71,7 @@ func (a *AccountController) PostRegister() {
 	var r RegisterRequest
 
 	if err := a.Ctx.ReadJSON(&r); err != nil {
+		shared.GetLogger().Debug("failed to parse request", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
@@ -76,11 +80,13 @@ func (a *AccountController) PostRegister() {
 	existingAccount := model.Account{}
 	err := db.Get().Where("email = ?", r.Email).First(&existingAccount).Error
 	if err == nil {
+		shared.GetLogger().Debug("account with email already exists", zap.Error(err), zap.String("email", r.Email))
 		// An account with the same email address already exists.
 		// Return an error response to the client.
 		a.Ctx.StopWithError(iris.StatusConflict, errors.New("an account with this email address already exists"))
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		shared.GetLogger().Error("error querying accounts", zap.Error(err), zap.String("email", r.Email))
 		// An unexpected error occurred while querying the database.
 		// Return an error response to the client.
 		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
@@ -119,6 +125,7 @@ func (a *AccountController) PostRegister() {
 		return nil
 	})
 	if err != nil {
+		shared.GetLogger().Error("failed to create account", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusInternalServerError, err)
 		return
 	}

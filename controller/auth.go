@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/joomcode/errorx"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/jwt"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -73,6 +75,7 @@ func generateToken(maxAge time.Duration) (string, error) {
 	token, err := jwt.Sign(jwt.HS256, sharedKey, claim, jwt.MaxAge(maxAge))
 
 	if err != nil {
+		shared.GetLogger().Error("failed to sign jwt", zap.Error(err))
 		return "", err
 	}
 
@@ -83,6 +86,7 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 	// Generate a JWT token for the authenticated user.
 	token, err := generateToken(maxAge)
 	if err != nil {
+		shared.GetLogger().Error("failed to generate token", zap.Error(err))
 		return "", fmt.Errorf("failed to generate token: %s", err)
 	}
 
@@ -99,7 +103,9 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 	}
 
 	if err := db.Get().Create(&session).Error; err != nil {
-		return "", errorx.Decorate(err, "failed to save token")
+		msg := "failed to save token"
+		shared.GetLogger().Error(msg, zap.Error(err))
+		return "", errorx.Decorate(err, msg)
 	}
 
 	return token, nil
@@ -109,6 +115,7 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 	// Generate a JWT token for the authenticated user.
 	token, err := generateToken(maxAge)
 	if err != nil {
+		shared.GetLogger().Error("failed to generate token", zap.Error(err))
 		return "", fmt.Errorf("failed to generate token: %s", err)
 	}
 
@@ -125,7 +132,9 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 	}
 
 	if err := db.Get().Create(&keyChallenge).Error; err != nil {
-		return "", errorx.Decorate(err, "failed to save token")
+		msg := "failed to save token"
+		shared.GetLogger().Error(msg, zap.Error(err))
+		return "", errorx.Decorate(err, msg)
 	}
 
 	return token, nil
@@ -137,6 +146,7 @@ func (a *AuthController) PostLogin() {
 
 	// Read the login request from the client.
 	if err := a.Ctx.ReadJSON(&r); err != nil {
+		shared.GetLogger().Debug("failed to parse request", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
@@ -144,19 +154,24 @@ func (a *AuthController) PostLogin() {
 	// Retrieve the account for the given email.
 	account := model.Account{}
 	if err := db.Get().Where("email = ?", r.Email).First(&account).Error; err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+		msg := "invalid email or password"
+		shared.GetLogger().Debug(msg, zap.Error(err))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New(msg))
 		return
 	}
 
 	// Verify the provided password against the hashed password stored in the database.
 	if err := verifyPassword(*account.Password, r.Password); err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+		msg := "invalid email or password"
+		shared.GetLogger().Debug(msg, zap.Error(err))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New(msg))
 		return
 	}
 
 	// Generate a JWT token for the authenticated user.
 	token, err := generateAndSaveLoginToken(account.ID, 24*time.Hour)
 	if err != nil {
+		shared.GetLogger().Debug("failed to generate token", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusInternalServerError, fmt.Errorf("failed to generate token: %s", err))
 		return
 	}
@@ -164,7 +179,7 @@ func (a *AuthController) PostLogin() {
 	// Return the JWT token to the client.
 	err = a.Ctx.JSON(&LoginResponse{Token: token})
 	if err != nil {
-		panic(fmt.Errorf("Error with login attempt: %s \n", err))
+		shared.GetLogger().Error("failed to generate response", zap.Error(err))
 	}
 }
 
@@ -174,6 +189,7 @@ func (a *AuthController) PostPubkeyChallenge() {
 
 	// Read the login request from the client.
 	if err := a.Ctx.ReadJSON(&r); err != nil {
+		shared.GetLogger().Debug("failed to parse request", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
@@ -205,6 +221,7 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	// Read the key login request from the client.
 	if err := a.Ctx.ReadJSON(&r); err != nil {
+		shared.GetLogger().Debug("failed to parse request", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
@@ -212,25 +229,33 @@ func (a *AuthController) PostPubkeyLogin() {
 	// Retrieve the key challenge for the given challenge.
 	challenge := model.KeyChallenge{}
 	if err := db.Get().Where("challenge = ?", r.Challenge).Preload("Key").First(&challenge).Error; err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
+		msg := "invalid key challenge"
+		shared.GetLogger().Debug(msg, zap.Error(err), zap.String("challenge", r.Challenge))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
 	}
 
 	verifiedToken, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Challenge), blocklist)
 	if err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid key challenge"))
+		msg := "invalid key challenge"
+		shared.GetLogger().Debug(msg, zap.Error(err), zap.String("challenge", r.Challenge))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
 	}
 
 	rawPubKey, err := hex.DecodeString(r.Pubkey)
 	if err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid pubkey"))
+		msg := "invalid pubkey"
+		shared.GetLogger().Debug(msg, zap.Error(err), zap.String("pubkey", r.Pubkey))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
 	}
 
 	rawSignature, err := hex.DecodeString(r.Signature)
 	if err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid signature"))
+		msg := "invalid signature"
+		shared.GetLogger().Debug(msg, zap.Error(err), zap.String("signature", r.Signature))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
 	}
 
@@ -238,7 +263,9 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	// Verify the challenge signature.
 	if !ed25519.Verify(publicKeyDecoded, []byte(r.Challenge), rawSignature) {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("invalid challenge"))
+		msg := "invalid challenge"
+		shared.GetLogger().Debug(msg, zap.Error(err), zap.String("challenge", r.Challenge))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 	}
 
 	// Generate a JWT token for the authenticated user.
@@ -250,19 +277,23 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	err = blocklist.InvalidateToken(verifiedToken.Token, verifiedToken.StandardClaims)
 	if err != nil {
-		a.Ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, "failed to invalidate token"))
+		msg := "failed to invalidate token"
+		shared.GetLogger().Error(msg, zap.Error(err), zap.String("token", hex.EncodeToString(verifiedToken.Token)))
+		a.Ctx.StopWithError(iris.StatusInternalServerError, errorx.RejectedOperation.Wrap(err, msg))
 		return
 	}
 
 	if err := db.Get().Delete(&challenge).Error; err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New("failed to delete key challenge"))
+		msg := "failed to delete key challenge"
+		shared.GetLogger().Error(msg, zap.Error(err), zap.Any("key_challenge", challenge))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
 	}
 
 	// Return the JWT token to the client.
 	err = a.Ctx.JSON(&LoginResponse{Token: token})
 	if err != nil {
-		panic(fmt.Errorf("Error with login attempt: %s \n", err))
+		shared.GetLogger().Error("failed to create response", zap.Error(err))
 	}
 
 }
@@ -273,6 +304,7 @@ func (a *AuthController) PostLogout() {
 
 	// Read the logout request from the client.
 	if err := a.Ctx.ReadJSON(&r); err != nil {
+		shared.GetLogger().Debug("failed to parse request", zap.Error(err))
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
@@ -280,13 +312,18 @@ func (a *AuthController) PostLogout() {
 	// Verify the provided token.
 	claims, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Token), blocklist)
 	if err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid token"))
+		msg := "invalid token"
+		shared.GetLogger().Debug(msg, zap.Error(err))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New(msg))
 		return
 	}
 
 	err = blocklist.InvalidateToken(claims.Token, claims.StandardClaims)
 	if err != nil {
-		panic(fmt.Errorf("Error with logout: %s \n", err))
+		msg := "failed to invalidate token"
+		shared.GetLogger().Error(msg, zap.Error(err), zap.String("token", hex.EncodeToString(claims.Token)))
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New(msg))
+		return
 	}
 
 	// Return a success response to the client.

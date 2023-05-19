@@ -15,6 +15,7 @@ import (
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 )
@@ -108,7 +109,7 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		shared.GetLogger().Error("Failed starting webserver proof", zap.Error(err))
 	}
 
 	renterd.ShutdownComplete()
