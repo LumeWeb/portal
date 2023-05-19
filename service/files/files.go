@@ -59,16 +59,22 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 		return upload, err
 	}
 
-	if objectExistsResult.StatusCode() == 500 {
-		return upload, errors.New(fmt.Sprintf("error fetching file: %s", objectExistsResult.String()))
+	statusCode := objectExistsResult.StatusCode()
+
+	if statusCode == 500 {
+		bodyErr := objectExistsResult.String()
+		if !strings.Contains(bodyErr, "no slabs found") {
+			shared.GetLogger().Error("Failed fetching object", zap.String("error", objectExistsResult.String()))
+			return upload, errors.New(fmt.Sprintf("error fetching file: %s", objectExistsResult.String()))
+		}
+
+		statusCode = 404
 	}
 
-	if objectExistsResult.StatusCode() != 404 {
-		return upload, errors.New("file already exists in network, but missing in database")
-	}
-
-	if err != nil {
-		return upload, err
+	if statusCode != 404 {
+		msg := "file already exists in network, but missing in database"
+		shared.GetLogger().Error(msg)
+		return upload, errors.New(msg)
 	}
 
 	ret, err := client.R().SetBody(r).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
