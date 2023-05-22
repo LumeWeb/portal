@@ -58,6 +58,11 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 			shared.GetLogger().Error("Failed to query uploads table", zap.Error(err))
 			return upload, err
 		}
+
+		if result.RowsAffected > 0 && upload.ID > 0 {
+			shared.GetLogger().Info("Upload already exists")
+			return upload, nil
+		}
 	}
 
 	objectExistsResult, err := client.R().Get(fmt.Sprintf("/worker/objects/%s", hashHex))
