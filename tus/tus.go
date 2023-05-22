@@ -7,11 +7,11 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/cid"
 	"git.lumeweb.com/LumeWeb/portal/db"
+	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/golang-queue/queue"
-	"github.com/tus/tusd/pkg/filestore"
 	tusd "github.com/tus/tusd/pkg/handler"
 	"github.com/tus/tusd/pkg/memorylocker"
 	"go.uber.org/zap"
@@ -45,7 +45,7 @@ func Init() *tusd.Handler {
 
 			if len(hash) == 0 {
 				msg := "missing blake3-hash metadata"
-				shared.GetLogger().Debug(msg)
+				logger.Get().Debug(msg)
 				return errors.New(msg)
 			}
 
@@ -54,21 +54,21 @@ func Init() *tusd.Handler {
 			if (result.Error != nil && result.Error.Error() != "record not found") || result.RowsAffected > 0 {
 				hashBytes, err := hex.DecodeString(hash)
 				if err != nil {
-					shared.GetLogger().Debug("invalid hash", zap.Error(err))
+					logger.Get().Debug("invalid hash", zap.Error(err))
 					return err
 				}
 
 				cidString, err := cid.Encode(hashBytes, uint64(hook.Upload.Size))
 
 				if err != nil {
-					shared.GetLogger().Debug("failed to create cid", zap.Error(err))
+					logger.Get().Debug("failed to create cid", zap.Error(err))
 					return err
 				}
 
 				resp, err := json.Marshal(UploadResponse{Cid: cidString})
 
 				if err != nil {
-					shared.GetLogger().Error("failed to create response", zap.Error(err))
+					logger.Get().Error("failed to create response", zap.Error(err))
 					return err
 				}
 
@@ -84,19 +84,19 @@ func Init() *tusd.Handler {
 			}
 
 			if err := db.Get().Create(tusEntry).Error; err != nil {
-				shared.GetLogger().Error("failed to create tus entry", zap.Error(err))
+				logger.Get().Error("failed to create tus entry", zap.Error(err))
 				return err
 			}
 
 			if err := shared.GetTusQueue().QueueTask(func(ctx context.Context) error {
 				upload, err := store.GetUpload(nil, hook.Upload.ID)
 				if err != nil {
-					shared.GetLogger().Error("failed to query tus upload", zap.Error(err))
+					logger.Get().Error("failed to query tus upload", zap.Error(err))
 					return err
 				}
 				return tusWorker(&upload)
 			}); err != nil {
-				shared.GetLogger().Error("failed to queue tus upload", zap.Error(err))
+				logger.Get().Error("failed to queue tus upload", zap.Error(err))
 				return err
 			}
 
@@ -125,7 +125,7 @@ func tusStartup() {
 		if err := tusQueue.QueueTask(func(ctx context.Context) error {
 			upload, err := store.GetUpload(nil, item.UploadID)
 			if err != nil {
-				shared.GetLogger().Error("failed to query tus upload", zap.Error(err))
+				logger.Get().Error("failed to query tus upload", zap.Error(err))
 				return err
 			}
 			return tusWorker(&upload)
@@ -138,12 +138,12 @@ func tusStartup() {
 func tusWorker(upload *tusd.Upload) error {
 	info, err := (*upload).GetInfo(context.Background())
 	if err != nil {
-		shared.GetLogger().Error("failed to query tus upload metadata", zap.Error(err))
+		logger.Get().Error("failed to query tus upload metadata", zap.Error(err))
 		return err
 	}
 	file, err := (*upload).GetReader(context.Background())
 	if err != nil {
-		shared.GetLogger().Error("failed reading upload", zap.Error(err))
+		logger.Get().Error("failed reading upload", zap.Error(err))
 		return err
 	}
 
@@ -152,7 +152,7 @@ func tusWorker(upload *tusd.Upload) error {
 	hashBytes, err := hex.DecodeString(hashHex)
 
 	if err != nil {
-		shared.GetLogger().Error("failed decoding hash", zap.Error(err))
+		logger.Get().Error("failed decoding hash", zap.Error(err))
 		tErr := terminateUpload(*upload)
 
 		if tErr != nil {
@@ -180,14 +180,14 @@ func terminateUpload(upload tusd.Upload) error {
 	err := shared.GetTusComposer().Terminater.AsTerminatableUpload(upload).Terminate(context.Background())
 
 	if err != nil {
-		shared.GetLogger().Error("failed deleting tus upload", zap.Error(err))
+		logger.Get().Error("failed deleting tus upload", zap.Error(err))
 	}
 
 	tusUpload := &model.Tus{UploadID: info.ID}
 	ret := db.Get().Where(tusUpload).First(&tusUpload)
 
 	if ret.Error != nil && ret.Error.Error() != "record not found" {
-		shared.GetLogger().Error("failed fetching tus entry", zap.Error(err))
+		logger.Get().Error("failed fetching tus entry", zap.Error(err))
 		err = ret.Error
 	}
 

@@ -3,8 +3,8 @@ package controller
 import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/cid"
+	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
-	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
 	"io"
@@ -22,28 +22,28 @@ func (f *FilesController) PostUpload() {
 
 	file, meta, err := f.Ctx.FormFile("file")
 	if internalErrorCustom(ctx, err, errors.New("invalid file data")) {
-		shared.GetLogger().Debug("invalid file data", zap.Error(err))
+		logger.Get().Debug("invalid file data", zap.Error(err))
 		return
 	}
 
 	upload, err := files.Upload(file, meta.Size, nil)
 
 	if internalError(ctx, err) {
-		shared.GetLogger().Debug("failed uploading file", zap.Error(err))
+		logger.Get().Debug("failed uploading file", zap.Error(err))
 		return
 	}
 
 	cidString, err := cid.EncodeString(upload.Hash, uint64(meta.Size))
 
 	if internalError(ctx, err) {
-		shared.GetLogger().Debug("failed creating cid", zap.Error(err))
+		logger.Get().Debug("failed creating cid", zap.Error(err))
 		return
 	}
 
 	err = ctx.JSON(&UploadResponse{Cid: cidString})
 
 	if err != nil {
-		shared.GetLogger().Error("failed to create response", zap.Error(err))
+		logger.Get().Error("failed to create response", zap.Error(err))
 	}
 }
 
@@ -52,7 +52,7 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
-		shared.GetLogger().Debug("invalid cid", zap.Error(err))
+		logger.Get().Debug("invalid cid", zap.Error(err))
 		return
 	}
 
@@ -60,7 +60,7 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 	hashHex := cidObject.StringHash()
 	download, err := files.Download(hashHex)
 	if internalError(ctx, err) {
-		shared.GetLogger().Debug("failed fetching file", zap.Error(err))
+		logger.Get().Debug("failed fetching file", zap.Error(err))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 		return err
 	})
 	if internalError(ctx, err) {
-		shared.GetLogger().Debug("failed streaming file", zap.Error(err))
+		logger.Get().Debug("failed streaming file", zap.Error(err))
 	}
 }
 
