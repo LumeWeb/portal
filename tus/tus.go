@@ -148,31 +148,11 @@ func tusWorker(upload *tusd.Upload) error {
 	}
 
 	_, err = files.Upload(file.(io.ReadSeeker), info.Size)
-	if err != nil {
-		err1 := terminateUpload(*upload)
-		if err1 != nil {
-			return err1
-		}
-		return err
+	tErr := terminateUpload(*upload)
+
+	if tErr != nil {
+		return tErr
 	}
-
-	hash := info.MetaData[HASH_META_HEADER]
-
-	var tusUpload model.Tus
-	ret := db.Get().Where(&model.Tus{Hash: hash}).First(&tusUpload)
-
-	if ret.Error != nil && ret.Error.Error() != "record not found" {
-		shared.GetLogger().Error("failed fetching tus entry", zap.Error(err))
-		err1 := terminateUpload(*upload)
-		if err1 != nil {
-			return err1
-		}
-		return err
-	}
-
-	_ = db.Get().Delete(&tusUpload)
-
-	err = terminateUpload(*upload)
 
 	if err != nil {
 		return err
@@ -182,10 +162,26 @@ func tusWorker(upload *tusd.Upload) error {
 }
 
 func terminateUpload(upload tusd.Upload) error {
+	info, _ := upload.GetInfo(context.Background())
 	err := shared.GetTusComposer().Terminater.AsTerminatableUpload(upload).Terminate(context.Background())
 
 	if err != nil {
 		shared.GetLogger().Error("failed deleting tus upload", zap.Error(err))
+	}
+
+	tusUpload := &model.Tus{Id: info.ID}
+	ret := db.Get().Where(tusUpload).First(&tusUpload)
+
+	if ret.Error != nil && ret.Error.Error() != "record not found" {
+		shared.GetLogger().Error("failed fetching tus entry", zap.Error(err))
+		err = ret.Error
+	}
+
+	err1 := db.Get().Where(&tusUpload).Delete(&tusUpload)
+
+	_ = err1
+
+	if err != nil {
 		return err
 	}
 
