@@ -26,7 +26,7 @@ func (f *FilesController) PostUpload() {
 		return
 	}
 
-	upload, err := files.Upload(file, meta.Size)
+	upload, err := files.Upload(file, meta.Size, nil)
 
 	if internalError(ctx, err) {
 		shared.GetLogger().Debug("failed uploading file", zap.Error(err))

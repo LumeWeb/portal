@@ -147,7 +147,21 @@ func tusWorker(upload *tusd.Upload) error {
 		return err
 	}
 
-	_, err = files.Upload(file.(io.ReadSeeker), info.Size)
+	hashHex := info.MetaData[HASH_META_HEADER]
+
+	hashBytes, err := hex.DecodeString(hashHex)
+
+	if err != nil {
+		shared.GetLogger().Error("failed decoding hash", zap.Error(err))
+		tErr := terminateUpload(*upload)
+
+		if tErr != nil {
+			return tErr
+		}
+		return err
+	}
+
+	_, err = files.Upload(file.(io.ReadSeeker), info.Size, hashBytes)
 	tErr := terminateUpload(*upload)
 
 	if tErr != nil {

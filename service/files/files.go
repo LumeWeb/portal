@@ -1,6 +1,7 @@
 package files
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -25,7 +26,7 @@ func Init() {
 	client.SetDisableWarn(true)
 }
 
-func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
+func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	var upload model.Upload
 
 	tree, hashBytes, err := bao.ComputeTree(r, size)
@@ -33,6 +34,13 @@ func Upload(r io.ReadSeeker, size int64) (model.Upload, error) {
 	if err != nil {
 		shared.GetLogger().Error("Failed to hash file", zap.Error(err))
 		return upload, err
+	}
+
+	if hash != nil {
+		if bytes.Compare(hashBytes[:], hash) != 0 {
+			shared.GetLogger().Error("File hash does not match provided file hash")
+			return upload, err
+		}
 	}
 
 	hashHex := hex.EncodeToString(hashBytes[:])
