@@ -122,7 +122,7 @@ func Download(hash string) (io.Reader, error) {
 			return nil, err
 		}
 
-		upload, err := shared.GetTusStore().GetUpload(context.Background(), tusData.Id)
+		upload, err := shared.GetTusStore().GetUpload(context.Background(), tusData.UploadID)
 		if err != nil {
 			shared.GetLogger().Error("Failed querying tus upload", zap.Error(err))
 			return nil, err

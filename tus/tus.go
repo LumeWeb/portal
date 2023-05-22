@@ -79,8 +79,8 @@ func Init() *tusd.Handler {
 		},
 		PreFinishResponseCallback: func(hook tusd.HookEvent) error {
 			tusEntry := &model.Tus{
-				Id:   hook.Upload.ID,
-				Hash: hook.Upload.MetaData[HASH_META_HEADER],
+				UploadID: hook.Upload.ID,
+				Hash:     hook.Upload.MetaData[HASH_META_HEADER],
 			}
 
 			if err := db.Get().Create(tusEntry).Error; err != nil {
@@ -169,7 +169,7 @@ func terminateUpload(upload tusd.Upload) error {
 		shared.GetLogger().Error("failed deleting tus upload", zap.Error(err))
 	}
 
-	tusUpload := &model.Tus{Id: info.ID}
+	tusUpload := &model.Tus{UploadID: info.ID}
 	ret := db.Get().Where(tusUpload).First(&tusUpload)
 
 	if ret.Error != nil && ret.Error.Error() != "record not found" {
