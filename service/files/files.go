@@ -72,19 +72,38 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 		return upload, err
 	}
 
-	statusCode := objectExistsResult.StatusCode()
+	objectStatusCode := objectExistsResult.StatusCode()
 
-	if statusCode == 500 {
+	if objectStatusCode == 500 {
 		bodyErr := objectExistsResult.String()
 		if !strings.Contains(bodyErr, "no slabs found") {
 			shared.GetLogger().Error("Failed fetching object", zap.String("error", objectExistsResult.String()))
 			return upload, errors.New(fmt.Sprintf("error fetching file: %s", objectExistsResult.String()))
 		}
 
-		statusCode = 404
+		objectStatusCode = 404
 	}
 
-	if statusCode != 404 {
+	proofExistsResult, err := client.R().Get(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
+
+	if err != nil {
+		shared.GetLogger().Error("Failed query object proof", zap.Error(err))
+		return upload, err
+	}
+
+	proofStatusCode := proofExistsResult.StatusCode()
+
+	if proofStatusCode == 500 {
+		bodyErr := proofExistsResult.String()
+		if !strings.Contains(bodyErr, "no slabs found") {
+			shared.GetLogger().Error("Failed fetching object proof", zap.String("error", proofExistsResult.String()))
+			return upload, errors.New(fmt.Sprintf("error fetching file proof: %s", proofExistsResult.String()))
+		}
+
+		objectStatusCode = 404
+	}
+
+	if objectStatusCode != 404 && proofStatusCode != 404 {
 		msg := "file already exists in network, but missing in database"
 		shared.GetLogger().Error(msg)
 		return upload, errors.New(msg)
