@@ -65,7 +65,7 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 		}
 	}
 
-	objectExistsResult, err := client.R().Get(fmt.Sprintf("/worker/objects/%s", hashHex))
+	objectExistsResult, err := client.R().Get(getBusObjectUrl(hashHex))
 
 	if err != nil {
 		shared.GetLogger().Error("Failed query object", zap.Error(err))
@@ -84,7 +84,7 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 		objectStatusCode = 404
 	}
 
-	proofExistsResult, err := client.R().Get(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
+	proofExistsResult, err := client.R().Get(getBusProofUrl(hashHex))
 
 	if err != nil {
 		shared.GetLogger().Error("Failed query object proof", zap.Error(err))
@@ -109,14 +109,14 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 		return upload, errors.New(msg)
 	}
 
-	ret, err := client.R().SetBody(r).Put(fmt.Sprintf("/worker/objects/%s", hashHex))
+	ret, err := client.R().SetBody(r).Put(getWorkerObjectUrl(hashHex))
 	if ret.StatusCode() != 200 {
 		shared.GetLogger().Error("Failed uploading object", zap.String("error", ret.String()))
 		err = errors.New(ret.String())
 		return upload, err
 	}
 
-	ret, err = client.R().SetBody(tree).Put(fmt.Sprintf("/worker/objects/%s.obao", hashHex))
+	ret, err = client.R().SetBody(tree).Put(getWorkerProofUrl(hashHex))
 	if ret.StatusCode() != 200 {
 		shared.GetLogger().Error("Failed uploading proof", zap.String("error", ret.String()))
 		err = errors.New(ret.String())
@@ -171,4 +171,38 @@ func Download(hash string) (io.Reader, error) {
 		shared.GetLogger().Error("invalid file")
 		return nil, errors.New("invalid file")
 	}
+}
+
+func objectUrlBuilder(hash string, bus bool, proof bool) string {
+	path := []string{}
+	if bus {
+		path = append(path, "bus")
+	} else {
+		path = append(path, "worker")
+	}
+
+	path = append(path, "objects")
+
+	name := "%s"
+
+	if proof {
+		name = name + ".obao"
+	}
+
+	path = append(path, name)
+
+	return fmt.Sprintf(strings.Join(path, "/"), hash)
+}
+
+func getBusObjectUrl(hash string) string {
+	return objectUrlBuilder(hash, true, false)
+}
+func getWorkerObjectUrl(hash string) string {
+	return objectUrlBuilder(hash, false, false)
+}
+func getWorkerProofUrl(hash string) string {
+	return objectUrlBuilder(hash, false, true)
+}
+func getBusProofUrl(hash string) string {
+	return objectUrlBuilder(hash, true, true)
 }
