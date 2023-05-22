@@ -9,4 +9,5 @@ type Tus struct {
 	ID       uint64 `gorm:"primaryKey"`
 	UploadID string
 	Hash     string
+	Info     string
 }

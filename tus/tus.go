@@ -11,6 +11,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/shared"
+	"git.lumeweb.com/LumeWeb/portal/tusstore"
 	"github.com/golang-queue/queue"
 	tusd "github.com/tus/tusd/pkg/handler"
 	"github.com/tus/tusd/pkg/memorylocker"
@@ -24,7 +25,7 @@ const TUS_API_PATH = "/files/tus"
 const HASH_META_HEADER = "blake3-hash"
 
 func Init() *tusd.Handler {
-	store := &filestore.FileStore{
+	store := &tusstore.DbFileStore{
 		Path: "/tmp",
 	}
 
