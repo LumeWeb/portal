@@ -77,11 +77,11 @@ func (store DbFileStore) NewUpload(ctx context.Context, info handler.FileInfo) (
 }
 
 func (store DbFileStore) GetUpload(ctx context.Context, id string) (handler.Upload, error) {
-	info := handler.FileInfo{}
-
-	fUpload := &fileUpload{
-		info: info,
+	info := handler.FileInfo{
+		ID: id,
 	}
+
+	fUpload := &fileUpload{info: info}
 
 	record, is404, err := fUpload.getInfo()
 	if err != nil {
@@ -95,6 +95,8 @@ func (store DbFileStore) GetUpload(ctx context.Context, id string) (handler.Uplo
 	if err := json.Unmarshal([]byte(record.Info), &info); err != nil {
 		return nil, err
 	}
+
+	fUpload.info = info
 
 	fUpload.hash = record.Hash
 	binPath := store.binPath(id)
