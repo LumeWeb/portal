@@ -9,10 +9,11 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	"git.lumeweb.com/LumeWeb/portal/shared"
+	"github.com/golang-queue/queue"
 	"github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
 	"io"
-	"lukechampine.com/blake3"
 	"os"
 	"path/filepath"
 )
@@ -267,6 +268,18 @@ func (upload *fileUpload) getInfo() (*model.Tus, bool, error) {
 }
 
 func (upload *fileUpload) FinishUpload(ctx context.Context) error {
+	if err := getQueue().QueueTask(func(ctx context.Context) error {
+		upload, err := getStore().GetUpload(nil, upload.info.ID)
+		if err != nil {
+			logger.Get().Error("failed to query tus upload", zap.Error(err))
+			return err
+		}
+		return shared.GetTusWorker()(&upload)
+	}); err != nil {
+		logger.Get().Error("failed to queue tus upload", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
@@ -279,4 +292,13 @@ func uid() string {
 		panic(err)
 	}
 	return hex.EncodeToString(id)
+}
+func getQueue() *queue.Queue {
+	ret := shared.GetTusQueue()
+	return (*ret).(*queue.Queue)
+}
+
+func getStore() *DbFileStore {
+	ret := shared.GetTusStore()
+	return (*ret).(*DbFileStore)
 }
