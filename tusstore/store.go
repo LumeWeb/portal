@@ -156,6 +156,12 @@ func (upload *fileUpload) WriteChunk(ctx context.Context, offset int64, src io.R
 	n, err := io.Copy(file, src)
 
 	upload.info.Offset += n
+
+	err = upload.writeInfo()
+	if err != nil {
+		return 0, err
+	}
+
 	return n, err
 }
 
