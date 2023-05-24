@@ -93,6 +93,7 @@ func (store DbFileStore) GetUpload(ctx context.Context, id string) (handler.Uplo
 	}
 
 	if err := json.Unmarshal([]byte(record.Info), &info); err != nil {
+		logger.Get().Error("fail to parse upload meta", zap.Error(err))
 		return nil, err
 	}
 
