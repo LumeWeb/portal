@@ -12,7 +12,9 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/shared"
+	"git.lumeweb.com/LumeWeb/portal/tusstore"
 	"github.com/go-resty/resty/v2"
+	_ "github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
 	"io"
 	"strings"
@@ -155,7 +157,7 @@ func Download(hash string) (io.Reader, error) {
 			return nil, err
 		}
 
-		upload, err := shared.GetTusStore().GetUpload(context.Background(), tusData.UploadID)
+		upload, err := getStore().GetUpload(context.Background(), tusData.UploadID)
 		if err != nil {
 			logger.Get().Error("Failed querying tus upload", zap.Error(err))
 			return nil, err
@@ -206,4 +208,9 @@ func getWorkerProofUrl(hash string) string {
 }
 func getBusProofUrl(hash string) string {
 	return objectUrlBuilder(hash, true, true)
+}
+
+func getStore() *tusstore.DbFileStore {
+	ret := shared.GetTusStore()
+	return (*ret).(*tusstore.DbFileStore)
 }
