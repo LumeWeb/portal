@@ -231,11 +231,13 @@ func (upload *fileUpload) writeInfo() error {
 
 	if tusRecord != nil {
 		tusRecord.Info = string(data)
-		if ret := db.Get().Update("info", &tusRecord); ret.Error != nil {
+		if ret := db.Get().Save(&tusRecord); ret.Error != nil {
 			logger.Get().Error("failed to update tus entry", zap.Error(ret.Error))
 
 			return ret.Error
 		}
+
+		return nil
 	}
 
 	tusRecord = &model.Tus{UploadID: upload.info.ID, Hash: upload.hash, Info: string(data)}
