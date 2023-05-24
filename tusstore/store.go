@@ -51,21 +51,11 @@ func (store DbFileStore) NewUpload(ctx context.Context, info handler.FileInfo) (
 		}
 		return nil, err
 	}
+
 	err = file.Close()
 	if err != nil {
 		return nil, err
 	}
-
-	hasher := blake3.New(64, nil)
-
-	_, err = io.Copy(hasher, file)
-	if err != nil {
-		return nil, err
-	}
-
-	var hash []byte
-
-	_, err = hasher.XOF().Read(hash)
 
 	if err != nil {
 		return nil, err
@@ -74,7 +64,7 @@ func (store DbFileStore) NewUpload(ctx context.Context, info handler.FileInfo) (
 	upload := &fileUpload{
 		info:    info,
 		binPath: binPath,
-		hash:    hex.EncodeToString(hash),
+		hash:    info.MetaData["blake3-hash"],
 	}
 
 	// writeInfo creates the file by itself if necessary
