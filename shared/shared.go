@@ -1,36 +1,45 @@
 package shared
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/tusstore"
-	"github.com/golang-queue/queue"
 	tusd "github.com/tus/tusd/pkg/handler"
 	_ "go.uber.org/zap"
 )
 
-var tusQueue *queue.Queue
-var tusStore *tusstore.DbFileStore
-var tusComposer *tusd.StoreComposer
+type TusFunc func(upload *tusd.Upload) error
 
-func SetTusQueue(q *queue.Queue) {
-	tusQueue = q
+var tusQueue *interface{}
+var tusStore *interface{}
+var tusComposer *interface{}
+var tusWorker TusFunc
+
+func SetTusQueue(q interface{}) {
+	tusQueue = &q
 }
 
-func GetTusQueue() *queue.Queue {
+func GetTusQueue() *interface{} {
 	return tusQueue
 }
 
-func SetTusStore(s *tusstore.DbFileStore) {
-	tusStore = s
+func SetTusStore(s interface{}) {
+	tusStore = &s
 }
 
-func GetTusStore() *tusstore.DbFileStore {
+func GetTusStore() *interface{} {
 	return tusStore
 }
 
-func SetTusComposer(c *tusd.StoreComposer) {
-	tusComposer = c
+func SetTusComposer(c interface{}) {
+	tusComposer = &c
 }
 
-func GetTusComposer() *tusd.StoreComposer {
+func GetTusComposer() *interface{} {
 	return tusComposer
+}
+
+func SetTusWorker(w TusFunc) {
+	tusWorker = w
+}
+
+func GetTusWorker() TusFunc {
+	return tusWorker
 }
