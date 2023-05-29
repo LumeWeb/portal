@@ -32,6 +32,7 @@ import (
 
 type WorkerConfig struct {
 	ID                      string
+	AllowPrivateIPs         bool
 	BusFlushInterval        time.Duration
 	ContractLockTimeout     time.Duration
 	SessionLockTimeout      time.Duration
@@ -50,7 +51,8 @@ type BusConfig struct {
 	Miner           *Miner
 	PersistInterval time.Duration
 
-	DBDialector gorm.Dialector
+	DBLoggerConfig stores.LoggerConfig
+	DBDialector    gorm.Dialector
 }
 
 type AutopilotConfig struct {
@@ -94,6 +96,10 @@ func (cm chainManager) AcceptBlock(ctx context.Context, b types.Block) error {
 	var sb stypes.Block
 	convertToSiad(b, &sb)
 	return cm.cs.AcceptBlock(sb)
+}
+
+func (cm chainManager) LastBlockTime() time.Time {
+	return time.Unix(int64(cm.cs.CurrentBlock().Timestamp), 0)
 }
 
 func (cm chainManager) Synced(ctx context.Context) bool {
@@ -227,19 +233,6 @@ func NewBus(cfg BusConfig, dir string, seed types.PrivateKey, l *zap.Logger) (ht
 		return nil, nil, err
 	}
 
-	walletDir := filepath.Join(dir, "wallet")
-	if err := os.MkdirAll(walletDir, 0700); err != nil {
-		return nil, nil, err
-	}
-	walletAddr := wallet.StandardAddress(seed.PublicKey())
-	ws, ccid, err := stores.NewJSONWalletStore(walletDir, walletAddr)
-	if err != nil {
-		return nil, nil, err
-	} else if err := cs.ConsensusSetSubscribe(ws, ccid, nil); err != nil {
-		return nil, nil, err
-	}
-	w := wallet.NewSingleAddressWallet(seed, ws)
-
 	// If no DB dialector was provided, use SQLite.
 	dbConn := cfg.DBDialector
 	if dbConn == nil {
@@ -250,13 +243,16 @@ func NewBus(cfg BusConfig, dir string, seed types.PrivateKey, l *zap.Logger) (ht
 		dbConn = stores.NewSQLiteConnection(filepath.Join(dbDir, "db.sqlite"))
 	}
 
-	sqlLogger := stores.NewSQLLogger(l.Named("db"), nil)
-	sqlStore, ccid, err := stores.NewSQLStore(dbConn, true, cfg.PersistInterval, sqlLogger)
+	sqlLogger := stores.NewSQLLogger(l.Named("db"), cfg.DBLoggerConfig)
+	walletAddr := wallet.StandardAddress(seed.PublicKey())
+	sqlStore, ccid, err := stores.NewSQLStore(dbConn, true, cfg.PersistInterval, walletAddr, sqlLogger)
 	if err != nil {
 		return nil, nil, err
 	} else if err := cs.ConsensusSetSubscribe(sqlStore, ccid, nil); err != nil {
 		return nil, nil, err
 	}
+
+	w := wallet.NewSingleAddressWallet(seed, sqlStore)
 
 	if m := cfg.Miner; m != nil {
 		if err := cs.ConsensusSetSubscribe(m, ccid, nil); err != nil {
@@ -284,7 +280,7 @@ func NewBus(cfg BusConfig, dir string, seed types.PrivateKey, l *zap.Logger) (ht
 
 func NewWorker(cfg WorkerConfig, b worker.Bus, seed types.PrivateKey, l *zap.Logger) (http.Handler, ShutdownFn, error) {
 	workerKey := blake2b.Sum256(append([]byte("worker"), seed...))
-	w, err := worker.New(workerKey, cfg.ID, b, cfg.ContractLockTimeout, cfg.SessionLockTimeout, cfg.SessionReconnectTimeout, cfg.SessionTTL, cfg.BusFlushInterval, cfg.DownloadSectorTimeout, cfg.UploadSectorTimeout, cfg.DownloadMaxOverdrive, cfg.UploadMaxOverdrive, l)
+	w, err := worker.New(workerKey, cfg.ID, b, cfg.ContractLockTimeout, cfg.SessionLockTimeout, cfg.SessionReconnectTimeout, cfg.SessionTTL, cfg.BusFlushInterval, cfg.DownloadSectorTimeout, cfg.UploadSectorTimeout, cfg.DownloadMaxOverdrive, cfg.UploadMaxOverdrive, cfg.AllowPrivateIPs, l)
 	if err != nil {
 		return nil, nil, err
 	}

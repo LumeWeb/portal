@@ -1200,6 +1200,8 @@ go.opentelemetry.io/proto/otlp v0.19.0 h1:IVN6GR+mhC4s5yfcTbmzHYODqvWAp3ZedA2SJP
 go.opentelemetry.io/proto/otlp v0.19.0/go.mod h1:H7XAot3MsfNsj7EXtrA2q5xSNQ10UqI405h3+duxN4U=
 go.sia.tech/core v0.1.12-0.20230503202148-581dd00ac1d2 h1:a1UTWnPoH6Nf8Y4MrIf74jqCeMoPVmEJPoICOHqCA4o=
 go.sia.tech/core v0.1.12-0.20230503202148-581dd00ac1d2/go.mod h1:D17UWSn99SEfQnEaR9G9n6Kz9+BwqMoUgZ6Cl424LsQ=
+go.sia.tech/core v0.1.12-0.20230525021639-f38630eccb9c h1:rMqNjT+imVQlTJaOdndiAmPWAv05ITq1trxno9xGx5M=
+go.sia.tech/core v0.1.12-0.20230525021639-f38630eccb9c/go.mod h1:D17UWSn99SEfQnEaR9G9n6Kz9+BwqMoUgZ6Cl424LsQ=
 go.sia.tech/jape v0.9.0 h1:kWgMFqALYhLMJYOwWBgJda5ko/fi4iZzRxHRP7pp8NY=
 go.sia.tech/jape v0.9.0/go.mod h1:4QqmBB+t3W7cNplXPj++ZqpoUb2PeiS66RLpXmEGap4=
 go.sia.tech/mux v1.2.0 h1:ofa1Us9mdymBbGMY2XH/lSpY8itFsKIo/Aq8zwe+GHU=
@@ -1208,6 +1210,8 @@ go.sia.tech/renterd v0.3.0-beta.0.20230516200305-8097423dbe64 h1:qA+aREwc+i8Q56F
 go.sia.tech/renterd v0.3.0-beta.0.20230516200305-8097423dbe64/go.mod h1:jFxggAqLQ9fs85iLpC7s2Xnit3rTx7AajW37LgR1vQs=
 go.sia.tech/renterd v0.3.0-beta.0.20230520152334-e004ada9c4e9 h1:jfxmpr/8UG9IDoU/vA4Jqq2cqWT9SsDJv06uZ48W/qs=
 go.sia.tech/renterd v0.3.0-beta.0.20230520152334-e004ada9c4e9/go.mod h1:ln0uIpeEvgd0lhDx1yB2+u6WXUMermu1QO6lI96xJKI=
+go.sia.tech/renterd v0.3.0-beta.0.20230526064553-cce3ae57804b h1:QNzx8mGKuMb9ftIQSsLO8HF/8QlI5/tsay+dL4/Tw3U=
+go.sia.tech/renterd v0.3.0-beta.0.20230526064553-cce3ae57804b/go.mod h1:KT/DwXfKeqa9gynCxssYRFsj4/PCAd0Lre1oDJZcf7I=
 go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca h1:aZMg2AKevn7jKx+wlusWQfwSM5pNU9aGtRZme29q3O4=
 go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca/go.mod h1:h/1afFwpxzff6/gG5i1XdAgPK7dEY6FaibhK7N5F86Y=
 go.sia.tech/web/renterd v0.14.0 h1:74WDPNYXk71d8uT86rkQAa7AlDp8+VDRsQ2oyhwPplg=
