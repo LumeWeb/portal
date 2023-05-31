@@ -18,7 +18,7 @@ require (
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe
 	go.sia.tech/core v0.1.12-0.20230525021639-f38630eccb9c
 	go.sia.tech/jape v0.9.1-0.20230525021720-ecf031ecbffb
-	go.sia.tech/renterd v0.3.0-beta.0.20230530151818-141fd470cfdd
+	go.sia.tech/renterd v0.3.0-beta.0.20230531134531-26641a0859c2
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca
 	go.sia.tech/web/renterd v0.17.0
 	go.uber.org/zap v1.24.0

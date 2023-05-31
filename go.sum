@@ -1216,6 +1216,8 @@ go.sia.tech/renterd v0.3.0-beta.0.20230526064553-cce3ae57804b h1:QNzx8mGKuMb9ftI
 go.sia.tech/renterd v0.3.0-beta.0.20230526064553-cce3ae57804b/go.mod h1:KT/DwXfKeqa9gynCxssYRFsj4/PCAd0Lre1oDJZcf7I=
 go.sia.tech/renterd v0.3.0-beta.0.20230530151818-141fd470cfdd h1:2MSN8Q84OIsCB061HF8dG7ZMla8Vg/tp6f75+ye8zMc=
 go.sia.tech/renterd v0.3.0-beta.0.20230530151818-141fd470cfdd/go.mod h1:xD2ruYaPzSeB4buFZPDE/wTw6tmwSkzgvfQaJTO6rjc=
+go.sia.tech/renterd v0.3.0-beta.0.20230531134531-26641a0859c2 h1:ULbNFpIOfIJfmo6HgzuEZNLJK/Mkl1UqNzPhBwxqSrQ=
+go.sia.tech/renterd v0.3.0-beta.0.20230531134531-26641a0859c2/go.mod h1:xD2ruYaPzSeB4buFZPDE/wTw6tmwSkzgvfQaJTO6rjc=
 go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca h1:aZMg2AKevn7jKx+wlusWQfwSM5pNU9aGtRZme29q3O4=
 go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca/go.mod h1:h/1afFwpxzff6/gG5i1XdAgPK7dEY6FaibhK7N5F86Y=
 go.sia.tech/web/renterd v0.14.0 h1:74WDPNYXk71d8uT86rkQAa7AlDp8+VDRsQ2oyhwPplg=
