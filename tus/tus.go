@@ -94,15 +94,26 @@ func Init() *tusd.Handler {
 }
 
 func tusStartup() {
-	result := map[int]model.Tus{}
-	db.Get().Table("tus").Take(&result)
-
 	tusQueue := getQueue()
 	store := getStore()
 
-	for _, item := range result {
+	rows, err := db.Get().Model(&model.Tus{}).Rows()
+
+	if err != nil {
+		logger.Get().Error("failed to query tus uploads", zap.Error(err))
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var tusUpload model.Tus
+		err := db.Get().ScanRows(rows, &tusUpload)
+		if err != nil {
+			logger.Get().Error("failed to scan tus records", zap.Error(err))
+			return
+		}
 		if err := tusQueue.QueueTask(func(ctx context.Context) error {
-			upload, err := store.GetUpload(nil, item.UploadID)
+			upload, err := store.GetUpload(nil, tusUpload.UploadID)
 			if err != nil {
 				logger.Get().Error("failed to query tus upload", zap.Error(err))
 				return err
