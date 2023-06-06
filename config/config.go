@@ -25,6 +25,7 @@ func Init() {
 	pflag.String("database.name", "lumeweb_portal", "Database name")
 	pflag.String("database.path", "./db.sqlite", "Database path for SQLite")
 	pflag.String("renterd-api-password", ".", "admin password for renterd")
+	pflag.Bool("debug", false, "enable debug mode")
 	pflag.Parse()
 
 	err := viper.BindPFlags(pflag.CommandLine)
