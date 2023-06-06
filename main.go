@@ -7,7 +7,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/logger"
-	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/tus"
 	"git.lumeweb.com/LumeWeb/portal/validator"
@@ -44,11 +43,6 @@ func main() {
 
 	// Initialize the database connection
 	db.Init()
-
-	// Start the renterd process in a goroutine
-	go renterd.Main()
-
-	renterd.Ready()
 
 	logger.Init()
 	files.Init()
@@ -111,6 +105,4 @@ func main() {
 	if err != nil {
 		logger.Get().Error("Failed starting webserver proof", zap.Error(err))
 	}
-
-	renterd.ShutdownComplete()
 }

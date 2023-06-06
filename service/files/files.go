@@ -10,10 +10,10 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
-	"git.lumeweb.com/LumeWeb/portal/renterd"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"git.lumeweb.com/LumeWeb/portal/tusstore"
 	"github.com/go-resty/resty/v2"
+	"github.com/spf13/viper"
 	_ "github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
 	"io"
@@ -24,8 +24,8 @@ var client *resty.Client
 
 func Init() {
 	client = resty.New()
-	client.SetBaseURL(renterd.GetApiAddr() + "/api")
-	client.SetBasicAuth("", renterd.GetAPIPassword())
+	client.SetBaseURL("http://localhost:9980/api")
+	client.SetBasicAuth("", viper.GetString("renterd-api-password"))
 	client.SetDisableWarn(true)
 }
 
