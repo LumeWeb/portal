@@ -16,8 +16,8 @@ import (
 	tusd "github.com/tus/tusd/pkg/handler"
 	"github.com/tus/tusd/pkg/memorylocker"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 	"io"
-	"log"
 )
 
 const TUS_API_PATH = "/files/tus"
@@ -105,6 +105,8 @@ func tusStartup() {
 
 	defer rows.Close()
 
+	processedHashes := make([]string, 0)
+
 	for rows.Next() {
 		var tusUpload model.Tus
 		err := db.Get().ScanRows(rows, &tusUpload)
@@ -112,15 +114,28 @@ func tusStartup() {
 			logger.Get().Error("failed to scan tus records", zap.Error(err))
 			return
 		}
-		if err := tusQueue.QueueTask(func(ctx context.Context) error {
-			upload, err := store.GetUpload(nil, tusUpload.UploadID)
+
+		upload, err := store.GetUpload(nil, tusUpload.UploadID)
+		if err != nil {
+			logger.Get().Error("failed to query tus upload", zap.Error(err))
+			db.Get().Delete(&tusUpload)
+			continue
+		}
+
+		if slices.Contains(processedHashes, tusUpload.Hash) {
+			err := terminateUpload(upload)
 			if err != nil {
-				logger.Get().Error("failed to query tus upload", zap.Error(err))
-				return err
+				logger.Get().Error("failed to terminate tus upload", zap.Error(err))
 			}
+			continue
+		}
+
+		if err := tusQueue.QueueTask(func(ctx context.Context) error {
 			return tusWorker(&upload)
 		}); err != nil {
-			log.Print(err)
+			logger.Get().Error("failed to queue tus upload", zap.Error(err))
+		} else {
+			processedHashes = append(processedHashes, tusUpload.Hash)
 		}
 	}
 }
