@@ -15,6 +15,7 @@ func Init() {
 	viper.AddConfigPath("$HOME/.lumeweb/portal/")
 	viper.AddConfigPath(".")
 	viper.SetEnvPrefix("LUME_WEB_PORTAL")
+	viper.AutomaticEnv()
 
 	pflag.String("database.type", "sqlite", "Database type")
 	pflag.String("database.host", "localhost", "Database host")
