@@ -20,6 +20,12 @@ import (
 	"strings"
 )
 
+const (
+	STATUS_UPLOADED  = iota
+	STATUS_UPLOADING = iota
+	STATUS_NOT_FOUND = iota
+)
+
 var client *resty.Client
 
 func Init() {
@@ -174,6 +180,32 @@ func Download(hash string) (io.Reader, error) {
 		logger.Get().Error("invalid file")
 		return nil, errors.New("invalid file")
 	}
+}
+
+func Status(hash string) int {
+	var count int64
+
+	uploadItem := db.Get().Table("uploads").Where(&model.Upload{Hash: hash}).Count(&count)
+
+	if uploadItem.Error != nil {
+		logger.Get().Error("Failed querying upload from db", zap.Error(uploadItem.Error))
+	}
+
+	if count > 0 {
+		return STATUS_UPLOADED
+	}
+
+	tusItem := db.Get().Table("tus").Where(&model.Tus{Hash: hash}).Count(&count)
+
+	if tusItem.Error != nil {
+		logger.Get().Error("Failed querying upload from db", zap.Error(tusItem.Error))
+	}
+
+	if count > 0 {
+		return STATUS_UPLOADING
+	}
+
+	return STATUS_NOT_FOUND
 }
 
 func objectUrlBuilder(hash string, bus bool, proof bool) string {
