@@ -17,6 +17,10 @@ type UploadResponse struct {
 	Cid string `json:"cid"`
 }
 
+type StatusResponse struct {
+	Status string `json:"status"`
+}
+
 func (f *FilesController) PostUpload() {
 	ctx := f.Ctx
 
@@ -50,14 +54,12 @@ func (f *FilesController) PostUpload() {
 func (f *FilesController) GetDownloadBy(cidString string) {
 	ctx := f.Ctx
 
-	_, err := cid.Valid(cidString)
-	if sendError(ctx, err, iris.StatusBadRequest) {
-		logger.Get().Debug("invalid cid", zap.Error(err))
+	hashHex, valid := validateCid(cidString, true, ctx)
+
+	if !valid {
 		return
 	}
 
-	cidObject, _ := cid.Decode(cidString)
-	hashHex := cidObject.StringHash()
 	download, err := files.Download(hashHex)
 	if internalError(ctx, err) {
 		logger.Get().Debug("failed fetching file", zap.Error(err))
@@ -72,6 +74,39 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 	if internalError(ctx, err) {
 		logger.Get().Debug("failed streaming file", zap.Error(err))
 	}
+}
+
+func (f *FilesController) GetStatusBy(cidString string) {
+	ctx := f.Ctx
+
+	hashHex, valid := validateCid(cidString, false, ctx)
+
+	if !valid {
+		return
+	}
+
+	status := files.Status(hashHex)
+
+	var statusCode string
+
+	switch status {
+	case files.STATUS_UPLOADED:
+		statusCode = "uploaded"
+		break
+	case files.STATUS_UPLOADING:
+		statusCode = "uploading"
+		break
+	case files.STATUS_NOT_FOUND:
+		statusCode = "uploading"
+		break
+	}
+
+	err := ctx.JSON(&StatusResponse{Status: statusCode})
+
+	if err != nil {
+		logger.Get().Error("failed to create response", zap.Error(err))
+	}
+
 }
 
 func sendErrorCustom(ctx iris.Context, err error, customError error, irisError int) bool {
@@ -93,4 +128,28 @@ func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
 }
 func sendError(ctx iris.Context, err error, irisError int) bool {
 	return sendErrorCustom(ctx, err, nil, irisError)
+}
+
+func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
+	_, err := cid.Valid(cidString)
+	if sendError(ctx, err, iris.StatusBadRequest) {
+		logger.Get().Debug("invalid cid", zap.Error(err))
+		return "", false
+	}
+
+	cidObject, _ := cid.Decode(cidString)
+	hashHex := cidObject.StringHash()
+
+	if validateStatus {
+		status := files.Status(hashHex)
+
+		if status == files.STATUS_NOT_FOUND {
+			err := errors.New("cid not found")
+			sendError(ctx, errors.New("cid not found"), iris.StatusNotFound)
+			logger.Get().Debug("cid not found", zap.Error(err))
+			return "", false
+		}
+	}
+
+	return hashHex, true
 }
