@@ -160,6 +160,13 @@ func (a *AuthController) PostLogin() {
 		return
 	}
 
+	if account.Password == nil || len(*account.Password) == 0 {
+		msg := "only pubkey login is supported"
+		logger.Get().Debug(msg)
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New(msg))
+		return
+	}
+
 	// Verify the provided password against the hashed password stored in the database.
 	if err := verifyPassword(*account.Password, r.Password); err != nil {
 		msg := "invalid email or password"
