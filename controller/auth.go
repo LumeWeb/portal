@@ -202,14 +202,14 @@ func (a *AuthController) PostPubkeyChallenge() {
 	}
 
 	// Retrieve the account for the given email.
-	account := model.Account{}
-	if err := db.Get().Where("email = ?", r.Email).First(&account).Error; err != nil {
-		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid email or password"))
+	account := model.Key{}
+	if err := db.Get().Where("pubkey = ?", r.Pubkey).First(&account).Error; err != nil {
+		a.Ctx.StopWithError(iris.StatusBadRequest, errors.New("invalid pubkey"))
 		return
 	}
 
 	// Generate a random challenge string.
-	challenge, err := generateAndSaveChallengeToken(account.ID, time.Minute)
+	challenge, err := generateAndSaveChallengeToken(account.AccountID, time.Minute)
 	if err != nil {
 		a.Ctx.StopWithError(iris.StatusInternalServerError, errors.New("failed to generate challenge"))
 		return
