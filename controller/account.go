@@ -4,16 +4,16 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
-	_validator "git.lumeweb.com/LumeWeb/portal/validator"
-	"github.com/go-playground/validator/v10"
+	"github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"reflect"
 	"strings"
 )
 
@@ -22,41 +22,34 @@ type AccountController struct {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email" validate:"required"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 	Pubkey   string `json:"pubkey"`
 }
 
-func init() {
-	jsonValidator := _validator.Get()
+func checkPubkey(value interface{}) error {
+	p, _ := value.(string)
+	pubkeyBytes, err := hex.DecodeString(p)
+	if err != nil {
+		return err
+	}
 
-	jsonValidator.RegisterStructValidation(ValidateRegisterRequest, RegisterRequest{})
+	if len(pubkeyBytes) != ed25519.PublicKeySize {
+		return errors.New(fmt.Sprintf("pubkey must be %d bytes in hexadecimal format", ed25519.PublicKeySize))
+	}
+
+	return nil
 }
 
-func ValidateRegisterRequest(structLevel validator.StructLevel) {
-
-	request := structLevel.Current().Interface().(RegisterRequest)
-
-	pubkey := len(request.Pubkey) == 0
-	pass := len(request.Password) == 0
-
-	if pubkey == pass {
-		structLevel.ReportError(reflect.ValueOf(request.Email), "email", "Email", "emailorpubkey", "")
-		structLevel.ReportError(reflect.ValueOf(request.Pubkey), "pubkey", "Pubkey", "emailorpubkey", "")
-	}
-
-	if !pubkey {
-		pubkeyBytes, err := hex.DecodeString(request.Pubkey)
-		if err != nil || len(pubkeyBytes) != ed25519.PublicKeySize {
-			structLevel.ReportError(reflect.ValueOf(request.Pubkey), "pubkey", "Pubkey", "pubkey", "")
-			return
-		}
-	}
-
+func (r RegisterRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Email, validation.Required, is.EmailFormat),
+		validation.Field(&r.Pubkey, validation.When(len(r.Password) == 0, validation.Required, validation.By(checkPubkey))),
+		validation.Field(&r.Password, validation.When(len(r.Pubkey) == 0, validation.Required)),
+	)
 }
 
 func hashPassword(password string) (string, error) {
-
 	// Generate a new bcrypt hash from the provided password.
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
