@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/controller/request"
+	"git.lumeweb.com/LumeWeb/portal/controller/response"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/joomcode/errorx"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/jwt"
@@ -29,54 +29,6 @@ func init() {
 
 type AuthController struct {
 	Ctx iris.Context
-}
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func (r LoginRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.Email, is.EmailFormat, validation.Required),
-		validation.Field(&r.Password, validation.Required),
-	)
-}
-
-type LoginResponse struct {
-	Token string `json:"token"`
-}
-
-type LogoutRequest struct {
-	Token string `json:"token"`
-}
-
-type ChallengeRequest struct {
-	Pubkey string `json:"pubkey"`
-}
-
-func (r ChallengeRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.Pubkey, validation.Required, validation.By(CheckPubkeyValidator)),
-	)
-}
-
-type ChallengeResponse struct {
-	Challenge string `json:"challenge"`
-}
-
-type PubkeyLoginRequest struct {
-	Pubkey    string `json:"pubkey"`
-	Challenge string `json:"challenge"`
-	Signature string `json:"signature"`
-}
-
-func (r PubkeyLoginRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.Pubkey, validation.Required, validation.By(CheckPubkeyValidator)),
-		validation.Field(&r.Challenge, validation.Required),
-		validation.Field(&r.Signature, validation.Required, validation.Length(128, 128)),
-	)
 }
 
 // verifyPassword compares the provided plaintext password with a hashed password and returns an error if they don't match.
@@ -166,11 +118,12 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 
 // PostLogin handles the POST /api/auth/login request to authenticate a user and return a JWT token.
 func (a *AuthController) PostLogin() {
-	var r LoginRequest
-
-	if !tryParseRequest(r, a.Ctx) {
+	ri, success := tryParseRequest(request.LoginRequest{}, a.Ctx)
+	if !success {
 		return
 	}
+
+	r, _ := ri.(*request.LoginRequest)
 
 	// Retrieve the account for the given email.
 	account := model.Account{}
@@ -205,7 +158,7 @@ func (a *AuthController) PostLogin() {
 	}
 
 	// Return the JWT token to the client.
-	err = a.Ctx.JSON(&LoginResponse{Token: token})
+	err = a.Ctx.JSON(&response.LoginResponse{Token: token})
 	if err != nil {
 		logger.Get().Error("failed to generate response", zap.Error(err))
 	}
@@ -213,11 +166,12 @@ func (a *AuthController) PostLogin() {
 
 // PostChallenge handles the POST /api/auth/pubkey/challenge request to generate a challenge for a user's public key.
 func (a *AuthController) PostPubkeyChallenge() {
-	var r ChallengeRequest
-
-	if !tryParseRequest(r, a.Ctx) {
+	ri, success := tryParseRequest(request.PubkeyChallengeRequest{}, a.Ctx)
+	if !success {
 		return
 	}
+
+	r, _ := (ri).(*request.PubkeyChallengeRequest)
 
 	r.Pubkey = strings.ToLower(r.Pubkey)
 
@@ -236,19 +190,20 @@ func (a *AuthController) PostPubkeyChallenge() {
 	}
 
 	// Return the challenge to the client.
-	err = a.Ctx.JSON(&ChallengeResponse{Challenge: challenge})
+	err = a.Ctx.JSON(&response.ChallengeResponse{Challenge: challenge})
 	if err != nil {
-		panic(fmt.Errorf("Error with challenge request: %s \n", err))
+		logger.Get().Error("failed to create response", zap.Error(err))
 	}
 }
 
 // PostKeyLogin handles the POST /api/auth/pubkey/login request to authenticate a user using a public key challenge and return a JWT token.
 func (a *AuthController) PostPubkeyLogin() {
-	var r PubkeyLoginRequest
-
-	if !tryParseRequest(r, a.Ctx) {
+	ri, success := tryParseRequest(request.PubkeyLoginRequest{}, a.Ctx)
+	if !success {
 		return
 	}
+
+	r, _ := ri.(*request.PubkeyLoginRequest)
 
 	r.Pubkey = strings.ToLower(r.Pubkey)
 	r.Signature = strings.ToLower(r.Signature)
@@ -318,7 +273,7 @@ func (a *AuthController) PostPubkeyLogin() {
 	}
 
 	// Return the JWT token to the client.
-	err = a.Ctx.JSON(&LoginResponse{Token: token})
+	err = a.Ctx.JSON(&response.LoginResponse{Token: token})
 	if err != nil {
 		logger.Get().Error("failed to create response", zap.Error(err))
 	}
@@ -327,11 +282,12 @@ func (a *AuthController) PostPubkeyLogin() {
 
 // PostLogout handles the POST /api/auth/logout request to invalidate a JWT token.
 func (a *AuthController) PostLogout() {
-	var r LogoutRequest
-
-	if !tryParseRequest(r, a.Ctx) {
+	ri, success := tryParseRequest(request.LogoutRequest{}, a.Ctx)
+	if !success {
 		return
 	}
+
+	r, _ := ri.(*request.LogoutRequest)
 
 	// Verify the provided token.
 	claims, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Token), blocklist)

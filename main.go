@@ -9,7 +9,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/tus"
-	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
@@ -49,8 +48,6 @@ func main() {
 
 	// Create a new Iris app instance
 	app := iris.New()
-
-	app.Validator = ozzValidator{}
 	// Enable Gzip compression for responses
 	app.Use(iris.Compression)
 
@@ -104,16 +101,4 @@ func main() {
 	if err != nil {
 		logger.Get().Error("Failed starting webserver proof", zap.Error(err))
 	}
-}
-
-type ozzValidator struct{}
-
-func (o ozzValidator) Struct(d interface{}) error {
-	v, ok := d.(validation.Validatable)
-
-	if !ok {
-		return nil
-	}
-
-	return v.Validate()
 }

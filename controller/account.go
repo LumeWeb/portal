@@ -1,15 +1,11 @@
 package controller
 
 import (
-	"crypto/ed25519"
-	"encoding/hex"
 	"errors"
-	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/controller/request"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
-	"github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -19,34 +15,6 @@ import (
 
 type AccountController struct {
 	Ctx iris.Context
-}
-
-type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Pubkey   string `json:"pubkey"`
-}
-
-func CheckPubkeyValidator(value interface{}) error {
-	p, _ := value.(string)
-	pubkeyBytes, err := hex.DecodeString(p)
-	if err != nil {
-		return err
-	}
-
-	if len(pubkeyBytes) != ed25519.PublicKeySize {
-		return errors.New(fmt.Sprintf("pubkey must be %d bytes in hexadecimal format", ed25519.PublicKeySize))
-	}
-
-	return nil
-}
-
-func (r RegisterRequest) Validate() error {
-	return validation.ValidateStruct(&r,
-		validation.Field(&r.Email, validation.Required, is.EmailFormat),
-		validation.Field(&r.Pubkey, validation.When(len(r.Password) == 0, validation.Required, validation.By(CheckPubkeyValidator))),
-		validation.Field(&r.Password, validation.When(len(r.Pubkey) == 0, validation.Required)),
-	)
 }
 
 func hashPassword(password string) (string, error) {
@@ -62,11 +30,12 @@ func hashPassword(password string) (string, error) {
 }
 
 func (a *AccountController) PostRegister() {
-	var r RegisterRequest
-
-	if !tryParseRequest(r, a.Ctx) {
+	ri, success := tryParseRequest(request.RegisterRequest{}, a.Ctx)
+	if !success {
 		return
 	}
+
+	r, _ := ri.(*request.RegisterRequest)
 
 	// Check if an account with the same email address already exists.
 	existingAccount := model.Account{}
