@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/cid"
+	"git.lumeweb.com/LumeWeb/portal/controller/response"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"github.com/kataras/iris/v12"
@@ -12,13 +13,6 @@ import (
 
 type FilesController struct {
 	Ctx iris.Context
-}
-type UploadResponse struct {
-	Cid string `json:"cid"`
-}
-
-type StatusResponse struct {
-	Status string `json:"status"`
 }
 
 func (f *FilesController) PostUpload() {
@@ -44,7 +38,7 @@ func (f *FilesController) PostUpload() {
 		return
 	}
 
-	err = ctx.JSON(&UploadResponse{Cid: cidString})
+	err = ctx.JSON(&response.UploadResponse{Cid: cidString})
 
 	if err != nil {
 		logger.Get().Error("failed to create response", zap.Error(err))
@@ -101,7 +95,7 @@ func (f *FilesController) GetStatusBy(cidString string) {
 		break
 	}
 
-	err := ctx.JSON(&StatusResponse{Status: statusCode})
+	err := ctx.JSON(&response.StatusResponse{Status: statusCode})
 
 	if err != nil {
 		logger.Get().Error("failed to create response", zap.Error(err))
