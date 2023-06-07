@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"reflect"
+	"strings"
 )
 
 type AccountController struct {
@@ -116,7 +117,7 @@ func (a *AccountController) PostRegister() {
 		}
 
 		if len(r.Pubkey) > 0 {
-			if err := tx.Create(&model.Key{Account: account, Pubkey: r.Pubkey}).Error; err != nil {
+			if err := tx.Create(&model.Key{Account: account, Pubkey: strings.ToLower(r.Pubkey)}).Error; err != nil {
 				return err
 			}
 		}
