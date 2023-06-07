@@ -27,7 +27,7 @@ type RegisterRequest struct {
 	Pubkey   string `json:"pubkey"`
 }
 
-func checkPubkey(value interface{}) error {
+func CheckPubkeyValidator(value interface{}) error {
 	p, _ := value.(string)
 	pubkeyBytes, err := hex.DecodeString(p)
 	if err != nil {
@@ -44,7 +44,7 @@ func checkPubkey(value interface{}) error {
 func (r RegisterRequest) Validate() error {
 	return validation.ValidateStruct(&r,
 		validation.Field(&r.Email, validation.Required, is.EmailFormat),
-		validation.Field(&r.Pubkey, validation.When(len(r.Password) == 0, validation.Required, validation.By(checkPubkey))),
+		validation.Field(&r.Pubkey, validation.When(len(r.Password) == 0, validation.Required, validation.By(CheckPubkeyValidator))),
 		validation.Field(&r.Password, validation.When(len(r.Pubkey) == 0, validation.Required)),
 	)
 }
