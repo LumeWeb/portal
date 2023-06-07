@@ -192,7 +192,7 @@ func (a *AuthController) PostLogin() {
 
 // PostChallenge handles the POST /api/auth/pubkey/challenge request to generate a challenge for a user's public key.
 func (a *AuthController) PostPubkeyChallenge() {
-	var r LoginRequest
+	var r ChallengeRequest
 
 	// Read the login request from the client.
 	if err := a.Ctx.ReadJSON(&r); err != nil {
