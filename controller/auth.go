@@ -8,6 +8,8 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/joomcode/errorx"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/jwt"
@@ -34,6 +36,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+func (r LoginRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Email, is.EmailFormat, validation.Required),
+		validation.Field(&r.Password, validation.Required),
+	)
+}
+
 type LoginResponse struct {
 	Token string `json:"token"`
 }
@@ -46,6 +55,12 @@ type ChallengeRequest struct {
 	Pubkey string `json:"pubkey"`
 }
 
+func (r ChallengeRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Pubkey, validation.Required, validation.By(CheckPubkeyValidator)),
+	)
+}
+
 type ChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
@@ -54,6 +69,14 @@ type PubkeyLoginRequest struct {
 	Pubkey    string `json:"pubkey"`
 	Challenge string `json:"challenge"`
 	Signature string `json:"signature"`
+}
+
+func (r PubkeyLoginRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Pubkey, validation.Required, validation.By(CheckPubkeyValidator)),
+		validation.Field(&r.Challenge, validation.Required),
+		validation.Field(&r.Signature, validation.Required, validation.Length(128, 128)),
+	)
 }
 
 // verifyPassword compares the provided plaintext password with a hashed password and returns an error if they don't match.
