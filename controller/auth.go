@@ -236,6 +236,9 @@ func (a *AuthController) PostPubkeyLogin() {
 		return
 	}
 
+	r.Pubkey = strings.ToLower(r.Pubkey)
+	r.Signature = strings.ToLower(r.Signature)
+
 	// Retrieve the key challenge for the given challenge.
 	challenge := model.KeyChallenge{}
 	if err := db.Get().Where("challenge = ?", r.Challenge).Preload("Key").First(&challenge).Error; err != nil {
