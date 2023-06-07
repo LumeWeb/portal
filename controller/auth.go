@@ -168,10 +168,7 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 func (a *AuthController) PostLogin() {
 	var r LoginRequest
 
-	// Read the login request from the client.
-	if err := a.Ctx.ReadJSON(&r); err != nil {
-		logger.Get().Debug("failed to parse request", zap.Error(err))
-		a.Ctx.StopWithError(iris.StatusBadRequest, err)
+	if !tryParseRequest(r, a.Ctx) {
 		return
 	}
 
@@ -218,10 +215,7 @@ func (a *AuthController) PostLogin() {
 func (a *AuthController) PostPubkeyChallenge() {
 	var r ChallengeRequest
 
-	// Read the login request from the client.
-	if err := a.Ctx.ReadJSON(&r); err != nil {
-		logger.Get().Debug("failed to parse request", zap.Error(err))
-		a.Ctx.StopWithError(iris.StatusBadRequest, err)
+	if !tryParseRequest(r, a.Ctx) {
 		return
 	}
 
@@ -252,10 +246,7 @@ func (a *AuthController) PostPubkeyChallenge() {
 func (a *AuthController) PostPubkeyLogin() {
 	var r PubkeyLoginRequest
 
-	// Read the key login request from the client.
-	if err := a.Ctx.ReadJSON(&r); err != nil {
-		logger.Get().Debug("failed to parse request", zap.Error(err))
-		a.Ctx.StopWithError(iris.StatusBadRequest, err)
+	if !tryParseRequest(r, a.Ctx) {
 		return
 	}
 
@@ -338,10 +329,7 @@ func (a *AuthController) PostPubkeyLogin() {
 func (a *AuthController) PostLogout() {
 	var r LogoutRequest
 
-	// Read the logout request from the client.
-	if err := a.Ctx.ReadJSON(&r); err != nil {
-		logger.Get().Debug("failed to parse request", zap.Error(err))
-		a.Ctx.StopWithError(iris.StatusBadRequest, err)
+	if !tryParseRequest(r, a.Ctx) {
 		return
 	}
 

@@ -85,6 +85,24 @@ func (a *AccountController) PostRegister() {
 		return
 	}
 
+	if len(r.Pubkey) > 0 {
+		r.Pubkey = strings.ToLower(r.Pubkey)
+		var count int64
+		err := db.Get().Model(&model.Key{}).Where("pubkey = ?", r.Pubkey).Count(&count).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Get().Error("error querying accounts", zap.Error(err), zap.String("pubkey", r.Pubkey))
+			a.Ctx.StopWithError(iris.StatusInternalServerError, err)
+		}
+		if count > 0 {
+			logger.Get().Debug("account with pubkey already exists", zap.Error(err), zap.String("pubkey", r.Pubkey))
+			// An account with the same pubkey already exists.
+			// Return an error response to the client.
+			a.Ctx.StopWithError(iris.StatusConflict, errors.New("an account with this pubkey already exists"))
+			return
+		}
+
+	}
+
 	// Create a new Account model with the provided email and hashed password.
 	account := model.Account{
 		Email: r.Email,
