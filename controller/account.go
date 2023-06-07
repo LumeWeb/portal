@@ -64,9 +64,7 @@ func hashPassword(password string) (string, error) {
 func (a *AccountController) PostRegister() {
 	var r RegisterRequest
 
-	if err := a.Ctx.ReadJSON(&r); err != nil {
-		logger.Get().Debug("failed to parse request", zap.Error(err))
-		a.Ctx.StopWithError(iris.StatusBadRequest, err)
+	if !tryParseRequest(r, a.Ctx) {
 		return
 	}
 
