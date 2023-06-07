@@ -219,7 +219,7 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	verifiedToken, err := jwt.Verify(jwt.HS256, sharedKey, []byte(r.Challenge), blocklist)
 	if err != nil {
-		msg := "invalid key challenge"
+		msg := fmt.Sprintf("invalid key challenge: %s", err.Error())
 		logger.Get().Debug(msg, zap.Error(err), zap.String("challenge", r.Challenge))
 		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
@@ -227,7 +227,7 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	rawPubKey, err := hex.DecodeString(r.Pubkey)
 	if err != nil {
-		msg := "invalid pubkey"
+		msg := fmt.Sprintf("invalid pubkey: %s", err.Error())
 		logger.Get().Debug(msg, zap.Error(err), zap.String("pubkey", r.Pubkey))
 		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
@@ -235,7 +235,7 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	rawSignature, err := hex.DecodeString(r.Signature)
 	if err != nil {
-		msg := "invalid signature"
+		msg := fmt.Sprintf("invalid signature: %s", err.Error())
 		logger.Get().Debug(msg, zap.Error(err), zap.String("signature", r.Signature))
 		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
 		return
