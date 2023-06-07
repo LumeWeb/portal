@@ -13,6 +13,7 @@ import (
 	"github.com/kataras/jwt"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 	"time"
 )
 
@@ -200,6 +201,8 @@ func (a *AuthController) PostPubkeyChallenge() {
 		a.Ctx.StopWithError(iris.StatusBadRequest, err)
 		return
 	}
+
+	r.Pubkey = strings.ToLower(r.Pubkey)
 
 	// Retrieve the account for the given email.
 	account := model.Key{}
