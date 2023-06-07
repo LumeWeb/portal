@@ -102,28 +102,6 @@ func (f *FilesController) GetStatusBy(cidString string) {
 	}
 
 }
-
-func sendErrorCustom(ctx iris.Context, err error, customError error, irisError int) bool {
-	if err != nil {
-		if customError != nil {
-			err = customError
-		}
-		ctx.StopWithError(irisError, err)
-		return true
-	}
-
-	return false
-}
-func internalError(ctx iris.Context, err error) bool {
-	return sendErrorCustom(ctx, err, nil, iris.StatusInternalServerError)
-}
-func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
-	return sendErrorCustom(ctx, err, customError, iris.StatusInternalServerError)
-}
-func sendError(ctx iris.Context, err error, irisError int) bool {
-	return sendErrorCustom(ctx, err, nil, irisError)
-}
-
 func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
