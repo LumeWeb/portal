@@ -241,7 +241,7 @@ func (a *AuthController) PostPubkeyLogin() {
 
 	// Retrieve the key challenge for the given challenge.
 	challenge := model.KeyChallenge{}
-	if err := db.Get().Where("challenge = ?", r.Challenge).Preload("Key").First(&challenge).Error; err != nil {
+	if err := db.Get().Where("challenge = ?", r.Challenge).First(&challenge).Error; err != nil {
 		msg := "invalid key challenge"
 		logger.Get().Debug(msg, zap.Error(err), zap.String("challenge", r.Challenge))
 		a.Ctx.StopWithError(iris.StatusBadRequest, errorx.RejectedOperation.New(msg))
