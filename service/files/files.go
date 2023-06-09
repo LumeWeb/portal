@@ -34,8 +34,10 @@ var (
 	ErrFailedFetchTusObject   = errors.New("Failed fetching tus object")
 	ErrFailedHashFile         = errors.New("Failed to hash file")
 	ErrFailedQueryTusUpload   = errors.New("Failed to query tus uploads")
-	ErrFailedQueryUpload      = errors.New("Failed to query uploads table")
+	ErrFailedQueryUpload      = errors.New("Failed to query uploads")
+	ErrFailedQueryPins        = errors.New("Failed to query pins")
 	ErrFailedSaveUpload       = errors.New("Failed saving upload to db")
+	ErrFailedSavePin          = errors.New("Failed saving pin to db")
 	ErrFailedUpload           = errors.New("Failed uploading object")
 	ErrFailedUploadProof      = errors.New("Failed uploading object proof")
 	ErrFileExistsOutOfSync    = errors.New("File already exists in network, but missing in database")
@@ -259,4 +261,41 @@ func getBusProofUrl(hash string) string {
 func getStore() *tusstore.DbFileStore {
 	ret := shared.GetTusStore()
 	return (*ret).(*tusstore.DbFileStore)
+}
+
+func Pin(hash string, accountID uint) error {
+	var upload model.Upload
+
+	if result := db.Get().Model(&upload).Where("hash = ?", hash).First(&upload); result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(result.Error))
+		}
+		return ErrFailedQueryUpload
+	}
+
+	var pin model.Pin
+
+	result := db.Get().Model(&pin).Where(&model.Pin{Upload: upload, AccountID: accountID}).First(&pin)
+
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		logger.Get().Error(ErrFailedQueryPins.Error(), zap.Error(result.Error))
+		return ErrFailedQueryPins
+	}
+
+	if result.Error == nil {
+		return nil
+	}
+
+	pin.AccountID = upload.AccountID
+	pin.Upload = upload
+
+	result = db.Get().Save(&pin)
+
+	if result.Error != nil {
+		logger.Get().Error(ErrFailedSavePin.Error(), zap.Error(result.Error))
+
+		return ErrFailedSavePin
+	}
+
+	return nil
 }
