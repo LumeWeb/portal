@@ -30,7 +30,7 @@ func generateToken(maxAge time.Duration) (string, error) {
 		IssuedAt: time.Now().Unix(),
 	}
 
-	token, err := jwt.Sign(jwt.HS256, sharedKey, claim, jwt.MaxAge(maxAge))
+	token, err := jwt.Sign(jwt.EdDSA, jwtKey, claim, jwt.MaxAge(maxAge))
 
 	if err != nil {
 		logger.Get().Error(ErrFailedSignJwt.Error(), zap.Error(err))
@@ -48,7 +48,7 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 		return "", ErrFailedGenerateToken
 	}
 
-	verifiedToken, _ := jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	verifiedToken, _ := jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
 	var claim *jwt.Claims
 
 	_ = verifiedToken.Claims(&claim)
@@ -76,7 +76,7 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 		return "", ErrFailedGenerateToken
 	}
 
-	verifiedToken, _ := jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	verifiedToken, _ := jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
 	var claim *jwt.Claims
 
 	_ = verifiedToken.Claims(&claim)

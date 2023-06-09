@@ -2,18 +2,25 @@ package auth
 
 import (
 	"crypto/ed25519"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"errors"
+	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
 	"github.com/kataras/jwt"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-var sharedKey = []byte("sercrethatmaycontainch@r$32chars")
+var jwtKey = []byte{}
 
 var blocklist *jwt.Blocklist
 
@@ -34,6 +41,67 @@ var (
 
 func Init() {
 	blocklist = jwt.NewBlocklist(0)
+
+	configFile := viper.ConfigFileUsed()
+
+	var jwtPemPath string
+	jwtPemName := "jwt.pem"
+
+	if configFile == "" {
+		jwtPemPath = path.Join(config.ConfigFilePaths[0], jwtPemName)
+	} else {
+		jwtPemPath = path.Join(filepath.Dir(configFile), jwtPemName)
+	}
+
+	if _, err := os.Stat(jwtPemPath); err != nil {
+		_, private, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			logger.Get().Fatal("Failed to compute JWT private key", zap.Error(err))
+		}
+
+		privateBytes, err := x509.MarshalPKCS8PrivateKey(private)
+
+		if err != nil {
+			logger.Get().Fatal("Failed to create marshal private key", zap.Error(err))
+		}
+
+		var pemPrivateBlock = &pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: privateBytes,
+		}
+
+		pemPrivateFile, err := os.Create(jwtPemPath)
+
+		if err != nil {
+			logger.Get().Fatal("Failed to create empty file for JWT private PEM", zap.Error(err))
+		}
+
+		err = pem.Encode(pemPrivateFile, pemPrivateBlock)
+		if err != nil {
+			logger.Get().Fatal("Failed to write JWT private PEM", zap.Error(err))
+		}
+
+		jwtKey = private
+	} else {
+		data, err := os.ReadFile(jwtPemPath)
+		if err != nil {
+			logger.Get().Fatal("Failed to read JWT private PEM", zap.Error(err))
+		}
+
+		pemBlock, _ := pem.Decode(data)
+		if err != nil {
+			logger.Get().Fatal("Failed to decode JWT private PEM", zap.Error(err))
+		}
+
+		privateBytes, err := x509.ParsePKCS8PrivateKey(pemBlock.Bytes)
+
+		if err != nil {
+			logger.Get().Fatal("Failed to unmarshal JWT private PEM", zap.Error(err))
+		}
+
+		jwtKey = privateBytes.(ed25519.PrivateKey)
+	}
+
 }
 
 func LoginWithPassword(email string, password string) (string, error) {
@@ -75,7 +143,7 @@ func LoginWithPubkey(pubkey string, challenge string, signature string) (string,
 		return "", ErrInvalidKeyChallenge
 	}
 
-	verifiedToken, err := jwt.Verify(jwt.HS256, sharedKey, []byte(challenge), blocklist)
+	verifiedToken, err := jwt.Verify(jwt.EdDSA, jwtKey, []byte(challenge), blocklist)
 	if err != nil {
 		logger.Get().Debug(ErrInvalidKeyChallenge.Error(), zap.Error(err), zap.String("challenge", challenge))
 		return "", ErrInvalidKeyChallenge
@@ -143,7 +211,7 @@ func GeneratePubkeyChallenge(pubkey string) (string, error) {
 
 func Logout(token string) error {
 	// Verify the provided token.
-	claims, err := jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	claims, err := jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
 	if err != nil {
 		logger.Get().Debug(ErrInvalidToken.Error(), zap.Error(err))
 		return ErrInvalidToken
@@ -186,7 +254,7 @@ func VerifyLoginToken(token string) (*model.Account, error) {
 		return nil, ErrInvalidToken
 	}
 
-	_, err = jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	_, err = jwt.Verify(jwt.HS256, jwtKey, []byte(token), blocklist)
 	if err != nil {
 		db.Get().Delete(&session)
 		return nil, err
