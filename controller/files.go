@@ -12,7 +12,7 @@ import (
 )
 
 type FilesController struct {
-	Ctx iris.Context
+	Controller
 }
 
 func (f *FilesController) PostUpload() {
@@ -95,11 +95,7 @@ func (f *FilesController) GetStatusBy(cidString string) {
 		break
 	}
 
-	err := ctx.JSON(&response.StatusResponse{Status: statusCode})
-
-	if err != nil {
-		logger.Get().Error("failed to create response", zap.Error(err))
-	}
+	f.respondJSON(&response.StatusResponse{Status: statusCode})
 
 }
 func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
