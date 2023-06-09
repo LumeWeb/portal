@@ -198,6 +198,22 @@ func Download(hash string) (io.Reader, error) {
 	}
 }
 
+func DownloadProof(hash string) (io.Reader, error) {
+	uploadItem := db.Get().Model(&model.Upload{}).Where(&model.Upload{Hash: hash}).Row()
+
+	if uploadItem.Err() != nil {
+		logger.Get().Debug(ErrInvalidFile.Error(), zap.String("hash", hash))
+		return nil, ErrInvalidFile
+	}
+	fetch, err := client.R().SetDoNotParseResponse(true).Get(getWorkerProofUrl(hash))
+	if err != nil {
+		logger.Get().Error(ErrFailedFetchObject.Error(), zap.Error(err))
+		return nil, ErrFailedFetchObject
+	}
+
+	return fetch.RawBody(), nil
+}
+
 func Status(hash string) int {
 	var count int64
 

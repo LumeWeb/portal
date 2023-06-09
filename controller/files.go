@@ -84,6 +84,31 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 	}
 }
 
+func (f *FilesController) GetProofBy(cidString string) {
+	ctx := f.Ctx
+
+	hashHex, valid := validateCid(cidString, true, ctx)
+
+	if !valid {
+		return
+	}
+
+	download, err := files.DownloadProof(hashHex)
+	if internalError(ctx, err) {
+		logger.Get().Debug("failed fetching file proof", zap.Error(err))
+		return
+	}
+
+	err = ctx.StreamWriter(func(w io.Writer) error {
+		_, err = io.Copy(w, download)
+		_ = download.(io.Closer).Close()
+		return err
+	})
+	if internalError(ctx, err) {
+		logger.Get().Debug("failed streaming file proof", zap.Error(err))
+	}
+}
+
 func (f *FilesController) GetStatusBy(cidString string) {
 	ctx := f.Ctx
 
