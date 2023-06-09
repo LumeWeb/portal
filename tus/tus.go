@@ -17,6 +17,7 @@ import (
 	"github.com/tus/tusd/pkg/memorylocker"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
+	"gorm.io/gorm"
 	"io"
 )
 
@@ -52,7 +53,7 @@ func Init() *tusd.Handler {
 
 			var upload model.Upload
 			result := db.Get().Where(&model.Upload{Hash: hash}).First(&upload)
-			if (result.Error != nil && result.Error.Error() != "record not found") || result.RowsAffected > 0 {
+			if (result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound)) || result.RowsAffected > 0 {
 				hashBytes, err := hex.DecodeString(hash)
 				if err != nil {
 					logger.Get().Debug("invalid hash", zap.Error(err))
