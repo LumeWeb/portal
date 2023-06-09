@@ -167,30 +167,30 @@ func Logout(token string) error {
 	return nil
 }
 
-func VerifyLoginToken(token string) error {
+func VerifyLoginToken(token string) (*model.Account, error) {
 	uvt, err := jwt.Decode([]byte(token))
 	if err != nil {
-		return ErrInvalidToken
+		return nil, ErrInvalidToken
 	}
 
 	var claim jwt.Claims
 
 	err = uvt.Claims(&claim)
 	if err != nil {
-		return ErrInvalidToken
+		return nil, ErrInvalidToken
 	}
 
 	session := model.LoginSession{}
 	if err := db.Get().Model(session).Where("token = ?", token).First(&session).Error; err != nil {
 		logger.Get().Debug(ErrInvalidToken.Error(), zap.Error(err), zap.String("token", token))
-		return ErrInvalidToken
+		return nil, ErrInvalidToken
 	}
 
 	_, err = jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
 	if err != nil {
 		db.Get().Delete(&session)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &session.Account, nil
 }
