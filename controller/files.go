@@ -17,7 +17,9 @@ type FilesController struct {
 }
 
 func (f *FilesController) BeginRequest(ctx iris.Context) {
-	ctx.AddHandler(middleware.VerifyJwt)
+	middleware.VerifyJwt(ctx)
+}
+func (f *FilesController) EndRequest(ctx iris.Context) {
 }
 
 func (f *FilesController) PostUpload() {

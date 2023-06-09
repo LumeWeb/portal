@@ -17,6 +17,4 @@ func VerifyJwt(ctx iris.Context) {
 		ctx.StopWithError(iris.StatusUnauthorized, auth.ErrInvalidToken)
 		return
 	}
-
-	ctx.Next()
 }
