@@ -59,3 +59,14 @@ func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
 func sendError(ctx iris.Context, err error, irisError int) bool {
 	return sendErrorCustom(ctx, err, nil, irisError)
 }
+
+type Controller struct {
+	Ctx iris.Context
+}
+
+func (c Controller) respondJSON(data interface{}) {
+	err := c.Ctx.JSON(data)
+	if err != nil {
+		logger.Get().Error("failed to generate response", zap.Error(err))
+	}
+}

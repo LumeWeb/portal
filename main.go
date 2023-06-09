@@ -7,6 +7,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/logger"
+	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/tus"
 	"github.com/iris-contrib/swagger"
@@ -42,9 +43,9 @@ func main() {
 
 	// Initialize the database connection
 	db.Init()
-
 	logger.Init()
 	files.Init()
+	auth.Init()
 
 	// Create a new Iris app instance
 	app := iris.New()
@@ -68,6 +69,7 @@ func main() {
 
 	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
 		app.Handle(new(controller.FilesController))
+		app.Router.Use()
 	})
 
 	tusHandler := tus.Init()
