@@ -168,7 +168,14 @@ func Logout(token string) error {
 }
 
 func VerifyLoginToken(token string) error {
-	_, err := jwt.Decode([]byte(token))
+	uvt, err := jwt.Decode([]byte(token))
+	if err != nil {
+		return ErrInvalidToken
+	}
+
+	var claim jwt.Claims
+
+	err = uvt.Claims(&claim)
 	if err != nil {
 		return ErrInvalidToken
 	}
