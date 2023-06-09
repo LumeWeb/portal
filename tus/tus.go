@@ -166,13 +166,18 @@ func tusWorker(upload *tusd.Upload) error {
 		return err
 	}
 
-	_, err = files.Upload(file.(io.ReadSeeker), info.Size, hashBytes)
+	newUpload, err := files.Upload(file.(io.ReadSeeker), info.Size, hashBytes)
 	tErr := terminateUpload(*upload)
 
 	if tErr != nil {
 		return tErr
 	}
 
+	if err != nil {
+		return err
+	}
+
+	err = files.Pin(newUpload.Hash, newUpload.AccountID)
 	if err != nil {
 		return err
 	}
