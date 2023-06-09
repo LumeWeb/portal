@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	_ "github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"io"
 	"strings"
 )
@@ -24,6 +25,22 @@ const (
 	STATUS_UPLOADED  = iota
 	STATUS_UPLOADING = iota
 	STATUS_NOT_FOUND = iota
+)
+
+var (
+	ErrAlreadyExists          = errors.New("Upload already exists")
+	ErrFailedFetchObject      = errors.New("Failed fetching object")
+	ErrFailedFetchObjectProof = errors.New("Failed fetching object proof")
+	ErrFailedFetchTusObject   = errors.New("Failed fetching tus object")
+	ErrFailedHashFile         = errors.New("Failed to hash file")
+	ErrFailedQueryTusUpload   = errors.New("Failed to query tus uploads")
+	ErrFailedQueryUpload      = errors.New("Failed to query uploads table")
+	ErrFailedSaveUpload       = errors.New("Failed saving upload to db")
+	ErrFailedUpload           = errors.New("Failed uploading object")
+	ErrFailedUploadProof      = errors.New("Failed uploading object proof")
+	ErrFileExistsOutOfSync    = errors.New("File already exists in network, but missing in database")
+	ErrFileHashMismatch       = errors.New("File hash does not match provided file hash")
+	ErrInvalidFile            = errors.New("Invalid file")
 )
 
 var client *resty.Client
@@ -41,14 +58,14 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	tree, hashBytes, err := bao.ComputeTree(r, size)
 
 	if err != nil {
-		logger.Get().Error("Failed to hash file", zap.Error(err))
-		return upload, err
+		logger.Get().Error(ErrFailedHashFile.Error(), zap.Error(err))
+		return upload, ErrFailedHashFile
 	}
 
 	if hash != nil {
 		if bytes.Compare(hashBytes[:], hash) != 0 {
-			logger.Get().Error("File hash does not match provided file hash")
-			return upload, err
+			logger.Get().Error(ErrFileHashMismatch.Error())
+			return upload, ErrFileHashMismatch
 		}
 	}
 
@@ -61,15 +78,15 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	}
 
 	result := db.Get().Where(&model.Upload{Hash: hashHex}).First(&upload)
-	if (result.Error != nil && result.Error.Error() != "record not found") || result.RowsAffected > 0 {
+	if (result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound)) || result.RowsAffected > 0 {
 		err := result.Row().Scan(&upload)
 		if err != nil {
-			logger.Get().Error("Failed to query uploads table", zap.Error(err))
-			return upload, err
+			logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(err))
+			return upload, ErrFailedQueryUpload
 		}
 
 		if result.RowsAffected > 0 && upload.ID > 0 {
-			logger.Get().Info("Upload already exists")
+			logger.Get().Info(ErrAlreadyExists.Error())
 			return upload, nil
 		}
 	}
@@ -77,8 +94,8 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	objectExistsResult, err := client.R().Get(getBusObjectUrl(hashHex))
 
 	if err != nil {
-		logger.Get().Error("Failed query object", zap.Error(err))
-		return upload, err
+		logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(err))
+		return upload, ErrFailedQueryUpload
 	}
 
 	objectStatusCode := objectExistsResult.StatusCode()
@@ -86,8 +103,8 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	if objectStatusCode == 500 {
 		bodyErr := objectExistsResult.String()
 		if !strings.Contains(bodyErr, "no slabs found") {
-			logger.Get().Error("Failed fetching object", zap.String("error", objectExistsResult.String()))
-			return upload, errors.New(fmt.Sprintf("error fetching file: %s", objectExistsResult.String()))
+			logger.Get().Error(ErrFailedFetchObject.Error(), zap.String("error", objectExistsResult.String()))
+			return upload, ErrFailedFetchObject
 		}
 
 		objectStatusCode = 404
@@ -96,8 +113,8 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	proofExistsResult, err := client.R().Get(getBusProofUrl(hashHex))
 
 	if err != nil {
-		logger.Get().Error("Failed query object proof", zap.Error(err))
-		return upload, err
+		logger.Get().Error(ErrFailedFetchObjectProof.Error(), zap.Error(err))
+		return upload, ErrFailedFetchObjectProof
 	}
 
 	proofStatusCode := proofExistsResult.StatusCode()
@@ -105,31 +122,28 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	if proofStatusCode == 500 {
 		bodyErr := proofExistsResult.String()
 		if !strings.Contains(bodyErr, "no slabs found") {
-			logger.Get().Error("Failed fetching object proof", zap.String("error", proofExistsResult.String()))
-			return upload, errors.New(fmt.Sprintf("error fetching file proof: %s", proofExistsResult.String()))
+			logger.Get().Error(ErrFailedFetchObjectProof.Error(), zap.String("error", proofExistsResult.String()))
+			return upload, ErrFailedFetchObjectProof
 		}
 
 		objectStatusCode = 404
 	}
 
 	if objectStatusCode != 404 && proofStatusCode != 404 {
-		msg := "file already exists in network, but missing in database"
-		logger.Get().Error(msg)
-		return upload, errors.New(msg)
+		logger.Get().Error(ErrFileExistsOutOfSync.Error(), zap.String("hash", hashHex))
+		return upload, ErrFileExistsOutOfSync
 	}
 
 	ret, err := client.R().SetBody(r).Put(getWorkerObjectUrl(hashHex))
 	if ret.StatusCode() != 200 {
-		logger.Get().Error("Failed uploading object", zap.String("error", ret.String()))
-		err = errors.New(ret.String())
-		return upload, err
+		logger.Get().Error(ErrFailedUpload.Error(), zap.String("error", ret.String()))
+		return upload, ErrFailedUpload
 	}
 
 	ret, err = client.R().SetBody(tree).Put(getWorkerProofUrl(hashHex))
 	if ret.StatusCode() != 200 {
-		logger.Get().Error("Failed uploading proof", zap.String("error", ret.String()))
-		err = errors.New(ret.String())
-		return upload, err
+		logger.Get().Error(ErrFailedUploadProof.Error(), zap.String("error", ret.String()))
+		return upload, ErrFailedUpload
 	}
 
 	upload = model.Upload{
@@ -137,8 +151,8 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	}
 
 	if err = db.Get().Create(&upload).Error; err != nil {
-		logger.Get().Error("Failed adding upload to db", zap.Error(err))
-		return upload, err
+		logger.Get().Error(ErrFailedSaveUpload.Error(), zap.Error(err))
+		return upload, ErrFailedSaveUpload
 	}
 
 	return upload, nil
@@ -150,8 +164,8 @@ func Download(hash string) (io.Reader, error) {
 	if uploadItem.Err() == nil {
 		fetch, err := client.R().SetDoNotParseResponse(true).Get(fmt.Sprintf("/worker/objects/%s", hash))
 		if err != nil {
-			logger.Get().Error("Failed downloading object", zap.Error(err))
-			return nil, err
+			logger.Get().Error(ErrFailedFetchObject.Error(), zap.Error(err))
+			return nil, ErrFailedFetchObject
 		}
 
 		return fetch.RawBody(), nil
@@ -159,26 +173,26 @@ func Download(hash string) (io.Reader, error) {
 		var tusData model.Tus
 		err := tusItem.Scan(&tusData)
 		if err != nil {
-			logger.Get().Error("Failed querying upload from db", zap.Error(err))
-			return nil, err
+			logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(err))
+			return nil, ErrFailedQueryUpload
 		}
 
 		upload, err := getStore().GetUpload(context.Background(), tusData.UploadID)
 		if err != nil {
-			logger.Get().Error("Failed querying tus upload", zap.Error(err))
-			return nil, err
+			logger.Get().Error(ErrFailedQueryTusUpload.Error(), zap.Error(err))
+			return nil, ErrFailedQueryTusUpload
 		}
 
 		reader, err := upload.GetReader(context.Background())
 		if err != nil {
-			logger.Get().Error("Failed reading tus upload", zap.Error(err))
-			return nil, err
+			logger.Get().Error(ErrFailedFetchTusObject.Error(), zap.Error(err))
+			return nil, ErrFailedFetchTusObject
 		}
 
 		return reader, nil
 	} else {
-		logger.Get().Error("invalid file")
-		return nil, errors.New("invalid file")
+		logger.Get().Error(ErrInvalidFile.Error(), zap.String("hash", hash))
+		return nil, ErrInvalidFile
 	}
 }
 
@@ -187,8 +201,8 @@ func Status(hash string) int {
 
 	uploadItem := db.Get().Table("uploads").Where(&model.Upload{Hash: hash}).Count(&count)
 
-	if uploadItem.Error != nil {
-		logger.Get().Error("Failed querying upload from db", zap.Error(uploadItem.Error))
+	if uploadItem.Error != nil && !errors.Is(uploadItem.Error, gorm.ErrRecordNotFound) {
+		logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(uploadItem.Error))
 	}
 
 	if count > 0 {
@@ -197,8 +211,8 @@ func Status(hash string) int {
 
 	tusItem := db.Get().Table("tus").Where(&model.Tus{Hash: hash}).Count(&count)
 
-	if tusItem.Error != nil {
-		logger.Get().Error("Failed querying upload from db", zap.Error(tusItem.Error))
+	if tusItem.Error != nil && !errors.Is(tusItem.Error, gorm.ErrRecordNotFound) {
+		logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(tusItem.Error))
 	}
 
 	if count > 0 {
