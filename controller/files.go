@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/cid"
 	"git.lumeweb.com/LumeWeb/portal/controller/response"
 	"git.lumeweb.com/LumeWeb/portal/logger"
+	"git.lumeweb.com/LumeWeb/portal/middleware"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
@@ -13,6 +14,10 @@ import (
 
 type FilesController struct {
 	Controller
+}
+
+func (f *FilesController) BeginRequest(ctx iris.Context) {
+	ctx.AddHandler(middleware.VerifyJwt)
 }
 
 func (f *FilesController) PostUpload() {
