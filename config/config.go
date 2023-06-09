@@ -8,12 +8,22 @@ import (
 	"log"
 )
 
+var (
+	ConfigFilePaths = []string{
+		"/etc/lumeweb/portal/",
+		"$HOME/.lumeweb/portal/",
+		".",
+	}
+)
+
 func Init() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("json")
-	viper.AddConfigPath("/etc/lumeweb/portal/")
-	viper.AddConfigPath("$HOME/.lumeweb/portal/")
-	viper.AddConfigPath(".")
+
+	for _, path := range ConfigFilePaths {
+		viper.AddConfigPath(path)
+	}
+
 	viper.SetEnvPrefix("LUME_WEB_PORTAL")
 	viper.AutomaticEnv()
 
