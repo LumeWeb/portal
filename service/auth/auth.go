@@ -168,15 +168,21 @@ func Logout(token string) error {
 }
 
 func VerifyLoginToken(token string) error {
-	_, err := jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	_, err := jwt.Decode([]byte(token))
 	if err != nil {
-		return err
+		return ErrInvalidToken
 	}
 
 	session := model.LoginSession{}
 	if err := db.Get().Model(session).Where("token = ?", token).First(&session).Error; err != nil {
 		logger.Get().Debug(ErrInvalidToken.Error(), zap.Error(err), zap.String("token", token))
 		return ErrInvalidToken
+	}
+
+	_, err = jwt.Verify(jwt.HS256, sharedKey, []byte(token), blocklist)
+	if err != nil {
+		db.Get().Delete(&session)
+		return err
 	}
 
 	return nil
