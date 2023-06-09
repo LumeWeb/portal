@@ -112,6 +112,25 @@ func (f *FilesController) GetStatusBy(cidString string) {
 	f.respondJSON(&response.StatusResponse{Status: statusCode})
 
 }
+
+func (f *FilesController) PostPinBy(cidString string) {
+	ctx := f.Ctx
+
+	hashHex, valid := validateCid(cidString, true, ctx)
+
+	if !valid {
+		return
+	}
+
+	err := files.Pin(hashHex, getCurrentUserId(ctx))
+	if internalError(ctx, err) {
+		logger.Get().Error(err.Error())
+		return
+	}
+
+	f.Ctx.StatusCode(iris.StatusCreated)
+}
+
 func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
