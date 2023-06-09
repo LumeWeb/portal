@@ -38,6 +38,13 @@ func (f *FilesController) PostUpload() {
 		return
 	}
 
+	err = files.Pin(upload.Hash, upload.AccountID)
+
+	if internalError(ctx, err) {
+		logger.Get().Debug("failed pinning file", zap.Error(err))
+		return
+	}
+
 	cidString, err := cid.EncodeString(upload.Hash, uint64(meta.Size))
 
 	if internalError(ctx, err) {
