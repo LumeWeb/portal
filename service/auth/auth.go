@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-var jwtKey = []byte{}
+var jwtKey = ed25519.PrivateKey{}
 
 var blocklist *jwt.Blocklist
 
