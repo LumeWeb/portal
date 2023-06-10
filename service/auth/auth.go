@@ -254,7 +254,7 @@ func VerifyLoginToken(token string) (*model.Account, error) {
 		return nil, ErrInvalidToken
 	}
 
-	_, err = jwt.Verify(jwt.HS256, jwtKey, []byte(token), blocklist)
+	_, err = jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
 	if err != nil {
 		db.Get().Delete(&session)
 		return nil, err
