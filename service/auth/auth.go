@@ -181,7 +181,7 @@ func LoginWithPubkey(pubkey string, challenge string, signature string) (string,
 		return "", ErrFailedInvalidateToken
 	}
 
-	if err := db.Get().Delete(&challenge).Error; err != nil {
+	if err := db.Get().Delete(&challengeObj).Error; err != nil {
 		logger.Get().Debug(ErrFailedDeleteKeyChallenge.Error(), zap.Error(err))
 		return "", ErrFailedDeleteKeyChallenge
 	}
