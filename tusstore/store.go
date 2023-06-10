@@ -64,7 +64,7 @@ func (store DbFileStore) NewUpload(ctx context.Context, info handler.FileInfo) (
 	upload := &fileUpload{
 		info:    info,
 		binPath: binPath,
-		hash:    info.MetaData["blake3-hash"],
+		hash:    info.MetaData["hash"],
 	}
 
 	// writeInfo creates the file by itself if necessary

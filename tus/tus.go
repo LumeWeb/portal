@@ -23,7 +23,7 @@ import (
 
 const TUS_API_PATH = "/files/tus"
 
-const HASH_META_HEADER = "blake3-hash"
+const HASH_META_HEADER = "hash"
 
 func Init() *tusd.Handler {
 	store := &tusstore.DbFileStore{
@@ -46,7 +46,7 @@ func Init() *tusd.Handler {
 			hash := hook.Upload.MetaData[HASH_META_HEADER]
 
 			if len(hash) == 0 {
-				msg := "missing blake3-hash metadata"
+				msg := "missing hash metadata"
 				logger.Get().Debug(msg)
 				return errors.New(msg)
 			}
