@@ -156,6 +156,10 @@ func (f *FilesController) PostPinBy(cidString string) {
 	f.Ctx.StatusCode(iris.StatusCreated)
 }
 
+func (f *FilesController) GetUploadLimit() {
+	f.respondJSON(&response.UploadLimit{Limit: f.Ctx.Application().ConfigurationReadOnly().GetPostMaxMemory()})
+}
+
 func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
 	_, err := cid.Valid(cidString)
 	if sendError(ctx, err, iris.StatusBadRequest) {
