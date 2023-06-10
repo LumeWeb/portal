@@ -130,7 +130,7 @@ func (f *FilesController) GetStatusBy(cidString string) {
 		statusCode = "uploading"
 		break
 	case files.STATUS_NOT_FOUND:
-		statusCode = "uploading"
+		statusCode = "not_found"
 		break
 	}
 
