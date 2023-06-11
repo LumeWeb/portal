@@ -12,6 +12,8 @@ import (
 	"io"
 )
 
+var errStreamDone = errors.New("done")
+
 type FilesController struct {
 	Controller
 }
@@ -74,12 +76,8 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 		return
 	}
 
-	err = ctx.StreamWriter(func(w io.Writer) error {
-		_, err = io.Copy(w, download)
-		_ = download.(io.Closer).Close()
-		return err
-	})
-	if internalError(ctx, err) {
+	err = passThroughStream(download, ctx)
+	if err != errStreamDone && internalError(ctx, err) {
 		logger.Get().Debug("failed streaming file", zap.Error(err))
 	}
 }
@@ -93,17 +91,13 @@ func (f *FilesController) GetProofBy(cidString string) {
 		return
 	}
 
-	download, err := files.DownloadProof(hashHex)
+	proof, err := files.DownloadProof(hashHex)
 	if internalError(ctx, err) {
 		logger.Get().Debug("failed fetching file proof", zap.Error(err))
 		return
 	}
 
-	err = ctx.StreamWriter(func(w io.Writer) error {
-		_, err = io.Copy(w, download)
-		_ = download.(io.Closer).Close()
-		return err
-	})
+	err = passThroughStream(proof, ctx)
 	if internalError(ctx, err) {
 		logger.Get().Debug("failed streaming file proof", zap.Error(err))
 	}
@@ -182,4 +176,37 @@ func validateCid(cidString string, validateStatus bool, ctx iris.Context) (strin
 	}
 
 	return hashHex, true
+}
+
+func passThroughStream(stream io.Reader, ctx iris.Context) error {
+	closed := false
+
+	err := ctx.StreamWriter(func(w io.Writer) error {
+		if closed {
+			return errStreamDone
+		}
+
+		count, err := io.CopyN(w, stream, 1024)
+		if count == 0 || err == io.EOF {
+			err = stream.(io.Closer).Close()
+			if err != nil {
+				logger.Get().Error("failed closing stream", zap.Error(err))
+				return err
+			}
+			closed = true
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err == errStreamDone {
+		err = nil
+	}
+
+	return err
 }
