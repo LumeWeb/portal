@@ -164,7 +164,7 @@ func Download(hash string) (io.Reader, error) {
 	tusItem := db.Get().Table("tus").Where(&model.Tus{Hash: hash}).Row()
 
 	if uploadItem.Err() == nil {
-		fetch, err := client.R().SetDoNotParseResponse(true).Get(getWorkerProofUrl(hash))
+		fetch, err := client.R().SetDoNotParseResponse(true).Get(getWorkerObjectUrl(hash))
 		if err != nil {
 			logger.Get().Error(ErrFailedFetchObject.Error(), zap.Error(err))
 			return nil, ErrFailedFetchObject
