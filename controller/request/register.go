@@ -7,9 +7,10 @@ import (
 )
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Pubkey   string `json:"pubkey"`
+	validatable validators.ValidatableImpl
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	Pubkey      string `json:"pubkey"`
 }
 
 func (r RegisterRequest) Validate() error {
@@ -18,4 +19,7 @@ func (r RegisterRequest) Validate() error {
 		validation.Field(&r.Pubkey, validation.When(len(r.Password) == 0, validation.Required, validation.By(validators.CheckPubkeyValidator))),
 		validation.Field(&r.Password, validation.When(len(r.Pubkey) == 0, validation.Required)),
 	)
+}
+func (r RegisterRequest) Import(d map[string]interface{}) (validators.Validatable, error) {
+	return r.validatable.Import(d, r)
 }
