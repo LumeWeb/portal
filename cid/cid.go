@@ -10,6 +10,11 @@ import (
 
 var MAGIC_BYTES = []byte{0x26, 0x1f}
 
+var (
+	ErrMissingEmptySize = errors.New("Missing or empty size")
+	ErrInvalidCIDMagic  = errors.New("CID magic bytes missing or invalid")
+)
+
 type CID struct {
 	Hash [32]byte
 	Size uint64
@@ -76,13 +81,19 @@ func maybeDecode(cid string) ([]byte, error) {
 	}
 
 	if bytes.Compare(data[0:len(MAGIC_BYTES)], MAGIC_BYTES) != 0 {
-		return nil, errors.New("CID magic bytes missing or invalid")
+		return nil, ErrInvalidCIDMagic
 	}
 
-	size := binary.LittleEndian.Uint64(data[len(MAGIC_BYTES)+32:])
+	sizeBytes := data[len(MAGIC_BYTES)+32:]
+
+	if len(sizeBytes) == 0 {
+		return nil, ErrMissingEmptySize
+	}
+
+	size := binary.LittleEndian.Uint64(sizeBytes)
 
 	if size == 0 {
-		return nil, errors.New("missing or empty size")
+		return nil, ErrMissingEmptySize
 	}
 
 	return data, nil
