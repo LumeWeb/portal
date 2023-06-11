@@ -80,17 +80,14 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	}
 
 	result := db.Get().Where(&model.Upload{Hash: hashHex}).First(&upload)
-	if (result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound)) || result.RowsAffected > 0 {
-		err := result.Row().Scan(&upload)
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		if err != nil {
 			logger.Get().Error(ErrFailedQueryUpload.Error(), zap.Error(err))
 			return upload, ErrFailedQueryUpload
 		}
 
-		if result.RowsAffected > 0 && upload.ID > 0 {
-			logger.Get().Info(ErrAlreadyExists.Error())
-			return upload, nil
-		}
+		logger.Get().Info(ErrAlreadyExists.Error())
+		return upload, nil
 	}
 
 	objectExistsResult, err := client.R().Get(getBusObjectUrl(hashHex))
