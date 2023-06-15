@@ -3,6 +3,7 @@ package controller
 import (
 	"git.lumeweb.com/LumeWeb/portal/controller/request"
 	"git.lumeweb.com/LumeWeb/portal/controller/response"
+	"git.lumeweb.com/LumeWeb/portal/middleware"
 	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"github.com/kataras/iris/v12"
 )
@@ -98,4 +99,14 @@ func (a *AuthController) PostLogout() {
 
 	// Return a success response to the client.
 	a.Ctx.StatusCode(iris.StatusNoContent)
+}
+
+func (a *AuthController) GetStatus() {
+	middleware.VerifyJwt(a.Ctx)
+
+	if a.Ctx.IsStopped() {
+		return
+	}
+
+	a.respondJSON(&response.AuthStatusResponse{Status: true})
 }
