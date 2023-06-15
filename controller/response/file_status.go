@@ -1,5 +1,5 @@
 package response
 
-type StatusResponse struct {
+type FileStatusResponse struct {
 	Status string `json:"status"`
 }

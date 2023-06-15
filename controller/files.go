@@ -128,7 +128,7 @@ func (f *FilesController) GetStatusBy(cidString string) {
 		break
 	}
 
-	f.respondJSON(&response.StatusResponse{Status: statusCode})
+	f.respondJSON(&response.FileStatusResponse{Status: statusCode})
 
 }
 
