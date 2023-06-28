@@ -13,6 +13,7 @@ import (
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
+	"github.com/kataras/iris/v12/middleware/cors"
 	"github.com/kataras/iris/v12/mvc"
 	"go.uber.org/zap"
 	"log"
@@ -51,6 +52,7 @@ func main() {
 	app := iris.New()
 	// Enable Gzip compression for responses
 	app.Use(iris.Compression)
+	app.UseRouter(cors.New().Handler())
 
 	// Serve static files from the embedded directory at the app's root path
 	app.HandleDir("/", embedFrontend)
