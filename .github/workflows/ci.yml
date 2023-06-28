@@ -31,7 +31,9 @@ jobs:
                     $HOME/go/bin/swag fmt;
 
             -   name: Build
-                run: go build .
+                run: |
+                    mkdir app;
+                    go build .;
             -   name: Install SSH key
                 uses: shimataro/ssh-key-action@v2
                 with:
