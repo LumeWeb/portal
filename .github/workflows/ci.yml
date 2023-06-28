@@ -27,8 +27,8 @@ jobs:
             -   name: Setup Swagger
                 run: |
                     go install github.com/swaggo/swag/cmd/swag@latest;
-                    swag init -g main.go;
-                    swag fmt;
+                    $HOME/go/bin/swag init -g main.go;
+                    $HOME/go/bin/swag fmt;
 
             -   name: Build
                 run: go build .
