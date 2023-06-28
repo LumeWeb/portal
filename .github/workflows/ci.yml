@@ -33,6 +33,7 @@ jobs:
             -   name: Build
                 run: |
                     mkdir app;
+                    touch app/index.html
                     go build .;
             -   name: Install SSH key
                 uses: shimataro/ssh-key-action@v2
