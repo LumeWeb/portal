@@ -24,7 +24,14 @@ jobs:
                     node-version: 18.x
                     cache: 'npm'
             -   run: npm ci
-            -   run: go build .
+            -   name: Setup Swagger
+                run: |
+                    go install github.com/swaggo/swag/cmd/swag@latest;
+                    swag init -g main.go;
+                    swag fmt;
+
+            -   name: Build
+                run: go build .
             -   name: Install SSH key
                 uses: shimataro/ssh-key-action@v2
                 with:
