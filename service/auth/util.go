@@ -9,6 +9,7 @@ import (
 	"github.com/kataras/jwt"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -109,4 +110,17 @@ func GetRequestAuthCode(ctx iris.Context) string {
 	}
 
 	return authHeaderParts[1]
+}
+
+func GetCurrentUserId(ctx iris.Context) uint {
+	usr := ctx.User()
+
+	if usr == nil {
+		return 0
+	}
+
+	sid, _ := usr.GetID()
+	userID, _ := strconv.Atoi(sid)
+
+	return uint(userID)
 }

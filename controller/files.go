@@ -141,7 +141,7 @@ func (f *FilesController) PostPinBy(cidString string) {
 		return
 	}
 
-	err := files.Pin(hashHex, getCurrentUserId(ctx))
+	err := files.Pin(hashHex, auth.GetCurrentUserId(ctx))
 	if internalError(ctx, err) {
 		logger.Get().Error(err.Error())
 		return
