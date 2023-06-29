@@ -6,7 +6,7 @@ require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang-queue/queue v0.1.3
-	github.com/huandu/go-clone/generic v1.6.0
+	github.com/huandu/go-clone v1.6.0
 	github.com/imdario/mergo v0.3.16
 	github.com/iris-contrib/swagger v0.0.0-20230531125653-f4ee631290a7
 	github.com/kataras/iris/v12 v12.2.0
@@ -55,7 +55,6 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/huandu/go-clone v1.6.0 // indirect
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible // indirect
 	github.com/iris-contrib/schema v0.0.6 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

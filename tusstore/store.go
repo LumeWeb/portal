@@ -12,7 +12,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/golang-queue/queue"
-	clone "github.com/huandu/go-clone/generic"
+	clone "github.com/huandu/go-clone"
 	"github.com/kataras/iris/v12"
 	"github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
@@ -151,7 +151,7 @@ type fileUpload struct {
 }
 
 func (upload *fileUpload) GetInfo(ctx context.Context) (handler.FileInfo, error) {
-	info := clone.Clone(upload.info)
+	info := clone.Clone(upload.info).(handler.FileInfo)
 	info.Storage["uploader"] = strconv.Itoa(int(upload.uploader))
 
 	return upload.info, nil
