@@ -29,6 +29,10 @@
                         "release": "patch"
                     },
                     {
+                        "type": "deps",
+                        "release": "patch"
+                    },
+                    {
                         "type": "refactor",
                         "release": "patch"
                     }
