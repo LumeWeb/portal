@@ -54,7 +54,7 @@ func Init() {
 	client.SetDisableWarn(true)
 }
 
-func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
+func Upload(r io.ReadSeeker, size int64, hash []byte, accountID uint) (model.Upload, error) {
 	var upload model.Upload
 
 	tree, hashBytes, err := bao.ComputeTree(r, size)
@@ -146,7 +146,8 @@ func Upload(r io.ReadSeeker, size int64, hash []byte) (model.Upload, error) {
 	}
 
 	upload = model.Upload{
-		Hash: hashHex,
+		Hash:      hashHex,
+		AccountID: accountID,
 	}
 
 	if err = db.Get().Create(&upload).Error; err != nil {
