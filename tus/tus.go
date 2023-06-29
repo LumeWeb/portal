@@ -19,6 +19,7 @@ import (
 	"golang.org/x/exp/slices"
 	"gorm.io/gorm"
 	"io"
+	"strconv"
 )
 
 const TUS_API_PATH = "/files/tus"
@@ -167,7 +168,9 @@ func tusWorker(upload *tusd.Upload) error {
 		return err
 	}
 
-	newUpload, err := files.Upload(file.(io.ReadSeeker), info.Size, hashBytes)
+	uploader, _ := strconv.Atoi(info.Storage["uploader"])
+
+	newUpload, err := files.Upload(file.(io.ReadSeeker), info.Size, hashBytes, uint(uploader))
 	tErr := terminateUpload(*upload)
 
 	if tErr != nil {

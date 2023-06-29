@@ -1,18 +1,22 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/controller"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/logger"
+	"git.lumeweb.com/LumeWeb/portal/middleware"
 	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
+	"git.lumeweb.com/LumeWeb/portal/shared"
 	"git.lumeweb.com/LumeWeb/portal/tus"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
+	irisContext "github.com/kataras/iris/v12/context"
 	"github.com/kataras/iris/v12/middleware/cors"
 	"github.com/kataras/iris/v12/mvc"
 	"go.uber.org/zap"
@@ -60,6 +64,8 @@ func main() {
 	api := app.Party("/api")
 	v1 := api.Party("/v1")
 
+	tusHandler := tus.Init()
+
 	// Register the AccountController with the MVC framework and attach it to the "/api/account" path
 	mvc.Configure(v1.Party("/account"), func(app *mvc.Application) {
 		app.Handle(new(controller.AccountController))
@@ -70,14 +76,21 @@ func main() {
 	})
 
 	mvc.Configure(v1.Party("/files"), func(app *mvc.Application) {
+		tusRoute := app.Router.Party(tus.TUS_API_PATH)
+		tusRoute.Use(middleware.VerifyJwt)
+
+		fromStd := func(handler http.Handler) func(ctx *irisContext.Context) {
+			return func(ctx *irisContext.Context) {
+				newCtx := context.WithValue(ctx.Request().Context(), shared.TusRequestContextKey, ctx)
+				handler.ServeHTTP(ctx.ResponseWriter(), ctx.Request().WithContext(newCtx))
+			}
+		}
+
+		tusRoute.Any("/{fileparam:path}", fromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH+"/", tusHandler)))
+		tusRoute.Post("/", fromStd(http.StripPrefix(tusRoute.GetRelPath()+tus.TUS_API_PATH, tusHandler)))
+
 		app.Handle(new(controller.FilesController))
-		app.Router.Use()
 	})
-
-	tusHandler := tus.Init()
-
-	v1.Any(tus.TUS_API_PATH+"/{fileparam:path}", iris.FromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH+"/", tusHandler)))
-	v1.Post(tus.TUS_API_PATH, iris.FromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH, tusHandler)))
 
 	swaggerConfig := swagger.Config{
 		// The url pointing to API definition.
