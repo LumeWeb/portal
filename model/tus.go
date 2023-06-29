@@ -6,7 +6,7 @@ import (
 
 type Tus struct {
 	gorm.Model
-	ID        uint64 `gorm:"primaryKey"`
+	ID        uint `gorm:"primaryKey" gorm:"AUTO_INCREMENT"`
 	UploadID  string
 	Hash      string
 	Info      string

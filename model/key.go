@@ -7,7 +7,7 @@ import (
 
 type Key struct {
 	gorm.Model
-	ID        uint `gorm:"primaryKey"`
+	ID        uint `gorm:"primaryKey" gorm:"AUTO_INCREMENT"`
 	AccountID uint
 	Account   Account
 	Pubkey    string

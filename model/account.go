@@ -7,7 +7,7 @@ import (
 
 type Account struct {
 	gorm.Model
-	ID          uint   `gorm:"primaryKey"`
+	ID          uint   `gorm:"primaryKey" gorm:"AUTO_INCREMENT"`
 	Email       string `gorm:"uniqueIndex"`
 	Password    *string
 	CreatedAt   time.Time
