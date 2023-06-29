@@ -114,6 +114,7 @@ require (
 replace go.uber.org/multierr => go.uber.org/multierr v1.9.0
 
 replace (
+	github.com/tus/tusd => git.lumeweb.com/LumeWeb/tusd v1.11.1-0.20230629085530-7b20ce6a9ae5
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp => go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.14.0
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry => go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.12.0
