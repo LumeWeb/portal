@@ -103,4 +103,10 @@ func main() {
 	if err != nil {
 		logger.Get().Error("Failed starting webserver proof", zap.Error(err))
 	}
+
+	err = db.Close()
+
+	if err != nil {
+		logger.Get().Error("Failed to close db connection", zap.Error(err))
+	}
 }

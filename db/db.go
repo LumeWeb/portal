@@ -63,3 +63,9 @@ func Init() {
 func Get() *gorm.DB {
 	return db
 }
+func Close() error {
+
+	instance, _ := db.DB()
+
+	return instance.Close()
+}
