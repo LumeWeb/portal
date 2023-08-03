@@ -35,9 +35,9 @@ func Init() {
 	// Connect to a MySQL database.
 	case "mysql":
 		if dbSocket != "" {
-			dsn = fmt.Sprintf("%s:%s@unix(%s)/%s", dbUser, dbPassword, dbSocket, dbName)
+			dsn = fmt.Sprintf("%s:%s@unix(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUser, dbPassword, dbSocket, dbName)
 		} else {
-			dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+			dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", dbUser, dbPassword, dbHost, dbPort, dbName)
 		}
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	// Connect to a SQLite database.

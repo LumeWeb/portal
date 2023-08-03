@@ -2,10 +2,12 @@ package account
 
 import (
 	"git.lumeweb.com/LumeWeb/portal/model"
+	"github.com/kataras/iris/v12/context"
 	"strconv"
 )
 
 type User struct {
+	context.User
 	account *model.Account
 }
 

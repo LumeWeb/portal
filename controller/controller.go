@@ -5,7 +5,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 func tryParseRequest(r interface{}, ctx iris.Context) (interface{}, bool) {
@@ -70,17 +69,4 @@ func (c Controller) respondJSON(data interface{}) {
 	if err != nil {
 		logger.Get().Error("failed to generate response", zap.Error(err))
 	}
-}
-
-func getCurrentUserId(ctx iris.Context) uint {
-	usr := ctx.User()
-
-	if usr == nil {
-		return 0
-	}
-
-	sid, _ := usr.GetID()
-	userID, _ := strconv.Atoi(sid)
-
-	return uint(userID)
 }

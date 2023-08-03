@@ -249,7 +249,7 @@ func VerifyLoginToken(token string) (*model.Account, error) {
 	}
 
 	session := model.LoginSession{}
-	if err := db.Get().Model(session).Where("token = ?", token).First(&session).Error; err != nil {
+	if err := db.Get().Model(session).Preload("Account").Where("token = ?", token).First(&session).Error; err != nil {
 		logger.Get().Debug(ErrInvalidToken.Error(), zap.Error(err), zap.String("token", token))
 		return nil, ErrInvalidToken
 	}

@@ -7,7 +7,7 @@ import (
 
 type KeyChallenge struct {
 	gorm.Model
-	ID         uint `gorm:"primaryKey"`
+	ID         uint `gorm:"primaryKey" gorm:"AUTO_INCREMENT"`
 	AccountID  uint
 	Account    Account
 	Challenge  string `gorm:"not null"`

@@ -6,6 +6,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/controller/response"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/middleware"
+	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"github.com/kataras/iris/v12"
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ func (f *FilesController) PostUpload() {
 		return
 	}
 
-	upload, err := files.Upload(file, meta.Size, nil)
+	upload, err := files.Upload(file, meta.Size, nil, auth.GetCurrentUserId(ctx))
 
 	if internalError(ctx, err) {
 		logger.Get().Debug("failed uploading file", zap.Error(err))
@@ -141,7 +142,7 @@ func (f *FilesController) PostPinBy(cidString string) {
 		return
 	}
 
-	err := files.Pin(hashHex, getCurrentUserId(ctx))
+	err := files.Pin(hashHex, auth.GetCurrentUserId(ctx))
 	if internalError(ctx, err) {
 		logger.Get().Error(err.Error())
 		return

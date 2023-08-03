@@ -12,6 +12,12 @@ var tusStore *interface{}
 var tusComposer *interface{}
 var tusWorker TusFunc
 
+type tusRequestContextKey int
+
+const (
+	TusRequestContextKey tusRequestContextKey = iota
+)
+
 func SetTusQueue(q interface{}) {
 	tusQueue = &q
 }

@@ -9,13 +9,17 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/model"
+	"git.lumeweb.com/LumeWeb/portal/service/auth"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"github.com/golang-queue/queue"
+	clone "github.com/huandu/go-clone"
+	"github.com/kataras/iris/v12"
 	"github.com/tus/tusd/pkg/handler"
 	"go.uber.org/zap"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 var defaultFilePerm = os.FileMode(0664)
@@ -61,10 +65,13 @@ func (store DbFileStore) NewUpload(ctx context.Context, info handler.FileInfo) (
 		return nil, err
 	}
 
+	irisContext := ctx.Value(shared.TusRequestContextKey).(iris.Context)
+
 	upload := &fileUpload{
-		info:    info,
-		binPath: binPath,
-		hash:    info.MetaData["hash"],
+		info:     info,
+		binPath:  binPath,
+		hash:     info.MetaData["hash"],
+		uploader: auth.GetCurrentUserId(irisContext),
 	}
 
 	// writeInfo creates the file by itself if necessary
@@ -138,11 +145,15 @@ type fileUpload struct {
 	// info stores the current information about the upload
 	info handler.FileInfo
 	// binPath is the path to the binary file (which has no extension)
-	binPath string
-	hash    string
+	binPath  string
+	hash     string
+	uploader uint
 }
 
 func (upload *fileUpload) GetInfo(ctx context.Context) (handler.FileInfo, error) {
+	info := clone.Clone(upload.info).(handler.FileInfo)
+	info.Storage["uploader"] = strconv.Itoa(int(upload.uploader))
+
 	return upload.info, nil
 }
 
@@ -240,7 +251,7 @@ func (upload *fileUpload) writeInfo() error {
 		return nil
 	}
 
-	tusRecord = &model.Tus{UploadID: upload.info.ID, Hash: upload.hash, Info: string(data)}
+	tusRecord = &model.Tus{UploadID: upload.info.ID, Hash: upload.hash, Info: string(data), AccountID: upload.uploader}
 
 	if ret := db.Get().Create(&tusRecord); ret.Error != nil {
 		logger.Get().Error("failed to create tus entry", zap.Error(ret.Error))
