@@ -62,6 +62,9 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 	}
 
 	if err := db.Get().Create(&session).Error; err != nil {
+		if strings.Contains(err.Error(), "Duplicate entry") {
+			return token, nil
+		}
 		logger.Get().Error(ErrFailedSaveToken.Error(), zap.Uint("account_id", accountID), zap.Duration("max_age", maxAge))
 		return "", ErrFailedSaveToken
 	}
