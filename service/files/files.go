@@ -52,6 +52,7 @@ func Init() {
 	client.SetBaseURL("http://localhost:9980/api")
 	client.SetBasicAuth("", viper.GetString("renterd-api-password"))
 	client.SetDisableWarn(true)
+	client.SetCloseConnection(true)
 }
 
 func Upload(r io.ReadSeeker, size int64, hash []byte, accountID uint) (model.Upload, error) {
