@@ -24,11 +24,12 @@ func verifyPassword(hashedPassword, password string) error {
 }
 
 // generateToken generates a JWT token for the given account ID.
-func generateToken(maxAge time.Duration) (string, error) {
+func generateToken(maxAge time.Duration, ttype string) (string, error) {
 	// Define the JWT claims.
 	claim := jwt.Claims{
 		Expiry:   time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours.
 		IssuedAt: time.Now().Unix(),
+		Audience: []string{ttype},
 	}
 
 	token, err := jwt.Sign(jwt.EdDSA, jwtKey, claim, jwt.MaxAge(maxAge))
@@ -43,7 +44,7 @@ func generateToken(maxAge time.Duration) (string, error) {
 
 func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, error) {
 	// Generate a JWT token for the authenticated user.
-	token, err := generateToken(maxAge)
+	token, err := generateToken(maxAge, "auth")
 	if err != nil {
 		logger.Get().Error(ErrFailedGenerateToken.Error())
 		return "", ErrFailedGenerateToken
@@ -74,7 +75,7 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 
 func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string, error) {
 	// Generate a JWT token for the authenticated user.
-	token, err := generateToken(maxAge)
+	token, err := generateToken(maxAge, "challenge")
 	if err != nil {
 		logger.Get().Error(ErrFailedGenerateToken.Error(), zap.Error(err))
 		return "", ErrFailedGenerateToken
