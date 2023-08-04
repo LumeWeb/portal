@@ -62,6 +62,13 @@ func generateAndSaveLoginToken(accountID uint, maxAge time.Duration) (string, er
 		Expiration: claim.ExpiresAt(),
 	}
 
+	existingSession := model.LoginSession{}
+
+	err = db.Get().Where("token = ?", token).First(&existingSession).Error
+	if err == nil {
+		return token, nil
+	}
+
 	if err := db.Get().Create(&session).Error; err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			return token, nil
