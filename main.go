@@ -21,6 +21,7 @@ import (
 	irisContext "github.com/kataras/iris/v12/context"
 	"github.com/kataras/iris/v12/middleware/cors"
 	"github.com/kataras/iris/v12/mvc"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"

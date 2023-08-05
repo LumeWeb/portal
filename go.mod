@@ -8,10 +8,12 @@ require (
 	github.com/golang-queue/queue v0.1.3
 	github.com/huandu/go-clone v1.6.0
 	github.com/imdario/mergo v0.3.16
+	github.com/iris-contrib/middleware/newrelic v0.0.0-20230716223316-058c9deb31e2
 	github.com/iris-contrib/swagger v0.0.0-20230531125653-f4ee631290a7
 	github.com/kataras/iris/v12 v12.2.0
 	github.com/kataras/jwt v0.1.8
 	github.com/multiformats/go-multibase v0.2.0
+	github.com/newrelic/go-agent/v3 v3.24.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.16.0
 	github.com/swaggo/swag v1.16.1
@@ -50,6 +52,7 @@ require (
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.2.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
@@ -105,6 +108,8 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.10.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	google.golang.org/grpc v1.55.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
