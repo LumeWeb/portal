@@ -73,10 +73,6 @@ func main() {
 
 	p := pprof.New()
 
-	for _, route := range []string{"cmdline", "profile", "symbol", "trace"} {
-		app.Any("/debug/pprof/"+route, iris.FromStd(p))
-	}
-
 	app.Any("/debug/pprof /debug/pprof/{action:string}", iris.FromStd(p))
 
 	// Serve static files from the embedded directory at the app's root path
