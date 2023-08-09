@@ -20,7 +20,9 @@ import (
 	"github.com/kataras/iris/v12"
 	irisContext "github.com/kataras/iris/v12/context"
 	"github.com/kataras/iris/v12/middleware/cors"
+	"github.com/kataras/iris/v12/middleware/pprof"
 	"github.com/kataras/iris/v12/mvc"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
@@ -68,6 +70,14 @@ func main() {
 	// Enable Gzip compression for responses
 	app.Use(iris.Compression)
 	app.UseRouter(cors.New().Handler())
+
+	p := pprof.New()
+
+	for _, route := range []string{"cmdline", "profile", "symbol", "trace"} {
+		app.Any("/debug/pprof/"+route, iris.FromStd(p))
+	}
+
+	app.Any("/debug/pprof /debug/pprof/{action:string}", iris.FromStd(p))
 
 	// Serve static files from the embedded directory at the app's root path
 	app.HandleDir("/", embedFrontend)
