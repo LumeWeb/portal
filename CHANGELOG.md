@@ -1,3 +1,11 @@
+# [0.1.0-develop.2](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.1...v0.1.0-develop.2) (2023-08-15)
+
+
+### Bug Fixes
+
+* need to change dnslink route registration to use a path param based route ([ae071a3](https://git.lumeweb.com/LumeWeb/portal/commit/ae071a30ecaa62ff431878c71a54059e3d3ce8b7))
+* need to string off forward slash at beginning to match manifest file paths ([2f64f18](https://git.lumeweb.com/LumeWeb/portal/commit/2f64f18e24fa1e4ddd74ed6a8d2d44e483fff1dc))
+
 # [0.1.0-develop.1](https://git.lumeweb.com/LumeWeb/portal/compare/v0.0.1...v0.1.0-develop.1) (2023-08-15)
 
 
