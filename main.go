@@ -117,7 +117,7 @@ func main() {
 	// And the wildcard one for index.html, *.js, *.css and e.t.c.
 	app.Get("/swagger/{any:path}", swaggerUI)
 
-	app.Party("*").Any("*", dnslink.Handler)
+	app.Any("/{p:path}", dnslink.Handler)
 
 	// Start the Iris app and listen for incoming requests on port 80
 	err := app.Listen(":8080", func(app *iris.Application) {
