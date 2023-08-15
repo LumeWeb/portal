@@ -64,7 +64,6 @@ func main() {
 	app := iris.New()
 	// Enable Gzip compression for responses
 	app.Use(iris.Compression)
-	app.UseRouter(cors.New().Handler())
 
 	// Serve static files from the embedded directory at the app's root path
 	_ = embedFrontend
@@ -72,6 +71,8 @@ func main() {
 
 	api := app.Party("/api")
 	v1 := api.Party("/v1")
+
+	api.UseRouter(cors.New().Handler())
 
 	tusHandler := tus.Init()
 
