@@ -1,6 +1,6 @@
 {
     "name": "@lumeweb/portal",
-    "version": "0.1.0",
+    "version": "0.1.0-develop.1",
     "repository": {
         "type": "git",
         "url": "gitea@git.lumeweb.com:LumeWeb/portal.git"
