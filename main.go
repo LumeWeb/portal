@@ -6,6 +6,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/controller"
 	"git.lumeweb.com/LumeWeb/portal/db"
+	"git.lumeweb.com/LumeWeb/portal/dnslink"
 	_ "git.lumeweb.com/LumeWeb/portal/docs"
 	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/middleware"
@@ -66,7 +67,8 @@ func main() {
 	app.UseRouter(cors.New().Handler())
 
 	// Serve static files from the embedded directory at the app's root path
-	app.HandleDir("/", embedFrontend)
+	_ = embedFrontend
+	//	app.HandleDir("/", embedFrontend)
 
 	api := app.Party("/api")
 	v1 := api.Party("/v1")
@@ -94,7 +96,7 @@ func main() {
 		}
 
 		tusRoute.Any("/{fileparam:path}", fromStd(http.StripPrefix(v1.GetRelPath()+tus.TUS_API_PATH+"/", tusHandler)))
-		tusRoute.Post("/", fromStd(http.StripPrefix(tusRoute.GetRelPath()+tus.TUS_API_PATH, tusHandler)))
+		tusRoute.Post("/{p:path}", fromStd(http.StripPrefix(tusRoute.GetRelPath()+tus.TUS_API_PATH, tusHandler)))
 
 		app.Handle(new(controller.FilesController))
 	})
@@ -113,6 +115,8 @@ func main() {
 	app.Get("/swagger", swaggerUI)
 	// And the wildcard one for index.html, *.js, *.css and e.t.c.
 	app.Get("/swagger/{any:path}", swaggerUI)
+
+	app.Party("*").Any("*", dnslink.Handler)
 
 	// Start the Iris app and listen for incoming requests on port 80
 	err := app.Listen(":8080", func(app *iris.Application) {

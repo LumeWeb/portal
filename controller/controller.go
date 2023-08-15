@@ -50,13 +50,13 @@ func sendErrorCustom(ctx iris.Context, err error, customError error, irisError i
 
 	return false
 }
-func internalError(ctx iris.Context, err error) bool {
+func InternalError(ctx iris.Context, err error) bool {
 	return sendErrorCustom(ctx, err, nil, iris.StatusInternalServerError)
 }
 func internalErrorCustom(ctx iris.Context, err error, customError error) bool {
 	return sendErrorCustom(ctx, err, customError, iris.StatusInternalServerError)
 }
-func sendError(ctx iris.Context, err error, irisError int) bool {
+func SendError(ctx iris.Context, err error, irisError int) bool {
 	return sendErrorCustom(ctx, err, nil, irisError)
 }
 

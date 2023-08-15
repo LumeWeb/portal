@@ -13,7 +13,7 @@ import (
 	"io"
 )
 
-var errStreamDone = errors.New("done")
+var ErrStreamDone = errors.New("done")
 
 type FilesController struct {
 	Controller
@@ -36,21 +36,21 @@ func (f *FilesController) PostUpload() {
 
 	upload, err := files.Upload(file, meta.Size, nil, auth.GetCurrentUserId(ctx))
 
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed uploading file", zap.Error(err))
 		return
 	}
 
 	err = files.Pin(upload.Hash, upload.AccountID)
 
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed pinning file", zap.Error(err))
 		return
 	}
 
 	cidString, err := cid.EncodeString(upload.Hash, uint64(meta.Size))
 
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed creating cid", zap.Error(err))
 		return
 	}
@@ -65,20 +65,20 @@ func (f *FilesController) PostUpload() {
 func (f *FilesController) GetDownloadBy(cidString string) {
 	ctx := f.Ctx
 
-	hashHex, valid := validateCid(cidString, true, ctx)
+	hashHex, valid := ValidateCid(cidString, true, ctx)
 
 	if !valid {
 		return
 	}
 
 	download, err := files.Download(hashHex)
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed fetching file", zap.Error(err))
 		return
 	}
 
-	err = passThroughStream(download, ctx)
-	if err != errStreamDone && internalError(ctx, err) {
+	err = PassThroughStream(download, ctx)
+	if err != ErrStreamDone && InternalError(ctx, err) {
 		logger.Get().Debug("failed streaming file", zap.Error(err))
 	}
 }
@@ -86,20 +86,20 @@ func (f *FilesController) GetDownloadBy(cidString string) {
 func (f *FilesController) GetProofBy(cidString string) {
 	ctx := f.Ctx
 
-	hashHex, valid := validateCid(cidString, true, ctx)
+	hashHex, valid := ValidateCid(cidString, true, ctx)
 
 	if !valid {
 		return
 	}
 
 	proof, err := files.DownloadProof(hashHex)
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed fetching file proof", zap.Error(err))
 		return
 	}
 
-	err = passThroughStream(proof, ctx)
-	if internalError(ctx, err) {
+	err = PassThroughStream(proof, ctx)
+	if InternalError(ctx, err) {
 		logger.Get().Debug("failed streaming file proof", zap.Error(err))
 	}
 }
@@ -107,7 +107,7 @@ func (f *FilesController) GetProofBy(cidString string) {
 func (f *FilesController) GetStatusBy(cidString string) {
 	ctx := f.Ctx
 
-	hashHex, valid := validateCid(cidString, false, ctx)
+	hashHex, valid := ValidateCid(cidString, false, ctx)
 
 	if !valid {
 		return
@@ -136,14 +136,14 @@ func (f *FilesController) GetStatusBy(cidString string) {
 func (f *FilesController) PostPinBy(cidString string) {
 	ctx := f.Ctx
 
-	hashHex, valid := validateCid(cidString, true, ctx)
+	hashHex, valid := ValidateCid(cidString, true, ctx)
 
 	if !valid {
 		return
 	}
 
 	err := files.Pin(hashHex, auth.GetCurrentUserId(ctx))
-	if internalError(ctx, err) {
+	if InternalError(ctx, err) {
 		logger.Get().Error(err.Error())
 		return
 	}
@@ -155,9 +155,9 @@ func (f *FilesController) GetUploadLimit() {
 	f.respondJSON(&response.UploadLimit{Limit: f.Ctx.Application().ConfigurationReadOnly().GetPostMaxMemory()})
 }
 
-func validateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
+func ValidateCid(cidString string, validateStatus bool, ctx iris.Context) (string, bool) {
 	_, err := cid.Valid(cidString)
-	if sendError(ctx, err, iris.StatusBadRequest) {
+	if SendError(ctx, err, iris.StatusBadRequest) {
 		logger.Get().Debug("invalid cid", zap.Error(err))
 		return "", false
 	}
@@ -170,7 +170,7 @@ func validateCid(cidString string, validateStatus bool, ctx iris.Context) (strin
 
 		if status == files.STATUS_NOT_FOUND {
 			err := errors.New("cid not found")
-			sendError(ctx, errors.New("cid not found"), iris.StatusNotFound)
+			SendError(ctx, errors.New("cid not found"), iris.StatusNotFound)
 			logger.Get().Debug("cid not found", zap.Error(err))
 			return "", false
 		}
@@ -179,12 +179,12 @@ func validateCid(cidString string, validateStatus bool, ctx iris.Context) (strin
 	return hashHex, true
 }
 
-func passThroughStream(stream io.Reader, ctx iris.Context) error {
+func PassThroughStream(stream io.Reader, ctx iris.Context) error {
 	closed := false
 
 	err := ctx.StreamWriter(func(w io.Writer) error {
 		if closed {
-			return errStreamDone
+			return ErrStreamDone
 		}
 
 		count, err := io.CopyN(w, stream, 1024)
@@ -205,7 +205,7 @@ func passThroughStream(stream io.Reader, ctx iris.Context) error {
 		return nil
 	})
 
-	if err == errStreamDone {
+	if err == ErrStreamDone {
 		err = nil
 	}
 
