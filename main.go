@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/controller"
 	"git.lumeweb.com/LumeWeb/portal/db"
@@ -14,20 +13,15 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/service/files"
 	"git.lumeweb.com/LumeWeb/portal/shared"
 	"git.lumeweb.com/LumeWeb/portal/tus"
-	nriris "github.com/iris-contrib/middleware/newrelic"
 	"github.com/iris-contrib/swagger"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/kataras/iris/v12"
 	irisContext "github.com/kataras/iris/v12/context"
 	"github.com/kataras/iris/v12/middleware/cors"
-	"github.com/kataras/iris/v12/middleware/pprof"
 	"github.com/kataras/iris/v12/mvc"
-	"github.com/newrelic/go-agent/v3/newrelic"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
-	"os"
 )
 
 // Embed a directory of static files for serving from the app's root path
@@ -71,10 +65,6 @@ func main() {
 	app.Use(iris.Compression)
 	app.UseRouter(cors.New().Handler())
 
-	p := pprof.New()
-
-	app.Any("/debug/pprof /debug/pprof/{action:string}", iris.FromStd(p))
-
 	// Serve static files from the embedded directory at the app's root path
 	app.HandleDir("/", embedFrontend)
 
@@ -82,21 +72,6 @@ func main() {
 	v1 := api.Party("/v1")
 
 	tusHandler := tus.Init()
-
-	if viper.IsSet("newrelic.license") {
-		nrAapp, err := newrelic.NewApplication(
-			newrelic.ConfigAppName(viper.GetString("newrelic.appname")),
-			newrelic.ConfigLicense(viper.GetString("newrelic.license")),
-			newrelic.ConfigAppLogForwardingEnabled(true),
-		)
-
-		if nil != err {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		app.Use(nriris.New(nrAapp))
-	}
 
 	// Register the AccountController with the MVC framework and attach it to the "/api/account" path
 	mvc.Configure(v1.Party("/account"), func(app *mvc.Application) {
