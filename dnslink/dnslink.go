@@ -126,6 +126,8 @@ func Handler(ctx *context.Context) {
 		return
 	}
 
+	path = strings.TrimLeft(path, "/")
+
 	requestedPath, exists := manifest.Paths[path]
 
 	if !exists {
