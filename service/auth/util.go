@@ -88,7 +88,12 @@ func generateAndSaveChallengeToken(accountID uint, maxAge time.Duration) (string
 		return "", ErrFailedGenerateToken
 	}
 
-	verifiedToken, _ := jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
+	verifiedToken, err := jwt.Verify(jwt.EdDSA, jwtKey, []byte(token), blocklist)
+
+	if err != nil {
+		return "", ErrFailedGenerateToken
+	}
+
 	var claim *jwt.Claims
 
 	_ = verifiedToken.Claims(&claim)
