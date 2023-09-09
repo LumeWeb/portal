@@ -1,3 +1,10 @@
+# [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
+
+
+### Bug Fixes
+
+* handle failure on verifying token ([a06b79a](https://git.lumeweb.com/LumeWeb/portal/commit/a06b79a537f08d741faeb8319d558c9e64977c4b))
+
 # [0.1.0-develop.2](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.1...v0.1.0-develop.2) (2023-08-15)
 
 
