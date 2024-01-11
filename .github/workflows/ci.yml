@@ -18,32 +18,16 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             -   uses: actions/checkout@v3
-            -   name: Use Node.js
-                uses: actions/setup-node@v3
-                with:
-                    node-version: 18.x
-                    cache: 'npm'
-            -   run: npm ci
-            -   name: Setup Swagger
-                run: |
-                    go install github.com/swaggo/swag/cmd/swag@latest;
-                    $HOME/go/bin/swag init -g main.go;
-                    $HOME/go/bin/swag fmt;
-
-            -   name: Build
-                run: |
-                    mkdir app;
-                    touch app/index.html
-                    go build .;
             -   name: Install SSH key
                 uses: shimataro/ssh-key-action@v2
                 with:
                     key: ${{ secrets.GITEA_SSH_KEY }}
                     known_hosts: ${{ secrets.GITEA_KNOWN_HOST }}
             -   name: Publish
-                run: npm run semantic-release
-                env:
-                    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+                uses: go-semantic-release/action@v1
+                with:
+                    github-token: ${{ secrets.GITHUB_TOKEN }}
+                    prerelease: true
             -   name: Setup tmate session
                 uses: mxschmitt/action-tmate@v3
                 if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled && failure() }}
