@@ -104,7 +104,7 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 		},
 		func() error {
 			for _, _func := range p.protocolRegistry.All() {
-				err := _func.Initialize(p.Config(), p.Logger())
+				err := _func.Initialize(p)
 				if err != nil {
 					return err
 				}
