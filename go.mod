@@ -3,7 +3,7 @@ module git.lumeweb.com/LumeWeb/portal
 go 1.20
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240112125539-f38c02adb920
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240112201024-36f087dc8357
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/viper v1.18.2
 	go.etcd.io/bbolt v1.3.8
@@ -40,7 +40,7 @@ require (
 	go.sia.tech/jape v0.11.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e // indirect
+	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
