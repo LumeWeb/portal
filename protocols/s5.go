@@ -55,14 +55,14 @@ func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
 
 	_, p, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		panic(err)
+		logger.Fatal("Failed to generate key", zap.Error(err))
 	}
 
 	cfg.KeyPair = s5ed.New(p)
 
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		panic(err)
+		logger.Fatal("Failed to open db", zap.Error(err))
 	}
 
 	cfg.DB = db
