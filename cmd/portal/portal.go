@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 )
 
 var (
@@ -48,7 +49,7 @@ func (p *PortalImpl) Run() {
 			p.logger.Fatal("Failed to start", zap.Error(err))
 		}
 	}
-	p.logger.Fatal("HTTP server stopped", zap.Error(http.ListenAndServe(":8080", p.apiRegistry.Router())))
+	p.logger.Fatal("HTTP server stopped", zap.Error(http.ListenAndServe(":"+strconv.FormatUint(uint64(p.Config().GetUint("core.port")), 10), p.apiRegistry.Router())))
 }
 
 func (p *PortalImpl) Config() *viper.Viper {
