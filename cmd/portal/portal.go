@@ -2,6 +2,7 @@ package main
 
 import (
 	"git.lumeweb.com/LumeWeb/portal/api"
+	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"github.com/spf13/viper"
@@ -63,6 +64,9 @@ func (p *PortalImpl) ApiRegistry() interfaces.APIRegistry {
 }
 func (p *PortalImpl) getInitFuncs() []func() error {
 	return []func() error{
+		func() error {
+			return config.Init(p.Logger())
+		},
 		func() error {
 			return protocols.Init(p.protocolRegistry)
 		},
