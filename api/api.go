@@ -15,5 +15,5 @@ func registerProtocolSubdomain(portal interfaces.Portal, mux *httprouter.Router,
 	router := portal.ApiRegistry().Router()
 	domain := portal.Config().GetString("core.domain")
 
-	(*router)[domain+"."+name] = mux
+	(*router)[name+"."+domain] = mux
 }
