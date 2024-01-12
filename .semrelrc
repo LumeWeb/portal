@@ -16,7 +16,12 @@
             }
         },
         "provider": {
-            "name": "default"
+            "name": "git",
+            "options": {
+                "default_branch": "develop",
+                "tagger_email": "gitea@git.lumeweb.com",
+                "auth": "ssh"
+            }
         }
     }
 }
