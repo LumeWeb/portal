@@ -74,12 +74,6 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 	return []func() error{
 		func() error {
 			return config.Init(p.Logger())
-		}, func() error {
-			if !p.Config().IsSet("core.port") {
-				p.logger.Fatal("core.port is required")
-			}
-
-			return nil
 		},
 		func() error {
 			var seed [32]byte
@@ -100,6 +94,13 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 			}
 
 			p.identity = ed25519.PrivateKey(wallet.KeyFromSeed(&seed, 0))
+
+			return nil
+		},
+		func() error {
+			if !p.Config().IsSet("core.port") {
+				p.logger.Fatal("core.port is required")
+			}
 
 			return nil
 		},
