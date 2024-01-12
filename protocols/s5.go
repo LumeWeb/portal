@@ -17,14 +17,20 @@ var (
 )
 
 type S5Protocol struct {
-	node s5interfaces.Node
+	node   s5interfaces.Node
+	portal interfaces.Portal
 }
 
 func NewS5Protocol() *S5Protocol {
 	return &S5Protocol{}
 }
 
-func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
+func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
+	s.portal = portal
+
+	logger := portal.Logger()
+	config := portal.Config()
+
 	cfg := &s5config.NodeConfig{
 		P2P: s5config.P2PConfig{
 			Network: "",
