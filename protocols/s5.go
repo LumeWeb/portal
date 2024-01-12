@@ -7,7 +7,6 @@ import (
 	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
@@ -38,7 +37,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 		},
 		KeyPair: s5ed.New(portal.Identity()),
 		DB:      nil,
-		Logger:  logger,
+		Logger:  portal.Logger().Named("s5"),
 		HTTP:    s5config.HTTPConfig{},
 	}
 
