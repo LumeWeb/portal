@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"crypto/ed25519"
+	"fmt"
 	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
 	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
 	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
@@ -52,7 +53,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 		return err
 	}
 
-	cfg.HTTP.API.Domain = config.GetString("core.domain")
+	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", config.GetString("core.domain"))
 
 	if config.IsSet("core.externalPort") {
 		cfg.HTTP.API.Port = config.GetUint("core.externalPort")
