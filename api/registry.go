@@ -22,12 +22,11 @@ func NewRegistry() interfaces.APIRegistry {
 	}
 }
 
-func (r *APIRegistryImpl) Register(name string, APIRegistry interfaces.API) error {
+func (r *APIRegistryImpl) Register(name string, APIRegistry interfaces.API) {
 	if _, exists := r.apis[name]; exists {
-		return errors.New("api already registered")
+		panic("api already registered")
 	}
 	r.apis[name] = APIRegistry
-	return nil
 }
 
 func (r *APIRegistryImpl) Get(name string) (interfaces.API, error) {
@@ -39,4 +38,11 @@ func (r *APIRegistryImpl) Get(name string) (interfaces.API, error) {
 }
 func (r *APIRegistryImpl) Router() *router.ProtocolRouter {
 	return r.router
+}
+func (r *APIRegistryImpl) All() map[string]interfaces.API {
+	aMap := make(map[string]interfaces.API)
+	for key, value := range r.apis {
+		aMap[key] = value
+	}
+	return aMap
 }

@@ -1,7 +1,6 @@
 package protocols
 
-import "github.com/spf13/viper"
-
-func Init(config *viper.Viper) error {
+func Init(registry ProtocolRegistry) error {
+	registry.Register("s5", NewS5Protocol())
 	return nil
 }

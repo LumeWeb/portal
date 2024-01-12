@@ -1,1 +1,71 @@
 package protocols
+
+import (
+	"crypto/ed25519"
+	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
+	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
+	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
+	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
+	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"github.com/spf13/viper"
+	bolt "go.etcd.io/bbolt"
+	"go.uber.org/zap"
+)
+
+var (
+	_ interfaces.Protocol = (*S5Protocol)(nil)
+)
+
+type S5Protocol struct {
+	node s5interfaces.Node
+}
+
+func NewS5Protocol() *S5Protocol {
+	return &S5Protocol{}
+}
+
+func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
+	cfg := &s5config.NodeConfig{
+		P2P: s5config.P2PConfig{
+			Network: "",
+			Peers:   s5config.PeersConfig{Initial: []string{}},
+		},
+		KeyPair: nil,
+		DB:      nil,
+		Logger:  logger,
+		HTTP:    s5config.HTTPConfig{},
+	}
+
+	pconfig := config.Sub("s5")
+
+	if pconfig != nil {
+		err := pconfig.Unmarshal(cfg)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, p, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	cfg.KeyPair = s5ed.New(p)
+
+	db, err := bolt.Open("test.db", 0600, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	cfg.DB = db
+
+	s.node = s5node.NewNode(cfg)
+
+	return nil
+}
+func (s *S5Protocol) Start() error {
+	return s.node.Start()
+}
+func (s *S5Protocol) Node() s5interfaces.Node {
+	return s.node
+}

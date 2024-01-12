@@ -2,16 +2,15 @@ package interfaces
 
 import (
 	"git.lumeweb.com/LumeWeb/portal/api/router"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type API interface {
-	Initialize(config *viper.Viper, logger *zap.Logger) error
+	Initialize(portal Portal, protocol Protocol) error
 }
 
 type APIRegistry interface {
-	Register(name string, APIRegistry API) error
+	All() map[string]API
+	Register(name string, APIRegistry API)
 	Get(name string) (API, error)
 	Router() *router.ProtocolRouter
 }

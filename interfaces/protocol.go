@@ -7,4 +7,5 @@ import (
 
 type Protocol interface {
 	Initialize(config *viper.Viper, logger *zap.Logger) error
+	Start() error
 }

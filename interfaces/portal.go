@@ -12,4 +12,5 @@ type Portal interface {
 	Config() *viper.Viper
 	Logger() *zap.Logger
 	Db() *gorm.DB
+	ApiRegistry() APIRegistry
 }

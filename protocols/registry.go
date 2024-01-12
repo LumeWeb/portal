@@ -10,8 +10,9 @@ var (
 )
 
 type ProtocolRegistry interface {
-	Register(name string, protocol interfaces.Protocol) error
+	Register(name string, protocol interfaces.Protocol)
 	Get(name string) (interfaces.Protocol, error)
+	All() map[string]interfaces.Protocol
 }
 
 type ProtocolRegistryImpl struct {
@@ -24,12 +25,11 @@ func NewProtocolRegistry() ProtocolRegistry {
 	}
 }
 
-func (r *ProtocolRegistryImpl) Register(name string, protocol interfaces.Protocol) error {
+func (r *ProtocolRegistryImpl) Register(name string, protocol interfaces.Protocol) {
 	if _, exists := r.protocols[name]; exists {
-		return errors.New("protocol already registered")
+		panic("protocol already registered")
 	}
 	r.protocols[name] = protocol
-	return nil
 }
 
 func (r *ProtocolRegistryImpl) Get(name string) (interfaces.Protocol, error) {
@@ -38,4 +38,12 @@ func (r *ProtocolRegistryImpl) Get(name string) (interfaces.Protocol, error) {
 		return nil, errors.New("protocol not found")
 	}
 	return protocol, nil
+}
+
+func (r *ProtocolRegistryImpl) All() map[string]interfaces.Protocol {
+	pMap := make(map[string]interfaces.Protocol)
+	for key, value := range r.protocols {
+		pMap[key] = value
+	}
+	return pMap
 }
