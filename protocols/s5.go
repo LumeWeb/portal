@@ -51,7 +51,12 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	}
 
 	cfg.HTTP.API.Domain = config.GetString("core.domain")
-	cfg.HTTP.API.Port = config.GetUint("core.port")
+
+	if config.IsSet("core.externalPort") {
+		cfg.HTTP.API.Port = config.GetUint("core.externalPort")
+	} else {
+		cfg.HTTP.API.Port = config.GetUint("core.port")
+	}
 	dbPath := pconfig.GetString("dbPath")
 
 	if dbPath == "" {
