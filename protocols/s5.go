@@ -36,7 +36,7 @@ func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
 		HTTP:    s5config.HTTPConfig{},
 	}
 
-	pconfig := config.Sub("s5")
+	pconfig := config.Sub("protocol.s5")
 
 	if pconfig != nil {
 		err := pconfig.Unmarshal(cfg)
