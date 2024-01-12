@@ -45,6 +45,9 @@ func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
 		}
 	}
 
+	cfg.HTTP.API.Domain = config.GetString("core.domain")
+	cfg.HTTP.API.Port = config.GetUint("core.port")
+
 	_, p, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic(err)
