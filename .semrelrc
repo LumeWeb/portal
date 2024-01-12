@@ -16,7 +16,7 @@
             }
         },
         "provider": {
-            "name": "github"
+            "name": "default"
         }
     }
 }
