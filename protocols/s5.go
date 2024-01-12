@@ -97,8 +97,7 @@ func (s *S5Protocol) Start() error {
 		return err
 	}
 
-	s.portal.Logger().Info("S5 protocol started")
-	s.portal.Logger().Info("S5 protocol identity", zap.String("identity", identity))
+	s.portal.Logger().Info("S5 protocol started", zap.String("identity", identity), zap.String("network", s.node.NetworkId()), zap.String("domain", s.node.Config().HTTP.API.Domain))
 
 	return nil
 }
