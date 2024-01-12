@@ -36,7 +36,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 			Network: "",
 			Peers:   s5config.PeersConfig{Initial: []string{}},
 		},
-		KeyPair: nil,
+		KeyPair: s5ed.New(portal.Identity()),
 		DB:      nil,
 		Logger:  logger,
 		HTTP:    s5config.HTTPConfig{},
