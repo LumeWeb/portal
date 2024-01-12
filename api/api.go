@@ -13,7 +13,7 @@ func Init(router interfaces.APIRegistry) error {
 func registerProtocolSubdomain(portal interfaces.Portal, mux *httprouter.Router, name string) {
 
 	router := portal.ApiRegistry().Router()
-	domain := portal.Config().GetString("domain")
+	domain := portal.Config().GetString("core.domain")
 
 	(*router)[domain+"."+name] = mux
 }
