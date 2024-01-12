@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -15,7 +14,7 @@ var (
 	}
 )
 
-func Init(logger *zap.Logger) {
+func Init(logger *zap.Logger) error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 
@@ -29,10 +28,11 @@ func Init(logger *zap.Logger) {
 	err := viper.ReadInConfig()
 	if err != nil {
 		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
-			// Config file not found, this is not an error.
-			fmt.Println("Config file not found, using default settings.")
-		} else {
-			logger.Fatal("Fatal error config file", zap.Error(err))
+			logger.Info("Config file not found, using default settings.")
+			return nil
 		}
+		return err
 	}
+
+	return nil
 }
