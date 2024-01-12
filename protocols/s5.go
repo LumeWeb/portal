@@ -47,6 +47,11 @@ func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
 
 	cfg.HTTP.API.Domain = config.GetString("core.domain")
 	cfg.HTTP.API.Port = config.GetUint("core.port")
+	dbPath := pconfig.GetString("dbPath")
+
+	if dbPath == "" {
+		logger.Fatal("dbPath is required")
+	}
 
 	_, p, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -55,7 +60,7 @@ func (s *S5Protocol) Initialize(config *viper.Viper, logger *zap.Logger) error {
 
 	cfg.KeyPair = s5ed.New(p)
 
-	db, err := bolt.Open("test.db", 0600, nil)
+	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		panic(err)
 	}
