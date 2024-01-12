@@ -85,7 +85,21 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	return nil
 }
 func (s *S5Protocol) Start() error {
-	return s.node.Start()
+	err := s.node.Start()
+	if err != nil {
+		return err
+	}
+
+	identity, err := s.node.Services().P2P().NodeId().ToString()
+
+	if err != nil {
+		return err
+	}
+
+	s.portal.Logger().Info("S5 protocol started")
+	s.portal.Logger().Info("S5 protocol identity", zap.String("identity", identity))
+
+	return nil
 }
 func (s *S5Protocol) Node() s5interfaces.Node {
 	return s.node
