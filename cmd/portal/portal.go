@@ -98,8 +98,16 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 			return nil
 		},
 		func() error {
-			if !p.Config().IsSet("core.port") {
-				p.logger.Fatal("core.port is required")
+
+			required := []string{
+				"core.domain",
+				"core.port",
+			}
+
+			for _, key := range required {
+				if !p.Config().IsSet(key) {
+					p.logger.Fatal(key + " is required")
+				}
 			}
 
 			return nil
