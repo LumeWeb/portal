@@ -43,11 +43,13 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 
 	pconfig := config.Sub("protocol.s5")
 
-	if pconfig != nil {
-		err := pconfig.Unmarshal(cfg)
-		if err != nil {
-			return err
-		}
+	if pconfig == nil {
+		logger.Fatal("Missing protocol.s5 config")
+	}
+
+	err := pconfig.Unmarshal(cfg)
+	if err != nil {
+		return err
 	}
 
 	cfg.HTTP.API.Domain = config.GetString("core.domain")
@@ -57,6 +59,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	} else {
 		cfg.HTTP.API.Port = config.GetUint("core.port")
 	}
+
 	dbPath := pconfig.GetString("dbPath")
 
 	if dbPath == "" {
