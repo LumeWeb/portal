@@ -63,7 +63,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	dbPath := pconfig.GetString("dbPath")
 
 	if dbPath == "" {
-		logger.Fatal("dbPath is required")
+		logger.Fatal("protocol.s5.dbPath is required")
 	}
 
 	_, p, err := ed25519.GenerateKey(nil)
