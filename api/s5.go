@@ -19,7 +19,7 @@ func NewS5() *S5API {
 func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol) error {
 
 	s5protocol := protocol.(*protocols.S5Protocol)
-	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHandler(), "s5")
+	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(), "s5")
 
 	return nil
 }
