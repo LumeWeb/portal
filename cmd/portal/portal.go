@@ -126,6 +126,11 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 			return protocols.Init(p.protocolRegistry)
 		},
 		func() error {
+			p.storage.Init()
+
+			return nil
+		},
+		func() error {
 			return api.Init(p.apiRegistry)
 		},
 		func() error {

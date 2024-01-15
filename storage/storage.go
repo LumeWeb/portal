@@ -19,14 +19,9 @@ type StorageServiceImpl struct {
 }
 
 func NewStorageService(portal interfaces.Portal) interfaces.StorageService {
-	client := resty.New()
-
-	client.SetBaseURL(portal.Config().GetString("core.sia.url"))
-	client.SetBasicAuth("", portal.Config().GetString("core.sia.key"))
-
 	return &StorageServiceImpl{
 		portal:  portal,
-		httpApi: client,
+		httpApi: nil,
 	}
 }
 
@@ -61,4 +56,13 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 	}
 
 	return hash[:], nil
+}
+
+func (s *StorageServiceImpl) Init() {
+	client := resty.New()
+
+	client.SetBaseURL(s.portal.Config().GetString("core.sia.url"))
+	client.SetBasicAuth("", s.portal.Config().GetString("core.sia.key"))
+
+	s.httpApi = client
 }
