@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
 )
@@ -50,6 +51,8 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 	if err != nil {
 		return nil, err
 	}
+
+	s.portal.Logger().Info("resp", zap.Any("resp", resp.String()))
 
 	if resp.IsError() && resp.Error() != nil {
 		return nil, resp.Error().(error)
