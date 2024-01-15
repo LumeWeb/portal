@@ -25,14 +25,24 @@ func Init(logger *zap.Logger) error {
 	viper.SetEnvPrefix("LUME_WEB_PORTAL")
 	viper.AutomaticEnv()
 
+	defaults()
+
 	err := viper.ReadInConfig()
 	if err != nil {
 		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			logger.Info("Config file not found, using default settings.")
+			err := viper.SafeWriteConfig()
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 		return err
 	}
 
 	return nil
+}
+
+func defaults() {
+	viper.SetDefault("core.post-upload-limit", 1024*1024*1000)
 }
