@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 )
 
 var (
@@ -41,8 +42,9 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 	buffer := bytes.NewBuffer(nil)
 
 	r := jc.Request
-	// Check if the content type is multipart/form-data
-	if r.Header.Get("Content-Type") == "multipart/form-data" {
+	contentType := r.Header.Get("Content-Type")
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
 		// Parse the multipart form
 		err := r.ParseMultipartForm(h.portal.Config().GetInt64("core.post-upload-limit"))
 
