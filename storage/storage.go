@@ -47,7 +47,7 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 		SetFormData(map[string]string{
 			"bucket": bucket,
 		}).
-		SetBody(buf).Put("/api/worker/{path}")
+		SetBody(buf).Put("/api/worker/object/{path}")
 	if err != nil {
 		return nil, err
 	}
