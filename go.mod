@@ -3,7 +3,7 @@ module git.lumeweb.com/LumeWeb/portal
 go 1.20
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115155431-883f50b19861
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115161511-fc10a265a772
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/viper v1.18.2
 	go.etcd.io/bbolt v1.3.8
