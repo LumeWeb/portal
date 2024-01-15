@@ -90,7 +90,7 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	} else {
 		resp, err := s.httpApi.R().
 			SetBody(map[string]string{
-				"bucket": bucket,
+				"name": bucket,
 			}).
 			Post("/api/bus/buckets")
 		if err != nil {
