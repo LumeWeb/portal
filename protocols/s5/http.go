@@ -87,7 +87,7 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 		}(r.Body)
 	}
 
-	hash, err := h.portal.Storage().PutFile(interface{}(buffer).(io.ReadSeeker), "test", false)
+	hash, err := h.portal.Storage().PutFile(interface{}(buffer).(io.ReadSeeker), "s5", false)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
