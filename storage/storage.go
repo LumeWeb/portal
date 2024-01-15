@@ -92,7 +92,7 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 			SetBody(map[string]string{
 				"bucket": bucket,
 			}).
-			Post("/api/bus/bucket")
+			Post("/api/bus/buckets")
 		if err != nil {
 			return err
 		}
