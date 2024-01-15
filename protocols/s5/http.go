@@ -5,6 +5,7 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	s5interface "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
+	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
@@ -97,7 +98,7 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 		return
 	}
 
-	cid, err := encoding.CIDFromBytes(hash)
+	cid, err := encoding.CIDFromHash(hash, uint64(len(buffer.Bytes())), types.CIDTypeRaw)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
