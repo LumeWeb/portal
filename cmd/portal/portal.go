@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/api"
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
@@ -28,12 +29,10 @@ type PortalImpl struct {
 }
 
 func NewPortal() interfaces.Portal {
-	logger, _ := zap.NewDevelopment()
 
 	portal := &PortalImpl{
 		apiRegistry:      api.NewRegistry(),
 		protocolRegistry: protocols.NewProtocolRegistry(),
-		logger:           logger,
 		storage:          nil,
 	}
 
@@ -82,7 +81,7 @@ func (p *PortalImpl) Identity() ed25519.PrivateKey {
 func (p *PortalImpl) getInitFuncs() []func() error {
 	return []func() error{
 		func() error {
-			return config.Init(p.Logger())
+			return config.Init()
 		},
 		func() error {
 			var seed [32]byte
@@ -119,6 +118,12 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 					p.logger.Fatal(key + " is required")
 				}
 			}
+
+			return nil
+		},
+
+		func() error {
+			p.logger = logger.Get(p.Config())
 
 			return nil
 		},

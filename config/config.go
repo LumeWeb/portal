@@ -14,7 +14,8 @@ var (
 	}
 )
 
-func Init(logger *zap.Logger) error {
+func Init() error {
+	logger, _ := zap.NewDevelopment()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 
@@ -45,4 +46,5 @@ func Init(logger *zap.Logger) error {
 
 func defaults() {
 	viper.SetDefault("core.post-upload-limit", 1024*1024*1000)
+	viper.SetDefault("core.log.level", "info")
 }
