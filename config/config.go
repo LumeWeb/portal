@@ -47,4 +47,6 @@ func Init() error {
 func defaults() {
 	viper.SetDefault("core.post-upload-limit", 1024*1024*1000)
 	viper.SetDefault("core.log.level", "info")
+
+	viper.SetDefault("protocol.s5.p2p.maxOutgoingPeerFailures", 10)
 }
