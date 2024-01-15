@@ -107,10 +107,11 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 			return nil
 		},
 		func() error {
-
 			required := []string{
 				"core.domain",
 				"core.port",
+				"core.sia.url",
+				"core.sia.key",
 			}
 
 			for _, key := range required {
