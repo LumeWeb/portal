@@ -68,6 +68,7 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 
 func (s *StorageServiceImpl) Init() {
 	client := resty.New()
+	client.SetDisableWarn(true)
 
 	client.SetBaseURL(s.portal.Config().GetString("core.sia.url"))
 	client.SetBasicAuth("", s.portal.Config().GetString("core.sia.key"))
