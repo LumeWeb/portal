@@ -42,6 +42,11 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 
 	buf.Reset()
 
+	err = s.createBucketIfNotExists(bucket)
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := s.httpApi.R().
 		SetPathParam("path", hashStr).
 		SetFormData(map[string]string{
@@ -68,4 +73,34 @@ func (s *StorageServiceImpl) Init() {
 	client.SetBasicAuth("", s.portal.Config().GetString("core.sia.key"))
 
 	s.httpApi = client
+}
+func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
+	resp, err := s.httpApi.R().
+		SetPathParam("bucket", bucket).
+		Get("/api/bus/bucket/{bucket}")
+
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != 404 {
+		if resp.IsError() && resp.Error() != nil {
+			return resp.Error().(error)
+		}
+	} else {
+		resp, err := s.httpApi.R().
+			SetBody(map[string]string{
+				"bucket": bucket,
+			}).
+			Post("/api/bus/bucket")
+		if err != nil {
+			return err
+		}
+
+		if resp.IsError() && resp.Error() != nil {
+			return resp.Error().(error)
+		}
+	}
+
+	return nil
 }
