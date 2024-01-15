@@ -8,6 +8,7 @@ import (
 	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
 )
@@ -82,6 +83,7 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	cfg.DB = db
 
 	s.node = s5node.NewNode(cfg)
+	s.node.Services().HTTP().SetHttpHandler(s5.NewHttpHandler(s.portal))
 
 	return nil
 }
