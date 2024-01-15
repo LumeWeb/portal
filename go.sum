@@ -12,6 +12,8 @@ git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115155431-883f50b19861 h1:gbVGg5qob
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115155431-883f50b19861/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115161511-fc10a265a772 h1:P4Qw97ZcdoLUIeBpwDaKM7/FgFrnR49z3Xw4o2uA1vI=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115161511-fc10a265a772/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115163838-ab53dbdf08ca h1:clldADmpy5pC8a+/7yHVKx5qXAeznhOJShKFZ1WUnq8=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240115163838-ab53dbdf08ca/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSiWQsof+nXEI9bUVUyV6F53Fp89EuCh2EAA=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
