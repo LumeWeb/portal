@@ -40,7 +40,8 @@ func NewHttpHandler(portal interfaces.Portal) *HttpHandlerImpl {
 }
 
 func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
-	buffer := bytes.NewBuffer(nil)
+	var rs io.ReadSeeker
+	var bufferSize int64
 
 	r := jc.Request
 	contentType := r.Header.Get("Content-Type")
@@ -67,20 +68,17 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 			}
 		}(file)
 
-		// Copy file contents to buffer
-		_, err = io.Copy(buffer, file)
-		if jc.Check(errReadFile, err) != nil {
-			h.portal.Logger().Error(errReadFile, zap.Error(err))
-			return
-		}
+		rs = file
 	} else {
-		// For other content types, read the body into the buffer
-		_, err := io.Copy(buffer, r.Body)
-
+		data, err := io.ReadAll(r.Body)
 		if jc.Check(errReadFile, err) != nil {
 			h.portal.Logger().Error(errReadFile, zap.Error(err))
 			return
 		}
+
+		buffer := bytes.NewReader(data)
+		bufferSize = int64(buffer.Len())
+		rs = buffer
 
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
@@ -90,7 +88,7 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 		}(r.Body)
 	}
 
-	hash, err := h.portal.Storage().PutFile(bytes.NewReader(buffer.Bytes()), "s5", false)
+	hash, err := h.portal.Storage().PutFile(rs, "s5", false)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -98,7 +96,7 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 		return
 	}
 
-	cid, err := encoding.CIDFromHash(hash, uint64(len(buffer.Bytes())), types.CIDTypeRaw)
+	cid, err := encoding.CIDFromHash(hash, uint64(bufferSize), types.CIDTypeRaw)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
