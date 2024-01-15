@@ -15,4 +15,5 @@ type Portal interface {
 	Db() *gorm.DB
 	ApiRegistry() APIRegistry
 	Identity() ed25519.PrivateKey
+	Storage() StorageService
 }

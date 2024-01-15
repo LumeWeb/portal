@@ -1,0 +1,64 @@
+package storage
+
+import (
+	"bytes"
+	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"github.com/go-resty/resty/v2"
+	"io"
+	"lukechampine.com/blake3"
+)
+
+var (
+	_ interfaces.StorageService = (*StorageServiceImpl)(nil)
+)
+
+type StorageServiceImpl struct {
+	portal  interfaces.Portal
+	httpApi *resty.Client
+}
+
+func NewStorageService(portal interfaces.Portal) interfaces.StorageService {
+	client := resty.New()
+
+	client.SetBaseURL(portal.Config().GetString("core.sia.url"))
+	client.SetBasicAuth("", portal.Config().GetString("core.sia.key"))
+
+	return &StorageServiceImpl{
+		portal:  portal,
+		httpApi: client,
+	}
+}
+
+func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := blake3.Sum512(buf.Bytes())
+	hashStr, err := encoding.NewMultihash(hash[:]).ToBase64Url()
+	if err != nil {
+		return nil, err
+	}
+
+	buf.Reset()
+
+	resp, err := s.httpApi.R().
+		SetPathParam("path", hashStr).
+		SetFormData(map[string]string{
+			"bucket": bucket,
+		}).
+		SetBody(buf).Put("/api/worker/{path}")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.IsError() {
+		return nil, resp.Error().(error)
+	}
+
+	return hash[:], nil
+}

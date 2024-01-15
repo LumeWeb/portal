@@ -6,6 +6,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
 	"go.sia.tech/core/wallet"
 	"go.uber.org/zap"
@@ -23,15 +24,23 @@ type PortalImpl struct {
 	protocolRegistry protocols.ProtocolRegistry
 	logger           *zap.Logger
 	identity         ed25519.PrivateKey
+	storage          interfaces.StorageService
 }
 
 func NewPortal() interfaces.Portal {
 	logger, _ := zap.NewDevelopment()
-	return &PortalImpl{
+
+	portal := &PortalImpl{
 		apiRegistry:      api.NewRegistry(),
 		protocolRegistry: protocols.NewProtocolRegistry(),
 		logger:           logger,
+		storage:          nil,
 	}
+
+	storageServ := storage.NewStorageService(portal)
+	portal.storage = storageServ
+
+	return portal
 }
 
 func (p *PortalImpl) Initialize() error {
@@ -143,6 +152,10 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 		},
 	}
 }
+func (p *PortalImpl) Storage() interfaces.StorageService {
+	return p.storage
+}
+
 func (p *PortalImpl) getStartFuncs() []func() error {
 	return []func() error{
 		func() error {
