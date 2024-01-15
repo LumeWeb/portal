@@ -51,7 +51,7 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 		return nil, err
 	}
 
-	if resp.IsError() {
+	if resp.IsError() && resp.Error() != nil {
 		return nil, resp.Error().(error)
 	}
 
