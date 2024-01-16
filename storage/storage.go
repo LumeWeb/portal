@@ -122,7 +122,7 @@ func (s *StorageServiceImpl) GetHash(file io.ReadSeeker) ([]byte, error) {
 		return nil, err
 	}
 
-	hash := blake3.Sum512(buf.Bytes())
+	hash := blake3.Sum256(buf.Bytes())
 
 	return hash[:], nil
 }
