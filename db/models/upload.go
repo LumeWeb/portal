@@ -4,9 +4,9 @@ import "gorm.io/gorm"
 
 type Upload struct {
 	gorm.Model
-	UserID       uint
-	Hash         string
-	ProtocolType string
-	User         User
-	UploaderIP   string
+	UserID     uint
+	Hash       string
+	Protocol   string
+	User       User
+	UploaderIP string
 }
