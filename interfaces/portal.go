@@ -23,4 +23,5 @@ type Portal interface {
 	Database() Database
 	Casbin() *casbin.Enforcer
 	SetCasbin(e *casbin.Enforcer)
+	Accounts() AccountService
 }

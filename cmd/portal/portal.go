@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/ed25519"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
@@ -27,6 +28,7 @@ type PortalImpl struct {
 	storage          interfaces.StorageService
 	database         interfaces.Database
 	casbin           *casbin.Enforcer
+	accounts         interfaces.AccountService
 }
 
 func (p *PortalImpl) Database() interfaces.Database {
@@ -34,7 +36,6 @@ func (p *PortalImpl) Database() interfaces.Database {
 }
 
 func NewPortal() interfaces.Portal {
-
 	portal := &PortalImpl{
 		apiRegistry:      api.NewRegistry(),
 		protocolRegistry: protocols.NewProtocolRegistry(),
@@ -44,8 +45,10 @@ func NewPortal() interfaces.Portal {
 
 	storageServ := storage.NewStorageService(portal)
 	database := db.NewDatabase(portal)
+	accountService := account.NewAccountService(portal)
 	portal.storage = storageServ
 	portal.database = database
+	portal.accounts = accountService
 
 	return portal
 }
@@ -111,4 +114,8 @@ func (p *PortalImpl) Casbin() *casbin.Enforcer {
 
 func (p *PortalImpl) SetCasbin(e *casbin.Enforcer) {
 	p.casbin = e
+}
+
+func (p *PortalImpl) Accounts() interfaces.AccountService {
+	return p.accounts
 }
