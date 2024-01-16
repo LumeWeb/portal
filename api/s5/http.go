@@ -352,6 +352,13 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
+	result = h.portal.Database().Delete(&challenge)
+
+	if result.Error != nil {
+		errored(errAccountRegisterErr)
+		return
+	}
+
 	setAuthCookie(jwt, jc)
 }
 
@@ -478,6 +485,13 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 	jwt, err := h.portal.Accounts().LoginPubkey(request.Pubkey)
 
 	if err != nil {
+		errored(errAccountLoginErr)
+		return
+	}
+
+	result = h.portal.Database().Delete(&challenge)
+
+	if result.Error != nil {
 		errored(errAccountLoginErr)
 		return
 	}
