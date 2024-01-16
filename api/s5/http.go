@@ -29,6 +29,7 @@ const (
 	errUploadingFile            = "Error uploading the file"
 	errAccountGenerateChallenge = "Error generating challenge"
 	errAccountRegister          = "Error registering account"
+	errAccountLogin             = "Error logging in account"
 )
 
 var (
@@ -42,6 +43,7 @@ var (
 	errEmailAlreadyExists          = errors.New("Email already exists")
 	errGeneratingPassword          = errors.New("Error generating password")
 	errPubkeyAlreadyExists         = errors.New("Pubkey already exists")
+	errAccountLoginErr             = errors.New(errAccountLogin)
 )
 
 type HttpHandler struct {
@@ -211,6 +213,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 
 	result := h.portal.Database().Create(&models.S5Challenge{
 		Challenge: hex.EncodeToString(challenge),
+		Type:      "register",
 	})
 
 	if result.Error != nil {
@@ -250,7 +253,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 
 	var challenge models.S5Challenge
 
-	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey}).First(&challenge)
+	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "register"}).First(&challenge)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		errored(err)
@@ -350,8 +353,50 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
-	//TODO implement me
-	panic("implement me")
+	var pubkey string
+	if jc.DecodeForm("pubKey", &pubkey) != nil {
+		return
+	}
+
+	errored := func(err error) {
+		_ = jc.Error(errAccountLoginErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountLogin, zap.Error(err))
+	}
+
+	challenge := make([]byte, 32)
+
+	_, err := rand.Read(challenge)
+	if err != nil {
+		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		return
+	}
+
+	decodedKey, err := base64.RawURLEncoding.DecodeString(pubkey)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if len(decodedKey) != 32 {
+		errored(err)
+		return
+	}
+
+	result := h.portal.Database().Create(&models.S5Challenge{
+		Challenge: hex.EncodeToString(challenge),
+		Type:      "login",
+	})
+
+	if result.Error != nil {
+		errored(err)
+		return
+	}
+
+	jc.Encode(&AccountLoginChallengeResponse{
+		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
+	})
 }
 
 func (h *HttpHandler) AccountLogin(jc jape.Context) {

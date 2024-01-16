@@ -13,3 +13,12 @@ type SmallUploadResponse struct {
 type AccountRegisterChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
+
+type AccountLoginRequest struct {
+	Pubkey    string `json:"pubkey"`
+	Response  string `json:"response"`
+	Signature string `json:"signature"`
+}
+type AccountLoginChallengeResponse struct {
+	Challenge string `json:"challenge"`
+}
