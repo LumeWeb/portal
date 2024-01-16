@@ -11,3 +11,7 @@ type Blocklist struct {
 	Reason    string
 	BlockedAt time.Time
 }
+
+func (Blocklist) TableName() string {
+	return "blocklist"
+}
