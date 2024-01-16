@@ -6,20 +6,14 @@ import (
 )
 
 var (
-	_ ProtocolRegistry = (*ProtocolRegistryImpl)(nil)
+	_ interfaces.ProtocolRegistry = (*ProtocolRegistryImpl)(nil)
 )
-
-type ProtocolRegistry interface {
-	Register(name string, protocol interfaces.Protocol)
-	Get(name string) (interfaces.Protocol, error)
-	All() map[string]interfaces.Protocol
-}
 
 type ProtocolRegistryImpl struct {
 	protocols map[string]interfaces.Protocol
 }
 
-func NewProtocolRegistry() ProtocolRegistry {
+func NewProtocolRegistry() interfaces.ProtocolRegistry {
 	return &ProtocolRegistryImpl{
 		protocols: make(map[string]interfaces.Protocol),
 	}

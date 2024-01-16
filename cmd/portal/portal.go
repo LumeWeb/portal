@@ -19,7 +19,7 @@ var (
 
 type PortalImpl struct {
 	apiRegistry      interfaces.APIRegistry
-	protocolRegistry protocols.ProtocolRegistry
+	protocolRegistry interfaces.ProtocolRegistry
 	logger           *zap.Logger
 	identity         ed25519.PrivateKey
 	storage          interfaces.StorageService
@@ -86,6 +86,6 @@ func (p *PortalImpl) SetIdentity(identity ed25519.PrivateKey) {
 func (p *PortalImpl) SetLogger(logger *zap.Logger) {
 	p.logger = logger
 }
-func (p *PortalImpl) ProtocolRegistry() protocols.ProtocolRegistry {
+func (p *PortalImpl) ProtocolRegistry() interfaces.ProtocolRegistry {
 	return p.protocolRegistry
 }
