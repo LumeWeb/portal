@@ -280,7 +280,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	if !bytes.Equal(decodedResponse, decodedChallenge) {
+	if !bytes.Equal(decodedResponse[1:33], decodedChallenge) {
 		errored(errInvalidChallengeErr)
 		return
 	}
@@ -451,7 +451,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 		return
 	}
 
-	if !bytes.Equal(decodedResponse, decodedChallenge) {
+	if !bytes.Equal(decodedResponse[1:33], decodedChallenge) {
 		errored(errInvalidChallengeErr)
 		return
 	}
