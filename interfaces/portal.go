@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"crypto/ed25519"
+	"github.com/casbin/casbin/v2"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -20,4 +21,6 @@ type Portal interface {
 	SetIdentity(identity ed25519.PrivateKey)
 	SetLogger(logger *zap.Logger)
 	Database() Database
+	Casbin() *casbin.Enforcer
+	SetCasbin(e *casbin.Enforcer)
 }

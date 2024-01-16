@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116003411-13ca22d80e1c
+	github.com/casbin/casbin/v2 v2.81.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/viper v1.18.2
@@ -18,6 +19,7 @@ require (
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
+	github.com/casbin/govaluate v1.1.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect

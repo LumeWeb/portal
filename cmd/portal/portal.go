@@ -7,6 +7,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/casbin/casbin/v2"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -25,6 +26,7 @@ type PortalImpl struct {
 	identity         ed25519.PrivateKey
 	storage          interfaces.StorageService
 	database         interfaces.Database
+	casbin           *casbin.Enforcer
 }
 
 func (p *PortalImpl) Database() interfaces.Database {
@@ -98,4 +100,11 @@ func (p *PortalImpl) SetLogger(logger *zap.Logger) {
 }
 func (p *PortalImpl) ProtocolRegistry() interfaces.ProtocolRegistry {
 	return p.protocolRegistry
+}
+func (p *PortalImpl) Casbin() *casbin.Enforcer {
+	return p.casbin
+}
+
+func (p *PortalImpl) SetCasbin(e *casbin.Enforcer) {
+	p.casbin = e
 }

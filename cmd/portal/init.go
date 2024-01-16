@@ -65,6 +65,11 @@ func initLogger(p interfaces.Portal) error {
 	return nil
 }
 
+func initAccess(p interfaces.Portal) error {
+	p.SetCasbin(api.GetCasbin(p.Logger()))
+	return nil
+}
+
 func initDatabase(p interfaces.Portal) error {
 	return p.Database().Init(p)
 }
@@ -115,6 +120,7 @@ func getInitList() []initFunc {
 		initIdentity,
 		initCheckRequiredConfig,
 		initLogger,
+		initAccess,
 		initDatabase,
 		initProtocols,
 		initStorage,
