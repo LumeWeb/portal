@@ -28,6 +28,11 @@ func GetCasbin(logger *zap.Logger) *casbin.Enforcer {
 	_ = a.AddPolicy("admin", "/admin", []string{"POST"})
 	_ = a.AddPolicy("admin", "/admin", []string{"DELETE"})
 
+	err = e.LoadPolicy()
+	if err != nil {
+		logger.Fatal("Failed to load policies into Casbin model", zap.Error(err))
+	}
+
 	return e
 }
 
