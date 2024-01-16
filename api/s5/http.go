@@ -268,7 +268,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	if len(decodedResponse) != 64 {
+	if len(decodedResponse) != 65 {
 		errored(err)
 		return
 	}
@@ -439,7 +439,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 		return
 	}
 
-	if len(decodedResponse) != 64 {
+	if len(decodedResponse) != 65 {
 		errored(err)
 		return
 	}
