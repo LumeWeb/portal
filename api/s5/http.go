@@ -264,19 +264,19 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 	decodedResponse, err := base64.RawURLEncoding.DecodeString(request.Response)
 
 	if err != nil {
-		errored(err)
+		errored(errInvalidChallengeErr)
 		return
 	}
 
 	if len(decodedResponse) != 65 {
-		errored(err)
+		errored(errInvalidChallengeErr)
 		return
 	}
 
 	decodedChallenge, err := base64.RawURLEncoding.DecodeString(challenge.Challenge)
 
 	if err != nil {
-		errored(err)
+		errored(errInvalidChallengeErr)
 		return
 	}
 
