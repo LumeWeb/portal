@@ -2,6 +2,7 @@ package s5
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
@@ -10,12 +11,14 @@ import (
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	emailverifier "github.com/AfterShip/email-verifier"
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const (
@@ -25,19 +28,40 @@ const (
 	errClosingStream            = "Error closing the stream"
 	errUploadingFile            = "Error uploading the file"
 	errAccountGenerateChallenge = "Error generating challenge"
+	errAccountRegister          = "Error registering account"
 )
 
 var (
 	errUploadingFileErr            = errors.New(errUploadingFile)
 	errAccountGenerateChallengeErr = errors.New(errAccountGenerateChallenge)
+	errAccountRegisterErr          = errors.New(errAccountRegister)
+	errInvalidChallengeErr         = errors.New("Invalid challenge")
+	errInvalidSignatureErr         = errors.New("Invalid signature")
+	errPubkeyNotSupported          = errors.New("Only ed25519 keys are supported")
+	errInvalidEmail                = errors.New("Invalid email")
+	errEmailAlreadyExists          = errors.New("Email already exists")
+	errGeneratingPassword          = errors.New("Error generating password")
+	errPubkeyAlreadyExists         = errors.New("Pubkey already exists")
 )
 
 type HttpHandler struct {
-	portal interfaces.Portal
+	portal   interfaces.Portal
+	verifier *emailverifier.Verifier
 }
 
 func NewHttpHandler(portal interfaces.Portal) *HttpHandler {
-	return &HttpHandler{portal: portal}
+
+	verifier := emailverifier.NewVerifier()
+
+	verifier.DisableSMTPCheck()
+	verifier.DisableGravatarCheck()
+	verifier.DisableDomainSuggest()
+	verifier.DisableAutoUpdateDisposable()
+
+	return &HttpHandler{
+		portal:   portal,
+		verifier: verifier,
+	}
 }
 
 func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
@@ -151,7 +175,9 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	jc.Encode(map[string]string{"hash": cidStr})
+	jc.Encode(&SmallUploadResponse{
+		CID: cidStr,
+	})
 }
 
 func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
@@ -193,20 +219,151 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 		return
 	}
 
-	jc.Encode(map[string]string{"challenge": base64.RawURLEncoding.EncodeToString(challenge)})
+	jc.Encode(&AccountRegisterChallengeResponse{
+		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
+	})
 }
 
-func (h *HttpHandler) AccountRegister(context jape.Context) {
+func (h *HttpHandler) AccountRegister(jc jape.Context) {
+	var request AccountRegisterRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	errored := func(err error) {
+		_ = jc.Error(errAccountRegisterErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountRegister, zap.Error(err))
+	}
+
+	decodedKey, err := base64.RawURLEncoding.DecodeString(request.Pubkey)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if len(decodedKey) != 32 {
+		errored(err)
+		return
+	}
+
+	var challenge models.S5Challenge
+
+	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey}).First(&challenge)
+
+	if result.RowsAffected == 0 || result.Error != nil {
+		errored(err)
+		return
+	}
+
+	decodedResponse, err := base64.RawURLEncoding.DecodeString(request.Response)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if len(decodedResponse) != 64 {
+		errored(err)
+		return
+	}
+
+	decodedChallenge, err := base64.RawURLEncoding.DecodeString(challenge.Challenge)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if !bytes.Equal(decodedResponse, decodedChallenge) {
+		errored(errInvalidChallengeErr)
+		return
+	}
+
+	if int(decodedKey[0]) != int(types.HashTypeEd25519) {
+		errored(errPubkeyNotSupported)
+		return
+	}
+
+	decodedSignature, err := base64.RawURLEncoding.DecodeString(request.Signature)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if !ed25519.Verify(decodedKey, decodedChallenge, decodedSignature) {
+		errored(errInvalidSignatureErr)
+		return
+	}
+
+	verify, _ := h.verifier.Verify(request.Email)
+
+	if !verify.Syntax.Valid {
+		errored(errInvalidEmail)
+		return
+	}
+
+	accountExists, _ := h.portal.Accounts().EmailExists(request.Email)
+
+	if accountExists {
+		errored(errEmailAlreadyExists)
+		return
+	}
+
+	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(request.Pubkey)
+
+	if pubkeyExists {
+		errored(errPubkeyAlreadyExists)
+		return
+	}
+
+	passwd := make([]byte, 32)
+
+	_, err = rand.Read(passwd)
+
+	if accountExists {
+		errored(errGeneratingPassword)
+		return
+	}
+
+	newAccount, err := h.portal.Accounts().CreateAccount(request.Email, string(passwd))
+	if err != nil {
+		errored(errAccountRegisterErr)
+		return
+	}
+
+	err = h.portal.Accounts().AddPubkeyToAccount(*newAccount, request.Pubkey)
+	if err != nil {
+		errored(errAccountRegisterErr)
+		return
+	}
+
+	jwt, err := h.portal.Accounts().LoginPubkey(request.Pubkey)
+	if err != nil {
+		errored(errAccountRegisterErr)
+		return
+	}
+
+	authCookie := http.Cookie{
+		Name:     "s5-auth-token",
+		Value:    jwt,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int(time.Hour.Seconds() * 24),
+		Secure:   true,
+	}
+
+	http.SetCookie(jc.ResponseWriter, &authCookie)
+}
+
+func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (h *HttpHandler) AccountLoginChallenge(context jape.Context) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (h *HttpHandler) AccountLogin(context jape.Context) {
+func (h *HttpHandler) AccountLogin(jc jape.Context) {
 	//TODO implement me
 	panic("implement me")
 }
