@@ -118,8 +118,8 @@ func getInitList() []initFunc {
 	return []initFunc{
 		initConfig,
 		initIdentity,
-		initCheckRequiredConfig,
 		initLogger,
+		initCheckRequiredConfig,
 		initAccess,
 		initDatabase,
 		initProtocols,
