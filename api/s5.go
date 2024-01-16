@@ -1,8 +1,10 @@
 package api
 
 import (
+	"git.lumeweb.com/LumeWeb/portal/api/s5"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"go.sia.tech/jape"
 )
 
 var (
@@ -17,9 +19,19 @@ func NewS5() *S5API {
 }
 
 func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol) error {
-
 	s5protocol := protocol.(*protocols.S5Protocol)
-	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(), "s5")
+	s5http := s5.NewHttpHandler(portal)
+	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(getRoutes(s5http)), "s5")
 
 	return nil
+}
+
+func getRoutes(h *s5.HttpHandler) map[string]jape.Handler {
+	return map[string]jape.Handler{
+		"POST /s5/upload":        h.SmallFileUpload,
+		"GET /account/register":  h.AccountRegisterChallenge,
+		"POST /account/register": h.AccountRegister,
+		"GET /account/login":     h.AccountLoginChallenge,
+		"POST /account/login":    h.AccountLogin,
+	}
 }

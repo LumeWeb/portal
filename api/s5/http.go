@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	s5interface "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
@@ -17,10 +16,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
-)
-
-var (
-	_ s5interface.HTTPHandler = (*HttpHandlerImpl)(nil)
 )
 
 const (
@@ -37,15 +32,15 @@ var (
 	errAccountGenerateChallengeErr = errors.New(errAccountGenerateChallenge)
 )
 
-type HttpHandlerImpl struct {
+type HttpHandler struct {
 	portal interfaces.Portal
 }
 
-func NewHttpHandler(portal interfaces.Portal) *HttpHandlerImpl {
-	return &HttpHandlerImpl{portal: portal}
+func NewHttpHandler(portal interfaces.Portal) *HttpHandler {
+	return &HttpHandler{portal: portal}
 }
 
-func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
+func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 	var rs io.ReadSeeker
 	var bufferSize int64
 
@@ -159,7 +154,7 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 	jc.Encode(map[string]string{"hash": cidStr})
 }
 
-func (h *HttpHandlerImpl) AccountRegisterChallenge(jc *jape.Context) {
+func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 	var pubkey string
 	if jc.DecodeForm("pubKey", &pubkey) != nil {
 		return
@@ -201,17 +196,17 @@ func (h *HttpHandlerImpl) AccountRegisterChallenge(jc *jape.Context) {
 	jc.Encode(map[string]string{"challenge": base64.RawURLEncoding.EncodeToString(challenge)})
 }
 
-func (h *HttpHandlerImpl) AccountRegister(context *jape.Context) {
+func (h *HttpHandler) AccountRegister(context jape.Context) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (h *HttpHandlerImpl) AccountLoginChallenge(context *jape.Context) {
+func (h *HttpHandler) AccountLoginChallenge(context jape.Context) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (h *HttpHandlerImpl) AccountLogin(context *jape.Context) {
+func (h *HttpHandler) AccountLogin(context jape.Context) {
 	//TODO implement me
 	panic("implement me")
 }

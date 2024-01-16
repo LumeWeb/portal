@@ -1,16 +1,15 @@
 package protocols
 
 import (
-	"crypto/ed25519"
-	"fmt"
-	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
-	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
-	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
-	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
-	bolt "go.etcd.io/bbolt"
-	"go.uber.org/zap"
+    "crypto/ed25519"
+    "fmt"
+    s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
+    s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
+    s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
+    s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
+    "git.lumeweb.com/LumeWeb/portal/interfaces"
+    bolt "go.etcd.io/bbolt"
+    "go.uber.org/zap"
 )
 
 var (
@@ -83,7 +82,6 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 	cfg.DB = db
 
 	s.node = s5node.NewNode(cfg)
-	s.node.Services().HTTP().SetHttpHandler(s5.NewHttpHandler(s.portal))
 
 	return nil
 }
