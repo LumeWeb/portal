@@ -7,26 +7,20 @@ import (
 	"os"
 )
 
-var (
-	logger *zap.Logger
-)
+func Init(viper *viper.Viper) *zap.Logger {
 
-func Get(viper *viper.Viper) *zap.Logger {
-	if logger == nil {
+	// Create a new atomic level
+	atomicLevel := zap.NewAtomicLevel()
 
-		// Create a new atomic level
-		atomicLevel := zap.NewAtomicLevel()
+	// Set initial log level, for example, info level
+	atomicLevel.SetLevel(mapLogLevel(viper.GetString("core.log.level")))
 
-		// Set initial log level, for example, info level
-		atomicLevel.SetLevel(mapLogLevel(viper.GetString("core.log.level")))
-
-		// Create the logger with the atomic level
-		logger = zap.New(zapcore.NewCore(
-			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-			zapcore.Lock(os.Stdout),
-			atomicLevel,
-		))
-	}
+	// Create the logger with the atomic level
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+		zapcore.Lock(os.Stdout),
+		atomicLevel,
+	))
 
 	return logger
 }

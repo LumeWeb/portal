@@ -123,7 +123,7 @@ func (p *PortalImpl) getInitFuncs() []func() error {
 		},
 
 		func() error {
-			p.logger = logger.Get(p.Config())
+			p.logger = logger.Init(p.Config())
 
 			return nil
 		},
