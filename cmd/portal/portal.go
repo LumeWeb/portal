@@ -3,13 +3,10 @@ package main
 import (
 	"crypto/ed25519"
 	"git.lumeweb.com/LumeWeb/portal/api"
-	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
-	"git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
-	"go.sia.tech/core/wallet"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"net/http"
@@ -43,8 +40,8 @@ func NewPortal() interfaces.Portal {
 }
 
 func (p *PortalImpl) Initialize() error {
-	for _, initFunc := range p.getInitFuncs() {
-		if err := initFunc(); err != nil {
+	for _, initFunc := range getInitList() {
+		if err := initFunc(p); err != nil {
 			return err
 		}
 	}
@@ -52,8 +49,8 @@ func (p *PortalImpl) Initialize() error {
 	return nil
 }
 func (p *PortalImpl) Run() {
-	for _, initFunc := range p.getStartFuncs() {
-		if err := initFunc(); err != nil {
+	for _, initFunc := range getStartList() {
+		if err := initFunc(p); err != nil {
 			p.logger.Fatal("Failed to start", zap.Error(err))
 		}
 	}
@@ -78,106 +75,17 @@ func (p *PortalImpl) ApiRegistry() interfaces.APIRegistry {
 func (p *PortalImpl) Identity() ed25519.PrivateKey {
 	return p.identity
 }
-func (p *PortalImpl) getInitFuncs() []func() error {
-	return []func() error{
-		func() error {
-			return config.Init()
-		},
-		func() error {
-			var seed [32]byte
-			identitySeed := p.Config().GetString("core.identity")
-
-			if identitySeed == "" {
-				p.Logger().Info("Generating new identity seed")
-				identitySeed = wallet.NewSeedPhrase()
-				p.Config().Set("core.identity", identitySeed)
-				err := p.Config().WriteConfig()
-				if err != nil {
-					return err
-				}
-			}
-			err := wallet.SeedFromPhrase(&seed, identitySeed)
-			if err != nil {
-				return err
-			}
-
-			p.identity = ed25519.PrivateKey(wallet.KeyFromSeed(&seed, 0))
-
-			return nil
-		},
-		func() error {
-			required := []string{
-				"core.domain",
-				"core.port",
-				"core.sia.url",
-				"core.sia.key",
-			}
-
-			for _, key := range required {
-				if !p.Config().IsSet(key) {
-					p.logger.Fatal(key + " is required")
-				}
-			}
-
-			return nil
-		},
-
-		func() error {
-			p.logger = logger.Init(p.Config())
-
-			return nil
-		},
-		func() error {
-			return protocols.Init(p.protocolRegistry)
-		},
-		func() error {
-			p.storage.Init()
-
-			return nil
-		},
-		func() error {
-			return api.Init(p.apiRegistry)
-		},
-		func() error {
-			for _, _func := range p.protocolRegistry.All() {
-				err := _func.Initialize(p)
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		}, func() error {
-			for protoName, _func := range p.apiRegistry.All() {
-				proto, err := p.protocolRegistry.Get(protoName)
-				if err != nil {
-					return err
-				}
-				err = _func.Initialize(p, proto)
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		},
-	}
-}
 func (p *PortalImpl) Storage() interfaces.StorageService {
 	return p.storage
 }
 
-func (p *PortalImpl) getStartFuncs() []func() error {
-	return []func() error{
-		func() error {
-			for _, _func := range p.protocolRegistry.All() {
-				err := _func.Start()
-				if err != nil {
-					return err
-				}
-			}
+func (p *PortalImpl) SetIdentity(identity ed25519.PrivateKey) {
+	p.identity = identity
+}
 
-			return nil
-		},
-	}
+func (p *PortalImpl) SetLogger(logger *zap.Logger) {
+	p.logger = logger
+}
+func (p *PortalImpl) ProtocolRegistry() protocols.ProtocolRegistry {
+	return p.protocolRegistry
 }
