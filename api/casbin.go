@@ -5,7 +5,6 @@ import (
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
 	"go.uber.org/zap"
-	"strings"
 	"sync"
 )
 
@@ -24,9 +23,9 @@ func GetCasbin(logger *zap.Logger) *casbin.Enforcer {
 	}
 
 	// Add policies after creating the enforcer
-	_ = a.AddPolicy("admin", "/admin", []string{"GET"})
-	_ = a.AddPolicy("admin", "/admin", []string{"POST"})
-	_ = a.AddPolicy("admin", "/admin", []string{"DELETE"})
+	_ = a.AddPolicy("admin", "/admin", "GET")
+	_ = a.AddPolicy("admin", "/admin", "POST")
+	_ = a.AddPolicy("admin", "/admin", "DELETE")
 
 	err = e.LoadPolicy()
 	if err != nil {
@@ -71,12 +70,12 @@ func (a *PolicyAdapter) SavePolicy(model model.Model) error {
 
 // AddPolicy adds a policy rule to the storage.
 // AddPolicy adds a policy rule to the storage.
-func (a *PolicyAdapter) AddPolicy(sec string, ptype string, rule []string) error {
+func (a *PolicyAdapter) AddPolicy(sub string, obj string, act string) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
 	// Create a line representing the policy rule
-	line := ptype + ", " + strings.Join(rule, ", ")
+	line := sub + ", " + obj + ", " + act
 
 	// Check if the policy rule already exists
 	for _, existingLine := range a.policy {
