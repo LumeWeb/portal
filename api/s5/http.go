@@ -212,6 +212,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 	}
 
 	result := h.portal.Database().Create(&models.S5Challenge{
+		Pubkey:    pubkey,
 		Challenge: hex.EncodeToString(challenge),
 		Type:      "register",
 	})
