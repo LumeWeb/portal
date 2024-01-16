@@ -88,7 +88,32 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 		}(r.Body)
 	}
 
-	hash, err := h.portal.Storage().PutFile(rs, "s5", false)
+	hash, err := h.portal.Storage().GetHash(rs)
+
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+	}
+
+	if exists, upload := h.portal.Storage().FileExists(hash); exists {
+		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeRaw)
+		if err != nil {
+			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			return
+		}
+		cidStr, err := cid.ToString()
+		if err != nil {
+			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			return
+		}
+		jc.Encode(map[string]string{"hash": cidStr})
+		return
+	}
+
+	hash, err = h.portal.Storage().PutFile(rs, "s5", false)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
