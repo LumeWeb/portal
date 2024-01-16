@@ -213,7 +213,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 
 	result := h.portal.Database().Create(&models.S5Challenge{
 		Pubkey:    pubkey,
-		Challenge: hex.EncodeToString(challenge),
+		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		Type:      "register",
 	})
 
@@ -386,7 +386,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	}
 
 	result := h.portal.Database().Create(&models.S5Challenge{
-		Challenge: hex.EncodeToString(challenge),
+		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		Type:      "login",
 	})
 
