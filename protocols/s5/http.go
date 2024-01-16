@@ -2,10 +2,12 @@ package s5
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	s5interface "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
@@ -132,6 +134,19 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 	cidStr, err := cid.ToString()
 
 	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+	}
+
+	tx := h.portal.Database().Create(&models.Upload{
+		Hash:     hex.EncodeToString(hash),
+		Size:     uint64(bufferSize),
+		Protocol: "s5",
+		UserID:   0,
+	})
+
+	if tx.Error != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
 		return
