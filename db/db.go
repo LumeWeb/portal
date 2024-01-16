@@ -32,7 +32,7 @@ func (d *DatabaseImpl) Init(p interfaces.Portal) error {
 	password := viper.GetString("core.db.password")
 	host := viper.GetString("core.db.host")
 	port := viper.GetString("core.db.port")
-	dbname := viper.GetString("core.db.dbname")
+	dbname := viper.GetString("core.db.name")
 	charset := viper.GetString("core.db.charset")
 
 	// Construct DSN
