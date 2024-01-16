@@ -1,5 +1,7 @@
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116003411-13ca22d80e1c h1:qG16pbgMd7mdXRXZRyveMl8p9MsWlnqEm21pSW9AUfM=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116003411-13ca22d80e1c/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116151643-28444ca45626 h1:Gprya2cpsD8aWxnhMo7V4YcQVSClt74vwMxO7NiCPUw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116151643-28444ca45626/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSiWQsof+nXEI9bUVUyV6F53Fp89EuCh2EAA=
 github.com/casbin/casbin/v2 v2.81.0 h1:vNwJXK7a+TJZElZ5saP+SFJvweZNtJ3MlVP6P4IuRqE=
