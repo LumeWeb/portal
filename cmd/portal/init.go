@@ -45,6 +45,9 @@ func initCheckRequiredConfig(p interfaces.Portal) error {
 		"core.port",
 		"core.sia.url",
 		"core.sia.key",
+		"core.db.username",
+		"core.db.password",
+		"core.db.host",
 	}
 
 	for _, key := range required {
