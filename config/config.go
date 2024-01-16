@@ -2,8 +2,8 @@ package config
 
 import (
 	"errors"
+	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 var (
@@ -14,8 +14,8 @@ var (
 	}
 )
 
-func Init() error {
-	logger, _ := zap.NewDevelopment()
+func Init(p interfaces.Portal) error {
+	logger := p.Logger()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 

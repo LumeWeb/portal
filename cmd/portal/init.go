@@ -13,7 +13,7 @@ import (
 type initFunc func(p interfaces.Portal) error
 
 func initConfig(p interfaces.Portal) error {
-	return config.Init()
+	return config.Init(p)
 }
 
 func initIdentity(p interfaces.Portal) error {
