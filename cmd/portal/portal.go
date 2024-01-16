@@ -73,6 +73,11 @@ func (p *PortalImpl) Config() *viper.Viper {
 }
 
 func (p *PortalImpl) Logger() *zap.Logger {
+	if p.logger == nil {
+		logger, _ := zap.NewDevelopment()
+		return logger
+	}
+
 	return p.logger
 }
 
