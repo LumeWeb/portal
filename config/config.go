@@ -48,6 +48,7 @@ func writeDefaults() error {
 		"core.log.level":                          "info",
 		"core.db.charset":                         "utf8mb4",
 		"core.db.port":                            3306,
+		"core.db.name":                            "portal",
 		"protocol.s5.p2p.maxOutgoingPeerFailures": 10,
 		"protocol.s5.p2p.network":                 "",
 	}
