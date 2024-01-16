@@ -87,9 +87,6 @@ func (p *PortalImpl) Logger() *zap.Logger {
 	return p.logger
 }
 
-func (p *PortalImpl) Db() *gorm.DB {
-	return nil
-}
 func (p *PortalImpl) ApiRegistry() interfaces.APIRegistry {
 	return p.apiRegistry
 }

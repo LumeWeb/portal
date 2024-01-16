@@ -13,7 +13,6 @@ type Portal interface {
 	Run()
 	Config() *viper.Viper
 	Logger() *zap.Logger
-	Db() *gorm.DB
 	ApiRegistry() APIRegistry
 	ProtocolRegistry() ProtocolRegistry
 	Identity() ed25519.PrivateKey
