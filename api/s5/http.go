@@ -346,16 +346,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	authCookie := http.Cookie{
-		Name:     "s5-auth-token",
-		Value:    jwt,
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   int(time.Hour.Seconds() * 24),
-		Secure:   true,
-	}
-
-	http.SetCookie(jc.ResponseWriter, &authCookie)
+	setAuthCookie(jwt, jc)
 }
 
 func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
@@ -366,4 +357,17 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 func (h *HttpHandler) AccountLogin(jc jape.Context) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func setAuthCookie(jwt string, jc jape.Context) {
+	authCookie := http.Cookie{
+		Name:     "s5-auth-token",
+		Value:    jwt,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int(time.Hour.Seconds() * 24),
+		Secure:   true,
+	}
+
+	http.SetCookie(jc.ResponseWriter, &authCookie)
 }
