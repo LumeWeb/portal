@@ -105,13 +105,13 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) FileExists(hash []byte) bool {
+func (s *StorageServiceImpl) FileExists(hash []byte) (bool, models.Upload) {
 	hashStr := hex.EncodeToString(hash)
 
-	var count int64
-	s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).Count(&count)
+	var upload models.Upload
+	result := s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
 
-	return count > 0
+	return result.RowsAffected > 0, upload
 }
 
 func (s *StorageServiceImpl) GetHash(file io.ReadSeeker) ([]byte, error) {
