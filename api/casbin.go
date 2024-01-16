@@ -18,14 +18,15 @@ func GetCasbin(logger *zap.Logger) *casbin.Enforcer {
 
 	a := NewPolicyAdapter(logger)
 
-	_ = a.AddPolicy("admin", "/admin", []string{"GET"})
-	_ = a.AddPolicy("admin", "/admin", []string{"POST"})
-	_ = a.AddPolicy("admin", "/admin", []string{"DELETE"})
-
 	e, err := casbin.NewEnforcer(m, a)
 	if err != nil {
 		logger.Fatal("Failed to create casbin enforcer", zap.Error(err))
 	}
+
+	// Add policies after creating the enforcer
+	_ = a.AddPolicy("admin", "/admin", []string{"GET"})
+	_ = a.AddPolicy("admin", "/admin", []string{"POST"})
+	_ = a.AddPolicy("admin", "/admin", []string{"DELETE"})
 
 	return e
 }
