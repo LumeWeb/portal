@@ -205,7 +205,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 		return
 	}
 
-	if len(decodedKey) != 32 {
+	if len(decodedKey) != 33 && int(decodedKey[0]) != int(types.HashTypeEd25519) {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
 		return
@@ -380,8 +380,8 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 		return
 	}
 
-	if len(decodedKey) != 32 {
-		errored(err)
+	if len(decodedKey) != 33 && int(decodedKey[0]) != int(types.HashTypeEd25519) {
+		errored(errPubkeyNotSupported)
 		return
 	}
 
