@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -104,4 +105,18 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	}
 
 	return nil
+}
+
+func (s *StorageServiceImpl) CIDExists(cid interface {
+	ToString() (string, error)
+}) bool {
+	cidStr, err := cid.ToString()
+	if err != nil {
+		return false
+	}
+
+	var count int64
+	s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{CID: cidStr}).Count(&count)
+
+	return count > 0
 }
