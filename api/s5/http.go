@@ -297,7 +297,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	if !ed25519.Verify(decodedKey[1:], decodedChallenge, decodedSignature) {
+	if !ed25519.Verify(decodedKey[1:], decodedResponse, decodedSignature) {
 		errored(errInvalidSignatureErr)
 		return
 	}
@@ -470,7 +470,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 		return
 	}
 
-	if !ed25519.Verify(decodedKey[1:], decodedChallenge, decodedSignature) {
+	if !ed25519.Verify(decodedKey[1:], decodedResponse, decodedSignature) {
 		errored(errInvalidSignatureErr)
 		return
 	}
