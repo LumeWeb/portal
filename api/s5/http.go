@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
@@ -301,6 +302,10 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 	if !ed25519.Verify(decodedKey[1:], decodedResponse, decodedSignature) {
 		errored(errInvalidSignatureErr)
 		return
+	}
+
+	if request.Email == "" {
+		request.Email = fmt.Sprintf("%s@%s", hex.EncodeToString(decodedKey[1:]), "example.com")
 	}
 
 	verify, _ := h.verifier.Verify(request.Email)
