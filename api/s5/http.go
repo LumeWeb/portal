@@ -247,7 +247,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	if len(decodedKey) != 32 {
+	if len(decodedKey) != 33 {
 		errored(err)
 		return
 	}
