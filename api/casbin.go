@@ -25,9 +25,7 @@ func GetCasbin(logger *zap.Logger) *casbin.Enforcer {
 	}
 
 	// Add policies after creating the enforcer
-	_ = a.AddPolicy("admin", "/admin", []string{"GET"})
-	_ = a.AddPolicy("admin", "/admin", []string{"POST"})
-	_ = a.AddPolicy("admin", "/admin", []string{"DELETE"})
+	_ = a.AddPolicy("p", "p", []string{"admin", "/admin*", "(GET|POST|DELETE)"})
 
 	err = e.LoadPolicy()
 	if err != nil {
