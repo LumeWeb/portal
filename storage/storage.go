@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"encoding/hex"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
@@ -104,16 +105,11 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) CIDExists(cid interface {
-	ToString() (string, error)
-}) bool {
-	cidStr, err := cid.ToString()
-	if err != nil {
-		return false
-	}
+func (s *StorageServiceImpl) FileExists(hash []byte) bool {
+	hashStr := hex.EncodeToString(hash)
 
 	var count int64
-	s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{CID: cidStr}).Count(&count)
+	s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).Count(&count)
 
 	return count > 0
 }
