@@ -16,7 +16,7 @@ func startProtocolRegistry(p interfaces.Portal) error {
 }
 
 func startDatabase(p interfaces.Portal) error {
-	return p.Database().Start()
+	return p.DatabaseService().Start()
 }
 
 func getStartList() []startFunc {
