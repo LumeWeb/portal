@@ -43,6 +43,7 @@ var (
 	errEmailAlreadyExists          = errors.New("Email already exists")
 	errGeneratingPassword          = errors.New("Error generating password")
 	errPubkeyAlreadyExists         = errors.New("Pubkey already exists")
+	errPubkeyNotExist              = errors.New("Pubkey does not exist")
 	errAccountLoginErr             = errors.New(errAccountLogin)
 )
 
@@ -391,6 +392,13 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 
 	if len(decodedKey) != 33 && int(decodedKey[0]) != int(types.HashTypeEd25519) {
 		errored(errPubkeyNotSupported)
+		return
+	}
+
+	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(hex.EncodeToString(decodedKey[1:]))
+
+	if pubkeyExists {
+		errored(errPubkeyNotExist)
 		return
 	}
 
