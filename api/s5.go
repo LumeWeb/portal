@@ -28,10 +28,10 @@ func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol
 
 func getRoutes(h *s5.HttpHandler) map[string]jape.Handler {
 	return map[string]jape.Handler{
-		"POST /s5/upload":        h.SmallFileUpload,
-		"GET /account/register":  h.AccountRegisterChallenge,
-		"POST /account/register": h.AccountRegister,
-		"GET /account/login":     h.AccountLoginChallenge,
-		"POST /account/login":    h.AccountLogin,
+		"POST /s5/upload":           h.SmallFileUpload,
+		"GET /s5/account/register":  h.AccountRegisterChallenge,
+		"POST /s5/account/register": h.AccountRegister,
+		"GET /s5/account/login":     h.AccountLoginChallenge,
+		"POST /s5/account/login":    h.AccountLogin,
 	}
 }
