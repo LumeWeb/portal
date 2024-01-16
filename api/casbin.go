@@ -75,8 +75,8 @@ func (a *PolicyAdapter) AddPolicy(sec string, ptype string, rule []string) error
 	a.lock.Lock()
 	defer a.lock.Unlock()
 
-	// Create a line representing the policy rule
-	line := ptype + ", " + strings.Join(rule, ", ")
+	// Create a line representing the policy rule with the section
+	line := sec + ", " + ptype + ", " + strings.Join(rule, ", ")
 
 	// Check if the policy rule already exists
 	for _, existingLine := range a.policy {
