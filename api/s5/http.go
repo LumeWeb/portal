@@ -338,13 +338,15 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	err = h.portal.Accounts().AddPubkeyToAccount(*newAccount, request.Pubkey)
+	rawPubkey := hex.EncodeToString(decodedKey[1:])
+
+	err = h.portal.Accounts().AddPubkeyToAccount(*newAccount, rawPubkey)
 	if err != nil {
 		errored(errAccountRegisterErr)
 		return
 	}
 
-	jwt, err := h.portal.Accounts().LoginPubkey(request.Pubkey)
+	jwt, err := h.portal.Accounts().LoginPubkey(rawPubkey)
 	if err != nil {
 		errored(errAccountRegisterErr)
 		return
