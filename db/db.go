@@ -58,6 +58,7 @@ func (d *DatabaseImpl) Start() error {
 		&models.PublicKey{},
 		&models.Upload{},
 		&models.User{},
+		&models.S5Challenge{},
 	)
 }
 
