@@ -8,4 +8,5 @@ type StorageService interface {
 	CIDExists(cid interface {
 		ToString() (string, error)
 	}) bool
+	GetHash(file io.ReadSeeker) ([]byte, error)
 }

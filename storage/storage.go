@@ -28,20 +28,17 @@ func NewStorageService(portal interfaces.Portal) interfaces.StorageService {
 }
 
 func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
 
-	_, err := io.Copy(buf, file)
-	if err != nil {
-		return nil, err
-	}
-
-	hash := blake3.Sum512(buf.Bytes())
+	hash, err := s.GetHash(file)
 	hashStr, err := encoding.NewMultihash(hash[:]).ToBase64Url()
 	if err != nil {
 		return nil, err
 	}
 
-	buf.Reset()
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
 
 	err = s.createBucketIfNotExists(bucket)
 	if err != nil {
@@ -53,7 +50,7 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 		SetFormData(map[string]string{
 			"bucket": bucket,
 		}).
-		SetBody(buf).Put("/api/worker/objects/{path}")
+		SetBody(file).Put("/api/worker/objects/{path}")
 	if err != nil {
 		return nil, err
 	}
@@ -119,4 +116,17 @@ func (s *StorageServiceImpl) CIDExists(cid interface {
 	s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{CID: cidStr}).Count(&count)
 
 	return count > 0
+}
+
+func (s *StorageServiceImpl) GetHash(file io.ReadSeeker) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := blake3.Sum512(buf.Bytes())
+
+	return hash[:], nil
 }
