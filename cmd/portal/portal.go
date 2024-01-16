@@ -30,8 +30,7 @@ type PortalImpl struct {
 }
 
 func (p *PortalImpl) Database() interfaces.Database {
-	//TODO implement me
-	panic("implement me")
+	return p.database
 }
 
 func NewPortal() interfaces.Portal {
