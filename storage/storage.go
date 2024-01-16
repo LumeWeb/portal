@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
@@ -58,8 +59,13 @@ func (s StorageServiceImpl) PutFile(file io.ReadSeeker, bucket string, generateP
 
 	s.portal.Logger().Info("resp", zap.Any("resp", resp.String()))
 
-	if resp.IsError() && resp.Error() != nil {
-		return nil, resp.Error().(error)
+	if resp.IsError() {
+		if resp.Error() != nil {
+			return nil, resp.Error().(error)
+		}
+
+		return nil, errors.New(resp.String())
+
 	}
 
 	return hash[:], nil
