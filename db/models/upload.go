@@ -9,4 +9,5 @@ type Upload struct {
 	Protocol   string
 	User       User
 	UploaderIP string
+	Size       uint64
 }
