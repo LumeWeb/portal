@@ -2,6 +2,8 @@ package s5
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
@@ -22,15 +24,17 @@ var (
 )
 
 const (
-	errMultiformParse = "Error parsing multipart form"
-	errRetrievingFile = "Error retrieving the file"
-	errReadFile       = "Error reading the file"
-	errClosingStream  = "Error closing the stream"
-	errUploadingFile  = "Error uploading the file"
+	errMultiformParse           = "Error parsing multipart form"
+	errRetrievingFile           = "Error retrieving the file"
+	errReadFile                 = "Error reading the file"
+	errClosingStream            = "Error closing the stream"
+	errUploadingFile            = "Error uploading the file"
+	errAccountGenerateChallenge = "Error generating challenge"
 )
 
 var (
-	errUploadingFileErr = errors.New(errUploadingFile)
+	errUploadingFileErr            = errors.New(errUploadingFile)
+	errAccountGenerateChallengeErr = errors.New(errAccountGenerateChallenge)
 )
 
 type HttpHandlerImpl struct {
@@ -153,4 +157,61 @@ func (h *HttpHandlerImpl) SmallFileUpload(jc *jape.Context) {
 	}
 
 	jc.Encode(map[string]string{"hash": cidStr})
+}
+
+func (h *HttpHandlerImpl) AccountRegisterChallenge(jc *jape.Context) {
+	var pubkey string
+	if jc.DecodeForm("pubKey", &pubkey) != nil {
+		return
+	}
+
+	challenge := make([]byte, 32)
+
+	_, err := rand.Read(challenge)
+	if err != nil {
+		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		return
+	}
+
+	decodedKey, err := base64.RawURLEncoding.DecodeString(pubkey)
+
+	if err != nil {
+		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		return
+	}
+
+	if len(decodedKey) != 32 {
+		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		return
+	}
+
+	result := h.portal.Database().Create(&models.S5Challenge{
+		Challenge: hex.EncodeToString(challenge),
+	})
+
+	if result.Error != nil {
+		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		return
+	}
+
+	jc.Encode(map[string]string{"challenge": base64.RawURLEncoding.EncodeToString(challenge)})
+}
+
+func (h *HttpHandlerImpl) AccountRegister(context *jape.Context) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h *HttpHandlerImpl) AccountLoginChallenge(context *jape.Context) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h *HttpHandlerImpl) AccountLogin(context *jape.Context) {
+	//TODO implement me
+	panic("implement me")
 }
