@@ -48,6 +48,7 @@ func initCheckRequiredConfig(p interfaces.Portal) error {
 		"core.db.username",
 		"core.db.password",
 		"core.db.host",
+		"core.db.name",
 	}
 
 	for _, key := range required {
