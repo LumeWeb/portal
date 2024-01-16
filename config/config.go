@@ -47,7 +47,7 @@ func writeDefaults() error {
 		"core.post-upload-limit":                  1024 * 1024 * 1000,
 		"core.log.level":                          "info",
 		"core.db.charset":                         "utf8mb4",
-		"core.db.port":                            "3306",
+		"core.db.port":                            3306,
 		"protocol.s5.p2p.maxOutgoingPeerFailures": 10,
 		"protocol.s5.p2p.network":                 "",
 	}
