@@ -400,8 +400,86 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountLogin(jc jape.Context) {
-	//TODO implement me
-	panic("implement me")
+	var request AccountLoginRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	errored := func(err error) {
+		_ = jc.Error(errAccountLoginErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errAccountLogin, zap.Error(err))
+	}
+
+	decodedKey, err := base64.RawURLEncoding.DecodeString(request.Pubkey)
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if len(decodedKey) != 32 {
+		errored(err)
+		return
+	}
+
+	var challenge models.S5Challenge
+
+	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "login"}).First(&challenge)
+
+	if result.RowsAffected == 0 || result.Error != nil {
+		errored(err)
+		return
+	}
+
+	decodedResponse, err := base64.RawURLEncoding.DecodeString(request.Response)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if len(decodedResponse) != 64 {
+		errored(err)
+		return
+	}
+
+	decodedChallenge, err := base64.RawURLEncoding.DecodeString(challenge.Challenge)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if !bytes.Equal(decodedResponse, decodedChallenge) {
+		errored(errInvalidChallengeErr)
+		return
+	}
+
+	if int(decodedKey[0]) != int(types.HashTypeEd25519) {
+		errored(errPubkeyNotSupported)
+		return
+	}
+
+	decodedSignature, err := base64.RawURLEncoding.DecodeString(request.Signature)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	if !ed25519.Verify(decodedKey, decodedChallenge, decodedSignature) {
+		errored(errInvalidSignatureErr)
+		return
+	}
+
+	jwt, err := h.portal.Accounts().LoginPubkey(request.Pubkey)
+
+	if err != nil {
+		errored(errAccountLoginErr)
+		return
+	}
+
+	setAuthCookie(jwt, jc)
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
