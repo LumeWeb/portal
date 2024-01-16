@@ -4,19 +4,23 @@ go 1.20
 
 require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240116003411-13ca22d80e1c
+	github.com/go-resty/resty/v2 v2.11.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/spf13/viper v1.18.2
 	go.etcd.io/bbolt v1.3.8
 	go.sia.tech/core v0.1.12
+	go.sia.tech/jape v0.11.1
 	go.uber.org/zap v1.26.0
+	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
+	lukechampine.com/blake3 v1.2.1
 )
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-resty/resty/v2 v2.11.0 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -38,7 +42,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	go.sia.tech/jape v0.11.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
@@ -48,7 +51,6 @@ require (
 	golang.org/x/tools v0.17.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.2.1 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 )

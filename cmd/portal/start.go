@@ -15,8 +15,13 @@ func initProtocolRegistry(p interfaces.Portal) error {
 	return nil
 }
 
+func startDatabase(p interfaces.Portal) error {
+	return p.Database().Start()
+}
+
 func getStartList() []startFunc {
 	return []startFunc{
 		initProtocolRegistry,
+		startDatabase,
 	}
 }

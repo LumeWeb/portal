@@ -19,4 +19,5 @@ type Portal interface {
 	Storage() StorageService
 	SetIdentity(identity ed25519.PrivateKey)
 	SetLogger(logger *zap.Logger)
+	Database() Database
 }

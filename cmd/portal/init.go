@@ -62,6 +62,10 @@ func initLogger(p interfaces.Portal) error {
 	return nil
 }
 
+func initDatabase(p interfaces.Portal) error {
+	return p.Database().Init(p)
+}
+
 func initProtocols(p interfaces.Portal) error {
 	return protocols.Init(p.ProtocolRegistry())
 }
@@ -108,6 +112,7 @@ func getInitList() []initFunc {
 		initIdentity,
 		initCheckRequiredConfig,
 		initLogger,
+		initDatabase,
 		initProtocols,
 		initStorage,
 		initAPI,

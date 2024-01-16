@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/ed25519"
 	"git.lumeweb.com/LumeWeb/portal/api"
+	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
@@ -23,6 +24,12 @@ type PortalImpl struct {
 	logger           *zap.Logger
 	identity         ed25519.PrivateKey
 	storage          interfaces.StorageService
+	database         interfaces.Database
+}
+
+func (p *PortalImpl) Database() interfaces.Database {
+	//TODO implement me
+	panic("implement me")
 }
 
 func NewPortal() interfaces.Portal {
@@ -31,10 +38,13 @@ func NewPortal() interfaces.Portal {
 		apiRegistry:      api.NewRegistry(),
 		protocolRegistry: protocols.NewProtocolRegistry(),
 		storage:          nil,
+		database:         nil,
 	}
 
 	storageServ := storage.NewStorageService(portal)
+	database := db.NewDatabase(portal)
 	portal.storage = storageServ
+	portal.database = database
 
 	return portal
 }
