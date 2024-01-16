@@ -72,7 +72,7 @@ func initAccess(p interfaces.Portal) error {
 }
 
 func initDatabase(p interfaces.Portal) error {
-	return p.Database().Init(p)
+	return p.DatabaseService().Init(p)
 }
 
 func initProtocols(p interfaces.Portal) error {

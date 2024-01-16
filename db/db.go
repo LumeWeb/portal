@@ -15,7 +15,7 @@ var (
 )
 
 type DatabaseImpl struct {
-	DB     *gorm.DB
+	db     *gorm.DB
 	portal interfaces.Portal
 }
 
@@ -43,14 +43,14 @@ func (d *DatabaseImpl) Init(p interfaces.Portal) error {
 	if err != nil {
 		p.Logger().Error("Failed to connect to database", zap.Error(err))
 	}
-	d.DB = db
+	d.db = db
 
 	return nil
 }
 
 // Start performs any additional setup
 func (d *DatabaseImpl) Start() error {
-	return d.DB.AutoMigrate(
+	return d.db.AutoMigrate(
 		&models.APIKey{},
 		&models.Blocklist{},
 		&models.Download{},
@@ -59,4 +59,8 @@ func (d *DatabaseImpl) Start() error {
 		&models.Upload{},
 		&models.User{},
 	)
+}
+
+func (d *DatabaseImpl) Get() *gorm.DB {
+	return d.db
 }

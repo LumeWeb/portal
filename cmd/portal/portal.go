@@ -31,8 +31,11 @@ type PortalImpl struct {
 	accounts         interfaces.AccountService
 }
 
-func (p *PortalImpl) Database() interfaces.Database {
+func (p *PortalImpl) DatabaseService() interfaces.Database {
 	return p.database
+}
+func (p *PortalImpl) Database() *gorm.DB {
+	return p.database.Get()
 }
 
 func NewPortal() interfaces.Portal {
