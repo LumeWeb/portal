@@ -376,7 +376,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	decodedKey, err := base64.RawURLEncoding.DecodeString(pubkey)
 
 	if err != nil {
-		errored(err)
+		errored(errAccountGenerateChallengeErr)
 		return
 	}
 
@@ -391,7 +391,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	})
 
 	if result.Error != nil {
-		errored(err)
+		errored(result.Error)
 		return
 	}
 
