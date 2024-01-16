@@ -4,7 +4,7 @@ import "git.lumeweb.com/LumeWeb/portal/interfaces"
 
 type startFunc func(p interfaces.Portal) error
 
-func initProtocolRegistry(p interfaces.Portal) error {
+func startProtocolRegistry(p interfaces.Portal) error {
 	for _, _func := range p.ProtocolRegistry().All() {
 		err := _func.Start()
 		if err != nil {
@@ -21,7 +21,7 @@ func startDatabase(p interfaces.Portal) error {
 
 func getStartList() []startFunc {
 	return []startFunc{
-		initProtocolRegistry,
+		startProtocolRegistry,
 		startDatabase,
 	}
 }
