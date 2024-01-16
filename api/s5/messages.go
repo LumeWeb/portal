@@ -4,7 +4,7 @@ type AccountRegisterRequest struct {
 	Pubkey    string `json:"pubkey"`
 	Response  string `json:"response"`
 	Signature string `json:"signature"`
-	Email     string `json:"email"`
+	Email     string `json:"email,omitempty"`
 }
 
 type SmallUploadResponse struct {
