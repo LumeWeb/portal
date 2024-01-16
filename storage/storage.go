@@ -109,7 +109,7 @@ func (s *StorageServiceImpl) FileExists(hash []byte) (bool, models.Upload) {
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.Upload
-	result := s.portal.Db().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
+	result := s.portal.Database().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
 
 	return result.RowsAffected > 0, upload
 }
