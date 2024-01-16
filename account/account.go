@@ -21,7 +21,7 @@ func NewAccountService(portal interfaces.Portal) interfaces.AccountService {
 func (s AccountServiceImpl) EmailExists(email string) (bool, models.User) {
 	var user models.User
 
-	result := s.portal.Database().Model(&models.Upload{}).Where(&models.User{Email: email}).First(&user)
+	result := s.portal.Database().Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 
 	return result.RowsAffected > 0, user
 }
