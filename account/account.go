@@ -4,6 +4,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var (
@@ -122,4 +123,37 @@ func (s AccountServiceImpl) AccountPins(id uint64, createdAfter uint64) ([]model
 	}
 
 	return pins, nil
+}
+
+func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
+	// Define a struct for the query condition
+	uploadQuery := models.Upload{Hash: hash}
+
+	// Retrieve the upload ID for the given hash
+	var uploadID uint
+	result := s.portal.Database().
+		Model(&models.Upload{}).
+		Where(&uploadQuery).
+		Select("id").
+		First(&uploadID)
+
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			// No record found, nothing to delete
+			return nil
+		}
+		return result.Error
+	}
+
+	// Delete pins with the retrieved upload ID and matching account ID
+	pinQuery := models.Pin{UploadID: uploadID, UserID: accountID}
+	result = s.portal.Database().
+		Where(&pinQuery).
+		Delete(&models.Pin{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
