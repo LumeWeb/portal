@@ -322,7 +322,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(request.Pubkey)
+	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(hex.EncodeToString(decodedKey[1:]))
 
 	if pubkeyExists {
 		errored(errPubkeyAlreadyExists)
