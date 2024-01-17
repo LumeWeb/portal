@@ -32,6 +32,14 @@ func (s AccountServiceImpl) PubkeyExists(pubkey string) (bool, models.PublicKey)
 
 	return result.RowsAffected > 0, model
 }
+
+func (s AccountServiceImpl) AccountExists(id uint64) (bool, models.User) {
+	var model models.User
+
+	result := s.portal.Database().Model(&models.User{}).First(&model, id)
+
+	return result.RowsAffected > 0, model
+}
 func (s AccountServiceImpl) CreateAccount(email string, password string) (*models.User, error) {
 	var user models.User
 
