@@ -21,14 +21,14 @@ func NewS5() *S5API {
 func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol) error {
 	s5protocol := protocol.(*protocols.S5Protocol)
 	s5http := s5.NewHttpHandler(portal)
-	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(getRoutes(s5http)), "s5")
+	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(getRoutes(s5http, portal)), "s5")
 
 	return nil
 }
 
-func getRoutes(h *s5.HttpHandler) map[string]jape.Handler {
+func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Handler {
 	return map[string]jape.Handler{
-		"POST /s5/upload":           h.SmallFileUpload,
+		"POST /s5/upload":           s5.AuthMiddleware(h.SmallFileUpload, portal),
 		"GET /s5/account/register":  h.AccountRegisterChallenge,
 		"POST /s5/account/register": h.AccountRegister,
 		"GET /s5/account/login":     h.AccountLoginChallenge,
