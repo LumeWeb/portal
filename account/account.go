@@ -111,3 +111,15 @@ func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
 
 	return token, nil
 }
+
+func (s AccountServiceImpl) AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error) {
+	var pins []models.Pin
+
+	result := s.portal.Database().Model(&models.Pin{}).Where(&models.Pin{UserID: uint(id)}).Where("created_at > ?", createdAfter).Order("created_at desc").Find(&pins)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return pins, nil
+}
