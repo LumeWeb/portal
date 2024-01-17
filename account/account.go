@@ -184,3 +184,15 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 
 	return nil
 }
+
+func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
+	// Create a pin with the retrieved upload ID and matching account ID
+	pinQuery := models.Pin{UploadID: uploadId, UserID: accountID}
+	result := s.portal.Database().Create(&pinQuery)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}

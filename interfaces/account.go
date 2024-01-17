@@ -13,4 +13,5 @@ type AccountService interface {
 	AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error)
 	DeletePinByHash(hash string, accountID uint) error
 	PinByHash(hash string, accountID uint) error
+	PinByID(uploadId uint, accountID uint) error
 }
