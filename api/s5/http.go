@@ -17,6 +17,7 @@ import (
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
 	"io"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -529,7 +530,13 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 		QuotaExceeded:  false,
 		EmailConfirmed: false,
 		IsRestricted:   false,
-		Tier:           0,
+		Tier: AccountTier{
+			Id:              1,
+			Name:            "default",
+			UploadBandwidth: math.MaxUint64,
+			StorageLimit:    math.MaxUint64,
+			Scopes:          []interface{}{},
+		},
 	}
 
 	jc.Encode(info)
@@ -544,7 +551,13 @@ func (h *HttpHandler) AccountStats(jc jape.Context) {
 			QuotaExceeded:  false,
 			EmailConfirmed: false,
 			IsRestricted:   false,
-			Tier:           0,
+			Tier: AccountTier{
+				Id:              1,
+				Name:            "default",
+				UploadBandwidth: math.MaxUint64,
+				StorageLimit:    math.MaxUint64,
+				Scopes:          []interface{}{},
+			},
 		},
 		Stats: AccountStats{
 			Total: AccountStatsTotal{

@@ -23,16 +23,24 @@ type AccountLoginChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
 type AccountInfoResponse struct {
-	Email          string `json:"email"`
-	QuotaExceeded  bool   `json:"quotaExceeded"`
-	EmailConfirmed bool   `json:"emailConfirmed"`
-	IsRestricted   bool   `json:"isRestricted"`
-	Tier           uint8  `json:"tier"`
+	Email          string      `json:"email"`
+	QuotaExceeded  bool        `json:"quotaExceeded"`
+	EmailConfirmed bool        `json:"emailConfirmed"`
+	IsRestricted   bool        `json:"isRestricted"`
+	Tier           AccountTier `json:"tier"`
 }
 
 type AccountStatsResponse struct {
 	AccountInfoResponse
 	Stats AccountStats `json:"stats"`
+}
+
+type AccountTier struct {
+	Id              uint64        `json:"id"`
+	Name            string        `json:"name"`
+	UploadBandwidth uint64        `json:"uploadBandwidth"`
+	StorageLimit    uint64        `json:"storageLimit"`
+	Scopes          []interface{} `json:"scopes"`
 }
 
 type AccountStats struct {
