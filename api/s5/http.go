@@ -177,17 +177,10 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	tx := h.portal.Database().Create(&models.Upload{
-		Hash:     hex.EncodeToString(hash),
-		Size:     uint64(bufferSize),
-		Protocol: "s5",
-		UserID:   uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)),
-	})
-
-	if tx.Error != nil {
+	_, err = h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
-		return
 	}
 
 	jc.Encode(&SmallUploadResponse{
