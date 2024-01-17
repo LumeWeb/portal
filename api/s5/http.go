@@ -9,11 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
+	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"git.lumeweb.com/LumeWeb/portal/protocols"
 	emailverifier "github.com/AfterShip/email-verifier"
+	"github.com/samber/lo"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
@@ -38,6 +42,7 @@ const (
 	errFailedToDelPin           = "Failed to delete pin"
 	errFailedToAddPin           = "Failed to add pin"
 	errorNotMultiform           = "Not a multipart form"
+	errFetchingUrls             = "Error fetching urls"
 )
 
 var (
@@ -57,6 +62,7 @@ var (
 	errFailedToDelPinErr           = errors.New(errFailedToDelPin)
 	errFailedToAddPinErr           = errors.New(errFailedToAddPin)
 	errNotMultiformErr             = errors.New(errorNotMultiform)
+	errFetchingUrlsErr             = errors.New(errFetchingUrls)
 )
 
 type HttpHandler struct {
@@ -852,6 +858,95 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 	}
 
 	jc.Encode(&AppUploadResponse{CID: cidStr})
+}
+
+func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
+	var cid string
+	if jc.DecodeParam("cid", &cid) != nil {
+		return
+	}
+
+	decodedCid, err := encoding.CIDFromString(cid)
+
+	if err != nil {
+		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		return
+	}
+
+	node := h.getNode()
+
+	dlUriProvider := s5storage.NewStorageLocationProvider(node, &decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+
+	err = dlUriProvider.Start()
+	if err != nil {
+		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		return
+	}
+
+	_, err = dlUriProvider.Next()
+	if err != nil {
+		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		return
+	}
+
+	locations, err := node.GetCachedStorageLocations(&decodedCid.Hash, []types.StorageLocationType{
+		types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge,
+	})
+	if err != nil {
+		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		return
+	}
+
+	availableNodes := lo.Keys[string, s5interfaces.StorageLocation](locations)
+
+	availableNodesIds := make([]*encoding.NodeId, len(availableNodes))
+
+	for i, nodeIdStr := range availableNodes {
+		nodeId, err := encoding.DecodeNodeId(nodeIdStr)
+		if err != nil {
+			_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+			return
+		}
+		availableNodesIds[i] = nodeId
+	}
+
+	sorted, err := node.Services().P2P().SortNodesByScore(availableNodesIds)
+	if err != nil {
+		return
+	}
+
+	if err != nil {
+		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		return
+	}
+
+	output := make([]string, len(sorted))
+
+	for i, nodeId := range sorted {
+		nodeIdStr, err := nodeId.ToString()
+		if err != nil {
+			_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+			return
+		}
+		output[i] = locations[nodeIdStr].BytesURL()
+	}
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
+	_, _ = jc.ResponseWriter.Write([]byte(strings.Join(output, "\n")))
+}
+
+func (h *HttpHandler) getNode() s5interfaces.Node {
+	proto, _ := h.portal.ProtocolRegistry().Get("s5")
+	protoInstance := proto.(*protocols.S5Protocol)
+
+	return protoInstance.Node()
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
