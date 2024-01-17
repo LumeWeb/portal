@@ -49,7 +49,8 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"/s5/debug/download_urls/:cid": s5.AuthMiddleware(h.DebugDownloadUrls, portal),
 
 		//Registry API
-		"GET /s5/registry":  s5.AuthMiddleware(h.RegistryQuery, portal),
-		"POST /s5/registry": s5.AuthMiddleware(h.RegistrySet, portal),
+		"GET /s5/registry":              s5.AuthMiddleware(h.RegistryQuery, portal),
+		"POST /s5/registry":             s5.AuthMiddleware(h.RegistrySet, portal),
+		"GET /s5/registry/subscription": s5.AuthMiddleware(h.RegistrySubscription, portal),
 	}
 }
