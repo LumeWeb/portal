@@ -59,3 +59,10 @@ type RegistryQueryResponse struct {
 	Data      string `json:"data"`
 	Signature string `json:"signature"`
 }
+
+type RegistrySetRequest struct {
+	Pk        string `json:"pk"`
+	Revision  uint64 `json:"revision"`
+	Data      string `json:"data"`
+	Signature string `json:"signature"`
+}

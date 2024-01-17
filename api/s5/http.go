@@ -11,6 +11,7 @@ import (
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
+	s5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
@@ -970,6 +971,35 @@ func (h *HttpHandler) RegistryQuery(jc jape.Context) {
 		Data:      base64.RawURLEncoding.EncodeToString(entry.Data()),
 		Signature: base64.RawURLEncoding.EncodeToString(entry.Signature()),
 	})
+}
+func (h *HttpHandler) RegistrySet(jc jape.Context) {
+	var request RegistrySetRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	pk, err := base64.RawURLEncoding.DecodeString(request.Pk)
+	if jc.Check("error decoding pk", err) != nil {
+		return
+	}
+
+	data, err := base64.RawURLEncoding.DecodeString(request.Data)
+	if jc.Check("error decoding data", err) != nil {
+		return
+	}
+
+	signature, err := base64.RawURLEncoding.DecodeString(request.Signature)
+	if jc.Check("error decoding signature", err) != nil {
+		return
+	}
+
+	entry := s5protocol.NewSignedRegistryEntry(pk, request.Revision, data, signature)
+
+	err = h.getNode().Services().Registry().Set(entry, false, nil)
+	if jc.Check("error setting registry entry", err) != nil {
+		return
+	}
 }
 
 func (h *HttpHandler) getNode() s5interfaces.Node {
