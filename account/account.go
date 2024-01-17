@@ -186,9 +186,19 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 }
 
 func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
+	result := s.portal.Database().Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: accountID}).First(&models.Pin{})
+
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		return result.Error
+	}
+
+	if result.RowsAffected > 0 {
+		return nil
+	}
+
 	// Create a pin with the retrieved upload ID and matching account ID
 	pinQuery := models.Pin{UploadID: uploadId, UserID: accountID}
-	result := s.portal.Database().Create(&pinQuery)
+	result = s.portal.Database().Create(&pinQuery)
 
 	if result.Error != nil {
 		return result.Error
