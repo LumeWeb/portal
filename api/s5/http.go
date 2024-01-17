@@ -942,6 +942,36 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 	_, _ = jc.ResponseWriter.Write([]byte(strings.Join(output, "\n")))
 }
 
+func (h *HttpHandler) RegistryQuery(jc jape.Context) {
+	var pk string
+
+	if jc.DecodeForm("pk", &pk) != nil {
+		return
+	}
+
+	pkBytes, err := base64.RawURLEncoding.DecodeString(pk)
+	if jc.Check("error decoding pk", err) != nil {
+		return
+	}
+
+	entry, err := h.getNode().Services().Registry().Get(pkBytes)
+	if jc.Check("error getting registry entry", err) != nil {
+		return
+	}
+
+	if entry == nil {
+		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	jc.Encode(&RegistryQueryResponse{
+		Pk:        base64.RawURLEncoding.EncodeToString(entry.PK()),
+		Revision:  entry.Revision(),
+		Data:      base64.RawURLEncoding.EncodeToString(entry.Data()),
+		Signature: base64.RawURLEncoding.EncodeToString(entry.Signature()),
+	})
+}
+
 func (h *HttpHandler) getNode() s5interfaces.Node {
 	proto, _ := h.portal.ProtocolRegistry().Get("s5")
 	protoInstance := proto.(*protocols.S5Protocol)

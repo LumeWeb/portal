@@ -53,3 +53,9 @@ type AccountStatsTotal struct {
 type AppUploadResponse struct {
 	CID string `json:"cid"`
 }
+type RegistryQueryResponse struct {
+	Pk        string `json:"pk"`
+	Revision  uint64 `json:"revision"`
+	Data      string `json:"data"`
+	Signature string `json:"signature"`
+}
