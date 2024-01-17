@@ -532,6 +532,27 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 	jc.Encode(info)
 }
 
+func (h *HttpHandler) AccountStats(jc jape.Context) {
+	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(AuthUserIDKey).(uint64))
+
+	info := &AccountStatsResponse{
+		AccountInfoResponse: AccountInfoResponse{
+			Email:          user.Email,
+			QuotaExceeded:  false,
+			EmailConfirmed: false,
+			IsRestricted:   false,
+			Tier:           0,
+		},
+		Stats: AccountStats{
+			Total: AccountStatsTotal{
+				UsedStorage: 0,
+			},
+		},
+	}
+
+	jc.Encode(info)
+}
+
 func setAuthCookie(jwt string, jc jape.Context) {
 	authCookie := http.Cookie{
 		Name:     "s5-auth-token",

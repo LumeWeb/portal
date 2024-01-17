@@ -29,3 +29,16 @@ type AccountInfoResponse struct {
 	IsRestricted   bool   `json:"isRestricted"`
 	Tier           uint8  `json:"tier"`
 }
+
+type AccountStatsResponse struct {
+	AccountInfoResponse
+	Stats AccountStats `json:"stats"`
+}
+
+type AccountStats struct {
+	Total AccountStatsTotal `json:"total"`
+}
+
+type AccountStatsTotal struct {
+	UsedStorage uint64 `json:"usedStorage"`
+}
