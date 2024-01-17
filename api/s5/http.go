@@ -186,7 +186,13 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	_, err = h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+	}
+
+	err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
