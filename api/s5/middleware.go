@@ -31,7 +31,7 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
 
-				publicKey := portal.Identity()
+				publicKey := portal.Identity().Public()
 
 				return publicKey, nil
 			})
