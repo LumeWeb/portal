@@ -10,6 +10,10 @@ git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117153414-c95a953ca28f h1:VJXYc+lzE
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117153414-c95a953ca28f/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117162954-e9baacd55ef6 h1:HKCj2cbTSwA1BgggkASDs9P6dCMhPpirrvFJgv15zwQ=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117162954-e9baacd55ef6/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117191218-47048ed2abbf h1:4OqqHS1lkV96+VYVg22wMtR1Iyfo5qlbuPKETwIuwms=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117191218-47048ed2abbf/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117192243-e034e1096f17 h1:TMOXbpA99jcB9ajyXuOB2vwX2d8m4xyiqWv+bspa+mQ=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117192243-e034e1096f17/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
 github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8JRa/ZElbCAJCEgikg=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
