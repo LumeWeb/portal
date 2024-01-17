@@ -12,4 +12,5 @@ type AccountService interface {
 	LoginPubkey(pubkey string) (string, error)
 	AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error)
 	DeletePinByHash(hash string, accountID uint) error
+	PinByHash(hash string, accountID uint) error
 }

@@ -157,3 +157,30 @@ func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
 
 	return nil
 }
+func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
+	// Define a struct for the query condition
+	uploadQuery := models.Upload{Hash: hash}
+
+	// Retrieve the upload ID for the given hash
+	var uploadID uint
+	result := s.portal.Database().
+		Model(&models.Upload{}).
+		Where(&uploadQuery).
+		First(&uploadID)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Create a pin with the retrieved upload ID and matching account ID
+	pinQuery := models.Pin{UploadID: uploadID, UserID: accountID}
+	result = s.portal.Database().
+		Where(&pinQuery).
+		First(&models.Pin{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
