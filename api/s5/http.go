@@ -13,6 +13,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	emailverifier "github.com/AfterShip/email-verifier"
+	"github.com/vmihailenco/msgpack/v5"
 	"go.sia.tech/jape"
 	"go.uber.org/zap"
 	"io"
@@ -31,6 +32,7 @@ const (
 	errAccountGenerateChallenge = "Error generating challenge"
 	errAccountRegister          = "Error registering account"
 	errAccountLogin             = "Error logging in account"
+	errFailedToGetPins          = "Failed to get pins"
 )
 
 var (
@@ -46,6 +48,7 @@ var (
 	errPubkeyAlreadyExists         = errors.New("Pubkey already exists")
 	errPubkeyNotExist              = errors.New("Pubkey does not exist")
 	errAccountLoginErr             = errors.New(errAccountLogin)
+	errFailedToGetPinsErr          = errors.New(errFailedToGetPins)
 )
 
 type HttpHandler struct {
@@ -551,6 +554,51 @@ func (h *HttpHandler) AccountStats(jc jape.Context) {
 	}
 
 	jc.Encode(info)
+}
+
+func (h *HttpHandler) AccountPins(jc jape.Context) {
+	var cursor uint64
+
+	if jc.DecodeForm("cursor", &cursor) != nil {
+		return
+	}
+
+	errored := func(err error) {
+		_ = jc.Error(errFailedToGetPinsErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFailedToGetPins, zap.Error(err))
+	}
+
+	pins, err := h.portal.Accounts().AccountPins(jc.Request.Context().Value(AuthUserIDKey).(uint64), cursor)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	pinsList := make([][]byte, len(pins))
+
+	for i, pin := range pins {
+		hash, err := hex.DecodeString(pin.Upload.Hash)
+
+		if err != nil {
+			errored(err)
+			return
+		}
+
+		pinsList[i] = encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes()
+	}
+
+	result, err := msgpack.Marshal(pinsList)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	jc.Custom(jc.Request, result)
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
+	_, _ = jc.ResponseWriter.Write(result)
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
