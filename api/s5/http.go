@@ -118,6 +118,12 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 	}
 
 	hash, err := h.portal.Storage().GetHash(rs)
+	_, err = rs.Seek(0, io.SeekStart)
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+	}
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
