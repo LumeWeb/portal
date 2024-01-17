@@ -172,17 +172,7 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 		return result.Error
 	}
 
-	// Create a pin with the retrieved upload ID and matching account ID
-	pinQuery := models.Pin{UploadID: uploadID, UserID: accountID}
-	result = s.portal.Database().
-		Where(&pinQuery).
-		First(&models.Pin{})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
+	return s.PinByID(uploadID, accountID)
 }
 
 func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
