@@ -34,6 +34,7 @@ const (
 	errAccountRegister          = "Error registering account"
 	errAccountLogin             = "Error logging in account"
 	errFailedToGetPins          = "Failed to get pins"
+	errFailedToDelPin           = "Failed to delete pin"
 )
 
 var (
@@ -50,6 +51,7 @@ var (
 	errPubkeyNotExist              = errors.New("Pubkey does not exist")
 	errAccountLoginErr             = errors.New(errAccountLogin)
 	errFailedToGetPinsErr          = errors.New(errFailedToGetPins)
+	errFailedToDelPinErr           = errors.New(errFailedToDelPin)
 )
 
 type HttpHandler struct {
@@ -612,6 +614,36 @@ func (h *HttpHandler) AccountPins(jc jape.Context) {
 
 	jc.ResponseWriter.WriteHeader(http.StatusOK)
 	_, _ = jc.ResponseWriter.Write(result)
+}
+
+func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
+	var cid string
+	if jc.DecodeParam("cid", &cid) != nil {
+		return
+	}
+
+	errored := func(err error) {
+		_ = jc.Error(errFailedToDelPinErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errFailedToDelPin, zap.Error(err))
+	}
+
+	decodedCid, err := encoding.CIDFromString(cid)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
+
+	err = h.portal.Accounts().DeletePinByHash(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+
+	if err != nil {
+		errored(err)
+	}
+
+	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
+
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {

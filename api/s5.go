@@ -28,7 +28,7 @@ func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol
 
 func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Handler {
 	return map[string]jape.Handler{
-		"POST /s5/upload":           s5.AuthMiddleware(h.SmallFileUpload, portal),
+		// Account API
 		"GET /s5/account/register":  h.AccountRegisterChallenge,
 		"POST /s5/account/register": h.AccountRegister,
 		"GET /s5/account/login":     h.AccountLoginChallenge,
@@ -36,5 +36,11 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"GET /s5/account":           s5.AuthMiddleware(h.AccountInfo, portal),
 		"GET /s5/account/stats":     s5.AuthMiddleware(h.AccountStats, portal),
 		"GET /s5/account/pins.bin":  s5.AuthMiddleware(h.AccountPins, portal),
+
+		// Upload API
+		"POST /s5/upload": s5.AuthMiddleware(h.SmallFileUpload, portal),
+
+		// Pins API
+		"DELETE /s5/delete/:cid": s5.AuthMiddleware(h.AccountPinDelete, portal),
 	}
 }
