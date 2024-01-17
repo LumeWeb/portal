@@ -158,6 +158,14 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
 			return
 		}
+
+		err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+		if err != nil {
+			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			return
+		}
+
 		jc.Encode(map[string]string{"hash": cidStr})
 		return
 	}
