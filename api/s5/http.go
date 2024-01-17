@@ -170,7 +170,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		Hash:     hex.EncodeToString(hash),
 		Size:     uint64(bufferSize),
 		Protocol: "s5",
-		UserID:   0,
+		UserID:   uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)),
 	})
 
 	if tx.Error != nil {
