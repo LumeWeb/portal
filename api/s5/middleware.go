@@ -1,12 +1,18 @@
 package s5
 
 import (
+	"context"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
 	"net/http"
+	"strconv"
 	"strings"
+)
+
+const (
+	AuthUserIDKey = "userID"
 )
 
 func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler {
@@ -35,7 +41,29 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 				return
 			}
 
-			if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			if claim, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				subject, err := claim.GetSubject()
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+
+				userID, err := strconv.ParseUint(subject, 10, 64)
+				if err != nil {
+					http.Error(w, "Invalid User ID", http.StatusBadRequest)
+					return
+				}
+
+				exists, _ := portal.Accounts().AccountExists(userID)
+
+				if !exists {
+					http.Error(w, "Invalid User ID", http.StatusBadRequest)
+					return
+				}
+
+				ctx := context.WithValue(r.Context(), "userId", userID)
+				r = r.WithContext(ctx)
+
 				h.ServeHTTP(w, r)
 			} else {
 				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
