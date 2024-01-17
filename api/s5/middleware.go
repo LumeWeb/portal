@@ -7,7 +7,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -42,14 +41,8 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 			}
 
 			if claim, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				subject, ok := claim["sub"].(string)
+				userID, ok := claim["sub"].(uint64)
 				if !ok {
-					http.Error(w, "Invalid User ID", http.StatusBadRequest)
-					return
-				}
-
-				userID, err := strconv.ParseUint(subject, 10, 64)
-				if err != nil {
 					http.Error(w, "Invalid User ID", http.StatusBadRequest)
 					return
 				}
