@@ -68,7 +68,7 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 					return
 				}
 
-				ctx := context.WithValue(r.Context(), "userId", userID)
+				ctx := context.WithValue(r.Context(), AuthUserIDKey, userID)
 				r = r.WithContext(ctx)
 
 				h.ServeHTTP(w, r)
