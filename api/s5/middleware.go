@@ -41,8 +41,22 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 			}
 
 			if claim, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				userID, ok := claim["sub"].(uint64)
+				subject, ok := claim["sub"]
+
 				if !ok {
+					http.Error(w, "Invalid User ID", http.StatusBadRequest)
+					return
+				}
+
+				var userID uint64
+
+				switch v := subject.(type) {
+				case uint64:
+					userID = v
+				case float64:
+					userID = uint64(v)
+				default:
+					// Handle the case where userID is of an unexpected type
 					http.Error(w, "Invalid User ID", http.StatusBadRequest)
 					return
 				}
