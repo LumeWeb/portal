@@ -42,9 +42,9 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 			}
 
 			if claim, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				subject, err := claim.GetSubject()
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusBadRequest)
+				subject, ok := claim["sub"].(string)
+				if !ok {
+					http.Error(w, "Invalid User ID", http.StatusBadRequest)
 					return
 				}
 
