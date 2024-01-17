@@ -129,3 +129,22 @@ func (s *StorageServiceImpl) GetHash(file io.ReadSeeker) ([]byte, error) {
 
 	return hash[:], nil
 }
+func (s *StorageServiceImpl) CreateUpload(hash []byte, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
+	hashStr := hex.EncodeToString(hash)
+
+	upload := &models.Upload{
+		Hash:       hashStr,
+		UserID:     uploaderID,
+		UploaderIP: uploaderIP,
+		Protocol:   protocol,
+		Size:       size,
+	}
+
+	result := s.portal.Database().Create(upload)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return upload, nil
+}
