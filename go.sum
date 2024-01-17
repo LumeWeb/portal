@@ -1,5 +1,7 @@
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117192243-e034e1096f17 h1:TMOXbpA99jcB9ajyXuOB2vwX2d8m4xyiqWv+bspa+mQ=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117192243-e034e1096f17/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117205141-3009e1dce32b h1:S/McS9jpoLiz+JvJ2e01zYp4N1/7tOru+hK2HHyui3o=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240117205141-3009e1dce32b/go.mod h1:CMtoCT4WlAWzJtNer2MEW170i14jeKhSjxbYQ5DIGqw=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
 github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8JRa/ZElbCAJCEgikg=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
