@@ -33,5 +33,6 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"POST /s5/account/register": h.AccountRegister,
 		"GET /s5/account/login":     h.AccountLoginChallenge,
 		"POST /s5/account/login":    h.AccountLogin,
+		"GET /s5/account":           s5.AuthMiddleware(h.AccountInfo, portal),
 	}
 }

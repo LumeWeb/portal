@@ -22,3 +22,10 @@ type AccountLoginRequest struct {
 type AccountLoginChallengeResponse struct {
 	Challenge string `json:"challenge"`
 }
+type AccountInfoResponse struct {
+	Email          string `json:"email"`
+	QuotaExceeded  bool   `json:"quotaExceeded"`
+	EmailConfirmed bool   `json:"emailConfirmed"`
+	IsRestricted   bool   `json:"isRestricted"`
+	Tier           uint8  `json:"tier"`
+}
