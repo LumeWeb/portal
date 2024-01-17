@@ -50,3 +50,6 @@ type AccountStats struct {
 type AccountStatsTotal struct {
 	UsedStorage uint64 `json:"usedStorage"`
 }
+type AppUploadResponse struct {
+	CID string `json:"cid"`
+}

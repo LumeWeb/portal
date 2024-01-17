@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
@@ -36,6 +37,7 @@ const (
 	errFailedToGetPins          = "Failed to get pins"
 	errFailedToDelPin           = "Failed to delete pin"
 	errFailedToAddPin           = "Failed to add pin"
+	errorNotMultiform           = "Not a multipart form"
 )
 
 var (
@@ -54,6 +56,7 @@ var (
 	errFailedToGetPinsErr          = errors.New(errFailedToGetPins)
 	errFailedToDelPinErr           = errors.New(errFailedToDelPin)
 	errFailedToAddPinErr           = errors.New(errFailedToAddPin)
+	errNotMultiformErr             = errors.New(errorNotMultiform)
 )
 
 type HttpHandler struct {
@@ -127,12 +130,6 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	hash, err := h.portal.Storage().GetHash(rs)
 	_, err = rs.Seek(0, io.SeekStart)
-	if err != nil {
-		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
-		return
-	}
-
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
@@ -675,6 +672,193 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 	}
 
 	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
+	var tryFiles []string
+	var errorPages map[int]string
+	var name string
+
+	if jc.DecodeForm("tryFiles", &tryFiles) != nil {
+		return
+	}
+
+	if jc.DecodeForm("errorPages", &errorPages) != nil {
+		return
+	}
+
+	if jc.DecodeForm("name", &name) != nil {
+		return
+	}
+
+	r := jc.Request
+	contentType := r.Header.Get("Content-Type")
+
+	errored := func(err error) {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+	}
+
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		_ = jc.Error(errNotMultiformErr, http.StatusBadRequest)
+		h.portal.Logger().Error(errorNotMultiform)
+		return
+	}
+
+	err := r.ParseMultipartForm(h.portal.Config().GetInt64("core.post-upload-limit"))
+
+	if jc.Check(errMultiformParse, err) != nil {
+		h.portal.Logger().Error(errMultiformParse, zap.Error(err))
+		return
+	}
+
+	uploadMap := make(map[string]models.Upload, len(r.MultipartForm.File))
+	mimeMap := make(map[string]string, len(r.MultipartForm.File))
+
+	for _, files := range r.MultipartForm.File {
+		for _, fileHeader := range files {
+			// Open the file.
+			file, err := fileHeader.Open()
+			if err != nil {
+				errored(err)
+				return
+			}
+			defer func(file multipart.File) {
+				err := file.Close()
+				if err != nil {
+					h.portal.Logger().Error(errClosingStream, zap.Error(err))
+				}
+			}(file)
+
+			var rs io.ReadSeeker
+
+			hash, err := h.portal.Storage().GetHash(rs)
+			_, err = rs.Seek(0, io.SeekStart)
+			if err != nil {
+				_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+				h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+				return
+			}
+
+			if exists, upload := h.portal.Storage().FileExists(hash); exists {
+				uploadMap[fileHeader.Filename] = upload
+				continue
+			}
+
+			hash, err = h.portal.Storage().PutFile(rs, "s5", false)
+
+			if err != nil {
+				errored(err)
+				return
+			}
+
+			upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+
+			if err != nil {
+				errored(err)
+				return
+			}
+
+			// Reset the read pointer back to the start of the file.
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				errored(err)
+				return
+			}
+
+			// Read a snippet of the file to determine its MIME type.
+			buffer := make([]byte, 512) // 512 bytes should be enough for http.DetectContentType to determine the type
+			if _, err := file.Read(buffer); err != nil {
+				errored(err)
+				return
+			}
+
+			// Reset the read pointer back to the start of the file.
+			if _, err := file.Seek(0, 0); err != nil {
+				errored(err)
+				return
+			}
+
+			// Detect MIME type.
+			mimeType := http.DetectContentType(buffer)
+
+			uploadMap[fileHeader.Filename] = *upload
+			mimeMap[fileHeader.Filename] = mimeType
+		}
+	}
+	filesMap := make(map[string]metadata.WebAppMetadataFileReference, len(uploadMap))
+
+	for name, file := range uploadMap {
+		hashDecoded, err := hex.DecodeString(file.Hash)
+		if err != nil {
+			errored(err)
+			return
+		}
+
+		cid, err := encoding.CIDFromHash(hashDecoded, file.Size, types.CIDTypeRaw, types.HashTypeBlake3)
+		if err != nil {
+			errored(err)
+			return
+		}
+
+		filesMap[name] = *metadata.NewWebAppMetadataFileReference(cid, mimeMap[name])
+	}
+
+	app := metadata.NewWebAppMetadata(name, tryFiles, *metadata.NewExtraMetadata(map[int]interface{}{}), errorPages, filesMap)
+
+	appData, err := msgpack.Marshal(app)
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	var rs = bytes.NewReader(appData)
+
+	hash, err := h.portal.Storage().GetHash(rs)
+	_, err = rs.Seek(0, io.SeekStart)
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+	}
+
+	if exists, upload := h.portal.Storage().FileExists(hash); exists {
+		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeMetadataWebapp, types.HashTypeBlake3)
+		if err != nil {
+			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			return
+		}
+		cidStr, err := cid.ToString()
+		if err != nil {
+			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			return
+		}
+		jc.Encode(map[string]string{"hash": cidStr})
+		return
+	}
+
+	hash, err = h.portal.Storage().PutFile(rs, "s5", false)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	cid, err := encoding.CIDFromHash(hash, uint64(len(appData)), types.CIDTypeRaw, types.HashTypeBlake3)
+
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	cidStr, err := cid.ToString()
+	if err != nil {
+		errored(err)
+		return
+	}
+
+	jc.Encode(&AppUploadResponse{CID: cidStr})
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
