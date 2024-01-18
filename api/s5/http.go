@@ -181,6 +181,8 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
+	h.portal.Logger().Info("Hash", zap.String("hash", hex.EncodeToString(hash)))
+
 	cid, err := encoding.CIDFromHash(hash, uint64(bufferSize), types.CIDTypeRaw, types.HashTypeBlake3)
 
 	if err != nil {
@@ -196,6 +198,8 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
 		return
 	}
+
+	h.portal.Logger().Info("CID", zap.String("cidStr", cidStr))
 
 	upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
