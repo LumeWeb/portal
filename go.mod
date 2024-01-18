@@ -3,7 +3,7 @@ module git.lumeweb.com/LumeWeb/portal
 go 1.20
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171042-cf168f8e4db5
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171547-a9834a81d3e5
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/casbin/casbin/v2 v2.81.0
 	github.com/go-resty/resty/v2 v2.11.0
