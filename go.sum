@@ -10,6 +10,8 @@ git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171042-cf168f8e4db5 h1:apj7O4QhY
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171042-cf168f8e4db5/go.mod h1:rEjJnv0JCRNOWyDbZ3y8OOeJU37WW4wEA7QMVhXvDyQ=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171547-a9834a81d3e5 h1:bajXQidUIWFeuFQxupbHsO+z7XSCScVecHKbHtKuH64=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118171547-a9834a81d3e5/go.mod h1:rEjJnv0JCRNOWyDbZ3y8OOeJU37WW4wEA7QMVhXvDyQ=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118172745-13e5d5770b67 h1:/i0qb4d5wHaPUyWB+x3sMNxTq9fLDuuGmJQ0+hgZTOk=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118172745-13e5d5770b67/go.mod h1:rEjJnv0JCRNOWyDbZ3y8OOeJU37WW4wEA7QMVhXvDyQ=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
 github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8JRa/ZElbCAJCEgikg=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
