@@ -1238,6 +1238,44 @@ func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
 	})
 }
 
+func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
+	var cid string
+
+	if jc.DecodeParam("cid", &cid) != nil {
+		return
+	}
+
+	cidDecoded, err := encoding.CIDFromString(cid)
+	if jc.Check("error decoding cid", err) != nil {
+		return
+	}
+
+	switch cidDecoded.Type {
+	case types.CIDTypeRaw:
+		_ = jc.Error(errors.New("Raw CIDs do not have metadata"), http.StatusBadRequest)
+		return
+
+	case types.CIDTypeResolver:
+		_ = jc.Error(errors.New("Resolver CIDs not yet supported"), http.StatusBadRequest)
+		return
+	}
+
+	meta, err := h.getNode().GetMetadataByCID(cidDecoded)
+
+	if jc.Check("error getting metadata", err) != nil {
+		return
+	}
+
+	if cidDecoded.Type != types.CIDTypeBridge {
+		jc.ResponseWriter.Header().Set("Cache-Control", "public, max-age=31536000")
+	} else {
+		jc.ResponseWriter.Header().Set("Cache-Control", "public, max-age=60")
+	}
+
+	jc.Encode(&meta)
+
+}
+
 func setAuthCookie(jwt string, jc jape.Context) {
 	authCookie := http.Cookie{
 		Name:     "s5-auth-token",
