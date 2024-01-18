@@ -1107,6 +1107,36 @@ func (h *HttpHandler) getNode() s5interfaces.Node {
 	return protoInstance.Node()
 }
 
+func (h *HttpHandler) DownloadBlob(jc jape.Context) {
+	var cid string
+
+	if jc.DecodeParam("cid", &cid) != nil {
+		return
+	}
+
+	cid = strings.Split(cid, ".")[0]
+
+	cidDecoded, err := encoding.CIDFromString(cid)
+	if jc.Check("error decoding cid", err) != nil {
+		return
+	}
+
+	dlUriProvider := s5storage.NewStorageLocationProvider(h.getNode(), &cidDecoded.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+
+	err = dlUriProvider.Start()
+
+	if jc.Check("error starting search", err) != nil {
+		return
+	}
+
+	next, err := dlUriProvider.Next()
+	if jc.Check("error fetching blob", err) != nil {
+		return
+	}
+
+	http.Redirect(jc.ResponseWriter, jc.Request, next.Location().BytesURL(), http.StatusFound)
+}
+
 func setAuthCookie(jwt string, jc jape.Context) {
 	authCookie := http.Cookie{
 		Name:     "s5-auth-token",
