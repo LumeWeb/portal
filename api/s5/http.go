@@ -167,7 +167,9 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 			return
 		}
 
-		jc.Encode(map[string]string{"hash": cidStr})
+		jc.Encode(&SmallUploadResponse{
+			CID: cidStr,
+		})
 		return
 	}
 
