@@ -43,7 +43,7 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 
 		// Download API
 		"GET /s5/blob/:cid":     s5.AuthMiddleware(h.DownloadBlob, portal),
-		"GET /s5/metadata/:cid": s5.AuthMiddleware(h.DownloadMetadata, portal),
+		"GET /s5/metadata/:cid": h.DownloadMetadata,
 
 		// Pins API
 		"POST /s5/pin/:cid":      s5.AuthMiddleware(h.AccountPin, portal),
