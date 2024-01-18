@@ -685,6 +685,9 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 		return
 	}
 
+	h.portal.Logger().Info("CID", zap.String("cidStr", cid))
+	h.portal.Logger().Info("hash", zap.String("hash", hex.EncodeToString(decodedCid.Hash.HashBytes())))
+
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
 	err = h.portal.Accounts().PinByHash(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
