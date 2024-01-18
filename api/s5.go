@@ -49,7 +49,8 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"DELETE /s5/delete/:cid": s5.AuthMiddleware(h.AccountPinDelete, portal),
 
 		// Debug API
-		"GET /s5/debug/download_urls/:cid": s5.AuthMiddleware(h.DebugDownloadUrls, portal),
+		"GET /s5/debug/download_urls/:cid":      s5.AuthMiddleware(h.DebugDownloadUrls, portal),
+		"GET /s5/debug/storage_locations/:hash": s5.AuthMiddleware(h.DebugStorageLocations, portal),
 
 		//Registry API
 		"GET /s5/registry":              s5.AuthMiddleware(h.RegistryQuery, portal),

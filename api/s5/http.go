@@ -28,6 +28,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"nhooyr.io/websocket"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -1135,6 +1136,106 @@ func (h *HttpHandler) DownloadBlob(jc jape.Context) {
 	}
 
 	http.Redirect(jc.ResponseWriter, jc.Request, next.Location().BytesURL(), http.StatusFound)
+}
+
+func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
+	var hash string
+
+	if jc.DecodeParam("hash", &hash) != nil {
+		return
+	}
+
+	var kinds string
+
+	if jc.DecodeForm("kinds", &kinds) != nil {
+		return
+	}
+
+	decodedHash, err := encoding.MultihashFromBase64Url(hash)
+	if jc.Check("error decoding hash", err) != nil {
+		return
+	}
+
+	typeList := strings.Split(kinds, ",")
+	typeIntList := make([]types.StorageLocationType, 0)
+
+	for _, typeStr := range typeList {
+		typeInt, err := strconv.Atoi(typeStr)
+		if err != nil {
+			continue
+		}
+		typeIntList = append(typeIntList, types.StorageLocationType(typeInt))
+	}
+
+	if len(typeIntList) == 0 {
+		typeIntList = []types.StorageLocationType{
+			types.StorageLocationTypeFull,
+			types.StorageLocationTypeFile,
+			types.StorageLocationTypeBridge,
+			types.StorageLocationTypeArchive,
+		}
+	}
+
+	dlUriProvider := s5storage.NewStorageLocationProvider(h.getNode(), decodedHash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+
+	err = dlUriProvider.Start()
+	if jc.Check("error starting search", err) != nil {
+		return
+	}
+
+	_, err = dlUriProvider.Next()
+	if jc.Check("error fetching locations", err) != nil {
+		return
+	}
+
+	locations, err := h.getNode().GetCachedStorageLocations(decodedHash, typeIntList)
+	if jc.Check("error getting cached locations", err) != nil {
+		return
+	}
+
+	availableNodes := lo.Keys[string, s5interfaces.StorageLocation](locations)
+	availableNodesIds := make([]*encoding.NodeId, len(availableNodes))
+
+	for i, nodeIdStr := range availableNodes {
+		nodeId, err := encoding.DecodeNodeId(nodeIdStr)
+		if jc.Check("error decoding node id", err) != nil {
+			return
+		}
+		availableNodesIds[i] = nodeId
+	}
+
+	availableNodesIds, err = h.getNode().Services().P2P().SortNodesByScore(availableNodesIds)
+
+	if jc.Check("error sorting nodes", err) != nil {
+		return
+	}
+
+	debugLocations := make([]DebugStorageLocation, len(availableNodes))
+
+	for i, nodeId := range availableNodesIds {
+		nodeIdStr, err := nodeId.ToBase58()
+		if jc.Check("error encoding node id", err) != nil {
+			return
+		}
+
+		score, err := h.getNode().Services().P2P().GetNodeScore(nodeId)
+
+		if jc.Check("error getting node score", err) != nil {
+			return
+		}
+
+		debugLocations[i] = DebugStorageLocation{
+			Type:   locations[nodeIdStr].Type(),
+			Parts:  locations[nodeIdStr].Parts(),
+			Expiry: locations[nodeIdStr].Expiry(),
+			NodeId: nodeIdStr,
+			Score:  score,
+		}
+	}
+
+	jc.Encode(&DebugStorageLocationsResponse{
+		Locations: debugLocations,
+	})
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {

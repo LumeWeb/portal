@@ -66,3 +66,15 @@ type RegistrySetRequest struct {
 	Data      string `json:"data"`
 	Signature string `json:"signature"`
 }
+
+type DebugStorageLocation struct {
+	Type   int      `json:"type"`
+	Parts  []string `json:"parts"`
+	Expiry int64    `json:"expiry"`
+	NodeId string   `json:"nodeId"`
+	Score  float64  `json:"score"`
+}
+
+type DebugStorageLocationsResponse struct {
+	Locations []DebugStorageLocation `json:"locations"`
+}
