@@ -11,21 +11,43 @@ import (
 )
 
 const (
-	AuthUserIDKey = "userID"
+	AuthUserIDKey  = "userID"
+	AuthCookieName = "s5-auth-token"
+	AuthQueryParam = "auth_token"
 )
+
+func findAuthToken(r *http.Request) string {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+
+	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+
+	if authHeader != "" {
+		return authHeader
+	}
+
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == AuthCookieName {
+			return cookie.Value
+		}
+	}
+
+	return r.FormValue(AuthQueryParam)
+}
 
 func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler {
 	return jape.Adapt(func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Authorization header is required", http.StatusBadRequest)
+			authToken := findAuthToken(r)
+
+			if authToken == "" {
+				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
 				return
 			}
 
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			token, err := jwt.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
 					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
