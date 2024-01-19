@@ -59,6 +59,8 @@ func (d *DatabaseImpl) Start() error {
 		&models.Upload{},
 		&models.User{},
 		&models.S5Challenge{},
+		&models.TusLock{},
+		&models.TusUpload{},
 	)
 }
 
