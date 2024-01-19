@@ -20,10 +20,3 @@ func registerProtocolSubdomain(portal interfaces.Portal, mux *httprouter.Router,
 
 	(*router)[name+"."+domain] = mux
 }
-func ApplyMiddlewares(handler jape.Handler, middlewares ...MiddlewareFunc) jape.Handler {
-	// Apply each middleware in reverse order
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler)
-	}
-	return handler
-}

@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"git.lumeweb.com/LumeWeb/portal/api"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
@@ -125,7 +124,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	})
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := api.ApplyMiddlewares(tusJapeHandler, adaptedTusMiddleware, authMiddlewareFunc, protocolMiddleware)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, adaptedTusMiddleware, authMiddlewareFunc, protocolMiddleware)
 
 	return tusHandler
 }
