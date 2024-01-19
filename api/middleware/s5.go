@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/api"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
@@ -99,4 +100,32 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 			}
 		})
 	})(handler)
+}
+
+func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
+	// Adapt the tus middleware to a function that transforms jape.Handler
+	adaptedTusMiddleware := jape.Adapt(portal.Storage().Tus().Middleware)
+
+	// Wrapper function for AuthMiddleware to fit the MiddlewareFunc signature
+	authMiddlewareFunc := func(h jape.Handler) jape.Handler {
+		return AuthMiddleware(h, portal)
+	}
+
+	// Create a jape.Handler for your tusHandler
+	tusJapeHandler := func(c jape.Context) {
+		tusHandler := portal.Storage().Tus()
+		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
+	}
+
+	protocolMiddleware := jape.Adapt(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), "protocol", "s5")
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
+
+	// Apply the middlewares to the tusJapeHandler
+	tusHandler := api.ApplyMiddlewares(tusJapeHandler, adaptedTusMiddleware, authMiddlewareFunc, protocolMiddleware)
+
+	return tusHandler
 }
