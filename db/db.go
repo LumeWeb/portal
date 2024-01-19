@@ -26,7 +26,7 @@ func NewDatabase(p interfaces.Portal) interfaces.Database {
 }
 
 // Init initializes the database connection
-func (d *DatabaseImpl) Init(p interfaces.Portal) error {
+func (d *DatabaseImpl) Init() error {
 	// Retrieve DB config from Viper
 	username := viper.GetString("core.db.username")
 	password := viper.GetString("core.db.password")
@@ -41,7 +41,7 @@ func (d *DatabaseImpl) Init(p interfaces.Portal) error {
 	// Open DB connection
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		p.Logger().Error("Failed to connect to database", zap.Error(err))
+		d.portal.Logger().Error("Failed to connect to database", zap.Error(err))
 	}
 	d.db = db
 

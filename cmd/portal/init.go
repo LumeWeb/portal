@@ -80,9 +80,7 @@ func initProtocols(p interfaces.Portal) error {
 }
 
 func initStorage(p interfaces.Portal) error {
-	p.Storage().Init()
-
-	return nil
+	return p.Storage().Init()
 }
 
 func initAPI(p interfaces.Portal) error {
