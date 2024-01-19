@@ -49,6 +49,11 @@ func initCheckRequiredConfig(p interfaces.Portal) error {
 		"core.db.password",
 		"core.db.host",
 		"core.db.name",
+		"core.storage.s3.bufferBucket",
+		"core.storage.s3.endpoint",
+		"core.storage.s3.region",
+		"core.storage.s3.accessKey",
+		"core.storage.s3.secretKey",
 	}
 
 	for _, key := range required {
