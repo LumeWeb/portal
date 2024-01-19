@@ -45,6 +45,12 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"POST /s5/upload":           middleware.AuthMiddleware(h.SmallFileUpload, portal),
 		"POST /s5/upload/directory": middleware.AuthMiddleware(h.DirectoryUpload, portal),
 
+		// Tus API
+		"POST /s5/upload/tus":      tusHandler,
+		"HEAD /s5/upload/tus/:id":  tusHandler,
+		"POST /s5/upload/tus/:id":  tusHandler,
+		"PATCH /s5/upload/tus/:id": tusHandler,
+
 		// Download API
 		"GET /s5/blob/:cid":     middleware.AuthMiddleware(h.DownloadBlob, portal),
 		"GET /s5/metadata/:cid": h.DownloadMetadata,
