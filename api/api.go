@@ -3,10 +3,7 @@ package api
 import (
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/julienschmidt/httprouter"
-	"go.sia.tech/jape"
 )
-
-type MiddlewareFunc func(jape.Handler) jape.Handler
 
 func Init(router interfaces.APIRegistry) error {
 	router.Register("s5", NewS5())
