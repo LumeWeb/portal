@@ -216,10 +216,16 @@ func (s *StorageServiceImpl) Init() error {
 	s.tus = tus
 	s.tusStore = store
 
+	s.portal.CronService().RegisterService(s)
+
 	go s.tusWorker()
 
 	return nil
 }
+func (s *StorageServiceImpl) LoadInitialTasks(cron interfaces.CronService) error {
+	return nil
+}
+
 func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	resp, err := s.httpApi.R().
 		SetPathParam("bucket", bucket).
