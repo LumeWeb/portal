@@ -118,6 +118,10 @@ func initializeAPIRegistry(p interfaces.Portal) error {
 	return nil
 }
 
+func initCron(p interfaces.Portal) error {
+	return p.CronService().Init()
+}
+
 func getInitList() []initFunc {
 	return []initFunc{
 		initConfig,
@@ -131,5 +135,6 @@ func getInitList() []initFunc {
 		initAPI,
 		initializeProtocolRegistry,
 		initializeAPIRegistry,
+		initCron,
 	}
 }
