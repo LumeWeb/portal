@@ -138,7 +138,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		}(r.Body)
 	}
 
-	hash, err := h.portal.Storage().GetHash(rs)
+	hash, err := h.portal.Storage().GetHashSmall(rs)
 	_, err = rs.Seek(0, io.SeekStart)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -173,7 +173,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	hash, err = h.portal.Storage().PutFile(rs, "s5", false)
+	hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -758,7 +758,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 
 			var rs io.ReadSeeker
 
-			hash, err := h.portal.Storage().GetHash(rs)
+			hash, err := h.portal.Storage().GetHashSmall(rs)
 			_, err = rs.Seek(0, io.SeekStart)
 			if err != nil {
 				_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -771,7 +771,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 				continue
 			}
 
-			hash, err = h.portal.Storage().PutFile(rs, "s5", false)
+			hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
 
 			if err != nil {
 				errored(err)
@@ -839,7 +839,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 
 	var rs = bytes.NewReader(appData)
 
-	hash, err := h.portal.Storage().GetHash(rs)
+	hash, err := h.portal.Storage().GetHashSmall(rs)
 	_, err = rs.Seek(0, io.SeekStart)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -864,7 +864,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 		return
 	}
 
-	hash, err = h.portal.Storage().PutFile(rs, "s5", false)
+	hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
 
 	if err != nil {
 		errored(err)
