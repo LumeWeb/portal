@@ -19,9 +19,14 @@ func startDatabase(p interfaces.Portal) error {
 	return p.DatabaseService().Start()
 }
 
+func startCron(p interfaces.Portal) error {
+	return p.CronService().Start()
+}
+
 func getStartList() []startFunc {
 	return []startFunc{
 		startProtocolRegistry,
 		startDatabase,
+		startCron,
 	}
 }
