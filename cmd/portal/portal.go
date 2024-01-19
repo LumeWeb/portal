@@ -4,11 +4,13 @@ import (
 	"crypto/ed25519"
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
+	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/casbin/casbin/v2"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -29,13 +31,7 @@ type PortalImpl struct {
 	database         interfaces.Database
 	casbin           *casbin.Enforcer
 	accounts         interfaces.AccountService
-}
-
-func (p *PortalImpl) DatabaseService() interfaces.Database {
-	return p.database
-}
-func (p *PortalImpl) Database() *gorm.DB {
-	return p.database.Get()
+	cron             interfaces.CronService
 }
 
 func NewPortal() interfaces.Portal {
@@ -49,11 +45,27 @@ func NewPortal() interfaces.Portal {
 	storageServ := storage.NewStorageService(portal)
 	database := db.NewDatabase(portal)
 	accountService := account.NewAccountService(portal)
+	cronService := cron.NewCronServiceImpl(portal)
 	portal.storage = storageServ
 	portal.database = database
 	portal.accounts = accountService
+	portal.cron = cronService
 
 	return portal
+}
+
+func (p *PortalImpl) DatabaseService() interfaces.Database {
+	return p.database
+}
+func (p *PortalImpl) Database() *gorm.DB {
+	return p.database.Get()
+}
+
+func (p *PortalImpl) Cron() gocron.Scheduler {
+	return p.cron.Scheduler()
+}
+func (p *PortalImpl) CronService() interfaces.CronService {
+	return p.cron
 }
 
 func (p *PortalImpl) Initialize() error {
