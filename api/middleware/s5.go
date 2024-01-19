@@ -1,4 +1,4 @@
-package s5
+package middleware
 
 import (
 	"context"
@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	AuthUserIDKey  = "userID"
-	AuthCookieName = "s5-auth-token"
-	AuthQueryParam = "auth_token"
+	S5AuthUserIDKey  = "userID"
+	S5AuthCookieName = "s5-auth-token"
+	S5AuthQueryParam = "auth_token"
 )
 
 func findAuthToken(r *http.Request) string {
@@ -29,12 +29,12 @@ func findAuthToken(r *http.Request) string {
 	}
 
 	for _, cookie := range r.Cookies() {
-		if cookie.Name == AuthCookieName {
+		if cookie.Name == S5AuthCookieName {
 			return cookie.Value
 		}
 	}
 
-	return r.FormValue(AuthQueryParam)
+	return r.FormValue(S5AuthQueryParam)
 }
 
 func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler {
@@ -90,7 +90,7 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 					return
 				}
 
-				ctx := context.WithValue(r.Context(), AuthUserIDKey, userID)
+				ctx := context.WithValue(r.Context(), S5AuthUserIDKey, userID)
 				r = r.WithContext(ctx)
 
 				h.ServeHTTP(w, r)

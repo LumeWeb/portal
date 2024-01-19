@@ -15,6 +15,7 @@ import (
 	s5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
@@ -160,7 +161,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 			return
 		}
 
-		err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+		err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
@@ -201,13 +202,13 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	h.portal.Logger().Info("CID", zap.String("cidStr", cidStr))
 
-	upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
 	}
 
-	err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+	err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
@@ -547,7 +548,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountInfo(jc jape.Context) {
-	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(AuthUserIDKey).(uint64))
+	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountInfoResponse{
 		Email:          user.Email,
@@ -567,7 +568,7 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountStats(jc jape.Context) {
-	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(AuthUserIDKey).(uint64))
+	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountStatsResponse{
 		AccountInfoResponse: AccountInfoResponse{
@@ -605,7 +606,7 @@ func (h *HttpHandler) AccountPins(jc jape.Context) {
 		h.portal.Logger().Error(errFailedToGetPins, zap.Error(err))
 	}
 
-	pins, err := h.portal.Accounts().AccountPins(jc.Request.Context().Value(AuthUserIDKey).(uint64), cursor)
+	pins, err := h.portal.Accounts().AccountPins(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64), cursor)
 
 	if err != nil {
 		errored(err)
@@ -658,7 +659,7 @@ func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.portal.Accounts().DeletePinByHash(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+	err = h.portal.Accounts().DeletePinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 
 	if err != nil {
 		errored(err)
@@ -690,7 +691,7 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.portal.Accounts().PinByHash(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)))
+	err = h.portal.Accounts().PinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 
 	if err != nil {
 		errored(err)
@@ -778,7 +779,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 				return
 			}
 
-			upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+			upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
 
 			if err != nil {
 				errored(err)
