@@ -7,7 +7,7 @@ import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
-	"git.lumeweb.com/LumeWeb/portal/api/s5"
+	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -34,6 +34,10 @@ type StorageServiceImpl struct {
 	httpApi  *resty.Client
 	tus      *tusd.Handler
 	tusStore tusd.DataStore
+}
+
+func (s *StorageServiceImpl) Tus() *tusd.Handler {
+	return s.tus
 }
 
 func (s *StorageServiceImpl) Start() error {
@@ -312,7 +316,7 @@ func (s *StorageServiceImpl) tusWorker() {
 				continue
 			}
 
-			uploaderID, ok := info.Context.Value(s5.AuthUserIDKey).(uint)
+			uploaderID, ok := info.Context.Value(middleware.S5AuthUserIDKey).(uint)
 			if !ok {
 				s.portal.Logger().Error("Missing user id in context")
 				continue

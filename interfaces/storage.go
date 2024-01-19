@@ -23,5 +23,6 @@ type StorageService interface {
 	TusUploadProgress(uploadID string) error
 	DeleteTusUpload(uploadID string) error
 	ScheduleTusUpload(uploadID string, attempt int) error
+	Tus() *tusd.Handler
 	Service
 }
