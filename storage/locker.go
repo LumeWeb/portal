@@ -80,13 +80,17 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 	}
 
 	go func() {
+		ticker := time.NewTicker(l.holderPollInterval)
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-l.stopHolderPoll:
 				return
-			case <-time.After(l.holderPollInterval):
+			case <-ticker.C:
 				requested, err := l.lockRecord.IsReleaseRequested(db)
-				if err == nil {
+				if err != nil {
+					// Handle error
 					continue
 				}
 
