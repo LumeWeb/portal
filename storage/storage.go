@@ -324,7 +324,7 @@ func (s *StorageServiceImpl) tusWorker() {
 				continue
 			}
 
-			uploaderID, ok := info.Context.Value(middleware.S5AuthUserIDKey).(uint)
+			uploaderID, ok := info.Context.Value(middleware.S5AuthUserIDKey).(uint64)
 			if !ok {
 				errorResponse.Body = "Missing user id in context"
 				info.Upload.StopUpload(errorResponse)
@@ -343,7 +343,7 @@ func (s *StorageServiceImpl) tusWorker() {
 				continue
 			}
 
-			_, err = s.CreateTusUpload(decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, info.Context.Value("protocol").(string))
+			_, err = s.CreateTusUpload(decodedHash.HashBytes(), info.Upload.ID, uint(uploaderID), uploaderIP, info.Context.Value("protocol").(string))
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
 				info.Upload.StopUpload(errorResponse)
