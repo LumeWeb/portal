@@ -17,12 +17,7 @@ const (
 )
 
 func findAuthToken(r *http.Request) string {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return ""
-	}
-
-	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+	authHeader := parseAuthTokenHeader(r.Header)
 
 	if authHeader != "" {
 		return authHeader
@@ -35,6 +30,17 @@ func findAuthToken(r *http.Request) string {
 	}
 
 	return r.FormValue(S5AuthQueryParam)
+}
+
+func parseAuthTokenHeader(headers http.Header) string {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+
+	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+
+	return authHeader
 }
 
 func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler {
@@ -108,7 +114,11 @@ type tusJwtResponseWriter struct {
 func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	// Check if this is the specific route and status
 	if statusCode == http.StatusCreated {
-		// Modify the response or add query arguments as needed
+		location := w.Header().Get("Location")
+		if location != "" {
+			w.
+				authHeader := w.Header().Get("Authorization")
+		}
 	}
 	w.ResponseWriter.WriteHeader(statusCode)
 }
