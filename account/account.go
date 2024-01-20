@@ -88,7 +88,7 @@ func (s AccountServiceImpl) LoginPassword(email string, password string) (string
 		return "", err
 	}
 
-	token, err := generateToken(s.portal.Identity(), user.ID)
+	token, err := GenerateToken(s.portal.Identity(), user.ID)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +105,7 @@ func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
 		return "", result.Error
 	}
 
-	token, err := generateToken(s.portal.Identity(), model.UserID)
+	token, err := GenerateToken(s.portal.Identity(), model.UserID)
 	if err != nil {
 		return "", err
 	}
