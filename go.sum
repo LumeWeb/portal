@@ -5,8 +5,8 @@ github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivU
 github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8JRa/ZElbCAJCEgikg=
 github.com/LumeWeb/jape v0.0.0-20240120100641-741feb3baf8a h1:gFOgDjyw7Y3zdU68SPdy+iNFV00wcPvFofBHeeFN9y0=
 github.com/LumeWeb/jape v0.0.0-20240120100641-741feb3baf8a/go.mod h1:4QqmBB+t3W7cNplXPj++ZqpoUb2PeiS66RLpXmEGap4=
-github.com/LumeWeb/tusd/v2 v2.2.3-0.20240120150015-7a042aa0dc5a h1:SswVb5/RR8dG4joHRQyIO4V18e033qb2AhX/KaZSv/w=
-github.com/LumeWeb/tusd/v2 v2.2.3-0.20240120150015-7a042aa0dc5a/go.mod h1:nrnQgyKpuJeNtMFJ3IeuwCA/474dxui0xuOcWS50enw=
+github.com/LumeWeb/tusd/v2 v2.2.3-0.20240120151452-92168836c7ac h1:8EzOBRuu/UXHQtTdgJDR3bkR00/90Nwkinm9GuTzd/c=
+github.com/LumeWeb/tusd/v2 v2.2.3-0.20240120151452-92168836c7ac/go.mod h1:nrnQgyKpuJeNtMFJ3IeuwCA/474dxui0xuOcWS50enw=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da/go.mod h1:eHEWzANqSiWQsof+nXEI9bUVUyV6F53Fp89EuCh2EAA=
 github.com/aws/aws-sdk-go-v2 v1.23.4 h1:2P20ZjH0ouSAu/6yZep8oCmTReathLuEu6dwoqEgjts=
