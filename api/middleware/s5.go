@@ -122,7 +122,10 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 		if authToken != "" && location != "" {
 
 			parsedUrl, _ := url.Parse(location)
-			parsedUrl.Query().Set("auth_token", authToken)
+
+			query := parsedUrl.Query()
+			query.Set("auth_token", authToken)
+			parsedUrl.RawQuery = query.Encode()
 
 			w.Header().Set("Location", parsedUrl.String())
 		}
