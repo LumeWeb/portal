@@ -117,7 +117,7 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	// Check if this is the specific route and status
 	if statusCode == http.StatusCreated {
 		location := w.Header().Get("Location")
-		authToken := parseAuthTokenHeader(w.Header())
+		authToken := parseAuthTokenHeader(w.req.Header)
 
 		if authToken != "" && location != "" {
 
