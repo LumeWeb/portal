@@ -318,6 +318,7 @@ func (s *StorageServiceImpl) tusWorker() {
 		select {
 		case info := <-s.tus.CreatedUploads:
 			hash, ok := info.Upload.MetaData["hash"]
+			errorResponse := tusd.HTTPResponse{StatusCode: 400, Header: nil}
 			if !ok {
 				s.portal.Logger().Error("Missing hash in metadata")
 				continue
@@ -325,6 +326,8 @@ func (s *StorageServiceImpl) tusWorker() {
 
 			uploaderID, ok := info.Context.Value(middleware.S5AuthUserIDKey).(uint)
 			if !ok {
+				errorResponse.Body = "Missing user id in context"
+				info.Upload.StopUpload(errorResponse)
 				s.portal.Logger().Error("Missing user id in context")
 				continue
 			}
@@ -334,12 +337,16 @@ func (s *StorageServiceImpl) tusWorker() {
 			decodedHash, err := encoding.MultihashFromBase64Url(hash)
 
 			if err != nil {
+				errorResponse.Body = "Could not decode hash"
+				info.Upload.StopUpload(errorResponse)
 				s.portal.Logger().Error("Could not decode hash", zap.Error(err))
 				continue
 			}
 
 			_, err = s.CreateTusUpload(decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, info.Context.Value("protocol").(string))
 			if err != nil {
+				errorResponse.Body = "Could not create tus upload"
+				info.Upload.StopUpload(errorResponse)
 				s.portal.Logger().Error("Could not create tus upload", zap.Error(err))
 				continue
 			}
