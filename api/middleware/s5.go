@@ -123,7 +123,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 
 	stripPrefix := func(h jape.Handler) jape.Handler {
 		return jape.Adapt(func(h http.Handler) http.Handler {
-			return http.StripPrefix("/s5/upload/tus/", h)
+			return http.StripPrefix("/s5/upload/tus", h)
 		})(h)
 	}
 
