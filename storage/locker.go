@@ -6,7 +6,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"os"
 	"sync"
 	"time"
@@ -37,6 +36,15 @@ func NewMySQLLocker(storage interfaces.StorageService) *MySQLLocker {
 	return &MySQLLocker{storage: storage, HolderPollInterval: 5 * time.Second, AcquirerPollInterval: 2 * time.Second}
 }
 
+func (l *Lock) released() error {
+	err := l.lockRecord.Released(l.locker.storage.Portal().Database())
+	if err != nil {
+		l.locker.storage.Portal().Logger().Error("Failed to release lock", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
 func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 
 	db := l.locker.storage.Portal().Database()
@@ -66,13 +74,6 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 			continue
 		}
 	}
-
-	defer func(lockRecord *models.TusLock, db *gorm.DB) {
-		err := lockRecord.Released(db)
-		if err != nil {
-			l.locker.storage.Portal().Logger().Error("Failed to release lock", zap.Error(err))
-		}
-	}(&l.lockRecord, db)
 
 	go func() {
 		for {
