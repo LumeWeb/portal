@@ -171,7 +171,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	}
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, injectJwt, stripPrefix, authMiddlewareFunc, protocolMiddleware)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, stripPrefix, authMiddlewareFunc, injectJwt, protocolMiddleware)
 
 	return tusHandler
 }
