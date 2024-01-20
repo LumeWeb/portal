@@ -52,6 +52,11 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 			return err
 		}
 
+		err = l.lockRecord.RequestRelease(db)
+		if err != nil {
+			return err
+		}
+
 		select {
 		case <-ctx.Done():
 			// Context expired, so we return a timeout
@@ -60,11 +65,6 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 			// Continue with the next attempt after a short delay
 			continue
 		}
-	}
-
-	err := l.lockRecord.RequestRelease(db)
-	if err != nil {
-		return err
 	}
 
 	defer func(lockRecord *models.TusLock, db *gorm.DB) {
