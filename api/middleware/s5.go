@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -115,11 +116,17 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	// Check if this is the specific route and status
 	if statusCode == http.StatusCreated {
 		location := w.Header().Get("Location")
-		if location != "" {
-			w.
-				authHeader := w.Header().Get("Authorization")
+		authToken := parseAuthTokenHeader(w.Header())
+
+		if authToken != "" && location != "" {
+
+			parsedUrl, _ := url.Parse(location)
+			parsedUrl.Query().Set("auth_token", authToken)
+
+			w.Header().Set("Location", parsedUrl.String())
 		}
 	}
+
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
