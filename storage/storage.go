@@ -374,11 +374,11 @@ func (s *StorageServiceImpl) tusWorker() {
 	}
 }
 
-func (s *StorageServiceImpl) TusUploadExists(hash []byte) (bool, models.Upload) {
+func (s *StorageServiceImpl) TusUploadExists(hash []byte) (bool, models.TusUpload) {
 	hashStr := hex.EncodeToString(hash)
 
-	var upload models.Upload
-	result := s.portal.Database().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
+	var upload models.TusUpload
+	result := s.portal.Database().Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hashStr}).First(&upload)
 
 	return result.RowsAffected > 0, upload
 }
