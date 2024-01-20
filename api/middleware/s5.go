@@ -110,6 +110,7 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 
 type tusJwtResponseWriter struct {
 	http.ResponseWriter
+	req *http.Request
 }
 
 func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
@@ -161,7 +162,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				res := w
 				if r.Method == http.MethodPost && r.URL.Path == "/s5/upload/tus" {
-					res = &tusJwtResponseWriter{ResponseWriter: w}
+					res = &tusJwtResponseWriter{ResponseWriter: w, req: r}
 				}
 
 				h.ServeHTTP(res, r)
