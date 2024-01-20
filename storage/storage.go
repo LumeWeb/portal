@@ -506,6 +506,12 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
+			reader, err = tusUpload.GetReader(ctx)
+			if err != nil {
+				s.portal.Logger().Error("Could not get tus file", zap.Error(err))
+				return err
+			}
+
 			err = s.PutFile(reader, s.portal.Config().GetString("core.storage.s3.bucket"), dbHash)
 
 			return nil
