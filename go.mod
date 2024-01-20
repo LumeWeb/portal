@@ -13,6 +13,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.2.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/google/uuid v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.18.2
@@ -53,7 +54,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -93,3 +93,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
+
+replace go.sia.tech/jape => github.com/LumeWeb/jape v0.0.0-20240120100641-741feb3baf8a
