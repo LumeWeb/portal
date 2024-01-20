@@ -134,6 +134,26 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+func replacePrefix(prefix string, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimPrefix(r.URL.Path, prefix)
+		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
+		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
+			p += "/"
+			rp += "/"
+			r2 := new(http.Request)
+			*r2 = *r
+			r2.URL = new(url.URL)
+			*r2.URL = *r.URL
+			r2.URL.Path = p
+			r2.URL.RawPath = rp
+			h.ServeHTTP(w, r2)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+}
+
 func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 
 	// Wrapper function for AuthMiddleware to fit the MiddlewareFunc signature
@@ -156,7 +176,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 
 	stripPrefix := func(h jape.Handler) jape.Handler {
 		return jape.Adapt(func(h http.Handler) http.Handler {
-			return http.StripPrefix("/s5/upload/tus", h)
+			return replacePrefix("/s5/upload/tus", h)
 		})(h)
 	}
 
