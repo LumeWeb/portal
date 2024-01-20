@@ -101,6 +101,18 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 	})(handler)
 }
 
+type tusJwtResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
+	// Check if this is the specific route and status
+	if statusCode == http.StatusCreated {
+		// Modify the response or add query arguments as needed
+	}
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
 func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 
 	// Wrapper function for AuthMiddleware to fit the MiddlewareFunc signature
@@ -127,8 +139,21 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 		})(h)
 	}
 
+	injectJwt := func(h jape.Handler) jape.Handler {
+		return jape.Adapt(func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				res := w
+				if r.Method == http.MethodPatch || r.Method == http.MethodPost {
+					res = &tusJwtResponseWriter{ResponseWriter: w}
+				}
+
+				h.ServeHTTP(res, r)
+			})
+		})(h)
+	}
+
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, stripPrefix, authMiddlewareFunc, protocolMiddleware)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, injectJwt, stripPrefix, authMiddlewareFunc, protocolMiddleware)
 
 	return tusHandler
 }
