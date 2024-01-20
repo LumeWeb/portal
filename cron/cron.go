@@ -44,6 +44,8 @@ func (c *CronServiceImpl) Start() error {
 		}
 	}
 
+	go c.scheduler.Start()
+
 	return nil
 }
 
