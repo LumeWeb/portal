@@ -103,7 +103,6 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 }
 
 func (l *Lock) Unlock() error {
-	close(l.stopHolderPoll)
 	l.once.Do(func() {
 		close(l.stopHolderPoll)
 	})
