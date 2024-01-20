@@ -290,7 +290,7 @@ func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, error) {
 
 	hash := hasher.Sum(nil)
 
-	return hash, nil
+	return hash[:32], nil
 }
 
 func (s *StorageServiceImpl) CreateUpload(hash []byte, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
