@@ -67,6 +67,10 @@ func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 
 		select {
 		case <-ctx.Done():
+			err := l.released()
+			if err != nil {
+				return err
+			}
 			// Context expired, so we return a timeout
 			return tusd.ErrLockTimeout
 		case <-time.After(l.acquirerPollInterval):
