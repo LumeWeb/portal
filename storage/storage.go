@@ -162,6 +162,7 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 		DisableDownload:         true,
 		NotifyCompleteUploads:   true,
 		NotifyTerminatedUploads: true,
+		NotifyCreatedUploads:    true,
 		PreUploadCreateCallback: preUploadCb,
 	})
 
