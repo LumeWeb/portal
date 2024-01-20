@@ -102,8 +102,6 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 }
 
 func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
-	// Adapt the tus middleware to a function that transforms jape.Handler
-	adaptedTusMiddleware := jape.Adapt(portal.Storage().Tus().Middleware)
 
 	// Wrapper function for AuthMiddleware to fit the MiddlewareFunc signature
 	authMiddlewareFunc := func(h jape.Handler) jape.Handler {
@@ -124,7 +122,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	})
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, adaptedTusMiddleware, authMiddlewareFunc, protocolMiddleware)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, authMiddlewareFunc, protocolMiddleware)
 
 	return tusHandler
 }
