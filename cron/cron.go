@@ -22,7 +22,9 @@ func (c *CronServiceImpl) Scheduler() gocron.Scheduler {
 }
 
 func NewCronServiceImpl(portal interfaces.Portal) interfaces.CronService {
-	return &CronServiceImpl{}
+	return &CronServiceImpl{
+		portal: portal,
+	}
 }
 
 func (c *CronServiceImpl) Init() error {
