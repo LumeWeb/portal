@@ -419,7 +419,7 @@ func (s *StorageServiceImpl) TusUploadProgress(uploadID string) error {
 	return nil
 }
 func (s *StorageServiceImpl) DeleteTusUpload(uploadID string) error {
-	result := s.portal.Database().Delete(&models.TusUpload{UploadID: uploadID})
+	result := s.portal.Database().Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
 
 	if result.Error != nil {
 		return result.Error
