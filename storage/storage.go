@@ -74,9 +74,7 @@ func (s StorageServiceImpl) PutFileSmall(file io.ReadSeeker, bucket string, gene
 
 	resp, err := s.httpApi.R().
 		SetPathParam("path", hashStr).
-		SetFormData(map[string]string{
-			"bucket": bucket,
-		}).
+		SetQueryParam("bucket", bucket).
 		SetBody(file).Put("/api/worker/objects/{path}")
 	if err != nil {
 		return nil, err
@@ -102,9 +100,7 @@ func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) 
 
 	resp, err := s.httpApi.R().
 		SetPathParam("path", hashStr).
-		SetFormData(map[string]string{
-			"bucket": bucket,
-		}).
+		SetQueryParam("bucket", bucket).
 		SetBody(file).Put("/api/worker/objects/{path}")
 	if err != nil {
 		return err
