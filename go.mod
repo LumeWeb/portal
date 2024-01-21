@@ -1,6 +1,8 @@
 module git.lumeweb.com/LumeWeb/portal
 
-go 1.20
+go 1.21
+
+toolchain go1.21.6
 
 require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240118173147-819f68f0d27e
