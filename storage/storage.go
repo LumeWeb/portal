@@ -15,8 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-co-op/gocron/v2"
-	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
+	"github.com/imroc/req/v3"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	s3store "github.com/tus/tusd/v2/pkg/s3store"
 	"go.uber.org/zap"
@@ -31,7 +31,7 @@ var (
 
 type StorageServiceImpl struct {
 	portal   interfaces.Portal
-	httpApi  *resty.Client
+	httpApi  *req.Client
 	tus      *tusd.Handler
 	tusStore tusd.DataStore
 }
@@ -166,11 +166,10 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 }
 
 func (s *StorageServiceImpl) Init() error {
-	client := resty.New()
-	client.SetDisableWarn(true)
+	client := req.NewClient()
 
 	client.SetBaseURL(s.portal.Config().GetString("core.sia.url"))
-	client.SetBasicAuth("", s.portal.Config().GetString("core.sia.key"))
+	client.SetCommonBasicAuth("", s.portal.Config().GetString("core.sia.key"))
 
 	s.httpApi = client
 
@@ -232,7 +231,7 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 		return err
 	}
 
-	if resp.StatusCode() != 404 {
+	if resp.StatusCode != 404 {
 		if resp.IsError() && resp.Error() != nil {
 			return resp.Error().(error)
 		}
