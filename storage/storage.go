@@ -170,6 +170,7 @@ func (s *StorageServiceImpl) Init() error {
 
 	client.SetBaseURL(s.portal.Config().GetString("core.sia.url"))
 	client.SetCommonBasicAuth("", s.portal.Config().GetString("core.sia.key"))
+	client.SetTimeout(24 * time.Hour)
 
 	s.httpApi = client
 
