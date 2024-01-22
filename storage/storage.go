@@ -541,9 +541,16 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
-			info, err := tusUpload.GetInfo(ctx)
+			s3InfoId, _ := splitS3Ids(upload.UploadID)
+			s3InfoId = s3InfoId + ".info"
+
+			_, err = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+				Bucket: aws.String(s.portal.Config().GetString("core.storage.s3.bufferBucket")),
+				Key:    aws.String(s3InfoId),
+			})
+
 			if err != nil {
-				s.portal.Logger().Error("Could not get upload info", zap.Error(err))
+				s.portal.Logger().Error("Could not delete upload metadata", zap.Error(err))
 				return err
 			}
 
@@ -561,4 +568,15 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 
 func (s *StorageServiceImpl) getPrefixedHash(hash []byte) []byte {
 	return append([]byte{byte(types.HashTypeBlake3)}, hash...)
+}
+
+func splitS3Ids(id string) (objectId, multipartId string) {
+	index := strings.Index(id, "+")
+	if index == -1 {
+		return
+	}
+
+	objectId = id[:index]
+	multipartId = id[index+1:]
+	return
 }
