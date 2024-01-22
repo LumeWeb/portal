@@ -21,6 +21,7 @@ type StorageService interface {
 	TusUploadExists(hash []byte) (bool, models.TusUpload)
 	CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error)
 	TusUploadProgress(uploadID string) error
+	TusUploadCompleted(uploadID string) error
 	DeleteTusUpload(uploadID string) error
 	ScheduleTusUpload(uploadID string, attempt int) error
 	Tus() *tusd.Handler

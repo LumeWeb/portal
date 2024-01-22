@@ -418,6 +418,21 @@ func (s *StorageServiceImpl) TusUploadProgress(uploadID string) error {
 
 	return nil
 }
+func (s *StorageServiceImpl) TusUploadCompleted(uploadID string) error {
+
+	find := &models.TusUpload{UploadID: uploadID}
+
+	var upload models.TusUpload
+	result := s.portal.Database().Model(&models.TusUpload{}).Where(find).First(&upload)
+
+	if result.RowsAffected == 0 {
+		return errors.New("upload not found")
+	}
+
+	result = s.portal.Database().Model(&models.TusUpload{}).Where(find).Update("completed", true)
+
+	return nil
+}
 func (s *StorageServiceImpl) DeleteTusUpload(uploadID string) error {
 	result := s.portal.Database().Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
 
