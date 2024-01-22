@@ -360,7 +360,7 @@ func (s *StorageServiceImpl) tusWorker() {
 			}
 
 		case info := <-s.tus.CompleteUploads:
-			if !info.Upload.IsFinal {
+			if !(!info.Upload.SizeIsDeferred && info.Upload.Offset == info.Upload.Size) {
 				continue
 			}
 			err := s.TusUploadCompleted(info.Upload.ID)
