@@ -10,5 +10,6 @@ type TusUpload struct {
 	UploaderIP string
 	Uploader   User `gorm:"foreignKey:UploaderID"`
 	Protocol   string
+	Completed  bool
 	DeletedAt  gorm.DeletedAt `gorm:"uniqueIndex:idx_hash_deleted"`
 }
