@@ -118,7 +118,7 @@ func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) 
 	return nil
 }
 
-func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb interfaces.TusPreUploadCreateCallback, preFinishCb interfaces.TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, error) {
+func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb interfaces.TusPreUploadCreateCallback, preFinishCb interfaces.TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
 			return aws.Endpoint{
@@ -139,7 +139,7 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 		config.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	s3Client := s3.NewFromConfig(cfg)
@@ -162,7 +162,7 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 		PreUploadCreateCallback: preUploadCb,
 	})
 
-	return handler, store, err
+	return handler, store, s3Client, err
 }
 
 func (s *StorageServiceImpl) Init() error {

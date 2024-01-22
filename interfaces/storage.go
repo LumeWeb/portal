@@ -13,7 +13,7 @@ type StorageService interface {
 	Portal() Portal
 	PutFileSmall(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error)
 	PutFile(file io.Reader, bucket string, hash []byte) error
-	BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, error)
+	BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error)
 	FileExists(hash []byte) (bool, models.Upload)
 	GetHashSmall(file io.ReadSeeker) ([]byte, error)
 	GetHash(file io.Reader) ([]byte, error)
