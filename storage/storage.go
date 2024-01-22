@@ -275,18 +275,18 @@ func (s *StorageServiceImpl) GetHashSmall(file io.ReadSeeker) ([]byte, error) {
 
 	return hash[:], nil
 }
-func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, error) {
+func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, int64, error) {
 	hasher := blake3.New(64, nil)
 
-	_, err := io.Copy(hasher, file)
+	totalBytes, err := io.Copy(hasher, file)
 
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	hash := hasher.Sum(nil)
 
-	return hash[:32], nil
+	return hash[:32], totalBytes, nil
 }
 
 func (s *StorageServiceImpl) CreateUpload(hash []byte, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
@@ -506,7 +506,7 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
-			hash, err := s.GetHash(reader)
+			hash, byteCount, err := s.GetHash(reader)
 
 			if err != nil {
 				s.portal.Logger().Error("Could not compute hash", zap.Error(err))
@@ -544,7 +544,7 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
-			_, err = s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(info.Size), upload.Protocol)
+			_, err = s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
 			if err != nil {
 				s.portal.Logger().Error("Could not create upload", zap.Error(err))
 				return err
