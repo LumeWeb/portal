@@ -7,7 +7,7 @@ import (
 )
 
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
-type HttpMiddlewareFunc func(next http.Handler) http.Handler
+type HttpMiddlewareFunc func(http.Handler) http.Handler
 
 func AdaptMiddleware(mid func(http.Handler) http.Handler) JapeMiddlewareFunc {
 	return jape.Adapt(func(h http.Handler) http.Handler {
