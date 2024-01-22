@@ -538,6 +538,18 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
+			info, err := tusUpload.GetInfo(ctx)
+			if err != nil {
+				s.portal.Logger().Error("Could not get upload info", zap.Error(err))
+				return err
+			}
+
+			_, err = s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(info.Size), upload.Protocol)
+			if err != nil {
+				s.portal.Logger().Error("Could not create upload", zap.Error(err))
+				return err
+			}
+
 			return nil
 		}, upload)
 
