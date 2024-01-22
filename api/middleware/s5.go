@@ -44,8 +44,8 @@ func parseAuthTokenHeader(headers http.Header) string {
 	return authHeader
 }
 
-func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler {
-	return jape.Adapt(func(h http.Handler) http.Handler {
+func AuthMiddleware(portal interfaces.Portal) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authToken := findAuthToken(r)
 
@@ -100,12 +100,12 @@ func AuthMiddleware(handler jape.Handler, portal interfaces.Portal) jape.Handler
 				ctx := context.WithValue(r.Context(), S5AuthUserIDKey, userID)
 				r = r.WithContext(ctx)
 
-				h.ServeHTTP(w, r)
+				next.ServeHTTP(w, r)
 			} else {
 				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
 			}
 		})
-	})(handler)
+	}
 }
 
 type tusJwtResponseWriter struct {
@@ -159,46 +159,36 @@ func replacePrefix(prefix string, h http.Handler) http.Handler {
 }
 
 func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
-
-	// Wrapper function for AuthMiddleware to fit the MiddlewareFunc signature
-	authMiddlewareFunc := func(h jape.Handler) jape.Handler {
-		return AuthMiddleware(h, portal)
-	}
-
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
 		tusHandler := portal.Storage().Tus()
 		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
-	protocolMiddleware := jape.Adapt(func(h http.Handler) http.Handler {
+	protocolMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), "protocol", "s5")
-			h.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
-	})
-
-	stripPrefix := func(h jape.Handler) jape.Handler {
-		return jape.Adapt(func(h http.Handler) http.Handler {
-			return replacePrefix("/s5/upload/tus", h)
-		})(h)
 	}
 
-	injectJwt := func(h jape.Handler) jape.Handler {
-		return jape.Adapt(func(h http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				res := w
-				if r.Method == http.MethodPost && r.URL.Path == "/s5/upload/tus" {
-					res = &tusJwtResponseWriter{ResponseWriter: w, req: r}
-				}
+	stripPrefix := func(next http.Handler) http.Handler {
+		return replacePrefix("/s5/upload/tus", next)
+	}
 
-				h.ServeHTTP(res, r)
-			})
-		})(h)
+	injectJwt := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			res := w
+			if r.Method == http.MethodPost && r.URL.Path == "/s5/upload/tus" {
+				res = &tusJwtResponseWriter{ResponseWriter: w, req: r}
+			}
+
+			next.ServeHTTP(res, r)
+		})
 	}
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, authMiddlewareFunc, injectJwt, protocolMiddleware, stripPrefix)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, AuthMiddleware(portal), injectJwt, protocolMiddleware, stripPrefix, proxyMiddleware)
 
 	return tusHandler
 }
