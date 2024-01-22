@@ -22,6 +22,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
+	"strings"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type StorageServiceImpl struct {
 	httpApi  *req.Client
 	tus      *tusd.Handler
 	tusStore tusd.DataStore
+	s3Client *s3.Client
 }
 
 func (s *StorageServiceImpl) Tus() *tusd.Handler {
@@ -204,7 +206,7 @@ func (s *StorageServiceImpl) Init() error {
 		return blankResp, blankChanges, nil
 	}
 
-	tus, store, err := s.BuildUploadBufferTus("/s5/upload/tus", preUpload, nil)
+	tus, store, s3client, err := s.BuildUploadBufferTus("/s5/upload/tus", preUpload, nil)
 
 	if err != nil {
 		return err
@@ -212,6 +214,7 @@ func (s *StorageServiceImpl) Init() error {
 
 	s.tus = tus
 	s.tusStore = store
+	s.s3Client = s3client
 
 	s.portal.CronService().RegisterService(s)
 
