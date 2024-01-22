@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"io"
 )
