@@ -360,7 +360,15 @@ func (s *StorageServiceImpl) tusWorker() {
 			}
 
 		case info := <-s.tus.CompleteUploads:
-			err := s.ScheduleTusUpload(info.Upload.ID, 0)
+			if !info.Upload.IsFinal {
+				continue
+			}
+			err := s.TusUploadCompleted(info.Upload.ID)
+			if err != nil {
+				s.portal.Logger().Error("Could not complete tus upload", zap.Error(err))
+				continue
+			}
+			err = s.ScheduleTusUpload(info.Upload.ID, 0)
 			if err != nil {
 				s.portal.Logger().Error("Could not schedule tus upload", zap.Error(err))
 				continue
