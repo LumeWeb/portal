@@ -564,9 +564,15 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
-			_, err = s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
+			newUpload, err := s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
 			if err != nil {
 				s.portal.Logger().Error("Could not create upload", zap.Error(err))
+				return err
+			}
+
+			err = s.portal.Accounts().PinByID(newUpload.ID, upload.UploaderID)
+			if err != nil {
+				s.portal.Logger().Error("Could not pin upload", zap.Error(err))
 				return err
 			}
 
