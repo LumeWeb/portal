@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/imroc/req/v3"
@@ -542,11 +543,20 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 			}
 
 			s3InfoId, _ := splitS3Ids(upload.UploadID)
-			s3InfoId = s3InfoId + ".info"
 
-			_, err = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			_, err = s.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
 				Bucket: aws.String(s.portal.Config().GetString("core.storage.s3.bufferBucket")),
-				Key:    aws.String(s3InfoId),
+				Delete: &s3types.Delete{
+					Objects: []s3types.ObjectIdentifier{
+						{
+							Key: aws.String(s3InfoId),
+						},
+						{
+							Key: aws.String(s3InfoId + ".info"),
+						},
+					},
+					Quiet: aws.Bool(true),
+				},
 			})
 
 			if err != nil {
