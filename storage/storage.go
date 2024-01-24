@@ -596,3 +596,48 @@ func splitS3Ids(id string) (objectId, multipartId string) {
 	multipartId = id[index+1:]
 	return
 }
+
+func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error) {
+	if exists, tusUpload := s.TusUploadExists(hash); exists {
+		if tusUpload.Completed {
+			upload, err := s.tusStore.GetUpload(context.Background(), tusUpload.UploadID)
+			if err != nil {
+				return nil, 0, err
+			}
+
+			info, _ := upload.GetInfo(context.Background())
+
+			reader, err := upload.GetReader(context.Background())
+
+			return reader, uint64(info.Size), err
+		}
+	}
+
+	exists, upload := s.FileExists(hash)
+
+	if !exists {
+		return nil, 0, errors.New("file does not exist")
+	}
+
+	hashStr := hex.EncodeToString(hash)
+
+	resp, err := s.httpApi.R().
+		SetPathParam("path", hashStr).
+		DisableAutoReadResponse().
+		Get("/api/bus/object/{path}")
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if resp.IsError() {
+		if resp.Error() != nil {
+			return nil, 0, resp.Error().(error)
+		}
+
+		return nil, 0, errors.New(resp.String())
+
+	}
+
+	return resp.Body, upload.Size, nil
+}
