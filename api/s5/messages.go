@@ -107,21 +107,22 @@ func (a AccountPinResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
 		return err
 	}
 
-	pinsList := make([][]byte, len(a.Pins))
+	err = enc.EncodeArrayLen(len(a.Pins))
+	if err != nil {
+		return err
+	}
 
-	for i, pin := range a.Pins {
+	for _, pin := range a.Pins {
 		hash, err := hex.DecodeString(pin.Upload.Hash)
 
 		if err != nil {
 			return err
 		}
 
-		pinsList[i] = encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes()
-	}
-
-	err = enc.Encode(pinsList)
-	if err != nil {
-		return err
+		err = enc.EncodeBytes(encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
