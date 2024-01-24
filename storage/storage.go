@@ -623,6 +623,7 @@ func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error)
 
 	resp, err := s.httpApi.R().
 		SetPathParam("path", hashStr).
+		SetQueryParam("bucket", upload.Protocol).
 		DisableAutoReadResponse().
 		Get("/api/bus/object/{path}")
 
