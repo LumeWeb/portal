@@ -1,5 +1,17 @@
 package s5
 
+import (
+	"encoding/hex"
+	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/vmihailenco/msgpack/v5"
+)
+
+var (
+	_ msgpack.CustomEncoder = (*AccountPinResponse)(nil)
+)
+
 type AccountRegisterRequest struct {
 	Pubkey    string `json:"pubkey"`
 	Response  string `json:"response"`
@@ -77,4 +89,40 @@ type DebugStorageLocation struct {
 
 type DebugStorageLocationsResponse struct {
 	Locations []DebugStorageLocation `json:"locations"`
+}
+
+type AccountPinResponse struct {
+	Pins   []models.Pin
+	Cursor uint64
+}
+
+func (a AccountPinResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
+	err := enc.EncodeInt(0)
+	if err != nil {
+		return err
+	}
+
+	err = enc.EncodeInt(int64(a.Cursor))
+	if err != nil {
+		return err
+	}
+
+	pinsList := make([][]byte, len(a.Pins))
+
+	for i, pin := range a.Pins {
+		hash, err := hex.DecodeString(pin.Upload.Hash)
+
+		if err != nil {
+			return err
+		}
+
+		pinsList[i] = encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes()
+	}
+
+	err = enc.Encode(pinsList)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

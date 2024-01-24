@@ -615,20 +615,9 @@ func (h *HttpHandler) AccountPins(jc jape.Context) {
 		return
 	}
 
-	pinsList := make([][]byte, len(pins))
+	pinResponse := &AccountPinResponse{Cursor: cursor, Pins: pins}
 
-	for i, pin := range pins {
-		hash, err := hex.DecodeString(pin.Upload.Hash)
-
-		if err != nil {
-			errored(err)
-			return
-		}
-
-		pinsList[i] = encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes()
-	}
-
-	result, err := msgpack.Marshal(pinsList)
+	result, err := msgpack.Marshal(pinResponse)
 
 	if err != nil {
 		errored(err)
