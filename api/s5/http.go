@@ -48,6 +48,7 @@ const (
 	errFailedToAddPin           = "Failed to add pin"
 	errorNotMultiform           = "Not a multipart form"
 	errFetchingUrls             = "Error fetching urls"
+	errDownloadingFile          = "Error downloading file"
 )
 
 var (
@@ -68,6 +69,7 @@ var (
 	errFailedToAddPinErr           = errors.New(errFailedToAddPin)
 	errNotMultiformErr             = errors.New(errorNotMultiform)
 	errFetchingUrlsErr             = errors.New(errFetchingUrls)
+	errDownloadingFileErr          = errors.New(errDownloadingFile)
 )
 
 type HttpHandler struct {
@@ -1257,6 +1259,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 
 	cidDecoded, err := encoding.CIDFromString(cid)
 	if jc.Check("error decoding cid", err) != nil {
+		h.portal.Logger().Error("error decoding cid", zap.Error(err))
 		return
 	}
 
@@ -1273,6 +1276,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 	meta, err := h.getNode().GetMetadataByCID(cidDecoded)
 
 	if jc.Check("error getting metadata", err) != nil {
+		h.portal.Logger().Error("error getting metadata", zap.Error(err))
 		return
 	}
 
@@ -1284,6 +1288,46 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 
 	jc.Encode(&meta)
 
+}
+
+func (h *HttpHandler) DownloadFile(jc jape.Context) {
+	var cid string
+
+	if jc.DecodeParam("cid", &cid) != nil {
+		return
+	}
+
+	cidDecoded, err := encoding.CIDFromString(cid)
+	if jc.Check("error decoding cid", err) != nil {
+		return
+	}
+
+	file, fileSize, err := h.portal.Storage().GetFile(cidDecoded.Hash.HashBytes())
+	if jc.Check("error getting file", err) != nil {
+		return
+	}
+	defer func(file io.ReadCloser) {
+		err := file.Close()
+		if err != nil {
+			h.portal.Logger().Error("error closing file", zap.Error(err))
+		}
+	}(file)
+
+	mimeBuffer := make([]byte, 512)
+	if _, err := file.Read(mimeBuffer); err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		return
+	}
+
+	contentType := http.DetectContentType(mimeBuffer)
+
+	jc.ResponseWriter.Header().Set("Content-Type", contentType)
+	jc.ResponseWriter.Header().Set("Content-Length", strconv.FormatUint(fileSize, 10))
+	jc.ResponseWriter.Header().Set("Cache-Control", "public, max-age=31536000")
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
+	_, _ = jc.ResponseWriter.Write(mimeBuffer)
+	_, _ = io.Copy(jc.ResponseWriter, file)
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
