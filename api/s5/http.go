@@ -1286,12 +1286,23 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		return
 	}
 
+	var hashBytes []byte
+
 	cidDecoded, err := encoding.CIDFromString(cid)
-	if jc.Check("error decoding cid", err) != nil {
-		return
+
+	if err != nil {
+		hashDecoded, err := encoding.MultihashFromBase64Url(cid)
+
+		if jc.Check("error decoding as cid or hash", err) != nil {
+			return
+		}
+
+		hashBytes = hashDecoded.HashBytes()
 	}
 
-	file, fileSize, err := h.portal.Storage().GetFile(cidDecoded.Hash.HashBytes())
+	hashBytes = cidDecoded.Hash.HashBytes()
+
+	file, fileSize, err := h.portal.Storage().GetFile(hashBytes)
 	if jc.Check("error getting file", err) != nil {
 		return
 	}
