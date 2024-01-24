@@ -1,19 +1,25 @@
 package protocols
 
 import (
-    "crypto/ed25519"
-    "fmt"
-    s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
-    s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
-    s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
-    s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
-    "git.lumeweb.com/LumeWeb/portal/interfaces"
-    bolt "go.etcd.io/bbolt"
-    "go.uber.org/zap"
+	"crypto/ed25519"
+	"fmt"
+	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
+	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
+	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
+	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
+	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
+	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/api/s5"
+	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	bolt "go.etcd.io/bbolt"
+	"go.uber.org/zap"
+	"time"
 )
 
 var (
-	_ interfaces.Protocol = (*S5Protocol)(nil)
+	_ interfaces.Protocol        = (*S5Protocol)(nil)
+	_ s5interfaces.ProviderStore = (*S5ProviderStore)(nil)
 )
 
 type S5Protocol struct {
@@ -83,6 +89,8 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 
 	s.node = s5node.NewNode(cfg)
 
+	s.node.SetProviderStore(&S5ProviderStore{proto: s})
+
 	return nil
 }
 func (s *S5Protocol) Start() error {
@@ -103,4 +111,46 @@ func (s *S5Protocol) Start() error {
 }
 func (s *S5Protocol) Node() s5interfaces.Node {
 	return s.node
+}
+
+type S5ProviderStore struct {
+	proto *S5Protocol
+}
+
+func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.StorageLocationType) bool {
+	for _, t := range kind {
+		switch t {
+		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
+			rawHash := hash.HashBytes()
+			if exists, _ := s.proto.portal.Storage().FileExists(rawHash); exists {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageLocationType) (s5interfaces.StorageLocation, error) {
+	for _, t := range kind {
+		if !s.CanProvide(hash, []types.StorageLocationType{t}) {
+			continue
+		}
+
+		switch t {
+		case types.StorageLocationTypeArchive:
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
+		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{s5.GenerateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
+		}
+	}
+
+	hashStr, err := hash.ToString()
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, fmt.Errorf("could not provide hash %s for types %v", hashStr, kind)
+}
+func calculateExpiry(duration time.Duration) int64 {
+	return time.Now().Add(duration).Unix()
 }
