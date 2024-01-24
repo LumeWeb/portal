@@ -619,7 +619,10 @@ func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error)
 		return nil, 0, errors.New("file does not exist")
 	}
 
-	hashStr := hex.EncodeToString(hash)
+	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
+	if err != nil {
+		return nil, 0, err
+	}
 
 	resp, err := s.httpApi.R().
 		SetPathParam("path", hashStr).
