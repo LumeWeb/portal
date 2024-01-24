@@ -560,8 +560,8 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 		Tier: AccountTier{
 			Id:              1,
 			Name:            "default",
-			UploadBandwidth: math.MaxUint64,
-			StorageLimit:    math.MaxUint64,
+			UploadBandwidth: math.MaxUint32,
+			StorageLimit:    math.MaxUint32,
 			Scopes:          []interface{}{},
 		},
 	}
@@ -581,8 +581,8 @@ func (h *HttpHandler) AccountStats(jc jape.Context) {
 			Tier: AccountTier{
 				Id:              1,
 				Name:            "default",
-				UploadBandwidth: math.MaxUint64,
-				StorageLimit:    math.MaxUint64,
+				UploadBandwidth: math.MaxUint32,
+				StorageLimit:    math.MaxUint32,
 				Scopes:          []interface{}{},
 			},
 		},
