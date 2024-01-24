@@ -139,12 +139,12 @@ func replacePrefix(prefix string, h http.Handler) http.Handler {
 		p := strings.TrimPrefix(r.URL.Path, prefix)
 		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
 		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
-			/*			if len(p) == 0 {
-							p = "/"
-						}
-						if len(rp) == 0 {
-							rp = "/"
-						}*/
+			if len(p) == 0 {
+				p = "/"
+			}
+			if len(rp) == 0 {
+				rp = "/"
+			}
 			r2 := new(http.Request)
 			*r2 = *r
 			r2.URL = new(url.URL)
