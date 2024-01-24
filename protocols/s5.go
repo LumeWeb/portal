@@ -162,5 +162,5 @@ func generateDownloadUrl(hash *encoding.Multihash, portal interfaces.Portal) str
 		portal.Logger().Error("error encoding hash", zap.Error(err))
 	}
 
-	return fmt.Sprintf("https://%s/api/s5/download/%s", domain, hashStr)
+	return fmt.Sprintf("https://s5.%s/api/s5/download/%s", domain, hashStr)
 }
