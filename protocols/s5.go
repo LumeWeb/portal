@@ -10,7 +10,6 @@ import (
 	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
-	"git.lumeweb.com/LumeWeb/portal/api/s5"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/zap"
@@ -140,7 +139,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 		case types.StorageLocationTypeArchive:
 			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
 		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
-			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{s5.GenerateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{generateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
 		}
 	}
 
@@ -153,4 +152,15 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 }
 func calculateExpiry(duration time.Duration) int64 {
 	return time.Now().Add(duration).Unix()
+}
+
+func generateDownloadUrl(hash *encoding.Multihash, portal interfaces.Portal) string {
+	domain := portal.Config().GetString("core.domain")
+
+	hashStr, err := hash.ToBase64Url()
+	if err != nil {
+		portal.Logger().Error("error encoding hash", zap.Error(err))
+	}
+
+	return fmt.Sprintf("https://%s/api/s5/download/%s", domain, hashStr)
 }

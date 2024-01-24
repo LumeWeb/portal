@@ -1342,14 +1342,3 @@ func setAuthCookie(jwt string, jc jape.Context) {
 
 	http.SetCookie(jc.ResponseWriter, &authCookie)
 }
-
-func GenerateDownloadUrl(hash *encoding.Multihash, portal interfaces.Portal) string {
-	domain := portal.Config().GetString("core.domain")
-
-	hashStr, err := hash.ToBase64Url()
-	if err != nil {
-		portal.Logger().Error("error encoding hash", zap.Error(err))
-	}
-
-	return fmt.Sprintf("https://%s/api/s5/download/%s", domain, hashStr)
-}
