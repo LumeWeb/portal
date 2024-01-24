@@ -139,7 +139,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 		case types.StorageLocationTypeArchive:
 			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
 		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
-			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{generateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
 		}
 	}
 
