@@ -129,7 +129,9 @@ func (f *File) HashString() string {
 }
 
 func (f *File) Name() string {
-	return f.HashString()
+	cid, _ := f.CID().ToString()
+
+	return cid
 }
 
 func (f *File) Modtime() time.Time {
