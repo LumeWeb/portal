@@ -125,13 +125,8 @@ func (f *File) HashString() string {
 	return record.Hash
 }
 
-func (f *File) Name() time.Time {
-	record, err := f.Record()
-	if err != nil {
-		return time.Unix(0, 0)
-	}
-
-	return record.CreatedAt
+func (f *File) Name() string {
+	return f.HashString()
 }
 
 func (f *File) Modtime() time.Time {
