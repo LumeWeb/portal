@@ -25,6 +25,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -152,6 +153,16 @@ func (s *StorageServiceImpl) Init() error {
 
 	addr := s.portal.Config().GetString("core.sia.url")
 	passwd := s.portal.Config().GetString("core.sia.key")
+
+	addrURL, err := url.Parse(addr)
+
+	if err != nil {
+		return err
+	}
+
+	addrURL.Path = "/api"
+
+	addr = addrURL.String()
 
 	s.workerClient = workerClient.New(addr, passwd)
 	s.busClient = busClient.New(addr, passwd)
