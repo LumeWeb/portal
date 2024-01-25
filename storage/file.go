@@ -91,6 +91,7 @@ func (f *File) init(offset int64) error {
 		}
 
 		f.reader = reader
+		f.read = false
 	}
 
 	return nil
