@@ -17,6 +17,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.18.2
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d

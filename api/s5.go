@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/api/s5"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"github.com/rs/cors"
 	"go.sia.tech/jape"
 )
 
@@ -55,7 +56,7 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(h.DownloadBlob, middleware.AuthMiddleware(portal)),
 		"GET /s5/metadata/:cid": h.DownloadMetadata,
 		// "GET /s5/download/:cid": middleware.ApplyMiddlewares(h.DownloadFile, middleware.AuthMiddleware(portal)),
-		"GET /s5/download/:cid": h.DownloadFile,
+		"GET /s5/download/:cid": middleware.ApplyMiddlewares(h.DownloadFile, cors.Default().Handler),
 
 		// Pins API
 		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(h.AccountPin, middleware.AuthMiddleware(portal)),
