@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
@@ -592,7 +593,16 @@ func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, i
 			}
 
 			info, _ := upload.GetInfo(context.Background())
-			reader, err := upload.GetReader(context.Background())
+
+			ctx := context.Background()
+
+			if start > 0 {
+				endPosition := start + info.Size - 1
+				rangeHeader := fmt.Sprintf("bytes=%d-%d", start, endPosition)
+				ctx = context.WithValue(ctx, "range", rangeHeader)
+			}
+
+			reader, err := upload.GetReader(ctx)
 
 			return reader, info.Size, err
 		}
