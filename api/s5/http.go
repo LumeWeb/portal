@@ -19,6 +19,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"git.lumeweb.com/LumeWeb/portal/storage"
 	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/samber/lo"
 	"github.com/vmihailenco/msgpack/v5"
@@ -1302,10 +1303,13 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 
 	hashBytes = cidDecoded.Hash.HashBytes()
 
-	file, fileSize, err := h.portal.Storage().GetFile(hashBytes)
-	if jc.Check("error getting file", err) != nil {
+	file := storage.NewFile(hashBytes, h.portal.Storage())
+
+	if !file.Exists() {
+		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	defer func(file io.ReadCloser) {
 		err := file.Close()
 		if err != nil {
@@ -1313,21 +1317,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		}
 	}(file)
 
-	mimeBuffer := make([]byte, 512)
-	if _, err := file.Read(mimeBuffer); err != nil {
-		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		return
-	}
-
-	contentType := http.DetectContentType(mimeBuffer)
-
-	jc.ResponseWriter.Header().Set("Content-Type", contentType)
-	jc.ResponseWriter.Header().Set("Content-Length", strconv.FormatUint(fileSize, 10))
-	jc.ResponseWriter.Header().Set("Cache-Control", "public, max-age=31536000")
-
-	jc.ResponseWriter.WriteHeader(http.StatusOK)
-	_, _ = jc.ResponseWriter.Write(mimeBuffer)
-	_, _ = io.Copy(jc.ResponseWriter, file)
+	http.ServeContent(jc.ResponseWriter, jc.Request, "", file.Modtime(), file)
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
