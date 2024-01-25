@@ -160,12 +160,13 @@ func (s *StorageServiceImpl) Init() error {
 		return err
 	}
 
-	addrURL.Path = "/api"
+	addrURL.Path = "/api/worker"
 
-	addr = addrURL.String()
+	s.workerClient = workerClient.New(addrURL.String(), passwd)
 
-	s.workerClient = workerClient.New(addr, passwd)
-	s.busClient = busClient.New(addr, passwd)
+	addrURL.Path = "/api/bus"
+
+	s.busClient = busClient.New(addrURL.String(), passwd)
 
 	preUpload := func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 		blankResp := tusd.HTTPResponse{}
