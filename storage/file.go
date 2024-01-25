@@ -3,6 +3,8 @@ package storage
 import (
 	"encoding/hex"
 	"errors"
+	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
+	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"io"
@@ -18,6 +20,7 @@ type File struct {
 	hash    []byte
 	storage interfaces.StorageService
 	record  *models.Upload
+	cid     *encoding.CID
 }
 
 func NewFile(hash []byte, storage interfaces.StorageService) *File {
@@ -144,4 +147,12 @@ func (f *File) Size() uint64 {
 	}
 
 	return record.Size
+}
+func (f *File) CID() *encoding.CID {
+	if f.cid == nil {
+		multihash := encoding.MultihashFromBytes(f.Hash(), types.HashTypeBlake3)
+		cid := encoding.NewCID(types.CIDTypeRaw, *multihash, f.Size())
+		f.cid = cid
+	}
+	return f.cid
 }
