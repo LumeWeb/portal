@@ -639,3 +639,6 @@ func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, i
 
 	return object.Content, int64(upload.Size), nil
 }
+func (s *StorageServiceImpl) NewFile(hash []byte) interfaces.File {
+	return NewFile(hash, s)
+}
