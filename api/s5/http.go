@@ -19,7 +19,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
-	"git.lumeweb.com/LumeWeb/portal/storage"
 	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/samber/lo"
 	"github.com/vmihailenco/msgpack/v5"
@@ -1304,7 +1303,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		hashBytes = cidDecoded.Hash.HashBytes()
 	}
 
-	file := storage.NewFile(hashBytes, h.portal.Storage())
+	file := h.portal.Storage().NewFile(hashBytes)
 
 	if !file.Exists() {
 		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
