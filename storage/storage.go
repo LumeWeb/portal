@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
@@ -18,13 +17,14 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
-	"github.com/imroc/req/v3"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	s3store "github.com/tus/tusd/v2/pkg/s3store"
+	"go.sia.tech/renterd/api"
+	busClient "go.sia.tech/renterd/bus/client"
+	workerClient "go.sia.tech/renterd/worker/client"
 	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -34,11 +34,12 @@ var (
 )
 
 type StorageServiceImpl struct {
-	portal   interfaces.Portal
-	httpApi  *req.Client
-	tus      *tusd.Handler
-	tusStore tusd.DataStore
-	s3Client *s3.Client
+	portal       interfaces.Portal
+	busClient    *busClient.Client
+	workerClient *workerClient.Client
+	tus          *tusd.Handler
+	tusStore     tusd.DataStore
+	s3Client     *s3.Client
 }
 
 func (s *StorageServiceImpl) Tus() *tusd.Handler {
@@ -55,8 +56,7 @@ func (s *StorageServiceImpl) Portal() interfaces.Portal {
 
 func NewStorageService(portal interfaces.Portal) interfaces.StorageService {
 	return &StorageServiceImpl{
-		portal:  portal,
-		httpApi: nil,
+		portal: portal,
 	}
 }
 
@@ -77,21 +77,10 @@ func (s StorageServiceImpl) PutFileSmall(file io.ReadSeeker, bucket string, gene
 		return nil, err
 	}
 
-	resp, err := s.httpApi.R().
-		SetPathParam("path", hashStr).
-		SetQueryParam("bucket", bucket).
-		SetBody(file).Put("/api/worker/objects/{path}")
+	_, err = s.workerClient.UploadObject(context.Background(), file, bucket, hashStr, api.UploadObjectOptions{})
+
 	if err != nil {
 		return nil, err
-	}
-
-	if resp.IsError() {
-		if resp.Error() != nil {
-			return nil, resp.Error().(error)
-		}
-
-		return nil, errors.New(resp.String())
-
 	}
 
 	return hash[:], nil
@@ -103,21 +92,9 @@ func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) 
 		return err
 	}
 
-	resp, err := s.httpApi.R().
-		SetPathParam("path", hashStr).
-		SetQueryParam("bucket", bucket).
-		SetBody(file).Put("/api/worker/objects/{path}")
+	_, err = s.workerClient.UploadObject(context.Background(), file, bucket, hashStr, api.UploadObjectOptions{})
 	if err != nil {
 		return err
-	}
-
-	if resp.IsError() {
-		if resp.Error() != nil {
-			return resp.Error().(error)
-		}
-
-		return errors.New(resp.String())
-
 	}
 
 	return nil
@@ -172,13 +149,12 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 }
 
 func (s *StorageServiceImpl) Init() error {
-	client := req.NewClient()
 
-	client.SetBaseURL(s.portal.Config().GetString("core.sia.url"))
-	client.SetCommonBasicAuth("", s.portal.Config().GetString("core.sia.key"))
-	client.SetTimeout(24 * time.Hour)
+	addr := s.portal.Config().GetString("core.bus.url")
+	passwd := s.portal.Config().GetString("core.bus.key")
 
-	s.httpApi = client
+	s.workerClient = workerClient.New(addr, passwd)
+	s.busClient = busClient.New(addr, passwd)
 
 	preUpload := func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 		blankResp := tusd.HTTPResponse{}
@@ -231,31 +207,26 @@ func (s *StorageServiceImpl) LoadInitialTasks(cron interfaces.CronService) error
 }
 
 func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
-	resp, err := s.httpApi.R().
-		SetPathParam("bucket", bucket).
-		Get("/api/bus/bucket/{bucket}")
 
-	if err != nil {
-		return err
+	_, err := s.busClient.Bucket(context.Background(), bucket)
+
+	if err == nil {
+		return nil
 	}
 
-	if resp.StatusCode != 404 {
-		if resp.IsError() && resp.Error() != nil {
-			return resp.Error().(error)
-		}
-	} else {
-		resp, err := s.httpApi.R().
-			SetBody(map[string]string{
-				"name": bucket,
-			}).
-			Post("/api/bus/buckets")
-		if err != nil {
+	if err != nil {
+		if !strings.Contains(err.Error(), "bucket not found") {
 			return err
 		}
+	}
 
-		if resp.IsError() && resp.Error() != nil {
-			return resp.Error().(error)
-		}
+	err = s.busClient.CreateBucket(context.Background(), bucket, api.CreateBucketOptions{
+		Policy: api.BucketPolicy{
+			PublicReadAccess: false,
+		},
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -626,34 +597,23 @@ func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, i
 		return nil, 0, err
 	}
 
-	request := s.httpApi.R().
-		SetPathParam("path", hashStr).
-		SetQueryParam("bucket", upload.Protocol).
-		DisableAutoReadResponse()
+	var partialRange api.DownloadRange
 
 	if start > 0 {
-		rangeHeader := fmt.Sprintf("bytes=%d-", start)
-		request.SetHeader("Range", rangeHeader)
+		partialRange = api.DownloadRange{
+			Offset: start,
+			Length: int64(upload.Size) - start + 1,
+			Size:   int64(upload.Size),
+		}
 	}
 
-	resp, err := request.Get("/api/worker/objects/{path}")
+	object, err := s.workerClient.GetObject(context.Background(), upload.Protocol, hashStr, api.DownloadObjectOptions{
+		Range: partialRange,
+	})
 
 	if err != nil {
 		return nil, 0, err
 	}
 
-	if start > 0 && resp.StatusCode != http.StatusPartialContent {
-		return nil, 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	if resp.IsError() {
-		if resp.Error() != nil {
-			return nil, 0, resp.Error().(error)
-		}
-
-		return nil, 0, errors.New(resp.String())
-
-	}
-
-	return resp.Body, int64(upload.Size), nil
+	return object.Content, int64(upload.Size), nil
 }
