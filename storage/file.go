@@ -21,10 +21,11 @@ type File struct {
 	storage interfaces.StorageService
 	record  *models.Upload
 	cid     *encoding.CID
+	read    bool
 }
 
 func NewFile(hash []byte, storage interfaces.StorageService) *File {
-	return &File{hash: hash, storage: storage}
+	return &File{hash: hash, storage: storage, read: false}
 }
 
 func (f *File) Exists() bool {
@@ -38,6 +39,7 @@ func (f *File) Read(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
+	f.read = true
 
 	return f.reader.Read(p)
 }
@@ -45,6 +47,10 @@ func (f *File) Read(p []byte) (n int, err error) {
 func (f *File) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
+		if !f.read {
+			return 0, nil
+		}
+
 		if f.reader != nil {
 			err := f.reader.Close()
 			if err != nil {
