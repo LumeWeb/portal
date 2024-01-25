@@ -53,8 +53,10 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-	case io.SeekCurrent, io.SeekEnd:
+	case io.SeekCurrent:
 		return 0, errors.New("not supported")
+	case io.SeekEnd:
+		return int64(f.Size()), nil
 	default:
 		return 0, errors.New("invalid whence")
 	}
@@ -139,4 +141,12 @@ func (f *File) Modtime() time.Time {
 	}
 
 	return record.CreatedAt
+}
+func (f *File) Size() uint64 {
+	record, err := f.Record()
+	if err != nil {
+		return 0
+	}
+
+	return record.Size
 }
