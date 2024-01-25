@@ -126,7 +126,7 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 				if upload.Completed {
 					return true
 				}
-				return false
+
 			}
 			if exists, _ := s.proto.portal.Storage().FileExists(rawHash); exists {
 				return true
