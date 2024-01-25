@@ -6,6 +6,7 @@ type Upload struct {
 	gorm.Model
 	UserID     uint
 	Hash       string
+	MimeType   string
 	Protocol   string
 	User       User
 	UploaderIP string
