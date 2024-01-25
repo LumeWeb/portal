@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
@@ -23,6 +24,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -598,7 +600,7 @@ func splitS3Ids(id string) (objectId, multipartId string) {
 	return
 }
 
-func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error) {
+func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, int64, error) {
 	if exists, tusUpload := s.TusUploadExists(hash); exists {
 		if tusUpload.Completed {
 			upload, err := s.tusStore.GetUpload(context.Background(), tusUpload.UploadID)
@@ -607,10 +609,9 @@ func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error)
 			}
 
 			info, _ := upload.GetInfo(context.Background())
-
 			reader, err := upload.GetReader(context.Background())
 
-			return reader, uint64(info.Size), err
+			return reader, info.Size, err
 		}
 	}
 
@@ -625,14 +626,24 @@ func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error)
 		return nil, 0, err
 	}
 
-	resp, err := s.httpApi.R().
+	request := s.httpApi.R().
 		SetPathParam("path", hashStr).
 		SetQueryParam("bucket", upload.Protocol).
-		DisableAutoReadResponse().
-		Get("/api/worker/objects/{path}")
+		DisableAutoReadResponse()
+
+	if start > 0 {
+		rangeHeader := fmt.Sprintf("bytes=%d-", start)
+		request.SetHeader("Range", rangeHeader)
+	}
+
+	resp, err := request.Get("/api/worker/objects/{path}")
 
 	if err != nil {
 		return nil, 0, err
+	}
+
+	if start > 0 && resp.StatusCode != http.StatusPartialContent {
+		return nil, 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	if resp.IsError() {
@@ -644,5 +655,5 @@ func (s *StorageServiceImpl) GetFile(hash []byte) (io.ReadCloser, uint64, error)
 
 	}
 
-	return resp.Body, upload.Size, nil
+	return resp.Body, int64(upload.Size), nil
 }
