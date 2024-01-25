@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	_ io.ReadSeekCloser = (*File)(nil)
+	_ interfaces.File = (*FileImpl)(nil)
 )
 
-type File struct {
+type FileImpl struct {
 	reader  io.ReadCloser
 	hash    []byte
 	storage interfaces.StorageService
@@ -24,17 +24,17 @@ type File struct {
 	read    bool
 }
 
-func NewFile(hash []byte, storage interfaces.StorageService) *File {
-	return &File{hash: hash, storage: storage, read: false}
+func NewFile(hash []byte, storage interfaces.StorageService) *FileImpl {
+	return &FileImpl{hash: hash, storage: storage, read: false}
 }
 
-func (f *File) Exists() bool {
+func (f *FileImpl) Exists() bool {
 	exists, _ := f.storage.FileExists(f.hash)
 
 	return exists
 }
 
-func (f *File) Read(p []byte) (n int, err error) {
+func (f *FileImpl) Read(p []byte) (n int, err error) {
 	err = f.init(0)
 	if err != nil {
 		return 0, err
@@ -44,7 +44,7 @@ func (f *File) Read(p []byte) (n int, err error) {
 	return f.reader.Read(p)
 }
 
-func (f *File) Seek(offset int64, whence int) (int64, error) {
+func (f *FileImpl) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		if !f.read {
@@ -73,7 +73,7 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
-func (f *File) Close() error {
+func (f *FileImpl) Close() error {
 	if f.reader != nil {
 		r := f.reader
 		f.reader = nil
@@ -83,7 +83,7 @@ func (f *File) Close() error {
 	return nil
 }
 
-func (f *File) init(offset int64) error {
+func (f *FileImpl) init(offset int64) error {
 	if f.reader == nil {
 		reader, _, err := f.storage.GetFile(f.hash, offset)
 		if err != nil {
@@ -97,7 +97,7 @@ func (f *File) init(offset int64) error {
 	return nil
 }
 
-func (f *File) Record() (*models.Upload, error) {
+func (f *FileImpl) Record() (*models.Upload, error) {
 	if f.record == nil {
 		exists, record := f.storage.FileExists(f.hash)
 
@@ -111,7 +111,7 @@ func (f *File) Record() (*models.Upload, error) {
 	return f.record, nil
 }
 
-func (f *File) Hash() []byte {
+func (f *FileImpl) Hash() []byte {
 	hashStr := f.HashString()
 
 	if hashStr == "" {
@@ -126,7 +126,7 @@ func (f *File) Hash() []byte {
 	return str
 }
 
-func (f *File) HashString() string {
+func (f *FileImpl) HashString() string {
 	record, err := f.Record()
 	if err != nil {
 		return ""
@@ -135,13 +135,13 @@ func (f *File) HashString() string {
 	return record.Hash
 }
 
-func (f *File) Name() string {
+func (f *FileImpl) Name() string {
 	cid, _ := f.CID().ToString()
 
 	return cid
 }
 
-func (f *File) Modtime() time.Time {
+func (f *FileImpl) Modtime() time.Time {
 	record, err := f.Record()
 	if err != nil {
 		return time.Unix(0, 0)
@@ -149,7 +149,7 @@ func (f *File) Modtime() time.Time {
 
 	return record.CreatedAt
 }
-func (f *File) Size() uint64 {
+func (f *FileImpl) Size() uint64 {
 	record, err := f.Record()
 	if err != nil {
 		return 0
@@ -157,7 +157,7 @@ func (f *File) Size() uint64 {
 
 	return record.Size
 }
-func (f *File) CID() *encoding.CID {
+func (f *FileImpl) CID() *encoding.CID {
 	if f.cid == nil {
 		multihash := encoding.MultihashFromBytes(f.Hash(), types.HashTypeBlake3)
 		cid := encoding.NewCID(types.CIDTypeRaw, *multihash, f.Size())

@@ -27,5 +27,6 @@ type StorageService interface {
 	DeleteTusUpload(uploadID string) error
 	ScheduleTusUpload(uploadID string, attempt int) error
 	Tus() *tusd.Handler
+	NewFile(hash []byte) File
 	Service
 }
