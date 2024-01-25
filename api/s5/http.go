@@ -1318,7 +1318,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		}
 	}(file)
 
-	http.ServeContent(jc.ResponseWriter, jc.Request, "", file.Modtime(), file)
+	http.ServeContent(jc.ResponseWriter, jc.Request, file.Name(), file.Modtime(), file)
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
