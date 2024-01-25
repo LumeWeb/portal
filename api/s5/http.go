@@ -1299,9 +1299,10 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		}
 
 		hashBytes = hashDecoded.HashBytes()
-	}
+	} else {
 
-	hashBytes = cidDecoded.Hash.HashBytes()
+		hashBytes = cidDecoded.Hash.HashBytes()
+	}
 
 	file := storage.NewFile(hashBytes, h.portal.Storage())
 
