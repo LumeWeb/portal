@@ -150,8 +150,8 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 
 func (s *StorageServiceImpl) Init() error {
 
-	addr := s.portal.Config().GetString("core.bus.url")
-	passwd := s.portal.Config().GetString("core.bus.key")
+	addr := s.portal.Config().GetString("core.sia.url")
+	passwd := s.portal.Config().GetString("core.sia.key")
 
 	s.workerClient = workerClient.New(addr, passwd)
 	s.busClient = busClient.New(addr, passwd)
