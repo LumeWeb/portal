@@ -134,30 +134,6 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func replacePrefix(prefix string, h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimPrefix(r.URL.Path, prefix)
-		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
-		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
-			if len(p) == 0 {
-				p = "/"
-			}
-			if len(rp) == 0 {
-				rp = "/"
-			}
-			r2 := new(http.Request)
-			*r2 = *r
-			r2.URL = new(url.URL)
-			*r2.URL = *r.URL
-			r2.URL.Path = p
-			r2.URL.RawPath = rp
-			h.ServeHTTP(w, r2)
-		} else {
-			http.NotFound(w, r)
-		}
-	})
-}
-
 func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
@@ -173,7 +149,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	}
 
 	stripPrefix := func(next http.Handler) http.Handler {
-		return replacePrefix("/s5/upload/tus", next)
+		return http.StripPrefix("/s5/upload/tus", next)
 	}
 
 	injectJwt := func(next http.Handler) http.Handler {
