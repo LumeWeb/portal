@@ -15,5 +15,6 @@ type File interface {
 	Modtime() time.Time
 	Size() uint64
 	CID() *encoding.CID
+	Exists() bool
 	io.ReadSeekCloser
 }
