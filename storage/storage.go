@@ -228,7 +228,7 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	}
 
 	if err != nil {
-		if !strings.Contains(err.Error(), "bucket not found") {
+		if !errors.Is(err, api.ErrBucketNotFound) {
 			return err
 		}
 	}
