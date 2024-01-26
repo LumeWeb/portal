@@ -1345,6 +1345,8 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		}
 	}(file)
 
+	jc.ResponseWriter.Header().Set("Content-Type", file.Mime())
+
 	http.ServeContent(jc.ResponseWriter, jc.Request, file.Name(), file.Modtime(), file)
 }
 
