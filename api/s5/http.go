@@ -204,7 +204,26 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	h.portal.Logger().Info("CID", zap.String("cidStr", cidStr))
 
-	upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	_, err = rs.Seek(0, io.SeekStart)
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+
+	}
+
+	var mimeBytes [512]byte
+
+	_, err = rs.Read(mimeBytes[:])
+	if err != nil {
+		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
+		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		return
+	}
+
+	mimeType := http.DetectContentType(mimeBytes[:])
+
+	upload, err := h.portal.Storage().CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
@@ -770,7 +789,25 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 				return
 			}
 
-			upload, err := h.portal.Storage().CreateUpload(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+			_, err = rs.Seek(0, io.SeekStart)
+			if err != nil {
+				return
+			}
+
+			if err != nil {
+				errored(err)
+				return
+			}
+
+			var mimeBytes [512]byte
+
+			if _, err := file.Read(mimeBytes[:]); err != nil {
+				errored(err)
+				return
+			}
+			mimeType := http.DetectContentType(mimeBytes[:])
+
+			upload, err := h.portal.Storage().CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
 
 			if err != nil {
 				errored(err)
@@ -789,15 +826,6 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 				errored(err)
 				return
 			}
-
-			// Reset the read pointer back to the start of the file.
-			if _, err := file.Seek(0, 0); err != nil {
-				errored(err)
-				return
-			}
-
-			// Detect MIME type.
-			mimeType := http.DetectContentType(buffer)
 
 			uploadMap[fileHeader.Filename] = *upload
 			mimeMap[fileHeader.Filename] = mimeType
