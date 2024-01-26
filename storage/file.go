@@ -165,3 +165,12 @@ func (f *FileImpl) CID() *encoding.CID {
 	}
 	return f.cid
 }
+
+func (f *FileImpl) Mime() string {
+	record, err := f.Record()
+	if err != nil {
+		return ""
+	}
+
+	return record.MimeType
+}

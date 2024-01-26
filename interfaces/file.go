@@ -13,6 +13,7 @@ type File interface {
 	HashString() string
 	Name() string
 	Modtime() time.Time
+	Mime() string
 	Size() uint64
 	CID() *encoding.CID
 	Exists() bool
