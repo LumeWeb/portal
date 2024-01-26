@@ -19,7 +19,7 @@ type StorageService interface {
 	GetHashSmall(file io.ReadSeeker) ([]byte, error)
 	GetHash(file io.Reader) ([]byte, int64, error)
 	GetFile(hash []byte, start int64) (io.ReadCloser, int64, error)
-	CreateUpload(hash []byte, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error)
+	CreateUpload(hash []byte, mime string, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error)
 	TusUploadExists(hash []byte) (bool, models.TusUpload)
 	CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error)
 	TusUploadProgress(uploadID string) error

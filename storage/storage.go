@@ -26,6 +26,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"lukechampine.com/blake3"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -280,11 +281,12 @@ func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, int64, error) {
 	return hash[:32], totalBytes, nil
 }
 
-func (s *StorageServiceImpl) CreateUpload(hash []byte, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
+func (s *StorageServiceImpl) CreateUpload(hash []byte, mime string, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
 	hashStr := hex.EncodeToString(hash)
 
 	upload := &models.Upload{
 		Hash:       hashStr,
+		MimeType:   mime,
 		UserID:     uploaderID,
 		UploaderIP: uploaderIP,
 		Protocol:   protocol,
@@ -522,6 +524,30 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
+			var mimeBuf [512]byte
+
+			_, err = reader.Read(mimeBuf[:])
+
+			if err != nil {
+				s.portal.Logger().Error("Could not read mime", zap.Error(err))
+				return err
+			}
+
+			mimeType := http.DetectContentType(mimeBuf[:])
+
+			upload.MimeType = mimeType
+
+			if tx := s.Portal().Database().Save(upload); tx.Error != nil {
+				s.portal.Logger().Error("Could not update tus upload", zap.Error(tx.Error))
+				return tx.Error
+			}
+
+			reader, err = tusUpload.GetReader(ctx)
+			if err != nil {
+				s.portal.Logger().Error("Could not get tus file", zap.Error(err))
+				return err
+			}
+
 			err = s.PutFile(reader, upload.Protocol, dbHash)
 
 			if err != nil {
@@ -551,7 +577,7 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 				return err
 			}
 
-			newUpload, err := s.CreateUpload(dbHash, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
+			newUpload, err := s.CreateUpload(dbHash, mimeType, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
 			if err != nil {
 				s.portal.Logger().Error("Could not create upload", zap.Error(err))
 				return err
