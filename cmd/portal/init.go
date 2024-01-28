@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func initCheckRequiredConfig(logger zap.Logger, config *viper.Viper) error {
+func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
 	required := []string{
 		"core.domain",
 		"core.port",
