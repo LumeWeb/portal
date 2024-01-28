@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"net"
 	"net/http"
+	"strconv"
 )
 
 func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
@@ -60,8 +61,9 @@ func NewIdentity(config *viper.Viper, logger *zap.Logger) (ed25519.PrivateKey, e
 }
 
 func NewServer(lc fx.Lifecycle, config *viper.Viper, logger *zap.Logger) (*http.Server, error) {
+
 	srv := &http.Server{
-		Addr:    config.GetString("core.port"),
+		Addr:    ":" + strconv.FormatUint(uint64(config.GetUint("core.port")), 10),
 		Handler: registry.GetRouter(),
 	}
 
