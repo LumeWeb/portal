@@ -28,7 +28,7 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 		}
 	}
 
-	return fx.Options(options...)
+	return fx.Module("protocols", fx.Options(options...))
 }
 
 type LifecyclesParams struct {

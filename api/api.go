@@ -28,7 +28,7 @@ func BuildApis(config *viper.Viper) fx.Option {
 		}
 	}
 
-	return fx.Options(options...)
+	return fx.Module("api", fx.Options(options...))
 }
 
 type LifecyclesParams struct {
