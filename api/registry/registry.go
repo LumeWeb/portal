@@ -22,6 +22,10 @@ type APIEntry struct {
 var apiRegistry []APIEntry
 var router router2.ProtocolRouter
 
+func init() {
+	router = make(router2.ProtocolRouter)
+}
+
 func Register(entry APIEntry) {
 	apiRegistry = append(apiRegistry, entry)
 }
