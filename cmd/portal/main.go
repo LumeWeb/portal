@@ -15,6 +15,7 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"net"
 	"net/http"
 )
@@ -41,7 +42,10 @@ func main() {
 			return logger
 		}),
 		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: logger}
+			log := &fxevent.ZapLogger{Logger: logger}
+			log.UseLogLevel(zapcore.InfoLevel)
+			log.UseErrorLevel(zapcore.ErrorLevel)
+			return log
 		}),
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
