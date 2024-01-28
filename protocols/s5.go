@@ -50,9 +50,7 @@ type S5ProtocolResult struct {
 
 var S5ProtocolModule = fx.Module("s5_protocol",
 	fx.Provide(NewS5Protocol),
-	fx.Provide(func(protocol *S5Protocol) *S5ProviderStore {
-		return &S5ProviderStore{proto: protocol}
-	}),
+	fx.Provide(NewS5ProviderStore),
 )
 
 func NewS5Protocol(
@@ -67,6 +65,14 @@ func NewS5Protocol(
 			providerStore: params.ProviderStore,
 		},
 	}, nil
+}
+
+func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storage.StorageServiceImpl) *S5ProviderStore {
+	return &S5ProviderStore{
+		config:  config,
+		logger:  logger,
+		storage: storage,
+	}
 }
 
 func InitS5Protocol(s5 *S5Protocol) error {
@@ -159,7 +165,9 @@ func (s *S5Protocol) Node() s5interfaces.Node {
 }
 
 type S5ProviderStore struct {
-	proto *S5Protocol
+	config  *viper.Viper
+	logger  *zap.Logger
+	storage *storage.StorageServiceImpl
 }
 
 func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.StorageLocationType) bool {
@@ -168,13 +176,13 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
 			rawHash := hash.HashBytes()
 
-			if exists, upload := s.proto.storage.TusUploadExists(rawHash); exists {
+			if exists, upload := s.storage.TusUploadExists(rawHash); exists {
 				if upload.Completed {
 					return true
 				}
 
 			}
-			if exists, _ := s.proto.storage.FileExists(rawHash); exists {
+			if exists, _ := s.storage.FileExists(rawHash); exists {
 				return true
 			}
 		}
@@ -192,7 +200,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 		case types.StorageLocationTypeArchive:
 			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
 		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
-			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.proto.config, s.proto.logger)}, calculateExpiry(24*time.Hour)), nil
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.config, s.logger)}, calculateExpiry(24*time.Hour)), nil
 		}
 	}
 
