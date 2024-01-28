@@ -39,7 +39,7 @@ type S5ApiParams struct {
 	Identity    ed25519.PrivateKey
 	Accounts    *account.AccountServiceImpl
 	Storage     *storage.StorageServiceImpl
-	Protocols   []protoRegistry.Protocol
+	Protocols   []protoRegistry.Protocol `group:"protocol"`
 	HttpHandler s5.HttpHandler
 }
 
