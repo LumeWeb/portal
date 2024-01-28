@@ -16,16 +16,6 @@ func RegisterApis() {
 	})
 }
 
-func getModulesBasedOnConfig() []fx.Option {
-	var modules []fx.Option
-	for _, entry := range registry.GetRegistry() {
-		if viper.GetBool("protocols." + entry.Key + ".enabled") {
-			modules = append(modules, entry.Module)
-		}
-	}
-	return modules
-}
-
 func BuildApis(config *viper.Viper) fx.Option {
 	var options []fx.Option
 	enabledProtocols := config.GetStringSlice("core.protocols")
