@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	_config "git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db"
@@ -16,7 +14,6 @@ import (
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"net"
 	"net/http"
 )
 
