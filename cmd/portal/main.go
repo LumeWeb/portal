@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	_config "git.lumeweb.com/LumeWeb/portal/config"
@@ -12,7 +13,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"net"
 	"net/http"
@@ -39,14 +39,15 @@ func main() {
 		fx.Decorate(func() *zap.Logger {
 			return logger
 		}),
-		fx.WithLogger(func(logger *zap.Logger) *fxevent.ZapLogger {
-			return &fxevent.ZapLogger{Logger: logger}
-		}),
+		/*		fx.WithLogger(func(logger *zap.Logger) *fxevent.ZapLogger {
+				return &fxevent.ZapLogger{Logger: logger}
+			}),*/
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
 		storage.Module,
 		cron.Module,
+		account.Module,
 		protocols.BuildProtocols(config),
 		api.BuildApis(config),
 		fx.Provide(api.NewCasbin),
