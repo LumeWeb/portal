@@ -31,9 +31,15 @@ func BuildApis(config *viper.Viper) fx.Option {
 	return fx.Options(options...)
 }
 
-func SetupLifecycles(lifecycle fx.Lifecycle, protocols []registry.API) {
+type LifecyclesParams struct {
+	fx.In
+
+	Protocols []registry.API `group:"protocol"`
+}
+
+func SetupLifecycles(lifecycle fx.Lifecycle, params LifecyclesParams) {
 	for _, entry := range registry.GetRegistry() {
-		for _, protocol := range protocols {
+		for _, protocol := range params.Protocols {
 			if protocol.Name() == entry.Key {
 				lifecycle.Append(fx.Hook{
 					OnStart: func(ctx context.Context) error {
