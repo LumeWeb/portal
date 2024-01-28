@@ -50,6 +50,8 @@ func main() {
 		protocols.BuildProtocols(config),
 		api.BuildApis(config),
 		fx.Provide(api.NewCasbin),
+		fx.Invoke(protocols.SetupLifecycles),
+		fx.Invoke(api.SetupLifecycles),
 		fx.Provide(func(lc fx.Lifecycle, config *viper.Viper) *http.Server {
 			srv := &http.Server{
 				Addr:    config.GetString("core.port"),
