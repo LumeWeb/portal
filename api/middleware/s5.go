@@ -5,11 +5,8 @@ import (
 	"crypto/ed25519"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/account"
-	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/golang-jwt/jwt/v5"
-	"go.sia.tech/jape"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -19,8 +16,8 @@ const (
 	S5AuthQueryParam = "auth_token"
 )
 
-func findAuthToken(r *http.Request) string {
-	authHeader := parseAuthTokenHeader(r.Header)
+func FindAuthToken(r *http.Request) string {
+	authHeader := ParseAuthTokenHeader(r.Header)
 
 	if authHeader != "" {
 		return authHeader
@@ -35,7 +32,7 @@ func findAuthToken(r *http.Request) string {
 	return r.FormValue(S5AuthQueryParam)
 }
 
-func parseAuthTokenHeader(headers http.Header) string {
+func ParseAuthTokenHeader(headers http.Header) string {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
 		return ""
@@ -49,7 +46,7 @@ func parseAuthTokenHeader(headers http.Header) string {
 func AuthMiddleware(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authToken := findAuthToken(r)
+			authToken := FindAuthToken(r)
 
 			if authToken == "" {
 				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
@@ -108,65 +105,4 @@ func AuthMiddleware(identity ed25519.PrivateKey, accounts *account.AccountServic
 			}
 		})
 	}
-}
-
-type tusJwtResponseWriter struct {
-	http.ResponseWriter
-	req *http.Request
-}
-
-func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
-	// Check if this is the specific route and status
-	if statusCode == http.StatusCreated {
-		location := w.Header().Get("Location")
-		authToken := parseAuthTokenHeader(w.req.Header)
-
-		if authToken != "" && location != "" {
-
-			parsedUrl, _ := url.Parse(location)
-
-			query := parsedUrl.Query()
-			query.Set("auth_token", authToken)
-			parsedUrl.RawQuery = query.Encode()
-
-			w.Header().Set("Location", parsedUrl.String())
-		}
-	}
-
-	w.ResponseWriter.WriteHeader(statusCode)
-}
-
-func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl, storage *storage.StorageServiceImpl) jape.Handler {
-	// Create a jape.Handler for your tusHandler
-	tusJapeHandler := func(c jape.Context) {
-		tusHandler := storage.Tus()
-		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
-	}
-
-	protocolMiddleware := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), "protocol", "s5")
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-
-	stripPrefix := func(next http.Handler) http.Handler {
-		return http.StripPrefix("/s5/upload/tus", next)
-	}
-
-	injectJwt := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			res := w
-			if r.Method == http.MethodPost && r.URL.Path == "/s5/upload/tus" {
-				res = &tusJwtResponseWriter{ResponseWriter: w, req: r}
-			}
-
-			next.ServeHTTP(res, r)
-		})
-	}
-
-	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, proxyMiddleware)
-
-	return tusHandler
 }

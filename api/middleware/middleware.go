@@ -21,8 +21,8 @@ func AdaptMiddleware(mid func(http.Handler) http.Handler) JapeMiddlewareFunc {
 	})
 }
 
-// proxyMiddleware creates a new HTTP middleware for handling X-Forwarded-For headers.
-func proxyMiddleware(next http.Handler) http.Handler {
+// ProxyMiddleware creates a new HTTP middleware for handling X-Forwarded-For headers.
+func ProxyMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 			ips := strings.Split(xff, ", ")

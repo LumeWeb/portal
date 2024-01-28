@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
+	"net/http"
+	"net/url"
 )
 
 var (
@@ -91,7 +93,7 @@ func (s S5API) Stop(ctx context.Context) error {
 }
 
 func getRoutes(s *S5API) map[string]jape.Handler {
-	tusHandler := middleware.BuildS5TusApi(s.identity, s.accounts, s.storage)
+	tusHandler := BuildS5TusApi(s.identity, s.accounts, s.storage)
 
 	return map[string]jape.Handler{
 		// Account API
@@ -132,4 +134,65 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.RegistrySet, middleware.AuthMiddleware(s.identity, s.accounts)),
 		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.RegistrySubscription, middleware.AuthMiddleware(s.identity, s.accounts)),
 	}
+}
+
+type s5TusJwtResponseWriter struct {
+	http.ResponseWriter
+	req *http.Request
+}
+
+func (w *s5TusJwtResponseWriter) WriteHeader(statusCode int) {
+	// Check if this is the specific route and status
+	if statusCode == http.StatusCreated {
+		location := w.Header().Get("Location")
+		authToken := middleware.ParseAuthTokenHeader(w.req.Header)
+
+		if authToken != "" && location != "" {
+
+			parsedUrl, _ := url.Parse(location)
+
+			query := parsedUrl.Query()
+			query.Set("auth_token", authToken)
+			parsedUrl.RawQuery = query.Encode()
+
+			w.Header().Set("Location", parsedUrl.String())
+		}
+	}
+
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl, storage *storage.StorageServiceImpl) jape.Handler {
+	// Create a jape.Handler for your tusHandler
+	tusJapeHandler := func(c jape.Context) {
+		tusHandler := storage.Tus()
+		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
+	}
+
+	protocolMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), "protocol", "s5")
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+
+	stripPrefix := func(next http.Handler) http.Handler {
+		return http.StripPrefix("/s5/upload/tus", next)
+	}
+
+	injectJwt := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			res := w
+			if r.Method == http.MethodPost && r.URL.Path == "/s5/upload/tus" {
+				res = &s5TusJwtResponseWriter{ResponseWriter: w, req: r}
+			}
+
+			next.ServeHTTP(res, r)
+		})
+	}
+
+	// Apply the middlewares to the tusJapeHandler
+	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
+
+	return tusHandler
 }
