@@ -97,7 +97,13 @@ type HttpHandlerParams struct {
 	Protocol *protocols.S5Protocol
 }
 
-func NewHttpHandler(params HttpHandlerParams) *HttpHandler {
+type HttpHandlerResult struct {
+	fx.Out
+
+	HttpHandler *HttpHandler
+}
+
+func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
 	verifier := emailverifier.NewVerifier()
 
 	verifier.DisableSMTPCheck()
@@ -105,15 +111,17 @@ func NewHttpHandler(params HttpHandlerParams) *HttpHandler {
 	verifier.DisableDomainSuggest()
 	verifier.DisableAutoUpdateDisposable()
 
-	return &HttpHandler{
-		verifier: verifier,
-		config:   params.Config,
-		logger:   params.Logger,
-		storage:  params.Storage,
-		db:       params.Db,
-		accounts: params.Accounts,
-		protocol: params.Protocol,
-	}
+	return HttpHandlerResult{
+		HttpHandler: &HttpHandler{
+			verifier: verifier,
+			config:   params.Config,
+			logger:   params.Logger,
+			storage:  params.Storage,
+			db:       params.Db,
+			accounts: params.Accounts,
+			protocol: params.Protocol,
+		},
+	}, nil
 }
 
 func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
