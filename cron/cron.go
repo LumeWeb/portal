@@ -50,6 +50,7 @@ type RetryableTaskParams struct {
 }
 
 type CronJob struct {
+	JobId   uuid.UUID
 	Job     gocron.JobDefinition
 	Task    gocron.Task
 	Options []gocron.JobOption
@@ -122,8 +123,9 @@ func (c *CronServiceImpl) RetryableTask(params RetryableTaskParams) CronJob {
 		taskRetry.Attempt++
 
 		retryTask := c.RetryableTask(taskRetry)
+		retryTask.JobId = jobID
 
-		_, err = c.CreateJob(retryTask)
+		_, err = c.RerunJob(retryTask)
 		if err != nil {
 			c.logger.Error("Failed to create retry job", zap.Error(err))
 		}
@@ -145,6 +147,15 @@ func (c *CronServiceImpl) RetryableTask(params RetryableTaskParams) CronJob {
 
 func (c *CronServiceImpl) CreateJob(job CronJob) (gocron.Job, error) {
 	ret, err := c.Scheduler().NewJob(job.Job, job.Task, job.Options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+func (c *CronServiceImpl) RerunJob(job CronJob) (gocron.Job, error) {
+	ret, err := c.Scheduler().Update(job.JobId, job.Job, job.Task, job.Options...)
+
 	if err != nil {
 		return nil, err
 	}
