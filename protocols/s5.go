@@ -45,7 +45,8 @@ type S5ProtocolParams struct {
 
 type S5ProtocolResult struct {
 	fx.Out
-	Protocol registry.Protocol `group:"protocol"`
+	Protocol   registry.Protocol `group:"protocol"`
+	S5Protocol *S5Protocol
 }
 
 var S5ProtocolModule = fx.Module("s5_protocol",
@@ -56,14 +57,17 @@ var S5ProtocolModule = fx.Module("s5_protocol",
 func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
+	proto := &S5Protocol{
+		config:        params.Config,
+		logger:        params.Logger,
+		storage:       params.Storage,
+		identity:      params.Identity,
+		providerStore: params.ProviderStore,
+	}
+
 	return S5ProtocolResult{
-		Protocol: &S5Protocol{
-			config:        params.Config,
-			logger:        params.Logger,
-			storage:       params.Storage,
-			identity:      params.Identity,
-			providerStore: params.ProviderStore,
-		},
+		Protocol:   proto,
+		S5Protocol: proto,
 	}, nil
 }
 
