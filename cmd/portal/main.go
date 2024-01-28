@@ -38,10 +38,10 @@ func main() {
 
 		fx.Decorate(func() *zap.Logger {
 			return logger
-		},
-			fx.WithLogger(func(logger *zap.Logger) *fxevent.ZapLogger {
-				return &fxevent.ZapLogger{Logger: logger}
-			})),
+		}),
+		fx.WithLogger(func(logger *zap.Logger) *fxevent.ZapLogger {
+			return &fxevent.ZapLogger{Logger: logger}
+		}),
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
