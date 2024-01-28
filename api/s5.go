@@ -61,6 +61,10 @@ func NewS5(params S5ApiParams) (S5ApiResult, error) {
 	}, nil
 }
 
+func InitS5Api(api *S5API) error {
+	return api.Init()
+}
+
 var S5Module = fx.Module("s5_api",
 	fx.Provide(NewS5),
 	fx.Provide(s5.NewHttpHandler),

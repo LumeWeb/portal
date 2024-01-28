@@ -10,8 +10,9 @@ import (
 
 func RegisterApis() {
 	registry.Register(registry.APIEntry{
-		Key:    "s5",
-		Module: S5Module,
+		Key:      "s5",
+		Module:   S5Module,
+		InitFunc: InitS5Api,
 	})
 }
 
