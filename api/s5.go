@@ -45,19 +45,22 @@ type S5ApiParams struct {
 
 type S5ApiResult struct {
 	fx.Out
-	Protocol registry.API `group:"api"`
+	API   registry.API `group:"api"`
+	S5API *S5API
 }
 
 func NewS5(params S5ApiParams) (S5ApiResult, error) {
+	api := &S5API{
+		config:      params.Config,
+		identity:    params.Identity,
+		accounts:    params.Accounts,
+		storage:     params.Storage,
+		protocols:   params.Protocols,
+		httpHandler: params.HttpHandler,
+	}
 	return S5ApiResult{
-		Protocol: &S5API{
-			config:      params.Config,
-			identity:    params.Identity,
-			accounts:    params.Accounts,
-			storage:     params.Storage,
-			protocols:   params.Protocols,
-			httpHandler: params.HttpHandler,
-		},
+		API:   api,
+		S5API: api,
 	}, nil
 }
 
