@@ -1,48 +1,64 @@
 package cron
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"context"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 
 	"github.com/go-co-op/gocron/v2"
 )
 
-var (
-	_ interfaces.CronService = (*CronServiceImpl)(nil)
+type CronService interface {
+	Scheduler() gocron.Scheduler
+	RegisterService(service CronableService)
+}
+
+type CronableService interface {
+	LoadInitialTasks(cron CronService) error
+}
+
+type CronServiceParams struct {
+	fx.In
+	Logger    *zap.Logger
+	Scheduler gocron.Scheduler
+}
+
+var Module = fx.Module("cron",
+	fx.Options(
+		fx.Provide(NewCronService),
+	),
 )
 
 type CronServiceImpl struct {
 	scheduler gocron.Scheduler
-	services  []interfaces.CronableService
-	portal    interfaces.Portal
+	services  []CronableService
+	logger    *zap.Logger
 }
 
 func (c *CronServiceImpl) Scheduler() gocron.Scheduler {
 	return c.scheduler
 }
 
-func NewCronServiceImpl(portal interfaces.Portal) interfaces.CronService {
-	return &CronServiceImpl{
-		portal: portal,
-	}
-}
-
-func (c *CronServiceImpl) Init() error {
-	s, err := gocron.NewScheduler()
-	if err != nil {
-		return err
+func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceImpl {
+	sc := &CronServiceImpl{
+		logger:    params.Logger,
+		scheduler: params.Scheduler,
 	}
 
-	c.scheduler = s
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return sc.start()
+		},
+	})
 
-	return nil
+	return sc
 }
 
-func (c *CronServiceImpl) Start() error {
+func (c *CronServiceImpl) start() error {
 	for _, service := range c.services {
 		err := service.LoadInitialTasks(c)
 		if err != nil {
-			c.portal.Logger().Fatal("Failed to load initial tasks for service", zap.Error(err))
+			c.logger.Fatal("Failed to load initial tasks for service", zap.Error(err))
 		}
 	}
 
@@ -51,6 +67,6 @@ func (c *CronServiceImpl) Start() error {
 	return nil
 }
 
-func (c *CronServiceImpl) RegisterService(service interfaces.CronableService) {
+func (c *CronServiceImpl) RegisterService(service CronableService) {
 	c.services = append(c.services, service)
 }

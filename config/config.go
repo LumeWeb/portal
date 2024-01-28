@@ -2,8 +2,9 @@ package config
 
 import (
 	"errors"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	_logger "git.lumeweb.com/LumeWeb/portal/logger"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var (
@@ -14,8 +15,11 @@ var (
 	}
 )
 
-func Init(p interfaces.Portal) error {
-	logger := p.Logger()
+func NewConfig(logger *zap.Logger) (*viper.Viper, error) {
+	if logger == nil {
+		logger = _logger.NewFallbackLogger()
+	}
+
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 
@@ -32,14 +36,24 @@ func Init(p interfaces.Portal) error {
 			logger.Info("Config file not found, using default settings.")
 			err := viper.SafeWriteConfig()
 			if err != nil {
-				return err
+				return nil, err
 			}
-			return writeDefaults()
+			err = writeDefaults()
+			if err != nil {
+				return nil, err
+			}
+
+			return viper.GetViper(), nil
 		}
-		return err
+		return nil, err
 	}
 
-	return writeDefaults()
+	err = writeDefaults()
+	if err != nil {
+		return nil, err
+	}
+
+	return viper.GetViper(), nil
 }
 
 func writeDefaults() error {

@@ -1,30 +1,25 @@
 package storage
 
 import (
-	"encoding/hex"
-	"errors"
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	"git.lumeweb.com/LumeWeb/libs5-go/types"
-	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
-	"io"
-	"time"
-)
-
-var (
-	_ interfaces.File = (*FileImpl)(nil)
+    "encoding/hex"
+    "errors"
+    "git.lumeweb.com/LumeWeb/libs5-go/encoding"
+    "git.lumeweb.com/LumeWeb/libs5-go/types"
+    "git.lumeweb.com/LumeWeb/portal/db/models"
+    "io"
+    "time"
 )
 
 type FileImpl struct {
 	reader  io.ReadCloser
 	hash    []byte
-	storage interfaces.StorageService
+	storage *StorageServiceImpl
 	record  *models.Upload
 	cid     *encoding.CID
 	read    bool
 }
 
-func NewFile(hash []byte, storage interfaces.StorageService) *FileImpl {
+func NewFile(hash []byte, storage *StorageServiceImpl) *FileImpl {
 	return &FileImpl{hash: hash, storage: storage, read: false}
 }
 

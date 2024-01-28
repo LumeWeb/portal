@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/julienschmidt/httprouter"
+	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"net/http"
 	"strings"
@@ -46,4 +49,10 @@ func ApplyMiddlewares(handler jape.Handler, middlewares ...interface{}) jape.Han
 		}
 	}
 	return handler
+}
+func RegisterProtocolSubdomain(config *viper.Viper, mux *httprouter.Router, name string) {
+	router := registry.GetRouter()
+	domain := config.GetString("core.domain")
+
+	(router)[name+"."+domain] = mux
 }

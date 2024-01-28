@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func GetCasbin(logger *zap.Logger) *casbin.Enforcer {
+func NewCasbin(logger *zap.Logger) *casbin.Enforcer {
 	m := model.NewModel()
 	m.AddDef("r", "r", "sub, obj, act")
 	m.AddDef("p", "p", "sub, obj, act")

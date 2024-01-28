@@ -15,15 +15,19 @@ import (
 	s5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"git.lumeweb.com/LumeWeb/portal/storage"
 	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/samber/lo"
+	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.sia.tech/jape"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"io"
 	"math"
 	"mime/multipart"
@@ -73,12 +77,27 @@ var (
 )
 
 type HttpHandler struct {
-	portal   interfaces.Portal
 	verifier *emailverifier.Verifier
+	config   *viper.Viper
+	logger   *zap.Logger
+	storage  *storage.StorageServiceImpl
+	db       *gorm.DB
+	accounts *account.AccountServiceImpl
+	protocol *protocols.S5Protocol
 }
 
-func NewHttpHandler(portal interfaces.Portal) *HttpHandler {
+type HttpHandlerParams struct {
+	fx.In
 
+	Config   *viper.Viper
+	Logger   *zap.Logger
+	Storage  *storage.StorageServiceImpl
+	Db       *gorm.DB
+	Accounts *account.AccountServiceImpl
+	Protocol *protocols.S5Protocol
+}
+
+func NewHttpHandler(params HttpHandlerParams) *HttpHandler {
 	verifier := emailverifier.NewVerifier()
 
 	verifier.DisableSMTPCheck()
@@ -87,8 +106,13 @@ func NewHttpHandler(portal interfaces.Portal) *HttpHandler {
 	verifier.DisableAutoUpdateDisposable()
 
 	return &HttpHandler{
-		portal:   portal,
 		verifier: verifier,
+		config:   params.Config,
+		logger:   params.Logger,
+		storage:  params.Storage,
+		db:       params.Db,
+		accounts: params.Accounts,
+		protocol: params.Protocol,
 	}
 }
 
@@ -101,23 +125,23 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		// Parse the multipart form
-		err := r.ParseMultipartForm(h.portal.Config().GetInt64("core.post-upload-limit"))
+		err := r.ParseMultipartForm(h.config.GetInt64("core.post-upload-limit"))
 
 		if jc.Check(errMultiformParse, err) != nil {
-			h.portal.Logger().Error(errMultiformParse, zap.Error(err))
+			h.logger.Error(errMultiformParse, zap.Error(err))
 			return
 		}
 
 		// Retrieve the file from the form data
 		file, _, err := r.FormFile("file")
 		if jc.Check(errRetrievingFile, err) != nil {
-			h.portal.Logger().Error(errRetrievingFile, zap.Error(err))
+			h.logger.Error(errRetrievingFile, zap.Error(err))
 			return
 		}
 		defer func(file multipart.File) {
 			err := file.Close()
 			if err != nil {
-				h.portal.Logger().Error(errClosingStream, zap.Error(err))
+				h.logger.Error(errClosingStream, zap.Error(err))
 			}
 		}(file)
 
@@ -125,7 +149,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 	} else {
 		data, err := io.ReadAll(r.Body)
 		if jc.Check(errReadFile, err) != nil {
-			h.portal.Logger().Error(errReadFile, zap.Error(err))
+			h.logger.Error(errReadFile, zap.Error(err))
 			return
 		}
 
@@ -136,37 +160,37 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
-				h.portal.Logger().Error(errClosingStream, zap.Error(err))
+				h.logger.Error(errClosingStream, zap.Error(err))
 			}
 		}(r.Body)
 	}
 
-	hash, err := h.portal.Storage().GetHashSmall(rs)
+	hash, err := h.storage.GetHashSmall(rs)
 	_, err = rs.Seek(0, io.SeekStart)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
-	if exists, upload := h.portal.Storage().FileExists(hash); exists {
+	if exists, upload := h.storage.FileExists(hash); exists {
 		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			h.logger.Error(errUploadingFile, zap.Error(err))
 			return
 		}
 		cidStr, err := cid.ToString()
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			h.logger.Error(errUploadingFile, zap.Error(err))
 			return
 		}
 
-		err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+		err = h.accounts.PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			h.logger.Error(errUploadingFile, zap.Error(err))
 			return
 		}
 
@@ -176,21 +200,21 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
+	hash, err = h.storage.PutFileSmall(rs, "s5", false)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
-	h.portal.Logger().Info("Hash", zap.String("hash", hex.EncodeToString(hash)))
+	h.logger.Info("Hash", zap.String("hash", hex.EncodeToString(hash)))
 
 	cid, err := encoding.CIDFromHash(hash, uint64(bufferSize), types.CIDTypeRaw, types.HashTypeBlake3)
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
@@ -198,16 +222,16 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
-	h.portal.Logger().Info("CID", zap.String("cidStr", cidStr))
+	h.logger.Info("CID", zap.String("cidStr", cidStr))
 
 	_, err = rs.Seek(0, io.SeekStart)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 
 	}
@@ -217,22 +241,22 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 	_, err = rs.Read(mimeBytes[:])
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
 	mimeType := http.DetectContentType(mimeBytes[:])
 
-	upload, err := h.portal.Storage().CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	upload, err := h.storage.CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 	}
 
-	err = h.portal.Accounts().PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 	}
 
 	jc.Encode(&SmallUploadResponse{
@@ -251,7 +275,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 	_, err := rand.Read(challenge)
 	if err != nil {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		h.logger.Error(errAccountGenerateChallenge, zap.Error(err))
 		return
 	}
 
@@ -259,17 +283,17 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 
 	if err != nil {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		h.logger.Error(errAccountGenerateChallenge, zap.Error(err))
 		return
 	}
 
 	if len(decodedKey) != 33 && int(decodedKey[0]) != int(types.HashTypeEd25519) {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		h.logger.Error(errAccountGenerateChallenge, zap.Error(err))
 		return
 	}
 
-	result := h.portal.Database().Create(&models.S5Challenge{
+	result := h.db.Create(&models.S5Challenge{
 		Pubkey:    pubkey,
 		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		Type:      "register",
@@ -277,7 +301,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 
 	if result.Error != nil {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		h.logger.Error(errAccountGenerateChallenge, zap.Error(err))
 		return
 	}
 
@@ -295,7 +319,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errAccountRegisterErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountRegister, zap.Error(err))
+		h.logger.Error(errAccountRegister, zap.Error(err))
 	}
 
 	decodedKey, err := base64.RawURLEncoding.DecodeString(request.Pubkey)
@@ -312,7 +336,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 
 	var challenge models.S5Challenge
 
-	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "register"}).First(&challenge)
+	result := h.db.Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "register"}).First(&challenge)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		errored(err)
@@ -371,14 +395,14 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	accountExists, _ := h.portal.Accounts().EmailExists(request.Email)
+	accountExists, _ := h.accounts.EmailExists(request.Email)
 
 	if accountExists {
 		errored(errEmailAlreadyExists)
 		return
 	}
 
-	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(hex.EncodeToString(decodedKey[1:]))
+	pubkeyExists, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
 
 	if pubkeyExists {
 		errored(errPubkeyAlreadyExists)
@@ -394,7 +418,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 		return
 	}
 
-	newAccount, err := h.portal.Accounts().CreateAccount(request.Email, string(passwd))
+	newAccount, err := h.accounts.CreateAccount(request.Email, string(passwd))
 	if err != nil {
 		errored(errAccountRegisterErr)
 		return
@@ -402,19 +426,19 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 
 	rawPubkey := hex.EncodeToString(decodedKey[1:])
 
-	err = h.portal.Accounts().AddPubkeyToAccount(*newAccount, rawPubkey)
+	err = h.accounts.AddPubkeyToAccount(*newAccount, rawPubkey)
 	if err != nil {
 		errored(errAccountRegisterErr)
 		return
 	}
 
-	jwt, err := h.portal.Accounts().LoginPubkey(rawPubkey)
+	jwt, err := h.accounts.LoginPubkey(rawPubkey)
 	if err != nil {
 		errored(errAccountRegisterErr)
 		return
 	}
 
-	result = h.portal.Database().Delete(&challenge)
+	result = h.db.Delete(&challenge)
 
 	if result.Error != nil {
 		errored(errAccountRegisterErr)
@@ -432,7 +456,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errAccountLoginErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountLogin, zap.Error(err))
+		h.logger.Error(errAccountLogin, zap.Error(err))
 	}
 
 	challenge := make([]byte, 32)
@@ -440,7 +464,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	_, err := rand.Read(challenge)
 	if err != nil {
 		_ = jc.Error(errAccountGenerateChallengeErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountGenerateChallenge, zap.Error(err))
+		h.logger.Error(errAccountGenerateChallenge, zap.Error(err))
 		return
 	}
 
@@ -456,14 +480,14 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 		return
 	}
 
-	pubkeyExists, _ := h.portal.Accounts().PubkeyExists(hex.EncodeToString(decodedKey[1:]))
+	pubkeyExists, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
 
 	if pubkeyExists {
 		errored(errPubkeyNotExist)
 		return
 	}
 
-	result := h.portal.Database().Create(&models.S5Challenge{
+	result := h.db.Create(&models.S5Challenge{
 		Challenge: base64.RawURLEncoding.EncodeToString(challenge),
 		Type:      "login",
 	})
@@ -487,7 +511,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errAccountLoginErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errAccountLogin, zap.Error(err))
+		h.logger.Error(errAccountLogin, zap.Error(err))
 	}
 
 	decodedKey, err := base64.RawURLEncoding.DecodeString(request.Pubkey)
@@ -503,7 +527,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 
 	var challenge models.S5Challenge
 
-	result := h.portal.Database().Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "login"}).First(&challenge)
+	result := h.db.Model(&models.S5Challenge{}).Where(&models.S5Challenge{Pubkey: request.Pubkey, Type: "login"}).First(&challenge)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		errored(err)
@@ -551,14 +575,14 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 		return
 	}
 
-	jwt, err := h.portal.Accounts().LoginPubkey(request.Pubkey)
+	jwt, err := h.accounts.LoginPubkey(request.Pubkey)
 
 	if err != nil {
 		errored(errAccountLoginErr)
 		return
 	}
 
-	result = h.portal.Database().Delete(&challenge)
+	result = h.db.Delete(&challenge)
 
 	if result.Error != nil {
 		errored(errAccountLoginErr)
@@ -569,7 +593,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountInfo(jc jape.Context) {
-	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
+	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountInfoResponse{
 		Email:          user.Email,
@@ -589,7 +613,7 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 }
 
 func (h *HttpHandler) AccountStats(jc jape.Context) {
-	_, user := h.portal.Accounts().AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
+	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountStatsResponse{
 		AccountInfoResponse: AccountInfoResponse{
@@ -624,10 +648,10 @@ func (h *HttpHandler) AccountPins(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errFailedToGetPinsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFailedToGetPins, zap.Error(err))
+		h.logger.Error(errFailedToGetPins, zap.Error(err))
 	}
 
-	pins, err := h.portal.Accounts().AccountPins(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64), cursor)
+	pins, err := h.accounts.AccountPins(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64), cursor)
 
 	if err != nil {
 		errored(err)
@@ -657,7 +681,7 @@ func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errFailedToDelPinErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFailedToDelPin, zap.Error(err))
+		h.logger.Error(errFailedToDelPin, zap.Error(err))
 	}
 
 	decodedCid, err := encoding.CIDFromString(cid)
@@ -669,7 +693,7 @@ func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.portal.Accounts().DeletePinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.DeletePinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 
 	if err != nil {
 		errored(err)
@@ -686,7 +710,7 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errFailedToAddPinErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFailedToAddPin, zap.Error(err))
+		h.logger.Error(errFailedToAddPin, zap.Error(err))
 	}
 
 	decodedCid, err := encoding.CIDFromString(cid)
@@ -696,12 +720,12 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 		return
 	}
 
-	h.portal.Logger().Info("CID", zap.String("cidStr", cid))
-	h.portal.Logger().Info("hash", zap.String("hash", hex.EncodeToString(decodedCid.Hash.HashBytes())))
+	h.logger.Info("CID", zap.String("cidStr", cid))
+	h.logger.Info("hash", zap.String("hash", hex.EncodeToString(decodedCid.Hash.HashBytes())))
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.portal.Accounts().PinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.PinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
 
 	if err != nil {
 		errored(err)
@@ -733,19 +757,19 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 
 	errored := func(err error) {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 	}
 
 	if !strings.HasPrefix(contentType, "multipart/form-data") {
 		_ = jc.Error(errNotMultiformErr, http.StatusBadRequest)
-		h.portal.Logger().Error(errorNotMultiform)
+		h.logger.Error(errorNotMultiform)
 		return
 	}
 
-	err := r.ParseMultipartForm(h.portal.Config().GetInt64("core.post-upload-limit"))
+	err := r.ParseMultipartForm(h.config.GetInt64("core.post-upload-limit"))
 
 	if jc.Check(errMultiformParse, err) != nil {
-		h.portal.Logger().Error(errMultiformParse, zap.Error(err))
+		h.logger.Error(errMultiformParse, zap.Error(err))
 		return
 	}
 
@@ -763,26 +787,26 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 			defer func(file multipart.File) {
 				err := file.Close()
 				if err != nil {
-					h.portal.Logger().Error(errClosingStream, zap.Error(err))
+					h.logger.Error(errClosingStream, zap.Error(err))
 				}
 			}(file)
 
 			var rs io.ReadSeeker
 
-			hash, err := h.portal.Storage().GetHashSmall(rs)
+			hash, err := h.storage.GetHashSmall(rs)
 			_, err = rs.Seek(0, io.SeekStart)
 			if err != nil {
 				_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-				h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+				h.logger.Error(errUploadingFile, zap.Error(err))
 				return
 			}
 
-			if exists, upload := h.portal.Storage().FileExists(hash); exists {
+			if exists, upload := h.storage.FileExists(hash); exists {
 				uploadMap[fileHeader.Filename] = upload
 				continue
 			}
 
-			hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
+			hash, err = h.storage.PutFileSmall(rs, "s5", false)
 
 			if err != nil {
 				errored(err)
@@ -807,7 +831,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 			}
 			mimeType := http.DetectContentType(mimeBytes[:])
 
-			upload, err := h.portal.Storage().CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+			upload, err := h.storage.CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
 
 			if err != nil {
 				errored(err)
@@ -859,32 +883,32 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 
 	var rs = bytes.NewReader(appData)
 
-	hash, err := h.portal.Storage().GetHashSmall(rs)
+	hash, err := h.storage.GetHashSmall(rs)
 	_, err = rs.Seek(0, io.SeekStart)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+		h.logger.Error(errUploadingFile, zap.Error(err))
 		return
 	}
 
-	if exists, upload := h.portal.Storage().FileExists(hash); exists {
+	if exists, upload := h.storage.FileExists(hash); exists {
 		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeMetadataWebapp, types.HashTypeBlake3)
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			h.logger.Error(errUploadingFile, zap.Error(err))
 			return
 		}
 		cidStr, err := cid.ToString()
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errUploadingFile, zap.Error(err))
+			h.logger.Error(errUploadingFile, zap.Error(err))
 			return
 		}
 		jc.Encode(map[string]string{"hash": cidStr})
 		return
 	}
 
-	hash, err = h.portal.Storage().PutFileSmall(rs, "s5", false)
+	hash, err = h.storage.PutFileSmall(rs, "s5", false)
 
 	if err != nil {
 		errored(err)
@@ -917,7 +941,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 
 	if err != nil {
 		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		h.logger.Error(errFetchingUrls, zap.Error(err))
 		return
 	}
 
@@ -928,14 +952,14 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 	err = dlUriProvider.Start()
 	if err != nil {
 		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		h.logger.Error(errFetchingUrls, zap.Error(err))
 		return
 	}
 
 	_, err = dlUriProvider.Next()
 	if err != nil {
 		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		h.logger.Error(errFetchingUrls, zap.Error(err))
 		return
 	}
 
@@ -944,7 +968,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 	})
 	if err != nil {
 		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		h.logger.Error(errFetchingUrls, zap.Error(err))
 		return
 	}
 
@@ -956,7 +980,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 		nodeId, err := encoding.DecodeNodeId(nodeIdStr)
 		if err != nil {
 			_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+			h.logger.Error(errFetchingUrls, zap.Error(err))
 			return
 		}
 		availableNodesIds[i] = nodeId
@@ -969,7 +993,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 
 	if err != nil {
 		_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-		h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+		h.logger.Error(errFetchingUrls, zap.Error(err))
 		return
 	}
 
@@ -979,7 +1003,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 		nodeIdStr, err := nodeId.ToString()
 		if err != nil {
 			_ = jc.Error(errFetchingUrlsErr, http.StatusInternalServerError)
-			h.portal.Logger().Error(errFetchingUrls, zap.Error(err))
+			h.logger.Error(errFetchingUrls, zap.Error(err))
 			return
 		}
 		output[i] = locations[nodeIdStr].BytesURL()
@@ -1058,13 +1082,13 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 	// Accept the WebSocket connection
 	c, err := websocket.Accept(jc.ResponseWriter, jc.Request, nil)
 	if err != nil {
-		h.portal.Logger().Error("error accepting websocket connection", zap.Error(err))
+		h.logger.Error("error accepting websocket connection", zap.Error(err))
 		return
 	}
 	defer func(c *websocket.Conn, code websocket.StatusCode, reason string) {
 		err := c.Close(code, reason)
 		if err != nil {
-			h.portal.Logger().Error("error closing websocket connection", zap.Error(err))
+			h.logger.Error("error closing websocket connection", zap.Error(err))
 		}
 
 		for _, listener := range listeners {
@@ -1079,10 +1103,10 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 		if err != nil {
 			if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
 				// Normal closure
-				h.portal.Logger().Info("websocket connection closed normally")
+				h.logger.Info("websocket connection closed normally")
 			} else {
 				// Handle different types of errors
-				h.portal.Logger().Error("error in websocket connection", zap.Error(err))
+				h.logger.Error("error in websocket connection", zap.Error(err))
 			}
 			break
 		}
@@ -1092,37 +1116,37 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 		method, err := decoder.DecodeInt()
 
 		if err != nil {
-			h.portal.Logger().Error("error decoding method", zap.Error(err))
+			h.logger.Error("error decoding method", zap.Error(err))
 			break
 		}
 
 		if method != 2 {
-			h.portal.Logger().Error("invalid method", zap.Int64("method", int64(method)))
+			h.logger.Error("invalid method", zap.Int64("method", int64(method)))
 			break
 		}
 
 		sre, err := decoder.DecodeBytes()
 
 		if err != nil {
-			h.portal.Logger().Error("error decoding sre", zap.Error(err))
+			h.logger.Error("error decoding sre", zap.Error(err))
 			break
 		}
 
 		off, err := h.getNode().Services().Registry().Listen(sre, func(entry s5interfaces.SignedRegistryEntry) {
 			encoded, err := msgpack.Marshal(entry)
 			if err != nil {
-				h.portal.Logger().Error("error encoding entry", zap.Error(err))
+				h.logger.Error("error encoding entry", zap.Error(err))
 				return
 			}
 
 			err = c.Write(ctx, websocket.MessageBinary, encoded)
 
 			if err != nil {
-				h.portal.Logger().Error("error writing to websocket", zap.Error(err))
+				h.logger.Error("error writing to websocket", zap.Error(err))
 			}
 		})
 		if err != nil {
-			h.portal.Logger().Error("error listening to registry", zap.Error(err))
+			h.logger.Error("error listening to registry", zap.Error(err))
 			break
 		}
 
@@ -1131,10 +1155,7 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 }
 
 func (h *HttpHandler) getNode() s5interfaces.Node {
-	proto, _ := h.portal.ProtocolRegistry().Get("s5")
-	protoInstance := proto.(*protocols.S5Protocol)
-
-	return protoInstance.Node()
+	return h.protocol.Node()
 }
 
 func (h *HttpHandler) DownloadBlob(jc jape.Context) {
@@ -1276,7 +1297,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 
 	cidDecoded, err := encoding.CIDFromString(cid)
 	if jc.Check("error decoding cid", err) != nil {
-		h.portal.Logger().Error("error decoding cid", zap.Error(err))
+		h.logger.Error("error decoding cid", zap.Error(err))
 		return
 	}
 
@@ -1293,7 +1314,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 	meta, err := h.getNode().GetMetadataByCID(cidDecoded)
 
 	if jc.Check("error getting metadata", err) != nil {
-		h.portal.Logger().Error("error getting metadata", zap.Error(err))
+		h.logger.Error("error getting metadata", zap.Error(err))
 		return
 	}
 
@@ -1331,7 +1352,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		hashBytes = cidDecoded.Hash.HashBytes()
 	}
 
-	file := h.portal.Storage().NewFile(hashBytes)
+	file := h.storage.NewFile(hashBytes)
 
 	if !file.Exists() {
 		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -1341,7 +1362,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 	defer func(file io.ReadCloser) {
 		err := file.Close()
 		if err != nil {
-			h.portal.Logger().Error("error closing file", zap.Error(err))
+			h.logger.Error("error closing file", zap.Error(err))
 		}
 	}(file)
 

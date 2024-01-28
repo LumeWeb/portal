@@ -8,7 +8,7 @@ require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240124213331-6b9a4fb7dc4d
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
-	github.com/aws/aws-sdk-go-v2/config v1.26.2
+	github.com/aws/aws-sdk-go-v2/Config v1.26.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.47.7
 	github.com/casbin/casbin/v2 v2.81.0
@@ -26,6 +26,7 @@ require (
 	go.sia.tech/core v0.1.12
 	go.sia.tech/jape v0.11.1
 	go.sia.tech/renterd v1.0.2
+	go.uber.org/fx v1.20.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/crypto v0.18.0
 	gorm.io/driver/mysql v1.5.2
@@ -101,6 +102,7 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
 	go.sia.tech/mux v1.2.0 // indirect
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca // indirect
+	go.uber.org/dig v1.17.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/net v0.20.0 // indirect

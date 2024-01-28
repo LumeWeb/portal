@@ -7,7 +7,13 @@ import (
 	"os"
 )
 
-func Init(viper *viper.Viper) *zap.Logger {
+func NewFallbackLogger() *zap.Logger {
+	logger, _ := zap.NewDevelopment()
+
+	return logger
+}
+
+func NewLogger() *zap.Logger {
 
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()

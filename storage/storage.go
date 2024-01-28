@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
+	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -18,12 +19,15 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
-	s3store "github.com/tus/tusd/v2/pkg/s3store"
+	"github.com/tus/tusd/v2/pkg/s3store"
 	"go.sia.tech/renterd/api"
 	busClient "go.sia.tech/renterd/bus/client"
 	workerClient "go.sia.tech/renterd/worker/client"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"io"
 	"lukechampine.com/blake3"
 	"net/http"
@@ -32,17 +36,35 @@ import (
 	"time"
 )
 
-var (
-	_ interfaces.StorageService = (*StorageServiceImpl)(nil)
+type TusPreUploadCreateCallback func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error)
+type TusPreFinishResponseCallback func(hook tusd.HookEvent) (tusd.HTTPResponse, error)
+
+type StorageServiceParams struct {
+	fx.In
+	Config   *viper.Viper
+	Logger   *zap.Logger
+	Db       *gorm.DB
+	Accounts *account.AccountServiceImpl
+	Cron     *cron.CronServiceImpl
+}
+
+var Module = fx.Module("storage",
+	fx.Provide(
+		NewStorageService,
+	),
 )
 
 type StorageServiceImpl struct {
-	portal       interfaces.Portal
 	busClient    *busClient.Client
 	workerClient *workerClient.Client
 	tus          *tusd.Handler
 	tusStore     tusd.DataStore
 	s3Client     *s3.Client
+	config       *viper.Viper
+	logger       *zap.Logger
+	db           *gorm.DB
+	accounts     *account.AccountServiceImpl
+	cron         *cron.CronServiceImpl
 }
 
 func (s *StorageServiceImpl) Tus() *tusd.Handler {
@@ -53,13 +75,13 @@ func (s *StorageServiceImpl) Start() error {
 	return nil
 }
 
-func (s *StorageServiceImpl) Portal() interfaces.Portal {
-	return s.portal
-}
-
-func NewStorageService(portal interfaces.Portal) interfaces.StorageService {
+func NewStorageService(params StorageServiceParams) *StorageServiceImpl {
 	return &StorageServiceImpl{
-		portal: portal,
+		config:   params.Config,
+		logger:   params.Logger,
+		db:       params.Db,
+		accounts: params.Accounts,
+		cron:     params.Cron,
 	}
 }
 
@@ -103,12 +125,12 @@ func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) 
 	return nil
 }
 
-func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb interfaces.TusPreUploadCreateCallback, preFinishCb interfaces.TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
+func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
 			return aws.Endpoint{
-				URL:           s.portal.Config().GetString("core.storage.s3.endpoint"),
-				SigningRegion: s.portal.Config().GetString("core.storage.s3.region"),
+				URL:           s.config.GetString("core.storage.s3.endpoint"),
+				SigningRegion: s.config.GetString("core.storage.s3.region"),
 			}, nil
 		}
 		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
@@ -117,8 +139,8 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			s.portal.Config().GetString("core.storage.s3.accessKey"),
-			s.portal.Config().GetString("core.storage.s3.secretKey"),
+			s.config.GetString("core.storage.s3.accessKey"),
+			s.config.GetString("core.storage.s3.secretKey"),
 			"",
 		)),
 		config.WithEndpointResolverWithOptions(customResolver),
@@ -129,9 +151,9 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 
 	s3Client := s3.NewFromConfig(cfg)
 
-	store := s3store.New(s.portal.Config().GetString("core.storage.s3.bufferBucket"), s3Client)
+	store := s3store.New(s.config.GetString("core.storage.s3.bufferBucket"), s3Client)
 
-	locker := NewMySQLLocker(s)
+	locker := NewMySQLLocker(s.db, s.logger)
 
 	composer := tusd.NewStoreComposer()
 	store.UseIn(composer)
@@ -151,10 +173,10 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb i
 	return handler, store, s3Client, err
 }
 
-func (s *StorageServiceImpl) Init() error {
+func (s *StorageServiceImpl) init() error {
 
-	addr := s.portal.Config().GetString("core.sia.url")
-	passwd := s.portal.Config().GetString("core.sia.key")
+	addr := s.config.GetString("core.sia.url")
+	passwd := s.config.GetString("core.sia.key")
 
 	addrURL, err := url.Parse(addr)
 
@@ -210,13 +232,13 @@ func (s *StorageServiceImpl) Init() error {
 	s.tusStore = store
 	s.s3Client = s3client
 
-	s.portal.CronService().RegisterService(s)
+	s.cron.RegisterService(s)
 
 	go s.tusWorker()
 
 	return nil
 }
-func (s *StorageServiceImpl) LoadInitialTasks(cron interfaces.CronService) error {
+func (s *StorageServiceImpl) LoadInitialTasks(cron cron.CronService) error {
 	return nil
 }
 
@@ -250,7 +272,7 @@ func (s *StorageServiceImpl) FileExists(hash []byte) (bool, models.Upload) {
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.Upload
-	result := s.portal.Database().Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
+	result := s.db.Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
 
 	return result.RowsAffected > 0, upload
 }
@@ -293,7 +315,7 @@ func (s *StorageServiceImpl) CreateUpload(hash []byte, mime string, uploaderID u
 		Size:       size,
 	}
 
-	result := s.portal.Database().Create(upload)
+	result := s.db.Create(upload)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -309,7 +331,7 @@ func (s *StorageServiceImpl) tusWorker() {
 			hash, ok := info.Upload.MetaData["hash"]
 			errorResponse := tusd.HTTPResponse{StatusCode: 400, Header: nil}
 			if !ok {
-				s.portal.Logger().Error("Missing hash in metadata")
+				s.logger.Error("Missing hash in metadata")
 				continue
 			}
 
@@ -317,7 +339,7 @@ func (s *StorageServiceImpl) tusWorker() {
 			if !ok {
 				errorResponse.Body = "Missing user id in context"
 				info.Upload.StopUpload(errorResponse)
-				s.portal.Logger().Error("Missing user id in context")
+				s.logger.Error("Missing user id in context")
 				continue
 			}
 
@@ -328,7 +350,7 @@ func (s *StorageServiceImpl) tusWorker() {
 			if err != nil {
 				errorResponse.Body = "Could not decode hash"
 				info.Upload.StopUpload(errorResponse)
-				s.portal.Logger().Error("Could not decode hash", zap.Error(err))
+				s.logger.Error("Could not decode hash", zap.Error(err))
 				continue
 			}
 
@@ -336,19 +358,19 @@ func (s *StorageServiceImpl) tusWorker() {
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
 				info.Upload.StopUpload(errorResponse)
-				s.portal.Logger().Error("Could not create tus upload", zap.Error(err))
+				s.logger.Error("Could not create tus upload", zap.Error(err))
 				continue
 			}
 		case info := <-s.tus.UploadProgress:
 			err := s.TusUploadProgress(info.Upload.ID)
 			if err != nil {
-				s.portal.Logger().Error("Could not update tus upload", zap.Error(err))
+				s.logger.Error("Could not update tus upload", zap.Error(err))
 				continue
 			}
 		case info := <-s.tus.TerminatedUploads:
 			err := s.DeleteTusUpload(info.Upload.ID)
 			if err != nil {
-				s.portal.Logger().Error("Could not delete tus upload", zap.Error(err))
+				s.logger.Error("Could not delete tus upload", zap.Error(err))
 				continue
 			}
 
@@ -358,12 +380,12 @@ func (s *StorageServiceImpl) tusWorker() {
 			}
 			err := s.TusUploadCompleted(info.Upload.ID)
 			if err != nil {
-				s.portal.Logger().Error("Could not complete tus upload", zap.Error(err))
+				s.logger.Error("Could not complete tus upload", zap.Error(err))
 				continue
 			}
 			err = s.ScheduleTusUpload(info.Upload.ID, 0)
 			if err != nil {
-				s.portal.Logger().Error("Could not schedule tus upload", zap.Error(err))
+				s.logger.Error("Could not schedule tus upload", zap.Error(err))
 				continue
 			}
 
@@ -375,7 +397,7 @@ func (s *StorageServiceImpl) TusUploadExists(hash []byte) (bool, models.TusUploa
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.TusUpload
-	result := s.portal.Database().Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hashStr}).First(&upload)
+	result := s.db.Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hashStr}).First(&upload)
 
 	return result.RowsAffected > 0, upload
 }
@@ -392,7 +414,7 @@ func (s *StorageServiceImpl) CreateTusUpload(hash []byte, uploadID string, uploa
 		Protocol:   protocol,
 	}
 
-	result := s.portal.Database().Create(upload)
+	result := s.db.Create(upload)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -405,13 +427,13 @@ func (s *StorageServiceImpl) TusUploadProgress(uploadID string) error {
 	find := &models.TusUpload{UploadID: uploadID}
 
 	var upload models.TusUpload
-	result := s.portal.Database().Model(&models.TusUpload{}).Where(find).First(&upload)
+	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
 
 	if result.RowsAffected == 0 {
 		return errors.New("upload not found")
 	}
 
-	result = s.portal.Database().Model(&models.TusUpload{}).Where(find).Update("updated_at", time.Now())
+	result = s.db.Model(&models.TusUpload{}).Where(find).Update("updated_at", time.Now())
 
 	if result.Error != nil {
 		return result.Error
@@ -424,18 +446,18 @@ func (s *StorageServiceImpl) TusUploadCompleted(uploadID string) error {
 	find := &models.TusUpload{UploadID: uploadID}
 
 	var upload models.TusUpload
-	result := s.portal.Database().Model(&models.TusUpload{}).Where(find).First(&upload)
+	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
 
 	if result.RowsAffected == 0 {
 		return errors.New("upload not found")
 	}
 
-	result = s.portal.Database().Model(&models.TusUpload{}).Where(find).Update("completed", true)
+	result = s.db.Model(&models.TusUpload{}).Where(find).Update("completed", true)
 
 	return nil
 }
 func (s *StorageServiceImpl) DeleteTusUpload(uploadID string) error {
-	result := s.portal.Database().Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
+	result := s.db.Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
 
 	if result.Error != nil {
 		return result.Error
@@ -448,7 +470,7 @@ func (s *StorageServiceImpl) ScheduleTusUpload(uploadID string, attempt int) err
 	find := &models.TusUpload{UploadID: uploadID}
 
 	var upload models.TusUpload
-	result := s.portal.Database().Model(&models.TusUpload{}).Where(find).First(&upload)
+	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
 
 	if result.RowsAffected == 0 {
 		return errors.New("upload not found")
@@ -460,18 +482,18 @@ func (s *StorageServiceImpl) ScheduleTusUpload(uploadID string, attempt int) err
 		job = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(time.Duration(attempt) * time.Minute)))
 	}
 
-	_, err := s.portal.Cron().NewJob(job, task, gocron.WithEventListeners(gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
-		s.portal.Logger().Error("Error running job", zap.Error(err))
+	_, err := s.cron.Scheduler().NewJob(job, task, gocron.WithEventListeners(gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
+		s.logger.Error("Error running job", zap.Error(err))
 		err = s.ScheduleTusUpload(uploadID, attempt+1)
 		if err != nil {
-			s.portal.Logger().Error("Error rescheduling job", zap.Error(err))
+			s.logger.Error("Error rescheduling job", zap.Error(err))
 		}
 	}),
 		gocron.AfterJobRuns(func(jobID uuid.UUID, jobName string) {
-			s.portal.Logger().Info("Job finished", zap.String("jobName", jobName), zap.String("uploadID", uploadID))
+			s.logger.Info("Job finished", zap.String("jobName", jobName), zap.String("uploadID", uploadID))
 			err := s.DeleteTusUpload(uploadID)
 			if err != nil {
-				s.portal.Logger().Error("Error deleting tus upload", zap.Error(err))
+				s.logger.Error("Error deleting tus upload", zap.Error(err))
 			}
 		})))
 
@@ -489,38 +511,38 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 			ctx := context.Background()
 			tusUpload, err := s.tusStore.GetUpload(ctx, upload.UploadID)
 			if err != nil {
-				s.portal.Logger().Error("Could not get upload", zap.Error(err))
+				s.logger.Error("Could not get upload", zap.Error(err))
 				return err
 			}
 
 			reader, err := tusUpload.GetReader(ctx)
 			if err != nil {
-				s.portal.Logger().Error("Could not get tus file", zap.Error(err))
+				s.logger.Error("Could not get tus file", zap.Error(err))
 				return err
 			}
 
 			hash, byteCount, err := s.GetHash(reader)
 
 			if err != nil {
-				s.portal.Logger().Error("Could not compute hash", zap.Error(err))
+				s.logger.Error("Could not compute hash", zap.Error(err))
 				return err
 			}
 
 			dbHash, err := hex.DecodeString(upload.Hash)
 
 			if err != nil {
-				s.portal.Logger().Error("Could not decode hash", zap.Error(err))
+				s.logger.Error("Could not decode hash", zap.Error(err))
 				return err
 			}
 
 			if !bytes.Equal(hash, dbHash) {
-				s.portal.Logger().Error("Hashes do not match", zap.Any("upload", upload), zap.Any("hash", hash), zap.Any("dbHash", dbHash))
+				s.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("hash", hash), zap.Any("dbHash", dbHash))
 				return err
 			}
 
 			reader, err = tusUpload.GetReader(ctx)
 			if err != nil {
-				s.portal.Logger().Error("Could not get tus file", zap.Error(err))
+				s.logger.Error("Could not get tus file", zap.Error(err))
 				return err
 			}
 
@@ -529,7 +551,7 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 			_, err = reader.Read(mimeBuf[:])
 
 			if err != nil {
-				s.portal.Logger().Error("Could not read mime", zap.Error(err))
+				s.logger.Error("Could not read mime", zap.Error(err))
 				return err
 			}
 
@@ -537,28 +559,28 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 
 			upload.MimeType = mimeType
 
-			if tx := s.Portal().Database().Save(upload); tx.Error != nil {
-				s.portal.Logger().Error("Could not update tus upload", zap.Error(tx.Error))
+			if tx := s.db.Save(upload); tx.Error != nil {
+				s.logger.Error("Could not update tus upload", zap.Error(tx.Error))
 				return tx.Error
 			}
 
 			reader, err = tusUpload.GetReader(ctx)
 			if err != nil {
-				s.portal.Logger().Error("Could not get tus file", zap.Error(err))
+				s.logger.Error("Could not get tus file", zap.Error(err))
 				return err
 			}
 
 			err = s.PutFile(reader, upload.Protocol, dbHash)
 
 			if err != nil {
-				s.portal.Logger().Error("Could not upload file", zap.Error(err))
+				s.logger.Error("Could not upload file", zap.Error(err))
 				return err
 			}
 
 			s3InfoId, _ := splitS3Ids(upload.UploadID)
 
 			_, err = s.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-				Bucket: aws.String(s.portal.Config().GetString("core.storage.s3.bufferBucket")),
+				Bucket: aws.String(s.config.GetString("core.storage.s3.bufferBucket")),
 				Delete: &s3types.Delete{
 					Objects: []s3types.ObjectIdentifier{
 						{
@@ -573,19 +595,19 @@ func (s *StorageServiceImpl) buildNewTusUploadTask(upload *models.TusUpload) (jo
 			})
 
 			if err != nil {
-				s.portal.Logger().Error("Could not delete upload metadata", zap.Error(err))
+				s.logger.Error("Could not delete upload metadata", zap.Error(err))
 				return err
 			}
 
 			newUpload, err := s.CreateUpload(dbHash, mimeType, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
 			if err != nil {
-				s.portal.Logger().Error("Could not create upload", zap.Error(err))
+				s.logger.Error("Could not create upload", zap.Error(err))
 				return err
 			}
 
-			err = s.portal.Accounts().PinByID(newUpload.ID, upload.UploaderID)
+			err = s.accounts.PinByID(newUpload.ID, upload.UploaderID)
 			if err != nil {
-				s.portal.Logger().Error("Could not pin upload", zap.Error(err))
+				s.logger.Error("Could not pin upload", zap.Error(err))
 				return err
 			}
 
@@ -665,6 +687,6 @@ func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, i
 
 	return object.Content, int64(upload.Size), nil
 }
-func (s *StorageServiceImpl) NewFile(hash []byte) interfaces.File {
+func (s *StorageServiceImpl) NewFile(hash []byte) *FileImpl {
 	return NewFile(hash, s)
 }

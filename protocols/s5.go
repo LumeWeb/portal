@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"context"
 	"crypto/ed25519"
 	"fmt"
 	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
@@ -10,47 +11,83 @@ import (
 	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"time"
 )
 
 var (
-	_ interfaces.Protocol        = (*S5Protocol)(nil)
 	_ s5interfaces.ProviderStore = (*S5ProviderStore)(nil)
+	_ registry.Protocol          = (*S5Protocol)(nil)
 )
 
 type S5Protocol struct {
-	node   s5interfaces.Node
-	portal interfaces.Portal
+	node          s5interfaces.Node
+	config        *viper.Viper
+	logger        *zap.Logger
+	storage       *storage.StorageServiceImpl
+	identity      ed25519.PrivateKey
+	providerStore *S5ProviderStore
 }
 
-func NewS5Protocol() *S5Protocol {
-	return &S5Protocol{}
+type S5ProtocolParams struct {
+	fx.In
+	Config        *viper.Viper
+	Logger        *zap.Logger
+	Storage       *storage.StorageServiceImpl
+	Identity      ed25519.PrivateKey
+	ProviderStore *S5ProviderStore
 }
 
-func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
-	s.portal = portal
+type S5ProtocolResult struct {
+	fx.Out
+	Protocol registry.Protocol `group:"protocol"`
+}
 
-	logger := portal.Logger()
-	config := portal.Config()
+var S5ProtocolModule = fx.Module("s5_protocol",
+	fx.Provide(NewS5Protocol),
+	fx.Provide(func(protocol *S5Protocol) *S5ProviderStore {
+		return &S5ProviderStore{proto: protocol}
+	}),
+)
 
+func NewS5Protocol(
+	params S5ProtocolParams,
+) (S5ProtocolResult, error) {
+	return S5ProtocolResult{
+		Protocol: &S5Protocol{
+			config:        params.Config,
+			logger:        params.Logger,
+			storage:       params.Storage,
+			identity:      params.Identity,
+			providerStore: params.ProviderStore,
+		},
+	}, nil
+}
+
+func InitS5Protocol(s5 *S5Protocol) error {
+	return s5.Init()
+}
+func (s *S5Protocol) Init() error {
 	cfg := &s5config.NodeConfig{
 		P2P: s5config.P2PConfig{
 			Network: "",
 			Peers:   s5config.PeersConfig{Initial: []string{}},
 		},
-		KeyPair: s5ed.New(portal.Identity()),
+		KeyPair: s5ed.New(s.identity),
 		DB:      nil,
-		Logger:  portal.Logger().Named("s5"),
+		Logger:  s.logger.Named("s5"),
 		HTTP:    s5config.HTTPConfig{},
 	}
 
-	pconfig := config.Sub("protocol.s5")
+	pconfig := s.config.Sub("protocol.s5")
 
 	if pconfig == nil {
-		logger.Fatal("Missing protocol.s5 config")
+		s.logger.Fatal("Missing protocol.s5 Config")
 	}
 
 	err := pconfig.Unmarshal(cfg)
@@ -58,41 +95,41 @@ func (s *S5Protocol) Initialize(portal interfaces.Portal) error {
 		return err
 	}
 
-	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", config.GetString("core.domain"))
+	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", s.config.GetString("core.domain"))
 
-	if config.IsSet("core.externalPort") {
-		cfg.HTTP.API.Port = config.GetUint("core.externalPort")
+	if s.config.IsSet("core.externalPort") {
+		cfg.HTTP.API.Port = s.config.GetUint("core.externalPort")
 	} else {
-		cfg.HTTP.API.Port = config.GetUint("core.port")
+		cfg.HTTP.API.Port = s.config.GetUint("core.port")
 	}
 
 	dbPath := pconfig.GetString("dbPath")
 
 	if dbPath == "" {
-		logger.Fatal("protocol.s5.dbPath is required")
+		s.logger.Fatal("protocol.s5.dbPath is required")
 	}
 
 	_, p, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		logger.Fatal("Failed to generate key", zap.Error(err))
+		s.logger.Fatal("Failed to generate key", zap.Error(err))
 	}
 
 	cfg.KeyPair = s5ed.New(p)
 
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		logger.Fatal("Failed to open db", zap.Error(err))
+		s.logger.Fatal("Failed to open db", zap.Error(err))
 	}
 
 	cfg.DB = db
 
 	s.node = s5node.NewNode(cfg)
 
-	s.node.SetProviderStore(&S5ProviderStore{proto: s})
+	s.node.SetProviderStore(s.providerStore)
 
 	return nil
 }
-func (s *S5Protocol) Start() error {
+func (s *S5Protocol) Start(ctx context.Context) error {
 	err := s.node.Start()
 	if err != nil {
 		return err
@@ -104,10 +141,19 @@ func (s *S5Protocol) Start() error {
 		return err
 	}
 
-	s.portal.Logger().Info("S5 protocol started", zap.String("identity", identity), zap.String("network", s.node.NetworkId()), zap.String("domain", s.node.Config().HTTP.API.Domain))
+	s.logger.Info("S5 protocol started", zap.String("identity", identity), zap.String("network", s.node.NetworkId()), zap.String("domain", s.node.Config().HTTP.API.Domain))
 
 	return nil
 }
+
+func (s *S5Protocol) Name() string {
+	return "s5"
+}
+
+func (s *S5Protocol) Stop(ctx context.Context) error {
+	return nil
+}
+
 func (s *S5Protocol) Node() s5interfaces.Node {
 	return s.node
 }
@@ -122,13 +168,13 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
 			rawHash := hash.HashBytes()
 
-			if exists, upload := s.proto.portal.Storage().TusUploadExists(rawHash); exists {
+			if exists, upload := s.proto.storage.TusUploadExists(rawHash); exists {
 				if upload.Completed {
 					return true
 				}
 
 			}
-			if exists, _ := s.proto.portal.Storage().FileExists(rawHash); exists {
+			if exists, _ := s.proto.storage.FileExists(rawHash); exists {
 				return true
 			}
 		}
@@ -146,7 +192,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 		case types.StorageLocationTypeArchive:
 			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
 		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
-			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.proto.portal)}, calculateExpiry(24*time.Hour)), nil
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.proto.config, s.proto.logger)}, calculateExpiry(24*time.Hour)), nil
 		}
 	}
 
@@ -161,12 +207,12 @@ func calculateExpiry(duration time.Duration) int64 {
 	return time.Now().Add(duration).Unix()
 }
 
-func generateDownloadUrl(hash *encoding.Multihash, portal interfaces.Portal) string {
-	domain := portal.Config().GetString("core.domain")
+func generateDownloadUrl(hash *encoding.Multihash, config *viper.Viper, logger *zap.Logger) string {
+	domain := config.GetString("core.domain")
 
 	hashStr, err := hash.ToBase64Url()
 	if err != nil {
-		portal.Logger().Error("error encoding hash", zap.Error(err))
+		logger.Error("error encoding hash", zap.Error(err))
 	}
 
 	return fmt.Sprintf("https://s5.%s/s5/download/%s", domain, hashStr)

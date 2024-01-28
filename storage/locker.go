@@ -3,9 +3,9 @@ package storage
 import (
 	"context"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 	"os"
 	"sync"
 	"time"
@@ -17,9 +17,11 @@ var (
 )
 
 type MySQLLocker struct {
-	storage              interfaces.StorageService
+	storage              *StorageServiceImpl
 	AcquirerPollInterval time.Duration
 	HolderPollInterval   time.Duration
+	db                   *gorm.DB
+	logger               *zap.Logger
 }
 
 type Lock struct {
@@ -32,14 +34,14 @@ type Lock struct {
 	once                 sync.Once
 }
 
-func NewMySQLLocker(storage interfaces.StorageService) *MySQLLocker {
-	return &MySQLLocker{storage: storage, HolderPollInterval: 5 * time.Second, AcquirerPollInterval: 2 * time.Second}
+func NewMySQLLocker(db *gorm.DB, logger *zap.Logger) *MySQLLocker {
+	return &MySQLLocker{HolderPollInterval: 5 * time.Second, AcquirerPollInterval: 2 * time.Second, db: db, logger: logger}
 }
 
 func (l *Lock) released() error {
-	err := l.lockRecord.Released(l.locker.storage.Portal().Database())
+	err := l.lockRecord.Released(l.locker.db)
 	if err != nil {
-		l.locker.storage.Portal().Logger().Error("Failed to release lock", zap.Error(err))
+		l.locker.logger.Error("Failed to release lock", zap.Error(err))
 		return err
 	}
 
@@ -47,7 +49,7 @@ func (l *Lock) released() error {
 }
 func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
 
-	db := l.locker.storage.Portal().Database()
+	db := l.locker.db
 
 	for {
 		err := l.lockRecord.TryLock(db, ctx)
@@ -111,7 +113,7 @@ func (l *Lock) Unlock() error {
 		close(l.stopHolderPoll)
 	})
 
-	return l.lockRecord.Delete(l.locker.storage.Portal().Database())
+	return l.lockRecord.Delete(l.locker.db)
 }
 
 func (m *MySQLLocker) NewLock(id string) (tusd.Lock, error) {

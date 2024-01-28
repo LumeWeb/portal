@@ -1,35 +1,48 @@
 package account
 
 import (
+	"crypto/ed25519"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"github.com/spf13/viper"
+	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var (
-	_ interfaces.AccountService = (*AccountServiceImpl)(nil)
+type AccountServiceParams struct {
+	fx.In
+	Db       *gorm.DB
+	Config   *viper.Viper
+	Identity ed25519.PrivateKey
+}
+
+var Module = fx.Module("account",
+	fx.Options(
+		fx.Provide(NewAccountService),
+	),
 )
 
 type AccountServiceImpl struct {
-	portal interfaces.Portal
+	db       *gorm.DB
+	config   *viper.Viper
+	identity ed25519.PrivateKey
 }
 
-func NewAccountService(portal interfaces.Portal) interfaces.AccountService {
-	return &AccountServiceImpl{portal: portal}
+func NewAccountService(params AccountServiceParams) *AccountServiceImpl {
+	return &AccountServiceImpl{db: params.Db, config: params.Config, identity: params.Identity}
 }
 
 func (s AccountServiceImpl) EmailExists(email string) (bool, models.User) {
 	var user models.User
 
-	result := s.portal.Database().Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 
 	return result.RowsAffected > 0, user
 }
 func (s AccountServiceImpl) PubkeyExists(pubkey string) (bool, models.PublicKey) {
 	var model models.PublicKey
 
-	result := s.portal.Database().Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
+	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
 
 	return result.RowsAffected > 0, model
 }
@@ -37,7 +50,7 @@ func (s AccountServiceImpl) PubkeyExists(pubkey string) (bool, models.PublicKey)
 func (s AccountServiceImpl) AccountExists(id uint64) (bool, models.User) {
 	var model models.User
 
-	result := s.portal.Database().Model(&models.User{}).First(&model, id)
+	result := s.db.Model(&models.User{}).First(&model, id)
 
 	return result.RowsAffected > 0, model
 }
@@ -52,7 +65,7 @@ func (s AccountServiceImpl) CreateAccount(email string, password string) (*model
 	user.Email = email
 	user.PasswordHash = string(bytes)
 
-	result := s.portal.Database().Create(&user)
+	result := s.db.Create(&user)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -66,7 +79,7 @@ func (s AccountServiceImpl) AddPubkeyToAccount(user models.User, pubkey string) 
 	model.Key = pubkey
 	model.UserID = user.ID
 
-	result := s.portal.Database().Create(&model)
+	result := s.db.Create(&model)
 
 	if result.Error != nil {
 		return result.Error
@@ -77,7 +90,7 @@ func (s AccountServiceImpl) AddPubkeyToAccount(user models.User, pubkey string) 
 func (s AccountServiceImpl) LoginPassword(email string, password string) (string, error) {
 	var user models.User
 
-	result := s.portal.Database().Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		return "", result.Error
@@ -88,7 +101,7 @@ func (s AccountServiceImpl) LoginPassword(email string, password string) (string
 		return "", err
 	}
 
-	token, err := GenerateToken(s.portal.Identity(), user.ID)
+	token, err := GenerateToken(s.identity, user.ID)
 	if err != nil {
 		return "", err
 	}
@@ -99,13 +112,13 @@ func (s AccountServiceImpl) LoginPassword(email string, password string) (string
 func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
 	var model models.PublicKey
 
-	result := s.portal.Database().Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
+	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		return "", result.Error
 	}
 
-	token, err := GenerateToken(s.portal.Identity(), model.UserID)
+	token, err := GenerateToken(s.identity, model.UserID)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +129,7 @@ func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
 func (s AccountServiceImpl) AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error) {
 	var pins []models.Pin
 
-	result := s.portal.Database().Model(&models.Pin{}).
+	result := s.db.Model(&models.Pin{}).
 		Preload("Upload"). // Preload the related Upload for each Pin
 		Where(&models.Pin{UserID: uint(id)}).
 		Where("created_at > ?", createdAfter).
@@ -136,7 +149,7 @@ func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
 
 	// Retrieve the upload ID for the given hash
 	var uploadID uint
-	result := s.portal.Database().
+	result := s.db.
 		Model(&models.Upload{}).
 		Where(&uploadQuery).
 		Select("id").
@@ -152,7 +165,7 @@ func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
 
 	// Delete pins with the retrieved upload ID and matching account ID
 	pinQuery := models.Pin{UploadID: uploadID, UserID: accountID}
-	result = s.portal.Database().
+	result = s.db.
 		Where(&pinQuery).
 		Delete(&models.Pin{})
 
@@ -168,7 +181,7 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 
 	// Retrieve the upload ID for the given hash
 	var uploadID uint
-	result := s.portal.Database().
+	result := s.db.
 		Model(&models.Upload{}).
 		Where(&uploadQuery).
 		First(&uploadID)
@@ -181,7 +194,7 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 }
 
 func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
-	result := s.portal.Database().Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: accountID}).First(&models.Pin{})
+	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: accountID}).First(&models.Pin{})
 
 	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
 		return result.Error
@@ -193,7 +206,7 @@ func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
 
 	// Create a pin with the retrieved upload ID and matching account ID
 	pinQuery := models.Pin{UploadID: uploadId, UserID: accountID}
-	result = s.portal.Database().Create(&pinQuery)
+	result = s.db.Create(&pinQuery)
 
 	if result.Error != nil {
 		return result.Error

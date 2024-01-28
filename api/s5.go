@@ -1,50 +1,111 @@
 package api
 
 import (
+	"context"
+	"crypto/ed25519"
+	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
+	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"git.lumeweb.com/LumeWeb/portal/api/s5"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/rs/cors"
+	"github.com/spf13/viper"
 	"go.sia.tech/jape"
+	"go.uber.org/fx"
 )
 
 var (
-	_ interfaces.API = (*S5API)(nil)
+	_ registry.API = (*S5API)(nil)
 )
 
 type S5API struct {
+	config      *viper.Viper
+	identity    ed25519.PrivateKey
+	accounts    *account.AccountServiceImpl
+	storage     *storage.StorageServiceImpl
+	protocols   []protoRegistry.Protocol
+	httpHandler s5.HttpHandler
+	protocol    *protocols.S5Protocol
 }
 
-func NewS5() *S5API {
-	return &S5API{}
+type S5ApiParams struct {
+	fx.In
+	Config      *viper.Viper
+	Identity    ed25519.PrivateKey
+	Accounts    *account.AccountServiceImpl
+	Storage     *storage.StorageServiceImpl
+	Protocols   []protoRegistry.Protocol
+	HttpHandler s5.HttpHandler
 }
 
-func (s S5API) Initialize(portal interfaces.Portal, protocol interfaces.Protocol) error {
-	s5protocol := protocol.(*protocols.S5Protocol)
-	s5http := s5.NewHttpHandler(portal)
-	registerProtocolSubdomain(portal, s5protocol.Node().Services().HTTP().GetHttpRouter(getRoutes(s5http, portal)), "s5")
+type S5ApiResult struct {
+	fx.Out
+	Protocol registry.API `group:"api"`
+}
+
+func NewS5(params S5ApiParams) (S5ApiResult, error) {
+	return S5ApiResult{
+		Protocol: &S5API{
+			config:      params.Config,
+			identity:    params.Identity,
+			accounts:    params.Accounts,
+			storage:     params.Storage,
+			protocols:   params.Protocols,
+			httpHandler: params.HttpHandler,
+		},
+	}, nil
+}
+
+var S5Module = fx.Module("s5_api",
+	fx.Provide(NewS5),
+	fx.Provide(s5.NewHttpHandler),
+)
+
+func (s *S5API) Init() error {
+	s5protocol := protoRegistry.FindProtocolByName("s5", s.protocols)
+	if s5protocol == nil {
+		return fmt.Errorf("s5 protocol not found")
+	}
+
+	s5protocolInstance := s5protocol.(*protocols.S5Protocol)
+	s.protocol = s5protocolInstance
+	router := s5protocolInstance.Node().Services().HTTP().GetHttpRouter(getRoutes(s))
+	middleware.RegisterProtocolSubdomain(s.config, router, "s5")
 
 	return nil
 }
 
-func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Handler {
+func (s S5API) Name() string {
+	return "s5"
+}
 
-	tusHandler := middleware.BuildS5TusApi(portal)
+func (s S5API) Start(ctx context.Context) error {
+	return s.protocol.Node().Start()
+}
+
+func (s S5API) Stop(ctx context.Context) error {
+	return nil
+}
+
+func getRoutes(s *S5API) map[string]jape.Handler {
+	tusHandler := middleware.BuildS5TusApi(s.identity, s.accounts, s.storage)
 
 	return map[string]jape.Handler{
 		// Account API
-		"GET /s5/account/register":  h.AccountRegisterChallenge,
-		"POST /s5/account/register": h.AccountRegister,
-		"GET /s5/account/login":     h.AccountLoginChallenge,
-		"POST /s5/account/login":    h.AccountLogin,
-		"GET /s5/account":           middleware.ApplyMiddlewares(h.AccountInfo, middleware.AuthMiddleware(portal)),
-		"GET /s5/account/stats":     middleware.ApplyMiddlewares(h.AccountStats, middleware.AuthMiddleware(portal)),
-		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(h.AccountPins, middleware.AuthMiddleware(portal)),
+		"GET /s5/account/register":  s.httpHandler.AccountRegisterChallenge,
+		"POST /s5/account/register": s.httpHandler.AccountRegister,
+		"GET /s5/account/login":     s.httpHandler.AccountLoginChallenge,
+		"POST /s5/account/login":    s.httpHandler.AccountLogin,
+		"GET /s5/account":           middleware.ApplyMiddlewares(s.httpHandler.AccountInfo, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.httpHandler.AccountStats, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.httpHandler.AccountPins, middleware.AuthMiddleware(s.identity, s.accounts)),
 
 		// Upload API
-		"POST /s5/upload":           middleware.ApplyMiddlewares(h.SmallFileUpload, middleware.AuthMiddleware(portal)),
-		"POST /s5/upload/directory": middleware.ApplyMiddlewares(h.DirectoryUpload, middleware.AuthMiddleware(portal)),
+		"POST /s5/upload":           middleware.ApplyMiddlewares(s.httpHandler.SmallFileUpload, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.httpHandler.DirectoryUpload, middleware.AuthMiddleware(s.identity, s.accounts)),
 
 		// Tus API
 		"POST /s5/upload/tus":      tusHandler,
@@ -53,22 +114,22 @@ func getRoutes(h *s5.HttpHandler, portal interfaces.Portal) map[string]jape.Hand
 		"PATCH /s5/upload/tus/:id": tusHandler,
 
 		// Download API
-		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(h.DownloadBlob, middleware.AuthMiddleware(portal)),
-		"GET /s5/metadata/:cid": h.DownloadMetadata,
-		// "GET /s5/download/:cid": middleware.ApplyMiddlewares(h.DownloadFile, middleware.AuthMiddleware(portal)),
-		"GET /s5/download/:cid": middleware.ApplyMiddlewares(h.DownloadFile, cors.Default().Handler),
+		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.DownloadBlob, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/metadata/:cid": s.httpHandler.DownloadMetadata,
+		// "GET /s5/download/:cid": middleware.ApplyMiddlewares(s.httpHandler.DownloadFile, middleware.AuthMiddleware(portal)),
+		"GET /s5/download/:cid": middleware.ApplyMiddlewares(s.httpHandler.DownloadFile, cors.Default().Handler),
 
 		// Pins API
-		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(h.AccountPin, middleware.AuthMiddleware(portal)),
-		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(h.AccountPinDelete, middleware.AuthMiddleware(portal)),
+		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.httpHandler.AccountPin, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.httpHandler.AccountPinDelete, middleware.AuthMiddleware(s.identity, s.accounts)),
 
 		// Debug API
-		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(h.DebugDownloadUrls, middleware.AuthMiddleware(portal)),
-		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(h.DebugStorageLocations, middleware.AuthMiddleware(portal)),
+		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.httpHandler.DebugDownloadUrls, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.httpHandler.DebugStorageLocations, middleware.AuthMiddleware(s.identity, s.accounts)),
 
 		// Registry API
-		"GET /s5/registry":              middleware.ApplyMiddlewares(h.RegistryQuery, middleware.AuthMiddleware(portal)),
-		"POST /s5/registry":             middleware.ApplyMiddlewares(h.RegistrySet, middleware.AuthMiddleware(portal)),
-		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(h.RegistrySubscription, middleware.AuthMiddleware(portal)),
+		"GET /s5/registry":              middleware.ApplyMiddlewares(s.httpHandler.RegistryQuery, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.RegistrySet, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.RegistrySubscription, middleware.AuthMiddleware(s.identity, s.accounts)),
 	}
 }

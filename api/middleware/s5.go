@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"context"
+	"crypto/ed25519"
 	"fmt"
-	"git.lumeweb.com/LumeWeb/portal/interfaces"
+	"git.lumeweb.com/LumeWeb/portal/account"
+	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
 	"net/http"
@@ -44,7 +46,7 @@ func parseAuthTokenHeader(headers http.Header) string {
 	return authHeader
 }
 
-func AuthMiddleware(portal interfaces.Portal) func(http.Handler) http.Handler {
+func AuthMiddleware(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authToken := findAuthToken(r)
@@ -59,7 +61,7 @@ func AuthMiddleware(portal interfaces.Portal) func(http.Handler) http.Handler {
 					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
 
-				publicKey := portal.Identity().Public()
+				publicKey := identity.Public()
 
 				return publicKey, nil
 			})
@@ -90,7 +92,7 @@ func AuthMiddleware(portal interfaces.Portal) func(http.Handler) http.Handler {
 					return
 				}
 
-				exists, _ := portal.Accounts().AccountExists(userID)
+				exists, _ := accounts.AccountExists(userID)
 
 				if !exists {
 					http.Error(w, "Invalid User ID", http.StatusBadRequest)
@@ -134,10 +136,10 @@ func (w *tusJwtResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
+func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl, storage *storage.StorageServiceImpl) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
-		tusHandler := portal.Storage().Tus()
+		tusHandler := storage.Tus()
 		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
@@ -164,7 +166,7 @@ func BuildS5TusApi(portal interfaces.Portal) jape.Handler {
 	}
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := ApplyMiddlewares(tusJapeHandler, AuthMiddleware(portal), injectJwt, protocolMiddleware, stripPrefix, proxyMiddleware)
+	tusHandler := ApplyMiddlewares(tusJapeHandler, AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, proxyMiddleware)
 
 	return tusHandler
 }
