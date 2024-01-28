@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"git.lumeweb.com/LumeWeb/portal/api/router"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
@@ -39,9 +38,7 @@ func BuildApis(config *viper.Viper) fx.Option {
 		}
 	}
 
-	return fx.Module("api", fx.Options(options...), fx.Provide(func() router.ProtocolRouter {
-		return registry.GetRouter()
-	}))
+	return fx.Module("api", fx.Options(options...))
 }
 
 func SetupLifecycles(lifecycle fx.Lifecycle, protocols []registry.API) {
