@@ -28,7 +28,7 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 		}
 	}
 
-	return fx.Options(options...)
+	return fx.Module("protocol", fx.Options(options...))
 }
 
 func SetupLifecycles(lifecycle fx.Lifecycle, protocols []registry.Protocol) {
