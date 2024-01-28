@@ -45,7 +45,7 @@ type S5ProtocolParams struct {
 
 type S5ProtocolResult struct {
 	fx.Out
-	Protocol   []registry.Protocol `group:"protocol"`
+	Protocol   registry.Protocol `group:"protocol"`
 	S5Protocol *S5Protocol
 }
 
@@ -66,7 +66,7 @@ func NewS5Protocol(
 	}
 
 	return S5ProtocolResult{
-		Protocol:   []registry.Protocol{proto},
+		Protocol:   proto,
 		S5Protocol: proto,
 	}, nil
 }
