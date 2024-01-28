@@ -58,33 +58,6 @@ func main() {
 		fx.Provide(api.NewCasbin),
 		fx.Invoke(protocols.SetupLifecycles),
 		fx.Invoke(api.SetupLifecycles),
-		fx.Provide(func(lc fx.Lifecycle, config *viper.Viper) *http.Server {
-			srv := &http.Server{
-				Addr:    config.GetString("core.port"),
-				Handler: registry.GetRouter(),
-			}
-
-			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					ln, err := net.Listen("tcp", srv.Addr)
-					if err != nil {
-						return err
-					}
-
-					go func() {
-						err := srv.Serve(ln)
-						if err != nil {
-							logger.Fatal("Failed to serve", zap.Error(err))
-						}
-					}()
-
-					return nil
-				},
-				OnStop: func(ctx context.Context) error {
-					return srv.Shutdown(ctx)
-				},
-			})
-			return srv
-		}),
+		fx.Provide(NewServer),
 	).Run()
 }

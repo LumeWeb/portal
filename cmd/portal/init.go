@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"crypto/ed25519"
+	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"github.com/spf13/viper"
 	"go.sia.tech/core/wallet"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"net"
+	"net/http"
 )
 
 func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
@@ -52,4 +57,33 @@ func NewIdentity(config *viper.Viper, logger *zap.Logger) (ed25519.PrivateKey, e
 	}
 
 	return ed25519.PrivateKey(wallet.KeyFromSeed(&seed, 0)), nil
+}
+
+func NewServer(lc fx.Lifecycle, config *viper.Viper, logger *zap.Logger) (*http.Server, error) {
+	srv := &http.Server{
+		Addr:    config.GetString("core.port"),
+		Handler: registry.GetRouter(),
+	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			ln, err := net.Listen("tcp", srv.Addr)
+			if err != nil {
+				return err
+			}
+
+			go func() {
+				err := srv.Serve(ln)
+				if err != nil {
+					logger.Fatal("Failed to serve", zap.Error(err))
+				}
+			}()
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return srv.Shutdown(ctx)
+		},
+	})
+	return srv, nil
 }
