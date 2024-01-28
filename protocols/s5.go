@@ -49,7 +49,7 @@ type S5ProtocolResult struct {
 	S5Protocol *S5Protocol
 }
 
-var S5ProtocolModule = fx.Module("s5_protocol",
+var S5ProtocolModule = fx.Module("s5_api",
 	fx.Provide(NewS5Protocol),
 	fx.Provide(NewS5ProviderStore),
 )
