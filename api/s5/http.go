@@ -100,7 +100,7 @@ type HttpHandlerParams struct {
 type HttpHandlerResult struct {
 	fx.Out
 
-	HttpHandler *HttpHandler
+	HttpHandler HttpHandler
 }
 
 func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
@@ -112,7 +112,7 @@ func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
 	verifier.DisableAutoUpdateDisposable()
 
 	return HttpHandlerResult{
-		HttpHandler: &HttpHandler{
+		HttpHandler: HttpHandler{
 			verifier: verifier,
 			config:   params.Config,
 			logger:   params.Logger,
