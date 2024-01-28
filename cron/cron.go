@@ -26,6 +26,7 @@ type CronServiceParams struct {
 var Module = fx.Module("cron",
 	fx.Options(
 		fx.Provide(NewCronService),
+		fx.Provide(gocron.NewScheduler),
 	),
 )
 
