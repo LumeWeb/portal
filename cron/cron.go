@@ -40,6 +40,7 @@ type CronServiceImpl struct {
 
 type RetryableTaskParams struct {
 	Name     string
+	Tags     []string
 	Function any
 	Args     []any
 	Attempt  uint
@@ -129,11 +130,16 @@ func (c *CronServiceImpl) RetryableTask(params RetryableTaskParams) CronJob {
 	}), gocron.AfterJobRuns(params.After))
 
 	name := gocron.WithName(params.Name)
+	options := []gocron.JobOption{listeners, name}
+
+	if len(params.Tags) > 0 {
+		options = append(options, gocron.WithTags(params.Tags...))
+	}
 
 	return CronJob{
 		Job:     job,
 		Task:    task,
-		Options: []gocron.JobOption{listeners, name},
+		Options: options,
 	}
 }
 
