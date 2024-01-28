@@ -59,5 +59,6 @@ func main() {
 		fx.Invoke(protocols.SetupLifecycles),
 		fx.Invoke(api.SetupLifecycles),
 		fx.Provide(NewServer),
+		fx.Invoke(func(*http.Server) {}),
 	).Run()
 }
