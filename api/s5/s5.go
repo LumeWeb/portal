@@ -1,4 +1,4 @@
-package api
+package s5
 
 import (
 	"context"
@@ -7,9 +7,8 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"git.lumeweb.com/LumeWeb/portal/api/s5"
-	"git.lumeweb.com/LumeWeb/portal/protocols"
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
@@ -29,18 +28,18 @@ type S5API struct {
 	accounts    *account.AccountServiceImpl
 	storage     *storage.StorageServiceImpl
 	protocols   []protoRegistry.Protocol
-	httpHandler s5.HttpHandler
-	protocol    *protocols.S5Protocol
+	httpHandler HttpHandler
+	protocol    *s5.S5Protocol
 }
 
-type S5ApiParams struct {
+type APIParams struct {
 	fx.In
 	Config      *viper.Viper
 	Identity    ed25519.PrivateKey
 	Accounts    *account.AccountServiceImpl
 	Storage     *storage.StorageServiceImpl
 	Protocols   []protoRegistry.Protocol `group:"protocol"`
-	HttpHandler s5.HttpHandler
+	HttpHandler HttpHandler
 }
 
 type S5ApiResult struct {
@@ -49,7 +48,7 @@ type S5ApiResult struct {
 	S5API *S5API
 }
 
-func NewS5(params S5ApiParams) (S5ApiResult, error) {
+func NewS5(params APIParams) (S5ApiResult, error) {
 	api := &S5API{
 		config:      params.Config,
 		identity:    params.Identity,
@@ -64,13 +63,13 @@ func NewS5(params S5ApiParams) (S5ApiResult, error) {
 	}, nil
 }
 
-func InitS5Api(api *S5API) error {
+func InitAPI(api *S5API) error {
 	return api.Init()
 }
 
-var S5Module = fx.Module("s5_api",
+var Module = fx.Module("s5_api",
 	fx.Provide(NewS5),
-	fx.Provide(s5.NewHttpHandler),
+	fx.Provide(NewHttpHandler),
 )
 
 func (s *S5API) Init() error {
@@ -79,7 +78,7 @@ func (s *S5API) Init() error {
 		return fmt.Errorf("s5 protocol not found")
 	}
 
-	s5protocolInstance := s5protocol.(*protocols.S5Protocol)
+	s5protocolInstance := s5protocol.(*s5.S5Protocol)
 	s.protocol = s5protocolInstance
 	router := s5protocolInstance.Node().Services().HTTP().GetHttpRouter(getRoutes(s))
 	middleware.RegisterProtocolSubdomain(s.config, router, "s5")

@@ -1,4 +1,4 @@
-package protocols
+package s5
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
 	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
+	s5fx "git.lumeweb.com/LumeWeb/libs5-go/fx"
 	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
@@ -21,17 +21,16 @@ import (
 )
 
 var (
-	_ s5interfaces.ProviderStore = (*S5ProviderStore)(nil)
-	_ registry.Protocol          = (*S5Protocol)(nil)
+	_ s5storage.ProviderStore = (*S5ProviderStore)(nil)
+	_ registry.Protocol       = (*S5Protocol)(nil)
 )
 
 type S5Protocol struct {
-	node          s5interfaces.Node
-	config        *viper.Viper
-	logger        *zap.Logger
-	storage       *storage.StorageServiceImpl
-	identity      ed25519.PrivateKey
-	providerStore *S5ProviderStore
+	config   *viper.Viper
+	logger   *zap.Logger
+	storage  *storage.StorageServiceImpl
+	identity ed25519.PrivateKey
+	node     *s5node.Node
 }
 
 type S5ProtocolParams struct {
@@ -45,30 +44,91 @@ type S5ProtocolParams struct {
 
 type S5ProtocolResult struct {
 	fx.Out
-	Protocol   registry.Protocol `group:"protocol"`
-	S5Protocol *S5Protocol
+	Protocol     registry.Protocol `group:"protocol"`
+	S5Protocol   *S5Protocol
+	S5NodeConfig *s5config.NodeConfig
 }
 
-var S5ProtocolModule = fx.Module("s5_api",
+var ProtocolModule = fx.Module("s5_api",
 	fx.Provide(NewS5Protocol),
 	fx.Provide(NewS5ProviderStore),
+	s5fx.Module,
 )
 
 func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
 	proto := &S5Protocol{
-		config:        params.Config,
-		logger:        params.Logger,
-		storage:       params.Storage,
-		identity:      params.Identity,
-		providerStore: params.ProviderStore,
+		config:   params.Config,
+		logger:   params.Logger,
+		storage:  params.Storage,
+		identity: params.Identity,
+	}
+
+	cfg, err := ConfigureS5Protocol(params)
+	if err != nil {
+		return S5ProtocolResult{}, err
 	}
 
 	return S5ProtocolResult{
-		Protocol:   proto,
-		S5Protocol: proto,
+		Protocol:     proto,
+		S5Protocol:   proto,
+		S5NodeConfig: cfg,
 	}, nil
+}
+
+func ConfigureS5Protocol(params S5ProtocolParams) (*s5config.NodeConfig, error) {
+	cfg := &s5config.NodeConfig{
+		P2P: s5config.P2PConfig{
+			Network: "",
+			Peers:   s5config.PeersConfig{Initial: []string{}},
+		},
+		KeyPair: s5ed.New(params.Identity),
+		DB:      nil,
+		Logger:  params.Logger.Named("s5"),
+		HTTP:    s5config.HTTPConfig{},
+	}
+
+	pconfig := params.Config.Sub("protocol.s5")
+
+	if pconfig == nil {
+		params.Logger.Fatal("Missing protocol.s5 Config")
+	}
+
+	err := pconfig.Unmarshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", params.Config.GetString("core.domain"))
+
+	if params.Config.IsSet("core.externalPort") {
+		cfg.HTTP.API.Port = params.Config.GetUint("core.externalPort")
+	} else {
+		cfg.HTTP.API.Port = params.Config.GetUint("core.port")
+	}
+
+	dbPath := pconfig.GetString("dbPath")
+
+	if dbPath == "" {
+		params.Logger.Fatal("protocol.s5.dbPath is required")
+	}
+
+	_, p, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		params.Logger.Fatal("Failed to generate key", zap.Error(err))
+	}
+
+	cfg.KeyPair = s5ed.New(p)
+
+	db, err := bolt.Open(dbPath, 0600, nil)
+	if err != nil {
+		params.Logger.Fatal("Failed to open db", zap.Error(err))
+	}
+
+	cfg.DB = db
+
+	return cfg, nil
 }
 
 func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storage.StorageServiceImpl) *S5ProviderStore {
@@ -79,63 +139,21 @@ func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storag
 	}
 }
 
-func InitS5Protocol(s5 *S5Protocol) error {
-	return s5.Init()
+func InitProtocol(s5 *S5Protocol, node *s5node.Node, store *S5ProviderStore) error {
+	return s5.Init(node, store)
 }
-func (s *S5Protocol) Init() error {
-	cfg := &s5config.NodeConfig{
-		P2P: s5config.P2PConfig{
-			Network: "",
-			Peers:   s5config.PeersConfig{Initial: []string{}},
-		},
-		KeyPair: s5ed.New(s.identity),
-		DB:      nil,
-		Logger:  s.logger.Named("s5"),
-		HTTP:    s5config.HTTPConfig{},
-	}
-
-	pconfig := s.config.Sub("protocol.s5")
-
-	if pconfig == nil {
-		s.logger.Fatal("Missing protocol.s5 Config")
-	}
-
-	err := pconfig.Unmarshal(cfg)
-	if err != nil {
-		return err
-	}
-
-	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", s.config.GetString("core.domain"))
-
-	if s.config.IsSet("core.externalPort") {
-		cfg.HTTP.API.Port = s.config.GetUint("core.externalPort")
+func (s *S5Protocol) Init(args ...any) error {
+	if node, ok := args[0].(*s5node.Node); !ok {
+		s.logger.Fatal("Node is not a s5 node")
 	} else {
-		cfg.HTTP.API.Port = s.config.GetUint("core.port")
+		s.node = node
 	}
 
-	dbPath := pconfig.GetString("dbPath")
-
-	if dbPath == "" {
-		s.logger.Fatal("protocol.s5.dbPath is required")
+	if store, ok := args[1].(*S5ProviderStore); !ok {
+		s.logger.Fatal("Store is not a s5 store")
+	} else {
+		s.node.Services().Storage().SetProviderStore(store)
 	}
-
-	_, p, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		s.logger.Fatal("Failed to generate key", zap.Error(err))
-	}
-
-	cfg.KeyPair = s5ed.New(p)
-
-	db, err := bolt.Open(dbPath, 0600, nil)
-	if err != nil {
-		s.logger.Fatal("Failed to open db", zap.Error(err))
-	}
-
-	cfg.DB = db
-
-	s.node = s5node.NewNode(cfg)
-
-	s.node.SetProviderStore(s.providerStore)
 
 	return nil
 }
@@ -145,7 +163,7 @@ func (s *S5Protocol) Start(ctx context.Context) error {
 		return err
 	}
 
-	identity, err := s.node.Services().P2P().NodeId().ToString()
+	identity, err := s.node.NodeId().ToString()
 
 	if err != nil {
 		return err
@@ -160,12 +178,12 @@ func (s *S5Protocol) Name() string {
 	return "s5"
 }
 
-func (s *S5Protocol) Stop(ctx context.Context) error {
-	return nil
+func (s *S5Protocol) Node() *s5node.Node {
+	return s.node
 }
 
-func (s *S5Protocol) Node() s5interfaces.Node {
-	return s.node
+func (s *S5Protocol) Stop(ctx context.Context) error {
+	return nil
 }
 
 type S5ProviderStore struct {
@@ -194,7 +212,7 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 	return false
 }
 
-func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageLocationType) (s5interfaces.StorageLocation, error) {
+func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageLocationType) (s5storage.StorageLocation, error) {
 	for _, t := range kind {
 		if !s.CanProvide(hash, []types.StorageLocationType{t}) {
 			continue

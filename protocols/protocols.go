@@ -3,6 +3,7 @@ package protocols
 import (
 	"context"
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
@@ -11,8 +12,8 @@ import (
 func RegisterProtocols() {
 	registry.Register(registry.ProtocolEntry{
 		Key:      "s5",
-		Module:   S5ProtocolModule,
-		InitFunc: InitS5Protocol,
+		Module:   s5.ProtocolModule,
+		InitFunc: s5.InitProtocol,
 	})
 }
 

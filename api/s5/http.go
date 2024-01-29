@@ -10,15 +10,16 @@ import (
 	"errors"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	s5interfaces "git.lumeweb.com/LumeWeb/libs5-go/interfaces"
 	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
-	s5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
-	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
+	libs5node "git.lumeweb.com/LumeWeb/libs5-go/node"
+	libs5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
+	libs5service "git.lumeweb.com/LumeWeb/libs5-go/service"
+	libs5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/samber/lo"
@@ -83,7 +84,7 @@ type HttpHandler struct {
 	storage  *storage.StorageServiceImpl
 	db       *gorm.DB
 	accounts *account.AccountServiceImpl
-	protocol *protocols.S5Protocol
+	protocol *s5.S5Protocol
 }
 
 type HttpHandlerParams struct {
@@ -94,7 +95,7 @@ type HttpHandlerParams struct {
 	Storage  *storage.StorageServiceImpl
 	Db       *gorm.DB
 	Accounts *account.AccountServiceImpl
-	Protocol *protocols.S5Protocol
+	Protocol *s5.S5Protocol
 }
 
 type HttpHandlerResult struct {
@@ -955,7 +956,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 
 	node := h.getNode()
 
-	dlUriProvider := s5storage.NewStorageLocationProvider(node, &decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+	dlUriProvider := h.newStorageLocationProvider(&decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
 
 	err = dlUriProvider.Start()
 	if err != nil {
@@ -971,7 +972,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 		return
 	}
 
-	locations, err := node.GetCachedStorageLocations(&decodedCid.Hash, []types.StorageLocationType{
+	locations, err := node.Services().Storage().GetCachedStorageLocations(&decodedCid.Hash, []types.StorageLocationType{
 		types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge,
 	})
 	if err != nil {
@@ -980,7 +981,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 		return
 	}
 
-	availableNodes := lo.Keys[string, s5interfaces.StorageLocation](locations)
+	availableNodes := lo.Keys[string, libs5storage.StorageLocation](locations)
 
 	availableNodesIds := make([]*encoding.NodeId, len(availableNodes))
 
@@ -1072,7 +1073,7 @@ func (h *HttpHandler) RegistrySet(jc jape.Context) {
 		return
 	}
 
-	entry := s5protocol.NewSignedRegistryEntry(pk, request.Revision, data, signature)
+	entry := libs5protocol.NewSignedRegistryEntry(pk, request.Revision, data, signature)
 
 	err = h.getNode().Services().Registry().Set(entry, false, nil)
 	if jc.Check("error setting registry entry", err) != nil {
@@ -1140,7 +1141,7 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 			break
 		}
 
-		off, err := h.getNode().Services().Registry().Listen(sre, func(entry s5interfaces.SignedRegistryEntry) {
+		off, err := h.getNode().Services().Registry().Listen(sre, func(entry libs5protocol.SignedRegistryEntry) {
 			encoded, err := msgpack.Marshal(entry)
 			if err != nil {
 				h.logger.Error("error encoding entry", zap.Error(err))
@@ -1162,7 +1163,7 @@ func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
 	}
 }
 
-func (h *HttpHandler) getNode() s5interfaces.Node {
+func (h *HttpHandler) getNode() *libs5node.Node {
 	return h.protocol.Node()
 }
 
@@ -1180,7 +1181,7 @@ func (h *HttpHandler) DownloadBlob(jc jape.Context) {
 		return
 	}
 
-	dlUriProvider := s5storage.NewStorageLocationProvider(h.getNode(), &cidDecoded.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+	dlUriProvider := h.newStorageLocationProvider(&cidDecoded.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
 
 	err = dlUriProvider.Start()
 
@@ -1234,7 +1235,7 @@ func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
 		}
 	}
 
-	dlUriProvider := s5storage.NewStorageLocationProvider(h.getNode(), decodedHash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+	dlUriProvider := h.newStorageLocationProvider(decodedHash, typeIntList...)
 
 	err = dlUriProvider.Start()
 	if jc.Check("error starting search", err) != nil {
@@ -1246,12 +1247,12 @@ func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
 		return
 	}
 
-	locations, err := h.getNode().GetCachedStorageLocations(decodedHash, typeIntList)
+	locations, err := h.getNode().Services().Storage().GetCachedStorageLocations(decodedHash, typeIntList)
 	if jc.Check("error getting cached locations", err) != nil {
 		return
 	}
 
-	availableNodes := lo.Keys[string, s5interfaces.StorageLocation](locations)
+	availableNodes := lo.Keys[string, libs5storage.StorageLocation](locations)
 	availableNodesIds := make([]*encoding.NodeId, len(availableNodes))
 
 	for i, nodeIdStr := range availableNodes {
@@ -1319,7 +1320,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 		return
 	}
 
-	meta, err := h.getNode().GetMetadataByCID(cidDecoded)
+	meta, err := h.getNode().Services().Storage().GetMetadataByCID(cidDecoded)
 
 	if jc.Check("error getting metadata", err) != nil {
 		h.logger.Error("error getting metadata", zap.Error(err))
@@ -1377,6 +1378,19 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 	jc.ResponseWriter.Header().Set("Content-Type", file.Mime())
 
 	http.ServeContent(jc.ResponseWriter, jc.Request, file.Name(), file.Modtime(), file)
+}
+
+func (h *HttpHandler) newStorageLocationProvider(hash *encoding.Multihash, types ...types.StorageLocationType) libs5storage.StorageLocationProvider {
+	return libs5storage.NewStorageLocationProvider(libs5storage.StorageLocationProviderParams{
+		Services:      h.getNode().Services(),
+		Hash:          hash,
+		LocationTypes: types,
+		ServiceParams: libs5service.ServiceParams{
+			Logger: h.logger,
+			Config: h.getNode().Config(),
+			Db:     h.getNode().Db(),
+		},
+	})
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {

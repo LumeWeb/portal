@@ -9,7 +9,7 @@ const GroupName = "protocols"
 
 type Protocol interface {
 	Name() string
-	Init() error
+	Init(...any) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 }
