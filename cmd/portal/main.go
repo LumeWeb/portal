@@ -11,9 +11,9 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
+	_"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	_"go.uber.org/zap/zapcore"
 	"net/http"
 )
 
@@ -37,13 +37,13 @@ func main() {
 
 		fx.Decorate(func() *zap.Logger {
 			return logger
-		}),
+		}),/*
 		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
 			log := &fxevent.ZapLogger{Logger: logger}
 			log.UseLogLevel(zapcore.InfoLevel)
 			log.UseErrorLevel(zapcore.ErrorLevel)
 			return log
-		}),
+		}),*/
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
