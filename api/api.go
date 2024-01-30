@@ -38,7 +38,7 @@ type LifecyclesParams struct {
 	Protocols []registry.API `group:"protocol"`
 }
 
-func SetupLifecycles(lifecycle fx.Lifecycle, params LifecyclesParams) {
+func SetupLifecycles(lifecycle fx.Lifecycle, params LifecyclesParams) error {
 	for _, entry := range registry.GetRegistry() {
 		for _, protocol := range params.Protocols {
 			if protocol.Name() == entry.Key {
@@ -53,4 +53,6 @@ func SetupLifecycles(lifecycle fx.Lifecycle, params LifecyclesParams) {
 			}
 		}
 	}
+
+	return nil
 }
