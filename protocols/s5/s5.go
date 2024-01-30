@@ -77,7 +77,7 @@ func NewS5Protocol(
 		S5Protocol:   proto,
 		S5NodeConfig: cfg,
 		Db:           cfg.DB,
-		Logger:       cfg.Logger,
+		Logger:       params.Logger,
 	}, nil
 }
 
