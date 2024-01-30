@@ -166,6 +166,11 @@ func (s *S5Protocol) Init(args ...any) error {
 		s.node.Services().Storage().SetProviderStore(store)
 	}
 
+	err := s.node.Init()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 func (s *S5Protocol) Start(ctx context.Context) error {
