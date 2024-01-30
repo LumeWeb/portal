@@ -47,6 +47,8 @@ type S5ProtocolResult struct {
 	Protocol     registry.Protocol `group:"protocol"`
 	S5Protocol   *S5Protocol
 	S5NodeConfig *s5config.NodeConfig
+	Db           *bolt.DB
+	Logger       *zap.Logger
 }
 
 var ProtocolModule = fx.Module("s5_api",
@@ -74,6 +76,8 @@ func NewS5Protocol(
 		Protocol:     proto,
 		S5Protocol:   proto,
 		S5NodeConfig: cfg,
+		Db:           cfg.DB,
+		Logger:       params.Logger,
 	}, nil
 }
 
