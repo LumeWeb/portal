@@ -15,6 +15,7 @@ import (
 	libs5protocol "git.lumeweb.com/LumeWeb/libs5-go/protocol"
 	libs5service "git.lumeweb.com/LumeWeb/libs5-go/service"
 	libs5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
+	libs5storageProvider "git.lumeweb.com/LumeWeb/libs5-go/storage/provider"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
@@ -1381,7 +1382,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 }
 
 func (h *HttpHandler) newStorageLocationProvider(hash *encoding.Multihash, types ...types.StorageLocationType) libs5storage.StorageLocationProvider {
-	return libs5storage.NewStorageLocationProvider(libs5storage.StorageLocationProviderParams{
+	return libs5storageProvider.NewStorageLocationProvider(libs5storageProvider.StorageLocationProviderParams{
 		Services:      h.getNode().Services(),
 		Hash:          hash,
 		LocationTypes: types,
