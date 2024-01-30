@@ -19,6 +19,8 @@ git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130033540-ff134ece14ba h1:+QH80v1zi
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130033540-ff134ece14ba/go.mod h1:1fftK3db+qKZhPxijPSlORciLf5y5t8Ozok59ifx6T8=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130033852-f2d2193fc259 h1:uhZxPqsozvFWh+C7zmUDIR8Yaj9UdFOrvwVynFHHz/Y=
 git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130033852-f2d2193fc259/go.mod h1:1fftK3db+qKZhPxijPSlORciLf5y5t8Ozok59ifx6T8=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130053131-a51e3430e1a7 h1:mje77qVjaCrFeSkana35dTve+6mzaFIaZLZYB9vEurM=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130053131-a51e3430e1a7/go.mod h1:1fftK3db+qKZhPxijPSlORciLf5y5t8Ozok59ifx6T8=
 github.com/Acconut/go-httptest-recorder v1.0.0 h1:TAv2dfnqp/l+SUvIaMAUK4GeN4+wqb6KZsFFFTGhoJg=
 github.com/Acconut/go-httptest-recorder v1.0.0/go.mod h1:CwQyhTH1kq/gLyWiRieo7c0uokpu3PXeyF/nZjUNtmM=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
