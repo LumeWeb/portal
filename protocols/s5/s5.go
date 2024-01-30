@@ -48,12 +48,14 @@ type S5ProtocolResult struct {
 	S5Protocol   *S5Protocol
 	S5NodeConfig *s5config.NodeConfig
 	Db           *bolt.DB
-	Logger       *zap.Logger
 }
 
 var ProtocolModule = fx.Module("s5_api",
 	fx.Provide(NewS5Protocol),
 	fx.Provide(NewS5ProviderStore),
+	fx.Decorate(func(cfg *s5config.NodeConfig) *zap.Logger {
+		return cfg.Logger
+	}),
 	s5fx.Module,
 )
 
@@ -77,7 +79,6 @@ func NewS5Protocol(
 		S5Protocol:   proto,
 		S5NodeConfig: cfg,
 		Db:           cfg.DB,
-		Logger:       params.Logger,
 	}, nil
 }
 
