@@ -9,11 +9,14 @@ import (
 	_logger "git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/storage"
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
-	_"go.uber.org/fx/fxevent"
+	"go.uber.org/fx/fxevent"
+	_ "go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
-	_"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapcore"
+	_ "go.uber.org/zap/zapcore"
 	"net/http"
 )
 
@@ -26,8 +29,26 @@ func main() {
 		logger.Fatal("Failed to load config", zap.Error(err))
 	}
 
+	var fxDebug bool
+
+	flag.BoolVar(&fxDebug, "fx-debug", false, "Enable fx framework debug logging")
+	flag.Parse()
+
 	protocols.RegisterProtocols()
 	api.RegisterApis()
+
+	var fxLogger fx.Option
+
+	fxLogger = fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
+		log := &fxevent.ZapLogger{Logger: logger}
+		log.UseLogLevel(zapcore.InfoLevel)
+		log.UseErrorLevel(zapcore.ErrorLevel)
+		return log
+	})
+
+	if fxDebug {
+		fxLogger = fx.Options()
+	}
 
 	fx.New(
 		fx.Provide(_logger.NewFallbackLogger),
@@ -37,13 +58,8 @@ func main() {
 
 		fx.Decorate(func() *zap.Logger {
 			return logger
-		}),/*
-		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
-			log := &fxevent.ZapLogger{Logger: logger}
-			log.UseLogLevel(zapcore.InfoLevel)
-			log.UseErrorLevel(zapcore.ErrorLevel)
-			return log
-		}),*/
+		}),
+		fxLogger,
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
