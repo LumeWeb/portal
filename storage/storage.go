@@ -43,6 +43,7 @@ type StorageServiceParams struct {
 	Db       *gorm.DB
 	Accounts *account.AccountServiceDefault
 	Cron     *cron.CronServiceDefault
+	Renter   *renter.RenterDefault
 }
 
 var Module = fx.Module("storage",
@@ -81,6 +82,7 @@ func NewStorageService(lc fx.Lifecycle, params StorageServiceParams) *StorageSer
 		db:       params.Db,
 		accounts: params.Accounts,
 		cron:     params.Cron,
+		renter:   params.Renter,
 	}
 
 	lc.Append(fx.Hook{
