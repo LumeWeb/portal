@@ -49,6 +49,9 @@ var Module = fx.Module("storage",
 	fx.Provide(
 		NewStorageService,
 	),
+	fx.Invoke(func(s *StorageServiceDefault) error {
+		return s.init()
+	}),
 )
 
 type StorageServiceDefault struct {
