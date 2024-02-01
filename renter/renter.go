@@ -141,7 +141,7 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 
 	var redundancy api.RedundancySettings
 
-	err := r.GetSetting(ctx, "redundancy", redundancy)
+	err := r.GetSetting(ctx, "redundancy", &redundancy)
 	if err != nil {
 		return err
 	}
