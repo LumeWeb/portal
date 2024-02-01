@@ -12,6 +12,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"git.lumeweb.com/LumeWeb/portal/renter"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -22,15 +23,12 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/s3store"
 	"go.sia.tech/renterd/api"
-	busClient "go.sia.tech/renterd/bus/client"
-	workerClient "go.sia.tech/renterd/worker/client"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
 	"lukechampine.com/blake3"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -54,16 +52,15 @@ var Module = fx.Module("storage",
 )
 
 type StorageServiceDefault struct {
-	busClient    *busClient.Client
-	workerClient *workerClient.Client
-	tus          *tusd.Handler
-	tusStore     tusd.DataStore
-	s3Client     *s3.Client
-	config       *viper.Viper
-	logger       *zap.Logger
-	db           *gorm.DB
-	accounts     *account.AccountServiceDefault
-	cron         *cron.CronServiceDefault
+	tus      *tusd.Handler
+	tusStore tusd.DataStore
+	s3Client *s3.Client
+	config   *viper.Viper
+	logger   *zap.Logger
+	db       *gorm.DB
+	accounts *account.AccountServiceDefault
+	cron     *cron.CronServiceDefault
+	renter   *renter.RenterDefault
 }
 
 func (s *StorageServiceDefault) Tus() *tusd.Handler {
@@ -96,12 +93,12 @@ func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string, g
 		return nil, err
 	}
 
-	err = s.createBucketIfNotExists(bucket)
+	err = s.renter.CreateBucketIfNotExists(bucket)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = s.workerClient.UploadObject(context.Background(), file, bucket, hashStr, api.UploadObjectOptions{})
+	err = s.renter.UploadObject(context.Background(), file, bucket, hashStr)
 
 	if err != nil {
 		return nil, err
@@ -111,12 +108,12 @@ func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string, g
 }
 func (s StorageServiceDefault) PutFile(file io.Reader, bucket string, hash []byte) error {
 	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
-	err = s.createBucketIfNotExists(bucket)
+	err = s.renter.CreateBucketIfNotExists(bucket)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.workerClient.UploadObject(context.Background(), file, bucket, hashStr, api.UploadObjectOptions{})
+	err = s.renter.UploadObject(context.Background(), file, bucket, hashStr)
 	if err != nil {
 		return err
 	}
@@ -173,24 +170,6 @@ func (s *StorageServiceDefault) BuildUploadBufferTus(basePath string, preUploadC
 }
 
 func (s *StorageServiceDefault) init() error {
-
-	addr := s.config.GetString("core.sia.url")
-	passwd := s.config.GetString("core.sia.key")
-
-	addrURL, err := url.Parse(addr)
-
-	if err != nil {
-		return err
-	}
-
-	addrURL.Path = "/api/worker"
-
-	s.workerClient = workerClient.New(addrURL.String(), passwd)
-
-	addrURL.Path = "/api/bus"
-
-	s.busClient = busClient.New(addrURL.String(), passwd)
-
 	preUpload := func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 		blankResp := tusd.HTTPResponse{}
 		blankChanges := tusd.FileInfoChanges{}
@@ -233,37 +212,9 @@ func (s *StorageServiceDefault) init() error {
 
 	s.cron.RegisterService(s)
 
-	go s.tusWorker()
-
 	return nil
 }
 func (s *StorageServiceDefault) LoadInitialTasks(cron cron.CronService) error {
-	return nil
-}
-
-func (s *StorageServiceDefault) createBucketIfNotExists(bucket string) error {
-
-	_, err := s.busClient.Bucket(context.Background(), bucket)
-
-	if err == nil {
-		return nil
-	}
-
-	if err != nil {
-		if !errors.Is(err, api.ErrBucketNotFound) {
-			return err
-		}
-	}
-
-	err = s.busClient.CreateBucket(context.Background(), bucket, api.CreateBucketOptions{
-		Policy: api.BucketPolicy{
-			PublicReadAccess: false,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -665,7 +616,7 @@ func (s *StorageServiceDefault) GetFile(hash []byte, start int64) (io.ReadCloser
 		}
 	}
 
-	object, err := s.workerClient.GetObject(context.Background(), upload.Protocol, hashStr, api.DownloadObjectOptions{
+	object, err := s.renter.GetObject(context.Background(), upload.Protocol, hashStr, api.DownloadObjectOptions{
 		Range: partialRange,
 	})
 

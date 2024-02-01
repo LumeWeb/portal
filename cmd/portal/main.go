@@ -8,6 +8,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_logger "git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
+	"git.lumeweb.com/LumeWeb/portal/renter"
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -63,6 +64,7 @@ func main() {
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
+		renter.Module,
 		storage.Module,
 		cron.Module,
 		account.Module,
