@@ -21,9 +21,8 @@ import (
 )
 
 var (
-	_        s5storage.ProviderStore = (*S5ProviderStore)(nil)
-	_        registry.Protocol       = (*S5Protocol)(nil)
-	instance *S5ProtocolResult
+	_ s5storage.ProviderStore = (*S5ProviderStore)(nil)
+	_ registry.Protocol       = (*S5Protocol)(nil)
 )
 
 type S5Protocol struct {
@@ -54,7 +53,7 @@ type S5ProtocolResult struct {
 var ProtocolModule = fx.Module("s5_api",
 	fx.Provide(NewS5Protocol),
 	fx.Provide(NewS5ProviderStore),
-	fx.Decorate(func(cfg *s5config.NodeConfig) *zap.Logger {
+	fx.Replace(func(cfg *s5config.NodeConfig) *zap.Logger {
 		return cfg.Logger
 	}),
 	s5fx.Module,
@@ -63,9 +62,6 @@ var ProtocolModule = fx.Module("s5_api",
 func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
-	if instance != nil {
-		return *instance, nil
-	}
 	proto := &S5Protocol{
 		config:   params.Config,
 		logger:   params.Logger,
@@ -78,14 +74,12 @@ func NewS5Protocol(
 		return S5ProtocolResult{}, err
 	}
 
-	instance = &S5ProtocolResult{
+	return S5ProtocolResult{
 		Protocol:     proto,
 		S5Protocol:   proto,
 		S5NodeConfig: cfg,
 		Db:           cfg.DB,
-	}
-
-	return *instance, nil
+	}, nil
 }
 
 func ConfigureS5Protocol(params S5ProtocolParams) (*s5config.NodeConfig, error) {
