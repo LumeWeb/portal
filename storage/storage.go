@@ -74,14 +74,23 @@ func (s *StorageServiceDefault) Start() error {
 	return nil
 }
 
-func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
-	return &StorageServiceDefault{
+func NewStorageService(lc fx.Lifecycle, params StorageServiceParams) *StorageServiceDefault {
+	ss := &StorageServiceDefault{
 		config:   params.Config,
 		logger:   params.Logger,
 		db:       params.Db,
 		accounts: params.Accounts,
 		cron:     params.Cron,
 	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go ss.tusWorker()
+			return nil
+		},
+	})
+
+	return ss
 }
 
 func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error) {
