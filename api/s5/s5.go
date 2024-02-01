@@ -25,8 +25,8 @@ var (
 type S5API struct {
 	config      *viper.Viper
 	identity    ed25519.PrivateKey
-	accounts    *account.AccountServiceImpl
-	storage     *storage.StorageServiceImpl
+	accounts    *account.AccountServiceDefault
+	storage     *storage.StorageServiceDefault
 	protocols   []protoRegistry.Protocol
 	httpHandler HttpHandler
 	protocol    *s5.S5Protocol
@@ -36,8 +36,8 @@ type APIParams struct {
 	fx.In
 	Config      *viper.Viper
 	Identity    ed25519.PrivateKey
-	Accounts    *account.AccountServiceImpl
-	Storage     *storage.StorageServiceImpl
+	Accounts    *account.AccountServiceDefault
+	Storage     *storage.StorageServiceDefault
 	Protocols   []protoRegistry.Protocol `group:"protocol"`
 	HttpHandler HttpHandler
 }
@@ -168,7 +168,7 @@ func (w *s5TusJwtResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceImpl, storage *storage.StorageServiceImpl) jape.Handler {
+func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceDefault, storage *storage.StorageServiceDefault) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
 		tusHandler := storage.Tus()

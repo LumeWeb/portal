@@ -17,7 +17,7 @@ var (
 )
 
 type MySQLLocker struct {
-	storage              *StorageServiceImpl
+	storage              *StorageServiceDefault
 	AcquirerPollInterval time.Duration
 	HolderPollInterval   time.Duration
 	db                   *gorm.DB

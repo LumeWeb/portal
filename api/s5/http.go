@@ -82,9 +82,9 @@ type HttpHandler struct {
 	verifier *emailverifier.Verifier
 	config   *viper.Viper
 	logger   *zap.Logger
-	storage  *storage.StorageServiceImpl
+	storage  *storage.StorageServiceDefault
 	db       *gorm.DB
-	accounts *account.AccountServiceImpl
+	accounts *account.AccountServiceDefault
 	protocol *s5.S5Protocol
 }
 
@@ -93,9 +93,9 @@ type HttpHandlerParams struct {
 
 	Config   *viper.Viper
 	Logger   *zap.Logger
-	Storage  *storage.StorageServiceImpl
+	Storage  *storage.StorageServiceDefault
 	Db       *gorm.DB
-	Accounts *account.AccountServiceImpl
+	Accounts *account.AccountServiceDefault
 	Protocol *s5.S5Protocol
 }
 

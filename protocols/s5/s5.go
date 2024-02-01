@@ -29,7 +29,7 @@ var (
 type S5Protocol struct {
 	config   *viper.Viper
 	logger   *zap.Logger
-	storage  *storage.StorageServiceImpl
+	storage  *storage.StorageServiceDefault
 	identity ed25519.PrivateKey
 	node     *s5node.Node
 }
@@ -38,7 +38,7 @@ type S5ProtocolParams struct {
 	fx.In
 	Config        *viper.Viper
 	Logger        *zap.Logger
-	Storage       *storage.StorageServiceImpl
+	Storage       *storage.StorageServiceDefault
 	Identity      ed25519.PrivateKey
 	ProviderStore *S5ProviderStore
 }
@@ -142,7 +142,7 @@ func ConfigureS5Protocol(params S5ProtocolParams) (*s5config.NodeConfig, error) 
 	return cfg, nil
 }
 
-func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storage.StorageServiceImpl) *S5ProviderStore {
+func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storage.StorageServiceDefault) *S5ProviderStore {
 	return &S5ProviderStore{
 		config:  config,
 		logger:  logger,
@@ -205,7 +205,7 @@ func (s *S5Protocol) Stop(ctx context.Context) error {
 type S5ProviderStore struct {
 	config  *viper.Viper
 	logger  *zap.Logger
-	storage *storage.StorageServiceImpl
+	storage *storage.StorageServiceDefault
 }
 
 func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.StorageLocationType) bool {

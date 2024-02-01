@@ -22,24 +22,24 @@ var Module = fx.Module("account",
 	),
 )
 
-type AccountServiceImpl struct {
+type AccountServiceDefault struct {
 	db       *gorm.DB
 	config   *viper.Viper
 	identity ed25519.PrivateKey
 }
 
-func NewAccountService(params AccountServiceParams) *AccountServiceImpl {
-	return &AccountServiceImpl{db: params.Db, config: params.Config, identity: params.Identity}
+func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
+	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity}
 }
 
-func (s AccountServiceImpl) EmailExists(email string) (bool, models.User) {
+func (s AccountServiceDefault) EmailExists(email string) (bool, models.User) {
 	var user models.User
 
 	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 
 	return result.RowsAffected > 0, user
 }
-func (s AccountServiceImpl) PubkeyExists(pubkey string) (bool, models.PublicKey) {
+func (s AccountServiceDefault) PubkeyExists(pubkey string) (bool, models.PublicKey) {
 	var model models.PublicKey
 
 	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
@@ -47,14 +47,14 @@ func (s AccountServiceImpl) PubkeyExists(pubkey string) (bool, models.PublicKey)
 	return result.RowsAffected > 0, model
 }
 
-func (s AccountServiceImpl) AccountExists(id uint64) (bool, models.User) {
+func (s AccountServiceDefault) AccountExists(id uint64) (bool, models.User) {
 	var model models.User
 
 	result := s.db.Model(&models.User{}).First(&model, id)
 
 	return result.RowsAffected > 0, model
 }
-func (s AccountServiceImpl) CreateAccount(email string, password string) (*models.User, error) {
+func (s AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
 	var user models.User
 
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -73,7 +73,7 @@ func (s AccountServiceImpl) CreateAccount(email string, password string) (*model
 
 	return &user, nil
 }
-func (s AccountServiceImpl) AddPubkeyToAccount(user models.User, pubkey string) error {
+func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
 	model.Key = pubkey
@@ -87,7 +87,7 @@ func (s AccountServiceImpl) AddPubkeyToAccount(user models.User, pubkey string) 
 
 	return nil
 }
-func (s AccountServiceImpl) LoginPassword(email string, password string) (string, error) {
+func (s AccountServiceDefault) LoginPassword(email string, password string) (string, error) {
 	var user models.User
 
 	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
@@ -109,7 +109,7 @@ func (s AccountServiceImpl) LoginPassword(email string, password string) (string
 	return token, nil
 }
 
-func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
+func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 	var model models.PublicKey
 
 	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
@@ -126,7 +126,7 @@ func (s AccountServiceImpl) LoginPubkey(pubkey string) (string, error) {
 	return token, nil
 }
 
-func (s AccountServiceImpl) AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error) {
+func (s AccountServiceDefault) AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error) {
 	var pins []models.Pin
 
 	result := s.db.Model(&models.Pin{}).
@@ -143,7 +143,7 @@ func (s AccountServiceImpl) AccountPins(id uint64, createdAfter uint64) ([]model
 	return pins, nil
 }
 
-func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
+func (s AccountServiceDefault) DeletePinByHash(hash string, accountID uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
@@ -175,7 +175,7 @@ func (s AccountServiceImpl) DeletePinByHash(hash string, accountID uint) error {
 
 	return nil
 }
-func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
+func (s AccountServiceDefault) PinByHash(hash string, accountID uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
@@ -193,7 +193,7 @@ func (s AccountServiceImpl) PinByHash(hash string, accountID uint) error {
 	return s.PinByID(uploadID, accountID)
 }
 
-func (s AccountServiceImpl) PinByID(uploadId uint, accountID uint) error {
+func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
 	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: accountID}).First(&models.Pin{})
 
 	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {

@@ -32,7 +32,7 @@ var Module = fx.Module("cron",
 	),
 )
 
-type CronServiceImpl struct {
+type CronServiceDefault struct {
 	scheduler gocron.Scheduler
 	services  []CronableService
 	logger    *zap.Logger
@@ -56,12 +56,12 @@ type CronJob struct {
 	Options []gocron.JobOption
 }
 
-func (c *CronServiceImpl) Scheduler() gocron.Scheduler {
+func (c *CronServiceDefault) Scheduler() gocron.Scheduler {
 	return c.scheduler
 }
 
-func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceImpl {
-	sc := &CronServiceImpl{
+func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefault {
+	sc := &CronServiceDefault{
 		logger:    params.Logger,
 		scheduler: params.Scheduler,
 	}
@@ -75,7 +75,7 @@ func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceImpl 
 	return sc
 }
 
-func (c *CronServiceImpl) start() error {
+func (c *CronServiceDefault) start() error {
 	for _, service := range c.services {
 		err := service.LoadInitialTasks(c)
 		if err != nil {
@@ -88,11 +88,11 @@ func (c *CronServiceImpl) start() error {
 	return nil
 }
 
-func (c *CronServiceImpl) RegisterService(service CronableService) {
+func (c *CronServiceDefault) RegisterService(service CronableService) {
 	c.services = append(c.services, service)
 }
 
-func (c *CronServiceImpl) RetryableTask(params RetryableTaskParams) CronJob {
+func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
 	job := gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 
 	if params.Attempt > 0 {
@@ -145,7 +145,7 @@ func (c *CronServiceImpl) RetryableTask(params RetryableTaskParams) CronJob {
 	}
 }
 
-func (c *CronServiceImpl) CreateJob(job CronJob) (gocron.Job, error) {
+func (c *CronServiceDefault) CreateJob(job CronJob) (gocron.Job, error) {
 	ret, err := c.Scheduler().NewJob(job.Job, job.Task, job.Options...)
 	if err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func (c *CronServiceImpl) CreateJob(job CronJob) (gocron.Job, error) {
 
 	return ret, nil
 }
-func (c *CronServiceImpl) RerunJob(job CronJob) (gocron.Job, error) {
+func (c *CronServiceDefault) RerunJob(job CronJob) (gocron.Job, error) {
 	ret, err := c.Scheduler().Update(job.JobId, job.Job, job.Task, job.Options...)
 
 	if err != nil {

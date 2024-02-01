@@ -43,8 +43,8 @@ type StorageServiceParams struct {
 	Config   *viper.Viper
 	Logger   *zap.Logger
 	Db       *gorm.DB
-	Accounts *account.AccountServiceImpl
-	Cron     *cron.CronServiceImpl
+	Accounts *account.AccountServiceDefault
+	Cron     *cron.CronServiceDefault
 }
 
 var Module = fx.Module("storage",
@@ -53,7 +53,7 @@ var Module = fx.Module("storage",
 	),
 )
 
-type StorageServiceImpl struct {
+type StorageServiceDefault struct {
 	busClient    *busClient.Client
 	workerClient *workerClient.Client
 	tus          *tusd.Handler
@@ -62,20 +62,20 @@ type StorageServiceImpl struct {
 	config       *viper.Viper
 	logger       *zap.Logger
 	db           *gorm.DB
-	accounts     *account.AccountServiceImpl
-	cron         *cron.CronServiceImpl
+	accounts     *account.AccountServiceDefault
+	cron         *cron.CronServiceDefault
 }
 
-func (s *StorageServiceImpl) Tus() *tusd.Handler {
+func (s *StorageServiceDefault) Tus() *tusd.Handler {
 	return s.tus
 }
 
-func (s *StorageServiceImpl) Start() error {
+func (s *StorageServiceDefault) Start() error {
 	return nil
 }
 
-func NewStorageService(params StorageServiceParams) *StorageServiceImpl {
-	return &StorageServiceImpl{
+func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
+	return &StorageServiceDefault{
 		config:   params.Config,
 		logger:   params.Logger,
 		db:       params.Db,
@@ -84,7 +84,7 @@ func NewStorageService(params StorageServiceParams) *StorageServiceImpl {
 	}
 }
 
-func (s StorageServiceImpl) PutFileSmall(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error) {
+func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string, generateProof bool) ([]byte, error) {
 	hash, err := s.GetHashSmall(file)
 	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
 	if err != nil {
@@ -109,7 +109,7 @@ func (s StorageServiceImpl) PutFileSmall(file io.ReadSeeker, bucket string, gene
 
 	return hash[:], nil
 }
-func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) error {
+func (s StorageServiceDefault) PutFile(file io.Reader, bucket string, hash []byte) error {
 	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
 	err = s.createBucketIfNotExists(bucket)
 	if err != nil {
@@ -124,7 +124,7 @@ func (s StorageServiceImpl) PutFile(file io.Reader, bucket string, hash []byte) 
 	return nil
 }
 
-func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
+func (s *StorageServiceDefault) BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
 			return aws.Endpoint{
@@ -172,7 +172,7 @@ func (s *StorageServiceImpl) BuildUploadBufferTus(basePath string, preUploadCb T
 	return handler, store, s3Client, err
 }
 
-func (s *StorageServiceImpl) init() error {
+func (s *StorageServiceDefault) init() error {
 
 	addr := s.config.GetString("core.sia.url")
 	passwd := s.config.GetString("core.sia.key")
@@ -237,11 +237,11 @@ func (s *StorageServiceImpl) init() error {
 
 	return nil
 }
-func (s *StorageServiceImpl) LoadInitialTasks(cron cron.CronService) error {
+func (s *StorageServiceDefault) LoadInitialTasks(cron cron.CronService) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
+func (s *StorageServiceDefault) createBucketIfNotExists(bucket string) error {
 
 	_, err := s.busClient.Bucket(context.Background(), bucket)
 
@@ -267,7 +267,7 @@ func (s *StorageServiceImpl) createBucketIfNotExists(bucket string) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) FileExists(hash []byte) (bool, models.Upload) {
+func (s *StorageServiceDefault) FileExists(hash []byte) (bool, models.Upload) {
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.Upload
@@ -276,7 +276,7 @@ func (s *StorageServiceImpl) FileExists(hash []byte) (bool, models.Upload) {
 	return result.RowsAffected > 0, upload
 }
 
-func (s *StorageServiceImpl) GetHashSmall(file io.ReadSeeker) ([]byte, error) {
+func (s *StorageServiceDefault) GetHashSmall(file io.ReadSeeker) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 
 	_, err := io.Copy(buf, file)
@@ -288,7 +288,7 @@ func (s *StorageServiceImpl) GetHashSmall(file io.ReadSeeker) ([]byte, error) {
 
 	return hash[:], nil
 }
-func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, int64, error) {
+func (s *StorageServiceDefault) GetHash(file io.Reader) ([]byte, int64, error) {
 	hasher := blake3.New(64, nil)
 
 	totalBytes, err := io.Copy(hasher, file)
@@ -302,7 +302,7 @@ func (s *StorageServiceImpl) GetHash(file io.Reader) ([]byte, int64, error) {
 	return hash[:32], totalBytes, nil
 }
 
-func (s *StorageServiceImpl) CreateUpload(hash []byte, mime string, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
+func (s *StorageServiceDefault) CreateUpload(hash []byte, mime string, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
 	hashStr := hex.EncodeToString(hash)
 
 	upload := &models.Upload{
@@ -322,7 +322,7 @@ func (s *StorageServiceImpl) CreateUpload(hash []byte, mime string, uploaderID u
 
 	return upload, nil
 }
-func (s *StorageServiceImpl) tusWorker() {
+func (s *StorageServiceDefault) tusWorker() {
 
 	for {
 		select {
@@ -392,7 +392,7 @@ func (s *StorageServiceImpl) tusWorker() {
 	}
 }
 
-func (s *StorageServiceImpl) TusUploadExists(hash []byte) (bool, models.TusUpload) {
+func (s *StorageServiceDefault) TusUploadExists(hash []byte) (bool, models.TusUpload) {
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.TusUpload
@@ -401,7 +401,7 @@ func (s *StorageServiceImpl) TusUploadExists(hash []byte) (bool, models.TusUploa
 	return result.RowsAffected > 0, upload
 }
 
-func (s *StorageServiceImpl) CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
+func (s *StorageServiceDefault) CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
 	hashStr := hex.EncodeToString(hash)
 
 	upload := &models.TusUpload{
@@ -421,7 +421,7 @@ func (s *StorageServiceImpl) CreateTusUpload(hash []byte, uploadID string, uploa
 
 	return upload, nil
 }
-func (s *StorageServiceImpl) TusUploadProgress(uploadID string) error {
+func (s *StorageServiceDefault) TusUploadProgress(uploadID string) error {
 
 	find := &models.TusUpload{UploadID: uploadID}
 
@@ -440,7 +440,7 @@ func (s *StorageServiceImpl) TusUploadProgress(uploadID string) error {
 
 	return nil
 }
-func (s *StorageServiceImpl) TusUploadCompleted(uploadID string) error {
+func (s *StorageServiceDefault) TusUploadCompleted(uploadID string) error {
 
 	find := &models.TusUpload{UploadID: uploadID}
 
@@ -455,7 +455,7 @@ func (s *StorageServiceImpl) TusUploadCompleted(uploadID string) error {
 
 	return nil
 }
-func (s *StorageServiceImpl) DeleteTusUpload(uploadID string) error {
+func (s *StorageServiceDefault) DeleteTusUpload(uploadID string) error {
 	result := s.db.Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
 
 	if result.Error != nil {
@@ -465,7 +465,7 @@ func (s *StorageServiceImpl) DeleteTusUpload(uploadID string) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) ScheduleTusUpload(uploadID string) error {
+func (s *StorageServiceDefault) ScheduleTusUpload(uploadID string) error {
 	find := &models.TusUpload{UploadID: uploadID}
 
 	var upload models.TusUpload
@@ -498,7 +498,7 @@ func (s *StorageServiceImpl) ScheduleTusUpload(uploadID string) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) tusUploadTask(upload *models.TusUpload) error {
+func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
 	ctx := context.Background()
 	tusUpload, err := s.tusStore.GetUpload(ctx, upload.UploadID)
 	if err != nil {
@@ -605,7 +605,7 @@ func (s *StorageServiceImpl) tusUploadTask(upload *models.TusUpload) error {
 	return nil
 }
 
-func (s *StorageServiceImpl) getPrefixedHash(hash []byte) []byte {
+func (s *StorageServiceDefault) getPrefixedHash(hash []byte) []byte {
 	return append([]byte{byte(types.HashTypeBlake3)}, hash...)
 }
 
@@ -620,7 +620,7 @@ func splitS3Ids(id string) (objectId, multipartId string) {
 	return
 }
 
-func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, int64, error) {
+func (s *StorageServiceDefault) GetFile(hash []byte, start int64) (io.ReadCloser, int64, error) {
 	if exists, tusUpload := s.TusUploadExists(hash); exists {
 		if tusUpload.Completed {
 			upload, err := s.tusStore.GetUpload(context.Background(), tusUpload.UploadID)
@@ -675,6 +675,6 @@ func (s *StorageServiceImpl) GetFile(hash []byte, start int64) (io.ReadCloser, i
 
 	return object.Content, int64(upload.Size), nil
 }
-func (s *StorageServiceImpl) NewFile(hash []byte) *FileImpl {
+func (s *StorageServiceDefault) NewFile(hash []byte) *FileImpl {
 	return NewFile(hash, s)
 }
