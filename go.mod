@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240130222606-5079db4f03e6
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240201012059-dfeb8b29a8e4
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/aws/aws-sdk-go-v2 v1.24.0
 	github.com/aws/aws-sdk-go-v2/config v1.26.2
