@@ -58,6 +58,7 @@ func NewRenterService(params RenterServiceParams) *RenterDefault {
 	return &RenterDefault{
 		config: params.Config,
 		logger: params.Logger,
+		cron:   params.Cron,
 	}
 }
 
