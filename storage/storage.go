@@ -469,13 +469,20 @@ func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
 		return err
 	}
 
-	reader, err := tusUpload.GetReader(ctx)
+	readerHash, err := tusUpload.GetReader(ctx)
 	if err != nil {
 		s.logger.Error("Could not get tus file", zap.Error(err))
 		return err
 	}
 
-	hash, byteCount, err := s.GetHash(reader)
+	defer func(reader io.ReadCloser) {
+		err := reader.Close()
+		if err != nil {
+			s.logger.Error("Could not close reader", zap.Error(err))
+		}
+	}(readerHash)
+
+	hash, byteCount, err := s.GetHash(readerHash)
 
 	if err != nil {
 		s.logger.Error("Could not compute hash", zap.Error(err))
@@ -494,15 +501,22 @@ func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
 		return err
 	}
 
-	reader, err = tusUpload.GetReader(ctx)
+	readerMime, err := tusUpload.GetReader(ctx)
 	if err != nil {
 		s.logger.Error("Could not get tus file", zap.Error(err))
 		return err
 	}
 
+	defer func(reader io.ReadCloser) {
+		err := reader.Close()
+		if err != nil {
+			s.logger.Error("Could not close reader", zap.Error(err))
+		}
+	}(readerMime)
+
 	var mimeBuf [512]byte
 
-	_, err = reader.Read(mimeBuf[:])
+	_, err = readerMime.Read(mimeBuf[:])
 
 	if err != nil {
 		s.logger.Error("Could not read mime", zap.Error(err))
@@ -518,13 +532,28 @@ func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
 		return tx.Error
 	}
 
-	reader, err = tusUpload.GetReader(ctx)
+	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
+	err = s.renter.CreateBucketIfNotExists(upload.Protocol)
 	if err != nil {
-		s.logger.Error("Could not get tus file", zap.Error(err))
 		return err
 	}
 
-	err = s.PutFile(reader, upload.Protocol, dbHash)
+	info, err := tusUpload.GetInfo(context.Background())
+	if err != nil {
+		s.logger.Error("Could not get tus info", zap.Error(err))
+		return err
+	}
+
+	err = s.renter.MultipartUpload(renter.MultiPartUploadParams{
+		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
+			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+			ctx = context.WithValue(ctx, "range", rangeHeader)
+			return tusUpload.GetReader(ctx)
+		},
+		Bucket:   upload.Protocol,
+		FileName: hashStr,
+		Size:     uint64(info.Size),
+	})
 
 	if err != nil {
 		s.logger.Error("Could not upload file", zap.Error(err))
