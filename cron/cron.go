@@ -101,14 +101,12 @@ func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
 
 	task := gocron.NewTask(params.Function, params.Args...)
 
-	afterFunc := params.After
-	if afterFunc == nil {
-		afterFunc = func(jobID uuid.UUID, jobName string) {}
+	if params.After == nil {
+		params.After = func(jobID uuid.UUID, jobName string) {}
 	}
 
-	errorFunc := params.Error
-	if errorFunc == nil {
-		errorFunc = func(jobID uuid.UUID, jobName string, err error) {}
+	if params.Error == nil {
+		params.Error = func(jobID uuid.UUID, jobName string, err error) {}
 	}
 
 	listeners := gocron.WithEventListeners(gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
