@@ -167,14 +167,25 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		if end > size {
 			end = size
 		}
-
-		reader, err := rf(uint(start), uint(end))
 		next := make(chan struct{}, 0)
 		defer close(next)
+
 		job := r.cron.RetryableTask(cron.RetryableTaskParams{
 			Name: fileName + "-part-" + strconv.FormatUint(i, 10),
 			Function: func() error {
-				_, err := r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, int(i), api.UploadMultipartUploadPartOptions{})
+				reader, err := rf(uint(start), uint(end))
+				defer func(reader io.ReadCloser) {
+					err := reader.Close()
+					if err != nil {
+						r.logger.Error("failed to close reader", zap.Error(err))
+					}
+				}(reader)
+
+				if err != nil {
+					return err
+				}
+
+				_, err = r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, int(i), api.UploadMultipartUploadPartOptions{})
 				if err != nil {
 					return err
 				}
