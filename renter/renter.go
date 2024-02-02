@@ -172,6 +172,8 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		nextChan := make(chan struct{}, 0)
 		errChan := make(chan error, 0)
 
+		partNumber := int(i + 1)
+
 		job := r.cron.RetryableTask(cron.RetryableTaskParams{
 			Name: fileName + "-part-" + strconv.FormatUint(i, 10),
 			Function: func() error {
@@ -187,7 +189,7 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 					return err
 				}
 
-				_, err = r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, int(i), api.UploadMultipartUploadPartOptions{})
+				_, err = r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, partNumber, api.UploadMultipartUploadPartOptions{})
 				if err != nil {
 					return err
 				}
