@@ -213,7 +213,7 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		}
 
 		uploadParts[i] = api.MultipartCompletedPart{
-			PartNumber: int(i),
+			PartNumber: partNumber,
 		}
 
 		select {
