@@ -3,7 +3,9 @@ package renter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/cron"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
@@ -167,7 +169,8 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		if end > size {
 			end = size
 		}
-		next := make(chan struct{}, 0)
+		nextChan := make(chan struct{}, 0)
+		errChan := make(chan error, 0)
 
 		job := r.cron.RetryableTask(cron.RetryableTaskParams{
 			Name: fileName + "-part-" + strconv.FormatUint(i, 10),
@@ -189,10 +192,16 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 					return err
 				}
 
-				next <- struct{}{}
+				nextChan <- struct{}{}
 				return nil
 			},
 			Limit: 10,
+			Error: func(jobID uuid.UUID, jobName string, err error) {
+				if errors.Is(err, cron.ErrRetryLimitReached) {
+					r.logger.Error("failed to upload part", zap.String("jobName", jobName), zap.Error(err))
+					errChan <- err
+				}
+			},
 		})
 
 		_, err = r.cron.CreateJob(job)
@@ -205,7 +214,12 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 			PartNumber: int(i),
 		}
 
-		<-next
+		select {
+		case err = <-errChan:
+			return fmt.Errorf("failed to upload part %d: %s", i, err.Error())
+		case <-nextChan:
+		}
+
 	}
 
 	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, upload.UploadID, uploadParts)
