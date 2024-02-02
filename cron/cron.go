@@ -2,12 +2,17 @@ package cron
 
 import (
 	"context"
+	"errors"
 	"github.com/google/uuid"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
+)
+
+var (
+	ErrRetryLimitReached = errors.New("Retry limit reached")
 )
 
 type CronService interface {
@@ -114,6 +119,7 @@ func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
 
 		if params.Attempt >= params.Limit {
 			c.logger.Error("Retryable task limit reached", zap.String("jobName", jobName), zap.String("jobID", jobID.String()))
+			params.Error(jobID, jobName, ErrRetryLimitReached)
 			return
 		}
 
