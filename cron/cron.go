@@ -117,7 +117,7 @@ func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
 	listeners := gocron.WithEventListeners(gocron.AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
 		params.Error(jobID, jobName, err)
 
-		if params.Attempt >= params.Limit {
+		if params.Attempt >= params.Limit && params.Limit > 0 {
 			c.logger.Error("Retryable task limit reached", zap.String("jobName", jobName), zap.String("jobID", jobID.String()))
 			params.Error(jobID, jobName, ErrRetryLimitReached)
 			return
