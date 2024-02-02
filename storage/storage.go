@@ -553,7 +553,7 @@ func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
 			return tusUpload.GetReader(ctx)
 		},
 		Bucket:   upload.Protocol,
-		FileName: hashStr,
+		FileName: "/" + hashStr,
 		Size:     uint64(info.Size),
 	})
 
