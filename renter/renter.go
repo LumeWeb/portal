@@ -168,7 +168,6 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 			end = size
 		}
 		next := make(chan struct{}, 0)
-		defer close(next)
 
 		job := r.cron.RetryableTask(cron.RetryableTaskParams{
 			Name: fileName + "-part-" + strconv.FormatUint(i, 10),
