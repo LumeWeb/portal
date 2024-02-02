@@ -169,7 +169,7 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		if end > size {
 			end = size
 		}
-		nextChan := make(chan struct{}, 0)
+		nextChan := make(chan string, 0)
 		errChan := make(chan error, 0)
 
 		partNumber := int(i + 1)
@@ -189,12 +189,12 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 					return err
 				}
 
-				_, err = r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, partNumber, api.UploadMultipartUploadPartOptions{})
+				ret, err := r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, partNumber, api.UploadMultipartUploadPartOptions{})
 				if err != nil {
 					return err
 				}
 
-				nextChan <- struct{}{}
+				nextChan <- ret.ETag
 				return nil
 			},
 			Limit: 10,
@@ -219,7 +219,8 @@ func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
 		select {
 		case err = <-errChan:
 			return fmt.Errorf("failed to upload part %d: %s", i, err.Error())
-		case <-nextChan:
+		case etag := <-nextChan:
+			uploadParts[i].ETag = etag
 		}
 
 	}
