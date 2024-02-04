@@ -206,6 +206,8 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 			AllowedHeaders: []string{
 				"Authorization",
 				"Expires",
+				"Upload-Concat",
+				"Upload-Length",
 				"Upload-Offset",
 				"X-Requested-With",
 				"Tus-Version",
@@ -213,7 +215,6 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 				"Tus-Extension",
 				"Tus-Max-Size",
 				"X-HTTP-Method-Override",
-				"Upload-Concat",
 			},
 			AllowCredentials: true,
 		})
