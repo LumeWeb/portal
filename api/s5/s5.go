@@ -101,6 +101,14 @@ func (s S5API) Stop(ctx context.Context) error {
 func getRoutes(s *S5API) map[string]jape.Handler {
 	tusHandler := BuildS5TusApi(s.identity, s.accounts, s.storage)
 
+	tusOptionsHandler := func(c jape.Context) {
+		c.ResponseWriter.WriteHeader(http.StatusOK)
+	}
+
+	tusCors := BuildTusCors()
+
+	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, middleware.AuthMiddleware(s.identity, s.accounts))
+
 	return map[string]jape.Handler{
 		// Account API
 		"GET /s5/account/register":  s.httpHandler.AccountRegisterChallenge,
@@ -117,11 +125,11 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
-		"OPTIONS /s5/upload/tus":     tusHandler,
+		"OPTIONS /s5/upload/tus":     wrappedTusHandler,
 		"HEAD /s5/upload/tus/:id":    tusHandler,
 		"POST /s5/upload/tus/:id":    tusHandler,
 		"PATCH /s5/upload/tus/:id":   tusHandler,
-		"OPTIONS /s5/upload/tus/:id": tusHandler,
+		"OPTIONS /s5/upload/tus/:id": wrappedTusHandler,
 
 		// Download API
 		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.DownloadBlob, middleware.AuthMiddleware(s.identity, s.accounts)),
@@ -170,6 +178,30 @@ func (w *s5TusJwtResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+func BuildTusCors() func(h http.Handler) http.Handler {
+	mw :=
+		cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+			AllowedHeaders: []string{
+				"Authorization",
+				"Expires",
+				"Upload-Concat",
+				"Upload-Length",
+				"Upload-Offset",
+				"X-Requested-With",
+				"Tus-Version",
+				"Tus-Resumable",
+				"Tus-Extension",
+				"Tus-Max-Size",
+				"X-HTTP-Method-Override",
+			},
+			AllowCredentials: true,
+		})
+
+	return mw.Handler
+}
+
 func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceDefault, storage *storage.StorageServiceDefault) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
@@ -199,28 +231,8 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 		})
 	}
 
-	corsMiddleware :=
-		cors.New(cors.Options{
-			AllowedOrigins: []string{"*"},
-			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-			AllowedHeaders: []string{
-				"Authorization",
-				"Expires",
-				"Upload-Concat",
-				"Upload-Length",
-				"Upload-Offset",
-				"X-Requested-With",
-				"Tus-Version",
-				"Tus-Resumable",
-				"Tus-Extension",
-				"Tus-Max-Size",
-				"X-HTTP-Method-Override",
-			},
-			AllowCredentials: true,
-		})
-
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, corsMiddleware.Handler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
+	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, BuildTusCors(), middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
 
 	return tusHandler
 }
