@@ -199,8 +199,23 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 		})
 	}
 
+	corsMiddleware :=
+		cors.New(cors.Options{
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+			AllowedHeaders: []string{
+				"Upload-Offset",
+				"X-Requested-With",
+				"Tus-Version",
+				"Tus-Resumable",
+				"Tus-Extension",
+				"Tus-Max-Size",
+				"X-HTTP-Method-Override"},
+			AllowCredentials: true,
+		})
+
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, cors.Default().Handler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
+	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, corsMiddleware.Handler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
 
 	return tusHandler
 }
