@@ -200,7 +200,7 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 	}
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware, cors.Default().Handler)
+	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, cors.Default().Handler, middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
 
 	return tusHandler
 }
