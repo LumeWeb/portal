@@ -116,10 +116,12 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.httpHandler.DirectoryUpload, middleware.AuthMiddleware(s.identity, s.accounts)),
 
 		// Tus API
-		"POST /s5/upload/tus":      tusHandler,
-		"HEAD /s5/upload/tus/:id":  tusHandler,
-		"POST /s5/upload/tus/:id":  tusHandler,
-		"PATCH /s5/upload/tus/:id": tusHandler,
+		"POST /s5/upload/tus":        tusHandler,
+		"OPTIONS /s5/upload/tus":     tusHandler,
+		"HEAD /s5/upload/tus/:id":    tusHandler,
+		"POST /s5/upload/tus/:id":    tusHandler,
+		"PATCH /s5/upload/tus/:id":   tusHandler,
+		"OPTIONS /s5/upload/tus/:id": tusHandler,
 
 		// Download API
 		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.DownloadBlob, middleware.AuthMiddleware(s.identity, s.accounts)),
