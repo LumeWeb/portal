@@ -205,6 +205,7 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 			AllowedHeaders: []string{
 				"Authorization",
+				"Expires",
 				"Upload-Offset",
 				"X-Requested-With",
 				"Tus-Version",
