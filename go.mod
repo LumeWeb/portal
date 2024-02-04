@@ -117,5 +117,5 @@ require (
 
 replace (
 	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240125144205-3615bc502881
-	go.sia.tech/jape => github.com/LumeWeb/jape v0.0.0-20240120100641-741feb3baf8a
+	go.sia.tech/jape => github.com/LumeWeb/jape v0.0.0-20240204004049-ed792e7631cd
 )
