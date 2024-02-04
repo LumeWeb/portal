@@ -212,7 +212,9 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 				"Tus-Resumable",
 				"Tus-Extension",
 				"Tus-Max-Size",
-				"X-HTTP-Method-Override"},
+				"X-HTTP-Method-Override",
+				"Upload-Concat",
+			},
 			AllowCredentials: true,
 		})
 
