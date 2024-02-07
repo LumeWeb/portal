@@ -684,18 +684,18 @@ components:
                 pubkey:
                     type: string
                     description: This is base64 url encoded
-                    required: true
                 response:
                     type: string
                     description: This is base64 url encoded
-                    required: true
                 signature:
                     type: string
                     description: This is base64 url encoded
-                    required: true
                 email:
                     type: string
-                    required: false
+            required:
+                - pubkey
+                - response
+                - signature
         AccountLoginChallengeResponse:
             type: object
             properties:
@@ -714,6 +714,10 @@ components:
                 signature:
                     type: string
                     description: This is base64 url encoded
+            required:
+                - pubkey
+                - response
+                - signature
         BasicUploadResponse:
             type: object
             properties:
