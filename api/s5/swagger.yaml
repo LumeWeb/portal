@@ -555,12 +555,24 @@ paths:
     /s5/blob/{cid}:
         get:
             summary: Retrieve a blob
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
             responses:
                 '302':
                     description: Redirecting to discovered blob url
     /s5/metadata/{cid}:
         get:
             summary: Retrieve file metadata
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
             description: >
                 * Resolvers are currently not supported
 
@@ -575,6 +587,12 @@ paths:
     /s5/download/{cid}:
         get:
             summary: Download a file
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
             responses:
                 '200':
                     description: File content
@@ -588,12 +606,24 @@ paths:
     /s5/pin/{cid}:
         post:
             summary: Pin a file
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
             responses:
                 '204':
                     description: File pinned
     /s5/delete/{cid}:
         delete:
             summary: Delete a file. This will only unpin it from the account, and potentially delete it later if there are no more global pins.
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
             responses:
                 '204':
                     description: File deleted
@@ -603,6 +633,11 @@ paths:
         get:
             summary: Retrieve download URLs
             parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
                 - name: hash
                   in: query
                   required: true
@@ -625,6 +660,13 @@ paths:
     /s5/debug/storage_locations/{hash}:
         get:
             summary: Retrieve storage locations
+            parameters:
+                - name: hash
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                    description: This is base64 url encoded
             responses:
                 '200':
                     description: Storage locations
