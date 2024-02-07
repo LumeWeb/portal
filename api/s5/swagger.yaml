@@ -758,7 +758,8 @@ components:
                     type: integer
                 scopes:
                     type: array
-                    additionalProperties: true
+                    items:
+                        type: object
         AccountInfoResponse:
             type: object
             properties:
