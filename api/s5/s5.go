@@ -3,6 +3,7 @@ package s5
 import (
 	"context"
 	"crypto/ed25519"
+	"embed"
 	_ "embed"
 	"fmt"
 	"git.lumeweb.com/LumeWeb/portal/account"
@@ -11,12 +12,12 @@ import (
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"git.lumeweb.com/LumeWeb/portal/storage"
-	"github.com/flowchartsman/swaggerui"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
+	"io/fs"
 	"net/http"
 	"net/url"
 )
@@ -27,6 +28,11 @@ var (
 
 //go:embed swagger.yaml
 var spec []byte
+
+//go:generate go run generate.go
+
+//go:embed embed
+var swagfs embed.FS
 
 type S5API struct {
 	config      *viper.Viper
@@ -104,6 +110,12 @@ func (s S5API) Stop(ctx context.Context) error {
 	return nil
 }
 
+func byteHandler(b []byte) jape.Handler {
+	return func(c jape.Context) {
+		c.ResponseWriter.Write(b)
+	}
+}
+
 func getRoutes(s *S5API) map[string]jape.Handler {
 	tusHandler := BuildS5TusApi(s.identity, s.accounts, s.storage)
 
@@ -131,12 +143,10 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 
 	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, middleware.AuthMiddleware(s.identity, s.accounts))
 
+	swaggerFiles, _ := fs.Sub(swagfs, "embed")
+	swaggerServ := http.FileServer(http.FS(swaggerFiles))
 	swaggerHandler := func(c jape.Context) {
-		swaggerui.Handler(jsonDoc).ServeHTTP(c.ResponseWriter, c.Request)
-	}
-
-	swaggerStripPrefix := func(h http.Handler) http.Handler {
-		return http.StripPrefix("/swagger", h)
+		swaggerServ.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
 	return map[string]jape.Handler{
@@ -180,8 +190,8 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.RegistrySet, middleware.AuthMiddleware(s.identity, s.accounts)),
 		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.RegistrySubscription, middleware.AuthMiddleware(s.identity, s.accounts)),
 
-		"GET /swagger":              middleware.ApplyMiddlewares(swaggerHandler, middleware.AdaptMiddleware(swaggerStripPrefix)),
-		"GET /swagger/swagger_spec": middleware.ApplyMiddlewares(swaggerHandler, middleware.AdaptMiddleware(swaggerStripPrefix)),
+		"GET /swagger/swagger_spec": middleware.ApplyMiddlewares(byteHandler(jsonDoc)),
+		"GET /swagger":              middleware.ApplyMiddlewares(swaggerHandler),
 	}
 }
 
