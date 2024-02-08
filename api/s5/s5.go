@@ -112,6 +112,7 @@ func (s S5API) Stop(ctx context.Context) error {
 
 func byteHandler(b []byte) jape.Handler {
 	return func(c jape.Context) {
+		c.ResponseWriter.Header().Set("Content-Type", "application/json")
 		c.ResponseWriter.Write(b)
 	}
 }
