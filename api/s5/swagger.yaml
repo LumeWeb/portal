@@ -7,6 +7,8 @@ paths:
     /s5/account/register:
         get:
             summary: Initiate account registration
+            tags:
+                - account
             security: []
             parameters:
                 - name: pubKey
@@ -20,6 +22,8 @@ paths:
                     description: Registration challenge
         post:
             summary: Complete account registration
+            tags:
+                - account
             security: []
             requestBody:
                 content:
@@ -32,6 +36,8 @@ paths:
     /s5/account/login:
         get:
             summary: Initiate account login
+            tags:
+                - account
             security: []
             parameters:
                 - name: pubKey
@@ -45,6 +51,8 @@ paths:
                     description: Login challenge
         post:
             summary: Complete account login
+            tags:
+                - account
             security: []
             requestBody:
                 content:
@@ -57,12 +65,16 @@ paths:
     /s5/account:
         get:
             summary: Retrieve account information
+            tags:
+                - account
             responses:
                 '200':
                     description: Account information
     /s5/account/stats:
         get:
             summary: Retrieve account statistics
+            tags:
+                - account
             responses:
                 '200':
                     description: Account statistics
@@ -73,6 +85,8 @@ paths:
     /s5/account/pins.bin:
         get:
             summary: Retrieve account pins
+            tags:
+                - account
             responses:
                 '200':
                     description: Account pins
@@ -81,6 +95,8 @@ paths:
     /s5/upload:
         post:
             summary: Upload a small file
+            tags:
+                - upload
             requestBody:
                 content:
                     multipart/form-data:
@@ -102,6 +118,8 @@ paths:
     /s5/upload/directory:
         post:
             summary: Upload a directory
+            tags:
+                - upload
             description: >
                 This endpoint accepts multiple files in a multipart/form-data request.
                 Each file can be uploaded under its own field name, which the server will process dynamically.
@@ -139,6 +157,9 @@ paths:
     /s5/upload/tus:
         post:
             summary: TUS Upload
+            tags:
+                - upload
+                - tus
             description: >
                 An empty POST request is used to create a new upload resource. The
                 Upload-Length header indicates the size of the entire upload in bytes.
@@ -328,6 +349,9 @@ paths:
     /s5/upload/tus/{id}:
         delete:
             summary: Added by the Termination extension.
+            tags:
+                - upload
+                - tus
             description: When receiving a DELETE request for an existing upload the Server
                 SHOULD free associated resources and MUST respond with the 204 No Content
                 status confirming that the upload was terminated. For all future requests
@@ -363,6 +387,9 @@ paths:
                                 $ref: "#/components/schemas/Tus-Version"
         head:
             summary: Used to determine the offset at which the upload should be continued.
+            tags:
+                - upload
+                - tus
             description: Used to determine the offset at which the upload should be continued.
             operationId: FilesHead
             parameters:
@@ -429,6 +456,9 @@ paths:
                                 $ref: "#/components/schemas/Tus-Version"
         patch:
             summary: Used to resume the upload
+            tags:
+                - upload
+                - tus
             description: 'The Server SHOULD accept PATCH requests against any upload URL
         and apply the bytes contained in the message at the given offset specified
         by the Upload-Offset header. All PATCH requests MUST use Content-Type: application/offset+octet-stream,
@@ -555,6 +585,8 @@ paths:
     /s5/blob/{cid}:
         get:
             summary: Retrieve a blob
+            tags:
+                - download
             parameters:
                 - name: cid
                   in: path
@@ -567,6 +599,8 @@ paths:
     /s5/metadata/{cid}:
         get:
             summary: Retrieve file metadata
+            tags:
+                - download
             parameters:
                 - name: cid
                   in: path
@@ -587,6 +621,8 @@ paths:
     /s5/download/{cid}:
         get:
             summary: Download a file
+            tags:
+                - download
             parameters:
                 - name: cid
                   in: path
@@ -606,6 +642,8 @@ paths:
     /s5/pin/{cid}:
         post:
             summary: Pin a file
+            tags:
+                - pin
             parameters:
                 - name: cid
                   in: path
@@ -618,6 +656,8 @@ paths:
     /s5/delete/{cid}:
         delete:
             summary: Delete a file. This will only unpin it from the account, and potentially delete it later if there are no more global pins.
+            tags:
+                - pin
             parameters:
                 - name: cid
                   in: path
@@ -632,6 +672,8 @@ paths:
     /s5/debug/download_urls/{cid}:
         get:
             summary: Retrieve download URLs
+            tags:
+                - debug
             parameters:
                 - name: cid
                   in: path
@@ -660,6 +702,8 @@ paths:
     /s5/debug/storage_locations/{hash}:
         get:
             summary: Retrieve storage locations
+            tags:
+                - debug
             parameters:
                 - name: hash
                   in: path
@@ -678,6 +722,8 @@ paths:
     /s5/registry:
         get:
             summary: Retrieve a registry entry
+            tags:
+                - registry
             parameters:
                 - name: pk
                   description: Public key of the registry entry
@@ -694,6 +740,8 @@ paths:
                                 $ref: '#/components/schemas/RegistryQueryResponse'
         post:
             summary: Create or update a registry entry
+            tags:
+                - registry
             requestBody:
                 content:
                     application/json:
@@ -705,6 +753,8 @@ paths:
     /s5/registry/subscription:
         post:
             summary: Listen for websocket updates for a given registry entry
+            tags:
+                - registry
             requestBody:
                 content:
                     text/plain:
@@ -928,3 +978,18 @@ security:
     - BearerAuth: []
     - CookieAuth: []
     - QueryAuth: []
+tags:
+    - name: account
+      description: Account API
+    - name: upload
+      description: Upload API
+    - name: tus
+      description: TUS API
+    - name: download
+      description: Download API
+    - name: pin
+      description: Pins API
+    - name: debug
+      description: Debug API
+    - name: registry
+      description: Registry API
