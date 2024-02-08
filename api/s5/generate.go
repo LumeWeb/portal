@@ -8,14 +8,10 @@ package main
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -50,22 +46,6 @@ func main() {
 		log.Fatal("somehow got no releases, nothing to do")
 	}
 	tag := releases[0].TagName
-
-	current, err := ioutil.ReadFile("current_version.txt")
-	if err != nil {
-		switch {
-		case errors.Is(err, fs.ErrNotExist):
-			// no problem, just do it
-		default:
-			log.Fatalf("unable to check version in current_version.txt: %v", err)
-		}
-	}
-	cv := string(bytes.TrimRight(current, "\n"))
-
-	if cv == tag {
-		log.Print("version is current, nothing to do")
-		os.Exit(0)
-	}
 
 	log.Printf("downloading release %s...", tag)
 
@@ -120,7 +100,6 @@ func main() {
 	newInit = regexp.MustCompile(`,?\s+SwaggerUIStandalonePreset.*\n`).ReplaceAllLiteral(newInit, []byte("\n"))
 	newInit = regexp.MustCompile(`(?s),\s+plugins: \[.*],\n`).ReplaceAllLiteral(newInit, []byte("\n"))
 	newInit = regexp.MustCompile(`\n\s*layout:.*\n`).ReplaceAllLiteral(newInit, []byte("\n"))
-	//fmt.Println(string(newInit))
 	newinitFile, err := os.Create(filepath.Join("embed", "swagger-initializer.js"))
 	if err != nil {
 		log.Fatalf("error re-creating swagger-initializer.js file: %v", err)
@@ -135,5 +114,4 @@ func main() {
 	}
 	defer newcv.Close()
 	newcv.WriteString(tag)
-	log.Printf("updated swaggerui from %s => %s, please check templated swagger-initializer.js and retag repo", cv, tag)
 }
