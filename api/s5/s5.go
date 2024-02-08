@@ -149,6 +149,14 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		swaggerServ.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
+	swaggerStrip := func(next http.Handler) http.Handler {
+		return http.StripPrefix("/swagger", next)
+	}
+
+	swaggerRedirect := func(jc jape.Context) {
+		http.Redirect(jc.ResponseWriter, jc.Request, "/swagger/", http.StatusMovedPermanently)
+	}
+
 	return map[string]jape.Handler{
 		// Account API
 		"GET /s5/account/register":  s.httpHandler.AccountRegisterChallenge,
@@ -190,8 +198,9 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.RegistrySet, middleware.AuthMiddleware(s.identity, s.accounts)),
 		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.RegistrySubscription, middleware.AuthMiddleware(s.identity, s.accounts)),
 
-		"GET /swagger/swagger_spec": middleware.ApplyMiddlewares(byteHandler(jsonDoc)),
-		"GET /swagger":              middleware.ApplyMiddlewares(swaggerHandler),
+		"GET /swagger.json":  byteHandler(jsonDoc),
+		"GET /swagger":       swaggerRedirect,
+		"GET /swagger/*path": middleware.ApplyMiddlewares(swaggerHandler, swaggerStrip),
 	}
 }
 
