@@ -183,7 +183,6 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		// Download API
 		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.DownloadBlob, middleware.AuthMiddleware(s.identity, s.accounts)),
 		"GET /s5/metadata/:cid": s.httpHandler.DownloadMetadata,
-		// "GET /s5/download/:cid": middleware.ApplyMiddlewares(s.httpHandler.DownloadFile, middleware.AuthMiddleware(portal)),
 		"GET /s5/download/:cid": middleware.ApplyMiddlewares(s.httpHandler.DownloadFile, cors.Default().Handler),
 
 		// Pins API
