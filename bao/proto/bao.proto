@@ -1,0 +1,38 @@
+syntax = "proto3";
+package bao;
+
+option go_package = "./proto";
+
+// Define an empty message for the request as proto3 requires specific message types
+message NewHasherRequest {
+}
+
+// Define a message for the response that includes the bytes you mentioned
+message NewHasherResponse {
+    string id = 1;
+}
+
+message HashRequest {
+    string id = 1;
+    bytes data = 2;
+}
+
+message HashResponse {
+    bool status = 1;
+}
+
+message FinishRequest {
+    string id = 1;
+}
+
+message FinishResponse {
+    bytes hash = 1;
+    bytes proof = 2;
+}
+
+
+service Bao {
+    rpc NewHasher(NewHasherRequest) returns (NewHasherResponse);
+    rpc Hash(HashRequest) returns (HashResponse);
+    rpc Finish(FinishRequest) returns (FinishResponse);
+}
