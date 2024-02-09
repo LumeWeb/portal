@@ -1,11 +1,14 @@
 package storage
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"git.lumeweb.com/LumeWeb/portal/renter"
+	"go.sia.tech/renterd/api"
 	"io"
 	"time"
 )
@@ -14,13 +17,20 @@ type FileImpl struct {
 	reader  io.ReadCloser
 	hash    []byte
 	storage *StorageServiceDefault
+	renter  *renter.RenterDefault
 	record  *models.Upload
 	cid     *encoding.CID
 	read    bool
 }
 
-func NewFile(hash []byte, storage *StorageServiceDefault) *FileImpl {
-	return &FileImpl{hash: hash, storage: storage, read: false}
+type FileParams struct {
+	Storage *StorageServiceDefault
+	Renter  *renter.RenterDefault
+	Hash    []byte
+}
+
+func NewFile(params FileParams) *FileImpl {
+	return &FileImpl{hash: params.Hash, storage: params.Storage, renter: params.Renter, read: false}
 }
 
 func (f *FileImpl) Exists() bool {

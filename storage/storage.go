@@ -667,5 +667,9 @@ func (s *StorageServiceDefault) GetFile(hash []byte, start int64) (io.ReadCloser
 	return object.Content, int64(upload.Size), nil
 }
 func (s *StorageServiceDefault) NewFile(hash []byte) *FileImpl {
-	return NewFile(hash, s)
+	return NewFile(FileParams{
+		Storage: s,
+		Renter:  s.renter,
+		Hash:    hash,
+	})
 }
