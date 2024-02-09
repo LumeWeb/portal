@@ -13,8 +13,6 @@ import (
 	"os/exec"
 )
 
-const limit = units.MiB * 3.5
-
 //go:generate bash -c "cd rust && cargo build -r"
 //go:embed rust/target/release/rust
 var pluginBin []byte
