@@ -179,3 +179,31 @@ func (f *FileImpl) Mime() string {
 
 	return record.MimeType
 }
+
+func (f *FileImpl) Protocol() string {
+	record, err := f.Record()
+	if err != nil {
+		return ""
+	}
+
+	return record.Protocol
+}
+func (f *FileImpl) Proof() ([]byte, error) {
+	object, err := f.renter.GetObject(context.Background(), f.Protocol(), f.HashString(), api.DownloadObjectOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	proof, err := io.ReadAll(object.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	err = object.Content.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return proof, nil
+}
