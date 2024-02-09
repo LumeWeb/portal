@@ -232,7 +232,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 		case types.StorageLocationTypeArchive:
 			return s5storage.NewStorageLocation(int(types.StorageLocationTypeArchive), []string{}, calculateExpiry(24*time.Hour)), nil
 		case types.StorageLocationTypeFile, types.StorageLocationTypeFull:
-			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.config, s.logger)}, calculateExpiry(24*time.Hour)), nil
+			return s5storage.NewStorageLocation(int(types.StorageLocationTypeFull), []string{generateDownloadUrl(hash, s.config, s.logger), generateProofUrl(hash, s.config, s.logger)}, calculateExpiry(24*time.Hour)), nil
 		}
 	}
 
@@ -256,4 +256,15 @@ func generateDownloadUrl(hash *encoding.Multihash, config *viper.Viper, logger *
 	}
 
 	return fmt.Sprintf("https://s5.%s/s5/download/%s", domain, hashStr)
+}
+
+func generateProofUrl(hash *encoding.Multihash, config *viper.Viper, logger *zap.Logger) string {
+	domain := config.GetString("core.domain")
+
+	hashStr, err := hash.ToBase64Url()
+	if err != nil {
+		logger.Error("error encoding hash", zap.Error(err))
+	}
+
+	return fmt.Sprintf("https://s5.%s/s5/download/%s.obao", domain, hashStr)
 }
