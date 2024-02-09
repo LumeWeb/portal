@@ -183,7 +183,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	if exists, upload := h.storage.FileExists(hash); exists {
+	if exists, upload := h.storage.FileExists(hash.Hash); exists {
 		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -210,7 +210,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	hash, err = h.storage.PutFileSmall(rs, "s5", false)
+	hash, err = h.storage.PutFileSmall(rs, "s5")
 
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -218,7 +218,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 		return
 	}
 
-	h.logger.Info("Hash", zap.String("hash", hex.EncodeToString(hash)))
+	h.logger.Info("Hash", zap.String("hash", hex.EncodeToString(hash.Hash)))
 
 	cid, err := encoding.CIDFromHash(hash, uint64(bufferSize), types.CIDTypeRaw, types.HashTypeBlake3)
 
@@ -257,7 +257,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 
 	mimeType := http.DetectContentType(mimeBytes[:])
 
-	upload, err := h.storage.CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	upload, err := h.storage.CreateUpload(hash.Hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.logger.Error(errUploadingFile, zap.Error(err))
@@ -811,12 +811,12 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 				return
 			}
 
-			if exists, upload := h.storage.FileExists(hash); exists {
+			if exists, upload := h.storage.FileExists(hash.Hash); exists {
 				uploadMap[fileHeader.Filename] = upload
 				continue
 			}
 
-			hash, err = h.storage.PutFileSmall(rs, "s5", false)
+			hash, err = h.storage.PutFileSmall(rs, "s5")
 
 			if err != nil {
 				errored(err)
@@ -841,7 +841,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 			}
 			mimeType := http.DetectContentType(mimeBytes[:])
 
-			upload, err := h.storage.CreateUpload(hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+			upload, err := h.storage.CreateUpload(hash.Hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
 
 			if err != nil {
 				errored(err)
@@ -901,7 +901,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 		return
 	}
 
-	if exists, upload := h.storage.FileExists(hash); exists {
+	if exists, upload := h.storage.FileExists(hash.Hash); exists {
 		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeMetadataWebapp, types.HashTypeBlake3)
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -918,7 +918,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 		return
 	}
 
-	hash, err = h.storage.PutFileSmall(rs, "s5", false)
+	hash, err = h.storage.PutFileSmall(rs, "s5")
 
 	if err != nil {
 		errored(err)
