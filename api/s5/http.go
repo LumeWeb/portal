@@ -1348,9 +1348,9 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 	var hashBytes []byte
 	isProof := false
 
-	if strings.HasSuffix(cid, ".bao") {
+	if strings.HasSuffix(cid, ".obao") {
 		isProof = true
-		cid = strings.TrimSuffix(cid, ".bao")
+		cid = strings.TrimSuffix(cid, ".obao")
 	}
 
 	cidDecoded, err := encoding.CIDFromString(cid)
@@ -1389,7 +1389,7 @@ func (h *HttpHandler) DownloadFile(jc jape.Context) {
 		}
 
 		jc.ResponseWriter.Header().Set("Content-Type", "application/octet-stream")
-		http.ServeContent(jc.ResponseWriter, jc.Request, fmt.Sprintf("%.bao", file.Name()), file.Modtime(), bytes.NewReader(proof))
+		http.ServeContent(jc.ResponseWriter, jc.Request, fmt.Sprintf("%.obao", file.Name()), file.Modtime(), bytes.NewReader(proof))
 		return
 	}
 
