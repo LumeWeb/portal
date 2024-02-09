@@ -73,7 +73,7 @@ func Shutdown() {
 	client.Kill()
 }
 
-func Hash(r io.Reader) (*Result, error) {
+func Hash(r io.Reader) (*Result, int, error) {
 	hasherId := bao.NewHasher()
 	initialSize := 4 * units.KiB
 	maxSize := 3.5 * units.MiB
@@ -89,12 +89,12 @@ func Hash(r io.Reader) (*Result, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, err
+			return nil, 0, err
 		}
 		totalReadSize += n
 
 		if !bao.Hash(hasherId, buf[:n]) {
-			return nil, errors.New("hashing failed")
+			return nil, 0, errors.New("hashing failed")
 		}
 
 		// Adaptively adjust buffer size based on read patterns
@@ -107,5 +107,5 @@ func Hash(r io.Reader) (*Result, error) {
 
 	result := bao.Finish(hasherId)
 
-	return &result, nil
+	return &result, totalReadSize, nil
 }
