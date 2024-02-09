@@ -13,11 +13,10 @@ import (
 	"os/exec"
 )
 
+//go:generate buf generate
 //go:generate bash -c "cd rust && cargo build -r"
 //go:embed rust/target/release/rust
 var pluginBin []byte
-
-//go:generate buf generate
 
 var bao Bao
 var client *plugin.Client
