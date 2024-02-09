@@ -95,7 +95,7 @@ func NewStorageService(lc fx.Lifecycle, params StorageServiceParams) *StorageSer
 	return ss
 }
 
-func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string) ([]byte, error) {
+func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string) (*bao.Result, error) {
 	hash, err := s.GetHashSmall(file)
 	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash.Hash)).ToBase64Url()
 	if err != nil {
@@ -124,7 +124,7 @@ func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string) (
 		return nil, err
 	}
 
-	return hash.Hash[:], nil
+	return hash, nil
 }
 
 func (s *StorageServiceDefault) BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
