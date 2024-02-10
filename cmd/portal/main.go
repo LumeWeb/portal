@@ -14,10 +14,8 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	_ "go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	_ "go.uber.org/zap/zapcore"
 	"net/http"
 )
 
