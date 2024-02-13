@@ -113,6 +113,10 @@ paths:
             responses:
                 '200':
                     description: File uploaded
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BasicUploadResponse'
                 '500':
                     description: Error uploading file
     /s5/upload/directory:
@@ -152,6 +156,10 @@ paths:
             responses:
                 '201':
                     description: Directory uploaded
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BasicUploadResponse'
 
     # Tus API
     /s5/upload/tus:
