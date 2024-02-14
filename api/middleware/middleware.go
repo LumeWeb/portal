@@ -156,3 +156,23 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 		})
 	}
 }
+
+func GetUserFromContext(ctx context.Context, key ...string) uint {
+	realKey := ""
+
+	if len(key) > 0 {
+		realKey = key[0]
+	}
+
+	if realKey == "" {
+		realKey = DEFAULT_AUTH_CONTEXT_KEY
+	}
+
+	userId, ok := ctx.Value(key).(uint)
+
+	if !ok {
+		panic("user id stored in context is not of type uint")
+	}
+
+	return userId
+}
