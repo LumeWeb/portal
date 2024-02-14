@@ -282,7 +282,7 @@ func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) 
 	return nil
 }
 
-func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
+func (s AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
 	// Conduct a query with the provided model and conditions
 	result := s.db.Model(model).Where(conditions).First(model)
 
