@@ -2,14 +2,29 @@ package account
 
 import (
 	"crypto/ed25519"
+	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"strconv"
 	"time"
 )
 
 type JWTPurpose string
+type VerifyTokenFunc func(claim jwt.RegisteredClaims) error
+
+var (
+	nopVerifyFunc VerifyTokenFunc = func(claim jwt.RegisteredClaims) error {
+		return nil
+	}
+
+	ErrJWTUnexpectedClaimsType = errors.New("unexpected claims type")
+	ErrJWTUnexpectedIssuer     = errors.New("unexpected issuer")
+	ErrJWTInvalid              = errors.New("invalid JWT")
+)
 
 const (
 	JWTPurposeLogin JWTPurpose = "login"
+	JWTPurpose2FA   JWTPurpose = "2fa"
 )
 
 func GenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose) (string, error) {
@@ -17,13 +32,14 @@ func GenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, pu
 }
 
 func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, userID uint, duration time.Duration, purpose JWTPurpose) (string, error) {
+
 	// Define the claims
-	claims := jwt.MapClaims{
-		"iss": domain,
-		"sub": userID,
-		"exp": time.Now().Add(duration).Unix(),
-		"iat": time.Now().Unix(),
-		"aud": string(purpose),
+	claims := jwt.RegisteredClaims{
+		Issuer:    domain,
+		Subject:   strconv.Itoa(int(userID)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		Audience:  []string{string(purpose)},
 	}
 
 	// Create the token
@@ -36,4 +52,38 @@ func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, use
 	}
 
 	return tokenString, nil
+}
+
+func VerifyToken(token string, domain string, privateKey ed25519.PrivateKey, verifyFunc VerifyTokenFunc) (*jwt.RegisteredClaims, error) {
+	validatedToken, err := jwt.ParseWithClaims(token, jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		publicKey := privateKey.Public()
+
+		return publicKey, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if verifyFunc == nil {
+		verifyFunc = nopVerifyFunc
+	}
+
+	claim, ok := validatedToken.Claims.(jwt.RegisteredClaims)
+
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrJWTUnexpectedClaimsType, validatedToken.Claims)
+	}
+
+	if domain != claim.Issuer {
+		return nil, fmt.Errorf("%w: %s", ErrJWTUnexpectedIssuer, claim.Issuer)
+	}
+
+	err = verifyFunc(validatedToken.Claims.(jwt.RegisteredClaims))
+
+	return nil, err
 }

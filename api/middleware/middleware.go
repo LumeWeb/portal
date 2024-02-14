@@ -1,16 +1,26 @@
 package middleware
 
 import (
+	"context"
+	"crypto/ed25519"
+	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 )
 
+const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
+
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
 type HttpMiddlewareFunc func(http.Handler) http.Handler
+
+type FindAuthTokenFunc func(r *http.Request) string
 
 func AdaptMiddleware(mid func(http.Handler) http.Handler) JapeMiddlewareFunc {
 	return jape.Adapt(func(h http.Handler) http.Handler {
@@ -55,4 +65,94 @@ func RegisterProtocolSubdomain(config *viper.Viper, mux *httprouter.Router, name
 	domain := config.GetString("core.domain")
 
 	(router)[name+"."+domain] = mux
+}
+
+func FindAuthToken(r *http.Request, cookieName string, queryParam string) string {
+	authHeader := ParseAuthTokenHeader(r.Header)
+
+	if authHeader != "" {
+		return authHeader
+	}
+
+	if cookie, err := r.Cookie(cookieName); cookie != nil && err == nil {
+		return cookie.Value
+	}
+
+	return r.FormValue(queryParam)
+}
+
+func ParseAuthTokenHeader(headers http.Header) string {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+
+	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+
+	return authHeader
+}
+
+type AuthMiddlewareOptions struct {
+	Identity       ed25519.PrivateKey
+	Accounts       *account.AccountServiceDefault
+	FindToken      FindAuthTokenFunc
+	Purpose        account.JWTPurpose
+	AuthContextKey string
+	Config         *viper.Viper
+}
+
+func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handler {
+	if options.AuthContextKey == "" {
+		options.AuthContextKey = DEFAULT_AUTH_CONTEXT_KEY
+	}
+	if options.Purpose == "" {
+		panic("purpose is missing")
+	}
+
+	domain := options.Config.GetString("core.domain")
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authToken := options.FindToken(r)
+
+			if authToken == "" {
+				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
+				return
+			}
+
+			claim, err := account.VerifyToken(authToken, domain, options.Identity, func(claim jwt.RegisteredClaims) error {
+				aud, _ := claim.GetAudience()
+
+				if slices.Contains[jwt.ClaimStrings, string](aud, string(options.Purpose)) == false {
+					return account.ErrJWTInvalid
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+
+			userId, err := strconv.ParseUint(claim.Subject, 10, 64)
+
+			if err != nil {
+				http.Error(w, account.ErrJWTInvalid.Error(), http.StatusBadRequest)
+				return
+			}
+
+			exists, _, err := options.Accounts.AccountExists(uint(userId))
+
+			if !exists || err != nil {
+				http.Error(w, account.ErrJWTInvalid.Error(), http.StatusBadRequest)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), options.AuthContextKey, uint(userId))
+			r = r.WithContext(ctx)
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
