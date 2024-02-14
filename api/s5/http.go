@@ -126,7 +126,7 @@ func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
 	}, nil
 }
 
-func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
+func (h *HttpHandler) smallFileUpload(jc jape.Context) {
 	var rs io.ReadSeeker
 	var bufferSize int64
 
@@ -274,7 +274,7 @@ func (h *HttpHandler) SmallFileUpload(jc jape.Context) {
 	})
 }
 
-func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
+func (h *HttpHandler) accountRegisterChallenge(jc jape.Context) {
 	var pubkey string
 	if jc.DecodeForm("pubKey", &pubkey) != nil {
 		return
@@ -320,7 +320,7 @@ func (h *HttpHandler) AccountRegisterChallenge(jc jape.Context) {
 	})
 }
 
-func (h *HttpHandler) AccountRegister(jc jape.Context) {
+func (h *HttpHandler) accountRegister(jc jape.Context) {
 	var request AccountRegisterRequest
 
 	if jc.Decode(&request) != nil {
@@ -458,7 +458,7 @@ func (h *HttpHandler) AccountRegister(jc jape.Context) {
 	setAuthCookie(jwt, jc)
 }
 
-func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
+func (h *HttpHandler) accountLoginChallenge(jc jape.Context) {
 	var pubkey string
 	if jc.DecodeForm("pubKey", &pubkey) != nil {
 		return
@@ -512,7 +512,7 @@ func (h *HttpHandler) AccountLoginChallenge(jc jape.Context) {
 	})
 }
 
-func (h *HttpHandler) AccountLogin(jc jape.Context) {
+func (h *HttpHandler) accountLogin(jc jape.Context) {
 	var request AccountLoginRequest
 
 	if jc.Decode(&request) != nil {
@@ -602,7 +602,7 @@ func (h *HttpHandler) AccountLogin(jc jape.Context) {
 	setAuthCookie(jwt, jc)
 }
 
-func (h *HttpHandler) AccountInfo(jc jape.Context) {
+func (h *HttpHandler) accountInfo(jc jape.Context) {
 	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountInfoResponse{
@@ -622,7 +622,7 @@ func (h *HttpHandler) AccountInfo(jc jape.Context) {
 	jc.Encode(info)
 }
 
-func (h *HttpHandler) AccountStats(jc jape.Context) {
+func (h *HttpHandler) accountStats(jc jape.Context) {
 	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
 
 	info := &AccountStatsResponse{
@@ -649,7 +649,7 @@ func (h *HttpHandler) AccountStats(jc jape.Context) {
 	jc.Encode(info)
 }
 
-func (h *HttpHandler) AccountPins(jc jape.Context) {
+func (h *HttpHandler) accountPins(jc jape.Context) {
 	var cursor uint64
 
 	if jc.DecodeForm("cursor", &cursor) != nil {
@@ -683,7 +683,7 @@ func (h *HttpHandler) AccountPins(jc jape.Context) {
 	_, _ = jc.ResponseWriter.Write(result)
 }
 
-func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
+func (h *HttpHandler) accountPinDelete(jc jape.Context) {
 	var cid string
 	if jc.DecodeParam("cid", &cid) != nil {
 		return
@@ -712,7 +712,7 @@ func (h *HttpHandler) AccountPinDelete(jc jape.Context) {
 	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
 }
 
-func (h *HttpHandler) AccountPin(jc jape.Context) {
+func (h *HttpHandler) accountPin(jc jape.Context) {
 	var cid string
 	if jc.DecodeParam("cid", &cid) != nil {
 		return
@@ -745,7 +745,7 @@ func (h *HttpHandler) AccountPin(jc jape.Context) {
 	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
 }
 
-func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
+func (h *HttpHandler) directoryUpload(jc jape.Context) {
 	var tryFiles []string
 	var errorPages map[int]string
 	var name string
@@ -941,7 +941,7 @@ func (h *HttpHandler) DirectoryUpload(jc jape.Context) {
 	jc.Encode(&AppUploadResponse{CID: cidStr})
 }
 
-func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
+func (h *HttpHandler) debugDownloadUrls(jc jape.Context) {
 	var cid string
 	if jc.DecodeParam("cid", &cid) != nil {
 		return
@@ -1023,7 +1023,7 @@ func (h *HttpHandler) DebugDownloadUrls(jc jape.Context) {
 	_, _ = jc.ResponseWriter.Write([]byte(strings.Join(output, "\n")))
 }
 
-func (h *HttpHandler) RegistryQuery(jc jape.Context) {
+func (h *HttpHandler) registryQuery(jc jape.Context) {
 	var pk string
 
 	if jc.DecodeForm("pk", &pk) != nil {
@@ -1052,7 +1052,8 @@ func (h *HttpHandler) RegistryQuery(jc jape.Context) {
 		Signature: base64.RawURLEncoding.EncodeToString(entry.Signature()),
 	})
 }
-func (h *HttpHandler) RegistrySet(jc jape.Context) {
+
+func (h *HttpHandler) registrySet(jc jape.Context) {
 	var request RegistrySetRequest
 
 	if jc.Decode(&request) != nil {
@@ -1082,7 +1083,7 @@ func (h *HttpHandler) RegistrySet(jc jape.Context) {
 	}
 }
 
-func (h *HttpHandler) RegistrySubscription(jc jape.Context) {
+func (h *HttpHandler) registrySubscription(jc jape.Context) {
 	// Create a context for the WebSocket operations
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -1168,7 +1169,7 @@ func (h *HttpHandler) getNode() *libs5node.Node {
 	return h.protocol.Node()
 }
 
-func (h *HttpHandler) DownloadBlob(jc jape.Context) {
+func (h *HttpHandler) downloadBlob(jc jape.Context) {
 	var cid string
 
 	if jc.DecodeParam("cid", &cid) != nil {
@@ -1198,7 +1199,7 @@ func (h *HttpHandler) DownloadBlob(jc jape.Context) {
 	http.Redirect(jc.ResponseWriter, jc.Request, next.Location().BytesURL(), http.StatusFound)
 }
 
-func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
+func (h *HttpHandler) debugStorageLocations(jc jape.Context) {
 	var hash string
 
 	if jc.DecodeParam("hash", &hash) != nil {
@@ -1298,7 +1299,7 @@ func (h *HttpHandler) DebugStorageLocations(jc jape.Context) {
 	})
 }
 
-func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
+func (h *HttpHandler) downloadMetadata(jc jape.Context) {
 	var cid string
 
 	if jc.DecodeParam("cid", &cid) != nil {
@@ -1338,7 +1339,7 @@ func (h *HttpHandler) DownloadMetadata(jc jape.Context) {
 
 }
 
-func (h *HttpHandler) DownloadFile(jc jape.Context) {
+func (h *HttpHandler) downloadFile(jc jape.Context) {
 	var cid string
 
 	if jc.DecodeParam("cid", &cid) != nil {
