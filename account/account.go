@@ -102,11 +102,15 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string) (*m
 }
 
 func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
+	return s.updateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
+}
+
+func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) error {
 	var user models.User
 
 	user.ID = userId
 
-	result := s.db.Model(&models.User{}).Where(&user).Updates(&models.User{FirstName: firstName, LastName: lastName})
+	result := s.db.Model(&models.User{}).Where(&user).Updates(info)
 
 	if result.Error != nil {
 		return result.Error
