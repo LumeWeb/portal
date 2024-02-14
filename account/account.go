@@ -294,10 +294,3 @@ func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]
 
 	return exists, model, result.Error
 }
-
-func validateName(firstName, lastName string) error {
-	if len(firstName) == 0 || len(lastName) == 0 {
-		return errors.New("first name and last name cannot be empty")
-	}
-	return nil
-}
