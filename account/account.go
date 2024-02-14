@@ -8,6 +8,7 @@ import (
 	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"time"
 )
 
 type AccountServiceParams struct {
@@ -133,7 +134,7 @@ func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey strin
 
 	return nil
 }
-func (s AccountServiceDefault) LoginPassword(email string, password string) (string, *models.User, error) {
+func (s AccountServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, error) {
 	valid, user, err := s.ValidLogin(email, password)
 
 	if err != nil {
@@ -145,6 +146,13 @@ func (s AccountServiceDefault) LoginPassword(email string, password string) (str
 	}
 
 	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, user.ID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	now := time.Now()
+
+	err = s.updateAccountInfo(user.ID, models.User{LastLoginIP: ip, LastLogin: &now})
 	if err != nil {
 		return "", nil, err
 	}
