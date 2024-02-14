@@ -408,11 +408,6 @@ func (h *HttpHandler) accountRegister(jc jape.Context) {
 
 	_, err = rand.Read(passwd)
 
-	if accountExists {
-		errored(errGeneratingPassword)
-		return
-	}
-
 	newAccount, err := h.accounts.CreateAccount(request.Email, string(passwd))
 	if err != nil {
 		errored(errAccountRegisterErr)
