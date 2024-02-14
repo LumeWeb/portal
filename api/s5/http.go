@@ -405,14 +405,14 @@ func (h *HttpHandler) accountRegister(jc jape.Context) {
 		return
 	}
 
-	accountExists, _ := h.accounts.EmailExists(request.Email)
+	accountExists, _, _ := h.accounts.EmailExists(request.Email)
 
 	if accountExists {
 		errored(errEmailAlreadyExists)
 		return
 	}
 
-	pubkeyExists, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
+	pubkeyExists, _, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
 
 	if pubkeyExists {
 		errored(errPubkeyAlreadyExists)
@@ -490,7 +490,7 @@ func (h *HttpHandler) accountLoginChallenge(jc jape.Context) {
 		return
 	}
 
-	pubkeyExists, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
+	pubkeyExists, _, _ := h.accounts.PubkeyExists(hex.EncodeToString(decodedKey[1:]))
 
 	if pubkeyExists {
 		errored(errPubkeyNotExist)
@@ -603,7 +603,7 @@ func (h *HttpHandler) accountLogin(jc jape.Context) {
 }
 
 func (h *HttpHandler) accountInfo(jc jape.Context) {
-	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
+	_, user, _ := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint))
 
 	info := &AccountInfoResponse{
 		Email:          user.Email,
@@ -623,7 +623,7 @@ func (h *HttpHandler) accountInfo(jc jape.Context) {
 }
 
 func (h *HttpHandler) accountStats(jc jape.Context) {
-	_, user := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64))
+	_, user, _ := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint))
 
 	info := &AccountStatsResponse{
 		AccountInfoResponse: AccountInfoResponse{
