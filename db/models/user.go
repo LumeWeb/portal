@@ -19,6 +19,10 @@ type User struct {
 	Uploads      []Upload
 	LastLogin    *time.Time
 	LastLoginIP  string
+	OTPEnabled   bool `gorm:"default:false;"`
+	OTPVerified  bool `gorm:"default:false;"`
+	OTPSecret    string
+	OTPAuthUrl   string
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
