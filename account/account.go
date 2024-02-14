@@ -74,19 +74,26 @@ func (s *AccountServiceDefault) AccountExists(id uint) (bool, *models.User, erro
 	return true, model.(*models.User), nil // Ensure to assert the type correctly
 }
 
-func (s AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
-	var user models.User
-
+func (s *AccountServiceDefault) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func (s *AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
+	passwordHash, err := s.HashPassword(password)
 	if err != nil {
 		return nil, err
 	}
 
-	user.Email = email
-	user.PasswordHash = string(bytes)
+	user := models.User{
+		Email:        email,
+		PasswordHash: passwordHash,
+	}
 
 	result := s.db.Create(&user)
-
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -98,14 +105,6 @@ func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, 
 	var user models.User
 
 	user.ID = userId
-
-	if len(firstName) == 0 {
-		return errors.New("First name cannot be empty")
-	}
-
-	if len(lastName) == 0 {
-		return errors.New("Last name cannot be empty")
-	}
 
 	result := s.db.Model(&models.User{}).Where(&user).Updates(&models.User{FirstName: firstName, LastName: lastName})
 
@@ -269,5 +268,12 @@ func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
 		return result.Error
 	}
 
+	return nil
+}
+
+func validateName(firstName, lastName string) error {
+	if len(firstName) == 0 || len(lastName) == 0 {
+		return errors.New("first name and last name cannot be empty")
+	}
 	return nil
 }

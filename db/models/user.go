@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"time"
 )
@@ -17,4 +18,15 @@ type User struct {
 	Uploads      []Upload
 	LastLogin    *time.Time
 	LastLoginIP  string
+}
+
+func (u *User) BeforeUpdate(tx *gorm.DB) error {
+	if len(u.FirstName) == 0 {
+		return errors.New("first name is empty")
+	}
+
+	if len(u.LastName) == 0 {
+		return errors.New("last name is empty")
+	}
+	return nil
 }
