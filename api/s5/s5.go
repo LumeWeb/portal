@@ -118,7 +118,16 @@ func byteHandler(b []byte) jape.Handler {
 }
 
 func getRoutes(s *S5API) map[string]jape.Handler {
-	tusHandler := BuildS5TusApi(s.identity, s.accounts, s.storage)
+	authMiddlewareOpts := middleware.AuthMiddlewareOptions{
+		Identity: s.identity,
+		Accounts: s.accounts,
+		Config:   s.config,
+		Purpose:  account.JWTPurposeLogin,
+	}
+
+	authMw := authMiddleware(authMiddlewareOpts)
+
+	tusHandler := BuildS5TusApi(authMw, s.storage)
 
 	tusOptionsHandler := func(c jape.Context) {
 		c.ResponseWriter.WriteHeader(http.StatusOK)
@@ -142,7 +151,7 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		panic(err)
 	}
 
-	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, middleware.AuthMiddleware(s.identity, s.accounts))
+	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, authMw)
 
 	swaggerFiles, _ := fs.Sub(swagfs, "embed")
 	swaggerServ := http.FileServer(http.FS(swaggerFiles))
@@ -164,13 +173,13 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"POST /s5/account/register": s.httpHandler.accountRegister,
 		"GET /s5/account/login":     s.httpHandler.accountLoginChallenge,
 		"POST /s5/account/login":    s.httpHandler.accountLogin,
-		"GET /s5/account":           middleware.ApplyMiddlewares(s.httpHandler.accountInfo, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.httpHandler.accountStats, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.httpHandler.accountPins, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/account":           middleware.ApplyMiddlewares(s.httpHandler.accountInfo, authMw),
+		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.httpHandler.accountStats, authMw),
+		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.httpHandler.accountPins, authMw),
 
 		// Upload API
-		"POST /s5/upload":           middleware.ApplyMiddlewares(s.httpHandler.smallFileUpload, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.httpHandler.directoryUpload, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"POST /s5/upload":           middleware.ApplyMiddlewares(s.httpHandler.smallFileUpload, authMw),
+		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.httpHandler.directoryUpload, authMw),
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
@@ -181,22 +190,22 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"OPTIONS /s5/upload/tus/:id": wrappedTusHandler,
 
 		// Download API
-		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.downloadBlob, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.httpHandler.downloadBlob, authMw),
 		"GET /s5/metadata/:cid": s.httpHandler.downloadMetadata,
 		"GET /s5/download/:cid": middleware.ApplyMiddlewares(s.httpHandler.downloadFile, cors.Default().Handler),
 
 		// Pins API
-		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.httpHandler.accountPin, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.httpHandler.accountPinDelete, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.httpHandler.accountPin, authMw),
+		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.httpHandler.accountPinDelete, authMw),
 
 		// Debug API
-		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.httpHandler.debugDownloadUrls, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.httpHandler.debugStorageLocations, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.httpHandler.debugDownloadUrls, authMw),
+		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.httpHandler.debugStorageLocations, authMw),
 
 		// Registry API
-		"GET /s5/registry":              middleware.ApplyMiddlewares(s.httpHandler.registryQuery, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.registrySet, middleware.AuthMiddleware(s.identity, s.accounts)),
-		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.registrySubscription, middleware.AuthMiddleware(s.identity, s.accounts)),
+		"GET /s5/registry":              middleware.ApplyMiddlewares(s.httpHandler.registryQuery, authMw),
+		"POST /s5/registry":             middleware.ApplyMiddlewares(s.httpHandler.registrySet, authMw),
+		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.httpHandler.registrySubscription, authMw),
 
 		"GET /swagger.json":  byteHandler(jsonDoc),
 		"GET /swagger":       swaggerRedirect,
@@ -254,7 +263,7 @@ func BuildTusCors() func(h http.Handler) http.Handler {
 	return mw.Handler
 }
 
-func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountServiceDefault, storage *storage.StorageServiceDefault) jape.Handler {
+func BuildS5TusApi(authMw middleware.HttpMiddlewareFunc, storage *storage.StorageServiceDefault) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
 		tusHandler := storage.Tus()
@@ -284,7 +293,7 @@ func BuildS5TusApi(identity ed25519.PrivateKey, accounts *account.AccountService
 	}
 
 	// Apply the middlewares to the tusJapeHandler
-	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, BuildTusCors(), middleware.AuthMiddleware(identity, accounts), injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
+	tusHandler := middleware.ApplyMiddlewares(tusJapeHandler, BuildTusCors(), authMw, injectJwt, protocolMiddleware, stripPrefix, middleware.ProxyMiddleware)
 
 	return tusHandler
 }
