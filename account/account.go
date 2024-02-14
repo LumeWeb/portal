@@ -33,37 +33,45 @@ func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
 	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity}
 }
 
-func (s AccountServiceDefault) EmailExists(email string) (bool, models.User) {
-	var user models.User
+func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
+	// Conduct a query with the provided model and conditions
+	result := s.db.Model(model).Where(conditions).First(model)
 
-	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+	// Check if any rows were found
+	exists := result.RowsAffected > 0
 
-	return result.RowsAffected > 0, user
-}
-func (s AccountServiceDefault) PubkeyExists(pubkey string) (bool, models.PublicKey) {
-	var model models.PublicKey
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return false, nil, nil
+	}
 
-	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
-
-	return result.RowsAffected > 0, model
-}
-
-func (s AccountServiceDefault) AccountExists(id uint64) (bool, models.User) {
-	var model models.User
-
-	result := s.db.Model(&models.User{}).First(&model, id)
-
-	return result.RowsAffected > 0, model
+	return exists, model, result.Error
 }
 
-func (s AccountServiceDefault) AccountExistsByEmail(email string) (bool, models.User) {
-	var model models.User
+func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, error) {
+	user := &models.User{}
+	exists, model, err := s.exists(user, map[string]interface{}{"email": email})
+	if !exists || err != nil {
+		return false, nil, err
+	}
+	return true, model.(*models.User), nil // Type assertion since `exists` returns interface{}
+}
 
-	model.Email = email
+func (s *AccountServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey, error) {
+	publicKey := &models.PublicKey{}
+	exists, model, err := s.exists(publicKey, map[string]interface{}{"key": pubkey})
+	if !exists || err != nil {
+		return false, nil, err
+	}
+	return true, model.(*models.PublicKey), nil // Type assertion is necessary
+}
 
-	result := s.db.Model(&models.User{}).Where(&model).First(&model)
-
-	return result.RowsAffected > 0, model
+func (s *AccountServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
+	user := &models.User{}
+	exists, model, err := s.exists(user, map[string]interface{}{"id": id})
+	if !exists || err != nil {
+		return false, nil, err
+	}
+	return true, model.(*models.User), nil // Ensure to assert the type correctly
 }
 
 func (s AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
