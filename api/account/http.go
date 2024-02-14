@@ -49,7 +49,7 @@ func (h *HttpHandler) login(jc jape.Context) {
 		return
 	}
 
-	jwt, _, err := h.accounts.LoginPassword(request.Email, request.Password)
+	jwt, _, err := h.accounts.LoginPassword(request.Email, request.Password, jc.Request.RemoteAddr)
 	if err != nil {
 		return
 	}
