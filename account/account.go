@@ -92,20 +92,6 @@ func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, 
 	return s.updateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
 }
 
-func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) error {
-	var user models.User
-
-	user.ID = userId
-
-	result := s.db.Model(&models.User{}).Where(&user).Updates(info)
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
-}
-
 func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
@@ -281,6 +267,21 @@ func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, er
 
 	return token, nil
 }
+
+func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) error {
+	var user models.User
+
+	user.ID = userId
+
+	result := s.db.Model(&models.User{}).Where(&user).Updates(info)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
 func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
 	// Conduct a query with the provided model and conditions
 	result := s.db.Model(model).Where(conditions).First(model)
