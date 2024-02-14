@@ -3,6 +3,7 @@ package account
 import (
 	"errors"
 	"git.lumeweb.com/LumeWeb/portal/account"
+	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -75,6 +76,79 @@ func (h *HttpHandler) register(jc jape.Context) {
 
 	if err != nil {
 		_ = jc.Error(errors.Join(errFailedToCreateAccount, err), http.StatusBadRequest)
+		return
+	}
+}
+
+func (h *HttpHandler) otpGenerate(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	otp, err := h.accounts.OTPGenerate(user)
+	if jc.Check("failed to generate otp", err) != nil {
+		return
+	}
+
+	jc.Encode(&OTPGenerateResponse{
+		OTP: otp,
+	})
+}
+
+func (h *HttpHandler) otpVerify(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	var request OTPVerifyRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	err := h.accounts.OTPEnable(user, request.OTP)
+
+	if jc.Check("failed to verify otp", err) != nil {
+		return
+	}
+}
+
+func (h *HttpHandler) otpValidate(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	var request OTPValidateRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	jwt, err := h.accounts.LoginOTP(user, request.OTP)
+	if jc.Check("failed to validate otp", err) != nil {
+		return
+	}
+
+	account.SendJWT(jc, jwt)
+}
+
+func (h *HttpHandler) otpDisable(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	var request OTPDisableRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	valid, _, err := h.accounts.ValidLoginByUserID(user, request.Password)
+
+	if !valid {
+		if err != nil {
+			err = errors.Join(errInvalidLogin, err)
+		}
+
+		if jc.Check("failed to validate password", err) != nil {
+			return
+		}
+	}
+
+	err = h.accounts.OTPDisable(user)
+	if jc.Check("failed to disable otp", err) != nil {
 		return
 	}
 }

@@ -74,7 +74,11 @@ func (a AccountAPI) Stop(ctx context.Context) error {
 
 func getRoutes(a *AccountAPI) map[string]jape.Handler {
 	return map[string]jape.Handler{
-		"/api/login":   a.httpHandler.login,
-		"api/register": a.httpHandler.register,
+		"/api/auth/login":        a.httpHandler.login,
+		"/api/auth/register":     a.httpHandler.register,
+		"/api/auth/otp/generate": a.httpHandler.otpGenerate,
+		"/api/auth/otp/verify":   a.httpHandler.otpVerify,
+		"/api/auth/otp/validate": a.httpHandler.otpValidate,
+		"/api/auth/otp/disable":  a.httpHandler.otpDisable,
 	}
 }

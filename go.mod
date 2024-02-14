@@ -20,6 +20,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/hashicorp/go-plugin v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/pquerna/otp v1.4.0
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
 	github.com/spf13/pflag v1.0.5
@@ -58,6 +59,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.26.6 // indirect
 	github.com/aws/smithy-go v1.19.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/casbin/govaluate v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf // indirect

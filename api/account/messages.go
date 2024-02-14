@@ -11,3 +11,18 @@ type RegisterRequest struct {
 	Email     string `json:"email"`
 	Password  string `json:"password"`
 }
+
+type OTPGenerateResponse struct {
+	OTP string `json:"otp"`
+}
+
+type OTPVerifyRequest struct {
+	OTP string `json:"otp"`
+}
+
+type OTPValidateRequest struct {
+	OTP string `json:"otp"`
+}
+type OTPDisableRequest struct {
+	Password string `json:"password"`
+}
