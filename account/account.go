@@ -253,7 +253,7 @@ func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
 }
 
 func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {
-	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, user.ID, JWTPurposeLogin)
+	token, err := JWTGenerateToken(s.config.GetString("core.domain"), s.identity, user.ID, JWTPurposeLogin)
 	if err != nil {
 		return "", err
 	}

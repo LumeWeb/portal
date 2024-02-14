@@ -27,11 +27,11 @@ const (
 	JWTPurpose2FA   JWTPurpose = "2fa"
 )
 
-func GenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose) (string, error) {
-	return GenerateTokenWithDuration(domain, privateKey, userID, time.Hour*24, purpose)
+func JWTGenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose) (string, error) {
+	return JWTGenerateTokenWithDuration(domain, privateKey, userID, time.Hour*24, purpose)
 }
 
-func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, userID uint, duration time.Duration, purpose JWTPurpose) (string, error) {
+func JWTGenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, userID uint, duration time.Duration, purpose JWTPurpose) (string, error) {
 
 	// Define the claims
 	claims := jwt.RegisteredClaims{
@@ -54,7 +54,7 @@ func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, use
 	return tokenString, nil
 }
 
-func VerifyToken(token string, domain string, privateKey ed25519.PrivateKey, verifyFunc VerifyTokenFunc) (*jwt.RegisteredClaims, error) {
+func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, verifyFunc VerifyTokenFunc) (*jwt.RegisteredClaims, error) {
 	validatedToken, err := jwt.ParseWithClaims(token, jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
