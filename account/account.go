@@ -2,6 +2,7 @@ package account
 
 import (
 	"crypto/ed25519"
+	"errors"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
@@ -54,6 +55,17 @@ func (s AccountServiceDefault) AccountExists(id uint64) (bool, models.User) {
 
 	return result.RowsAffected > 0, model
 }
+
+func (s AccountServiceDefault) AccountExistsByEmail(email string) (bool, models.User) {
+	var model models.User
+
+	model.Email = email
+
+	result := s.db.Model(&models.User{}).Where(&model).First(&model)
+
+	return result.RowsAffected > 0, model
+}
+
 func (s AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
 	var user models.User
 
@@ -73,6 +85,29 @@ func (s AccountServiceDefault) CreateAccount(email string, password string) (*mo
 
 	return &user, nil
 }
+
+func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
+	var user models.User
+
+	user.ID = userId
+
+	if len(firstName) == 0 {
+		return errors.New("First name cannot be empty")
+	}
+
+	if len(lastName) == 0 {
+		return errors.New("Last name cannot be empty")
+	}
+
+	result := s.db.Model(&models.User{}).Where(&user).Updates(&models.User{FirstName: firstName, LastName: lastName})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
 func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
@@ -87,26 +122,40 @@ func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey strin
 
 	return nil
 }
-func (s AccountServiceDefault) LoginPassword(email string, password string) (string, error) {
+func (s AccountServiceDefault) LoginPassword(email string, password string) (string, *models.User, error) {
+	valid, user, err := s.ValidLogin(email, password)
+
+	if err != nil {
+		return "", nil, err
+	}
+
+	if !valid {
+		return "", nil, nil
+	}
+
+	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, user.ID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return token, nil, nil
+}
+
+func (s AccountServiceDefault) ValidLogin(email string, password string) (bool, *models.User, error) {
 	var user models.User
 
 	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 
 	if result.RowsAffected == 0 || result.Error != nil {
-		return "", result.Error
+		return false, nil, result.Error
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return "", err
+		return false, nil, err
 	}
 
-	token, err := GenerateToken(s.identity, user.ID)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
+	return true, nil, nil
 }
 
 func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
@@ -118,7 +167,7 @@ func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 		return "", result.Error
 	}
 
-	token, err := GenerateToken(s.identity, model.UserID)
+	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, model.UserID)
 	if err != nil {
 		return "", err
 	}

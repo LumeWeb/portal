@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-func GenerateToken(privateKey ed25519.PrivateKey, userID uint) (string, error) {
-	return GenerateTokenWithDuration(privateKey, userID, time.Hour*24)
+func GenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint) (string, error) {
+	return GenerateTokenWithDuration(domain, privateKey, userID, time.Hour*24)
 }
-func GenerateTokenWithDuration(privateKey ed25519.PrivateKey, userID uint, duration time.Duration) (string, error) {
+func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, userID uint, duration time.Duration) (string, error) {
 	// Define the claims
 	claims := jwt.MapClaims{
-		"iss": "portal",
+		"iss": domain,
 		"sub": userID,
 		"exp": time.Now().Add(duration).Unix(),
 	}

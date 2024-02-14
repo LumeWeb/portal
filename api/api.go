@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"git.lumeweb.com/LumeWeb/portal/api/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"git.lumeweb.com/LumeWeb/portal/api/s5"
 	"github.com/samber/lo"
@@ -14,6 +15,11 @@ func RegisterApis() {
 		Key:      "s5",
 		Module:   s5.Module,
 		InitFunc: s5.InitAPI,
+	})
+	registry.Register(registry.APIEntry{
+		Key:      "account",
+		Module:   account.Module,
+		InitFunc: account.InitAPI,
 	})
 }
 
