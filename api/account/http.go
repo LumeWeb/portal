@@ -5,6 +5,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -15,16 +16,19 @@ var (
 
 type HttpHandler struct {
 	accounts *account.AccountServiceDefault
+	logger   *zap.Logger
 }
 
 type HttpHandlerParams struct {
 	fx.In
 	Accounts *account.AccountServiceDefault
+	Logger   *zap.Logger
 }
 
 func NewHttpHandler(params HttpHandlerParams) *HttpHandler {
 	return &HttpHandler{
 		accounts: params.Accounts,
+		logger:   params.Logger,
 	}
 }
 
@@ -35,10 +39,13 @@ func (h *HttpHandler) login(jc jape.Context) {
 		return
 	}
 
-	exists, _ := h.accounts.AccountExistsByEmail(request.Email)
+	exists, _, err := h.accounts.EmailExists(request.Email)
 
 	if !exists {
 		_ = jc.Error(errInvalidLogin, http.StatusUnauthorized)
+		if err != nil {
+			h.logger.Error("failed to check if email exists", zap.Error(err))
+		}
 		return
 	}
 
