@@ -106,16 +106,8 @@ type HttpHandlerResult struct {
 }
 
 func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
-	verifier := emailverifier.NewVerifier()
-
-	verifier.DisableSMTPCheck()
-	verifier.DisableGravatarCheck()
-	verifier.DisableDomainSuggest()
-	verifier.DisableAutoUpdateDisposable()
-
 	return HttpHandlerResult{
 		HttpHandler: HttpHandler{
-			verifier: verifier,
 			config:   params.Config,
 			logger:   params.Logger,
 			storage:  params.Storage,
@@ -396,13 +388,6 @@ func (h *HttpHandler) accountRegister(jc jape.Context) {
 
 	if request.Email == "" {
 		request.Email = fmt.Sprintf("%s@%s", hex.EncodeToString(decodedKey[1:]), "example.com")
-	}
-
-	verify, _ := h.verifier.Verify(request.Email)
-
-	if !verify.Syntax.Valid {
-		errored(errInvalidEmail)
-		return
 	}
 
 	accountExists, _, _ := h.accounts.EmailExists(request.Email)
