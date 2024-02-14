@@ -263,7 +263,7 @@ func (s AccountServiceDefault) DeletePinByHash(hash string, userId uint) error {
 
 	return nil
 }
-func (s AccountServiceDefault) PinByHash(hash string, accountID uint) error {
+func (s AccountServiceDefault) PinByHash(hash string, userId uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
@@ -278,11 +278,11 @@ func (s AccountServiceDefault) PinByHash(hash string, accountID uint) error {
 		return result.Error
 	}
 
-	return s.PinByID(uploadID, accountID)
+	return s.PinByID(uploadID, userId)
 }
 
-func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
-	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: accountID}).First(&models.Pin{})
+func (s AccountServiceDefault) PinByID(uploadId uint, userId uint) error {
+	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: userId}).First(&models.Pin{})
 
 	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
 		return result.Error
@@ -293,7 +293,7 @@ func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
 	}
 
 	// Create a pin with the retrieved upload ID and matching account ID
-	pinQuery := models.Pin{UploadID: uploadId, UserID: accountID}
+	pinQuery := models.Pin{UploadID: uploadId, UserID: userId}
 	result = s.db.Create(&pinQuery)
 
 	if result.Error != nil {
