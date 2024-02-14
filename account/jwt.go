@@ -15,6 +15,7 @@ func GenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, use
 		"iss": domain,
 		"sub": userID,
 		"exp": time.Now().Add(duration).Unix(),
+		"iat": time.Now().Unix(),
 	}
 
 	// Create the token
