@@ -124,6 +124,7 @@ func (h *HttpHandler) smallFileUpload(jc jape.Context) {
 
 	r := jc.Request
 	contentType := r.Header.Get("Content-Type")
+	user := middleware.GetUserFromContext(jc.Request.Context())
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		// Parse the multipart form
@@ -189,7 +190,7 @@ func (h *HttpHandler) smallFileUpload(jc jape.Context) {
 			return
 		}
 
-		err = h.accounts.PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+		err = h.accounts.PinByID(upload.ID, user)
 		if err != nil {
 			_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 			h.logger.Error(errUploadingFile, zap.Error(err))
@@ -249,13 +250,13 @@ func (h *HttpHandler) smallFileUpload(jc jape.Context) {
 
 	mimeType := http.DetectContentType(mimeBytes[:])
 
-	upload, err := h.storage.CreateUpload(hash.Hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(bufferSize), "s5")
+	upload, err := h.storage.CreateUpload(hash.Hash, mimeType, user, jc.Request.RemoteAddr, uint64(bufferSize), "s5")
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.logger.Error(errUploadingFile, zap.Error(err))
 	}
 
-	err = h.accounts.PinByID(upload.ID, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.PinByID(upload.ID, user)
 	if err != nil {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
 		h.logger.Error(errUploadingFile, zap.Error(err))
@@ -583,7 +584,8 @@ func (h *HttpHandler) accountLogin(jc jape.Context) {
 }
 
 func (h *HttpHandler) accountInfo(jc jape.Context) {
-	_, user, _ := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint))
+	userID := middleware.GetUserFromContext(jc.Request.Context())
+	_, user, _ := h.accounts.AccountExists(userID)
 
 	info := &AccountInfoResponse{
 		Email:          user.Email,
@@ -603,7 +605,8 @@ func (h *HttpHandler) accountInfo(jc jape.Context) {
 }
 
 func (h *HttpHandler) accountStats(jc jape.Context) {
-	_, user, _ := h.accounts.AccountExists(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint))
+	userID := middleware.GetUserFromContext(jc.Request.Context())
+	_, user, _ := h.accounts.AccountExists(userID)
 
 	info := &AccountStatsResponse{
 		AccountInfoResponse: AccountInfoResponse{
@@ -636,12 +639,14 @@ func (h *HttpHandler) accountPins(jc jape.Context) {
 		return
 	}
 
+	userID := middleware.GetUserFromContext(jc.Request.Context())
+
 	errored := func(err error) {
 		_ = jc.Error(errFailedToGetPinsErr, http.StatusInternalServerError)
 		h.logger.Error(errFailedToGetPins, zap.Error(err))
 	}
 
-	pins, err := h.accounts.AccountPins(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64), cursor)
+	pins, err := h.accounts.AccountPins(userID, cursor)
 
 	if err != nil {
 		errored(err)
@@ -669,6 +674,8 @@ func (h *HttpHandler) accountPinDelete(jc jape.Context) {
 		return
 	}
 
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
 	errored := func(err error) {
 		_ = jc.Error(errFailedToDelPinErr, http.StatusInternalServerError)
 		h.logger.Error(errFailedToDelPin, zap.Error(err))
@@ -683,7 +690,7 @@ func (h *HttpHandler) accountPinDelete(jc jape.Context) {
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.accounts.DeletePinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.DeletePinByHash(hash, user)
 
 	if err != nil {
 		errored(err)
@@ -697,6 +704,8 @@ func (h *HttpHandler) accountPin(jc jape.Context) {
 	if jc.DecodeParam("cid", &cid) != nil {
 		return
 	}
+
+	userID := middleware.GetUserFromContext(jc.Request.Context())
 
 	errored := func(err error) {
 		_ = jc.Error(errFailedToAddPinErr, http.StatusInternalServerError)
@@ -715,7 +724,7 @@ func (h *HttpHandler) accountPin(jc jape.Context) {
 
 	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
 
-	err = h.accounts.PinByHash(hash, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)))
+	err = h.accounts.PinByHash(hash, userID)
 
 	if err != nil {
 		errored(err)
@@ -744,6 +753,7 @@ func (h *HttpHandler) directoryUpload(jc jape.Context) {
 
 	r := jc.Request
 	contentType := r.Header.Get("Content-Type")
+	user := middleware.GetUserFromContext(jc.Request.Context())
 
 	errored := func(err error) {
 		_ = jc.Error(errUploadingFileErr, http.StatusInternalServerError)
@@ -821,7 +831,7 @@ func (h *HttpHandler) directoryUpload(jc jape.Context) {
 			}
 			mimeType := http.DetectContentType(mimeBytes[:])
 
-			upload, err := h.storage.CreateUpload(hash.Hash, mimeType, uint(jc.Request.Context().Value(middleware.S5AuthUserIDKey).(uint64)), jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
+			upload, err := h.storage.CreateUpload(hash.Hash, mimeType, user, jc.Request.RemoteAddr, uint64(fileHeader.Size), "s5")
 
 			if err != nil {
 				errored(err)
