@@ -34,20 +34,6 @@ func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
 	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity}
 }
 
-func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
-	// Conduct a query with the provided model and conditions
-	result := s.db.Model(model).Where(conditions).First(model)
-
-	// Check if any rows were found
-	exists := result.RowsAffected > 0
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return false, nil, nil
-	}
-
-	return exists, model, result.Error
-}
-
 func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, error) {
 	user := &models.User{}
 	exists, model, err := s.exists(user, map[string]interface{}{"email": email})
@@ -145,19 +131,13 @@ func (s AccountServiceDefault) LoginPassword(email string, password string, ip s
 		return "", nil, nil
 	}
 
-	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, user.ID)
+	token, err := s.doLogin(user, ip)
+
 	if err != nil {
 		return "", nil, err
 	}
 
-	now := time.Now()
-
-	err = s.updateAccountInfo(user.ID, models.User{LastLoginIP: ip, LastLogin: &now})
-	if err != nil {
-		return "", nil, err
-	}
-
-	return token, nil, nil
+	return token, user, nil
 }
 
 func (s AccountServiceDefault) ValidLogin(email string, password string) (bool, *models.User, error) {
@@ -180,13 +160,16 @@ func (s AccountServiceDefault) ValidLogin(email string, password string) (bool, 
 func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 	var model models.PublicKey
 
-	result := s.db.Model(&models.PublicKey{}).Where(&models.PublicKey{Key: pubkey}).First(&model)
+	result := s.db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
 
 	if result.RowsAffected == 0 || result.Error != nil {
 		return "", result.Error
 	}
 
-	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, model.UserID)
+	user := model.User
+
+	token, err := s.doLogin(&user, "")
+
 	if err != nil {
 		return "", err
 	}
@@ -281,6 +264,35 @@ func (s AccountServiceDefault) PinByID(uploadId uint, accountID uint) error {
 	}
 
 	return nil
+}
+
+func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {
+	token, err := GenerateToken(s.config.GetString("core.domain"), s.identity, user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now()
+
+	err = s.updateAccountInfo(user.ID, models.User{LastLoginIP: ip, LastLogin: &now})
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+func (s *AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
+	// Conduct a query with the provided model and conditions
+	result := s.db.Model(model).Where(conditions).First(model)
+
+	// Check if any rows were found
+	exists := result.RowsAffected > 0
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return false, nil, nil
+	}
+
+	return exists, model, result.Error
 }
 
 func validateName(firstName, lastName string) error {
