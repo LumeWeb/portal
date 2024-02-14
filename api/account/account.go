@@ -2,6 +2,8 @@ package account
 
 import (
 	"context"
+	"crypto/ed25519"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
@@ -18,6 +20,7 @@ type AccountAPI struct {
 	config      *viper.Viper
 	accounts    *account.AccountServiceDefault
 	httpHandler *HttpHandler
+	identity    ed25519.PrivateKey
 }
 
 type AccountAPIParams struct {
@@ -25,6 +28,7 @@ type AccountAPIParams struct {
 	Config      *viper.Viper
 	Accounts    *account.AccountServiceDefault
 	HttpHandler *HttpHandler
+	Identity    ed25519.PrivateKey
 }
 
 func NewS5(params AccountAPIParams) AccountApiResult {
@@ -32,6 +36,7 @@ func NewS5(params AccountAPIParams) AccountApiResult {
 		config:      params.Config,
 		accounts:    params.Accounts,
 		httpHandler: params.HttpHandler,
+		identity:    params.Identity,
 	}
 
 	return AccountApiResult{
@@ -73,12 +78,27 @@ func (a AccountAPI) Stop(ctx context.Context) error {
 }
 
 func getRoutes(a *AccountAPI) map[string]jape.Handler {
+
+	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
+		Identity: a.identity,
+		Accounts: a.accounts,
+		Config:   a.config,
+		Purpose:  account.JWTPurpose2FA,
+	})
+
+	authMw := authMiddleware(middleware.AuthMiddlewareOptions{
+		Identity: a.identity,
+		Accounts: a.accounts,
+		Config:   a.config,
+		Purpose:  account.JWTPurposeLogin,
+	})
+
 	return map[string]jape.Handler{
-		"/api/auth/login":        a.httpHandler.login,
+		"/api/auth/login":        middleware.ApplyMiddlewares(a.httpHandler.login, authMw2fa, middleware.ProxyMiddleware),
 		"/api/auth/register":     a.httpHandler.register,
-		"/api/auth/otp/generate": a.httpHandler.otpGenerate,
-		"/api/auth/otp/verify":   a.httpHandler.otpVerify,
-		"/api/auth/otp/validate": a.httpHandler.otpValidate,
-		"/api/auth/otp/disable":  a.httpHandler.otpDisable,
+		"/api/auth/otp/generate": middleware.ApplyMiddlewares(a.httpHandler.otpGenerate, authMw, middleware.ProxyMiddleware),
+		"/api/auth/otp/verify":   middleware.ApplyMiddlewares(a.httpHandler.otpVerify, authMw, middleware.ProxyMiddleware),
+		"/api/auth/otp/validate": middleware.ApplyMiddlewares(a.httpHandler.otpValidate, authMw, middleware.ProxyMiddleware),
+		"/api/auth/otp/disable":  middleware.ApplyMiddlewares(a.httpHandler.otpDisable, authMw, middleware.ProxyMiddleware),
 	}
 }
