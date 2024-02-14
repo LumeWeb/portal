@@ -22,7 +22,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"git.lumeweb.com/LumeWeb/portal/storage"
-	emailverifier "github.com/AfterShip/email-verifier"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack/v5"
@@ -79,7 +78,6 @@ var (
 )
 
 type HttpHandler struct {
-	verifier *emailverifier.Verifier
 	config   *viper.Viper
 	logger   *zap.Logger
 	storage  *storage.StorageServiceDefault
