@@ -214,12 +214,12 @@ func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 	return token, nil
 }
 
-func (s AccountServiceDefault) AccountPins(id uint64, createdAfter uint64) ([]models.Pin, error) {
+func (s AccountServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, error) {
 	var pins []models.Pin
 
 	result := s.db.Model(&models.Pin{}).
 		Preload("Upload"). // Preload the related Upload for each Pin
-		Where(&models.Pin{UserID: uint(id)}).
+		Where(&models.Pin{UserID: id}).
 		Where("created_at > ?", createdAfter).
 		Order("created_at desc").
 		Find(&pins)
@@ -231,7 +231,7 @@ func (s AccountServiceDefault) AccountPins(id uint64, createdAfter uint64) ([]mo
 	return pins, nil
 }
 
-func (s AccountServiceDefault) DeletePinByHash(hash string, accountID uint) error {
+func (s AccountServiceDefault) DeletePinByHash(hash string, userId uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
@@ -252,7 +252,7 @@ func (s AccountServiceDefault) DeletePinByHash(hash string, accountID uint) erro
 	}
 
 	// Delete pins with the retrieved upload ID and matching account ID
-	pinQuery := models.Pin{UploadID: uploadID, UserID: accountID}
+	pinQuery := models.Pin{UploadID: uploadID, UserID: userId}
 	result = s.db.
 		Where(&pinQuery).
 		Delete(&models.Pin{})
