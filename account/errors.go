@@ -1,6 +1,9 @@
 package account
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 const (
 	// Account creation errors
@@ -85,6 +88,50 @@ var defaultErrorMessages = map[string]string{
 	// General errors
 	ErrKeyDatabaseOperationFailed: "A database operation failed.",
 }
+
+var (
+	ErrorCodeToHttpStatus = map[string]int{
+		// Account creation errors
+		ErrKeyAccountCreationFailed: http.StatusInternalServerError,
+		ErrKeyEmailAlreadyExists:    http.StatusConflict,
+		ErrKeyPasswordHashingFailed: http.StatusInternalServerError,
+
+		// Account lookup and existence verification errors
+		ErrKeyUserNotFound:      http.StatusNotFound,
+		ErrKeyPublicKeyNotFound: http.StatusNotFound,
+
+		// Authentication and login errors
+		ErrKeyInvalidLogin:          http.StatusUnauthorized,
+		ErrKeyInvalidPassword:       http.StatusUnauthorized,
+		ErrKeyInvalidOTPCode:        http.StatusBadRequest,
+		ErrKeyOTPVerificationFailed: http.StatusBadRequest,
+		ErrKeyLoginFailed:           http.StatusInternalServerError,
+
+		// Account update errors
+		ErrKeyAccountUpdateFailed: http.StatusInternalServerError,
+
+		// JWT generation errors
+		ErrKeyJWTGenerationFailed: http.StatusInternalServerError,
+
+		// OTP management errors
+		ErrKeyOTPGenerationFailed: http.StatusInternalServerError,
+		ErrKeyOTPEnableFailed:     http.StatusInternalServerError,
+		ErrKeyOTPDisableFailed:    http.StatusInternalServerError,
+
+		// Public key management errors
+		ErrKeyAddPublicKeyFailed: http.StatusInternalServerError,
+		ErrKeyPublicKeyExists:    http.StatusConflict,
+
+		// Pin management errors
+		ErrKeyPinAddFailed:        http.StatusInternalServerError,
+		ErrKeyPinDeleteFailed:     http.StatusInternalServerError,
+		ErrKeyPinsRetrievalFailed: http.StatusInternalServerError,
+
+		// General errors
+		ErrKeyDatabaseOperationFailed: http.StatusInternalServerError,
+		ErrKeyHashingFailed:           http.StatusInternalServerError,
+	}
+)
 
 type AccountError struct {
 	Key     string // A unique identifier for the error type
