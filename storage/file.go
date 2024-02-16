@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"io"
+	"time"
+
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/renter"
 	"go.sia.tech/renterd/api"
-	"io"
-	"time"
 )
 
 type FileImpl struct {
@@ -110,7 +111,7 @@ func (f *FileImpl) Record() (*models.Upload, error) {
 			return nil, errors.New("file does not exist")
 		}
 
-		f.record = &record
+		f.record = record
 	}
 
 	return f.record, nil
