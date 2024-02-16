@@ -1,18 +1,13 @@
 package account
 
 import (
-	"errors"
+	"net/http"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"net/http"
-)
-
-var (
-	errInvalidLogin          = errors.New("invalid login")
-	errFailedToCreateAccount = errors.New("failed to create account")
 )
 
 type HttpHandler struct {
@@ -43,7 +38,7 @@ func (h *HttpHandler) login(jc jape.Context) {
 	exists, _, err := h.accounts.EmailExists(request.Email)
 
 	if !exists {
-		_ = jc.Error(errInvalidLogin, http.StatusUnauthorized)
+		_ = jc.Error(account.NewAccountError(account.ErrKeyInvalidLogin, nil), http.StatusUnauthorized)
 		if err != nil {
 			h.logger.Error("failed to check if email exists", zap.Error(err))
 		}
@@ -68,14 +63,16 @@ func (h *HttpHandler) register(jc jape.Context) {
 
 	user, err := h.accounts.CreateAccount(request.Email, request.Password)
 	if err != nil {
-		_ = jc.Error(errFailedToCreateAccount, http.StatusBadRequest)
+		_ = jc.Error(err, http.StatusUnauthorized)
+		h.logger.Error("failed to update account name", zap.Error(err))
 		return
 	}
 
 	err = h.accounts.UpdateAccountName(user.ID, request.FirstName, request.LastName)
 
 	if err != nil {
-		_ = jc.Error(errors.Join(errFailedToCreateAccount, err), http.StatusBadRequest)
+		_ = jc.Error(account.NewAccountError(account.ErrKeyAccountCreationFailed, err), http.StatusBadRequest)
+		h.logger.Error("failed to update account name", zap.Error(err))
 		return
 	}
 }
@@ -138,13 +135,8 @@ func (h *HttpHandler) otpDisable(jc jape.Context) {
 	valid, _, err := h.accounts.ValidLoginByUserID(user, request.Password)
 
 	if !valid {
-		if err != nil {
-			err = errors.Join(errInvalidLogin, err)
-		}
-
-		if jc.Check("failed to validate password", err) != nil {
-			return
-		}
+		_ = jc.Error(account.NewAccountError(account.ErrKeyInvalidLogin, nil), http.StatusUnauthorized)
+		return
 	}
 
 	err = h.accounts.OTPDisable(user)
