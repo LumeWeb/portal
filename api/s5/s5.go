@@ -6,6 +6,12 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
+	"io/fs"
+	"net/http"
+	"net/url"
+
+	"github.com/julienschmidt/httprouter"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
@@ -17,9 +23,6 @@ import (
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
-	"io/fs"
-	"net/http"
-	"net/url"
 )
 
 var (
@@ -75,10 +78,6 @@ func NewS5(params APIParams) (S5ApiResult, error) {
 	}, nil
 }
 
-func InitAPI(api *S5API) error {
-	return api.Init()
-}
-
 var Module = fx.Module("s5_api",
 	fx.Provide(NewS5),
 	fx.Provide(NewHttpHandler),
@@ -92,8 +91,6 @@ func (s *S5API) Init() error {
 
 	s5protocolInstance := s5protocol.(*s5.S5Protocol)
 	s.protocol = s5protocolInstance
-	router := s5protocolInstance.Node().Services().HTTP().GetHttpRouter(getRoutes(s))
-	middleware.RegisterProtocolSubdomain(s.config, router, "s5")
 
 	return nil
 }
@@ -110,14 +107,7 @@ func (s S5API) Stop(ctx context.Context) error {
 	return nil
 }
 
-func byteHandler(b []byte) jape.Handler {
-	return func(c jape.Context) {
-		c.ResponseWriter.Header().Set("Content-Type", "application/json")
-		c.ResponseWriter.Write(b)
-	}
-}
-
-func getRoutes(s *S5API) map[string]jape.Handler {
+func (s *S5API) Routes() *httprouter.Router {
 	authMiddlewareOpts := middleware.AuthMiddlewareOptions{
 		Identity: s.identity,
 		Accounts: s.accounts,
@@ -167,7 +157,7 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		http.Redirect(jc.ResponseWriter, jc.Request, "/swagger/", http.StatusMovedPermanently)
 	}
 
-	return map[string]jape.Handler{
+	routes := map[string]jape.Handler{
 		// Account API
 		"GET /s5/account/register":  s.httpHandler.accountRegisterChallenge,
 		"POST /s5/account/register": s.httpHandler.accountRegister,
@@ -210,6 +200,15 @@ func getRoutes(s *S5API) map[string]jape.Handler {
 		"GET /swagger.json":  byteHandler(jsonDoc),
 		"GET /swagger":       swaggerRedirect,
 		"GET /swagger/*path": middleware.ApplyMiddlewares(swaggerHandler, swaggerStrip),
+	}
+
+	return s.protocol.Node().Services().HTTP().GetHttpRouter(routes)
+}
+
+func byteHandler(b []byte) jape.Handler {
+	return func(c jape.Context) {
+		c.ResponseWriter.Header().Set("Content-Type", "application/json")
+		c.ResponseWriter.Write(b)
 	}
 }
 

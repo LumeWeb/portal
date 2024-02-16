@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ed25519"
 
+	"github.com/julienschmidt/httprouter"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
@@ -45,10 +47,6 @@ func NewS5(params AccountAPIParams) AccountApiResult {
 	}
 }
 
-func InitAPI(api *AccountAPI) error {
-	return api.Init()
-}
-
 var Module = fx.Module("s5_api",
 	fx.Provide(NewS5),
 	fx.Provide(NewHttpHandler),
@@ -65,7 +63,6 @@ func (a AccountAPI) Name() string {
 }
 
 func (a *AccountAPI) Init() error {
-	middleware.RegisterProtocolSubdomain(a.config, jape.Mux(getRoutes(a)), "s5")
 	return nil
 }
 
@@ -77,8 +74,7 @@ func (a AccountAPI) Stop(ctx context.Context) error {
 	return nil
 }
 
-func getRoutes(a *AccountAPI) map[string]jape.Handler {
-
+func (a AccountAPI) Routes() *httprouter.Router {
 	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity: a.identity,
 		Accounts: a.accounts,
@@ -93,12 +89,12 @@ func getRoutes(a *AccountAPI) map[string]jape.Handler {
 		Purpose:  account.JWTPurposeLogin,
 	})
 
-	return map[string]jape.Handler{
+	return jape.Mux(map[string]jape.Handler{
 		"/api/auth/login":        middleware.ApplyMiddlewares(a.httpHandler.login, authMw2fa, middleware.ProxyMiddleware),
 		"/api/auth/register":     a.httpHandler.register,
 		"/api/auth/otp/generate": middleware.ApplyMiddlewares(a.httpHandler.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"/api/auth/otp/verify":   middleware.ApplyMiddlewares(a.httpHandler.otpVerify, authMw, middleware.ProxyMiddleware),
 		"/api/auth/otp/validate": middleware.ApplyMiddlewares(a.httpHandler.otpValidate, authMw, middleware.ProxyMiddleware),
 		"/api/auth/otp/disable":  middleware.ApplyMiddlewares(a.httpHandler.otpDisable, authMw, middleware.ProxyMiddleware),
-	}
+	})
 }

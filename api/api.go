@@ -2,24 +2,25 @@ package api
 
 import (
 	"context"
+	"slices"
+
+	"git.lumeweb.com/LumeWeb/portal/api/middleware"
+
 	"git.lumeweb.com/LumeWeb/portal/api/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"git.lumeweb.com/LumeWeb/portal/api/s5"
-	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
 
 func RegisterApis() {
 	registry.Register(registry.APIEntry{
-		Key:      "s5",
-		Module:   s5.Module,
-		InitFunc: s5.InitAPI,
+		Key:    "s5",
+		Module: s5.Module,
 	})
 	registry.Register(registry.APIEntry{
-		Key:      "account",
-		Module:   account.Module,
-		InitFunc: account.InitAPI,
+		Key:    "account",
+		Module: account.Module,
 	})
 }
 
@@ -27,13 +28,27 @@ func BuildApis(config *viper.Viper) fx.Option {
 	var options []fx.Option
 	enabledProtocols := config.GetStringSlice("core.protocols")
 	for _, entry := range registry.GetRegistry() {
-		if lo.Contains(enabledProtocols, entry.Key) {
+		if slices.Contains(enabledProtocols, entry.Key) {
 			options = append(options, entry.Module)
-			if entry.InitFunc != nil {
-				options = append(options, fx.Invoke(entry.InitFunc))
-			}
 		}
 	}
+
+	options = append(options, fx.Invoke(func(protocols []registry.API) error {
+		for _, protocol := range protocols {
+			err := protocol.Init()
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}))
+
+	options = append(options, fx.Invoke(func(protocols []registry.API) {
+		for _, protocol := range protocols {
+			middleware.RegisterProtocolSubdomain(config, protocol.Routes(), protocol.Name())
+		}
+	}))
 
 	return fx.Module("api", fx.Options(options...))
 }

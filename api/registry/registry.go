@@ -2,6 +2,9 @@ package registry
 
 import (
 	"context"
+
+	"github.com/julienschmidt/httprouter"
+
 	router2 "git.lumeweb.com/LumeWeb/portal/api/router"
 	"go.uber.org/fx"
 )
@@ -11,12 +14,12 @@ type API interface {
 	Init() error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
+	Routes() *httprouter.Router
 }
 
 type APIEntry struct {
-	Key      string
-	Module   fx.Option
-	InitFunc interface{}
+	Key    string
+	Module fx.Option
 }
 
 var apiRegistry []APIEntry
