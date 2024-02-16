@@ -364,7 +364,7 @@ func (s AccountServiceDefault) OTPEnable(userId uint, code string) error {
 	return s.updateAccountInfo(userId, models.User{OTPEnabled: true})
 }
 
-func (s AccountServiceDefault) OTPDisable(userId uint) error {
+func (s AccountServiceDefault) OTPDisable(userId uint) *AccountError {
 	return s.updateAccountInfo(userId, models.User{OTPEnabled: false, OTPSecret: ""})
 }
 
