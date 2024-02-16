@@ -93,7 +93,7 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string) (*m
 	return &user, nil
 }
 
-func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
+func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) *AccountError {
 	return s.updateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
 }
 
