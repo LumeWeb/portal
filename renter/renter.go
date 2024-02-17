@@ -151,16 +151,46 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 	parts := uint64(math.Ceil(float64(size) / float64(slabSize)))
 	uploadParts := make([]api.MultipartCompletedPart, parts)
 
-	upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{Key: object.NoOpKey})
-	if err != nil {
-		return err
+	var uploadId string
+	start := uint64(0)
+
+	if params.ExistingUploadID != "" {
+		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, params.ExistingUploadID, 0, 0)
+
+		if err != nil {
+			return err
+		}
+
+		uploadId = params.ExistingUploadID
+
+		for _, part := range existing.Parts {
+			if uint64(part.Size) != slabSize {
+				break
+			}
+			partNumber := part.PartNumber
+			uploadParts[partNumber-1] = api.MultipartCompletedPart{
+				PartNumber: part.PartNumber,
+				ETag:       part.ETag,
+			}
+		}
+
+		if len(uploadParts) > 0 {
+			start = uint64(len(uploadParts)) - 1
+		}
+	} else {
+		upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{Key: object.NoOpKey})
+		if err != nil {
+			return err
+		}
+
+		uploadId = upload.UploadID
 	}
 
 	if idHandler != nil {
-		idHandler(upload.UploadID)
+		idHandler(uploadId)
 	}
 
-	for i := uint64(0); i < parts; i++ {
+	for i := start; i < parts; i++ {
 		start := i * slabSize
 
 		end := start + slabSize
@@ -187,7 +217,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 					return err
 				}
 
-				ret, err := r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, upload.UploadID, partNumber, api.UploadMultipartUploadPartOptions{})
+				ret, err := r.workerClient.UploadMultipartUploadPart(context.Background(), reader, bucket, fileName, uploadId, partNumber, api.UploadMultipartUploadPartOptions{})
 				if err != nil {
 					return err
 				}
@@ -219,11 +249,13 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 			return fmt.Errorf("failed to upload part %d: %s", i, err.Error())
 		case etag := <-nextChan:
 			uploadParts[i].ETag = etag
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 
 	}
 
-	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, upload.UploadID, uploadParts)
+	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts)
 	if err != nil {
 		return err
 	}
