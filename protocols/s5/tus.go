@@ -43,40 +43,41 @@ var (
 )
 
 type TusHandler struct {
-	config   *viper.Viper
-	db       *gorm.DB
-	logger   *zap.Logger
-	cron     *cron.CronServiceDefault
-	storage  storage.StorageService
-	accounts *account.AccountServiceDefault
-	metadata metadata.MetadataService
-	tus      *tusd.Handler
-	tusStore tusd.DataStore
-	s3Client *s3.Client
-	protocol *S5Protocol
+	config          *viper.Viper
+	db              *gorm.DB
+	logger          *zap.Logger
+	cron            *cron.CronServiceDefault
+	storage         storage.StorageService
+	accounts        *account.AccountServiceDefault
+	metadata        metadata.MetadataService
+	tus             *tusd.Handler
+	tusStore        tusd.DataStore
+	s3Client        *s3.Client
+	storageProtocol storage.StorageProtocol
 }
 
 type TusHandlerParams struct {
 	fx.In
-	Config   *viper.Viper
-	Logger   *zap.Logger
-	Db       *gorm.DB
-	Cron     *cron.CronServiceDefault
-	Storage  storage.StorageService
-	Accounts *account.AccountServiceDefault
-	Metadata metadata.MetadataService
-	Protocol *S5Protocol
+	Config          *viper.Viper
+	Logger          *zap.Logger
+	Db              *gorm.DB
+	Cron            *cron.CronServiceDefault
+	Storage         storage.StorageService
+	Accounts        *account.AccountServiceDefault
+	Metadata        metadata.MetadataService
+	StorageProtocol storage.StorageProtocol
 }
 
 func NewTusHandler(params TusHandlerParams) *TusHandler {
 	return &TusHandler{
-		config:   params.Config,
-		db:       params.Db,
-		logger:   params.Logger,
-		cron:     params.Cron,
-		storage:  params.Storage,
-		accounts: params.Accounts,
-		metadata: params.Metadata,
+		config:          params.Config,
+		db:              params.Db,
+		logger:          params.Logger,
+		cron:            params.Cron,
+		storage:         params.Storage,
+		accounts:        params.Accounts,
+		metadata:        params.Metadata,
+		storageProtocol: params.StorageProtocol,
 	}
 }
 
@@ -373,16 +374,14 @@ func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) e
 		return err
 	}
 
-	storageProtocol := GetStorageProtocol(t.protocol)
-
-	uploadMeta, err := t.storage.UploadObject(ctx, storageProtocol, nil, &renter.MultiPartUploadParams{
+	uploadMeta, err := t.storage.UploadObject(ctx, t.storageProtocol, nil, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
 			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
 			ctx = context.WithValue(ctx, "range", rangeHeader)
 			return tusUpload.GetReader(ctx)
 		},
 		Bucket:   upload.Protocol,
-		FileName: "/" + storageProtocol.EncodeFileName(dbHash),
+		FileName: "/" + t.storageProtocol.EncodeFileName(dbHash),
 		Size:     uint64(info.Size),
 	}, proof)
 
