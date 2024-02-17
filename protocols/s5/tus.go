@@ -102,7 +102,7 @@ func (t *TusHandler) Init() error {
 			return blankResp, blankChanges, errors.New("file already exists")
 		}
 
-		exists, _ := t.TusUploadExists(decodedHash.HashBytes())
+		exists, _ := t.UploadExists(decodedHash.HashBytes())
 
 		if exists {
 			return blankResp, blankChanges, errors.New("file is already being uploaded")
@@ -175,7 +175,7 @@ func (t *TusHandler) Tus() *tusd.Handler {
 	return t.tus
 }
 
-func (t *TusHandler) TusUploadExists(hash []byte) (bool, models.TusUpload) {
+func (t *TusHandler) UploadExists(hash []byte) (bool, models.TusUpload) {
 	hashStr := hex.EncodeToString(hash)
 
 	var upload models.TusUpload
@@ -184,7 +184,7 @@ func (t *TusHandler) TusUploadExists(hash []byte) (bool, models.TusUpload) {
 	return result.RowsAffected > 0, upload
 }
 
-func (t *TusHandler) CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
+func (t *TusHandler) CreateUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
 	hashStr := hex.EncodeToString(hash)
 
 	upload := &models.TusUpload{
@@ -204,7 +204,7 @@ func (t *TusHandler) CreateTusUpload(hash []byte, uploadID string, uploaderID ui
 
 	return upload, nil
 }
-func (t *TusHandler) TusUploadProgress(uploadID string) error {
+func (t *TusHandler) UploadProgress(uploadID string) error {
 
 	find := &models.TusUpload{UploadID: uploadID}
 
@@ -223,7 +223,7 @@ func (t *TusHandler) TusUploadProgress(uploadID string) error {
 
 	return nil
 }
-func (t *TusHandler) TusUploadCompleted(uploadID string) error {
+func (t *TusHandler) UploadCompleted(uploadID string) error {
 
 	find := &models.TusUpload{UploadID: uploadID}
 
@@ -238,7 +238,7 @@ func (t *TusHandler) TusUploadCompleted(uploadID string) error {
 
 	return nil
 }
-func (t *TusHandler) DeleteTusUpload(uploadID string) error {
+func (t *TusHandler) DeleteUpload(uploadID string) error {
 	result := t.db.Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
 
 	if result.Error != nil {
@@ -248,7 +248,7 @@ func (t *TusHandler) DeleteTusUpload(uploadID string) error {
 	return nil
 }
 
-func (t *TusHandler) ScheduleTusUpload(uploadID string) error {
+func (t *TusHandler) ScheduleUpload(uploadID string) error {
 	find := &models.TusUpload{UploadID: uploadID}
 
 	var upload models.TusUpload
@@ -260,13 +260,13 @@ func (t *TusHandler) ScheduleTusUpload(uploadID string) error {
 
 	task := t.cron.RetryableTask(cron.RetryableTaskParams{
 		Name:     "tusUpload",
-		Function: t.tusUploadTask,
+		Function: t.uploadTask,
 		Args:     []interface{}{&upload},
 		Attempt:  0,
 		Limit:    0,
 		After: func(jobID uuid.UUID, jobName string) {
 			t.logger.Info("Job finished", zap.String("jobName", jobName), zap.String("uploadID", uploadID))
-			err := t.DeleteTusUpload(uploadID)
+			err := t.DeleteUpload(uploadID)
 			if err != nil {
 				t.logger.Error("Error deleting tus upload", zap.Error(err))
 			}
@@ -281,9 +281,9 @@ func (t *TusHandler) ScheduleTusUpload(uploadID string) error {
 	return nil
 }
 
-func (t *TusHandler) GetTusUploadReader(hash []byte, start int64) (io.ReadCloser, error) {
+func (t *TusHandler) GetUploadReader(hash []byte, start int64) (io.ReadCloser, error) {
 	ctx := context.Background()
-	exists, upload := t.TusUploadExists(hash)
+	exists, upload := t.UploadExists(hash)
 
 	if !exists {
 		return nil, metadata.ErrNotFound
@@ -313,7 +313,7 @@ func (t *TusHandler) GetTusUploadReader(hash []byte, start int64) (io.ReadCloser
 	return reader, nil
 }
 
-func (t *TusHandler) tusUploadTask(upload *models.TusUpload) error {
+func (t *TusHandler) uploadTask(upload *models.TusUpload) error {
 	ctx := context.Background()
 	tusUpload, err := t.tusStore.GetUpload(ctx, upload.UploadID)
 	if err != nil {
