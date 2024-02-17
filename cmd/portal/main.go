@@ -14,7 +14,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/renter"
 	"git.lumeweb.com/LumeWeb/portal/storage"
-	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -52,14 +51,8 @@ func main() {
 	}
 
 	fx.New(
-		fx.Provide(_logger.NewFallbackLogger),
-		fx.Provide(func() *viper.Viper {
-			return config
-		}),
-
-		fx.Decorate(func() *zap.Logger {
-			return logger
-		}),
+		fx.Supply(config),
+		fx.Supply(logger),
 		fxLogger,
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
