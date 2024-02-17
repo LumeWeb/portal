@@ -4,19 +4,10 @@ import (
 	"context"
 
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
-
-func RegisterProtocols() {
-	registry.Register(registry.ProtocolEntry{
-		Key:         "s5",
-		Module:      s5.ProtocolModule,
-		PreInitFunc: s5.PreInit,
-	})
-}
 
 func BuildProtocols(config *viper.Viper) fx.Option {
 	var options []fx.Option

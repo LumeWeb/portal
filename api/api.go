@@ -6,23 +6,10 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 
-	"git.lumeweb.com/LumeWeb/portal/api/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"git.lumeweb.com/LumeWeb/portal/api/s5"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
-
-func RegisterApis() {
-	registry.Register(registry.APIEntry{
-		Key:    "s5",
-		Module: s5.Module,
-	})
-	registry.Register(registry.APIEntry{
-		Key:    "account",
-		Module: account.Module,
-	})
-}
 
 func BuildApis(config *viper.Viper) fx.Option {
 	var options []fx.Option

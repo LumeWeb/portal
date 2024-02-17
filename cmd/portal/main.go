@@ -34,9 +34,6 @@ func main() {
 	flag.BoolVar(&fxDebug, "fx-debug", false, "Enable fx framework debug logging")
 	flag.Parse()
 
-	protocols.RegisterProtocols()
-	api.RegisterApis()
-
 	var fxLogger fx.Option
 
 	fxLogger = fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
