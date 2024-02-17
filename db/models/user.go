@@ -2,9 +2,10 @@ package models
 
 import (
 	"errors"
+	"time"
+
 	emailverifier "github.com/AfterShip/email-verifier"
 	"gorm.io/gorm"
-	"time"
 )
 
 type User struct {
@@ -26,14 +27,6 @@ type User struct {
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	if len(u.FirstName) == 0 {
-		return errors.New("first name is empty")
-	}
-
-	if len(u.LastName) == 0 {
-		return errors.New("last name is empty")
-	}
-
 	verify, err := getEmailVerfier().Verify(u.Email)
 
 	if err != nil {

@@ -109,6 +109,11 @@ func (a AccountAPI) register(jc jape.Context) {
 		return
 	}
 
+	if len(request.FirstName) == 0 || len(request.LastName) == 0 {
+		_ = jc.Error(account.NewAccountError(account.ErrKeyAccountCreationFailed, nil), http.StatusBadRequest)
+		return
+	}
+
 	user, err := a.accounts.CreateAccount(request.Email, request.Password)
 	if err != nil {
 		_ = jc.Error(err, http.StatusUnauthorized)
