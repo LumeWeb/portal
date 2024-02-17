@@ -28,6 +28,7 @@ import (
 var (
 	_ s5storage.ProviderStore = (*S5ProviderStore)(nil)
 	_ registry.Protocol       = (*S5Protocol)(nil)
+	_ storage.StorageProtocol = (*S5Protocol)(nil)
 )
 
 type S5Protocol struct {
@@ -216,6 +217,18 @@ func (s *S5Protocol) Stop(ctx context.Context) error {
 
 func (s *S5Protocol) SetNode(node *s5node.Node) {
 	s.node = node
+}
+
+func (s *S5Protocol) EncodeFileName(bytes []byte) string {
+	bytes = append([]byte{byte(types.HashTypeBlake3)}, bytes...)
+
+	hash, err := encoding.NewMultihash(bytes).ToBase64Url()
+	if err != nil {
+		s.logger.Error("error encoding hash", zap.Error(err))
+		panic(err)
+	}
+
+	return hash
 }
 
 type S5ProviderStore struct {
