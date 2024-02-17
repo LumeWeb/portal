@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrInvalidOTPCode = errors.New("Invalid OTP code")
+	AccountErrorNil   = &AccountError{}
 )
 
 type AccountServiceParams struct {
@@ -40,7 +41,7 @@ func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
 	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity}
 }
 
-func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, *AccountError) {
+func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, error) {
 	user := &models.User{}
 	exists, model, err := s.exists(user, map[string]interface{}{"email": email})
 	if !exists || err != nil {
@@ -49,7 +50,7 @@ func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, *
 	return true, model.(*models.User), nil // Type assertion since `exists` returns interface{}
 }
 
-func (s *AccountServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey, *AccountError) {
+func (s *AccountServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey, error) {
 	publicKey := &models.PublicKey{}
 	exists, model, err := s.exists(publicKey, map[string]interface{}{"key": pubkey})
 	if !exists || err != nil {
@@ -58,7 +59,7 @@ func (s *AccountServiceDefault) PubkeyExists(pubkey string) (bool, *models.Publi
 	return true, model.(*models.PublicKey), nil // Type assertion is necessary
 }
 
-func (s *AccountServiceDefault) AccountExists(id uint) (bool, *models.User, *AccountError) {
+func (s *AccountServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
 	user := &models.User{}
 	exists, model, err := s.exists(user, map[string]interface{}{"id": id})
 	if !exists || err != nil {
@@ -67,7 +68,7 @@ func (s *AccountServiceDefault) AccountExists(id uint) (bool, *models.User, *Acc
 	return true, model.(*models.User), nil // Ensure to assert the type correctly
 }
 
-func (s *AccountServiceDefault) HashPassword(password string) (string, *AccountError) {
+func (s *AccountServiceDefault) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", NewAccountError(ErrKeyHashingFailed, err)
@@ -75,7 +76,7 @@ func (s *AccountServiceDefault) HashPassword(password string) (string, *AccountE
 	return string(bytes), nil
 }
 
-func (s *AccountServiceDefault) CreateAccount(email string, password string) (*models.User, *AccountError) {
+func (s *AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
 	passwordHash, err := s.HashPassword(password)
 	if err != nil {
 		return nil, err
@@ -94,11 +95,11 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string) (*m
 	return &user, nil
 }
 
-func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) *AccountError {
+func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
 	return s.updateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
 }
 
-func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) *AccountError {
+func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
 	model.Key = pubkey
@@ -116,7 +117,7 @@ func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey strin
 
 	return nil
 }
-func (s AccountServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, *AccountError) {
+func (s AccountServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, error) {
 	valid, user, err := s.ValidLoginByEmail(email, password)
 
 	if err != nil {
@@ -136,7 +137,7 @@ func (s AccountServiceDefault) LoginPassword(email string, password string, ip s
 	return token, user, nil
 }
 
-func (s AccountServiceDefault) LoginOTP(userId uint, code string) (string, *AccountError) {
+func (s AccountServiceDefault) LoginOTP(userId uint, code string) (string, error) {
 	valid, err := s.OTPVerify(userId, code)
 
 	if err != nil {
@@ -162,7 +163,7 @@ func (s AccountServiceDefault) ValidLoginByUserObj(user *models.User, password s
 	return s.validPassword(user, password)
 }
 
-func (s AccountServiceDefault) ValidLoginByEmail(email string, password string) (bool, *models.User, *AccountError) {
+func (s AccountServiceDefault) ValidLoginByEmail(email string, password string) (bool, *models.User, error) {
 	var user models.User
 
 	result := s.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
@@ -184,7 +185,7 @@ func (s AccountServiceDefault) ValidLoginByEmail(email string, password string) 
 	return true, nil, nil
 }
 
-func (s AccountServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, *AccountError) {
+func (s AccountServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
 	var user models.User
 
 	user.ID = id
@@ -208,7 +209,7 @@ func (s AccountServiceDefault) ValidLoginByUserID(id uint, password string) (boo
 	return true, &user, nil
 }
 
-func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, *AccountError) {
+func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 	var model models.PublicKey
 
 	result := s.db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
@@ -232,7 +233,7 @@ func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, *AccountError
 	return token, nil
 }
 
-func (s AccountServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, *AccountError) {
+func (s AccountServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, error) {
 	var pins []models.Pin
 
 	result := s.db.Model(&models.Pin{}).
@@ -322,7 +323,7 @@ func (s AccountServiceDefault) PinByID(uploadId uint, userId uint) error {
 	return nil
 }
 
-func (s AccountServiceDefault) OTPGenerate(userId uint) (string, *AccountError) {
+func (s AccountServiceDefault) OTPGenerate(userId uint) (string, error) {
 	exists, user, err := s.AccountExists(userId)
 
 	if !exists || err != nil {
@@ -338,7 +339,7 @@ func (s AccountServiceDefault) OTPGenerate(userId uint) (string, *AccountError) 
 	return otp, nil
 }
 
-func (s AccountServiceDefault) OTPVerify(userId uint, code string) (bool, *AccountError) {
+func (s AccountServiceDefault) OTPVerify(userId uint, code string) (bool, error) {
 	exists, user, err := s.AccountExists(userId)
 
 	if !exists || err != nil {
@@ -366,11 +367,11 @@ func (s AccountServiceDefault) OTPEnable(userId uint, code string) error {
 	return s.updateAccountInfo(userId, models.User{OTPEnabled: true})
 }
 
-func (s AccountServiceDefault) OTPDisable(userId uint) *AccountError {
+func (s AccountServiceDefault) OTPDisable(userId uint) error {
 	return s.updateAccountInfo(userId, models.User{OTPEnabled: false, OTPSecret: ""})
 }
 
-func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, *AccountError) {
+func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {
 	purpose := JWTPurposeLogin
 
 	if user.OTPEnabled {
@@ -392,7 +393,7 @@ func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, *A
 	return token, nil
 }
 
-func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) *AccountError {
+func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) error {
 	var user models.User
 
 	user.ID = userId
@@ -406,7 +407,7 @@ func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) 
 	return nil
 }
 
-func (s AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, *AccountError) {
+func (s AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
 	// Conduct a query with the provided model and conditions
 	result := s.db.Model(model).Where(conditions).First(model)
 
