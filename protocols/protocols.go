@@ -12,8 +12,9 @@ import (
 
 func RegisterProtocols() {
 	registry.Register(registry.ProtocolEntry{
-		Key:    "s5",
-		Module: s5.ProtocolModule,
+		Key:         "s5",
+		Module:      s5.ProtocolModule,
+		PreInitFunc: s5.PreInit,
 	})
 }
 
@@ -23,6 +24,9 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 	for _, entry := range registry.GetRegistry() {
 		if lo.Contains(enabledProtocols, entry.Key) {
 			options = append(options, entry.Module)
+			if entry.PreInitFunc != nil {
+				options = append(options, fx.Invoke(entry.PreInitFunc))
+			}
 		}
 	}
 

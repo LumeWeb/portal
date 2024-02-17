@@ -10,14 +10,15 @@ const GroupName = "protocols"
 
 type Protocol interface {
 	Name() string
-	Init(...any) error
+	Init() error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 }
 
 type ProtocolEntry struct {
-	Key    string
-	Module fx.Option
+	Key         string
+	Module      fx.Option
+	PreInitFunc interface{}
 }
 
 var protocolEntry []ProtocolEntry
