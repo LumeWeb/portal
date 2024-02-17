@@ -51,11 +51,10 @@ type S5ProtocolParams struct {
 
 type S5ProtocolResult struct {
 	fx.Out
-	Protocol        registry.Protocol `group:"protocol"`
-	S5Protocol      *S5Protocol
-	S5NodeConfig    *s5config.NodeConfig
-	Db              *bolt.DB
-	StorageProtocol storage.StorageProtocol
+	Protocol     registry.Protocol `group:"protocol"`
+	S5Protocol   *S5Protocol
+	S5NodeConfig *s5config.NodeConfig
+	Db           *bolt.DB
 }
 
 type S5ProviderStoreParams struct {
@@ -93,11 +92,10 @@ func NewS5Protocol(
 	}
 
 	return S5ProtocolResult{
-		Protocol:        proto,
-		S5Protocol:      proto,
-		S5NodeConfig:    cfg,
-		Db:              cfg.DB,
-		StorageProtocol: GetStorageProtocol(proto),
+		Protocol:     proto,
+		S5Protocol:   proto,
+		S5NodeConfig: cfg,
+		Db:           cfg.DB,
 	}, nil
 }
 
@@ -181,6 +179,8 @@ func (s *S5Protocol) Init(args ...any) error {
 	if err != nil {
 		return err
 	}
+
+	s.tusHandler.SetStorageProtocol(GetStorageProtocol(s))
 
 	err = s.tusHandler.Init()
 	if err != nil {

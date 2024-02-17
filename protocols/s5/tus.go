@@ -58,26 +58,24 @@ type TusHandler struct {
 
 type TusHandlerParams struct {
 	fx.In
-	Config          *viper.Viper
-	Logger          *zap.Logger
-	Db              *gorm.DB
-	Cron            *cron.CronServiceDefault
-	Storage         storage.StorageService
-	Accounts        *account.AccountServiceDefault
-	Metadata        metadata.MetadataService
-	StorageProtocol storage.StorageProtocol
+	Config   *viper.Viper
+	Logger   *zap.Logger
+	Db       *gorm.DB
+	Cron     *cron.CronServiceDefault
+	Storage  storage.StorageService
+	Accounts *account.AccountServiceDefault
+	Metadata metadata.MetadataService
 }
 
 func NewTusHandler(params TusHandlerParams) *TusHandler {
 	return &TusHandler{
-		config:          params.Config,
-		db:              params.Db,
-		logger:          params.Logger,
-		cron:            params.Cron,
-		storage:         params.Storage,
-		accounts:        params.Accounts,
-		metadata:        params.Metadata,
-		storageProtocol: params.StorageProtocol,
+		config:   params.Config,
+		db:       params.Db,
+		logger:   params.Logger,
+		cron:     params.Cron,
+		storage:  params.Storage,
+		accounts: params.Accounts,
+		metadata: params.Metadata,
 	}
 }
 
@@ -314,6 +312,10 @@ func (t *TusHandler) GetUploadReader(ctx context.Context, hash []byte, start int
 	}
 
 	return reader, nil
+}
+
+func (t *TusHandler) SetStorageProtocol(storageProtocol storage.StorageProtocol) {
+	t.storageProtocol = storageProtocol
 }
 
 func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) error {
