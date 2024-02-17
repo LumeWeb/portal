@@ -15,7 +15,6 @@ import (
 
 var (
 	ErrInvalidOTPCode = errors.New("Invalid OTP code")
-	AccountErrorNil   = &AccountError{}
 )
 
 type AccountServiceParams struct {
