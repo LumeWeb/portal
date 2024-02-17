@@ -113,7 +113,7 @@ func (f *S5File) Close() error {
 func (f *S5File) init(offset int64) error {
 	if f.reader == nil {
 
-		reader, err := f.tus.GetUploadReader(f.hash, offset)
+		reader, err := f.tus.GetUploadReader(f.ctx, f.hash, offset)
 
 		if err == nil {
 			f.reader = reader
