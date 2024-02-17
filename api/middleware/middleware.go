@@ -3,16 +3,17 @@ package middleware
 import (
 	"context"
 	"crypto/ed25519"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
-	"net/http"
-	"slices"
-	"strconv"
-	"strings"
 )
 
 const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
@@ -155,6 +156,18 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func MergeRoutes(routes ...map[string]jape.Handler) map[string]jape.Handler {
+	merged := make(map[string]jape.Handler)
+
+	for _, route := range routes {
+		for k, v := range route {
+			merged[k] = v
+		}
+	}
+
+	return merged
 }
 
 func GetUserFromContext(ctx context.Context, key ...string) uint {
