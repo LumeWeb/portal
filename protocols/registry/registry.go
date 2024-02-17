@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+
 	"go.uber.org/fx"
 )
 
@@ -15,9 +16,8 @@ type Protocol interface {
 }
 
 type ProtocolEntry struct {
-	Key      string
-	Module   fx.Option
-	InitFunc interface{}
+	Key    string
+	Module fx.Option
 }
 
 var protocolEntry []ProtocolEntry

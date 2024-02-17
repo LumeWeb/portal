@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"context"
+
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/samber/lo"
@@ -11,9 +12,8 @@ import (
 
 func RegisterProtocols() {
 	registry.Register(registry.ProtocolEntry{
-		Key:      "s5",
-		Module:   s5.ProtocolModule,
-		InitFunc: s5.InitProtocol,
+		Key:    "s5",
+		Module: s5.ProtocolModule,
 	})
 }
 
@@ -23,11 +23,19 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 	for _, entry := range registry.GetRegistry() {
 		if lo.Contains(enabledProtocols, entry.Key) {
 			options = append(options, entry.Module)
-			if entry.InitFunc != nil {
-				options = append(options, fx.Invoke(entry.InitFunc))
-			}
 		}
 	}
+
+	options = append(options, fx.Invoke(func(protocols []registry.Protocol) error {
+		for _, protocol := range protocols {
+			err := protocol.Init()
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}))
 
 	return fx.Module("protocols", fx.Options(options...))
 }

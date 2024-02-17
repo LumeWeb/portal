@@ -162,9 +162,6 @@ func NewS5ProviderStore(params S5ProviderStoreParams) *S5ProviderStore {
 	}
 }
 
-func InitProtocol(s5 *S5Protocol, node *s5node.Node, store *S5ProviderStore) error {
-	return s5.Init(node, store)
-}
 func (s *S5Protocol) Init(args ...any) error {
 	if node, ok := args[0].(*s5node.Node); !ok {
 		s.logger.Fatal("Node is not a s5 node")
