@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"net/url"
+	"strconv"
+
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -14,10 +19,6 @@ import (
 	workerClient "go.sia.tech/renterd/worker/client"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"io"
-	"math"
-	"net/url"
-	"strconv"
 )
 
 type ReaderFactory func(start uint, end uint) (io.ReadCloser, error)
@@ -71,10 +72,8 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 		return nil
 	}
 
-	if err != nil {
-		if !errors.Is(err, api.ErrBucketNotFound) {
-			return err
-		}
+	if !errors.Is(err, api.ErrBucketNotFound) {
+		return err
 	}
 
 	err = r.busClient.CreateBucket(context.Background(), bucket, api.CreateBucketOptions{
@@ -89,8 +88,8 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 	return nil
 }
 
-func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, hash string) error {
-	_, err := r.workerClient.UploadObject(ctx, file, bucket, hash, api.UploadObjectOptions{})
+func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
+	_, err := r.workerClient.UploadObject(ctx, file, bucket, fileName, api.UploadObjectOptions{})
 
 	if err != nil {
 		return err
@@ -120,8 +119,8 @@ func (r *RenterDefault) init() error {
 	return nil
 }
 
-func (r *RenterDefault) GetObject(ctx context.Context, protocol string, hash string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
-	return r.workerClient.GetObject(ctx, protocol, hash, options)
+func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+	return r.workerClient.GetObject(ctx, bucket, fileName, options)
 }
 
 func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any) error {
@@ -134,12 +133,11 @@ func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any)
 	return nil
 }
 
-func (r *RenterDefault) MultipartUpload(params MultiPartUploadParams) error {
+func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *MultiPartUploadParams) error {
 	size := params.Size
 	rf := params.ReaderFactory
 	bucket := params.Bucket
 	fileName := params.FileName
-	ctx := context.Background()
 	idHandler := params.UploadIDHandler
 
 	var redundancy api.RedundancySettings
