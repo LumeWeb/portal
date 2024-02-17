@@ -1,14 +1,15 @@
-package storage
+package s5
 
 import (
 	"context"
+	"os"
+	"sync"
+	"time"
+
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"os"
-	"sync"
-	"time"
 )
 
 var (
@@ -17,7 +18,6 @@ var (
 )
 
 type MySQLLocker struct {
-	storage              *StorageServiceDefault
 	AcquirerPollInterval time.Duration
 	HolderPollInterval   time.Duration
 	db                   *gorm.DB

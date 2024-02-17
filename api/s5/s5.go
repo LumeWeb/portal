@@ -21,8 +21,14 @@ import (
 	"strings"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/metadata"
+
+	"git.lumeweb.com/LumeWeb/portal/storage"
+
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
+	s5libmetadata "git.lumeweb.com/LumeWeb/libs5-go/metadata"
 	"git.lumeweb.com/LumeWeb/libs5-go/node"
 	"git.lumeweb.com/LumeWeb/libs5-go/protocol"
 	"git.lumeweb.com/LumeWeb/libs5-go/service"
@@ -43,8 +49,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
-	"git.lumeweb.com/LumeWeb/portal/storage"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
 	"go.sia.tech/jape"
@@ -64,26 +68,28 @@ var spec []byte
 var swagfs embed.FS
 
 type S5API struct {
-	config      *viper.Viper
-	identity    ed25519.PrivateKey
-	accounts    *account.AccountServiceDefault
-	storage     *storage.StorageServiceDefault
-	db          *gorm.DB
-	protocols   []protoRegistry.Protocol
-	httpHandler HttpHandler
-	protocol    *s5.S5Protocol
-	logger      *zap.Logger
+	config     *viper.Viper
+	identity   ed25519.PrivateKey
+	accounts   *account.AccountServiceDefault
+	storage    storage.StorageService
+	metadata   metadata.MetadataService
+	db         *gorm.DB
+	protocols  []protoRegistry.Protocol
+	protocol   *s5.S5Protocol
+	logger     *zap.Logger
+	tusHandler *s5.TusHandler
 }
 
 type APIParams struct {
 	fx.In
-	Config    *viper.Viper
-	Identity  ed25519.PrivateKey
-	Accounts  *account.AccountServiceDefault
-	Storage   *storage.StorageServiceDefault
-	Db        *gorm.DB
-	Protocols []protoRegistry.Protocol `group:"protocol"`
-	Logger    *zap.Logger
+	Config     *viper.Viper
+	Identity   ed25519.PrivateKey
+	Accounts   *account.AccountServiceDefault
+	Storage    storage.StorageService
+	Db         *gorm.DB
+	Protocols  []protoRegistry.Protocol `group:"protocol"`
+	Logger     *zap.Logger
+	TusHandler *s5.TusHandler
 }
 
 type S5ApiResult struct {
@@ -94,13 +100,14 @@ type S5ApiResult struct {
 
 func NewS5(params APIParams) (S5ApiResult, error) {
 	api := &S5API{
-		config:    params.Config,
-		identity:  params.Identity,
-		accounts:  params.Accounts,
-		storage:   params.Storage,
-		db:        params.Db,
-		protocols: params.Protocols,
-		logger:    params.Logger,
+		config:     params.Config,
+		identity:   params.Identity,
+		accounts:   params.Accounts,
+		storage:    params.Storage,
+		db:         params.Db,
+		protocols:  params.Protocols,
+		logger:     params.Logger,
+		tusHandler: params.TusHandler,
 	}
 	return S5ApiResult{
 		API:   api,
@@ -146,7 +153,7 @@ func (s *S5API) Routes() *httprouter.Router {
 
 	authMw := authMiddleware(authMiddlewareOpts)
 
-	tusHandler := BuildS5TusApi(authMw, s.storage)
+	tusHandler := BuildS5TusApi(authMw, s.tusHandler)
 
 	tusOptionsHandler := func(c jape.Context) {
 		c.ResponseWriter.WriteHeader(http.StatusOK)
@@ -291,10 +298,10 @@ func BuildTusCors() func(h http.Handler) http.Handler {
 	return mw.Handler
 }
 
-func BuildS5TusApi(authMw middleware.HttpMiddlewareFunc, storage *storage.StorageServiceDefault) jape.Handler {
+func BuildS5TusApi(authMw middleware.HttpMiddlewareFunc, handler *s5.TusHandler) jape.Handler {
 	// Create a jape.Handler for your tusHandler
 	tusJapeHandler := func(c jape.Context) {
-		tusHandler := storage.Tus()
+		tusHandler := handler.Tus()
 		tusHandler.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
@@ -334,45 +341,6 @@ func (rsnc readSeekNopCloser) Close() error {
 	return nil
 }
 
-type HttpHandler struct {
-	config   *viper.Viper
-	logger   *zap.Logger
-	storage  *storage.StorageServiceDefault
-	db       *gorm.DB
-	accounts *account.AccountServiceDefault
-	protocol *s5.S5Protocol
-}
-
-type HttpHandlerParams struct {
-	fx.In
-
-	Config   *viper.Viper
-	Logger   *zap.Logger
-	Storage  *storage.StorageServiceDefault
-	Db       *gorm.DB
-	Accounts *account.AccountServiceDefault
-	Protocol *s5.S5Protocol
-}
-
-type HttpHandlerResult struct {
-	fx.Out
-
-	HttpHandler HttpHandler
-}
-
-func NewHttpHandler(params HttpHandlerParams) (HttpHandlerResult, error) {
-	return HttpHandlerResult{
-		HttpHandler: HttpHandler{
-			config:   params.Config,
-			logger:   params.Logger,
-			storage:  params.Storage,
-			db:       params.Db,
-			accounts: params.Accounts,
-			protocol: params.Protocol,
-		},
-	}, nil
-}
-
 func (s *S5API) smallFileUpload(jc jape.Context) {
 	user := middleware.GetUserFromContext(jc.Request.Context())
 
@@ -388,8 +356,18 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 		}
 	}(file)
 
-	// Use PutFileSmall for the actual file upload
-	newUpload, err2 := s.storage.PutFileSmall(file, "s5", user, jc.Request.RemoteAddr)
+	newUpload, err2 := s.storage.UploadObject(jc.Request.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
+
+	if err2 != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
+		return
+	}
+
+	newUpload.UserID = user
+	newUpload.UploaderIP = jc.Request.RemoteAddr
+
+	err2 = s.metadata.SaveUpload(jc.Request.Context(), *newUpload)
+
 	if err2 != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
 		return
@@ -721,7 +699,6 @@ func (s *S5API) accountStats(jc jape.Context) {
 func (s *S5API) accountPins(jc jape.Context) {
 	var cursor uint64
 	if err := jc.DecodeForm("cursor", &cursor); err != nil {
-		// Assuming jc.DecodeForm sends out its own error, so no need for further action here
 		return
 	}
 
@@ -784,10 +761,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 		return
 	}
 
-	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
-	s.logger.Info("Processing pin request", zap.String("cid", cid), zap.String("hash", hash))
-
-	if err := s.accounts.PinByHash(hash, userID); err != nil {
+	if err := s.accounts.PinByHash(decodedCid.Hash.HashBytes(), userID); err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 		return
 	}
@@ -818,32 +792,32 @@ func (s *S5API) directoryUpload(jc jape.Context) {
 		return
 	}
 
-	user := middleware.GetUserFromContext(jc.Request.Context())
-	uploads, err := s.processMultipartFiles(jc.Request, user)
+	uploads, err := s.processMultipartFiles(jc.Request)
 	if err != nil {
-		s.sendErrorResponse(jc, err) // processMultipartFiles should return a properly wrapped S5Error
+		s.sendErrorResponse(jc, err)
 		return
 	}
 
 	// Generate metadata for the directory upload
 	app, err := s.createAppMetadata(name, tryFiles, errorPages, uploads)
 	if err != nil {
-		s.sendErrorResponse(jc, err) // createAppMetadata should return a properly wrapped S5Error
+		s.sendErrorResponse(jc, err)
 		return
 	}
 
 	// Upload the metadata
-	cidStr, err := s.uploadAppMetadata(app, user, jc.Request)
+	cidStr, err := s.uploadAppMetadata(app, jc.Request)
 	if err != nil {
-		s.sendErrorResponse(jc, err) // uploadAppMetadata should return a properly wrapped S5Error
+		s.sendErrorResponse(jc, err)
 		return
 	}
 
 	jc.Encode(&AppUploadResponse{CID: cidStr})
 }
 
-func (s *S5API) processMultipartFiles(r *http.Request, user uint) (map[string]*models.Upload, error) {
-	uploadMap := make(map[string]*models.Upload)
+func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.UploadMetadata, error) {
+	uploadMap := make(map[string]*metadata.UploadMetadata)
+	user := middleware.GetUserFromContext(r.Context())
 
 	for _, files := range r.MultipartForm.File {
 		for _, fileHeader := range files {
@@ -858,7 +832,15 @@ func (s *S5API) processMultipartFiles(r *http.Request, user uint) (map[string]*m
 				}
 			}(file)
 
-			upload, err := s.storage.PutFileSmall(file, "s5", user, r.RemoteAddr)
+			upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
+			if err != nil {
+				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
+			}
+
+			upload.UserID = user
+			upload.UploaderIP = r.RemoteAddr
+
+			err = s.metadata.SaveUpload(r.Context(), *upload)
 			if err != nil {
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
 			}
@@ -870,20 +852,17 @@ func (s *S5API) processMultipartFiles(r *http.Request, user uint) (map[string]*m
 	return uploadMap, nil
 }
 
-func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map[int]string, uploads map[string]*models.Upload) (*metadata.WebAppMetadata, error) {
-	filesMap := make(map[string]metadata.WebAppMetadataFileReference, len(uploads))
+func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map[int]string, uploads map[string]*metadata.UploadMetadata) (*s5libmetadata.WebAppMetadata, error) {
+	filesMap := make(map[string]s5libmetadata.WebAppMetadataFileReference, len(uploads))
 
 	for filename, upload := range uploads {
-		hashDecoded, err := hex.DecodeString(upload.Hash)
-		if err != nil {
-			return nil, NewS5Error(ErrKeyInternalError, err, "Failed to decode hash for file: "+filename)
-		}
+		hash := upload.Hash
 
-		cid, err := encoding.CIDFromHash(hashDecoded, upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
+		cid, err := encoding.CIDFromHash(hash, upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
 		if err != nil {
 			return nil, NewS5Error(ErrKeyInternalError, err, "Failed to create CID for file: "+filename)
 		}
-		filesMap[filename] = metadata.WebAppMetadataFileReference{
+		filesMap[filename] = s5libmetadata.WebAppMetadataFileReference{
 			Cid:         cid,
 			ContentType: upload.MimeType,
 		}
@@ -894,9 +873,9 @@ func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map
 		extraMetadataMap[statusCode] = page
 	}
 
-	extraMetadata := metadata.NewExtraMetadata(extraMetadataMap)
+	extraMetadata := s5libmetadata.NewExtraMetadata(extraMetadataMap)
 	// Create the web app metadata object
-	app := metadata.NewWebAppMetadata(
+	app := s5libmetadata.NewWebAppMetadata(
 		name,
 		tryFiles,
 		*extraMetadata,
@@ -907,27 +886,37 @@ func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map
 	return app, nil
 }
 
-func (s *S5API) uploadAppMetadata(appData *metadata.WebAppMetadata, userId uint, r *http.Request) (string, error) {
+func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http.Request) (string, *S5Error) {
+	userId := middleware.GetUserFromContext(r.Context())
+
 	appDataRaw, err := msgpack.Marshal(appData)
 	if err != nil {
-		return "", NewS5Error(ErrKeyInternalError, err, "Failed to marshal app metadata")
+		return "", NewS5Error(ErrKeyInternalError, err, "Failed to marshal app s5libmetadata")
 	}
 
 	file := bytes.NewReader(appDataRaw)
 
-	upload, err := s.storage.PutFileSmall(file, "s5", userId, r.RemoteAddr)
+	upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
 	if err != nil {
 		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
 	}
 
-	// Construct the CID for the newly uploaded metadata
+	upload.UserID = userId
+	upload.UploaderIP = r.RemoteAddr
+
+	err = s.metadata.SaveUpload(r.Context(), *upload)
+	if err != nil {
+		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
+	}
+
+	// Construct the CID for the newly uploaded s5libmetadata
 	cid, err := encoding.CIDFromHash(upload.Hash, uint64(len(appDataRaw)), types.CIDTypeMetadataWebapp, types.HashTypeBlake3)
 	if err != nil {
-		return "", NewS5Error(ErrKeyInternalError, err, "Failed to create CID for new app metadata")
+		return "", NewS5Error(ErrKeyInternalError, err, "Failed to create CID for new app s5libmetadata")
 	}
 	cidStr, err := cid.ToString()
 	if err != nil {
-		return "", NewS5Error(ErrKeyInternalError, err, "Failed to convert CID to string for new app metadata")
+		return "", NewS5Error(ErrKeyInternalError, err, "Failed to convert CID to string for new app s5libmetadata")
 	}
 
 	return cidStr, nil
@@ -1294,7 +1283,7 @@ func (s *S5API) downloadMetadata(jc jape.Context) {
 
 	switch cidDecoded.Type {
 	case types.CIDTypeRaw:
-		_ = jc.Error(errors.New("Raw CIDs do not have metadata"), http.StatusBadRequest)
+		_ = jc.Error(errors.New("Raw CIDs do not have s5libmetadata"), http.StatusBadRequest)
 		return
 
 	case types.CIDTypeResolver:
@@ -1304,8 +1293,8 @@ func (s *S5API) downloadMetadata(jc jape.Context) {
 
 	meta, err := s.getNode().Services().Storage().GetMetadataByCID(cidDecoded)
 
-	if jc.Check("error getting metadata", err) != nil {
-		s.logger.Error("error getting metadata", zap.Error(err))
+	if jc.Check("error getting s5libmetadata", err) != nil {
+		s.logger.Error("error getting s5libmetadata", zap.Error(err))
 		return
 	}
 
@@ -1329,9 +1318,9 @@ func (s *S5API) downloadFile(jc jape.Context) {
 	var hashBytes []byte
 	isProof := false
 
-	if strings.HasSuffix(cid, ".obao") {
+	if strings.HasSuffix(cid, storage.PROOF_EXTENSION) {
 		isProof = true
-		cid = strings.TrimSuffix(cid, ".obao")
+		cid = strings.TrimSuffix(cid, storage.PROOF_EXTENSION)
 	}
 
 	cidDecoded, err := encoding.CIDFromString(cid)
@@ -1348,7 +1337,7 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		hashBytes = cidDecoded.Hash.HashBytes()
 	}
 
-	file := s.storage.NewFile(hashBytes)
+	file := s.newFile(s.protocol, hashBytes)
 
 	if !file.Exists() {
 		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -1410,6 +1399,15 @@ func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, types ...ty
 			Config: s.getNode().Config(),
 			Db:     s.getNode().Db(),
 		},
+	})
+}
+
+func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte) *S5File {
+	return NewFile(FileParams{
+		Protocol: protocol,
+		Hash:     hash,
+		Metadata: s.metadata,
+		Storage:  s.storage,
 	})
 }
 

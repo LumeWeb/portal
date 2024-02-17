@@ -3,684 +3,227 @@ package storage
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
-	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
-
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	"git.lumeweb.com/LumeWeb/libs5-go/types"
-	"git.lumeweb.com/LumeWeb/portal/account"
-	"git.lumeweb.com/LumeWeb/portal/bao"
-	"git.lumeweb.com/LumeWeb/portal/cron"
-	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/renter"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/google/uuid"
-	"github.com/spf13/viper"
-	tusd "github.com/tus/tusd/v2/pkg/handler"
-	"github.com/tus/tusd/v2/pkg/s3store"
-	"go.sia.tech/renterd/api"
 	"go.uber.org/fx"
+
+	"go.sia.tech/renterd/api"
+
+	"git.lumeweb.com/LumeWeb/portal/metadata"
+
 	"go.uber.org/zap"
+
+	"git.lumeweb.com/LumeWeb/portal/bao"
+
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
+
+	"git.lumeweb.com/LumeWeb/portal/renter"
 )
 
-type TusPreUploadCreateCallback func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error)
-type TusPreFinishResponseCallback func(hook tusd.HookEvent) (tusd.HTTPResponse, error)
+const PROOF_EXTENSION = ".obao"
 
-type StorageServiceParams struct {
-	fx.In
-	Config   *viper.Viper
-	Logger   *zap.Logger
-	Db       *gorm.DB
-	Accounts *account.AccountServiceDefault
-	Cron     *cron.CronServiceDefault
-	Renter   *renter.RenterDefault
+var _ StorageService = (*StorageServiceDefault)(nil)
+
+type FileNameEncoderFunc func([]byte) string
+
+type StorageProtocol interface {
+	Name() string
+	EncodeFileName([]byte) string
 }
 
 var Module = fx.Module("storage",
 	fx.Provide(
 		NewStorageService,
+		fx.As(new(StorageService)),
 	),
-	fx.Invoke(func(s *StorageServiceDefault) error {
-		return s.init()
-	}),
 )
 
+type StorageService interface {
+	UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error)
+	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result) error
+	HashObject(ctx context.Context, data io.Reader) (*bao.Result, error)
+	DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash []byte, start int64) (io.ReadCloser, error)
+	DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) (io.ReadCloser, error)
+	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
+	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
+}
+
 type StorageServiceDefault struct {
-	tus      *tusd.Handler
-	tusStore tusd.DataStore
-	s3Client *s3.Client
 	config   *viper.Viper
-	logger   *zap.Logger
 	db       *gorm.DB
-	accounts *account.AccountServiceDefault
-	cron     *cron.CronServiceDefault
 	renter   *renter.RenterDefault
+	logger   *zap.Logger
+	metadata metadata.MetadataService
 }
 
-func (s *StorageServiceDefault) Tus() *tusd.Handler {
-	return s.tus
+type StorageServiceParams struct {
+	Config   *viper.Viper
+	Db       *gorm.DB
+	Renter   *renter.RenterDefault
+	Logger   *zap.Logger
+	metadata metadata.MetadataService
 }
 
-func (s *StorageServiceDefault) Start() error {
-	return nil
+func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
+	return &StorageServiceDefault{
+		config: params.Config,
+		db:     params.Db,
+		renter: params.Renter,
+	}
 }
 
-func NewStorageService(lc fx.Lifecycle, params StorageServiceParams) *StorageServiceDefault {
-	ss := &StorageServiceDefault{
-		config:   params.Config,
-		logger:   params.Logger,
-		db:       params.Db,
-		accounts: params.Accounts,
-		cron:     params.Cron,
-		renter:   params.Renter,
-	}
-
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go ss.tusWorker()
-			return nil
-		},
-	})
-
-	return ss
-}
-
-func (s StorageServiceDefault) PutFileSmall(file io.ReadSeeker, bucket string, userId uint, userIp string) (*models.Upload, error) {
-	hashResult, len, err := s.GetHashSmall(file)
-	if err != nil {
-		return nil, err
-	}
-
-	exists, upload := s.FileExists(hashResult.Hash)
-	if exists {
-		return upload, nil
-	}
-
-	// Re-seek the file to the beginning after hashing
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
-		return nil, err
-	}
-
-	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hashResult.Hash)).ToBase64Url()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = file.Seek(0, io.SeekStart)
-	if err != nil {
-		return nil, err
-	}
-
-	mimeType := http.DetectContentType(raw)
-
-	err = s.renter.CreateBucketIfNotExists(bucket)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.renter.UploadObject(context.Background(), file, bucket, hashStr)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.renter.UploadObject(context.Background(), bytes.NewReader(hashResult.Proof), bucket, fmt.Sprintf("%s.bao", hashStr))
-
-	if err != nil {
-		return nil, err
-	}
-
-	upload, err = s.CreateUpload(hashResult.Hash, mimeType, userId, userIp, uint64(len), bucket)
-	if err != nil {
-		return nil, err
-	}
-
-	return upload, nil
-}
-
-func (s *StorageServiceDefault) BuildUploadBufferTus(basePath string, preUploadCb TusPreUploadCreateCallback, preFinishCb TusPreFinishResponseCallback) (*tusd.Handler, tusd.DataStore, *s3.Client, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				URL:           s.config.GetString("core.storage.s3.endpoint"),
-				SigningRegion: s.config.GetString("core.storage.s3.region"),
-			}, nil
+func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error) {
+	readers := make([]io.ReadCloser, 0)
+	defer func() {
+		for _, reader := range readers {
+			err := reader.Close()
+			if err != nil {
+				s.logger.Error("error closing reader", zap.Error(err))
+			}
 		}
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
+	}()
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-east-1"),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			s.config.GetString("core.storage.s3.accessKey"),
-			s.config.GetString("core.storage.s3.secretKey"),
-			"",
-		)),
-		config.WithEndpointResolverWithOptions(customResolver),
-	)
-	if err != nil {
-		return nil, nil, nil, nil
-	}
+	getReader := func() (io.Reader, error) {
+		if muParams != nil {
+			muReader, err := muParams.ReaderFactory(0, uint(muParams.Size))
+			if err != nil {
+				return nil, err
+			}
 
-	s3Client := s3.NewFromConfig(cfg)
+			found := false
+			for _, reader := range readers {
+				if reader == muReader {
+					found = true
+					break
+				}
+			}
 
-	store := s3store.New(s.config.GetString("core.storage.s3.bufferBucket"), s3Client)
-
-	locker := NewMySQLLocker(s.db, s.logger)
-
-	composer := tusd.NewStoreComposer()
-	store.UseIn(composer)
-	composer.UseLocker(locker)
-
-	handler, err := tusd.NewHandler(tusd.Config{
-		BasePath:                basePath,
-		StoreComposer:           composer,
-		DisableDownload:         true,
-		NotifyCompleteUploads:   true,
-		NotifyTerminatedUploads: true,
-		NotifyCreatedUploads:    true,
-		RespectForwardedHeaders: true,
-		PreUploadCreateCallback: preUploadCb,
-	})
-
-	return handler, store, s3Client, err
-}
-
-func (s *StorageServiceDefault) init() error {
-	preUpload := func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
-		blankResp := tusd.HTTPResponse{}
-		blankChanges := tusd.FileInfoChanges{}
-
-		hash, ok := hook.Upload.MetaData["hash"]
-		if !ok {
-			return blankResp, blankChanges, errors.New("missing hash")
+			if !found {
+				readers = append(readers, muReader)
+			}
 		}
 
-		decodedHash, err := encoding.MultihashFromBase64Url(hash)
-
+		_, err := data.Seek(0, io.SeekStart)
 		if err != nil {
-			return blankResp, blankChanges, err
+			return nil, err
 		}
 
-		exists, _ := s.FileExists(decodedHash.HashBytes())
-
-		if exists {
-			return blankResp, blankChanges, errors.New("file already exists")
-		}
-
-		exists, _ = s.TusUploadExists(decodedHash.HashBytes())
-
-		if exists {
-			return blankResp, blankChanges, errors.New("file is already being uploaded")
-		}
-
-		return blankResp, blankChanges, nil
+		return data, nil
 	}
 
-	tus, store, s3client, err := s.BuildUploadBufferTus("/s5/upload/tus", preUpload, nil)
-
+	reader, err := getReader()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s.tus = tus
-	s.tusStore = store
-	s.s3Client = s3client
-
-	s.cron.RegisterService(s)
-
-	return nil
-}
-func (s *StorageServiceDefault) LoadInitialTasks(cron cron.CronService) error {
-	return nil
-}
-
-func (s *StorageServiceDefault) FileExists(hash []byte) (bool, *models.Upload) {
-	hashStr := hex.EncodeToString(hash)
-
-	var upload models.Upload
-	result := s.db.Model(&models.Upload{}).Where(&models.Upload{Hash: hashStr}).First(&upload)
-
-	return result.RowsAffected > 0, &upload
-}
-
-func (s *StorageServiceDefault) GetHashSmall(file io.ReadSeeker) (*bao.Result, int, error) {
-	buf := bytes.NewBuffer(nil)
-
-	_, err := io.Copy(buf, file)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	result, _, err := bao.Hash(buf)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return result, buf.Len(), nil
-}
-func (s *StorageServiceDefault) GetHash(file io.Reader) (*bao.Result, int, error) {
-	hash, totalBytes, err := bao.Hash(file)
-
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return hash, totalBytes, nil
-}
-
-func (s *StorageServiceDefault) CreateUpload(hash []byte, mime string, uploaderID uint, uploaderIP string, size uint64, protocol string) (*models.Upload, error) {
-	hashStr := hex.EncodeToString(hash)
-
-	upload := &models.Upload{
-		Hash:       hashStr,
-		MimeType:   mime,
-		UserID:     uploaderID,
-		UploaderIP: uploaderIP,
-		Protocol:   protocol,
-		Size:       size,
-	}
-
-	result := s.db.Create(upload)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return upload, nil
-}
-func (s *StorageServiceDefault) tusWorker() {
-
-	for {
-		select {
-		case info := <-s.tus.CreatedUploads:
-			hash, ok := info.Upload.MetaData["hash"]
-			errorResponse := tusd.HTTPResponse{StatusCode: 400, Header: nil}
-			if !ok {
-				s.logger.Error("Missing hash in metadata")
-				continue
-			}
-
-			uploaderID, ok := info.Context.Value(middleware.DEFAULT_AUTH_CONTEXT_KEY).(uint64)
-			if !ok {
-				errorResponse.Body = "Missing user id in context"
-				info.Upload.StopUpload(errorResponse)
-				s.logger.Error("Missing user id in context")
-				continue
-			}
-
-			uploaderIP := info.HTTPRequest.RemoteAddr
-
-			decodedHash, err := encoding.MultihashFromBase64Url(hash)
-
-			if err != nil {
-				errorResponse.Body = "Could not decode hash"
-				info.Upload.StopUpload(errorResponse)
-				s.logger.Error("Could not decode hash", zap.Error(err))
-				continue
-			}
-
-			_, err = s.CreateTusUpload(decodedHash.HashBytes(), info.Upload.ID, uint(uploaderID), uploaderIP, info.Context.Value("protocol").(string))
-			if err != nil {
-				errorResponse.Body = "Could not create tus upload"
-				info.Upload.StopUpload(errorResponse)
-				s.logger.Error("Could not create tus upload", zap.Error(err))
-				continue
-			}
-		case info := <-s.tus.UploadProgress:
-			err := s.TusUploadProgress(info.Upload.ID)
-			if err != nil {
-				s.logger.Error("Could not update tus upload", zap.Error(err))
-				continue
-			}
-		case info := <-s.tus.TerminatedUploads:
-			err := s.DeleteTusUpload(info.Upload.ID)
-			if err != nil {
-				s.logger.Error("Could not delete tus upload", zap.Error(err))
-				continue
-			}
-
-		case info := <-s.tus.CompleteUploads:
-			if !(!info.Upload.SizeIsDeferred && info.Upload.Offset == info.Upload.Size) {
-				continue
-			}
-			err := s.TusUploadCompleted(info.Upload.ID)
-			if err != nil {
-				s.logger.Error("Could not complete tus upload", zap.Error(err))
-				continue
-			}
-			err = s.ScheduleTusUpload(info.Upload.ID)
-			if err != nil {
-				s.logger.Error("Could not schedule tus upload", zap.Error(err))
-				continue
-			}
-
-		}
-	}
-}
-
-func (s *StorageServiceDefault) TusUploadExists(hash []byte) (bool, models.TusUpload) {
-	hashStr := hex.EncodeToString(hash)
-
-	var upload models.TusUpload
-	result := s.db.Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hashStr}).First(&upload)
-
-	return result.RowsAffected > 0, upload
-}
-
-func (s *StorageServiceDefault) CreateTusUpload(hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
-	hashStr := hex.EncodeToString(hash)
-
-	upload := &models.TusUpload{
-		Hash:       hashStr,
-		UploadID:   uploadID,
-		UploaderID: uploaderID,
-		UploaderIP: uploaderIP,
-		Uploader:   models.User{},
-		Protocol:   protocol,
-	}
-
-	result := s.db.Create(upload)
-
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	return upload, nil
-}
-func (s *StorageServiceDefault) TusUploadProgress(uploadID string) error {
-
-	find := &models.TusUpload{UploadID: uploadID}
-
-	var upload models.TusUpload
-	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
-
-	if result.RowsAffected == 0 {
-		return errors.New("upload not found")
-	}
-
-	result = s.db.Model(&models.TusUpload{}).Where(find).Update("updated_at", time.Now())
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
-}
-func (s *StorageServiceDefault) TusUploadCompleted(uploadID string) error {
-
-	find := &models.TusUpload{UploadID: uploadID}
-
-	var upload models.TusUpload
-	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
-
-	if result.RowsAffected == 0 {
-		return errors.New("upload not found")
-	}
-
-	result = s.db.Model(&models.TusUpload{}).Where(find).Update("completed", true)
-
-	return nil
-}
-func (s *StorageServiceDefault) DeleteTusUpload(uploadID string) error {
-	result := s.db.Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return nil
-}
-
-func (s *StorageServiceDefault) ScheduleTusUpload(uploadID string) error {
-	find := &models.TusUpload{UploadID: uploadID}
-
-	var upload models.TusUpload
-	result := s.db.Model(&models.TusUpload{}).Where(find).First(&upload)
-
-	if result.RowsAffected == 0 {
-		return errors.New("upload not found")
-	}
-
-	task := s.cron.RetryableTask(cron.RetryableTaskParams{
-		Name:     "tusUpload",
-		Function: s.tusUploadTask,
-		Args:     []interface{}{&upload},
-		Attempt:  0,
-		Limit:    0,
-		After: func(jobID uuid.UUID, jobName string) {
-			s.logger.Info("Job finished", zap.String("jobName", jobName), zap.String("uploadID", uploadID))
-			err := s.DeleteTusUpload(uploadID)
-			if err != nil {
-				s.logger.Error("Error deleting tus upload", zap.Error(err))
-			}
-		},
-	})
-
-	_, err := s.cron.CreateJob(task)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *StorageServiceDefault) tusUploadTask(upload *models.TusUpload) error {
-	ctx := context.Background()
-	tusUpload, err := s.tusStore.GetUpload(ctx, upload.UploadID)
-	if err != nil {
-		s.logger.Error("Could not get upload", zap.Error(err))
-		return err
-	}
-
-	readerHash, err := tusUpload.GetReader(ctx)
-	if err != nil {
-		s.logger.Error("Could not get tus file", zap.Error(err))
-		return err
-	}
-
-	defer func(reader io.ReadCloser) {
-		err := reader.Close()
+	if proof == nil {
+		hashResult, err := s.HashObject(ctx, reader)
 		if err != nil {
-			s.logger.Error("Could not close reader", zap.Error(err))
+			return nil, err
 		}
-	}(readerHash)
 
-	hash, byteCount, err := s.GetHash(readerHash)
-
-	if err != nil {
-		s.logger.Error("Could not compute hash", zap.Error(err))
-		return err
-	}
-
-	dbHash, err := hex.DecodeString(upload.Hash)
-
-	if err != nil {
-		s.logger.Error("Could not decode hash", zap.Error(err))
-		return err
-	}
-
-	if !bytes.Equal(hash.Hash, dbHash) {
-		s.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("hash", hash), zap.Any("dbHash", dbHash))
-		return err
-	}
-
-	readerMime, err := tusUpload.GetReader(ctx)
-	if err != nil {
-		s.logger.Error("Could not get tus file", zap.Error(err))
-		return err
-	}
-
-	defer func(reader io.ReadCloser) {
-		err := reader.Close()
+		reader, err = getReader()
 		if err != nil {
-			s.logger.Error("Could not close reader", zap.Error(err))
+			return nil, err
 		}
-	}(readerMime)
 
-	var mimeBuf [512]byte
+		proof = hashResult
+	}
 
-	_, err = readerMime.Read(mimeBuf[:])
+	mimeBytes := make([]byte, 512)
+	_, err = io.ReadFull(data, mimeBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err = getReader()
+	if err != nil {
+		return nil, err
+	}
+
+	mimeType := http.DetectContentType(mimeBytes)
+
+	protocolName := protocol.Name()
+
+	err = s.renter.CreateBucketIfNotExists(protocolName)
+	if err != nil {
+		return nil, err
+	}
+
+	filename := protocol.EncodeFileName(proof.Hash)
+
+	err = s.UploadObjectProof(ctx, protocol, nil, proof)
 
 	if err != nil {
-		s.logger.Error("Could not read mime", zap.Error(err))
-		return err
+		return nil, err
 	}
 
-	mimeType := http.DetectContentType(mimeBuf[:])
+	if muParams != nil {
+		muParams.FileName = filename
+		muParams.Bucket = protocolName
 
-	upload.MimeType = mimeType
-
-	if tx := s.db.Save(upload); tx.Error != nil {
-		s.logger.Error("Could not update tus upload", zap.Error(tx.Error))
-		return tx.Error
-	}
-
-	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash.Hash)).ToBase64Url()
-	err = s.renter.CreateBucketIfNotExists(upload.Protocol)
-	if err != nil {
-		return err
-	}
-
-	info, err := tusUpload.GetInfo(context.Background())
-	if err != nil {
-		s.logger.Error("Could not get tus info", zap.Error(err))
-		return err
-	}
-
-	err = s.renter.MultipartUpload(renter.MultiPartUploadParams{
-		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
-			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
-			ctx = context.WithValue(ctx, "range", rangeHeader)
-			return tusUpload.GetReader(ctx)
-		},
-		Bucket:   upload.Protocol,
-		FileName: "/" + hashStr,
-		Size:     uint64(info.Size),
-	})
-
-	if err != nil {
-		s.logger.Error("Could not upload file", zap.Error(err))
-		return err
-	}
-
-	err = s.renter.UploadObject(context.Background(), bytes.NewReader(hash.Proof), upload.Protocol, fmt.Sprintf("%s.bao", hashStr))
-
-	if err != nil {
-		return err
-	}
-
-	s3InfoId, _ := splitS3Ids(upload.UploadID)
-
-	_, err = s.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-		Bucket: aws.String(s.config.GetString("core.storage.s3.bufferBucket")),
-		Delete: &s3types.Delete{
-			Objects: []s3types.ObjectIdentifier{
-				{
-					Key: aws.String(s3InfoId),
-				},
-				{
-					Key: aws.String(s3InfoId + ".info"),
-				},
-			},
-			Quiet: aws.Bool(true),
-		},
-	})
-
-	if err != nil {
-		s.logger.Error("Could not delete upload metadata", zap.Error(err))
-		return err
-	}
-
-	newUpload, err := s.CreateUpload(dbHash, mimeType, upload.UploaderID, upload.UploaderIP, uint64(byteCount), upload.Protocol)
-	if err != nil {
-		s.logger.Error("Could not create upload", zap.Error(err))
-		return err
-	}
-
-	err = s.accounts.PinByID(newUpload.ID, upload.UploaderID)
-	if err != nil {
-		s.logger.Error("Could not pin upload", zap.Error(err))
-		return err
-	}
-
-	return nil
-}
-
-func (s *StorageServiceDefault) getPrefixedHash(hash []byte) []byte {
-	return append([]byte{byte(types.HashTypeBlake3)}, hash...)
-}
-
-func splitS3Ids(id string) (objectId, multipartId string) {
-	index := strings.Index(id, "+")
-	if index == -1 {
-		return
-	}
-
-	objectId = id[:index]
-	multipartId = id[index+1:]
-	return
-}
-
-func (s *StorageServiceDefault) GetFile(hash []byte, start int64) (io.ReadCloser, int64, error) {
-	if exists, tusUpload := s.TusUploadExists(hash); exists {
-		if tusUpload.Completed {
-			upload, err := s.tusStore.GetUpload(context.Background(), tusUpload.UploadID)
-			if err != nil {
-				return nil, 0, err
-			}
-
-			info, _ := upload.GetInfo(context.Background())
-
-			ctx := context.Background()
-
-			if start > 0 {
-				endPosition := start + info.Size - 1
-				rangeHeader := fmt.Sprintf("bytes=%d-%d", start, endPosition)
-				ctx = context.WithValue(ctx, "range", rangeHeader)
-			}
-
-			reader, err := upload.GetReader(ctx)
-
-			return reader, info.Size, err
+		err = s.renter.UploadObjectMultipart(ctx, muParams)
+		if err != nil {
+			return nil, err
 		}
+
+		return &metadata.UploadMetadata{
+			Protocol: protocolName,
+			Hash:     proof.Hash,
+			MimeType: mimeType,
+			Size:     uint64(proof.Length),
+		}, nil
 	}
 
-	exists, upload := s.FileExists(hash)
-
-	if !exists {
-		return nil, 0, errors.New("file does not exist")
-	}
-
-	hashStr, err := encoding.NewMultihash(s.getPrefixedHash(hash)).ToBase64Url()
+	err = s.renter.UploadObject(ctx, reader, protocolName, filename)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
+	return nil, nil
+}
+
+func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result) error {
+	if proof == nil {
+		hashResult, err := s.HashObject(ctx, data)
+		if err != nil {
+			return err
+		}
+
+		proof = hashResult
+	}
+
+	protocolName := protocol.Name()
+
+	err := s.renter.CreateBucketIfNotExists(protocolName)
+
+	if err != nil {
+		return err
+	}
+
+	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof), protocolName, s.getProofPath(protocol, proof.Hash))
+}
+
+func (s StorageServiceDefault) HashObject(ctx context.Context, data io.Reader) (*bao.Result, error) {
+	result, err := bao.Hash(data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash []byte, start int64) (io.ReadCloser, error) {
 	var partialRange api.DownloadRange
+
+	upload, err := s.metadata.GetUpload(ctx, objectHash)
+	if err != nil {
+		return nil, err
+	}
 
 	if start > 0 {
 		partialRange = api.DownloadRange{
@@ -690,20 +233,41 @@ func (s *StorageServiceDefault) GetFile(hash []byte, start int64) (io.ReadCloser
 		}
 	}
 
-	object, err := s.renter.GetObject(context.Background(), upload.Protocol, hashStr, api.DownloadObjectOptions{
-		Range: partialRange,
-	})
-
+	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: partialRange})
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return object.Content, int64(upload.Size), nil
+	return object.Content, nil
 }
-func (s *StorageServiceDefault) NewFile(hash []byte) *FileImpl {
-	return NewFile(FileParams{
-		Storage: s,
-		Renter:  s.renter,
-		Hash:    hash,
-	})
+
+func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) (io.ReadCloser, error) {
+	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash)+".bao", api.DownloadObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return object.Content, nil
+}
+
+func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash []byte) error {
+	err := s.renter.DeleteObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) error {
+	err := s.renter.DeleteObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s StorageServiceDefault) getProofPath(protocol StorageProtocol, objectHash []byte) string {
+	return fmt.Sprintf("%s/%s.%s", protocol.Name(), protocol.EncodeFileName(objectHash), PROOF_EXTENSION)
 }

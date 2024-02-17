@@ -3,7 +3,14 @@ package s5
 import (
 	"context"
 	"crypto/ed25519"
+	"errors"
 	"fmt"
+	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/metadata"
+
+	"git.lumeweb.com/LumeWeb/portal/storage"
+
 	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
 	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
@@ -12,12 +19,10 @@ import (
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	"git.lumeweb.com/LumeWeb/portal/storage"
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"time"
 )
 
 var (
@@ -26,20 +31,22 @@ var (
 )
 
 type S5Protocol struct {
-	config   *viper.Viper
-	logger   *zap.Logger
-	storage  *storage.StorageServiceDefault
-	identity ed25519.PrivateKey
-	node     *s5node.Node
+	config     *viper.Viper
+	logger     *zap.Logger
+	storage    storage.StorageService
+	identity   ed25519.PrivateKey
+	node       *s5node.Node
+	tusHandler *TusHandler
 }
 
 type S5ProtocolParams struct {
 	fx.In
 	Config        *viper.Viper
 	Logger        *zap.Logger
-	Storage       *storage.StorageServiceDefault
+	Storage       storage.StorageService
 	Identity      ed25519.PrivateKey
 	ProviderStore *S5ProviderStore
+	TusHandler    *TusHandler
 }
 
 type S5ProtocolResult struct {
@@ -50,8 +57,17 @@ type S5ProtocolResult struct {
 	Db           *bolt.DB
 }
 
+type S5ProviderStoreParams struct {
+	fx.In
+	Config   *viper.Viper
+	Metadata metadata.MetadataService
+	Logger   *zap.Logger
+	Tus      *TusHandler
+}
+
 var ProtocolModule = fx.Module("s5_api",
 	fx.Provide(NewS5Protocol),
+	fx.Provide(NewTusHandler),
 	fx.Provide(NewS5ProviderStore),
 	fx.Replace(func(cfg *s5config.NodeConfig) *zap.Logger {
 		return cfg.Logger
@@ -63,10 +79,11 @@ func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
 	proto := &S5Protocol{
-		config:   params.Config,
-		logger:   params.Logger,
-		storage:  params.Storage,
-		identity: params.Identity,
+		config:     params.Config,
+		logger:     params.Logger,
+		storage:    params.Storage,
+		identity:   params.Identity,
+		tusHandler: params.TusHandler,
 	}
 
 	cfg, err := ConfigureS5Protocol(params)
@@ -136,11 +153,12 @@ func ConfigureS5Protocol(params S5ProtocolParams) (*s5config.NodeConfig, error) 
 	return cfg, nil
 }
 
-func NewS5ProviderStore(config *viper.Viper, logger *zap.Logger, storage *storage.StorageServiceDefault) *S5ProviderStore {
+func NewS5ProviderStore(params S5ProviderStoreParams) *S5ProviderStore {
 	return &S5ProviderStore{
-		config:  config,
-		logger:  logger,
-		storage: storage,
+		config:   params.Config,
+		logger:   params.Logger,
+		tus:      params.Tus,
+		metadata: params.Metadata,
 	}
 }
 
@@ -161,6 +179,11 @@ func (s *S5Protocol) Init(args ...any) error {
 	}
 
 	err := s.node.Init()
+	if err != nil {
+		return err
+	}
+
+	err = s.tusHandler.Init()
 	if err != nil {
 		return err
 	}
@@ -197,9 +220,10 @@ func (s *S5Protocol) Stop(ctx context.Context) error {
 }
 
 type S5ProviderStore struct {
-	config  *viper.Viper
-	logger  *zap.Logger
-	storage *storage.StorageServiceDefault
+	config   *viper.Viper
+	logger   *zap.Logger
+	tus      *TusHandler
+	metadata metadata.MetadataService
 }
 
 func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.StorageLocationType) bool {
@@ -208,13 +232,13 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
 			rawHash := hash.HashBytes()
 
-			if exists, upload := s.storage.TusUploadExists(rawHash); exists {
+			if exists, upload := s.tus.TusUploadExists(rawHash); exists {
 				if upload.Completed {
 					return true
 				}
 
 			}
-			if exists, _ := s.storage.FileExists(rawHash); exists {
+			if _, err := s.metadata.GetUpload(context.Background(), rawHash); errors.Is(err, metadata.ErrNotFound) {
 				return true
 			}
 		}
