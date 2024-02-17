@@ -51,7 +51,7 @@ func ApplyMiddlewares(handler jape.Handler, middlewares ...interface{}) jape.Han
 		case JapeMiddlewareFunc:
 			mid := middlewares[i].(JapeMiddlewareFunc)
 			handler = mid(handler)
-		case func(http.Handler) http.Handler:
+		case func(http.Handler) http.Handler, HttpMiddlewareFunc:
 			mid := middlewares[i].(func(http.Handler) http.Handler)
 			handler = AdaptMiddleware(mid)(handler)
 
