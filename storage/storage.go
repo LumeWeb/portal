@@ -36,8 +36,10 @@ type StorageProtocol interface {
 
 var Module = fx.Module("storage",
 	fx.Provide(
-		NewStorageService,
-		fx.As(new(StorageService)),
+		fx.Annotate(
+			NewStorageService,
+			fx.As(new(StorageService)),
+		),
 	),
 )
 
