@@ -29,6 +29,7 @@ type S5File struct {
 	cid      *encoding.CID
 	read     bool
 	tus      *s5.TusHandler
+	ctx      context.Context
 }
 
 type FileParams struct {
@@ -46,6 +47,7 @@ func NewFile(params FileParams) *S5File {
 		hash:     params.Hash,
 		protocol: params.Protocol,
 		tus:      params.Tus,
+		ctx:      context.Background(),
 	}
 }
 
