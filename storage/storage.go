@@ -62,6 +62,7 @@ type StorageServiceDefault struct {
 }
 
 type StorageServiceParams struct {
+	fx.In
 	Config   *viper.Viper
 	Db       *gorm.DB
 	Renter   *renter.RenterDefault
