@@ -44,10 +44,16 @@ func BuildApis(config *viper.Viper) fx.Option {
 		return nil
 	}))
 
-	options = append(options, fx.Invoke(func(protocols []registry.API) {
+	options = append(options, fx.Invoke(func(protocols []registry.API) error {
 		for _, protocol := range protocols {
-			middleware.RegisterProtocolSubdomain(config, protocol.Routes(), protocol.Name())
+			routes, err := protocol.Routes()
+			if err != nil {
+				return err
+			}
+			middleware.RegisterProtocolSubdomain(config, routes, protocol.Name())
 		}
+
+		return nil
 	}))
 
 	return fx.Module("api", fx.Options(options...))

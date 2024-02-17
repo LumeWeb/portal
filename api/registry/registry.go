@@ -14,7 +14,7 @@ type API interface {
 	Init() error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	Routes() *httprouter.Router
+	Routes() (*httprouter.Router, error)
 }
 
 type APIEntry struct {
