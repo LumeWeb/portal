@@ -5,14 +5,12 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"embed"
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"math"
 	"mime/multipart"
 	"net/http"
@@ -21,11 +19,11 @@ import (
 	"strings"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/api/swagger"
+
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/storage"
-
-	"github.com/getkin/kin-openapi/openapi3"
 
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	s5libmetadata "git.lumeweb.com/LumeWeb/libs5-go/metadata"
@@ -60,12 +58,7 @@ var (
 )
 
 //go:embed swagger.yaml
-var spec []byte
-
-//go:generate go run generate.go
-
-//go:embed embed
-var swagfs embed.FS
+var swagSpec []byte
 
 type S5API struct {
 	config     *viper.Viper
@@ -143,7 +136,7 @@ func (s S5API) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *S5API) Routes() *httprouter.Router {
+func (s *S5API) Routes() (*httprouter.Router, error) {
 	authMiddlewareOpts := middleware.AuthMiddlewareOptions{
 		Identity: s.identity,
 		Accounts: s.accounts,
@@ -161,37 +154,7 @@ func (s *S5API) Routes() *httprouter.Router {
 
 	tusCors := BuildTusCors()
 
-	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromData(spec)
-	if err != nil {
-		panic(err)
-	}
-
-	if err = doc.Validate(loader.Context); err != nil {
-		panic(err)
-	}
-
-	jsonDoc, err := doc.MarshalJSON()
-
-	if err != nil {
-		panic(err)
-	}
-
 	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, authMw)
-
-	swaggerFiles, _ := fs.Sub(swagfs, "embed")
-	swaggerServ := http.FileServer(http.FS(swaggerFiles))
-	swaggerHandler := func(c jape.Context) {
-		swaggerServ.ServeHTTP(c.ResponseWriter, c.Request)
-	}
-
-	swaggerStrip := func(next http.Handler) http.Handler {
-		return http.StripPrefix("/swagger", next)
-	}
-
-	swaggerRedirect := func(jc jape.Context) {
-		http.Redirect(jc.ResponseWriter, jc.Request, "/swagger/", http.StatusMovedPermanently)
-	}
 
 	routes := map[string]jape.Handler{
 		// Account API
@@ -232,20 +195,14 @@ func (s *S5API) Routes() *httprouter.Router {
 		"GET /s5/registry":              middleware.ApplyMiddlewares(s.registryQuery, authMw),
 		"POST /s5/registry":             middleware.ApplyMiddlewares(s.registrySet, authMw),
 		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.registrySubscription, authMw),
-
-		"GET /swagger.json":  byteHandler(jsonDoc),
-		"GET /swagger":       swaggerRedirect,
-		"GET /swagger/*path": middleware.ApplyMiddlewares(swaggerHandler, swaggerStrip),
 	}
 
-	return s.protocol.Node().Services().HTTP().GetHttpRouter(routes)
-}
-
-func byteHandler(b []byte) jape.Handler {
-	return func(c jape.Context) {
-		c.ResponseWriter.Header().Set("Content-Type", "application/json")
-		c.ResponseWriter.Write(b)
+	routes, err := swagger.Swagger(swagSpec, routes)
+	if err != nil {
+		return nil, err
 	}
+
+	return s.protocol.Node().Services().HTTP().GetHttpRouter(routes), nil
 }
 
 type s5TusJwtResponseWriter struct {

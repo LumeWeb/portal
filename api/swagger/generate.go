@@ -108,10 +108,4 @@ func main() {
 	if _, err := newinitFile.Write(newInit); err != nil {
 		log.Fatalf("unable to write to swagger-initializer.js: %v", err)
 	}
-	newcv, err := os.Create("current_version.txt")
-	if err != nil {
-		log.Fatalf("can't update current_version.txt: %v", err)
-	}
-	defer newcv.Close()
-	newcv.WriteString(tag)
 }
