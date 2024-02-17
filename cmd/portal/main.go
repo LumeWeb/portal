@@ -1,22 +1,24 @@
 package main
 
 import (
+	"flag"
+	"net/http"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
 	_config "git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_logger "git.lumeweb.com/LumeWeb/portal/logger"
+	"git.lumeweb.com/LumeWeb/portal/metadata"
 	"git.lumeweb.com/LumeWeb/portal/protocols"
 	"git.lumeweb.com/LumeWeb/portal/renter"
 	"git.lumeweb.com/LumeWeb/portal/storage"
-	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"net/http"
 )
 
 func main() {
@@ -66,6 +68,7 @@ func main() {
 		storage.Module,
 		cron.Module,
 		account.Module,
+		metadata.Module,
 		protocols.BuildProtocols(config),
 		api.BuildApis(config),
 		fx.Provide(api.NewCasbin),
