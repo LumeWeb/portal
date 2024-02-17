@@ -393,7 +393,7 @@ func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, er
 	return token, nil
 }
 
-func (s AccountServiceDefault) updateAccountInfo(userId uint, info interface{}) error {
+func (s AccountServiceDefault) updateAccountInfo(userId uint, info models.User) error {
 	var user models.User
 
 	user.ID = userId
