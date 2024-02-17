@@ -37,6 +37,7 @@ type S5Protocol struct {
 	identity   ed25519.PrivateKey
 	node       *s5node.Node
 	tusHandler *TusHandler
+	store      *S5ProviderStore
 }
 
 type S5ProtocolParams struct {
@@ -75,6 +76,10 @@ var ProtocolModule = fx.Module("s5_api",
 	s5fx.Module,
 )
 
+var PreInit = func(protocol *S5Protocol, node *s5node.Node) {
+	protocol.SetNode(node)
+}
+
 func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
@@ -84,6 +89,7 @@ func NewS5Protocol(
 		storage:    params.Storage,
 		identity:   params.Identity,
 		tusHandler: params.TusHandler,
+		store:      params.ProviderStore,
 	}
 
 	cfg, err := ConfigureS5Protocol(params)
@@ -162,18 +168,8 @@ func NewS5ProviderStore(params S5ProviderStoreParams) *S5ProviderStore {
 	}
 }
 
-func (s *S5Protocol) Init(args ...any) error {
-	if node, ok := args[0].(*s5node.Node); !ok {
-		s.logger.Fatal("Node is not a s5 node")
-	} else {
-		s.node = node
-	}
-
-	if store, ok := args[1].(*S5ProviderStore); !ok {
-		s.logger.Fatal("Store is not a s5 store")
-	} else {
-		s.node.Services().Storage().SetProviderStore(store)
-	}
+func (s *S5Protocol) Init() error {
+	s.node.Services().Storage().SetProviderStore(s.store)
 
 	err := s.node.Init()
 	if err != nil {
@@ -216,6 +212,10 @@ func (s *S5Protocol) Node() *s5node.Node {
 
 func (s *S5Protocol) Stop(ctx context.Context) error {
 	return nil
+}
+
+func (s *S5Protocol) SetNode(node *s5node.Node) {
+	s.node = node
 }
 
 type S5ProviderStore struct {
