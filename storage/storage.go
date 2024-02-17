@@ -67,7 +67,7 @@ type StorageServiceParams struct {
 	Db       *gorm.DB
 	Renter   *renter.RenterDefault
 	Logger   *zap.Logger
-	metadata metadata.MetadataService
+	Metadata metadata.MetadataService
 }
 
 func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
