@@ -72,9 +72,11 @@ type StorageServiceParams struct {
 
 func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
 	return &StorageServiceDefault{
-		config: params.Config,
-		db:     params.Db,
-		renter: params.Renter,
+		config:   params.Config,
+		db:       params.Db,
+		renter:   params.Renter,
+		logger:   params.Logger,
+		metadata: params.Metadata,
 	}
 }
 
