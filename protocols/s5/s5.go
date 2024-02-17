@@ -227,18 +227,19 @@ type S5ProviderStore struct {
 }
 
 func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.StorageLocationType) bool {
+	ctx := context.Background()
 	for _, t := range kind {
 		switch t {
 		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
 			rawHash := hash.HashBytes()
 
-			if exists, upload := s.tus.UploadExists(rawHash); exists {
+			if exists, upload := s.tus.UploadExists(ctx, rawHash); exists {
 				if upload.Completed {
 					return true
 				}
 
 			}
-			if _, err := s.metadata.GetUpload(context.Background(), rawHash); errors.Is(err, metadata.ErrNotFound) {
+			if _, err := s.metadata.GetUpload(ctx, rawHash); errors.Is(err, metadata.ErrNotFound) {
 				return true
 			}
 		}
