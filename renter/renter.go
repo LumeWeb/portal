@@ -230,3 +230,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 
 	return nil
 }
+
+func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileName string) error {
+	return r.workerClient.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
+}
