@@ -27,6 +27,7 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 	}
 
 	type initParams struct {
+		fx.In
 		Protocols []registry.Protocol `group:"protocol"`
 	}
 
