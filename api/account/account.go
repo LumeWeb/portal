@@ -193,7 +193,7 @@ func (a AccountAPI) otpDisable(jc jape.Context) {
 	}
 }
 
-func (a AccountAPI) Routes() *httprouter.Router {
+func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity: a.identity,
 		Accounts: a.accounts,
@@ -215,5 +215,5 @@ func (a AccountAPI) Routes() *httprouter.Router {
 		"/api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
 		"/api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
 		"/api/auth/otp/disable":  middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
-	})
+	}), nil
 }
