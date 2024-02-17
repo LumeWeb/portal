@@ -33,8 +33,13 @@ func BuildApis(config *viper.Viper) fx.Option {
 		}
 	}
 
-	options = append(options, fx.Invoke(func(protocols []registry.API) error {
-		for _, protocol := range protocols {
+	type initParams struct {
+		fx.In
+		Protocols []registry.API `group:"api"`
+	}
+
+	options = append(options, fx.Invoke(func(params initParams) error {
+		for _, protocol := range params.Protocols {
 			err := protocol.Init()
 			if err != nil {
 				return err
@@ -44,8 +49,8 @@ func BuildApis(config *viper.Viper) fx.Option {
 		return nil
 	}))
 
-	options = append(options, fx.Invoke(func(protocols []registry.API) error {
-		for _, protocol := range protocols {
+	options = append(options, fx.Invoke(func(params initParams) error {
+		for _, protocol := range params.Protocols {
 			routes, err := protocol.Routes()
 			if err != nil {
 				return err
