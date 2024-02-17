@@ -2,6 +2,7 @@ package bao
 
 import (
 	"context"
+
 	"git.lumeweb.com/LumeWeb/portal/bao/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
@@ -29,8 +30,9 @@ func (p *BaoPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c
 }
 
 type Result struct {
-	Hash  []byte
-	Proof []byte
+	Hash   []byte
+	Proof  []byte
+	Length uint
 }
 type BaoGRPC struct {
 	client proto.BaoClient

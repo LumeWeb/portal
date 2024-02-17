@@ -5,12 +5,13 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
-	"github.com/docker/go-units"
-	"github.com/hashicorp/go-plugin"
 	"io"
 	"math"
 	"os"
 	"os/exec"
+
+	"github.com/docker/go-units"
+	"github.com/hashicorp/go-plugin"
 )
 
 //go:generate buf generate
@@ -70,7 +71,7 @@ func Shutdown() {
 	client.Kill()
 }
 
-func Hash(r io.Reader) (*Result, int, error) {
+func Hash(r io.Reader) (*Result, error) {
 	hasherId := bao.NewHasher()
 	initialSize := 4 * units.KiB
 	maxSize := 3.5 * units.MiB
@@ -86,12 +87,12 @@ func Hash(r io.Reader) (*Result, int, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, 0, err
+			return nil, err
 		}
 		totalReadSize += n
 
 		if !bao.Hash(hasherId, buf[:n]) {
-			return nil, 0, errors.New("hashing failed")
+			return nil, errors.New("hashing failed")
 		}
 
 		// Adaptively adjust buffer size based on read patterns
@@ -103,6 +104,7 @@ func Hash(r io.Reader) (*Result, int, error) {
 	}
 
 	result := bao.Finish(hasherId)
+	result.Length = uint(totalReadSize)
 
-	return &result, totalReadSize, nil
+	return &result, nil
 }
