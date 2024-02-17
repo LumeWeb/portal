@@ -27,14 +27,14 @@ type User struct {
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	verify, err := getEmailVerfier().Verify(u.Email)
-
-	if err != nil {
-		return err
-	}
-
-	if !verify.Syntax.Valid {
-		return errors.New("email is invalid")
+	if tx.Statement.Changed("Email") {
+		verify, err := getEmailVerfier().Verify(u.Email)
+		if err != nil {
+			return err
+		}
+		if !verify.Syntax.Valid {
+			return errors.New("email is invalid")
+		}
 	}
 
 	return nil
