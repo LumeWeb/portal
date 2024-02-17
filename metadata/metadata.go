@@ -43,6 +43,7 @@ func (u UploadMetadata) IsEmpty() bool {
 var Module = fx.Module("metadata",
 	fx.Provide(
 		NewMetadataService,
+		fx.As(new(MetadataService)),
 	),
 )
 
