@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/fx"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 
 	"github.com/spf13/viper"
@@ -55,6 +57,7 @@ type TusHandler struct {
 }
 
 type TusHandlerParams struct {
+	fx.In
 	Config   *viper.Viper
 	Logger   *zap.Logger
 	Db       *gorm.DB
