@@ -26,8 +26,12 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 		}
 	}
 
-	options = append(options, fx.Invoke(func(protocols []registry.Protocol) error {
-		for _, protocol := range protocols {
+	type initParams struct {
+		Protocols []registry.Protocol `group:"protocol"`
+	}
+
+	options = append(options, fx.Invoke(func(params initParams) error {
+		for _, protocol := range params.Protocols {
 			err := protocol.Init()
 			if err != nil {
 				return err
