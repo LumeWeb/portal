@@ -4,9 +4,10 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"strconv"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type JWTPurpose string
@@ -55,7 +56,7 @@ func JWTGenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, 
 }
 
 func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, verifyFunc VerifyTokenFunc) (*jwt.RegisteredClaims, error) {
-	validatedToken, err := jwt.ParseWithClaims(token, jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+	validatedToken, err := jwt.ParseWithClaims(token, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -73,7 +74,7 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 		verifyFunc = nopVerifyFunc
 	}
 
-	claim, ok := validatedToken.Claims.(jwt.RegisteredClaims)
+	claim, ok := validatedToken.Claims.(*jwt.RegisteredClaims)
 
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrJWTUnexpectedClaimsType, validatedToken.Claims)
