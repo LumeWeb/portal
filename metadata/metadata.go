@@ -77,22 +77,52 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata Upload
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
 	if ret.Error != nil {
-		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
-			return ret.Error
+		if errors.Is(ret.Error, gorm.ErrRecordNotFound) && ret.RowsAffected > 0 {
+			return m.createUpload(ctx, metadata)
 		}
+		return ret.Error
 	}
 
-	if ret.RowsAffected > 0 {
-		return nil
+	changed := false
+
+	if upload.UserID != metadata.UserID {
+		changed = true
 	}
 
-	upload.UserID = metadata.UserID
-	upload.MimeType = metadata.MimeType
-	upload.Protocol = metadata.Protocol
-	upload.UploaderIP = metadata.UploaderIP
-	upload.Size = metadata.Size
+	if upload.MimeType != metadata.MimeType {
+		changed = true
+	}
 
-	return m.db.Save(&metadata).Error
+	if upload.Protocol != metadata.Protocol {
+		changed = true
+	}
+
+	if upload.UploaderIP != metadata.UploaderIP {
+		changed = true
+	}
+
+	if upload.Size != metadata.Size {
+		changed = true
+	}
+
+	if changed {
+		return m.db.Updates(&upload).Error
+	}
+
+	return nil
+}
+
+func (m *MetadataServiceDefault) createUpload(ctx context.Context, metadata UploadMetadata) error {
+	upload := models.Upload{
+		UserID:     metadata.UserID,
+		Hash:       metadata.Hash,
+		MimeType:   metadata.MimeType,
+		Protocol:   metadata.Protocol,
+		UploaderIP: metadata.UploaderIP,
+		Size:       metadata.Size,
+	}
+
+	return m.db.WithContext(ctx).Create(&upload).Error
 }
 
 func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error) {
