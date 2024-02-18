@@ -284,18 +284,16 @@ func (s AccountServiceDefault) PinByHash(hash []byte, userId uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
-	// Retrieve the upload ID for the given hash
-	var uploadID uint
 	result := s.db.
-		Model(&models.Upload{}).
+		Model(&uploadQuery).
 		Where(&uploadQuery).
-		First(&uploadID)
+		First(&uploadQuery)
 
 	if result.Error != nil {
 		return result.Error
 	}
 
-	return s.PinByID(uploadID, userId)
+	return s.PinByID(uploadQuery.ID, userId)
 }
 
 func (s AccountServiceDefault) PinByID(uploadId uint, userId uint) error {
