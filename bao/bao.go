@@ -80,8 +80,9 @@ func Hash(r io.Reader) (*Result, error) {
 	reader := bufio.NewReaderSize(r, bufSize)
 	var totalReadSize int
 
+	buf := make([]byte, bufSize)
 	for {
-		buf := make([]byte, bufSize)
+
 		n, err := reader.Read(buf)
 		if err != nil {
 			if err == io.EOF {
@@ -99,6 +100,7 @@ func Hash(r io.Reader) (*Result, error) {
 		if n == bufSize && float64(bufSize) < maxSize {
 			// If buffer was fully used, consider increasing buffer size
 			bufSize = int(math.Min(float64(bufSize*2), float64(maxSize))) // Double the buffer size, up to a maximum
+			buf = make([]byte, bufSize)                                   // Apply new buffer size
 			reader = bufio.NewReaderSize(r, bufSize)                      // Apply new buffer size
 		}
 	}
