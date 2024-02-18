@@ -329,7 +329,8 @@ func (t *TusHandler) SetStorageProtocol(storageProtocol storage.StorageProtocol)
 	t.storageProtocol = storageProtocol
 }
 
-func (t *TusHandler) uploadTask(ctx context.Context, hash []byte) error {
+func (t *TusHandler) uploadTask(hash []byte) error {
+	ctx := context.Background()
 	exists, upload := t.UploadExists(ctx, hash)
 
 	if !exists {
