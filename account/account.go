@@ -299,7 +299,7 @@ func (s AccountServiceDefault) PinByHash(hash []byte, userId uint) error {
 func (s AccountServiceDefault) PinByID(uploadId uint, userId uint) error {
 	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadId, UserID: userId}).First(&models.Pin{})
 
-	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return result.Error
 	}
 
