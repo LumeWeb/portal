@@ -288,5 +288,5 @@ func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol S
 }
 
 func (s StorageServiceDefault) getProofPath(protocol StorageProtocol, objectHash []byte) string {
-	return fmt.Sprintf("%s/%s%s", protocol.Name(), protocol.EncodeFileName(objectHash), PROOF_EXTENSION)
+	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), PROOF_EXTENSION)
 }
