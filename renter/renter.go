@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"github.com/google/uuid"
@@ -89,6 +90,7 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 }
 
 func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
+	fileName = "/" + strings.TrimLeft(fileName, "/")
 	_, err := r.workerClient.UploadObject(ctx, file, bucket, fileName, api.UploadObjectOptions{})
 
 	if err != nil {
@@ -139,6 +141,8 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 	bucket := params.Bucket
 	fileName := params.FileName
 	idHandler := params.UploadIDHandler
+
+	fileName = "/" + strings.TrimLeft(fileName, "/")
 
 	var redundancy api.RedundancySettings
 

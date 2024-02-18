@@ -395,7 +395,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 			return tusUpload.GetReader(ctx)
 		},
 		Bucket:   upload.Protocol,
-		FileName: "/" + t.storageProtocol.EncodeFileName(upload.Hash),
+		FileName: t.storageProtocol.EncodeFileName(upload.Hash),
 		Size:     uint64(info.Size),
 	}, proof)
 
