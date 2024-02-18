@@ -171,6 +171,13 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 		return nil, err
 	}
 
+	uploadMeta := &metadata.UploadMetadata{
+		Protocol: protocolName,
+		Hash:     proof.Hash,
+		MimeType: mimeType,
+		Size:     uint64(proof.Length),
+	}
+
 	if muParams != nil {
 		muParams.FileName = filename
 		muParams.Bucket = protocolName
@@ -180,12 +187,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 			return nil, err
 		}
 
-		return &metadata.UploadMetadata{
-			Protocol: protocolName,
-			Hash:     proof.Hash,
-			MimeType: mimeType,
-			Size:     uint64(proof.Length),
-		}, nil
+		return uploadMeta, nil
 	}
 
 	err = s.renter.UploadObject(ctx, reader, protocolName, filename)
@@ -193,7 +195,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 		return nil, err
 	}
 
-	return nil, nil
+	return uploadMeta, nil
 }
 
 func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result) error {
