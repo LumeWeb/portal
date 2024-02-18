@@ -138,6 +138,11 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 		proof = hashResult
 	}
 
+	meta, err := s.metadata.GetUpload(ctx, proof.Hash)
+	if err == nil {
+		return &meta, nil
+	}
+
 	mimeBytes := make([]byte, 512)
 	_, err = io.ReadFull(data, mimeBytes)
 	if err != nil {
