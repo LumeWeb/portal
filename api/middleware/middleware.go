@@ -185,7 +185,7 @@ func GetUserFromContext(ctx context.Context, key ...string) uint {
 		realKey = DEFAULT_AUTH_CONTEXT_KEY
 	}
 
-	userId, ok := ctx.Value(key).(uint)
+	userId, ok := ctx.Value(realKey).(uint)
 
 	if !ok {
 		panic("user id stored in context is not of type uint")
