@@ -46,7 +46,7 @@ impl Bao for BaoService {
             let state = self.state.read().await;
             let encoder = state.hashers.get(&id).ok_or_else(|| Status::not_found("hasher not found"))?.clone();
             let mut encoder = encoder.lock().await;
-            encoder.write(&request.get_ref().data).map_err(|_| Status::internal("write failed"))?;
+            encoder.write_all(&request.get_ref().data).map_err(|_| Status::internal("write failed"))?;
         }
         Ok(Response::new(HashResponse {
             status: true,
