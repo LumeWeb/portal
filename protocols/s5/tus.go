@@ -378,7 +378,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 	}
 
 	if !bytes.Equal(proof.Hash, upload.Hash) {
-		t.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("proof", proof), zap.Any("dbHash", hex.EncodeToString(upload.Hash)))
+		t.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("dbHash", hex.EncodeToString(upload.Hash)))
 		return err
 	}
 
