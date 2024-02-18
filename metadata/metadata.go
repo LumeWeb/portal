@@ -77,7 +77,7 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata Upload
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
 	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) && ret.RowsAffected > 0 {
+		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
 			return m.createUpload(ctx, metadata)
 		}
 		return ret.Error
