@@ -463,7 +463,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			_, err = t.CreateUpload(info.Context, decodedHash.HashBytes(), info.Upload.ID, uint(uploaderID), uploaderIP, info.Context.Value("protocol").(string))
+			_, err = t.CreateUpload(info.Context, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, info.Context.Value("protocol").(string))
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
 				info.Upload.StopUpload(errorResponse)
