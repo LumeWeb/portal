@@ -417,7 +417,11 @@ func (s AccountServiceDefault) exists(model interface{}, conditions map[string]i
 		return false, nil, nil
 	}
 
-	return exists, model, NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+	if exists {
+		return true, model, nil
+	}
+
+	return false, model, NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
 }
 
 func (s AccountServiceDefault) validPassword(user *models.User, password string) bool {
