@@ -245,6 +245,10 @@ func (t *TusHandler) UploadCompleted(ctx context.Context, uploadID string) error
 
 	result = t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(find).Update("completed", true)
 
+	if result.Error != nil {
+		return result.Error
+	}
+
 	return nil
 }
 func (t *TusHandler) DeleteUpload(ctx context.Context, uploadID string) error {
