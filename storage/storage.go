@@ -146,7 +146,12 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 	}
 
 	mimeBytes := make([]byte, 512)
-	_, err = io.ReadFull(data, mimeBytes)
+
+	reader, err = getReader()
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.ReadFull(reader, mimeBytes)
 	if err != nil {
 		return nil, err
 	}
