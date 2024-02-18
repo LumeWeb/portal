@@ -92,6 +92,7 @@ func ParseAuthTokenHeader(headers http.Header) string {
 	}
 
 	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+	authHeader = strings.TrimPrefix(authHeader, "bearer ")
 
 	return authHeader
 }
