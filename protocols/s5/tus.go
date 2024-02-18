@@ -444,7 +444,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			uploaderID, ok := info.Context.Value(middleware.DEFAULT_AUTH_CONTEXT_KEY).(uint64)
+			uploaderID, ok := info.Context.Value(middleware.DEFAULT_AUTH_CONTEXT_KEY).(uint)
 			if !ok {
 				errorResponse.Body = "Missing user id in context"
 				info.Upload.StopUpload(errorResponse)
