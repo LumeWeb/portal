@@ -86,5 +86,5 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 
 	err = verifyFunc(claim)
 
-	return nil, err
+	return claim, err
 }
