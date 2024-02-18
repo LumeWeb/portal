@@ -79,6 +79,7 @@ type APIParams struct {
 	Identity   ed25519.PrivateKey
 	Accounts   *account.AccountServiceDefault
 	Storage    storage.StorageService
+	Metadata   metadata.MetadataService
 	Db         *gorm.DB
 	Protocols  []protoRegistry.Protocol `group:"protocol"`
 	Logger     *zap.Logger
@@ -97,6 +98,7 @@ func NewS5(params APIParams) (S5ApiResult, error) {
 		identity:   params.Identity,
 		accounts:   params.Accounts,
 		storage:    params.Storage,
+		metadata:   params.Metadata,
 		db:         params.Db,
 		protocols:  params.Protocols,
 		logger:     params.Logger,
