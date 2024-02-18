@@ -109,6 +109,8 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 			if !found {
 				readers = append(readers, muReader)
 			}
+
+			return muReader, nil
 		}
 
 		_, err := data.Seek(0, io.SeekStart)
