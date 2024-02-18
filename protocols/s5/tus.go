@@ -274,7 +274,7 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 	task := t.cron.RetryableTask(cron.RetryableTaskParams{
 		Name:     "tusUpload",
 		Function: t.uploadTask,
-		Args:     []interface{}{&upload},
+		Args:     []interface{}{upload.Hash},
 		Attempt:  0,
 		Limit:    0,
 		After: func(jobID uuid.UUID, jobName string) {
@@ -329,7 +329,14 @@ func (t *TusHandler) SetStorageProtocol(storageProtocol storage.StorageProtocol)
 	t.storageProtocol = storageProtocol
 }
 
-func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) error {
+func (t *TusHandler) uploadTask(ctx context.Context, hash []byte) error {
+	exists, upload := t.UploadExists(ctx, hash)
+
+	if !exists {
+		t.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(hash)))
+		return metadata.ErrNotFound
+	}
+
 	tusUpload, err := t.tusStore.GetUpload(ctx, upload.UploadID)
 	if err != nil {
 		t.logger.Error("Could not get upload", zap.Error(err))
