@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type TusUpload struct {
 	gorm.Model
-	Hash       string `gorm:"uniqueIndex:idx_hash_deleted"`
+	Hash       []byte `gorm:"type:binary(32);uniqueIndex:idx_hash_deleted"`
 	MimeType   string
 	UploadID   string `gorm:"uniqueIndex"`
 	UploaderID uint

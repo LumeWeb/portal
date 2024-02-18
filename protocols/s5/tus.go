@@ -178,19 +178,15 @@ func (t *TusHandler) Tus() *tusd.Handler {
 }
 
 func (t *TusHandler) UploadExists(ctx context.Context, hash []byte) (bool, models.TusUpload) {
-	hashStr := hex.EncodeToString(hash)
-
 	var upload models.TusUpload
-	result := t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hashStr}).First(&upload)
+	result := t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hash}).First(&upload)
 
 	return result.RowsAffected > 0, upload
 }
 
 func (t *TusHandler) CreateUpload(ctx context.Context, hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
-	hashStr := hex.EncodeToString(hash)
-
 	upload := &models.TusUpload{
-		Hash:       hashStr,
+		Hash:       hash,
 		UploadID:   uploadID,
 		UploaderID: uploaderID,
 		UploaderIP: uploaderIP,
@@ -358,15 +354,8 @@ func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) e
 		return err
 	}
 
-	dbHash, err := hex.DecodeString(upload.Hash)
-
-	if err != nil {
-		t.logger.Error("Could not decode proof", zap.Error(err))
-		return err
-	}
-
-	if !bytes.Equal(proof.Hash, dbHash) {
-		t.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("proof", proof), zap.Any("dbHash", dbHash))
+	if !bytes.Equal(proof.Hash, upload.Hash) {
+		t.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("proof", proof), zap.Any("dbHash", hex.EncodeToString(upload.Hash)))
 		return err
 	}
 
@@ -383,7 +372,7 @@ func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) e
 			return tusUpload.GetReader(ctx)
 		},
 		Bucket:   upload.Protocol,
-		FileName: "/" + t.storageProtocol.EncodeFileName(dbHash),
+		FileName: "/" + t.storageProtocol.EncodeFileName(upload.Hash),
 		Size:     uint64(info.Size),
 	}, proof)
 
@@ -423,7 +412,7 @@ func (t *TusHandler) uploadTask(ctx context.Context, upload *models.TusUpload) e
 		return err
 	}
 
-	err = t.accounts.PinByHash(dbHash, upload.UploaderID)
+	err = t.accounts.PinByHash(upload.Hash, upload.UploaderID)
 	if err != nil {
 		t.logger.Error("Could not pin upload", zap.Error(err))
 		return err

@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"time"
 
@@ -73,7 +72,7 @@ func NewMetadataService(params MetadataServiceParams) *MetadataServiceDefault {
 func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata UploadMetadata) error {
 	var upload models.Upload
 
-	upload.Hash = hex.EncodeToString(metadata.Hash)
+	upload.Hash = metadata.Hash
 
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
@@ -99,7 +98,7 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata Upload
 func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error) {
 	var upload models.Upload
 
-	upload.Hash = hex.EncodeToString(objectHash)
+	upload.Hash = objectHash
 
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
@@ -109,14 +108,9 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 		}
 	}
 
-	hash, err := hex.DecodeString(upload.Hash)
-	if err != nil {
-		return UploadMetadata{}, err
-	}
-
 	return UploadMetadata{
 		UserID:     upload.UserID,
-		Hash:       hash,
+		Hash:       upload.Hash,
 		MimeType:   upload.MimeType,
 		Protocol:   upload.Protocol,
 		UploaderIP: upload.UploaderIP,
@@ -127,7 +121,7 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash []byte) error {
 	var upload models.Upload
 
-	upload.Hash = hex.EncodeToString(objectHash)
+	upload.Hash = objectHash
 
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 

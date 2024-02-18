@@ -695,8 +695,7 @@ func (s *S5API) accountPinDelete(jc jape.Context) {
 		return
 	}
 
-	hash := hex.EncodeToString(decodedCid.Hash.HashBytes())
-	if err := s.accounts.DeletePinByHash(hash, user); err != nil {
+	if err := s.accounts.DeletePinByHash(decodedCid.Hash.HashBytes(), user); err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 		return
 	}

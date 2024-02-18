@@ -2,7 +2,6 @@ package account
 
 import (
 	"crypto/ed25519"
-	"encoding/hex"
 	"errors"
 	"time"
 
@@ -249,7 +248,7 @@ func (s AccountServiceDefault) AccountPins(id uint, createdAfter uint64) ([]mode
 	return pins, nil
 }
 
-func (s AccountServiceDefault) DeletePinByHash(hash string, userId uint) error {
+func (s AccountServiceDefault) DeletePinByHash(hash []byte, userId uint) error {
 	// Define a struct for the query condition
 	uploadQuery := models.Upload{Hash: hash}
 
@@ -282,9 +281,8 @@ func (s AccountServiceDefault) DeletePinByHash(hash string, userId uint) error {
 	return nil
 }
 func (s AccountServiceDefault) PinByHash(hash []byte, userId uint) error {
-	hashStr := hex.EncodeToString(hash)
 	// Define a struct for the query condition
-	uploadQuery := models.Upload{Hash: hashStr}
+	uploadQuery := models.Upload{Hash: hash}
 
 	// Retrieve the upload ID for the given hash
 	var uploadID uint

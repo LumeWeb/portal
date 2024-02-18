@@ -1,7 +1,6 @@
 package s5
 
 import (
-	"encoding/hex"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
@@ -113,13 +112,7 @@ func (a AccountPinResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
 	}
 
 	for _, pin := range a.Pins {
-		hash, err := hex.DecodeString(pin.Upload.Hash)
-
-		if err != nil {
-			return err
-		}
-
-		err = enc.EncodeBytes(encoding.MultihashFromBytes(hash, types.HashTypeBlake3).FullBytes())
+		err = enc.EncodeBytes(encoding.MultihashFromBytes(pin.Upload.Hash, types.HashTypeBlake3).FullBytes())
 		if err != nil {
 			return err
 		}
