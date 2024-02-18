@@ -125,7 +125,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			claim, err := account.JWTVerifyToken(authToken, domain, options.Identity, func(claim jwt.RegisteredClaims) error {
+			claim, err := account.JWTVerifyToken(authToken, domain, options.Identity, func(claim *jwt.RegisteredClaims) error {
 				aud, _ := claim.GetAudience()
 
 				if slices.Contains[jwt.ClaimStrings, string](aud, string(options.Purpose)) == false {

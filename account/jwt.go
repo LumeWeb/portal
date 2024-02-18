@@ -11,10 +11,10 @@ import (
 )
 
 type JWTPurpose string
-type VerifyTokenFunc func(claim jwt.RegisteredClaims) error
+type VerifyTokenFunc func(claim *jwt.RegisteredClaims) error
 
 var (
-	nopVerifyFunc VerifyTokenFunc = func(claim jwt.RegisteredClaims) error {
+	nopVerifyFunc VerifyTokenFunc = func(claim *jwt.RegisteredClaims) error {
 		return nil
 	}
 
@@ -84,7 +84,7 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 		return nil, fmt.Errorf("%w: %s", ErrJWTUnexpectedIssuer, claim.Issuer)
 	}
 
-	err = verifyFunc(validatedToken.Claims.(jwt.RegisteredClaims))
+	err = verifyFunc(claim)
 
 	return nil, err
 }
