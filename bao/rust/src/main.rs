@@ -29,7 +29,7 @@ pub struct BaoService {
 #[tonic::async_trait]
 impl Bao for BaoService {
     async fn new_hasher(&self, _request: Request<NewHasherRequest>) -> Result<Response<NewHasherResponse>, Status> {
-        let encoder = Encoder::new(Cursor::new(Vec::new()));
+        let encoder = Encoder::new_outboard(Cursor::new(Vec::new()));
         let id = Uuid::new_v4();
         {
             let mut state = self.state.write().await;
