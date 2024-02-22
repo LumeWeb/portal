@@ -9,7 +9,7 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"github.com/spf13/viper"
-	"go.sia.tech/coreutils/wallet"
+	"go.sia.tech/core/wallet"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

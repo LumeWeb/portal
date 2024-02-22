@@ -25,8 +25,7 @@ require (
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.etcd.io/bbolt v1.3.8
-	go.sia.tech/core v0.2.1
-	go.sia.tech/coreutils v0.0.2
+	go.sia.tech/core v0.1.12
 	go.sia.tech/jape v0.11.1
 	go.sia.tech/renterd v1.0.5
 	go.uber.org/fx v1.20.1
@@ -138,6 +137,5 @@ require (
 
 replace (
 	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240125144205-3615bc502881
-	go.sia.tech/core => go.sia.tech/core v0.0.0-20240116192928-f13002ea5588
 	go.sia.tech/jape => github.com/LumeWeb/jape v0.0.0-20240204004049-ed792e7631cd
 )
