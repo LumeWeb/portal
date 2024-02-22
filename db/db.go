@@ -31,7 +31,7 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 	dbname := params.Config.Config().Core.DB.Name
 	charset := params.Config.Config().Core.DB.Charset
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
