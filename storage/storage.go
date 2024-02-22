@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"go.uber.org/fx"
 
 	"go.sia.tech/renterd/api"
@@ -17,7 +19,6 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/bao"
 
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 
 	"git.lumeweb.com/LumeWeb/portal/renter"
@@ -54,7 +55,7 @@ type StorageService interface {
 }
 
 type StorageServiceDefault struct {
-	config   *viper.Viper
+	config   *config.Manager
 	db       *gorm.DB
 	renter   *renter.RenterDefault
 	logger   *zap.Logger
@@ -63,7 +64,7 @@ type StorageServiceDefault struct {
 
 type StorageServiceParams struct {
 	fx.In
-	Config   *viper.Viper
+	Config   *config.Manager
 	Db       *gorm.DB
 	Renter   *renter.RenterDefault
 	Logger   *zap.Logger
