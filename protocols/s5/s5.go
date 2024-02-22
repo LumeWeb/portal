@@ -128,7 +128,7 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 	}
 
 	if cfg.DbPath == "" {
-		proto.logger.Fatal("protocol.s5.dbPath is required")
+		proto.logger.Fatal("protocol.s5.db_path is required")
 	}
 
 	_, p, err := ed25519.GenerateKey(nil)
