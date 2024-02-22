@@ -5,8 +5,9 @@ import (
 	"errors"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ var (
 type AccountServiceParams struct {
 	fx.In
 	Db       *gorm.DB
-	Config   *viper.Viper
+	Config   *config.Manager
 	Identity ed25519.PrivateKey
 }
 
@@ -31,7 +32,7 @@ var Module = fx.Module("account",
 
 type AccountServiceDefault struct {
 	db       *gorm.DB
-	config   *viper.Viper
+	config   *config.Manager
 	identity ed25519.PrivateKey
 }
 
@@ -149,7 +150,7 @@ func (s AccountServiceDefault) LoginOTP(userId uint, code string) (string, error
 	var user models.User
 	user.ID = userId
 
-	token, tokenErr := JWTGenerateToken(s.config.GetString("core.domain"), s.identity, user.ID, JWTPurposeLogin)
+	token, tokenErr := JWTGenerateToken(s.config.Config().Core.Domain, s.identity, user.ID, JWTPurposeLogin)
 	if tokenErr != nil {
 		return "", err
 	}
@@ -325,7 +326,7 @@ func (s AccountServiceDefault) OTPGenerate(userId uint) (string, error) {
 		return "", err
 	}
 
-	otp, otpErr := TOTPGenerate(user.Email, s.config.GetString("core.domain"))
+	otp, otpErr := TOTPGenerate(user.Email, s.config.Config().Core.Domain)
 	if otpErr != nil {
 		return "", NewAccountError(ErrKeyOTPGenerationFailed, otpErr)
 	}
@@ -373,7 +374,7 @@ func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, er
 		purpose = JWTPurpose2FA
 	}
 
-	token, jwtErr := JWTGenerateToken(s.config.GetString("core.domain"), s.identity, user.ID, purpose)
+	token, jwtErr := JWTGenerateToken(s.config.Config().Core.Domain, s.identity, user.ID, purpose)
 	if jwtErr != nil {
 		return "", NewAccountError(ErrKeyJWTGenerationFailed, jwtErr)
 	}
