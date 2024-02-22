@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"strconv"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"github.com/spf13/viper"
 	"go.sia.tech/core/wallet"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
-func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
+func initCheckRequiredConfig(logger *zap.Logger, config *config.Manager) error {
 	required := []string{
 		"core.domain",
 		"core.port",
@@ -24,7 +25,7 @@ func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
 		"core.db.password",
 		"core.db.host",
 		"core.db.name",
-		"core.storage.s3.bufferBucket",
+		"core.storage.s3.buffer_bucket",
 		"core.storage.s3.endpoint",
 		"core.storage.s3.region",
 		"core.storage.s3.accessKey",
@@ -32,7 +33,7 @@ func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
 	}
 
 	for _, key := range required {
-		if !config.IsSet(key) {
+		if !config.Viper().IsSet(key) {
 			logger.Fatal(key + " is required")
 		}
 	}
@@ -40,15 +41,15 @@ func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
 	return nil
 }
 
-func NewIdentity(config *viper.Viper, logger *zap.Logger) (ed25519.PrivateKey, error) {
+func NewIdentity(config *config.Manager, logger *zap.Logger) (ed25519.PrivateKey, error) {
 	var seed [32]byte
-	identitySeed := config.GetString("core.identity")
+	identitySeed := config.Config().Core.Identity
 
 	if identitySeed == "" {
 		logger.Info("Generating new identity seed")
 		identitySeed = wallet.NewSeedPhrase()
-		config.Set("core.identity", identitySeed)
-		err := config.WriteConfig()
+		config.Viper().Set("core.identity", identitySeed)
+		err := config.Save()
 		if err != nil {
 			return nil, err
 		}
@@ -61,10 +62,10 @@ func NewIdentity(config *viper.Viper, logger *zap.Logger) (ed25519.PrivateKey, e
 	return ed25519.PrivateKey(wallet.KeyFromSeed(&seed, 0)), nil
 }
 
-func NewServer(lc fx.Lifecycle, config *viper.Viper, logger *zap.Logger) (*http.Server, error) {
+func NewServer(lc fx.Lifecycle, config *config.Manager, logger *zap.Logger) (*http.Server, error) {
 
 	srv := &http.Server{
-		Addr:    ":" + strconv.FormatUint(uint64(config.GetUint("core.port")), 10),
+		Addr:    ":" + strconv.FormatUint(uint64(config.Config().Core.Port), 10),
 		Handler: registry.GetRouter(),
 	}
 
