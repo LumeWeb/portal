@@ -52,7 +52,7 @@ func NewManager(logger *zap.Logger) (*Manager, error) {
 		return nil, err
 	}
 
-	return nil, nil
+	return m, nil
 }
 
 func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
