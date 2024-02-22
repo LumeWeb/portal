@@ -10,9 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
 	busClient "go.sia.tech/renterd/bus/client"
@@ -27,7 +28,7 @@ type UploadIDHandler func(uploadID string)
 
 type RenterServiceParams struct {
 	fx.In
-	Config *viper.Viper
+	Config *config.Manager
 	Logger *zap.Logger
 	Cron   *cron.CronServiceDefault
 }
@@ -35,7 +36,7 @@ type RenterServiceParams struct {
 type RenterDefault struct {
 	busClient    *busClient.Client
 	workerClient *workerClient.Client
-	config       *viper.Viper
+	config       *config.Manager
 	logger       *zap.Logger
 	cron         *cron.CronServiceDefault
 }
@@ -101,8 +102,8 @@ func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket
 }
 
 func (r *RenterDefault) init() error {
-	addr := r.config.GetString("core.sia.url")
-	passwd := r.config.GetString("core.sia.key")
+	addr := r.config.Config().Core.Sia.URL
+	passwd := r.config.Config().Core.Sia.Key
 
 	addrURL, err := url.Parse(addr)
 
