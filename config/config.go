@@ -47,7 +47,7 @@ func NewManager(logger *zap.Logger) (*Manager, error) {
 		return nil, err
 	}
 
-	err = v.Unmarshal(config)
+	err = v.Unmarshal(&config)
 	if err != nil {
 		return nil, err
 	}
