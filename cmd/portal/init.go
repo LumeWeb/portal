@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"crypto/ed25519"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"github.com/spf13/viper"
-	"go.sia.tech/core/wallet"
-	"go.uber.org/fx"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"strconv"
+
+	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/spf13/viper"
+	"go.sia.tech/coreutils/wallet"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 func initCheckRequiredConfig(logger *zap.Logger, config *viper.Viper) error {
