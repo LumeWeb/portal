@@ -5,6 +5,8 @@ import (
 	"crypto/ed25519"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"go.uber.org/zap"
 
 	"github.com/julienschmidt/httprouter"
@@ -12,7 +14,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 )
@@ -22,7 +23,7 @@ var (
 )
 
 type AccountAPI struct {
-	config   *viper.Viper
+	config   *config.Manager
 	accounts *account.AccountServiceDefault
 	identity ed25519.PrivateKey
 	logger   *zap.Logger
@@ -30,7 +31,7 @@ type AccountAPI struct {
 
 type AccountAPIParams struct {
 	fx.In
-	Config   *viper.Viper
+	Config   *config.Manager
 	Accounts *account.AccountServiceDefault
 	Identity ed25519.PrivateKey
 	Logger   *zap.Logger

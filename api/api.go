@@ -4,18 +4,21 @@ import (
 	"context"
 	"slices"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
 
-func BuildApis(config *viper.Viper) fx.Option {
+var alwaysEnabled = []string{"account"}
+
+func BuildApis(cm *config.Manager) fx.Option {
 	var options []fx.Option
-	enabledProtocols := config.GetStringSlice("core.protocols")
+	enabledProtocols := cm.Viper().GetStringSlice("core.protocols")
 	for _, entry := range registry.GetRegistry() {
-		if slices.Contains(enabledProtocols, entry.Key) {
+		if slices.Contains(enabledProtocols, entry.Key) || slices.Contains(alwaysEnabled, entry.Key) {
 			options = append(options, entry.Module)
 		}
 	}
@@ -42,7 +45,7 @@ func BuildApis(config *viper.Viper) fx.Option {
 			if err != nil {
 				return err
 			}
-			middleware.RegisterProtocolSubdomain(config, routes, protocol.Name())
+			middleware.RegisterProtocolSubdomain(cm, routes, protocol.Name())
 		}
 
 		return nil

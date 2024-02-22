@@ -3,15 +3,16 @@ package protocols
 import (
 	"context"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"github.com/samber/lo"
-	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
 
-func BuildProtocols(config *viper.Viper) fx.Option {
+func BuildProtocols(cm *config.Manager) fx.Option {
 	var options []fx.Option
-	enabledProtocols := config.GetStringSlice("core.protocols")
+	enabledProtocols := cm.Viper().GetStringSlice("core.protocols")
 	for _, entry := range registry.GetRegistry() {
 		if lo.Contains(enabledProtocols, entry.Key) {
 			options = append(options, entry.Module)
@@ -28,7 +29,12 @@ func BuildProtocols(config *viper.Viper) fx.Option {
 
 	options = append(options, fx.Invoke(func(params initParams) error {
 		for _, protocol := range params.Protocols {
-			err := protocol.Init()
+			err := cm.ConfigureProtocol(protocol.Name(), protocol.Config())
+			if err != nil {
+				return err
+			}
+
+			err = protocol.Init()
 			if err != nil {
 				return err
 			}

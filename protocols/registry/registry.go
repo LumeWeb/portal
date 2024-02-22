@@ -3,6 +3,8 @@ package registry
 import (
 	"context"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"go.uber.org/fx"
 )
 
@@ -13,6 +15,7 @@ type Protocol interface {
 	Init() error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
+	Config() config.ProtocolConfig
 }
 
 type ProtocolEntry struct {

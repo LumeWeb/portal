@@ -11,16 +11,15 @@ import (
 	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
+	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"go.uber.org/fx"
 
 	"git.lumeweb.com/LumeWeb/portal/account"
 
-	"github.com/spf13/viper"
-
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/tus/tusd/v2/pkg/s3store"
 
@@ -45,7 +44,7 @@ var (
 )
 
 type TusHandler struct {
-	config          *viper.Viper
+	config          *config.Manager
 	db              *gorm.DB
 	logger          *zap.Logger
 	cron            *cron.CronServiceDefault
@@ -60,7 +59,7 @@ type TusHandler struct {
 
 type TusHandlerParams struct {
 	fx.In
-	Config   *viper.Viper
+	Config   *config.Manager
 	Logger   *zap.Logger
 	Db       *gorm.DB
 	Cron     *cron.CronServiceDefault
@@ -127,21 +126,21 @@ func (t *TusHandler) Init() error {
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		if service == s3.ServiceID {
 			return aws.Endpoint{
-				URL:           t.config.GetString("core.storage.s3.endpoint"),
-				SigningRegion: t.config.GetString("core.storage.s3.region"),
+				URL:           t.config.Config().Core.Storage.S3.Endpoint,
+				SigningRegion: t.config.Config().Core.Storage.S3.Region,
 			}, nil
 		}
 		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
 	})
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion("us-east-1"),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			t.config.GetString("core.storage.s3.accessKey"),
-			t.config.GetString("core.storage.s3.secretKey"),
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion("us-east-1"),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			t.config.Config().Core.Storage.S3.AccessKey,
+			t.config.Config().Core.Storage.S3.SecretKey,
 			"",
 		)),
-		config.WithEndpointResolverWithOptions(customResolver),
+		awsConfig.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
 		return err
@@ -149,7 +148,7 @@ func (t *TusHandler) Init() error {
 
 	s3Client := s3.NewFromConfig(cfg)
 
-	store := s3store.New(t.config.GetString("core.storage.s3.bufferBucket"), s3Client)
+	store := s3store.New(t.config.Config().Core.Storage.S3.BufferBucket, s3Client)
 
 	locker := NewMySQLLocker(t.db, t.logger)
 
@@ -407,7 +406,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 	s3InfoId, _ := splitS3Ids(upload.UploadID)
 
 	_, err = t.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-		Bucket: aws.String(t.config.GetString("core.storage.s3.bufferBucket")),
+		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
 		Delete: &s3types.Delete{
 			Objects: []s3types.ObjectIdentifier{
 				{

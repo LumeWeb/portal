@@ -4,9 +4,10 @@ import (
 	"flag"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
-	_config "git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_logger "git.lumeweb.com/LumeWeb/portal/logger"
@@ -23,7 +24,7 @@ import (
 func main() {
 
 	logger := _logger.NewLogger()
-	config, err := _config.NewConfig(logger)
+	cfg, err := config.NewManager(logger)
 
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))
@@ -48,7 +49,7 @@ func main() {
 	}
 
 	fx.New(
-		fx.Supply(config),
+		fx.Supply(cfg),
 		fx.Supply(logger),
 		fxLogger,
 		fx.Invoke(initCheckRequiredConfig),
@@ -59,8 +60,8 @@ func main() {
 		cron.Module,
 		account.Module,
 		metadata.Module,
-		protocols.BuildProtocols(config),
-		api.BuildApis(config),
+		protocols.BuildProtocols(cfg),
+		api.BuildApis(cfg),
 		fx.Provide(api.NewCasbin),
 		fx.Invoke(protocols.SetupLifecycles),
 		fx.Invoke(api.SetupLifecycles),

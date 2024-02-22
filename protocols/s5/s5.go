@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/storage"
@@ -32,18 +34,19 @@ var (
 )
 
 type S5Protocol struct {
-	config     *viper.Viper
-	logger     *zap.Logger
-	storage    storage.StorageService
-	identity   ed25519.PrivateKey
-	node       *s5node.Node
-	tusHandler *TusHandler
-	store      *S5ProviderStore
+	portalConfig *config.Manager
+	config       *Config
+	logger       *zap.Logger
+	storage      storage.StorageService
+	identity     ed25519.PrivateKey
+	node         *s5node.Node
+	tusHandler   *TusHandler
+	store        *S5ProviderStore
 }
 
 type S5ProtocolParams struct {
 	fx.In
-	Config        *viper.Viper
+	PortalConfig  *config.Manager
 	Logger        *zap.Logger
 	Storage       storage.StorageService
 	Identity      ed25519.PrivateKey
@@ -85,15 +88,15 @@ func NewS5Protocol(
 	params S5ProtocolParams,
 ) (S5ProtocolResult, error) {
 	proto := &S5Protocol{
-		config:     params.Config,
-		logger:     params.Logger,
-		storage:    params.Storage,
-		identity:   params.Identity,
-		tusHandler: params.TusHandler,
-		store:      params.ProviderStore,
+		portalConfig: params.PortalConfig,
+		logger:       params.Logger,
+		storage:      params.Storage,
+		identity:     params.Identity,
+		tusHandler:   params.TusHandler,
+		store:        params.ProviderStore,
 	}
 
-	cfg, err := ConfigureS5Protocol(params)
+	cfg, err := configureS5Protocol(proto)
 	if err != nil {
 		return S5ProtocolResult{}, err
 	}
@@ -106,60 +109,53 @@ func NewS5Protocol(
 	}, nil
 }
 
-func ConfigureS5Protocol(params S5ProtocolParams) (*s5config.NodeConfig, error) {
-	cfg := &s5config.NodeConfig{
-		P2P: s5config.P2PConfig{
-			Network: "",
-			Peers:   s5config.PeersConfig{Initial: []string{}},
-		},
-		KeyPair: s5ed.New(params.Identity),
-		DB:      nil,
-		Logger:  params.Logger.Named("s5"),
-		HTTP:    s5config.HTTPConfig{},
-	}
+func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
+	cfg := proto.Config().(*Config)
+	cm := proto.portalConfig
+	portalCfg := cm.Config()
+	vpr := cm.Viper()
 
-	pconfig := params.Config.Sub("protocol.s5")
-
-	if pconfig == nil {
-		params.Logger.Fatal("Missing protocol.s5 Config")
-	}
-
-	err := pconfig.Unmarshal(cfg)
+	err := cm.ConfigureProtocol(proto.Name(), cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", params.Config.GetString("core.domain"))
+	cfg.HTTP.API.Domain = fmt.Sprintf("s5.%s", vpr.GetString("core.domain"))
 
-	if params.Config.IsSet("core.externalPort") {
-		cfg.HTTP.API.Port = params.Config.GetUint("core.externalPort")
+	if portalCfg.Core.ExternalPort != 0 {
+		cfg.HTTP.API.Port = portalCfg.Core.ExternalPort
 	} else {
-		cfg.HTTP.API.Port = params.Config.GetUint("core.port")
+		cfg.HTTP.API.Port = portalCfg.Core.Port
 	}
 
-	dbPath := pconfig.GetString("dbPath")
-
-	if dbPath == "" {
-		params.Logger.Fatal("protocol.s5.dbPath is required")
+	if cfg.DbPath == "" {
+		proto.logger.Fatal("protocol.s5.dbPath is required")
 	}
 
 	_, p, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		params.Logger.Fatal("Failed to generate key", zap.Error(err))
+		proto.logger.Fatal("Failed to generate key", zap.Error(err))
 	}
 
 	cfg.KeyPair = s5ed.New(p)
 
-	db, err := bolt.Open(dbPath, 0600, nil)
+	db, err := bolt.Open(cfg.DbPath, 0600, nil)
 	if err != nil {
-		params.Logger.Fatal("Failed to open db", zap.Error(err))
+		proto.logger.Fatal("Failed to open db", zap.Error(err))
 	}
 
 	cfg.DB = db
 
-	return cfg, nil
+	return interface{}(cfg).(*s5config.NodeConfig), nil
 }
 
+func (s *S5Protocol) Config() config.ProtocolConfig {
+	if s.config == nil {
+		s.config = &Config{}
+	}
+
+	return s.config
+}
 func NewS5ProviderStore(params S5ProviderStoreParams) *S5ProviderStore {
 	return &S5ProviderStore{
 		config:   params.Config,

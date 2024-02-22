@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/api/swagger"
 
 	"git.lumeweb.com/LumeWeb/portal/metadata"
@@ -48,7 +50,6 @@ import (
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/rs/cors"
-	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 )
@@ -61,7 +62,7 @@ var (
 var swagSpec []byte
 
 type S5API struct {
-	config     *viper.Viper
+	config     *config.Manager
 	identity   ed25519.PrivateKey
 	accounts   *account.AccountServiceDefault
 	storage    storage.StorageService
@@ -75,7 +76,7 @@ type S5API struct {
 
 type APIParams struct {
 	fx.In
-	Config     *viper.Viper
+	Config     *config.Manager
 	Identity   ed25519.PrivateKey
 	Accounts   *account.AccountServiceDefault
 	Storage    storage.StorageService
@@ -355,7 +356,7 @@ func (s *S5API) prepareFileUpload(jc jape.Context) (file io.ReadSeekCloser, s5Er
 
 	// Handle multipart form data uploads
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := r.ParseMultipartForm(s.config.GetInt64("core.post-upload-limit")); err != nil {
+		if err := r.ParseMultipartForm(s.config.Config().Core.PostUploadLimit); err != nil {
 			return nil, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
 
@@ -745,7 +746,7 @@ func (s *S5API) directoryUpload(jc jape.Context) {
 	}
 
 	// Parse multipart form with size limit from config
-	if err := jc.Request.ParseMultipartForm(s.config.GetInt64("core.post-upload-limit")); err != nil {
+	if err := jc.Request.ParseMultipartForm(s.config.Config().Core.PostUploadLimit); err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
 		return
 	}

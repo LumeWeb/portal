@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/julienschmidt/httprouter"
-	"github.com/spf13/viper"
 	"go.sia.tech/jape"
 )
 
@@ -64,9 +65,9 @@ func ApplyMiddlewares(handler jape.Handler, middlewares ...interface{}) jape.Han
 	}
 	return handler
 }
-func RegisterProtocolSubdomain(config *viper.Viper, mux *httprouter.Router, name string) {
+func RegisterProtocolSubdomain(config *config.Manager, mux *httprouter.Router, name string) {
 	router := registry.GetRouter()
-	domain := config.GetString("core.domain")
+	domain := config.Config().Core.Domain
 
 	(router)[name+"."+domain] = mux
 }
@@ -103,7 +104,7 @@ type AuthMiddlewareOptions struct {
 	FindToken      FindAuthTokenFunc
 	Purpose        account.JWTPurpose
 	AuthContextKey string
-	Config         *viper.Viper
+	Config         *config.Manager
 }
 
 func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handler {
@@ -114,7 +115,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 		panic("purpose is missing")
 	}
 
-	domain := options.Config.GetString("core.domain")
+	domain := options.Config.Config().Core.Domain
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
