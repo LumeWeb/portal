@@ -117,6 +117,20 @@ func (m *Manager) Viper() *viper.Viper {
 	return m.viper
 }
 
+func (m *Manager) Save() error {
+	err := m.viper.WriteConfig()
+	if err != nil {
+		return err
+	}
+
+	err = m.viper.Unmarshal(&m.root)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func newConfig(logger *zap.Logger) (*viper.Viper, error) {
 	if logger == nil {
 		logger = _logger.NewFallbackLogger()
