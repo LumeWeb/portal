@@ -21,7 +21,6 @@ import (
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -64,7 +63,7 @@ type S5ProtocolResult struct {
 
 type S5ProviderStoreParams struct {
 	fx.In
-	Config   *viper.Viper
+	Config   *config.Manager
 	Metadata metadata.MetadataService
 	Logger   *zap.Logger
 	Tus      *TusHandler
@@ -228,7 +227,7 @@ func (s *S5Protocol) EncodeFileName(bytes []byte) string {
 }
 
 type S5ProviderStore struct {
-	config   *viper.Viper
+	config   *config.Manager
 	logger   *zap.Logger
 	tus      *TusHandler
 	metadata metadata.MetadataService
@@ -280,8 +279,8 @@ func calculateExpiry(duration time.Duration) int64 {
 	return time.Now().Add(duration).Unix()
 }
 
-func generateDownloadUrl(hash *encoding.Multihash, config *viper.Viper, logger *zap.Logger) string {
-	domain := config.GetString("core.domain")
+func generateDownloadUrl(hash *encoding.Multihash, config *config.Manager, logger *zap.Logger) string {
+	domain := config.Config().Core.Domain
 
 	hashStr, err := hash.ToBase64Url()
 	if err != nil {
@@ -291,8 +290,8 @@ func generateDownloadUrl(hash *encoding.Multihash, config *viper.Viper, logger *
 	return fmt.Sprintf("https://s5.%s/s5/download/%s", domain, hashStr)
 }
 
-func generateProofUrl(hash *encoding.Multihash, config *viper.Viper, logger *zap.Logger) string {
-	domain := config.GetString("core.domain")
+func generateProofUrl(hash *encoding.Multihash, config *config.Manager, logger *zap.Logger) string {
+	domain := config.Config().Core.Domain
 
 	hashStr, err := hash.ToBase64Url()
 	if err != nil {
