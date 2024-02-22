@@ -3,8 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
+
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"github.com/spf13/viper"
 	"go.uber.org/fx"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -12,7 +14,7 @@ import (
 
 type DatabaseParams struct {
 	fx.In
-	Config *viper.Viper
+	Config *config.Manager
 }
 
 var Module = fx.Module("db",
@@ -22,12 +24,12 @@ var Module = fx.Module("db",
 )
 
 func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
-	username := params.Config.GetString("core.db.username")
-	password := params.Config.GetString("core.db.password")
-	host := params.Config.GetString("core.db.host")
-	port := params.Config.GetString("core.db.port")
-	dbname := params.Config.GetString("core.db.name")
-	charset := params.Config.GetString("core.db.charset")
+	username := params.Config.Config().Core.DB.Username
+	password := params.Config.Config().Core.DB.Password
+	host := params.Config.Config().Core.DB.Host
+	port := params.Config.Config().Core.DB.Port
+	dbname := params.Config.Config().Core.DB.Name
+	charset := params.Config.Config().Core.DB.Charset
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
 
