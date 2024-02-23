@@ -145,12 +145,14 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 
 	cfg.DB = db
 
-	return interface{}(cfg).(*s5config.NodeConfig), nil
+	return cfg.NodeConfig, nil
 }
 
 func (s *S5Protocol) Config() config.ProtocolConfig {
 	if s.config == nil {
-		s.config = &Config{}
+		s.config = &Config{
+			NodeConfig: &s5config.NodeConfig{},
+		}
 	}
 
 	return s.config
