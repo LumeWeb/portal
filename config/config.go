@@ -103,7 +103,7 @@ func (m *Manager) maybeSave() error {
 
 func (m *Manager) coreDefaults() map[string]interface{} {
 	return map[string]interface{}{
-		"core.post-upload-limit": units.MiB * 100,
+		"core.post_upload_limit": units.MiB * 100,
 		"core.log.level":         "info",
 		"core.db.charset":        "utf8mb4",
 		"core.db.port":           3306,
