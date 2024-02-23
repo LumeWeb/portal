@@ -58,13 +58,15 @@ func NewManager(logger *zap.Logger) (*Manager, error) {
 func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
 	defaults := cfg.Defaults()
 
-	m.setDefaults(defaults, fmt.Sprintf("protocol.%s", name))
+	protocolPrefix := fmt.Sprintf("protocol.%s", name)
+
+	m.setDefaults(defaults, protocolPrefix)
 	err := m.maybeSave()
 	if err != nil {
 		return err
 	}
 
-	return m.viper.Unmarshal(cfg)
+	return m.viper.Sub(protocolPrefix).Unmarshal(cfg)
 }
 
 func (m *Manager) setDefaults(defaults map[string]interface{}, prefix string) {
