@@ -28,8 +28,8 @@ func initCheckRequiredConfig(logger *zap.Logger, config *config.Manager) error {
 		"core.storage.s3.buffer_bucket",
 		"core.storage.s3.endpoint",
 		"core.storage.s3.region",
-		"core.storage.s3.accessKey",
-		"core.storage.s3.secretKey",
+		"core.storage.s3.access_key",
+		"core.storage.s3.secret_key",
 	}
 
 	for _, key := range required {
