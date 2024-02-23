@@ -215,11 +215,11 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	})
 
 	return jape.Mux(map[string]jape.Handler{
-		"/api/auth/login":        middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
-		"/api/auth/register":     a.register,
-		"/api/auth/otp/generate": middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
-		"/api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
-		"/api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
-		"/api/auth/otp/disable":  middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
+		"POST /api/auth/register":     a.register,
+		"GET /api/auth/otp/generate":  middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/disable":  middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 	}), nil
 }
