@@ -23,7 +23,7 @@ import (
 
 func main() {
 
-	logger := _logger.NewLogger()
+	logger, logLevel := _logger.NewLogger()
 	cfg, err := config.NewManager(logger)
 
 	if err != nil {
@@ -50,7 +50,7 @@ func main() {
 
 	fx.New(
 		fx.Supply(cfg),
-		fx.Supply(logger),
+		fx.Supply(logger, logLevel),
 		fxLogger,
 		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),

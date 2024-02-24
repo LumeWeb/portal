@@ -1,10 +1,11 @@
 package logger
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 func NewFallbackLogger() *zap.Logger {
@@ -13,7 +14,7 @@ func NewFallbackLogger() *zap.Logger {
 	return logger
 }
 
-func NewLogger() *zap.Logger {
+func NewLogger() (*zap.Logger, *zap.AtomicLevel) {
 
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()
@@ -28,7 +29,7 @@ func NewLogger() *zap.Logger {
 		atomicLevel,
 	))
 
-	return logger
+	return logger, &atomicLevel
 }
 
 func mapLogLevel(level string) zapcore.Level {

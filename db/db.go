@@ -19,8 +19,9 @@ import (
 
 type DatabaseParams struct {
 	fx.In
-	Config *config.Manager
-	Logger *zap.Logger
+	Config      *config.Manager
+	Logger      *zap.Logger
+	LoggerLevel *zap.AtomicLevel
 }
 
 var Module = fx.Module("db",
@@ -39,7 +40,9 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: newLogger(params.Logger, params.LoggerLevel),
+	})
 	if err != nil {
 		panic(err)
 	}
