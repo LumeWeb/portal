@@ -4,9 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/redis/go-redis/v9"
+
+	"go.uber.org/zap"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/go-gorm/caches/v4"
 	"go.uber.org/fx"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -15,6 +20,7 @@ import (
 type DatabaseParams struct {
 	fx.In
 	Config *config.Manager
+	Logger *zap.Logger
 }
 
 var Module = fx.Module("db",
@@ -38,6 +44,17 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 		panic(err)
 	}
 
+	cacher := getCacher(params.Config, params.Logger)
+	if cacher != nil {
+		cache := &caches.Caches{Conf: &caches.Config{
+			Cacher: cacher,
+		}}
+		err := db.Use(cache)
+		if err != nil {
+			return nil
+		}
+	}
+
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			return db.AutoMigrate(
@@ -56,4 +73,51 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 	})
 
 	return db
+}
+
+func getCacheMode(cm *config.Manager, logger *zap.Logger) string {
+
+	if cm.Config().Core.DB.Cache == nil {
+		return "none"
+	}
+
+	switch cm.Config().Core.DB.Cache.Mode {
+	case "", "none":
+		return "none"
+	case "memory":
+		return "memory"
+	case "redis":
+		return "redis"
+	default:
+		logger.Fatal("invalid cache mode", zap.String("mode", cm.Config().Core.DB.Cache.Mode))
+	}
+
+	return "none"
+}
+
+func getCacher(cm *config.Manager, logger *zap.Logger) caches.Cacher {
+	mode := getCacheMode(cm, logger)
+
+	switch mode {
+	case "none":
+		return nil
+
+	case "memory":
+		return &memoryCacher{}
+	case "redis":
+		rcfg, ok := cm.Config().Core.DB.Cache.Options.(config.RedisConfig)
+		if !ok {
+			logger.Fatal("invalid redis config")
+			return nil
+		}
+		return &redisCacher{
+			redis.NewClient(&redis.Options{
+				Addr:     rcfg.Address,
+				Password: rcfg.Password,
+				DB:       rcfg.DB,
+			}),
+		}
+	}
+
+	return nil
 }

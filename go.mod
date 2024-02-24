@@ -13,12 +13,15 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-co-op/gocron/v2 v2.2.4
+	github.com/go-gorm/caches/v4 v4.0.0
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-plugin v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pquerna/otp v1.4.0
+	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
 	github.com/spf13/viper v1.18.2
@@ -60,6 +63,7 @@ require (
 	github.com/casbin/govaluate v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -85,7 +89,6 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/mr-tron/base58 v1.1.0 // indirect
 	github.com/multiformats/go-base32 v0.0.3 // indirect
