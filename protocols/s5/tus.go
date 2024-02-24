@@ -20,8 +20,6 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
-	awsConfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/tus/tusd/v2/pkg/s3store"
 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
@@ -125,30 +123,10 @@ func (t *TusHandler) Init() error {
 		return blankResp, blankChanges, nil
 	}
 
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				URL:           t.config.Config().Core.Storage.S3.Endpoint,
-				SigningRegion: t.config.Config().Core.Storage.S3.Region,
-			}, nil
-		}
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
-
-	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
-		awsConfig.WithRegion("us-east-1"),
-		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			t.config.Config().Core.Storage.S3.AccessKey,
-			t.config.Config().Core.Storage.S3.SecretKey,
-			"",
-		)),
-		awsConfig.WithEndpointResolverWithOptions(customResolver),
-	)
+	s3Client, err := t.storage.S3Client(context.Background())
 	if err != nil {
 		return err
 	}
-
-	s3Client := s3.NewFromConfig(cfg)
 
 	store := s3store.New(t.config.Config().Core.Storage.S3.BufferBucket, s3Client)
 

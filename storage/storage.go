@@ -7,6 +7,12 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"go.uber.org/fx"
@@ -52,6 +58,7 @@ type StorageService interface {
 	DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) (io.ReadCloser, error)
 	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
+	S3Client(ctx context.Context) (*s3.Client, error)
 }
 
 type StorageServiceDefault struct {
@@ -286,6 +293,33 @@ func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol S
 	}
 
 	return nil
+}
+
+func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error) {
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		if service == s3.ServiceID {
+			return aws.Endpoint{
+				URL:           s.config.Config().Core.Storage.S3.Endpoint,
+				SigningRegion: s.config.Config().Core.Storage.S3.Region,
+			}, nil
+		}
+		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+	})
+	cfg, err := awsConfig.LoadDefaultConfig(ctx,
+		awsConfig.WithRegion("us-east-1"),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			s.config.Config().Core.Storage.S3.AccessKey,
+			s.config.Config().Core.Storage.S3.SecretKey,
+			"",
+		)),
+		awsConfig.WithEndpointResolverWithOptions(customResolver),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return s3.NewFromConfig(cfg), nil
+
 }
 
 func (s StorageServiceDefault) getProofPath(protocol StorageProtocol, objectHash []byte) string {
