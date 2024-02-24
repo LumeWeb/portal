@@ -2,8 +2,11 @@ package db
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
+
+	"gorm.io/gorm"
 
 	"go.uber.org/zap"
 	dbLogger "gorm.io/gorm/logger"
@@ -49,6 +52,10 @@ func (l logger) Error(ctx context.Context, s string, i ...interface{}) {
 
 func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	if l.level.Level() <= zap.DebugLevel {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return
+		}
+
 		sql, rowsAffected := fc()
 		fields := []zap.Field{
 			zap.String("sql", sql),
