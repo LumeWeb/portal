@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"go.uber.org/zap/exp/zapslog"
 )
 
 var (
@@ -165,6 +167,7 @@ func (t *TusHandler) Init() error {
 		NotifyCreatedUploads:    true,
 		RespectForwardedHeaders: true,
 		PreUploadCreateCallback: preUpload,
+		Logger:                  slog.New(zapslog.NewHandler(t.logger.Core(), nil)),
 	})
 
 	if err != nil {

@@ -33,6 +33,7 @@ require (
 	go.sia.tech/renterd v1.0.5
 	go.uber.org/fx v1.20.1
 	go.uber.org/zap v1.26.0
+	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.19.0
 	google.golang.org/grpc v1.62.0
 	google.golang.org/protobuf v1.32.0
@@ -139,6 +140,6 @@ require (
 )
 
 replace (
-	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240125144205-3615bc502881
+	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224142744-a6c7f0707b2a
 	go.sia.tech/jape => github.com/LumeWeb/jape v0.0.0-20240204004049-ed792e7631cd
 )
