@@ -3,10 +3,12 @@ package cron
 import (
 	"context"
 	"errors"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-	"time"
 
 	"github.com/go-co-op/gocron/v2"
 )
@@ -165,4 +167,42 @@ func (c *CronServiceDefault) RerunJob(job CronJob) (gocron.Job, error) {
 	}
 
 	return ret, nil
+}
+
+func (c *CronServiceDefault) GetJobsByPrefix(prefix string) []gocron.Job {
+	jobs := c.Scheduler().Jobs()
+
+	var ret []gocron.Job
+
+	for _, job := range jobs {
+		if strings.HasPrefix(job.Name(), prefix) {
+			ret = append(ret, job)
+		}
+	}
+
+	return ret
+}
+
+func (c *CronServiceDefault) GetJobByName(name string) gocron.Job {
+	jobs := c.Scheduler().Jobs()
+
+	for _, job := range jobs {
+		if job.Name() == name {
+			return job
+		}
+	}
+
+	return nil
+}
+
+func (c *CronServiceDefault) GetJobByID(id uuid.UUID) gocron.Job {
+	jobs := c.Scheduler().Jobs()
+
+	for _, job := range jobs {
+		if job.ID() == id {
+			return job
+		}
+	}
+
+	return nil
 }
