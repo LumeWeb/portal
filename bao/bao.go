@@ -22,6 +22,39 @@ var pluginBin []byte
 var bao Bao
 var client *plugin.Client
 
+var _ io.ReadCloser = (*Verifier)(nil)
+
+var ErrVerifyFailed = errors.New("verification failed")
+
+type Verifier struct {
+	r     io.ReadCloser
+	proof Result
+	read  uint64
+}
+
+func (v Verifier) Read(p []byte) (n int, err error) {
+	var buf [VERIFY_CHUNK_SIZE]byte
+
+	n, err = io.ReadAtLeast(v.r, buf[:], VERIFY_CHUNK_SIZE)
+	if err != nil {
+		return 0, err
+	}
+
+	if !bao.Verify(buf[:n], v.read, v.proof.Proof, v.proof.Hash) {
+		return 0, ErrVerifyFailed
+	}
+
+	v.read += uint64(n)
+
+	copy(p, buf[:n])
+
+	return n, nil
+}
+
+func (v Verifier) Close() error {
+	return v.r.Close()
+}
+
 func init() {
 	temp, err := os.CreateTemp(os.TempDir(), "bao")
 	if err != nil {
@@ -109,4 +142,8 @@ func Hash(r io.Reader) (*Result, error) {
 	result.Length = uint(totalReadSize)
 
 	return &result, nil
+}
+
+func NewVerifier(r io.ReadCloser, proof Result) *Verifier {
+	return &Verifier{r: r, proof: proof}
 }
