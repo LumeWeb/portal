@@ -8,8 +8,8 @@ github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8J
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/LumeWeb/jape v0.0.0-20240204004049-ed792e7631cd h1:DHP7nn0Dg0I0WADOwBu2zR+p3mKgrU8h7HZ5OnyI/Q8=
 github.com/LumeWeb/jape v0.0.0-20240204004049-ed792e7631cd/go.mod h1:4QqmBB+t3W7cNplXPj++ZqpoUb2PeiS66RLpXmEGap4=
-github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224142744-a6c7f0707b2a h1:WNNQ1HKFEcUmBwduEiESLVmUmN4wgYvnvBVPapDYIMs=
-github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224142744-a6c7f0707b2a/go.mod h1:lqzUzWTG5OwezKgA1HJ+uwyjJusv6StTYdLTIvo0nxE=
+github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120 h1:+FYQ83a3c0p6Y/sqp3373CJ2m/b0mskdG3ma/opxtlk=
+github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120/go.mod h1:lqzUzWTG5OwezKgA1HJ+uwyjJusv6StTYdLTIvo0nxE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
@@ -90,6 +90,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf h1:K5VXW9LjmJv/xhjvQcNWTdk4WOSyreil6YaubuCPeRY=
 github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf/go.mod h1:bXVurdTuvOiJu7NHALemFe0JMvC2UmwYHW+7fcZaZ2M=
+github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba h1:EMLQSxP68m4ddJpmMT+LizYO0AjrROprPXjll2CARj0=
+github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba/go.mod h1:XIayI7kdKklkc7yyWDBYMJLbK/AO4AchQUxdoSFcn+k=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=

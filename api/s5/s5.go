@@ -10,6 +10,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/bao"
+	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"math"
 	"mime/multipart"
@@ -18,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/cron"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 
@@ -49,6 +55,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
+	"github.com/ddo/rq"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
@@ -72,6 +79,7 @@ type S5API struct {
 	protocol   *s5.S5Protocol
 	logger     *zap.Logger
 	tusHandler *s5.TusHandler
+	cron       *cron.CronServiceDefault
 }
 
 type APIParams struct {
@@ -85,6 +93,7 @@ type APIParams struct {
 	Protocols  []protoRegistry.Protocol `group:"protocol"`
 	Logger     *zap.Logger
 	TusHandler *s5.TusHandler
+	Cron       *cron.CronServiceDefault
 }
 
 type S5ApiResult struct {
@@ -104,6 +113,7 @@ func NewS5(params APIParams) (S5ApiResult, error) {
 		protocols:  params.Protocols,
 		logger:     params.Logger,
 		tusHandler: params.TusHandler,
+		cron:       params.Cron,
 	}
 	return S5ApiResult{
 		API:   api,
@@ -720,9 +730,101 @@ func (s *S5API) accountPin(jc jape.Context) {
 		return
 	}
 
+	found := true
+
 	if err := s.accounts.PinByHash(decodedCid.Hash.HashBytes(), userID); err != nil {
-		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-		return
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+			return
+		}
+		found = false
+	}
+
+	if !found {
+		dlUriProvider := s.newStorageLocationProvider(&decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile)
+
+		err = dlUriProvider.Start()
+
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+			return
+		}
+
+		if jc.Check("error starting search", err) != nil {
+			return
+		}
+
+		next, err := dlUriProvider.Next()
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+			return
+		}
+
+		r := rq.Head(next.Location().BytesURL())
+		httpReq, err := r.ParseRequest()
+
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+
+		res, err := http.DefaultClient.Do(httpReq)
+
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, err))
+		}
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				s.logger.Error("Error closing response body", zap.Error(err))
+			}
+		}(res.Body)
+
+		contentLengthStr := res.Header.Get("Content-Length")
+		if contentLengthStr == "" {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, errors.New("content-length header is missing")))
+			return
+		}
+
+		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, err))
+			return
+		}
+
+		if uint64(contentLength) != decodedCid.Size {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, errors.New("file size does not match CID expected size")))
+			return
+		}
+
+		cid64, err := decodedCid.ToBase64Url()
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+
+		jobName := fmt.Sprintf("pin-import-%s", cid64)
+
+		if task := s.cron.GetJobByName(jobName); task == nil {
+			task := s.cron.RetryableTask(
+				cron.RetryableTaskParams{
+					Name:     jobName,
+					Tags:     nil,
+					Function: s.pinImportCronTask,
+					Args:     []interface{}{cid64, next.Location().BytesURL(), next.Location().OutboardBytesURL(), userID},
+					Attempt:  0,
+					Limit:    10,
+					After:    nil,
+					Error:    nil,
+				},
+			)
+
+			_, err = s.cron.CreateJob(task)
+			if err != nil {
+				s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+				return
+			}
+		}
 	}
 
 	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
@@ -1368,6 +1470,179 @@ func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte) *S5File {
 		Metadata: s.metadata,
 		Storage:  s.storage,
 	})
+}
+
+func (s *S5API) pinImportCronTask(cid string, url string, proofUrl string, userId uint) error {
+	ctx := context.Background()
+
+	// Parse CID early to avoid unnecessary operations if it fails.
+	parsedCid, err := encoding.CIDFromString(cid)
+	if err != nil {
+		s.logger.Error("error parsing cid", zap.Error(err))
+		return err
+	}
+
+	// Function to streamline error handling and closing of response body.
+	closeBody := func(body io.ReadCloser) {
+		if err := body.Close(); err != nil {
+			s.logger.Error("error closing response body", zap.Error(err))
+		}
+	}
+
+	// Inline fetching and reading body, directly incorporating your checks.
+	fetchAndProcess := func(fetchUrl string) ([]byte, error) {
+		req, err := rq.Get(fetchUrl).ParseRequest()
+		if err != nil {
+			s.logger.Error("error parsing request", zap.Error(err))
+			return nil, err
+		}
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			s.logger.Error("error executing request", zap.Error(err))
+			return nil, err
+		}
+		defer closeBody(res.Body)
+
+		if res.StatusCode != http.StatusOK {
+			errMsg := "error fetching URL: " + fetchUrl
+			s.logger.Error(errMsg, zap.String("status", res.Status))
+			return nil, fmt.Errorf(errMsg+" with status: %s", res.Status)
+		}
+
+		data, err := io.ReadAll(res.Body)
+		if err != nil {
+			s.logger.Error("error reading response body", zap.Error(err))
+			return nil, err
+		}
+		return data, nil
+	}
+
+	saveAndPin := func(upload *metadata.UploadMetadata) error {
+		upload.UserID = userId
+		if err := s.metadata.SaveUpload(ctx, *upload); err != nil {
+			return err
+		}
+
+		if err := s.accounts.PinByHash(parsedCid.Hash.HashBytes(), userId); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Fetch proof.
+	proof, err := fetchAndProcess(proofUrl)
+	if err != nil {
+		return err // Error logged in fetchAndProcess
+	}
+
+	// Fetch file and process if under post upload limit.
+	if parsedCid.Size <= s.config.Config().Core.PostUploadLimit {
+		fileData, err := fetchAndProcess(url)
+		if err != nil {
+			return err // Error logged in fetchAndProcess
+		}
+
+		hash, err := s.storage.HashObject(ctx, bytes.NewReader(fileData))
+		if err != nil {
+			s.logger.Error("error hashing object", zap.Error(err))
+			return err
+		}
+
+		if !bytes.Equal(hash.Hash, parsedCid.Hash.HashBytes()) {
+			return fmt.Errorf("hash mismatch")
+		}
+
+		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), bytes.NewReader(fileData), nil, hash)
+		if err != nil {
+			return err
+		}
+
+		err = saveAndPin(upload)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	baoProof := bao.Result{
+		Hash:   parsedCid.Hash.HashBytes(),
+		Proof:  proof,
+		Length: uint(parsedCid.Size),
+	}
+
+	client, err := s.storage.S3Client(ctx)
+	if err != nil {
+		s.logger.Error("error getting s3 client", zap.Error(err))
+		return err
+	}
+
+	req, err := rq.Get(url).ParseRequest()
+	if err != nil {
+		s.logger.Error("error parsing request", zap.Error(err))
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		s.logger.Error("error executing request", zap.Error(err))
+		return err
+	}
+	defer closeBody(res.Body)
+
+	verifier := bao.NewVerifier(res.Body, baoProof)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			s.logger.Error("error closing verifier stream", zap.Error(err))
+		}
+
+	}(verifier)
+
+	_, err = client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
+		Key:    aws.String(cid),
+		Body:   verifier,
+	})
+	if err != nil {
+		return err
+	}
+
+	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, &renter.MultiPartUploadParams{
+		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
+			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+			object, err := client.GetObject(ctx, &s3.GetObjectInput{
+				Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
+				Key:    aws.String(cid),
+				Range:  aws.String(rangeHeader),
+			})
+
+			if err != nil {
+				return nil, err
+			}
+
+			return object.Body, nil
+		},
+		Bucket:           s.config.Config().Core.Storage.S3.BufferBucket,
+		FileName:         s5.GetStorageProtocol(s.protocol).EncodeFileName(parsedCid.Hash.HashBytes()),
+		Size:             parsedCid.Size,
+		ExistingUploadID: "",
+		UploadIDHandler:  nil,
+	}, &baoProof)
+
+	if err != nil {
+		s.logger.Error("error uploading object", zap.Error(err))
+		return err
+	}
+
+	err = saveAndPin(upload)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func setAuthCookie(jwt string, jc jape.Context) {
