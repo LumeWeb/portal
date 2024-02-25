@@ -356,7 +356,7 @@ func (s *S5API) prepareFileUpload(jc jape.Context) (file io.ReadSeekCloser, s5Er
 
 	// Handle multipart form data uploads
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := r.ParseMultipartForm(s.config.Config().Core.PostUploadLimit); err != nil {
+		if err := r.ParseMultipartForm(int64(s.config.Config().Core.PostUploadLimit)); err != nil {
 			return nil, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
 
@@ -746,7 +746,7 @@ func (s *S5API) directoryUpload(jc jape.Context) {
 	}
 
 	// Parse multipart form with size limit from config
-	if err := jc.Request.ParseMultipartForm(s.config.Config().Core.PostUploadLimit); err != nil {
+	if err := jc.Request.ParseMultipartForm(int64(s.config.Config().Core.PostUploadLimit)); err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
 		return
 	}
