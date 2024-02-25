@@ -30,9 +30,21 @@ message FinishResponse {
     bytes proof = 2;
 }
 
+message VerifyRequest {
+    bytes data = 1;
+    uint64 offset = 2;
+    bytes proof = 3;
+    bytes hash = 4;
+}
+
+message VerifyResponse {
+    bool status = 1;
+}
+
 
 service Bao {
     rpc NewHasher(NewHasherRequest) returns (NewHasherResponse);
     rpc Hash(HashRequest) returns (HashResponse);
     rpc Finish(FinishRequest) returns (FinishResponse);
+    rpc Verify(VerifyRequest) returns (VerifyResponse);
 }

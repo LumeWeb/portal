@@ -634,6 +634,7 @@ name = "rust"
 version = "0.1.0"
 dependencies = [
  "abao",
+ "anyhow",
  "portpicker",
  "prost",
  "tokio",

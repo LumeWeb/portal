@@ -3,6 +3,8 @@ package bao
 import (
 	"context"
 
+	"github.com/docker/go-units"
+
 	"git.lumeweb.com/LumeWeb/portal/bao/proto"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
@@ -11,10 +13,13 @@ import (
 
 var _ Bao = (*BaoGRPC)(nil)
 
+const VERIFY_CHUNK_SIZE = 256 * units.KiB
+
 type Bao interface {
 	NewHasher() uuid.UUID
 	Hash(id uuid.UUID, data []byte) bool
 	Finish(id uuid.UUID) Result
+	Verify(data []byte, offset uint64, proof []byte, hash []byte) bool
 }
 
 type BaoPlugin struct {
@@ -72,4 +77,14 @@ func (b *BaoGRPC) Finish(id uuid.UUID) Result {
 	}
 
 	return Result{Hash: ret.Hash, Proof: ret.Proof}
+}
+
+func (b *BaoGRPC) Verify(data []byte, offset uint64, proof []byte, hash []byte) bool {
+	ret, err := b.client.Verify(context.Background(), &proto.VerifyRequest{Data: data, Offset: offset, Proof: proof, Hash: hash})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return ret.Status
 }

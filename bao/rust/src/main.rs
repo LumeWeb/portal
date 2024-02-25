@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{Cursor, Write};
+use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -12,7 +12,7 @@ use uuid::Uuid;
 use bao::bao_server::Bao;
 use tokio::signal::unix::{signal, SignalKind};
 
-use crate::bao::{bao_server, FinishRequest, FinishResponse, HashRequest, HashResponse, NewHasherRequest, NewHasherResponse};
+use crate::bao::{bao_server, FinishRequest, FinishResponse, HashRequest, HashResponse, NewHasherRequest, NewHasherResponse, VerifyRequest, VerifyResponse};
 
 #[path = "proto/bao.rs"]
 mod bao;
@@ -33,7 +33,7 @@ impl Bao for BaoService {
         let id = Uuid::new_v4();
         {
             let mut state = self.state.write().await;
-            state.hashers.insert(id,Arc::new( Mutex::new(encoder)));
+            state.hashers.insert(id, Arc::new(Mutex::new(encoder)));
         }
         Ok(Response::new(NewHasherResponse {
             id: id.to_string(),
@@ -69,10 +69,89 @@ impl Bao for BaoService {
             proof,
         }))
     }
+
+    async fn verify(&self, request: Request<VerifyRequest>) -> Result<Response<VerifyResponse>, Status> {
+        let req = request.get_ref();
+        let res = verify_internal(
+            req.data.clone(),
+            req.offset,
+            req.proof.clone(),
+            from_vec_to_array(req.hash.clone()
+            );
+
+        if res.is_err() {
+            Ok(Response::new(VerifyResponse {
+                status: false,
+            }))
+        } else {
+            Ok(Response::new(VerifyResponse {
+                status: true,
+            }))
+        }
+    }
+}
+
+fn verify_internal(
+    chunk_bytes: Vec<u8>,
+    offset: u64,
+    bao_outboard_bytes: Vec<u8>,
+    blake3_hash: [u8; 32],
+) -> anyhow::Result<u8> {
+    let mut slice_stream = abao::encode::SliceExtractor::new_outboard(
+        FakeSeeker::new(&chunk_bytes[..]),
+        Cursor::new(&bao_outboard_bytes),
+        offset,
+        262144,
+    );
+
+    let mut decode_stream = abao::decode::SliceDecoder::new(
+        &mut slice_stream,
+        &abao::Hash::from(blake3_hash),
+        offset,
+        262144,
+    );
+    let mut decoded = Vec::new();
+    decode_stream.read_to_end(&mut decoded)?;
+
+    Ok(1)
+}
+
+fn from_vec_to_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
+    core::convert::TryInto::try_into(v)
+        .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
+}
+
+struct FakeSeeker<R: Read> {
+    reader: R,
+    bytes_read: u64,
+}
+
+impl<R: Read> FakeSeeker<R> {
+    fn new(reader: R) -> Self {
+        Self {
+            reader,
+            bytes_read: 0,
+        }
+    }
+}
+
+impl<R: Read> Read for FakeSeeker<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.reader.read(buf)?;
+        self.bytes_read += n as u64;
+        Ok(n)
+    }
+}
+
+impl<R: Read> Seek for FakeSeeker<R> {
+    fn seek(&mut self, _: SeekFrom) -> std::io::Result<u64> {
+        // Do nothing and return the current position.
+        Ok(self.bytes_read)
+    }
 }
 
 impl BaoService {
-   fn new(state: Arc<RwLock<GlobalState>>) -> Self {
+    fn new(state: Arc<RwLock<GlobalState>>) -> Self {
         BaoService { state }
     }
 }
@@ -106,11 +185,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Sending a signal through the channel to initiate shutdown.
         // If the receiver is dropped, we don't care about the error.
-       let _ = tx.send(());
+        let _ = tx.send(());
     });
 
     Server::builder()
-        .max_frame_size( (1 << 24) - 1)
+        .max_frame_size((1 << 24) - 1)
         .add_service(bao_server::BaoServer::new(BaoService::new(global_state.clone())))
         .add_service(health_reporter.1)
         .serve_with_shutdown(addr, async {

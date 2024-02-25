@@ -13,3 +13,4 @@ tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros","sign
 portpicker = "0.1.1"
 uuid = { version = "1.7.0", features = ["v4"] }
 abao = { git = "https://github.com/LumeWeb/abao.git", branch = "feature/inner_mut", default-features = false, features = ["group_size_256k", "tokio", "tokio_io"] }
+anyhow = "1.0.79"
