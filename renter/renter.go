@@ -207,7 +207,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 
 		partNumber := int(i + 1)
 
-		job := r.cron.RetryableTask(cron.RetryableTaskParams{
+		job := r.cron.RetryableJob(cron.RetryableJobParams{
 			Name: fileName + "-part-" + strconv.FormatUint(i, 10),
 			Function: func() error {
 				reader, err := rf(uint(start), uint(end))

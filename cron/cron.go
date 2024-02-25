@@ -45,7 +45,7 @@ type CronServiceDefault struct {
 	logger    *zap.Logger
 }
 
-type RetryableTaskParams struct {
+type RetryableJobParams struct {
 	Name     string
 	Tags     []string
 	Function any
@@ -99,7 +99,7 @@ func (c *CronServiceDefault) RegisterService(service CronableService) {
 	c.services = append(c.services, service)
 }
 
-func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
+func (c *CronServiceDefault) RetryableJob(params RetryableJobParams) CronJob {
 	job := gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 
 	if params.Attempt > 0 {
@@ -128,7 +128,7 @@ func (c *CronServiceDefault) RetryableTask(params RetryableTaskParams) CronJob {
 		taskRetry := params
 		taskRetry.Attempt++
 
-		retryTask := c.RetryableTask(taskRetry)
+		retryTask := c.RetryableJob(taskRetry)
 		retryTask.JobId = jobID
 
 		_, err = c.RerunJob(retryTask)

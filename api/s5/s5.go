@@ -806,8 +806,8 @@ func (s *S5API) accountPin(jc jape.Context) {
 		jobName := fmt.Sprintf("pin-import-%s", cid64)
 
 		if task := s.cron.GetJobByName(jobName); task == nil {
-			task := s.cron.RetryableTask(
-				cron.RetryableTaskParams{
+			task := s.cron.RetryableJob(
+				cron.RetryableJobParams{
 					Name:     jobName,
 					Tags:     nil,
 					Function: s.pinImportCronTask,

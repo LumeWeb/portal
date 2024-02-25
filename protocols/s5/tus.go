@@ -251,7 +251,7 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 		return errors.New("upload not found")
 	}
 
-	task := t.cron.RetryableTask(cron.RetryableTaskParams{
+	task := t.cron.RetryableJob(cron.RetryableJobParams{
 		Name:     "tusUpload",
 		Function: t.uploadTask,
 		Args:     []interface{}{upload.Hash},
