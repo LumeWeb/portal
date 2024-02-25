@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"gorm.io/gorm/clause"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/db/models"
@@ -414,7 +416,7 @@ func (s AccountServiceDefault) updateAccountInfo(userId uint, info models.User) 
 
 func (s AccountServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
 	// Conduct a query with the provided model and conditions
-	result := s.db.Model(model).Where(conditions).First(model)
+	result := s.db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
 
 	// Check if any rows were found
 	exists := result.RowsAffected > 0
