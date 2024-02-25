@@ -76,8 +76,8 @@ impl Bao for BaoService {
             req.data.clone(),
             req.offset,
             req.proof.clone(),
-            from_vec_to_array(req.hash.clone()
-            );
+            from_vec_to_array(req.hash.clone()),
+        );
 
         if res.is_err() {
             Ok(Response::new(VerifyResponse {
