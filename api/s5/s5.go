@@ -805,12 +805,12 @@ func (s *S5API) accountPin(jc jape.Context) {
 
 		jobName := fmt.Sprintf("pin-import-%s", cid64)
 
-		if task := s.cron.GetJobByName(jobName); task == nil {
-			task := s.cron.RetryableJob(
+		if job := s.cron.GetJobByName(jobName); job == nil {
+			job := s.cron.RetryableJob(
 				cron.RetryableJobParams{
 					Name:     jobName,
 					Tags:     nil,
-					Function: s.pinImportCronTask,
+					Function: s.pinImportCronJob,
 					Args:     []interface{}{cid64, next.Location().BytesURL(), next.Location().OutboardBytesURL(), userID},
 					Attempt:  0,
 					Limit:    10,
@@ -819,7 +819,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 				},
 			)
 
-			_, err = s.cron.CreateJob(task)
+			_, err = s.cron.CreateJob(job)
 			if err != nil {
 				s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
 				return
@@ -1472,7 +1472,7 @@ func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte) *S5File {
 	})
 }
 
-func (s *S5API) pinImportCronTask(cid string, url string, proofUrl string, userId uint) error {
+func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId uint) error {
 	ctx := context.Background()
 
 	// Parse CID early to avoid unnecessary operations if it fails.
