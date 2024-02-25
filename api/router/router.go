@@ -80,6 +80,7 @@ func NewAPIRouter() *APIRouter {
 	return &APIRouter{
 		apis:        make(map[string]RoutableAPI),
 		apiHandlers: make(map[string]http.Handler),
+		apiDomain:   make(map[string]string),
 	}
 }
 
