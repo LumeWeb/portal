@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"git.lumeweb.com/LumeWeb/portal/api/router"
 	"git.lumeweb.com/LumeWeb/portal/bao"
 	"git.lumeweb.com/LumeWeb/portal/renter"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -56,13 +57,15 @@ import (
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
+	"github.com/dnslink-std/go"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 )
 
 var (
-	_ registry.API = (*S5API)(nil)
+	_ registry.API       = (*S5API)(nil)
+	_ router.RoutableAPI = (*S5API)(nil)
 )
 
 //go:embed swagger.yaml
@@ -216,6 +219,79 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 	}
 
 	return s.protocol.Node().Services().HTTP().GetHttpRouter(routes), nil
+}
+
+func (s *S5API) Can(w http.ResponseWriter, r *http.Request) bool {
+	resolve, err := dnslink.Resolve(r.Host)
+	if err != nil {
+		return false
+	}
+
+	if _, ok := resolve.Links[s.Name()]; !ok {
+		return false
+	}
+
+	decodedCid, err := encoding.CIDFromString(resolve.Links[s.Name()][0].Identifier)
+
+	if err != nil {
+		s.logger.Error("Error decoding CID", zap.Error(err))
+		return false
+	}
+
+	hash := decodedCid.Hash.HashBytes()
+
+	upload, err := s.metadata.GetUpload(r.Context(), hash)
+	if err != nil {
+		return false
+	}
+
+	if upload.Protocol != s.Name() {
+		return false
+	}
+
+	exists, _, err := s.accounts.DNSLinkExists(hash)
+	if err != nil {
+		return false
+	}
+
+	if !exists {
+		return false
+	}
+
+	ctx := context.WithValue(r.Context(), "cid", decodedCid)
+
+	r = r.WithContext(ctx)
+
+	return true
+}
+
+func (s *S5API) Handle(w http.ResponseWriter, r *http.Request) {
+	cidVal := r.Context().Value("cid")
+
+	if cidVal == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	cid := cidVal.(encoding.CID)
+
+	file := s.newFile(s.protocol, cid.Hash.HashBytes())
+
+	if !file.Exists() {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	defer func(file io.ReadCloser) {
+		err := file.Close()
+		if err != nil {
+			s.logger.Error("error closing file", zap.Error(err))
+		}
+	}(file)
+
+	w.Header().Set("Content-Type", file.Mime())
+
+	http.ServeContent(w, r, file.Name(), file.Modtime(), file)
 }
 
 type s5TusJwtResponseWriter struct {

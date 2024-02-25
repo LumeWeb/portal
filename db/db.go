@@ -63,6 +63,7 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 			return db.AutoMigrate(
 				&models.APIKey{},
 				&models.Blocklist{},
+				&models.DNSLink{},
 				&models.Download{},
 				&models.Pin{},
 				&models.PublicKey{},

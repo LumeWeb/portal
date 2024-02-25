@@ -367,6 +367,15 @@ func (s AccountServiceDefault) OTPDisable(userId uint) error {
 	return s.updateAccountInfo(userId, models.User{OTPEnabled: false, OTPSecret: ""})
 }
 
+func (s AccountServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink, error) {
+	dnsLink := &models.DNSLink{}
+	exists, model, err := s.exists(dnsLink, map[string]interface{}{"upload": hash})
+	if !exists || err != nil {
+		return false, nil, err
+	}
+	return true, model.(*models.DNSLink), nil
+}
+
 func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {
 	purpose := JWTPurposeLogin
 

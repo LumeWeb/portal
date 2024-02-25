@@ -5,6 +5,8 @@ import (
 	"crypto/ed25519"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/api/router"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"go.uber.org/zap"
@@ -19,7 +21,8 @@ import (
 )
 
 var (
-	_ registry.API = (*AccountAPI)(nil)
+	_ registry.API       = (*AccountAPI)(nil)
+	_ router.RoutableAPI = (*AccountAPI)(nil)
 )
 
 type AccountAPI struct {
@@ -222,4 +225,11 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/disable":  middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 	}), nil
+}
+func (a AccountAPI) Can(w http.ResponseWriter, r *http.Request) bool {
+	return false
+}
+
+func (a AccountAPI) Handle(w http.ResponseWriter, r *http.Request) {
+	// noop
 }

@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.50.3
 	github.com/casbin/casbin/v2 v2.82.0
 	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba
+	github.com/dnslink-std/go v0.6.0
 	github.com/docker/go-units v0.5.0
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-co-op/gocron/v2 v2.2.4
@@ -90,6 +91,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
+	github.com/miekg/dns v1.1.43 // indirect
 	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/mr-tron/base58 v1.1.0 // indirect
