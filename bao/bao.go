@@ -35,7 +35,7 @@ type Verifier struct {
 func (v Verifier) Read(p []byte) (n int, err error) {
 	var buf [VERIFY_CHUNK_SIZE]byte
 
-	n, err = io.ReadAtLeast(v.r, buf[:], VERIFY_CHUNK_SIZE)
+	n, err = v.r.Read(buf[:])
 	if err != nil {
 		return 0, err
 	}
