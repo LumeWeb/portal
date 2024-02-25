@@ -11,9 +11,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/account"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/julienschmidt/httprouter"
 	"go.sia.tech/jape"
 )
 
@@ -64,12 +62,6 @@ func ApplyMiddlewares(handler jape.Handler, middlewares ...interface{}) jape.Han
 		}
 	}
 	return handler
-}
-func RegisterProtocolSubdomain(config *config.Manager, mux *httprouter.Router, name string) {
-	router := registry.GetRouter()
-	domain := config.Config().Core.Domain
-
-	(router)[name+"."+domain] = mux
 }
 
 func FindAuthToken(r *http.Request, cookieName string, queryParam string) string {

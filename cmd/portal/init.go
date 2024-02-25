@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"git.lumeweb.com/LumeWeb/portal/api/router"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
@@ -62,11 +64,32 @@ func NewIdentity(config *config.Manager, logger *zap.Logger) (ed25519.PrivateKey
 	return ed25519.PrivateKey(wallet.KeyFromSeed(&seed, 0)), nil
 }
 
-func NewServer(lc fx.Lifecycle, config *config.Manager, logger *zap.Logger) (*http.Server, error) {
+type NewServerParams struct {
+	fx.In
+	Config *config.Manager
+	Logger *zap.Logger
+	APIs   []registry.API `group:"api"`
+}
+
+func NewServer(lc fx.Lifecycle, params NewServerParams) (*http.Server, error) {
+	r := registry.GetRouter()
+
+	r.SetConfig(params.Config)
+	r.SetLogger(params.Logger)
+
+	for _, api := range params.APIs {
+		routableAPI, ok := interface{}(api).(router.RoutableAPI)
+
+		if !ok {
+			params.Logger.Fatal("API does not implement RoutableAPI", zap.String("api", api.Name()))
+		}
+
+		r.RegisterAPI(routableAPI)
+	}
 
 	srv := &http.Server{
-		Addr:    ":" + strconv.FormatUint(uint64(config.Config().Core.Port), 10),
-		Handler: registry.GetRouter(),
+		Addr:    ":" + strconv.FormatUint(uint64(params.Config.Config().Core.Port), 10),
+		Handler: r,
 	}
 
 	lc.Append(fx.Hook{
@@ -79,7 +102,7 @@ func NewServer(lc fx.Lifecycle, config *config.Manager, logger *zap.Logger) (*ht
 			go func() {
 				err := srv.Serve(ln)
 				if err != nil {
-					logger.Fatal("Failed to serve", zap.Error(err))
+					params.Logger.Fatal("Failed to serve", zap.Error(err))
 				}
 			}()
 

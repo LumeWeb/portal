@@ -6,8 +6,6 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
-
 	"git.lumeweb.com/LumeWeb/portal/api/registry"
 	"go.uber.org/fx"
 )
@@ -34,18 +32,6 @@ func BuildApis(cm *config.Manager) fx.Option {
 			if err != nil {
 				return err
 			}
-		}
-
-		return nil
-	}))
-
-	options = append(options, fx.Invoke(func(params initParams) error {
-		for _, protocol := range params.Protocols {
-			routes, err := protocol.Routes()
-			if err != nil {
-				return err
-			}
-			middleware.RegisterProtocolSubdomain(cm, routes, protocol.Name())
 		}
 
 		return nil

@@ -3,8 +3,6 @@ package registry
 import (
 	"context"
 
-	"github.com/julienschmidt/httprouter"
-
 	router2 "git.lumeweb.com/LumeWeb/portal/api/router"
 	"go.uber.org/fx"
 )
@@ -14,7 +12,6 @@ type API interface {
 	Init() error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	Routes() (*httprouter.Router, error)
 }
 
 type APIEntry struct {
@@ -23,10 +20,10 @@ type APIEntry struct {
 }
 
 var apiRegistry []APIEntry
-var router router2.ProtocolRouter
+var router *router2.APIRouter
 
 func init() {
-	router = make(router2.ProtocolRouter)
+	router = router2.NewAPIRouter()
 }
 
 func Register(entry APIEntry) {
@@ -37,6 +34,6 @@ func GetRegistry() []APIEntry {
 	return apiRegistry
 }
 
-func GetRouter() router2.ProtocolRouter {
+func GetRouter() *router2.APIRouter {
 	return router
 }
