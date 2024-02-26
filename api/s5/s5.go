@@ -58,6 +58,7 @@ import (
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
+	dnslink "github.com/dnslink-std/go"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
