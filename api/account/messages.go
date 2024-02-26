@@ -26,3 +26,7 @@ type OTPValidateRequest struct {
 type OTPDisableRequest struct {
 	Password string `json:"password"`
 }
+type VerifyEmailRequest struct {
+	Email string `json:"email"`
+	Token string `json:"token"`
+}

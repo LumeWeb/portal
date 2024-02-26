@@ -134,6 +134,21 @@ func (a AccountAPI) register(jc jape.Context) {
 	}
 }
 
+func (a AccountAPI) verifyEmail(jc jape.Context) {
+	var request VerifyEmailRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	err := a.accounts.VerifyEmail(request.Email, request.Token)
+
+	if jc.Check("failed to verify email", err) != nil {
+		return
+	}
+
+}
+
 func (a AccountAPI) otpGenerate(jc jape.Context) {
 	user := middleware.GetUserFromContext(jc.Request.Context())
 
@@ -220,6 +235,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	return jape.Mux(map[string]jape.Handler{
 		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":     middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
+		"POST /api/auth/verify-email": middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
 		"GET /api/auth/otp/generate":  middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
