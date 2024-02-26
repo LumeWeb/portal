@@ -680,7 +680,7 @@ func (s *S5API) accountLogin(jc jape.Context) {
 		return
 	}
 
-	jwt, err := s.accounts.LoginPubkey(hex.EncodeToString(decodedKey[1:])) // Adjust based on how LoginPubkey is implemented
+	jwt, err := s.accounts.LoginPubkey(hex.EncodeToString(decodedKey[1:]), jc.Request.RemoteAddr)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyAuthenticationFailed, err))
 		return

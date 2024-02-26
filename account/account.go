@@ -282,7 +282,7 @@ func (s AccountServiceDefault) ValidLoginByUserID(id uint, password string) (boo
 	return true, &user, nil
 }
 
-func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
+func (s AccountServiceDefault) LoginPubkey(pubkey string, ip string) (string, error) {
 	var model models.PublicKey
 
 	result := s.db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
@@ -297,7 +297,7 @@ func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 
 	user := model.User
 
-	token, err := s.doLogin(&user, "", true)
+	token, err := s.doLogin(&user, ip, true)
 
 	if err != nil {
 		return "", err
