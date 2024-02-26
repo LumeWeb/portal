@@ -201,7 +201,7 @@ func (s AccountServiceDefault) LoginPassword(email string, password string, ip s
 		return "", nil, nil
 	}
 
-	token, err := s.doLogin(user, ip)
+	token, err := s.doLogin(user, ip, false)
 
 	if err != nil {
 		return "", nil, err
@@ -297,7 +297,7 @@ func (s AccountServiceDefault) LoginPubkey(pubkey string) (string, error) {
 
 	user := model.User
 
-	token, err := s.doLogin(&user, "")
+	token, err := s.doLogin(&user, "", true)
 
 	if err != nil {
 		return "", err
@@ -463,10 +463,10 @@ func GenerateSecurityToken() string {
 	return string(b)
 }
 
-func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {
+func (s AccountServiceDefault) doLogin(user *models.User, ip string, bypassSecurity bool) (string, error) {
 	purpose := JWTPurposeLogin
 
-	if user.OTPEnabled {
+	if user.OTPEnabled && !bypassSecurity {
 		purpose = JWTPurpose2FA
 	}
 
