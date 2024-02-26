@@ -10,11 +10,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"git.lumeweb.com/LumeWeb/portal/api/router"
-	"git.lumeweb.com/LumeWeb/portal/bao"
-	"git.lumeweb.com/LumeWeb/portal/renter"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"io"
 	"math"
 	"mime/multipart"
@@ -23,6 +18,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/api/router"
+	"git.lumeweb.com/LumeWeb/portal/bao"
+	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
 
@@ -57,7 +58,6 @@ import (
 	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
-	"github.com/dnslink-std/go"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
@@ -565,7 +565,7 @@ func (s *S5API) accountRegister(jc jape.Context) {
 		return
 	}
 
-	newAccount, err := s.accounts.CreateAccount(request.Email, string(passwd))
+	newAccount, err := s.accounts.CreateAccount(request.Email, string(passwd), false)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 		return

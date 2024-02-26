@@ -82,7 +82,7 @@ func (s *AccountServiceDefault) HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func (s *AccountServiceDefault) CreateAccount(email string, password string) (*models.User, error) {
+func (s *AccountServiceDefault) CreateAccount(email string, password string, verifyEmail bool) (*models.User, error) {
 	passwordHash, err := s.HashPassword(password)
 	if err != nil {
 		return nil, err
@@ -96,6 +96,13 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string) (*m
 	result := s.db.Create(&user)
 	if result.Error != nil {
 		return nil, NewAccountError(ErrKeyAccountCreationFailed, result.Error)
+	}
+
+	if verifyEmail {
+		err = s.SendEmailVerification(&user)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &user, nil
