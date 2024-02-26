@@ -217,6 +217,46 @@ func (a AccountAPI) otpDisable(jc jape.Context) {
 	}
 }
 
+func (a AccountAPI) passwordResetRequest(jc jape.Context) {
+	var request PasswordResetRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	exists, user, err := a.accounts.EmailExists(request.Email)
+	if jc.Check("invalid request", err) != nil || !exists {
+		return
+	}
+
+	err = a.accounts.SendPasswordReset(user)
+	if jc.Check("failed to request password reset", err) != nil {
+		return
+	}
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
+}
+
+func (a AccountAPI) passwordResetConfirm(jc jape.Context) {
+	var request PasswordResetVerifyRequest
+
+	if jc.Decode(&request) != nil {
+		return
+	}
+
+	exists, _, err := a.accounts.EmailExists(request.Email)
+	if jc.Check("invalid request", err) != nil || !exists {
+		return
+	}
+
+	err = a.accounts.ResetPassword(request.Email, request.Password, request.Token)
+	if jc.Check("failed to reset password", err) != nil {
+		return
+	}
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
+}
+
 func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity: a.identity,
@@ -233,13 +273,15 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	})
 
 	return jape.Mux(map[string]jape.Handler{
-		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
-		"POST /api/auth/register":     middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
-		"POST /api/auth/verify-email": middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
-		"GET /api/auth/otp/generate":  middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/disable":  middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
+		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
+		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
+		"GET /api/auth/otp/generate":            middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/validate":           middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
+		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
 	}), nil
 }
 func (a AccountAPI) Can(w http.ResponseWriter, r *http.Request) bool {

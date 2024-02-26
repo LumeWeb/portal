@@ -30,3 +30,11 @@ type VerifyEmailRequest struct {
 	Email string `json:"email"`
 	Token string `json:"token"`
 }
+type PasswordResetRequest struct {
+	Email string `json:"email"`
+}
+type PasswordResetVerifyRequest struct {
+	Email    string `json:"email"`
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
