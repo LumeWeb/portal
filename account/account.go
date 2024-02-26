@@ -155,12 +155,28 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 		return NewAccountError(ErrKeySecurityTokenExpired, nil)
 	}
 
-	if verification.User.Email != email {
+	if len(verification.NewEmail) > 0 && verification.NewEmail != email {
+		return NewAccountError(ErrKeySecurityInvalidToken, nil)
+	} else if verification.User.Email != email {
 		return NewAccountError(ErrKeySecurityInvalidToken, nil)
 	}
 
+	var update models.User
+
+	doUpdate := false
+
 	if !verification.User.Verified {
-		err := s.updateAccountInfo(verification.UserID, models.User{Verified: true})
+		update.Verified = true
+		doUpdate = true
+	}
+
+	if len(verification.NewEmail) > 0 {
+		update.Email = verification.NewEmail
+		doUpdate = true
+	}
+
+	if doUpdate {
+		err := s.updateAccountInfo(verification.UserID, update)
 		if err != nil {
 			return err
 		}
