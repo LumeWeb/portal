@@ -578,7 +578,7 @@ func (s *S5API) accountRegister(jc jape.Context) {
 		return
 	}
 
-	jwt, err := s.accounts.LoginPubkey(rawPubkey)
+	jwt, err := s.accounts.LoginPubkey(rawPubkey, jc.Request.RemoteAddr)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyAuthenticationFailed, err))
 		return
