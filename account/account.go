@@ -159,9 +159,11 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 		return NewAccountError(ErrKeySecurityInvalidToken, nil)
 	}
 
-	err := s.updateAccountInfo(verification.UserID, models.User{Verified: true})
-	if err != nil {
-		return err
+	if !verification.User.Verified {
+		err := s.updateAccountInfo(verification.UserID, models.User{Verified: true})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
