@@ -118,7 +118,7 @@ func (a AccountAPI) register(jc jape.Context) {
 		return
 	}
 
-	user, err := a.accounts.CreateAccount(request.Email, request.Password)
+	user, err := a.accounts.CreateAccount(request.Email, request.Password, true)
 	if err != nil {
 		_ = jc.Error(err, http.StatusUnauthorized)
 		a.logger.Error("failed to update account name", zap.Error(err))
