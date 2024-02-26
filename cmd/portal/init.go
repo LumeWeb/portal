@@ -35,6 +35,7 @@ func initCheckRequiredConfig(logger *zap.Logger, config *config.Manager) error {
 		"core.mail.host",
 		"core.mail.username",
 		"core.mail.password",
+		"core.portal_name",
 	}
 
 	for _, key := range required {

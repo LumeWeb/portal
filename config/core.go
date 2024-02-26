@@ -3,6 +3,7 @@ package config
 type CoreConfig struct {
 	DB              DatabaseConfig `mapstructure:"db"`
 	Domain          string         `mapstructure:"domain"`
+	PortalName      string         `mapstructure:"portal_name"`
 	ExternalPort    uint           `mapstructure:"external_port"`
 	Identity        string         `mapstructure:"identity"`
 	Log             LogConfig      `mapstructure:"log"`
