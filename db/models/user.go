@@ -10,20 +10,23 @@ import (
 
 type User struct {
 	gorm.Model
-	FirstName    string
-	LastName     string
-	Email        string `gorm:"unique"`
-	PasswordHash string
-	Role         string
-	PublicKeys   []PublicKey
-	APIKeys      []APIKey
-	Uploads      []Upload
-	LastLogin    *time.Time
-	LastLoginIP  string
-	OTPEnabled   bool `gorm:"default:false;"`
-	OTPVerified  bool `gorm:"default:false;"`
-	OTPSecret    string
-	OTPAuthUrl   string
+	FirstName          string
+	LastName           string
+	Email              string `gorm:"unique"`
+	PasswordHash       string
+	Role               string
+	PublicKeys         []PublicKey
+	APIKeys            []APIKey
+	Uploads            []Upload
+	LastLogin          *time.Time
+	LastLoginIP        string
+	OTPEnabled         bool `gorm:"default:false;"`
+	OTPVerified        bool `gorm:"default:false;"`
+	OTPSecret          string
+	OTPAuthUrl         string
+	Verified           bool `gorm:"default:false;"`
+	EmailVerifications []EmailVerification
+	PasswordResets     []PasswordReset
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {

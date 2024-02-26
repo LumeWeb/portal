@@ -65,6 +65,8 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 				&models.Blocklist{},
 				&models.DNSLink{},
 				&models.Download{},
+				&models.EmailVerification{},
+				&models.PasswordReset{},
 				&models.Pin{},
 				&models.PublicKey{},
 				&models.Upload{},
