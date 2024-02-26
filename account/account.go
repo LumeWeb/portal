@@ -2,8 +2,11 @@ package account
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
 	"errors"
 	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/mailer"
 
 	"gorm.io/gorm/clause"
 
@@ -24,6 +27,7 @@ type AccountServiceParams struct {
 	Db       *gorm.DB
 	Config   *config.Manager
 	Identity ed25519.PrivateKey
+	Mailer   *mailer.Mailer
 }
 
 var Module = fx.Module("account",
@@ -36,10 +40,11 @@ type AccountServiceDefault struct {
 	db       *gorm.DB
 	config   *config.Manager
 	identity ed25519.PrivateKey
+	mailer   *mailer.Mailer
 }
 
 func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
-	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity}
+	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity, mailer: params.Mailer}
 }
 
 func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, error) {
@@ -94,6 +99,66 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string) (*m
 	}
 
 	return &user, nil
+}
+
+func (s *AccountServiceDefault) SendEmailVerification(user *models.User) error {
+	token := GenerateSecurityToken()
+
+	var verification models.EmailVerification
+
+	verification.UserID = user.ID
+	verification.Token = token
+	verification.ExpiresAt = time.Now().Add(time.Hour)
+
+	err := s.db.Create(&verification).Error
+	if err != nil {
+		return NewAccountError(ErrKeyDatabaseOperationFailed, err)
+	}
+
+	vars := map[string]interface{}{
+		"FirstName":        user.FirstName,
+		"Email":            user.Email,
+		"VerificationCode": token,
+		"ExpireTime":       verification.ExpiresAt,
+		"PortalName":       s.config.Config().Core.PortalName,
+	}
+
+	return s.mailer.TemplateSend(mailer.TPL_VERIFY_EMAIL, vars, vars, user.Email)
+}
+
+func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
+	var verification models.EmailVerification
+
+	verification.Token = token
+
+	result := s.db.Model(&verification).
+		Preload("User").
+		Where(&verification).
+		First(&verification)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return NewAccountError(ErrKeyUserNotFound, result.Error)
+		}
+
+		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+	}
+
+	if verification.ExpiresAt.Before(time.Now()) {
+		return NewAccountError(ErrKeySecurityTokenExpired, nil)
+	}
+
+	if verification.User.Email != email {
+		return NewAccountError(ErrKeySecurityInvalidToken, nil)
+	}
+
+	err := s.updateAccountInfo(verification.UserID, models.User{Verified: true})
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
@@ -376,6 +441,19 @@ func (s AccountServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink
 		return false, nil, err
 	}
 	return true, model.(*models.DNSLink), nil
+}
+
+func GenerateSecurityToken() string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 6)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < 6; i++ {
+		b[i] = charset[b[i]%byte(len(charset))]
+	}
+	return string(b)
 }
 
 func (s AccountServiceDefault) doLogin(user *models.User, ip string) (string, error) {

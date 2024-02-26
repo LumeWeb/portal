@@ -45,6 +45,10 @@ const (
 
 	// General errors
 	ErrKeyDatabaseOperationFailed = "ErrDatabaseOperationFailed"
+
+	// Security token errors
+	ErrKeySecurityTokenExpired = "ErrSecurityTokenExpired"
+	ErrKeySecurityInvalidToken = "ErrSecurityInvalidToken"
 )
 
 var defaultErrorMessages = map[string]string{
@@ -87,6 +91,10 @@ var defaultErrorMessages = map[string]string{
 
 	// General errors
 	ErrKeyDatabaseOperationFailed: "A database operation failed.",
+
+	// Security token errors
+	ErrKeySecurityTokenExpired: "The security token has expired.",
+	ErrKeySecurityInvalidToken: "The security token is invalid.",
 }
 
 var (
@@ -130,6 +138,10 @@ var (
 		// General errors
 		ErrKeyDatabaseOperationFailed: http.StatusInternalServerError,
 		ErrKeyHashingFailed:           http.StatusInternalServerError,
+
+		// Security token errors
+		ErrKeySecurityTokenExpired: http.StatusUnauthorized,
+		ErrKeySecurityInvalidToken: http.StatusUnauthorized,
 	}
 )
 
