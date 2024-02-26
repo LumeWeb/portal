@@ -133,6 +133,32 @@ func (s *AccountServiceDefault) SendEmailVerification(user *models.User) error {
 	return s.mailer.TemplateSend(mailer.TPL_VERIFY_EMAIL, vars, vars, user.Email)
 }
 
+func (s AccountServiceDefault) SendPasswordReset(user *models.User) error {
+	token := GenerateSecurityToken()
+
+	var reset models.PasswordReset
+
+	reset.UserID = user.ID
+	reset.Token = token
+	reset.ExpiresAt = time.Now().Add(time.Hour)
+
+	err := s.db.Create(&reset).Error
+	if err != nil {
+		return NewAccountError(ErrKeyDatabaseOperationFailed, err)
+	}
+
+	vars := map[string]interface{}{
+		"FirstName":    user.FirstName,
+		"Email":        user.Email,
+		"ResetCode":    token,
+		"ExpireTime":   reset.ExpiresAt,
+		"PortalName":   s.config.Config().Core.PortalName,
+		"PortalDomain": s.config.Config().Core.Domain,
+	}
+
+	return s.mailer.TemplateSend(mailer.TPL_PASSWORD_RESET, vars, vars, user.Email)
+}
+
 func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 	var verification models.EmailVerification
 
@@ -187,6 +213,53 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 	}
 
 	if result := s.db.Where(&verification).Delete(&verification); result.Error != nil {
+		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+	}
+
+	return nil
+}
+
+func (s AccountServiceDefault) ResetPassword(email string, token string, password string) error {
+	var reset models.PasswordReset
+
+	reset.Token = token
+
+	result := s.db.Model(&reset).
+		Preload("User").
+		Where(&reset).
+		First(&reset)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return NewAccountError(ErrKeyUserNotFound, result.Error)
+		}
+
+		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+	}
+
+	if reset.ExpiresAt.Before(time.Now()) {
+		return NewAccountError(ErrKeySecurityTokenExpired, nil)
+	}
+
+	if reset.User.Email != email {
+		return NewAccountError(ErrKeySecurityInvalidToken, nil)
+	}
+
+	passwordHash, err := s.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	err = s.updateAccountInfo(reset.UserID, models.User{PasswordHash: passwordHash})
+	if err != nil {
+		return err
+	}
+
+	reset = models.PasswordReset{
+		UserID: reset.UserID,
+	}
+
+	if result := s.db.Where(&reset).Delete(&reset); result.Error != nil {
 		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
 	}
 
