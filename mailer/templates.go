@@ -10,8 +10,8 @@ import (
 
 const EMAIL_FS_PREFIX = "templates"
 
-const TEMPLATE_PASSWORD_RESET = "password_reset.tpl"
-const VERIFY_EMAIL = "verify_email.tpl"
+const TPL_PASSWORD_RESET = "password_reset.tpl"
+const TPL_VERIFY_EMAIL = "verify_email.tpl"
 
 type EmailTemplate struct {
 	Subject *template.Template
