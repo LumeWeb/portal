@@ -29,6 +29,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
 	github.com/vmihailenco/msgpack/v5 v5.4.1
+	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/bbolt v1.3.8
 	go.sia.tech/core v0.1.12
 	go.sia.tech/jape v0.11.1

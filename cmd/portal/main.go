@@ -4,6 +4,8 @@ import (
 	"flag"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/mailer"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/account"
@@ -60,6 +62,7 @@ func main() {
 		cron.Module,
 		account.Module,
 		metadata.Module,
+		mailer.Module,
 		protocols.BuildProtocols(cfg),
 		api.BuildApis(cfg),
 		fx.Provide(api.NewCasbin),

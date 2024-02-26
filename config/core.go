@@ -11,4 +11,5 @@ type CoreConfig struct {
 	Sia             SiaConfig      `mapstructure:"sia"`
 	Storage         StorageConfig  `mapstructure:"storage"`
 	Protocols       []string       `mapstructure:"protocols"`
+	Mail            MailConfig     `mapstructure:"mail"`
 }

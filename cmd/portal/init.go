@@ -32,6 +32,9 @@ func initCheckRequiredConfig(logger *zap.Logger, config *config.Manager) error {
 		"core.storage.s3.region",
 		"core.storage.s3.access_key",
 		"core.storage.s3.secret_key",
+		"core.mail.host",
+		"core.mail.username",
+		"core.mail.password",
 	}
 
 	for _, key := range required {
