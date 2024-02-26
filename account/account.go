@@ -182,8 +182,15 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 		}
 	}
 
-	return nil
+	verification = models.EmailVerification{
+		UserID: verification.UserID,
+	}
 
+	if result := s.db.Where(&verification).Delete(&verification); result.Error != nil {
+		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+	}
+
+	return nil
 }
 
 func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
