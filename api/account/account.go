@@ -219,7 +219,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 
 	return jape.Mux(map[string]jape.Handler{
 		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
-		"POST /api/auth/register":     a.register,
+		"POST /api/auth/register":     middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
 		"GET /api/auth/otp/generate":  middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/verify":   middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
