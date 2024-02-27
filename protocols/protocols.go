@@ -34,7 +34,7 @@ func BuildProtocols(cm *config.Manager) fx.Option {
 				return err
 			}
 
-			err = protocol.Init()
+			err = protocol.Init(context.Background())
 			if err != nil {
 				return err
 			}
