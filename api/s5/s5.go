@@ -1678,14 +1678,23 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 	}(verifier)
 
-	_, err = client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
-		Key:           aws.String(cid),
-		Body:          verifier,
-		ContentLength: aws.Int64(int64(parsedCid.Size)),
-	})
-	if err != nil {
-		return err
+	if parsedCid.Size < storage.S3_MULTIPART_MIN_PART_SIZE {
+		_, err = client.PutObject(ctx, &s3.PutObjectInput{
+			Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
+			Key:           aws.String(cid),
+			Body:          verifier,
+			ContentLength: aws.Int64(int64(parsedCid.Size)),
+		})
+		if err != nil {
+			s.logger.Error("error uploading object", zap.Error(err))
+			return err
+		}
+	} else {
+		err := s.storage.S3MultipartUpload(ctx, verifier, s.config.Config().Core.Storage.S3.BufferBucket, cid, parsedCid.Size)
+		if err != nil {
+			s.logger.Error("error uploading object", zap.Error(err))
+			return err
+		}
 	}
 
 	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, &renter.MultiPartUploadParams{
