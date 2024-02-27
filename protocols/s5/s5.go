@@ -184,7 +184,7 @@ func (s *S5Protocol) Init(ctx context.Context) error {
 	return nil
 }
 func (s *S5Protocol) Start(ctx context.Context) error {
-	err := s.node.Start()
+	err := s.node.Start(ctx)
 	if err != nil {
 		return err
 	}
