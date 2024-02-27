@@ -8,8 +8,8 @@ import (
 var _ config.ProtocolConfig = (*Config)(nil)
 
 type Config struct {
-	*s5config.NodeConfig
-	DbPath string `mapstructure:"db_path"`
+	*s5config.NodeConfig `mapstructure:",squash"`
+	DbPath               string `mapstructure:"db_path"`
 }
 
 func (c Config) Defaults() map[string]interface{} {
