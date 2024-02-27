@@ -837,7 +837,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 			return
 		}
 
-		r := rq.Head(next.Location().BytesURL())
+		r := rq.Get(next.Location().BytesURL())
 		httpReq, err := r.ParseRequest()
 
 		if err != nil {
