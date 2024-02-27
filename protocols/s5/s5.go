@@ -6,10 +6,11 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
-	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/hkdf"
 
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
@@ -133,7 +134,13 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 		proto.logger.Fatal("protocol.s5.db_path is required")
 	}
 
-	derivedSeed := pbkdf2.Key(proto.identity, []byte("s5"), 600000, 32, sha256.New)
+	hasher := hkdf.New(sha256.New, proto.identity, nil, []byte("s5"))
+	derivedSeed := make([]byte, 32)
+
+	if _, err := io.ReadFull(hasher, derivedSeed); err != nil {
+		proto.logger.Fatal("Failed to generate child key seed", zap.Error(err))
+		return nil, err
+	}
 
 	p := ed25519.NewKeyFromSeed(derivedSeed)
 	cfg.KeyPair = s5ed.New(p)
