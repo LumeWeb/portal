@@ -188,9 +188,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = tx.send(());
     });
 
+    let server = bao_server::BaoServer::new(BaoService::new(global_state.clone()))
+        .max_decoding_message_size(usize::MAX)
+        .max_encoding_message_size(usize::MAX);
+
     Server::builder()
         .max_frame_size((1 << 24) - 1)
-        .add_service(bao_server::BaoServer::new(BaoService::new(global_state.clone())))
+        .add_service(server)
         .add_service(health_reporter.1)
         .serve_with_shutdown(addr, async {
             // This future completes when the shutdown signal is received,
