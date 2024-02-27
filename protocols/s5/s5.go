@@ -145,6 +145,8 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 
 	cfg.DB = db
 
+	cfg.Logger = proto.logger.Named("s5")
+
 	return cfg.NodeConfig, nil
 }
 
