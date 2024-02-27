@@ -16,7 +16,7 @@ func (c Config) Defaults() map[string]interface{} {
 
 	defaults := map[string]interface{}{}
 
-	defaults["p2p.network.peers"] = []string{
+	defaults["p2p.peers.initial"] = []string{
 		"ss://z2DWuWNZcdSyZLpXFK2uCU3haaWMXrDAgxzv17sDEMHstZb@s5.garden/s5/p2p",
 		"wss://z2DWuPbL5pweybXnEB618pMnV58ECj2VPDNfVGm3tFqBvjF@s5.ninja/s5/p2p",
 	}
