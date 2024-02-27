@@ -3,11 +3,13 @@ package s5
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
+	"golang.org/x/crypto/pbkdf2"
 
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
@@ -131,11 +133,9 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 		proto.logger.Fatal("protocol.s5.db_path is required")
 	}
 
-	_, p, err := ed25519.GenerateKey(nil)
-	if err != nil {
-		proto.logger.Fatal("Failed to generate key", zap.Error(err))
-	}
+	derivedSeed := pbkdf2.Key(cfg.KeyPair.ExtractBytes(), []byte("s5"), 10000, 32, sha256.New)
 
+	p := ed25519.NewKeyFromSeed(derivedSeed)
 	cfg.KeyPair = s5ed.New(p)
 
 	db, err := bolt.Open(cfg.DbPath, 0600, nil)
