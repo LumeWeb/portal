@@ -146,7 +146,7 @@ func (s S5API) Name() string {
 }
 
 func (s S5API) Start(ctx context.Context) error {
-	return s.protocol.Node().Start()
+	return s.protocol.Node().Start(ctx)
 }
 
 func (s S5API) Stop(ctx context.Context) error {
