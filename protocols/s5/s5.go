@@ -133,7 +133,7 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 		proto.logger.Fatal("protocol.s5.db_path is required")
 	}
 
-	derivedSeed := pbkdf2.Key(proto.identity, []byte("s5"), 10000, 32, sha256.New)
+	derivedSeed := pbkdf2.Key(proto.identity, []byte("s5"), 600000, 32, sha256.New)
 
 	p := ed25519.NewKeyFromSeed(derivedSeed)
 	cfg.KeyPair = s5ed.New(p)
