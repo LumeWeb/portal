@@ -1679,9 +1679,10 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	}(verifier)
 
 	_, err = client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
-		Key:    aws.String(cid),
-		Body:   verifier,
+		Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
+		Key:           aws.String(cid),
+		Body:          verifier,
+		ContentLength: aws.Int64(int64(parsedCid.Size)),
 	})
 	if err != nil {
 		return err
