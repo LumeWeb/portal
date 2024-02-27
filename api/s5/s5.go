@@ -818,7 +818,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 	}
 
 	if !found {
-		dlUriProvider := s.newStorageLocationProvider(&decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile)
+		dlUriProvider := s.newStorageLocationProvider(&decodedCid.Hash, true, types.StorageLocationTypeFull, types.StorageLocationTypeFile)
 
 		err = dlUriProvider.Start()
 
@@ -1073,7 +1073,7 @@ func (s *S5API) debugDownloadUrls(jc jape.Context) {
 	}
 
 	node := s.getNode()
-	dlUriProvider := s.newStorageLocationProvider(&decodedCid.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+	dlUriProvider := s.newStorageLocationProvider(&decodedCid.Hash, false, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
 
 	if err := dlUriProvider.Start(); err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err, "Failed to start URI provider"))
@@ -1290,7 +1290,7 @@ func (s *S5API) downloadBlob(jc jape.Context) {
 		return
 	}
 
-	dlUriProvider := s.newStorageLocationProvider(&cidDecoded.Hash, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
+	dlUriProvider := s.newStorageLocationProvider(&cidDecoded.Hash, true, types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge)
 
 	err = dlUriProvider.Start()
 
@@ -1344,7 +1344,7 @@ func (s *S5API) debugStorageLocations(jc jape.Context) {
 		}
 	}
 
-	dlUriProvider := s.newStorageLocationProvider(decodedHash, typeIntList...)
+	dlUriProvider := s.newStorageLocationProvider(decodedHash, false, typeIntList...)
 
 	err = dlUriProvider.Start()
 	if jc.Check("error starting search", err) != nil {
@@ -1527,7 +1527,14 @@ func (s *S5API) sendErrorResponse(jc jape.Context, err error) {
 	_ = jc.Error(err, statusCode)
 }
 
-func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, types ...types.StorageLocationType) storage2.StorageLocationProvider {
+func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, excludeSelf bool, types ...types.StorageLocationType) storage2.StorageLocationProvider {
+
+	excludeNodes := make([]*encoding.NodeId, 0)
+
+	if excludeSelf {
+		excludeNodes = append(excludeNodes, s.getNode().NodeId())
+	}
+
 	return provider.NewStorageLocationProvider(provider.StorageLocationProviderParams{
 		Services:      s.getNode().Services(),
 		Hash:          hash,
@@ -1537,6 +1544,7 @@ func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, types ...ty
 			Config: s.getNode().Config(),
 			Db:     s.getNode().Db(),
 		},
+		ExcludeNodes: excludeNodes,
 	})
 }
 
