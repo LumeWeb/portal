@@ -9,12 +9,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewFallbackLogger() *zap.Logger {
-	logger, _ := zap.NewDevelopment()
-
-	return logger
-}
-
 func NewLogger(cm *config.Manager) (*zap.Logger, *zap.AtomicLevel) {
 
 	// Create a new atomic level

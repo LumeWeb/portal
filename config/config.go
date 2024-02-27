@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	_logger "git.lumeweb.com/LumeWeb/portal/logger"
 	"github.com/docker/go-units"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -29,7 +28,7 @@ type Manager struct {
 }
 
 func NewManager() (*Manager, error) {
-	v, err := newConfig(nil)
+	v, err := newConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +132,8 @@ func (m *Manager) Save() error {
 	return nil
 }
 
-func newConfig(logger *zap.Logger) (*viper.Viper, error) {
-	if logger == nil {
-		logger = _logger.NewFallbackLogger()
-	}
+func newConfig() (*viper.Viper, error) {
+	logger := newFallbackLogger()
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -165,4 +162,9 @@ func newConfig(logger *zap.Logger) (*viper.Viper, error) {
 	}
 
 	return viper.GetViper(), nil
+}
+func newFallbackLogger() *zap.Logger {
+	l, _ := zap.NewDevelopment()
+
+	return l
 }
