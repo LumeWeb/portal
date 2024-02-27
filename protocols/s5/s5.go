@@ -166,10 +166,10 @@ func NewS5ProviderStore(params S5ProviderStoreParams) *S5ProviderStore {
 	}
 }
 
-func (s *S5Protocol) Init() error {
+func (s *S5Protocol) Init(ctx context.Context) error {
 	s.node.Services().Storage().SetProviderStore(s.store)
 
-	err := s.node.Init()
+	err := s.node.Init(ctx)
 	if err != nil {
 		return err
 	}
