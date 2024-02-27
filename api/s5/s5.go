@@ -875,7 +875,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 		})
 
 		if len(locations) == 0 {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, fmt.Errorf("cid could not be found on the network")))
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, fmt.Errorf("CID could not be found on the network")))
 			return
 		}
 
