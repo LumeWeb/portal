@@ -1,6 +1,8 @@
 package mailer
 
 import (
+	"context"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"github.com/wneessen/go-mail"
 	"go.uber.org/fx"
@@ -41,30 +43,37 @@ func (m *Mailer) TemplateSend(template string, subjectVars TemplateData, bodyVar
 	return m.client.DialAndSend(msg)
 }
 
-func NewMailer(config *config.Manager, templateRegistry *TemplateRegistry, logger *zap.Logger) (*Mailer, error) {
-	var options []mail.Option
+func NewMailer(lc fx.Lifecycle, config *config.Manager, logger *zap.Logger, templateRegistry *TemplateRegistry) (*Mailer, error) {
+	m := &Mailer{config: config, logger: logger, templateRegistry: templateRegistry}
 
-	if config.Config().Core.Mail.Port != 0 {
-		options = append(options, mail.WithPort(config.Config().Core.Mail.Port))
-	}
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			var options []mail.Option
 
-	if config.Config().Core.Mail.AuthType != "" {
-		options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(config.Config().Core.Mail.AuthType)))
-	}
+			if config.Config().Core.Mail.Port != 0 {
+				options = append(options, mail.WithPort(config.Config().Core.Mail.Port))
+			}
 
-	if config.Config().Core.Mail.SSL {
-		options = append(options, mail.WithSSLPort(true))
-	}
+			if config.Config().Core.Mail.AuthType != "" {
+				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(config.Config().Core.Mail.AuthType)))
+			}
 
-	options = append(options, mail.WithUsername(config.Config().Core.Mail.Username))
-	options = append(options, mail.WithPassword(config.Config().Core.Mail.Password))
+			if config.Config().Core.Mail.SSL {
+				options = append(options, mail.WithSSLPort(true))
+			}
 
-	client, err := mail.NewClient(config.Config().Core.Mail.Host, options...)
-	if err != nil {
-		return nil, err
-	}
+			options = append(options, mail.WithUsername(config.Config().Core.Mail.Username))
+			options = append(options, mail.WithPassword(config.Config().Core.Mail.Password))
 
-	m := &Mailer{config: config, logger: logger, client: client, templateRegistry: templateRegistry}
+			client, err := mail.NewClient(config.Config().Core.Mail.Host, options...)
+			if err != nil {
+				return err
+			}
+
+			m.client = client
+			return nil
+		},
+	})
 
 	return m, nil
 }
