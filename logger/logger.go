@@ -3,7 +3,8 @@ package logger
 import (
 	"os"
 
-	"github.com/spf13/viper"
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -14,13 +15,13 @@ func NewFallbackLogger() *zap.Logger {
 	return logger
 }
 
-func NewLogger() (*zap.Logger, *zap.AtomicLevel) {
+func NewLogger(cm *config.Manager) (*zap.Logger, *zap.AtomicLevel) {
 
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()
 
 	// Set initial log level, for example, info level
-	atomicLevel.SetLevel(mapLogLevel(viper.GetString("core.log.level")))
+	atomicLevel.SetLevel(mapLogLevel(cm.Config().Core.Log.Level))
 
 	// Create the logger with the atomic level
 	logger := zap.New(zapcore.NewCore(

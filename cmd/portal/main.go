@@ -24,9 +24,9 @@ import (
 )
 
 func main() {
+	cfg, err := config.NewManager()
 
-	logger, logLevel := _logger.NewLogger()
-	cfg, err := config.NewManager(logger)
+	logger, logLevel := _logger.NewLogger(cfg)
 
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))

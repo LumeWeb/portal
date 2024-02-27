@@ -28,8 +28,8 @@ type Manager struct {
 	changes bool
 }
 
-func NewManager(logger *zap.Logger) (*Manager, error) {
-	v, err := newConfig(logger)
+func NewManager() (*Manager, error) {
+	v, err := newConfig(nil)
 	if err != nil {
 		return nil, err
 	}
