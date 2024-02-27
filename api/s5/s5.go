@@ -831,48 +831,55 @@ func (s *S5API) accountPin(jc jape.Context) {
 			return
 		}
 
-		next, err := dlUriProvider.Next()
+		locations, err := dlUriProvider.All()
 		if err != nil {
 			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
 			return
 		}
 
-		r := rq.Get(next.Location().BytesURL())
-		httpReq, err := r.ParseRequest()
+		locations = lo.FilterMap(locations, func(location storage2.SignedStorageLocation, index int) (storage2.SignedStorageLocation, bool) {
+			r := rq.Get(location.Location().BytesURL())
+			httpReq, err := r.ParseRequest()
 
-		if err != nil {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
-			return
-		}
-
-		res, err := http.DefaultClient.Do(httpReq)
-
-		if err != nil {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, err))
-		}
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
 			if err != nil {
-				s.logger.Error("Error closing response body", zap.Error(err))
+				return nil, false
 			}
-		}(res.Body)
 
-		contentLengthStr := res.Header.Get("Content-Length")
-		if contentLengthStr == "" {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, errors.New("content-length header is missing")))
+			res, err := http.DefaultClient.Do(httpReq)
+
+			if err != nil {
+				return nil, false
+			}
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					s.logger.Error("Error closing response body", zap.Error(err))
+				}
+			}(res.Body)
+
+			contentLengthStr := res.Header.Get("Content-Length")
+			if contentLengthStr == "" {
+				return nil, false
+			}
+
+			contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+			if err != nil {
+				return nil, false
+			}
+
+			if uint64(contentLength) != decodedCid.Size {
+				return nil, false
+			}
+
+			return location, true
+		})
+
+		if len(locations) == 0 {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, fmt.Errorf("cid could not be found on the network")))
 			return
 		}
 
-		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
-		if err != nil {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, err))
-			return
-		}
-
-		if uint64(contentLength) != decodedCid.Size {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyFileDownloadFailed, errors.New("file size does not match CID expected size")))
-			return
-		}
+		location := locations[0]
 
 		cid64, err := decodedCid.ToBase64Url()
 		if err != nil {
@@ -888,7 +895,7 @@ func (s *S5API) accountPin(jc jape.Context) {
 					Name:     jobName,
 					Tags:     nil,
 					Function: s.pinImportCronJob,
-					Args:     []interface{}{cid64, next.Location().BytesURL(), next.Location().OutboardBytesURL(), userID},
+					Args:     []interface{}{cid64, location.Location().BytesURL(), location.Location().OutboardBytesURL(), userID},
 					Attempt:  0,
 					Limit:    10,
 					After:    nil,
