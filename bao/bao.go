@@ -64,11 +64,6 @@ func (v *Verifier) Read(p []byte) (int, error) {
 		readEnd := time.Now()
 
 		v.readTime = append(v.readTime, readEnd.Sub(readStart))
-		averageReadTime := lo.Reduce(v.readTime, func(acc time.Duration, cur time.Duration, _ int) time.Duration {
-			return acc + cur
-		}, time.Duration(0)) / time.Duration(len(v.readTime))
-
-		v.logger.Debug("Read time", zap.Duration("average", averageReadTime))
 
 		timeStart := time.Now()
 
@@ -86,6 +81,14 @@ func (v *Verifier) Read(p []byte) (int, error) {
 			// If EOF, break the loop as no more data can be read
 			break
 		}
+	}
+
+	if len(v.readTime) > 0 {
+		averageReadTime := lo.Reduce(v.readTime, func(acc time.Duration, cur time.Duration, _ int) time.Duration {
+			return acc + cur
+		}, time.Duration(0)) / time.Duration(len(v.readTime))
+
+		v.logger.Debug("Read time", zap.Duration("average", averageReadTime))
 	}
 
 	averageVerifyTime := v.verifyTime / time.Duration(v.read/VERIFY_CHUNK_SIZE)
