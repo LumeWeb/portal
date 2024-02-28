@@ -63,13 +63,13 @@ func (v *Verifier) Read(p []byte) (int, error) {
 			return n, errors.Join(ErrVerifyFailed, err)
 		}
 
+		v.read += uint64(bytesRead)
+		v.buffer.Write(buf[:bytesRead]) // Append new data to the buffer
+
 		timeEnd := time.Now()
 		v.verifyTime += timeEnd.Sub(timeStart)
 		averageVerifyTime := v.verifyTime / time.Duration(v.read/VERIFY_CHUNK_SIZE)
 		v.logger.Debug("Verification time", zap.Duration("duration", timeEnd.Sub(timeStart)), zap.Duration("average", averageVerifyTime))
-
-		v.read += uint64(bytesRead)
-		v.buffer.Write(buf[:bytesRead]) // Append new data to the buffer
 
 		if err == io.EOF {
 			// If EOF, break the loop as no more data can be read
