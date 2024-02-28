@@ -169,6 +169,10 @@ func (m *Manager) validateObject(obj interface{}) error {
 		field := objValue.Field(i)
 		fieldType := objType.Field(i)
 
+		if !field.CanInterface() {
+			continue
+		}
+
 		// If field is a struct or pointer to a struct, recurse
 		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
 			if field.Kind() == reflect.Ptr && field.IsNil() {
