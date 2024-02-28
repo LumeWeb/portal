@@ -3,11 +3,14 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
 	"sort"
+
+	"git.lumeweb.com/LumeWeb/portal/db/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
@@ -336,13 +339,8 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		return err
 	}
 
-	mu, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return err
-	}
+	var uploadId string
+	var lastPartNumber int32
 
 	partSize := S3_MULTIPART_MIN_PART_SIZE
 	totalParts := int(math.Ceil(float64(size) / float64(partSize)))
@@ -353,6 +351,60 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 	var completedParts []types.CompletedPart
 
+	var s3Upload models.S3Upload
+
+	s3Upload.Bucket = bucket
+	s3Upload.Key = key
+
+	ret := s.db.Model(&s3Upload).First(&s3Upload)
+	if ret.Error != nil {
+		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+			return ret.Error
+		}
+	} else {
+		uploadId = s3Upload.UploadID
+	}
+
+	if uploadId == "" {
+		mu, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		if err != nil {
+			return err
+		}
+
+		uploadId = *mu.UploadId
+
+		s3Upload.UploadID = uploadId
+		ret = s.db.Create(&s3Upload)
+		if ret.Error != nil {
+			return ret.Error
+		}
+	} else {
+		parts, err := client.ListParts(ctx, &s3.ListPartsInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(key),
+			UploadId: aws.String(uploadId),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		for _, part := range parts.Parts {
+			if uint64(*part.Size) == partSize {
+				if *part.PartNumber > lastPartNumber {
+					lastPartNumber = *part.PartNumber
+					completedParts = append(completedParts, types.CompletedPart{
+						ETag:       part.ETag,
+						PartNumber: part.PartNumber,
+					})
+				}
+			}
+		}
+	}
+
 	for partNum := 1; partNum <= totalParts; partNum++ {
 		partData := make([]byte, partSize)
 		readSize, err := data.Read(partData)
@@ -360,11 +412,15 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return err
 		}
 
+		if partNum <= int(lastPartNumber) {
+			continue
+		}
+
 		uploadPartOutput, err := client.UploadPart(ctx, &s3.UploadPartInput{
 			Bucket:     aws.String(bucket),
 			Key:        aws.String(key),
 			PartNumber: aws.Int32(int32(partNum)),
-			UploadId:   mu.UploadId,
+			UploadId:   aws.String(uploadId),
 			Body:       bytes.NewReader(partData[:readSize]),
 		})
 		if err != nil {
@@ -372,7 +428,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			_, abortErr := client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
 				Bucket:   aws.String(bucket),
 				Key:      aws.String(key),
-				UploadId: mu.UploadId,
+				UploadId: aws.String(uploadId),
 			})
 			if abortErr != nil {
 				s.logger.Error("error aborting multipart upload", zap.Error(abortErr))
@@ -396,13 +452,17 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	_, err = client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(bucket),
 		Key:      aws.String(key),
-		UploadId: mu.UploadId,
+		UploadId: aws.String(uploadId),
 		MultipartUpload: &types.CompletedMultipartUpload{
 			Parts: completedParts,
 		},
 	})
 	if err != nil {
 		return err
+	}
+
+	if tx := s.db.Delete(&s3Upload); tx.Error != nil {
+		return tx.Error
 	}
 
 	return nil
