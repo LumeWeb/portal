@@ -65,6 +65,11 @@ func NewManager() (*Manager, error) {
 		return nil, err
 	}
 
+	err = m.maybeConfigureCluster()
+	if err != nil {
+		return m, err
+	}
+
 	return m, nil
 }
 
@@ -83,11 +88,6 @@ func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
 	}
 
 	err = m.validateObject(cfg)
-	if err != nil {
-		return err
-	}
-
-	err = m.maybeConfigureCluster()
 	if err != nil {
 		return err
 	}
