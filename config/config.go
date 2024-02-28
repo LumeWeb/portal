@@ -18,7 +18,8 @@ var (
 )
 
 type Config struct {
-	Core CoreConfig `mapstructure:"core"`
+	Core     CoreConfig                `mapstructure:"core"`
+	Protocol map[string]ProtocolConfig `mapstructure:"protocol"`
 }
 
 type Manager struct {
