@@ -2,6 +2,7 @@ package bao
 
 import (
 	"context"
+	"errors"
 
 	"github.com/docker/go-units"
 
@@ -19,7 +20,7 @@ type Bao interface {
 	NewHasher() uuid.UUID
 	Hash(id uuid.UUID, data []byte) bool
 	Finish(id uuid.UUID) Result
-	Verify(data []byte, offset uint64, proof []byte, hash []byte) bool
+	Verify(data []byte, offset uint64, proof []byte, hash []byte) (bool, error)
 }
 
 type BaoPlugin struct {
@@ -79,12 +80,16 @@ func (b *BaoGRPC) Finish(id uuid.UUID) Result {
 	return Result{Hash: ret.Hash, Proof: ret.Proof}
 }
 
-func (b *BaoGRPC) Verify(data []byte, offset uint64, proof []byte, hash []byte) bool {
+func (b *BaoGRPC) Verify(data []byte, offset uint64, proof []byte, hash []byte) (bool, error) {
 	ret, err := b.client.Verify(context.Background(), &proto.VerifyRequest{Data: data, Offset: offset, Proof: proof, Hash: hash})
 
 	if err != nil {
-		panic(err)
+		return false, err
 	}
 
-	return ret.Status
+	if ret.Error != "" {
+		err = errors.New(ret.Error)
+	}
+
+	return ret.Status, err
 }

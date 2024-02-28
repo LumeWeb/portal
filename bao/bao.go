@@ -52,8 +52,8 @@ func (v *Verifier) Read(p []byte) (int, error) {
 			return n, err // Return any read error immediately
 		}
 
-		if !bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash) {
-			return n, ErrVerifyFailed
+		if status, err := bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash); err != nil || !status {
+			return n, errors.Join(ErrVerifyFailed, err)
 		}
 
 		v.read += uint64(bytesRead)

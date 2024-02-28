@@ -80,12 +80,16 @@ impl Bao for BaoService {
         );
 
         if res.is_err() {
+
             Ok(Response::new(VerifyResponse {
                 status: false,
+                error: res.unwrap_err().to_string(),
+
             }))
         } else {
             Ok(Response::new(VerifyResponse {
                 status: true,
+                error: String::from(""),
             }))
         }
     }
