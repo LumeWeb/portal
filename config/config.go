@@ -87,6 +87,11 @@ func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
 		return err
 	}
 
+	err = m.maybeConfigureCluster()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -201,6 +206,15 @@ func (m *Manager) maybeSave() error {
 			return ret
 		}
 		m.changes = false
+	}
+
+	return nil
+}
+
+func (m *Manager) maybeConfigureCluster() error {
+	if m.root.Core.Clustered.Enabled {
+		m.root.Core.DB.Cache.Mode = "redis"
+		m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
 	}
 
 	return nil
