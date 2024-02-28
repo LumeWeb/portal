@@ -26,8 +26,8 @@ type Validator interface {
 }
 
 type Config struct {
-	Core     CoreConfig                `mapstructure:"core"`
-	Protocol map[string]ProtocolConfig `mapstructure:"protocol"`
+	Core     CoreConfig             `mapstructure:"core"`
+	Protocol map[string]interface{} `mapstructure:"protocol"`
 }
 
 type Manager struct {
