@@ -13,4 +13,5 @@ type CoreConfig struct {
 	Storage         StorageConfig  `mapstructure:"storage"`
 	Protocols       []string       `mapstructure:"protocols"`
 	Mail            MailConfig     `mapstructure:"mail"`
+	Clustered       *ClusterConfig `mapstructure:"clustered"`
 }

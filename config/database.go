@@ -21,12 +21,6 @@ type CacheConfig struct {
 	Options interface{} `mapstructure:"options"`
 }
 
-type RedisConfig struct {
-	Address  string `mapstructure:"address"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-}
-
 type MemoryConfig struct {
 }
 
