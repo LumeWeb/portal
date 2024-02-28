@@ -411,6 +411,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	}
 
 	for partNum := 1; partNum <= totalParts; partNum++ {
+		partStartTime := time.Now()
 		partData := make([]byte, partSize)
 		readSize, err := data.Read(partData)
 		if err != nil && err != io.EOF {
@@ -420,8 +421,6 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		if partNum <= int(lastPartNumber) {
 			continue
 		}
-		partStartTime := time.Now()
-
 		uploadPartOutput, err := client.UploadPart(ctx, &s3.UploadPartInput{
 			Bucket:     aws.String(bucket),
 			Key:        aws.String(key),
