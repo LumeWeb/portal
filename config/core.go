@@ -1,5 +1,9 @@
 package config
 
+import "github.com/docker/go-units"
+
+var _ Defaults = (*CoreConfig)(nil)
+
 type CoreConfig struct {
 	DB              DatabaseConfig `mapstructure:"db"`
 	Domain          string         `mapstructure:"domain"`
@@ -14,4 +18,10 @@ type CoreConfig struct {
 	Protocols       []string       `mapstructure:"protocols"`
 	Mail            MailConfig     `mapstructure:"mail"`
 	Clustered       *ClusterConfig `mapstructure:"clustered"`
+}
+
+func (c CoreConfig) Defaults() map[string]interface{} {
+	return map[string]interface{}{
+		"post_upload_limit": units.MiB * 100,
+	}
 }

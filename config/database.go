@@ -6,6 +6,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+var _ Defaults = (*DatabaseConfig)(nil)
+
 type DatabaseConfig struct {
 	Charset  string       `mapstructure:"charset"`
 	Host     string       `mapstructure:"host"`
@@ -14,6 +16,14 @@ type DatabaseConfig struct {
 	Port     int          `mapstructure:"port"`
 	Username string       `mapstructure:"username"`
 	Cache    *CacheConfig `mapstructure:"cache"`
+}
+
+func (d DatabaseConfig) Defaults() map[string]interface{} {
+	return map[string]interface{}{
+		"charset": "utf8mb4",
+		"port":    3306,
+		"name":    "portal",
+	}
 }
 
 type CacheConfig struct {

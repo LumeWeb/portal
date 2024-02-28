@@ -3,8 +3,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"reflect"
 
-	"github.com/docker/go-units"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -16,6 +16,14 @@ var (
 		".",
 	}
 )
+
+type Defaults interface {
+	Defaults() map[string]interface{}
+}
+
+type Validator interface {
+	Validate() error
+}
 
 type Config struct {
 	Core     CoreConfig                `mapstructure:"core"`
@@ -41,7 +49,7 @@ func NewManager() (*Manager, error) {
 		root:  &config,
 	}
 
-	m.setDefaults(m.coreDefaults(), "")
+	m.setDefaultsForObject(m.root.Core, "")
 	err = m.maybeSave()
 	if err != nil {
 		return nil, err
@@ -52,29 +60,126 @@ func NewManager() (*Manager, error) {
 		return nil, err
 	}
 
+	err = m.validateObject(m.root)
+	if err != nil {
+		return nil, err
+	}
+
 	return m, nil
 }
 
 func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
-	defaults := cfg.Defaults()
-
 	protocolPrefix := fmt.Sprintf("protocol.%s", name)
 
-	m.setDefaults(defaults, protocolPrefix)
+	m.setDefaultsForObject(cfg, protocolPrefix)
 	err := m.maybeSave()
 	if err != nil {
 		return err
 	}
 
-	return m.viper.Sub(protocolPrefix).Unmarshal(cfg)
+	err = m.viper.Sub(protocolPrefix).Unmarshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = m.validateObject(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (m *Manager) setDefaults(defaults map[string]interface{}, prefix string) {
-	for key, value := range defaults {
-		if prefix != "" {
-			key = fmt.Sprintf("%s.%s", prefix, key)
+func (m *Manager) setDefaultsForObject(obj interface{}, prefix string) {
+	// Reflect on the object to traverse its fields
+	objValue := reflect.ValueOf(obj)
+	objType := reflect.TypeOf(obj)
+
+	// If the object is a pointer, we need to work with its element
+	if objValue.Kind() == reflect.Ptr {
+		objValue = objValue.Elem()
+		objType = objType.Elem()
+	}
+
+	// Check if the object itself implements Defaults
+	if setter, ok := obj.(Defaults); ok {
+		m.applyDefaults(setter, prefix)
+	}
+
+	// Recursively handle struct fields
+	for i := 0; i < objValue.NumField(); i++ {
+		field := objValue.Field(i)
+		fieldType := objType.Field(i)
+		mapstructureTag := fieldType.Tag.Get("mapstructure")
+
+		// Construct new prefix based on the mapstructure tag, if available
+		newPrefix := prefix
+		if mapstructureTag != "" && mapstructureTag != "-" {
+			if newPrefix != "" {
+				newPrefix += "."
+			}
+			newPrefix += mapstructureTag
 		}
-		if m.setDefault(key, value) {
+
+		// If field is a struct or pointer to a struct, recurse
+		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
+			if field.Kind() == reflect.Ptr && field.IsNil() {
+				// Initialize nil pointer to struct
+				field.Set(reflect.New(fieldType.Type.Elem()))
+			}
+			m.setDefaultsForObject(field.Interface(), newPrefix)
+		}
+	}
+}
+
+func (m *Manager) validateObject(obj interface{}) error {
+	// Reflect on the object to traverse its fields
+	objValue := reflect.ValueOf(obj)
+	objType := reflect.TypeOf(obj)
+
+	// If the object is a pointer, we need to work with its element
+	if objValue.Kind() == reflect.Ptr {
+		objValue = objValue.Elem()
+		objType = objType.Elem()
+	}
+
+	// Check if the object itself implements Defaults
+	if validator, ok := obj.(Validator); ok {
+		err := validator.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Recursively handle struct fields
+	for i := 0; i < objValue.NumField(); i++ {
+		field := objValue.Field(i)
+		fieldType := objType.Field(i)
+
+		// If field is a struct or pointer to a struct, recurse
+		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
+			if field.Kind() == reflect.Ptr && field.IsNil() {
+				// Initialize nil pointer to struct
+				field.Set(reflect.New(fieldType.Type.Elem()))
+			}
+			err := m.validateObject(field.Interface())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *Manager) applyDefaults(setter Defaults, prefix string) {
+	defaults := setter.Defaults()
+	for key, value := range defaults {
+		fullKey := key
+		if prefix != "" {
+			fullKey = fmt.Sprintf("%s.%s", prefix, key)
+		}
+		if m.setDefault(fullKey, value) {
 			m.changes = true
 		}
 	}
@@ -102,13 +207,7 @@ func (m *Manager) maybeSave() error {
 }
 
 func (m *Manager) coreDefaults() map[string]interface{} {
-	return map[string]interface{}{
-		"core.post_upload_limit": units.MiB * 100,
-		"core.log.level":         "info",
-		"core.db.charset":        "utf8mb4",
-		"core.db.port":           3306,
-		"core.db.name":           "portal",
-	}
+	return map[string]interface{}{}
 }
 
 func (m *Manager) Config() *Config {
