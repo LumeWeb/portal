@@ -1,8 +1,13 @@
 package config
 
-import "github.com/docker/go-units"
+import (
+	"errors"
+
+	"github.com/docker/go-units"
+)
 
 var _ Defaults = (*CoreConfig)(nil)
+var _ Validator = (*CoreConfig)(nil)
 
 type CoreConfig struct {
 	DB              DatabaseConfig `mapstructure:"db"`
@@ -18,6 +23,20 @@ type CoreConfig struct {
 	Protocols       []string       `mapstructure:"protocols"`
 	Mail            MailConfig     `mapstructure:"mail"`
 	Clustered       *ClusterConfig `mapstructure:"clustered"`
+}
+
+func (c CoreConfig) Validate() error {
+	if c.Domain == "" {
+		return errors.New("core.domain is required")
+	}
+	if c.PortalName == "" {
+		return errors.New("core.portal_name is required")
+	}
+	if c.Port == 0 {
+		return errors.New("core.port is required")
+	}
+
+	return nil
 }
 
 func (c CoreConfig) Defaults() map[string]interface{} {

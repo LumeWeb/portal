@@ -1,12 +1,14 @@
 package config
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
 )
 
 var _ Defaults = (*DatabaseConfig)(nil)
+var _ Validator = (*DatabaseConfig)(nil)
 
 type DatabaseConfig struct {
 	Charset  string       `mapstructure:"charset"`
@@ -18,8 +20,29 @@ type DatabaseConfig struct {
 	Cache    *CacheConfig `mapstructure:"cache"`
 }
 
+func (d DatabaseConfig) Validate() error {
+	if d.Host == "" {
+		return errors.New("core.db.host is required")
+	}
+	if d.Port == 0 {
+		return errors.New("core.db.port is required")
+	}
+	if d.Username == "" {
+		return errors.New("core.db.username is required")
+	}
+	if d.Password == "" {
+		return errors.New("core.db.password is required")
+	}
+	if d.Name == "" {
+		return errors.New("core.db.name is required")
+	}
+
+	return nil
+}
+
 func (d DatabaseConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
+		"host":    "localhost",
 		"charset": "utf8mb4",
 		"port":    3306,
 		"name":    "portal",

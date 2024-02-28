@@ -54,7 +54,6 @@ func main() {
 		fx.Supply(cfg),
 		fx.Supply(logger, logLevel),
 		fxLogger,
-		fx.Invoke(initCheckRequiredConfig),
 		fx.Provide(NewIdentity),
 		db.Module,
 		renter.Module,

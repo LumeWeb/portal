@@ -17,36 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func initCheckRequiredConfig(logger *zap.Logger, config *config.Manager) error {
-	required := []string{
-		"core.domain",
-		"core.port",
-		"core.sia.url",
-		"core.sia.key",
-		"core.db.username",
-		"core.db.password",
-		"core.db.host",
-		"core.db.name",
-		"core.storage.s3.buffer_bucket",
-		"core.storage.s3.endpoint",
-		"core.storage.s3.region",
-		"core.storage.s3.access_key",
-		"core.storage.s3.secret_key",
-		"core.mail.host",
-		"core.mail.username",
-		"core.mail.password",
-		"core.portal_name",
-	}
-
-	for _, key := range required {
-		if !config.Viper().IsSet(key) {
-			logger.Fatal(key + " is required")
-		}
-	}
-
-	return nil
-}
-
 func NewIdentity(config *config.Manager, logger *zap.Logger) (ed25519.PrivateKey, error) {
 	var seed [32]byte
 	identitySeed := config.Config().Core.Identity
