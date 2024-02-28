@@ -1684,7 +1684,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	}
 	defer closeBody(res.Body)
 
-	verifier := bao.NewVerifier(res.Body, baoProof)
+	verifier := bao.NewVerifier(res.Body, baoProof, s.logger)
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {

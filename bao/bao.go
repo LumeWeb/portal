@@ -9,6 +9,9 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-plugin"
@@ -27,10 +30,12 @@ var _ io.ReadCloser = (*Verifier)(nil)
 var ErrVerifyFailed = errors.New("verification failed")
 
 type Verifier struct {
-	r      io.ReadCloser
-	proof  Result
-	read   uint64
-	buffer *bytes.Buffer
+	r          io.ReadCloser
+	proof      Result
+	read       uint64
+	buffer     *bytes.Buffer
+	logger     *zap.Logger
+	verifyTime time.Duration
 }
 
 func (v *Verifier) Read(p []byte) (int, error) {
@@ -52,9 +57,16 @@ func (v *Verifier) Read(p []byte) (int, error) {
 			return n, err // Return any read error immediately
 		}
 
+		timeStart := time.Now()
+
 		if status, err := bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash); err != nil || !status {
 			return n, errors.Join(ErrVerifyFailed, err)
 		}
+
+		timeEnd := time.Now()
+		v.verifyTime += timeEnd.Sub(timeStart)
+		averageVerifyTime := v.verifyTime / time.Duration(v.read/VERIFY_CHUNK_SIZE)
+		v.logger.Debug("Verification time", zap.Duration("duration", timeEnd.Sub(timeStart)), zap.Duration("average", averageVerifyTime))
 
 		v.read += uint64(bytesRead)
 		v.buffer.Write(buf[:bytesRead]) // Append new data to the buffer
@@ -163,10 +175,11 @@ func Hash(r io.Reader) (*Result, error) {
 	return &result, nil
 }
 
-func NewVerifier(r io.ReadCloser, proof Result) *Verifier {
+func NewVerifier(r io.ReadCloser, proof Result, logger *zap.Logger) *Verifier {
 	return &Verifier{
 		r:      r,
 		proof:  proof,
 		buffer: new(bytes.Buffer),
+		logger: logger,
 	}
 }
