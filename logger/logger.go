@@ -22,7 +22,7 @@ func NewLogger(cm *config.Manager) (*zap.Logger, *zap.AtomicLevel) {
 		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
 		zapcore.Lock(os.Stdout),
 		atomicLevel,
-	))
+	), zap.AddCaller())
 
 	return logger, &atomicLevel
 }
