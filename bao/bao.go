@@ -47,8 +47,8 @@ func (v *Verifier) Read(p []byte) (int, error) {
 	buf := make([]byte, VERIFY_CHUNK_SIZE)
 	// Continue reading from the source and verifying until we have enough data or hit an error
 	for v.buffer.Len() < len(p)-n {
-		bytesRead, err := v.r.Read(buf)
-		if err != nil && err != io.EOF {
+		bytesRead, err := io.ReadFull(v.r, buf)
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return n, err // Return any read error immediately
 		}
 
