@@ -451,8 +451,10 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 		currentAverageDuration = totalUploadDuration / time.Duration(partNum)
 
+		eta := time.Duration(int(currentAverageDuration) * (totalParts - partNum))
+
 		s.logger.Debug("Completed part", zap.Int("partNum", partNum), zap.Int("totalParts", totalParts), zap.Uint64("partSize", partSize), zap.Int("readSize", readSize), zap.Int("size", int(size)), zap.Int("totalParts", totalParts), zap.Int("partNum", partNum), zap.String("key", key), zap.String("bucket", bucket), zap.Duration("durationMs", partDuration),
-			zap.Duration("currentAverageDurationMs", currentAverageDuration))
+			zap.Duration("currentAverageDurationMs", currentAverageDuration), zap.Duration("eta", eta))
 	}
 
 	// Ensure parts are ordered by part number before completing the upload
