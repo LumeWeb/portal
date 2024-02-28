@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
@@ -11,19 +10,6 @@ type ClusterConfig struct {
 	Enabled bool         `mapstructure:"enabled"`
 	Redis   *RedisConfig `mapstructure:"redis"`
 	Etcd    *EtcdConfig  `mapstructure:"etcd"`
-}
-
-type RedisConfig struct {
-	Address  string `mapstructure:"address"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-}
-
-func (r *RedisConfig) Validate() error {
-	if r.Address == "" {
-		return errors.New("address is required")
-	}
-	return nil
 }
 
 func clusterConfigHook() mapstructure.DecodeHookFuncType {
