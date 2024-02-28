@@ -117,6 +117,12 @@ func (m *Manager) setDefaultsForObject(obj interface{}, prefix string) {
 	for i := 0; i < objValue.NumField(); i++ {
 		field := objValue.Field(i)
 		fieldType := objType.Field(i)
+
+		// Check if the field is exported and can be interfaced
+		if !field.CanInterface() {
+			continue
+		}
+
 		mapstructureTag := fieldType.Tag.Get("mapstructure")
 
 		// Construct new prefix based on the mapstructure tag, if available
