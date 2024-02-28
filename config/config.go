@@ -92,6 +92,8 @@ func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
 		return err
 	}
 
+	m.root.Protocol[name] = cfg
+
 	return nil
 }
 
