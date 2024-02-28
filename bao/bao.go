@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/samber/lo"
+
 	"go.uber.org/zap"
 
 	"github.com/docker/go-units"
@@ -35,6 +37,7 @@ type Verifier struct {
 	read       uint64
 	buffer     *bytes.Buffer
 	logger     *zap.Logger
+	readTime   []time.Duration
 	verifyTime time.Duration
 }
 
@@ -52,10 +55,20 @@ func (v *Verifier) Read(p []byte) (int, error) {
 	buf := make([]byte, VERIFY_CHUNK_SIZE)
 	// Continue reading from the source and verifying until we have enough data or hit an error
 	for v.buffer.Len() < len(p)-n {
+		readStart := time.Now()
 		bytesRead, err := io.ReadFull(v.r, buf)
 		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 			return n, err // Return any read error immediately
 		}
+
+		readEnd := time.Now()
+
+		v.readTime = append(v.readTime, readEnd.Sub(readStart))
+		averageReadTime := lo.Reduce(v.readTime, func(acc time.Duration, cur time.Duration, _ int) time.Duration {
+			return acc + cur
+		}, time.Duration(0)) / time.Duration(len(v.readTime))
+
+		v.logger.Debug("Read time", zap.Duration("average", averageReadTime))
 
 		timeStart := time.Now()
 
