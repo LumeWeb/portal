@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"sort"
+	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 
@@ -356,6 +357,10 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	s3Upload.Bucket = bucket
 	s3Upload.Key = key
 
+	startTime := time.Now()
+	var totalUploadDuration time.Duration
+	var currentAverageDuration time.Duration
+
 	ret := s.db.Model(&s3Upload).First(&s3Upload)
 	if ret.Error != nil {
 		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
@@ -415,6 +420,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		if partNum <= int(lastPartNumber) {
 			continue
 		}
+		partStartTime := time.Now()
 
 		uploadPartOutput, err := client.UploadPart(ctx, &s3.UploadPartInput{
 			Bucket:     aws.String(bucket),
@@ -441,7 +447,13 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			PartNumber: aws.Int32(int32(partNum)),
 		})
 
-		s.logger.Debug("Completed part", zap.Int("partNum", partNum), zap.Int("totalParts", totalParts), zap.Uint64("partSize", partSize), zap.Int("readSize", readSize), zap.Int("size", int(size)), zap.Int("totalParts", totalParts), zap.Int("partNum", partNum), zap.String("key", key), zap.String("bucket", bucket))
+		partDuration := time.Since(partStartTime)
+		totalUploadDuration += partDuration
+
+		currentAverageDuration = totalUploadDuration / time.Duration(partNum)
+
+		s.logger.Debug("Completed part", zap.Int("partNum", partNum), zap.Int("totalParts", totalParts), zap.Uint64("partSize", partSize), zap.Int("readSize", readSize), zap.Int("size", int(size)), zap.Int("totalParts", totalParts), zap.Int("partNum", partNum), zap.String("key", key), zap.String("bucket", bucket), zap.Duration("durationMs", partDuration),
+			zap.Duration("currentAverageDurationMs", currentAverageDuration))
 	}
 
 	// Ensure parts are ordered by part number before completing the upload
@@ -464,6 +476,9 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	if tx := s.db.Delete(&s3Upload); tx.Error != nil {
 		return tx.Error
 	}
+
+	endTime := time.Now()
+	s.logger.Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket), zap.Duration("duration", endTime.Sub(startTime)))
 
 	return nil
 }
