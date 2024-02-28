@@ -384,6 +384,8 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			ETag:       uploadPartOutput.ETag,
 			PartNumber: aws.Int32(int32(partNum)),
 		})
+
+		s.logger.Debug("Completed part", zap.Int("partNum", partNum), zap.String("key", key), zap.String("bucket", bucket))
 	}
 
 	// Ensure parts are ordered by part number before completing the upload
