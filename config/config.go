@@ -206,10 +206,6 @@ func (m *Manager) maybeSave() error {
 	return nil
 }
 
-func (m *Manager) coreDefaults() map[string]interface{} {
-	return map[string]interface{}{}
-}
-
 func (m *Manager) Config() *Config {
 	return m.root
 }
