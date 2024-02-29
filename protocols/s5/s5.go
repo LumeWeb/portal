@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -257,7 +256,7 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 				}
 
 			}
-			if _, err := s.metadata.GetUpload(ctx, rawHash); errors.Is(err, metadata.ErrNotFound) {
+			if _, err := s.metadata.GetUpload(ctx, rawHash); err == nil {
 				return true
 			}
 		}
