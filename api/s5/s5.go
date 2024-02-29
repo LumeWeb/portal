@@ -904,6 +904,20 @@ func (s *S5API) accountPin(jc jape.Context) {
 		return
 	}
 
+	if decodedCid.Type == types.CIDTypeResolver {
+		entry, err := s.getNode().Services().Registry().Get(decodedCid.Hash.FullBytes())
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+			return
+		}
+
+		decodedCid, err = encoding.CIDFromRegistry(entry.Data())
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+	}
+
 	found := true
 
 	if err := s.accounts.PinByHash(decodedCid.Hash.HashBytes(), userID); err != nil {
