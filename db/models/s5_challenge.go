@@ -1,10 +1,11 @@
+//go:build s5
+
 package models
 
 import "gorm.io/gorm"
 
 func init() {
 	registerModel(&S5Challenge{})
-
 }
 
 type S5Challenge struct {
