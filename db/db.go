@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"git.lumeweb.com/LumeWeb/portal/db/models"
+
 	"github.com/redis/go-redis/v9"
 
 	"go.uber.org/zap"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"github.com/go-gorm/caches/v4"
 	"go.uber.org/fx"
 	"gorm.io/driver/mysql"
@@ -60,22 +61,7 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			return db.AutoMigrate(
-				&models.APIKey{},
-				&models.Blocklist{},
-				&models.DNSLink{},
-				&models.Download{},
-				&models.EmailVerification{},
-				&models.PasswordReset{},
-				&models.Pin{},
-				&models.PublicKey{},
-				&models.Upload{},
-				&models.User{},
-				&models.S3Upload{},
-				&models.S5Challenge{},
-				&models.TusLock{},
-				&models.TusUpload{},
-			)
+			return db.AutoMigrate(models.GetModels()...)
 		},
 	})
 

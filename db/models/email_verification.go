@@ -6,6 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func init() {
+	registerModel(&EmailVerification{})
+}
+
 type EmailVerification struct {
 	gorm.Model
 

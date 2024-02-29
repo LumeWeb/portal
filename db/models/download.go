@@ -1,9 +1,14 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
+
+func init() {
+	registerModel(&Download{})
+}
 
 type Download struct {
 	gorm.Model

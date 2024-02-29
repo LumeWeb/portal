@@ -1,9 +1,14 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
+
+func init() {
+	registerModel(&Blocklist{})
+}
 
 type Blocklist struct {
 	gorm.Model

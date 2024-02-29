@@ -3,10 +3,16 @@ package models
 import (
 	"context"
 	"errors"
+	"time"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"time"
 )
+
+func init() {
+	registerModel(&TusLock{})
+
+}
 
 var (
 	ErrTusLockBusy = errors.New("lock is currently held by another process")

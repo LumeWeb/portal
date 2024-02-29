@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func init() {
+	registerModel(&User{})
+}
+
 type User struct {
 	gorm.Model
 	FirstName          string

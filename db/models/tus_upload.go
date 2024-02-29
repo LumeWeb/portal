@@ -2,6 +2,11 @@ package models
 
 import "gorm.io/gorm"
 
+func init() {
+	registerModel(&TusUpload{})
+
+}
+
 type TusUpload struct {
 	gorm.Model
 	Hash       []byte `gorm:"type:binary(32);uniqueIndex:idx_hash_deleted"`

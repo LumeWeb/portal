@@ -6,6 +6,10 @@ import (
 	"gorm.io/gorm"
 )
 
+func init() {
+	registerModel(&PasswordReset{})
+}
+
 type PasswordReset struct {
 	gorm.Model
 

@@ -2,6 +2,10 @@ package models
 
 import "gorm.io/gorm"
 
+func init() {
+	registerModel(&Upload{})
+}
+
 type Upload struct {
 	gorm.Model
 	UserID     uint
