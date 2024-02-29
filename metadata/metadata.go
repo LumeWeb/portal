@@ -133,9 +133,7 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
 	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
-			return UploadMetadata{}, ret.Error
-		}
+		return UploadMetadata{}, ret.Error
 	}
 
 	return UploadMetadata{
