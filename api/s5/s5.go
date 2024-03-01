@@ -1773,13 +1773,6 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 		return nil
 	}
-
-	// Fetch proof.
-	proof, err := fetchAndProcess(proofUrl)
-	if err != nil {
-		return err // Error logged in fetchAndProcess
-	}
-
 	// Fetch file and process if under post upload limit.
 	if parsedCid.Size <= s.config.Config().Core.PostUploadLimit {
 		fileData, err := fetchAndProcess(url)
@@ -1808,6 +1801,12 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 		}
 
 		return nil
+	}
+
+	// Fetch proof.
+	proof, err := fetchAndProcess(proofUrl)
+	if err != nil {
+		return err
 	}
 
 	baoProof := bao.Result{
