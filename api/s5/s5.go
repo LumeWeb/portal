@@ -880,6 +880,7 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 	results := make(map[string]pinResult, len(cids))
 
 	for i := 0; i < len(cids); i++ {
+		cid := cids[i]
 		go func(cid *encoding.CID) {
 			if err := q.QueueTask(func(ctx context.Context) error {
 				ret := pinQueueResult{
@@ -904,7 +905,7 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 					cid:     cid,
 				}
 			}
-		}(cids[i])
+		}(cid)
 	}
 
 	go func() {
