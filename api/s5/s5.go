@@ -910,6 +910,7 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 	}
 
 	go func() {
+		received := 0
 		for ret := range rets {
 			b64, err := ret.cid.ToBase64Url()
 			if err != nil {
@@ -921,11 +922,16 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 				success: ret.success,
 				error:   ret.error,
 			}
+
+			received++
+
+			if received == len(cids) {
+				q.Release()
+			}
 		}
 	}()
 
 	q.Wait()
-
 	jc.Encode(&results)
 }
 
