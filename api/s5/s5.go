@@ -60,6 +60,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
 	dnslink "github.com/dnslink-std/go"
+	"github.com/golang-queue/queue"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
@@ -860,34 +861,69 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 		error   error
 	}
 
+	type pinQueueResult struct {
+		success bool
+		error   error
+		cid     *encoding.CID
+	}
+
 	cids, err := s.getManifestCids(cid)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
 		return
 	}
 
+	q := queue.NewPool(10)
+	defer q.Release()
+	rets := make(chan pinQueueResult, len(cids))
+
 	results := make(map[string]pinResult, len(cids))
 
-	lo.ForEach(cids, func(c *encoding.CID, _i int) {
-		ret := pinResult{
-			success: true,
-			error:   nil,
-		}
-		err := s.pinEntity(jc.Request.Context(), userId, c)
-		if err != nil {
-			s.logger.Error("Error pinning entity", zap.Error(err))
-			ret.success = false
-			ret.error = err
-		}
+	for i := 0; i < len(cids); i++ {
+		go func(cid *encoding.CID) {
+			if err := q.QueueTask(func(ctx context.Context) error {
+				ret := pinQueueResult{
+					success: true,
+					error:   nil,
+					cid:     cid,
+				}
+				err := s.pinEntity(ctx, userId, cid)
+				if err != nil {
+					s.logger.Error("Error pinning entity", zap.Error(err))
+					ret.success = false
+					ret.error = err
+				}
 
-		b64, err := c.ToBase64Url()
+				rets <- ret
+				return nil
+			}); err != nil {
+				s.logger.Error("Error queueing task", zap.Error(err))
+				rets <- pinQueueResult{
+					success: false,
+					error:   err,
+					cid:     cid,
+				}
+			}
+		}(cids[i])
+	}
+
+	go func() {
+		q.Wait()
+		close(rets)
+	}()
+
+	for ret := range rets {
+		b64, err := ret.cid.ToBase64Url()
 		if err != nil {
 			s.logger.Error("Error encoding CID to base64", zap.Error(err))
-			return
+			continue
 		}
 
-		results[b64] = ret
-	})
+		results[b64] = pinResult{
+			success: ret.success,
+			error:   ret.error,
+		}
+	}
 
 	jc.Encode(&results)
 }
