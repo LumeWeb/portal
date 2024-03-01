@@ -809,7 +809,9 @@ func (s *S5API) getManifestCids(cid *encoding.CID) ([]*encoding.CID, error) {
 		media := manifest.(*s5libmetadata.MediaMetadata)
 		for _, mediaType := range media.MediaTypes {
 			lo.ForEach(mediaType, func(format s5libmetadata.MediaFormat, _i int) {
-				cids = append(cids, format.Cid)
+				if format.Cid != nil {
+					cids = append(cids, format.Cid)
+				}
 			})
 		}
 
