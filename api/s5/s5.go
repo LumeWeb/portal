@@ -864,7 +864,7 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 		return
 	}
 
-	var results map[string]pinResult
+	results := make(map[string]pinResult, len(cids))
 
 	lo.ForEach(cids, func(c *encoding.CID, _i int) {
 		ret := pinResult{
