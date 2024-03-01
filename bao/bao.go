@@ -67,12 +67,13 @@ func (v *Verifier) Read(p []byte) (int, error) {
 
 		timeStart := time.Now()
 
-		if status, err := bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash); err != nil || !status {
-			return n, errors.Join(ErrVerifyFailed, err)
+		if bytesRead > 0 {
+			if status, err := bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash); err != nil || !status {
+				return n, errors.Join(ErrVerifyFailed, err)
+			}
+			v.read += uint64(bytesRead)
+			v.buffer.Write(buf[:bytesRead]) // Append new data to the buffer
 		}
-
-		v.read += uint64(bytesRead)
-		v.buffer.Write(buf[:bytesRead]) // Append new data to the buffer
 
 		timeEnd := time.Now()
 		v.verifyTime += timeEnd.Sub(timeStart)
