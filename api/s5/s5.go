@@ -875,7 +875,8 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 
 	q := queue.NewPool(10)
 	defer q.Release()
-	rets := make(chan pinQueueResult, len(cids))
+	rets := make(chan pinQueueResult)
+	defer close(rets)
 
 	results := make(map[string]pinResult, len(cids))
 
@@ -909,22 +910,21 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 	}
 
 	go func() {
-		q.Wait()
-		close(rets)
+		for ret := range rets {
+			b64, err := ret.cid.ToBase64Url()
+			if err != nil {
+				s.logger.Error("Error encoding CID to base64", zap.Error(err))
+				continue
+			}
+
+			results[b64] = pinResult{
+				success: ret.success,
+				error:   ret.error,
+			}
+		}
 	}()
 
-	for ret := range rets {
-		b64, err := ret.cid.ToBase64Url()
-		if err != nil {
-			s.logger.Error("Error encoding CID to base64", zap.Error(err))
-			continue
-		}
-
-		results[b64] = pinResult{
-			success: ret.success,
-			error:   ret.error,
-		}
-	}
+	q.Wait()
 
 	jc.Encode(&results)
 }
