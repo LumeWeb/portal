@@ -1,6 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240301051807-7c3ef2ae864e h1:uYGmh6nYFwy1AbmiQYiojQNWX2Mp+joWfed1EskgXNA=
-git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240301051807-7c3ef2ae864e/go.mod h1:wBzW3VRpYHHhYXhj9BPQ6gOxtCfPfEuWuPiDWiQRt8M=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240301062420-429565562d76 h1:k0oxtlOCbyY4IYuYDfFC0Qkz64Vho0R/c1h2nGgBV8A=
+git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240301062420-429565562d76/go.mod h1:h/1HUjA2mWT14QsRprG6o7WDeP3paAB23tkh/OczmUk=
 github.com/Acconut/go-httptest-recorder v1.0.0 h1:TAv2dfnqp/l+SUvIaMAUK4GeN4+wqb6KZsFFFTGhoJg=
 github.com/Acconut/go-httptest-recorder v1.0.0/go.mod h1:CwQyhTH1kq/gLyWiRieo7c0uokpu3PXeyF/nZjUNtmM=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
