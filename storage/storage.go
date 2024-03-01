@@ -370,6 +370,30 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		uploadId = s3Upload.UploadID
 	}
 
+	if len(uploadId) > 0 {
+		parts, err := client.ListParts(ctx, &s3.ListPartsInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(key),
+			UploadId: aws.String(uploadId),
+		})
+
+		if err != nil {
+			uploadId = ""
+		} else {
+			for _, part := range parts.Parts {
+				if uint64(*part.Size) == partSize {
+					if *part.PartNumber > lastPartNumber {
+						lastPartNumber = *part.PartNumber
+						completedParts = append(completedParts, types.CompletedPart{
+							ETag:       part.ETag,
+							PartNumber: part.PartNumber,
+						})
+					}
+				}
+			}
+		}
+	}
+
 	if uploadId == "" {
 		mu, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
 			Bucket: aws.String(bucket),
@@ -382,31 +406,9 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		uploadId = *mu.UploadId
 
 		s3Upload.UploadID = uploadId
-		ret = s.db.Create(&s3Upload)
+		ret = s.db.Save(&s3Upload)
 		if ret.Error != nil {
 			return ret.Error
-		}
-	} else {
-		parts, err := client.ListParts(ctx, &s3.ListPartsInput{
-			Bucket:   aws.String(bucket),
-			Key:      aws.String(key),
-			UploadId: aws.String(uploadId),
-		})
-
-		if err != nil {
-			return err
-		}
-
-		for _, part := range parts.Parts {
-			if uint64(*part.Size) == partSize {
-				if *part.PartNumber > lastPartNumber {
-					lastPartNumber = *part.PartNumber
-					completedParts = append(completedParts, types.CompletedPart{
-						ETag:       part.ETag,
-						PartNumber: part.PartNumber,
-					})
-				}
-			}
 		}
 	}
 
