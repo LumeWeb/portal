@@ -857,8 +857,8 @@ func (s *S5API) getManifestCids(cid *encoding.CID) ([]*encoding.CID, error) {
 
 func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.CID) {
 	type pinResult struct {
-		success bool
-		error   error
+		Success bool  `json:"success"`
+		Error   error `json:"error,omitempty"`
 	}
 
 	type pinQueueResult struct {
@@ -919,8 +919,8 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 			}
 
 			results[b64] = pinResult{
-				success: ret.success,
-				error:   ret.error,
+				Success: ret.success,
+				Error:   ret.error,
 			}
 
 			received++
