@@ -1922,11 +1922,10 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 			return object.Body, nil
 		},
-		Bucket:           s.config.Config().Core.Storage.S3.BufferBucket,
-		FileName:         s5.GetStorageProtocol(s.protocol).EncodeFileName(parsedCid.Hash.HashBytes()),
-		Size:             parsedCid.Size,
-		ExistingUploadID: "",
-		UploadIDHandler:  nil,
+		Bucket:          s.config.Config().Core.Storage.S3.BufferBucket,
+		FileName:        s5.GetStorageProtocol(s.protocol).EncodeFileName(parsedCid.Hash.HashBytes()),
+		Size:            parsedCid.Size,
+		UploadIDHandler: nil,
 	}, &baoProof)
 
 	if err != nil {
