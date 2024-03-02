@@ -1678,7 +1678,7 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		hashBytes = cidDecoded.Hash.HashBytes()
 	}
 
-	file := s.newFile(s.protocol, hashBytes)
+	file := s.newFile(s.protocol, hashBytes, cidDecoded.Type)
 
 	if !file.Exists() {
 		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -1751,12 +1751,13 @@ func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, excludeSelf
 	})
 }
 
-func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte) *S5File {
+func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte, cidTyp types.CIDType) *S5File {
 	return NewFile(FileParams{
 		Protocol: protocol,
 		Hash:     hash,
 		Metadata: s.metadata,
 		Storage:  s.storage,
+		Type:     cidTyp,
 	})
 }
 
