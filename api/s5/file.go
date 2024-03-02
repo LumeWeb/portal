@@ -27,6 +27,7 @@ type S5File struct {
 	record   *metadata.UploadMetadata
 	protocol *s5.S5Protocol
 	cid      *encoding.CID
+	typ      types.CIDType
 	read     bool
 	tus      *s5.TusHandler
 	ctx      context.Context
@@ -36,6 +37,7 @@ type FileParams struct {
 	Storage  storage.StorageService
 	Metadata metadata.MetadataService
 	Hash     []byte
+	Type     types.CIDType
 	Protocol *s5.S5Protocol
 	Tus      *s5.TusHandler
 }
@@ -45,6 +47,7 @@ func NewFile(params FileParams) *S5File {
 		storage:  params.Storage,
 		metadata: params.Metadata,
 		hash:     params.Hash,
+		typ:      params.Type,
 		protocol: params.Protocol,
 		tus:      params.Tus,
 		ctx:      context.Background(),
@@ -112,7 +115,6 @@ func (f *S5File) Close() error {
 
 func (f *S5File) init(offset int64) error {
 	if f.reader == nil {
-
 		reader, err := f.tus.GetUploadReader(f.ctx, f.hash, offset)
 
 		if err == nil {
@@ -196,7 +198,13 @@ func (f *S5File) Size() uint64 {
 func (f *S5File) CID() *encoding.CID {
 	if f.cid == nil {
 		multihash := encoding.MultihashFromBytes(f.Hash(), types.HashTypeBlake3)
-		cid := encoding.NewCID(types.CIDTypeRaw, *multihash, f.Size())
+
+		typ := f.typ
+		if typ == 0 {
+			typ = types.CIDTypeRaw
+		}
+
+		cid := encoding.NewCID(typ, *multihash, f.Size())
 		f.cid = cid
 	}
 	return f.cid
