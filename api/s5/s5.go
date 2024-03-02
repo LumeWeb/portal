@@ -1149,15 +1149,46 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, cid *encoding.CID) e
 	return nil
 }
 
+type dirTryFiles []string
+type dirErrorFiles map[int]string
+
+func (d *dirTryFiles) UnmarshalText(data []byte) error {
+	var out []string
+
+	err := json.Unmarshal(data, &out)
+	if err != nil {
+		return err
+	}
+
+	*d = out
+
+	return nil
+}
+
+func (d *dirErrorFiles) UnmarshalText(data []byte) error {
+	var out map[int]string
+
+	err := json.Unmarshal(data, &out)
+	if err != nil {
+		return err
+	}
+
+	*d = out
+
+	return nil
+}
+
 func (s *S5API) directoryUpload(jc jape.Context) {
+
 	// Decode form fields
 	var (
-		tryFiles   []string
-		errorPages map[int]string
+		tryFiles   dirTryFiles
+		errorFiles dirErrorFiles
 		name       string
 	)
 
-	if err := jc.DecodeForm("tryFiles", &tryFiles); err != nil || jc.DecodeForm("errorPages", &errorPages) != nil || jc.DecodeForm("name", &name) != nil {
+	if err := jc.DecodeForm("tryFiles", &tryFiles); err != nil || jc.DecodeForm("errorFiles", &errorFiles) != nil || jc.DecodeForm("name", &name) != nil {
+		return
 	}
 
 	// Verify content type
@@ -1179,7 +1210,7 @@ func (s *S5API) directoryUpload(jc jape.Context) {
 	}
 
 	// Generate metadata for the directory upload
-	app, err := s.createAppMetadata(name, tryFiles, errorPages, uploads)
+	app, err := s.createAppMetadata(name, tryFiles, errorFiles, uploads)
 	if err != nil {
 		s.sendErrorResponse(jc, err)
 		return
