@@ -1678,7 +1678,10 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		hashBytes = cidDecoded.Hash.HashBytes()
 	}
 
-	file := s.newFile(s.protocol, hashBytes, cidDecoded.Type)
+	file := s.newFile(FileParams{
+		Hash: cidDecoded.Hash.HashBytes(),
+		Type: cidDecoded.Type,
+	})
 
 	if !file.Exists() {
 		jc.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -1751,14 +1754,12 @@ func (s *S5API) newStorageLocationProvider(hash *encoding.Multihash, excludeSelf
 	})
 }
 
-func (s *S5API) newFile(protocol *s5.S5Protocol, hash []byte, cidTyp types.CIDType) *S5File {
-	return NewFile(FileParams{
-		Protocol: protocol,
-		Hash:     hash,
-		Metadata: s.metadata,
-		Storage:  s.storage,
-		Type:     cidTyp,
-	})
+func (s *S5API) newFile(params FileParams) *S5File {
+	params.Protocol = s.protocol
+	params.Metadata = s.metadata
+	params.Storage = s.storage
+
+	return NewFile(params)
 }
 
 func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId uint) error {
