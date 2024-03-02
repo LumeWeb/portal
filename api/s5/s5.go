@@ -178,6 +178,8 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 
 	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, authMw)
 
+	debugCors := cors.Default()
+
 	routes := map[string]jape.Handler{
 		// Account API
 		"GET /s5/account/register":  s.accountRegisterChallenge,
@@ -210,8 +212,8 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.accountPinDelete, authMw),
 
 		// Debug API
-		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, middleware.ProxyMiddleware),
-		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.debugStorageLocations, middleware.ProxyMiddleware),
+		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, middleware.ProxyMiddleware, debugCors.Handler),
+		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.debugStorageLocations, middleware.ProxyMiddleware, debugCors.Handler),
 
 		// Registry API
 		"GET /s5/registry":              middleware.ApplyMiddlewares(s.registryQuery, authMw),
