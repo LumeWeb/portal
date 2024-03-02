@@ -174,7 +174,16 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 	}
 	_, err = io.ReadFull(reader, mimeBytes)
 	if err != nil {
-		return nil, err
+		if !errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil, err
+		}
+
+		reader, err = getReader()
+		if err != nil {
+			return nil, err
+		}
+
+		mimeBytes, err = io.ReadAll(reader)
 	}
 
 	reader, err = getReader()
