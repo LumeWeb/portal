@@ -276,9 +276,41 @@ func (s *S5API) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cid := cidVal.(encoding.CID)
+	cid := cidVal.(*encoding.CID)
 
-	file := s.newFile(s.protocol, cid.Hash.HashBytes())
+	if cid.Type == types.CIDTypeResolver {
+		entry, err := s.getNode().Services().Registry().Get(cid.Hash.FullBytes())
+		if err != nil {
+			s.logger.Error("Error getting registry entry", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		cid, err = encoding.CIDFromRegistry(entry.Data())
+		if err != nil {
+			s.logger.Error("Error getting CID from registry entry", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	switch cid.Type {
+	case types.CIDTypeRaw:
+		s.handleDnsLinkRaw(w, r, cid)
+	case types.CIDTypeMetadataWebapp:
+		s.handleDnsLinkWebapp(w, r, cid)
+	case types.CIDTypeDirectory:
+		s.handleDnsLinkDirectory(w, r, cid)
+	default:
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+	}
+}
+
+func (s *S5API) handleDnsLinkRaw(w http.ResponseWriter, r *http.Request, cid *encoding.CID) {
+	file := s.newFile(FileParams{
+		Hash: cid.Hash.HashBytes(),
+		Type: cid.Type,
+	})
 
 	if !file.Exists() {
 		w.WriteHeader(http.StatusNotFound)
@@ -295,6 +327,14 @@ func (s *S5API) Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", file.Mime())
 
 	http.ServeContent(w, r, file.Name(), file.Modtime(), file)
+}
+
+func (s *S5API) handleDnsLinkWebapp(w http.ResponseWriter, r *http.Request, cid *encoding.CID) {
+	http.FileServer(http.FS(newWebAppFs(cid, s))).ServeHTTP(w, r)
+}
+
+func (s *S5API) handleDnsLinkDirectory(w http.ResponseWriter, r *http.Request, cid *encoding.CID) {
+	http.FileServer(http.FS(newDirFs(cid, s))).ServeHTTP(w, r)
 }
 
 type s5TusJwtResponseWriter struct {
