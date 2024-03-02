@@ -165,7 +165,7 @@ func (f *S5File) init(offset int64) error {
 
 func (f *S5File) Record() (*metadata.UploadMetadata, error) {
 	if f.record == nil {
-		record, err := f.metadata.GetUpload(context.Background(), f.Hash())
+		record, err := f.metadata.GetUpload(context.Background(), f.hash)
 
 		if err != nil {
 			return nil, errors.New("file does not exist")
