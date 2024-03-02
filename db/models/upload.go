@@ -9,7 +9,7 @@ func init() {
 type Upload struct {
 	gorm.Model
 	UserID     uint
-	Hash       []byte `gorm:"type:binary(32);unique_index"`
+	Hash       []byte `gorm:"type:binary(32);uniqueIndex"`
 	MimeType   string
 	Protocol   string
 	User       User
