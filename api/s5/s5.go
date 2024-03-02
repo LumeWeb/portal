@@ -8,12 +8,15 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"slices"
 	"strconv"
@@ -1232,6 +1235,11 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 
 	for _, files := range r.MultipartForm.File {
 		for _, fileHeader := range files {
+			filename := extractMPFilename(fileHeader.Header)
+			if filename == "" {
+				return nil, NewS5Error(ErrKeyInvalidOperation, fmt.Errorf("filename not found in multipart file header"))
+			}
+
 			file, err := fileHeader.Open()
 			if err != nil {
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
@@ -1256,7 +1264,7 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
 			}
 
-			uploadMap[fileHeader.Filename] = upload
+			uploadMap[filename] = upload
 		}
 	}
 
@@ -2037,4 +2045,23 @@ func setAuthCookie(jwt string, jc jape.Context) {
 	}
 
 	http.SetCookie(jc.ResponseWriter, &authCookie)
+}
+
+func extractMPFilename(header textproto.MIMEHeader) string {
+	cd := header.Get("Content-Disposition")
+	if cd == "" {
+		return ""
+	}
+
+	_, params, err := mime.ParseMediaType(cd)
+	if err != nil {
+		return ""
+	}
+
+	filename := params["filename"]
+	if filename == "" {
+		return ""
+	}
+
+	return filename
 }
