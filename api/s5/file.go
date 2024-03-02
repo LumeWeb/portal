@@ -336,6 +336,7 @@ func (f *S5File) ReadDir(n int) ([]fs.DirEntry, error) {
 				Metadata: f.metadata,
 				Hash:     file.File.CID().Hash.HashBytes(),
 				Type:     file.File.CID().Type,
+				Tus:      f.tus,
 			}))
 		}
 

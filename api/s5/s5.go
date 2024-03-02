@@ -1841,6 +1841,7 @@ func (s *S5API) newFile(params FileParams) *S5File {
 	params.Protocol = s.protocol
 	params.Metadata = s.metadata
 	params.Storage = s.storage
+	params.Tus = s.tusHandler
 
 	return NewFile(params)
 }
