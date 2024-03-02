@@ -5,7 +5,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+	"io/fs"
 	"time"
+
+	s5libmetadata "git.lumeweb.com/LumeWeb/libs5-go/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 
@@ -18,6 +21,8 @@ import (
 )
 
 var _ io.ReadSeekCloser = (*S5File)(nil)
+var _ fs.File = (*S5File)(nil)
+var _ fs.FileInfo = (*S5FileInfo)(nil)
 
 type S5File struct {
 	reader   io.ReadCloser
@@ -31,6 +36,7 @@ type S5File struct {
 	read     bool
 	tus      *s5.TusHandler
 	ctx      context.Context
+	name     string
 }
 
 type FileParams struct {
@@ -40,6 +46,7 @@ type FileParams struct {
 	Type     types.CIDType
 	Protocol *s5.S5Protocol
 	Tus      *s5.TusHandler
+	Name     string
 }
 
 func NewFile(params FileParams) *S5File {
@@ -51,6 +58,7 @@ func NewFile(params FileParams) *S5File {
 		protocol: params.Protocol,
 		tus:      params.Tus,
 		ctx:      context.Background(),
+		name:     params.Name,
 	}
 }
 
@@ -174,6 +182,10 @@ func (f *S5File) HashString() string {
 }
 
 func (f *S5File) Name() string {
+	if f.name != "" {
+		return f.name
+	}
+
 	cid, _ := f.CID().ToString()
 
 	return cid
@@ -241,4 +253,50 @@ func (f *S5File) Proof() ([]byte, error) {
 	}
 
 	return proof, nil
+}
+func (f *S5File) Manifest() (s5libmetadata.Metadata, error) {
+	meta, err := f.protocol.Node().Services().Storage().GetMetadataByCID(f.CID())
+	if err != nil {
+		return nil, err
+	}
+
+	return meta, nil
+}
+
+func (f *S5File) Stat() (fs.FileInfo, error) {
+	return newS5FileInfo(f), nil
+}
+
+type S5FileInfo struct {
+	file *S5File
+}
+
+func (s S5FileInfo) Name() string {
+	return s.file.Name()
+}
+
+func (s S5FileInfo) Size() int64 {
+	return int64(s.file.Size())
+}
+
+func (s S5FileInfo) Mode() fs.FileMode {
+	return 0
+}
+
+func (s S5FileInfo) ModTime() time.Time {
+	return s.file.Modtime()
+}
+
+func (s S5FileInfo) IsDir() bool {
+	return s.file.typ == types.CIDTypeDirectory
+}
+
+func (s S5FileInfo) Sys() any {
+	return nil
+}
+
+func newS5FileInfo(file *S5File) *S5FileInfo {
+	return &S5FileInfo{
+		file: file,
+	}
 }
