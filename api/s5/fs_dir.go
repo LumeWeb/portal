@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"strings"
 
+	"git.lumeweb.com/LumeWeb/libs5-go/node"
+
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
 )
@@ -92,11 +94,21 @@ func (w dirFs) openNestedDir(name string, remainingPath string, dir *metadata.Di
 }
 
 func (w *dirFs) resolveDirCid(dir *metadata.DirectoryReference) (*encoding.CID, error) {
+	return resolveDirCid(dir, w.s5.getNode())
+}
+
+func newDirFs(root *encoding.CID, s5 *S5API) *dirFs {
+	return &dirFs{
+		root: root,
+		s5:   s5,
+	}
+}
+func resolveDirCid(dir *metadata.DirectoryReference, node *node.Node) (*encoding.CID, error) {
 	if len(dir.PublicKey) == 0 {
 		return nil, errors.New("missing public key")
 	}
 
-	entry, err := w.s5.getNode().Services().Registry().Get(dir.PublicKey)
+	entry, err := node.Services().Registry().Get(dir.PublicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -108,11 +120,4 @@ func (w *dirFs) resolveDirCid(dir *metadata.DirectoryReference) (*encoding.CID, 
 	}
 
 	return cid, nil
-}
-
-func newDirFs(root *encoding.CID, s5 *S5API) *dirFs {
-	return &dirFs{
-		root: root,
-		s5:   s5,
-	}
 }
