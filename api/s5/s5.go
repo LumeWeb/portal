@@ -1657,6 +1657,7 @@ func (s *S5API) downloadFile(jc jape.Context) {
 	}
 
 	var hashBytes []byte
+	var typ types.CIDType
 	isProof := false
 
 	if strings.HasSuffix(cid, storage.PROOF_EXTENSION) {
@@ -1676,11 +1677,12 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		hashBytes = hashDecoded.HashBytes()
 	} else {
 		hashBytes = cidDecoded.Hash.HashBytes()
+		typ = cidDecoded.Type
 	}
 
 	file := s.newFile(FileParams{
-		Hash: cidDecoded.Hash.HashBytes(),
-		Type: cidDecoded.Type,
+		Hash: hashBytes,
+		Type: typ,
 	})
 
 	if !file.Exists() {
