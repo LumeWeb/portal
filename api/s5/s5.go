@@ -210,8 +210,8 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.accountPinDelete, authMw),
 
 		// Debug API
-		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, authMw),
-		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.debugStorageLocations, authMw),
+		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, middleware.ProxyMiddleware),
+		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.debugStorageLocations, middleware.ProxyMiddleware),
 
 		// Registry API
 		"GET /s5/registry":              middleware.ApplyMiddlewares(s.registryQuery, authMw),
