@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"sort"
+	"strings"
 	"time"
 
 	s5libmetadata "git.lumeweb.com/LumeWeb/libs5-go/metadata"
@@ -22,6 +24,8 @@ import (
 
 var _ io.ReadSeekCloser = (*S5File)(nil)
 var _ fs.File = (*S5File)(nil)
+var _ fs.ReadDirFile = (*S5File)(nil)
+var _ fs.DirEntry = (*S5File)(nil)
 var _ fs.FileInfo = (*S5FileInfo)(nil)
 
 type S5File struct {
@@ -37,6 +41,22 @@ type S5File struct {
 	tus      *s5.TusHandler
 	ctx      context.Context
 	name     string
+}
+
+func (f *S5File) IsDir() bool {
+	return f.typ == types.CIDTypeDirectory
+}
+
+func (f *S5File) Type() fs.FileMode {
+	if f.typ == types.CIDTypeDirectory {
+		return fs.ModeDir
+	}
+
+	return 0
+}
+
+func (f *S5File) Info() (fs.FileInfo, error) {
+	return f.Stat()
 }
 
 type FileParams struct {
@@ -295,8 +315,136 @@ func (s S5FileInfo) Sys() any {
 	return nil
 }
 
+func (f *S5File) ReadDir(n int) ([]fs.DirEntry, error) {
+	manifest, err := f.Manifest()
+	if err != nil {
+		return nil, err
+	}
+
+	switch f.CID().Type {
+	case types.CIDTypeDirectory:
+		dir, ok := manifest.(*s5libmetadata.DirectoryMetadata)
+		if !ok {
+			return nil, errors.New("manifest is not a directory")
+		}
+
+		var entries []fs.DirEntry
+
+		for _, file := range dir.Files.Items() {
+			entries = append(entries, NewFile(FileParams{
+				Storage:  f.storage,
+				Metadata: f.metadata,
+				Hash:     file.File.CID().Hash.HashBytes(),
+				Type:     file.File.CID().Type,
+			}))
+		}
+
+		for _, subDir := range dir.Directories.Items() {
+			cid, err := resolveDirCid(subDir, f.protocol.Node())
+			if err != nil {
+				return nil, err
+			}
+			entries = append(entries, NewFile(FileParams{
+				Storage:  f.storage,
+				Metadata: f.metadata,
+				Hash:     cid.Hash.HashBytes(),
+				Type:     cid.Type,
+			}))
+		}
+
+		return entries, nil
+
+	case types.CIDTypeMetadataWebapp:
+		webApp, ok := manifest.(*s5libmetadata.WebAppMetadata)
+		if !ok {
+			return nil, errors.New("manifest is not a web app")
+		}
+
+		var entries []fs.DirEntry
+		dirMap := make(map[string]bool)
+
+		for path, _ := range webApp.Paths {
+			pathSegments := strings.Split(path, "/")
+
+			// Check if the path is an immediate child (either a file or a direct subdirectory)
+			if len(pathSegments) == 1 {
+				// It's a file directly within `dirPath`
+				entries = append(entries, newWebAppEntry(pathSegments[0], false))
+			} else if len(pathSegments) > 1 {
+				// It's a subdirectory, but ensure to add each unique subdirectory only once
+				subDirName := pathSegments[0] // The immediate subdirectory name
+				if _, exists := dirMap[subDirName]; !exists {
+					entries = append(entries, newWebAppEntry(subDirName, true))
+					dirMap[subDirName] = true
+				}
+			}
+		}
+
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].Name() < entries[j].Name()
+		})
+
+		return entries, nil
+	}
+
+	return nil, errors.New("unsupported CID type")
+}
+
 func newS5FileInfo(file *S5File) *S5FileInfo {
 	return &S5FileInfo{
 		file: file,
 	}
+}
+
+type webAppEntry struct {
+	name  string
+	isDir bool
+}
+
+func newWebAppEntry(name string, isDir bool) *webAppEntry {
+	return &webAppEntry{name: name, isDir: isDir}
+}
+
+func (d *webAppEntry) Name() string {
+	return d.name
+}
+
+func (d *webAppEntry) IsDir() bool {
+	return d.isDir
+}
+
+func (d *webAppEntry) Type() fs.FileMode {
+	if d.isDir {
+		return fs.ModeDir
+	}
+
+	return 0
+}
+
+func (d *webAppEntry) Info() (fs.FileInfo, error) {
+	return &webAppFileInfo{name: d.name, isDir: true}, nil
+}
+
+type webAppFileInfo struct {
+	name  string
+	isDir bool
+}
+
+func (fi *webAppFileInfo) Name() string { return fi.name }
+func (fi *webAppFileInfo) Size() int64  { return 0 }
+func (fi *webAppFileInfo) Mode() fs.FileMode {
+	if fi.isDir {
+		return fs.ModeDir
+	}
+
+	return 0
+}
+func (fi *webAppFileInfo) ModTime() time.Time {
+	return time.Time{}
+}
+func (fi *webAppFileInfo) IsDir() bool {
+	return fi.isDir
+}
+func (fi *webAppFileInfo) Sys() interface{} {
+	return nil
 }
