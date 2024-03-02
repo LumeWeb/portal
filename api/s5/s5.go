@@ -1305,7 +1305,7 @@ func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map
 	return app, nil
 }
 
-func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http.Request) (string, *S5Error) {
+func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http.Request) (string, error) {
 	userId := middleware.GetUserFromContext(r.Context())
 
 	appDataRaw, err := msgpack.Marshal(appData)
