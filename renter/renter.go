@@ -10,6 +10,10 @@ import (
 	"strconv"
 	"strings"
 
+	"git.lumeweb.com/LumeWeb/portal/db/models"
+
+	"gorm.io/gorm"
+
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
@@ -31,6 +35,7 @@ type RenterServiceParams struct {
 	Config *config.Manager
 	Logger *zap.Logger
 	Cron   *cron.CronServiceDefault
+	Db     *gorm.DB
 }
 
 type RenterDefault struct {
@@ -39,15 +44,15 @@ type RenterDefault struct {
 	config       *config.Manager
 	logger       *zap.Logger
 	cron         *cron.CronServiceDefault
+	db           *gorm.DB
 }
 
 type MultiPartUploadParams struct {
-	ReaderFactory    ReaderFactory
-	Bucket           string
-	FileName         string
-	Size             uint64
-	ExistingUploadID string
-	UploadIDHandler  UploadIDHandler
+	ReaderFactory   ReaderFactory
+	Bucket          string
+	FileName        string
+	Size            uint64
+	UploadIDHandler UploadIDHandler
 }
 
 var Module = fx.Module("renter",
@@ -64,6 +69,7 @@ func NewRenterService(params RenterServiceParams) *RenterDefault {
 		config: params.Config,
 		logger: params.Logger,
 		cron:   params.Cron,
+		db:     params.Db,
 	}
 }
 
@@ -159,36 +165,54 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 	var uploadId string
 	start := uint64(0)
 
-	if params.ExistingUploadID != "" {
-		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, params.ExistingUploadID, 0, 0)
+	var siaUpload models.SiaUpload
 
-		if err != nil {
-			return err
-		}
+	siaUpload.Bucket = bucket
+	siaUpload.Key = fileName
 
-		uploadId = params.ExistingUploadID
-
-		for _, part := range existing.Parts {
-			if uint64(part.Size) != slabSize {
-				break
-			}
-			partNumber := part.PartNumber
-			uploadParts[partNumber-1] = api.MultipartCompletedPart{
-				PartNumber: part.PartNumber,
-				ETag:       part.ETag,
-			}
-		}
-
-		if len(uploadParts) > 0 {
-			start = uint64(len(uploadParts)) - 1
+	ret := r.db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
+	if ret.Error != nil {
+		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+			return ret.Error
 		}
 	} else {
+		uploadId = siaUpload.UploadID
+	}
+
+	if len(uploadId) > 0 {
+		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
+
+		if err != nil {
+			uploadId = ""
+		} else {
+			for _, part := range existing.Parts {
+				if uint64(part.Size) != slabSize {
+					break
+				}
+				partNumber := part.PartNumber
+				uploadParts[partNumber-1] = api.MultipartCompletedPart{
+					PartNumber: part.PartNumber,
+					ETag:       part.ETag,
+				}
+			}
+
+			if len(uploadParts) > 0 {
+				start = uint64(len(uploadParts)) - 1
+			}
+		}
+
+	}
+
+	if uploadId == "" {
 		upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{Key: object.NoOpKey})
 		if err != nil {
 			return err
 		}
 
 		uploadId = upload.UploadID
+		if tx := r.db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload); tx.Error != nil {
+			return tx.Error
+		}
 	}
 
 	if idHandler != nil {
@@ -263,6 +287,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts)
 	if err != nil {
 		return err
+	}
+
+	if tx := r.db.WithContext(ctx).Delete(&siaUpload); tx.Error != nil {
+		return tx.Error
 	}
 
 	return nil
