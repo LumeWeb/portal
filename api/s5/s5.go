@@ -230,7 +230,11 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 }
 
 func (s *S5API) Can(w http.ResponseWriter, r *http.Request) bool {
-	resolve, err := dnslink.Resolve(r.Host)
+	host := r.Host
+	if strings.Contains(host, ":") {
+		host = strings.Split(host, ":")[0]
+	}
+	resolve, err := dnslink.Resolve(host)
 	if err != nil {
 		return false
 	}
