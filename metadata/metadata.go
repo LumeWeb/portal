@@ -14,11 +14,12 @@ import (
 var ErrNotFound = gorm.ErrRecordNotFound
 
 type UploadMetadata struct {
-	UserID     uint      `json:"userId"`
+	ID         uint      `json:"upload_id"`
+	UserID     uint      `json:"user_id"`
 	Hash       []byte    `json:"hash"`
-	MimeType   string    `json:"mimeType"`
+	MimeType   string    `json:"mime_type"`
 	Protocol   string    `json:"protocol"`
-	UploaderIP string    `json:"uploaderIp"`
+	UploaderIP string    `json:"uploader_ip"`
 	Size       uint64    `json:"size"`
 	Created    time.Time `json:"created"`
 }
@@ -137,6 +138,7 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 	}
 
 	return UploadMetadata{
+		ID:         upload.ID,
 		UserID:     upload.UserID,
 		Hash:       upload.Hash,
 		MimeType:   upload.MimeType,
