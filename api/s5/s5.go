@@ -1215,8 +1215,14 @@ func (s *S5API) directoryUpload(jc jape.Context) {
 		return
 	}
 
+	var webappErrorPages s5libmetadata.WebAppErrorPages
+
+	for code, page := range errorPages {
+		webappErrorPages[code] = page
+	}
+
 	// Generate metadata for the directory upload
-	app, err := s.createAppMetadata(name, tryFiles, errorPages, uploads)
+	app, err := s.createAppMetadata(name, tryFiles, webappErrorPages, uploads)
 	if err != nil {
 		s.sendErrorResponse(jc, err)
 		return
@@ -1274,7 +1280,7 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 	return uploadMap, nil
 }
 
-func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map[int]string, uploads map[string]*metadata.UploadMetadata) (*s5libmetadata.WebAppMetadata, error) {
+func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages s5libmetadata.WebAppErrorPages, uploads map[string]*metadata.UploadMetadata) (*s5libmetadata.WebAppMetadata, error) {
 	filesMap := s5libmetadata.NewWebAppFileMap()
 
 	for filename, upload := range uploads {
