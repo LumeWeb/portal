@@ -1277,6 +1277,11 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
 			}
 
+			err = s.accounts.PinByHash(upload.Hash, user)
+			if err != nil {
+				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
+			}
+
 			uploadMap[filename] = upload
 		}
 	}
@@ -1339,6 +1344,11 @@ func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http
 	upload.UploaderIP = r.RemoteAddr
 
 	err = s.metadata.SaveUpload(r.Context(), *upload)
+	if err != nil {
+		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
+	}
+
+	err = s.accounts.PinByHash(upload.Hash, userId)
 	if err != nil {
 		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
 	}
