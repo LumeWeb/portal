@@ -1388,7 +1388,7 @@ func (s *S5API) debugDownloadUrls(jc jape.Context) {
 
 	locations, err := node.Services().Storage().GetCachedStorageLocations(&decodedCid.Hash, []types.StorageLocationType{
 		types.StorageLocationTypeFull, types.StorageLocationTypeFile, types.StorageLocationTypeBridge,
-	})
+	}, true)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err, "Failed to get cached storage locations"))
 		return
@@ -1663,7 +1663,7 @@ func (s *S5API) debugStorageLocations(jc jape.Context) {
 		return
 	}
 
-	locations, err := s.getNode().Services().Storage().GetCachedStorageLocations(decodedHash, typeIntList)
+	locations, err := s.getNode().Services().Storage().GetCachedStorageLocations(decodedHash, typeIntList, true)
 	if jc.Check("error getting cached locations", err) != nil {
 		return
 	}
