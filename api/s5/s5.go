@@ -892,7 +892,8 @@ func (s *S5API) getManifestCids(cid *encoding.CID) ([]*encoding.CID, error) {
 
 	case types.CIDTypeMetadataWebapp:
 		webapp := manifest.(*s5libmetadata.WebAppMetadata)
-		lo.ForEach(lo.Values(webapp.Paths), func(f s5libmetadata.WebAppMetadataFileReference, _i int) {
+
+		lo.ForEach(webapp.Paths.Values(), func(f s5libmetadata.WebAppMetadataFileReference, _i int) {
 			cids = append(cids, f.Cid)
 		})
 	}
@@ -1274,7 +1275,7 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 }
 
 func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map[int]string, uploads map[string]*metadata.UploadMetadata) (*s5libmetadata.WebAppMetadata, error) {
-	filesMap := make(map[string]s5libmetadata.WebAppMetadataFileReference, len(uploads))
+	filesMap := s5libmetadata.NewWebAppFileMap()
 
 	for filename, upload := range uploads {
 		hash := upload.Hash
@@ -1283,11 +1284,13 @@ func (s *S5API) createAppMetadata(name string, tryFiles []string, errorPages map
 		if err != nil {
 			return nil, NewS5Error(ErrKeyInternalError, err, "Failed to create CID for file: "+filename)
 		}
-		filesMap[filename] = s5libmetadata.WebAppMetadataFileReference{
+		filesMap.Put(filename, s5libmetadata.WebAppMetadataFileReference{
 			Cid:         cid,
 			ContentType: upload.MimeType,
-		}
+		})
 	}
+
+	filesMap.Sort()
 
 	extraMetadataMap := make(map[int]interface{})
 	for statusCode, page := range errorPages {

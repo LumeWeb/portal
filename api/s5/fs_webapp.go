@@ -32,7 +32,7 @@ func (w webAppFs) Open(name string) (fs.File, error) {
 		return nil, errors.New("manifest is not a web app")
 	}
 
-	item, ok := webApp.Paths[name]
+	item, ok := webApp.Paths.Get(name)
 
 	if !ok {
 		return nil, fs.ErrNotExist

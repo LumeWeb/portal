@@ -364,7 +364,9 @@ func (f *S5File) ReadDir(n int) ([]fs.DirEntry, error) {
 		var entries []fs.DirEntry
 		dirMap := make(map[string]bool)
 
-		for path, _ := range webApp.Paths {
+		webApp.Paths.Keys()
+
+		for _, path := range webApp.Paths.Keys() {
 			pathSegments := strings.Split(path, "/")
 
 			// Check if the path is an immediate child (either a file or a direct subdirectory)
