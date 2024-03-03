@@ -32,9 +32,17 @@ func (w webAppFs) Open(name string) (fs.File, error) {
 		return nil, errors.New("manifest is not a web app")
 	}
 
+	if name == "." {
+		return w.s5.newFile(FileParams{
+			Hash: w.root.Hash.HashBytes(),
+			Type: w.root.Type,
+			Name: name,
+		}), nil
+	}
+
 	item, ok := webApp.Paths.Get(name)
 
-	if !ok && name != "/" && name != "." {
+	if !ok {
 		return nil, fs.ErrNotExist
 	}
 	return w.s5.newFile(FileParams{
