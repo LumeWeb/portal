@@ -1,10 +1,13 @@
 package account
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
 	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/mailer"
 
@@ -28,6 +31,7 @@ type AccountServiceParams struct {
 	Config   *config.Manager
 	Identity ed25519.PrivateKey
 	Mailer   *mailer.Mailer
+	Metadata metadata.MetadataService
 }
 
 var Module = fx.Module("account",
@@ -41,10 +45,11 @@ type AccountServiceDefault struct {
 	config   *config.Manager
 	identity ed25519.PrivateKey
 	mailer   *mailer.Mailer
+	metadata metadata.MetadataService
 }
 
 func NewAccountService(params AccountServiceParams) *AccountServiceDefault {
-	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity, mailer: params.Mailer}
+	return &AccountServiceDefault{db: params.Db, config: params.Config, identity: params.Identity, mailer: params.Mailer, metadata: params.Metadata}
 }
 
 func (s *AccountServiceDefault) EmailExists(email string) (bool, *models.User, error) {
@@ -540,12 +545,46 @@ func (s AccountServiceDefault) OTPDisable(userId uint) error {
 }
 
 func (s AccountServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink, error) {
-	dnsLink := &models.DNSLink{}
-	exists, model, err := s.exists(dnsLink, map[string]interface{}{"upload": hash})
+	upload, err := s.metadata.GetUpload(context.Background(), hash)
+	if err != nil {
+		return false, nil, err
+	}
+
+	exists, model, err := s.exists(&models.DNSLink{}, map[string]interface{}{"upload_id": upload.ID})
 	if !exists || err != nil {
 		return false, nil, err
 	}
+
+	pinned, err := s.UploadPinned(hash)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if !pinned {
+		return false, nil, nil
+	}
+
 	return true, model.(*models.DNSLink), nil
+}
+
+func (s AccountServiceDefault) UploadPinned(hash []byte) (bool, error) {
+	upload, err := s.metadata.GetUpload(context.Background(), hash)
+	if err != nil {
+		return false, err
+	}
+
+	var pin models.Pin
+	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: upload.ID}).First(&pin)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+
+		return false, result.Error
+	}
+
+	return true, nil
 }
 
 func GenerateSecurityToken() string {
