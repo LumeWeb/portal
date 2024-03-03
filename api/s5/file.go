@@ -308,6 +308,10 @@ func (s S5FileInfo) ModTime() time.Time {
 }
 
 func (s S5FileInfo) IsDir() bool {
+	if s.file.name == "." {
+		return true
+	}
+
 	return s.file.typ == types.CIDTypeDirectory
 }
 
