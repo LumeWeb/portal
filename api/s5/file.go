@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"path"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -41,6 +43,9 @@ type S5File struct {
 	tus      *s5.TusHandler
 	ctx      context.Context
 	name     string
+	root     []byte
+	rootType types.CIDType
+	rootCid  *encoding.CID
 }
 
 func (f *S5File) IsDir() bool {
@@ -67,6 +72,8 @@ type FileParams struct {
 	Protocol *s5.S5Protocol
 	Tus      *s5.TusHandler
 	Name     string
+	Root     []byte
+	RootType types.CIDType
 }
 
 func NewFile(params FileParams) *S5File {
@@ -79,6 +86,8 @@ func NewFile(params FileParams) *S5File {
 		tus:      params.Tus,
 		ctx:      context.Background(),
 		name:     params.Name,
+		root:     params.Root,
+		rootType: params.RootType,
 	}
 }
 
@@ -242,6 +251,25 @@ func (f *S5File) CID() *encoding.CID {
 	return f.cid
 }
 
+func (f *S5File) RootCID() *encoding.CID {
+	if f.rootCid == nil {
+		if f.root == nil {
+			return nil
+		}
+		multihash := encoding.MultihashFromBytes(f.root, types.HashTypeBlake3)
+		typ := f.rootType
+		if typ == 0 {
+			typ = types.CIDTypeRaw
+		}
+
+		cid := encoding.NewCID(typ, *multihash, f.Size())
+		f.rootCid = cid
+
+	}
+
+	return f.rootCid
+}
+
 func (f *S5File) Mime() string {
 	record, err := f.Record()
 	if err != nil {
@@ -275,7 +303,13 @@ func (f *S5File) Proof() ([]byte, error) {
 	return proof, nil
 }
 func (f *S5File) Manifest() (s5libmetadata.Metadata, error) {
-	meta, err := f.protocol.Node().Services().Storage().GetMetadataByCID(f.CID())
+	cid := f.RootCID()
+
+	if cid == nil {
+		cid = f.CID()
+	}
+
+	meta, err := f.protocol.Node().Services().Storage().GetMetadataByCID(cid)
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +344,16 @@ func (s S5FileInfo) ModTime() time.Time {
 func (s S5FileInfo) IsDir() bool {
 	if s.file.name == "." {
 		return true
+	}
+
+	manifest, err := s.file.Manifest()
+	if err == nil && s.file.root != nil {
+		webApp, ok := manifest.(*s5libmetadata.WebAppMetadata)
+		if ok {
+			if slices.Contains(webApp.TryFiles, path.Base(s.file.name)) {
+				return true
+			}
+		}
 	}
 
 	return s.file.typ == types.CIDTypeDirectory
