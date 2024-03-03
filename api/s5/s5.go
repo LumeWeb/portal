@@ -2055,6 +2055,7 @@ func isCidManifest(cid *encoding.CID) bool {
 		types.CIDTypeMetadataMedia,
 		types.CIDTypeMetadataWebapp,
 		types.CIDTypeUserIdentity,
+		types.CIDTypeDirectory,
 	}
 
 	return slices.Contains(mTypes, cid.Type)
