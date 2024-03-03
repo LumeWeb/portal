@@ -3,6 +3,7 @@ package s5
 import (
 	"errors"
 	"io/fs"
+	"path"
 
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
@@ -43,7 +44,19 @@ func (w webAppFs) Open(name string) (fs.File, error) {
 	item, ok := webApp.Paths.Get(name)
 
 	if !ok {
-		return nil, fs.ErrNotExist
+		name = path.Join(name, "index.html")
+		item, ok = webApp.Paths.Get(name)
+		if !ok {
+			return nil, fs.ErrNotExist
+		}
+
+		return w.s5.newFile(FileParams{
+			Hash:     item.Cid.Hash.HashBytes(),
+			Type:     item.Cid.Type,
+			Name:     name,
+			Root:     w.root.Hash.HashBytes(),
+			RootType: w.root.Type,
+		}), nil
 	}
 	return w.s5.newFile(FileParams{
 		Hash: item.Cid.Hash.HashBytes(),
