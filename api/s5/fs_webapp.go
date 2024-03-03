@@ -34,7 +34,7 @@ func (w webAppFs) Open(name string) (fs.File, error) {
 
 	item, ok := webApp.Paths.Get(name)
 
-	if !ok {
+	if !ok && name != "/" && name != "." {
 		return nil, fs.ErrNotExist
 	}
 	return w.s5.newFile(FileParams{
