@@ -870,7 +870,7 @@ func (s *S5API) getManifestCids(cid *encoding.CID) ([]*encoding.CID, error) {
 
 		lo.ForEach(lo.Values(dir.Directories.Items()), func(d *s5libmetadata.DirectoryReference, _i int) {
 			entry, err := s.getNode().Services().Registry().Get(d.PublicKey)
-			if err != nil {
+			if err != nil || entry == nil {
 				s.logger.Error("Error getting registry entry", zap.Error(err))
 				return
 			}
