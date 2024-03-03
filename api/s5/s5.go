@@ -272,7 +272,7 @@ func (s *S5API) Can(w http.ResponseWriter, r *http.Request) bool {
 
 	ctx := context.WithValue(r.Context(), "cid", decodedCid)
 
-	r = r.WithContext(ctx)
+	*r = *r.WithContext(ctx)
 
 	return true
 }
