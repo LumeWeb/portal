@@ -3,7 +3,7 @@ module git.lumeweb.com/LumeWeb/portal
 go 1.21.6
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240305191322-701386c05d78
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240305200159-cca7d881dec3
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/aws/aws-sdk-go-v2 v1.25.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
