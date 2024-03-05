@@ -844,7 +844,7 @@ func (s *S5API) accountPinDelete(jc jape.Context) {
 	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
 }
 
-func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID) ([]*encoding.CID, error) {
+func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID, addSelf bool) ([]*encoding.CID, error) {
 	var cids []*encoding.CID
 
 	if middleware.CtxAborted(ctx) {
@@ -856,7 +856,9 @@ func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID) ([]*enco
 		return nil, err
 	}
 
-	cids = append(cids, cid)
+	if addSelf {
+		cids = append(cids, cid)
+	}
 
 	switch cid.Type {
 	case types.CIDTypeMetadataMedia:
@@ -888,7 +890,7 @@ func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID) ([]*enco
 				return
 			}
 
-			childCids, err := s.getManifestCids(ctx, cid)
+			childCids, err := s.getManifestCids(ctx, cid, true)
 			if err != nil {
 				s.logger.Error("Error getting child manifest CIDs", zap.Error(err))
 				return
@@ -916,7 +918,7 @@ func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID) ([]*enco
 	return cids, nil
 }
 
-func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.CID) {
+func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.CID, addSelf bool) {
 	type pinResult struct {
 		Success bool  `json:"success"`
 		Error   error `json:"error,omitempty"`
@@ -928,7 +930,7 @@ func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.C
 		cid     *encoding.CID
 	}
 
-	cids, err := s.getManifestCids(jc.Request.Context(), cid)
+	cids, err := s.getManifestCids(jc.Request.Context(), cid, addSelf)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
 		return
@@ -1040,13 +1042,33 @@ func (s *S5API) accountPin(jc jape.Context) {
 
 	if !found {
 		if isCidManifest(decodedCid) {
-			s.accountPinManifest(jc, userID, decodedCid)
+			s.accountPinManifest(jc, userID, decodedCid, true)
 			return
 		} else {
 			err = s.pinEntity(jc.Request.Context(), userID, decodedCid)
 			if err != nil {
 				s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 				return
+			}
+		}
+	} else {
+		cids, err := s.getManifestCids(jc.Request.Context(), decodedCid, false)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+			return
+		}
+
+		for _, cid := range cids {
+			if err := s.accounts.PinByHash(cid.Hash.HashBytes(), userID); err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+					return
+				}
+				err := s.pinEntity(jc.Request.Context(), userID, cid)
+				if err != nil {
+					s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+					return
+				}
 			}
 		}
 	}
