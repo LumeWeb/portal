@@ -1027,6 +1027,12 @@ func (s *S5API) accountPin(jc jape.Context) {
 		if isCidManifest(decodedCid) {
 			s.accountPinManifest(jc, userID, decodedCid)
 			return
+		} else {
+			err = s.pinEntity(jc.Request.Context(), userID, decodedCid)
+			if err != nil {
+				s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+				return
+			}
 		}
 	}
 
