@@ -180,6 +180,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 	}
 
 	if len(uploadId) > 0 {
+		// TODO: Switch to using https://github.com/SiaFoundation/renterd/pull/974 after renterd is moved to core/coreutils. We cannot update until then due to WIP work.
 		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
 
 		if err != nil {
