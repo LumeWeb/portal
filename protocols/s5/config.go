@@ -21,6 +21,7 @@ func (c Config) Defaults() map[string]interface{} {
 		"wss://z2DWuPbL5pweybXnEB618pMnV58ECj2VPDNfVGm3tFqBvjF@s5.ninja/s5/p2p",
 	}
 	defaults["db_path"] = "s5.db"
+	defaults["p2p.max_connection_attempts"] = 10
 
 	return defaults
 }
