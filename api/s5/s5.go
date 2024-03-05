@@ -1085,30 +1085,24 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, cid *encoding.CID) e
 			}
 		}(res.Body)
 
-		contentLengthStr := res.Header.Get("Content-Length")
-		if contentLengthStr == "" {
-			err = dlUriProvider.Downvote(location)
-			if err != nil {
-				s.logger.Error("Error downvoting location", zap.Error(err))
-				return nil, false
-			}
-			return nil, false
-		}
-
-		contentLength, err := strconv.ParseInt(contentLengthStr, 10, 64)
+		// Use io.LimitedReader to limit the download size and attempt to detect if there's more data.
+		limitedReader := &io.LimitedReader{R: res.Body, N: int64(s.config.Config().Core.PostUploadLimit + 1)}
+		data, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return nil, false
 		}
 
 		if !isCidManifest(cid) {
-			if uint64(contentLength) != cid.Size {
+			if limitedReader.N >= 0 && uint64(len(data)) != cid.Size {
 				return nil, false
 			}
 		} else {
-			data, err := io.ReadAll(res.Body)
+			dataCont, err := io.ReadAll(res.Body)
 			if err != nil {
 				return nil, false
 			}
+
+			data = append(data, dataCont...)
 
 			proof, err := s.storage.HashObject(ctx, bytes.NewReader(data))
 			if err != nil {
