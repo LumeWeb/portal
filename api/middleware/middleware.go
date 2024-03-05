@@ -186,3 +186,11 @@ func GetUserFromContext(ctx context.Context, key ...string) uint {
 
 	return userId
 }
+func CtxAborted(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
