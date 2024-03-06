@@ -108,8 +108,9 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	jc.ResponseWriter.Header().Set("Authorization", "Bearer "+jwt)
-	jc.ResponseWriter.WriteHeader(http.StatusOK)
+	jc.Encode(&LoginResponse{
+		Token: jwt,
+	})
 }
 
 func (a AccountAPI) register(jc jape.Context) {

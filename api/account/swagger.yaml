@@ -16,11 +16,10 @@ paths:
             responses:
                 '200':
                     description: Successfully logged in
-                    headers:
-                        Authorization:
+                    content:
+                        application/json:
                             schema:
-                                type: string
-                            description: Bearer token for the session
+                                $ref: '#/components/schemas/LoginResponse'
                 '401':
                     description: Unauthorized
     /api/auth/register:
@@ -131,6 +130,11 @@ components:
                 email:
                     type: string
                 password:
+                    type: string
+        LoginResponse:
+            type: object
+            properties:
+                token:
                     type: string
         RegisterRequest:
             type: object
