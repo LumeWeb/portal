@@ -1,0 +1,206 @@
+openapi: 3.0.0
+info:
+    title: Account Management API
+    version: "1.0"
+    description: API for managing user accounts, including login, registration, OTP operations, and password resets.
+paths:
+    /api/auth/login:
+        post:
+            summary: Login to the system
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LoginRequest'
+            responses:
+                '200':
+                    description: Successfully logged in
+                    headers:
+                        Authorization:
+                            schema:
+                                type: string
+                            description: Bearer token for the session
+                '401':
+                    description: Unauthorized
+    /api/auth/register:
+        post:
+            summary: Register a new account
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RegisterRequest'
+            responses:
+                '200':
+                    description: Successfully registered
+                '400':
+                    description: Bad Request
+    /api/auth/verify-email:
+        post:
+            summary: Verify email address
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/VerifyEmailRequest'
+            responses:
+                '200':
+                    description: Email verified successfully
+    /api/auth/otp/generate:
+        get:
+            summary: Generate OTP for two-factor authentication
+            responses:
+                '200':
+                    description: OTP generated successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/OTPGenerateResponse'
+    /api/auth/otp/verify:
+        post:
+            summary: Verify OTP for enabling two-factor authentication
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OTPVerifyRequest'
+            responses:
+                '200':
+                    description: OTP verified successfully
+    /api/auth/otp/validate:
+        post:
+            summary: Validate OTP for two-factor authentication login
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OTPValidateRequest'
+            responses:
+                '200':
+                    description: OTP validated successfully
+    /api/auth/otp/disable:
+        post:
+            summary: Disable OTP for two-factor authentication
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OTPDisableRequest'
+            responses:
+                '200':
+                    description: OTP disabled successfully
+    /api/auth/password-reset/request:
+        post:
+            summary: Request a password reset
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PasswordResetRequest'
+            responses:
+                '200':
+                    description: Password reset requested successfully
+    /api/auth/password-reset/confirm:
+        post:
+            summary: Confirm a password reset
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/PasswordResetVerifyRequest'
+            responses:
+                '200':
+                    description: Password reset successfully
+
+components:
+    schemas:
+        LoginRequest:
+            type: object
+            required:
+                - email
+                - password
+            properties:
+                email:
+                    type: string
+                password:
+                    type: string
+        RegisterRequest:
+            type: object
+            required:
+                - firstName
+                - lastName
+                - email
+                - password
+            properties:
+                firstName:
+                    type: string
+                lastName:
+                    type: string
+                email:
+                    type: string
+                password:
+                    type: string
+        VerifyEmailRequest:
+            type: object
+            required:
+                - email
+                - token
+            properties:
+                email:
+                    type: string
+                token:
+                    type: string
+        OTPGenerateResponse:
+            type: object
+            properties:
+                OTP:
+                    type: string
+        OTPVerifyRequest:
+            type: object
+            required:
+                - OTP
+            properties:
+                OTP:
+                    type: string
+        OTPValidateRequest:
+            type: object
+            required:
+                - OTP
+            properties:
+                OTP:
+                    type: string
+        OTPDisableRequest:
+            type: object
+            required:
+                - password
+            properties:
+                password:
+                    type: string
+        PasswordResetRequest:
+            type: object
+            required:
+                - email
+            properties:
+                email:
+                    type: string
+        PasswordResetVerifyRequest:
+            type: object
+            required:
+                - email
+                - token
+                - password
+            properties:
+                email:
+                    type: string
+                token:
+                    type: string
+                password:
+                    type: string

@@ -3,7 +3,10 @@ package account
 import (
 	"context"
 	"crypto/ed25519"
+	_ "embed"
 	"net/http"
+
+	"git.lumeweb.com/LumeWeb/portal/api/swagger"
 
 	"git.lumeweb.com/LumeWeb/portal/api/router"
 
@@ -19,6 +22,9 @@ import (
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 )
+
+//go:embed swagger.yaml
+var swagSpec []byte
 
 var (
 	_ registry.API       = (*AccountAPI)(nil)
@@ -272,7 +278,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		Purpose:  account.JWTPurposeLogin,
 	})
 
-	return jape.Mux(map[string]jape.Handler{
+	routes := map[string]jape.Handler{
 		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
 		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
@@ -282,7 +288,14 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
-	}), nil
+	}
+
+	routes, err := swagger.Swagger(swagSpec, routes)
+	if err != nil {
+		return nil, err
+	}
+
+	return jape.Mux(routes), nil
 }
 func (a AccountAPI) Can(w http.ResponseWriter, r *http.Request) bool {
 	return false
