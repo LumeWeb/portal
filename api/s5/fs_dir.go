@@ -72,6 +72,15 @@ func (w *dirFs) openDirectly(name string, dir *metadata.DirectoryMetadata) (fs.F
 		}), nil
 	}
 
+	if name == "." {
+		return w.s5.newFile(FileParams{
+			Hash: w.root.Hash.HashBytes(),
+			Type: w.root.Type,
+			Name: name,
+		}), nil
+
+	}
+
 	return nil, fs.ErrNotExist
 }
 
