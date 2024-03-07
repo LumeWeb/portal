@@ -309,6 +309,20 @@ func (f *S5File) Manifest() (s5libmetadata.Metadata, error) {
 		cid = f.CID()
 	}
 
+	if f.Exists() {
+		data, err := io.ReadAll(f)
+		if err != nil {
+			return nil, err
+		}
+
+		md, err := f.protocol.Node().Services().Storage().ParseMetadata(data, cid)
+		if err != nil {
+			return nil, err
+		}
+
+		return md, nil
+	}
+
 	meta, err := f.protocol.Node().Services().Storage().GetMetadataByCID(cid)
 	if err != nil {
 		return nil, err
