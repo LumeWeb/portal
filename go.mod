@@ -3,7 +3,7 @@ module git.lumeweb.com/LumeWeb/portal
 go 1.21.6
 
 require (
-	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240309121554-42fa773b52b6
+	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240309181222-438e76dfb848
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/aws/aws-sdk-go-v2 v1.25.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
@@ -27,11 +27,11 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
+	github.com/siacentral/apisdkgo v0.2.10
 	github.com/spf13/viper v1.18.2
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/wneessen/go-mail v0.4.1
-	go.etcd.io/bbolt v1.3.8
 	go.sia.tech/core v0.1.12
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231
 	go.sia.tech/renterd v1.0.5
@@ -87,7 +87,7 @@ require (
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/klauspost/reedsolomon v1.12.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -112,6 +112,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
@@ -130,6 +131,7 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e // indirect
 	gitlab.com/NebulousLabs/siamux v0.0.2-0.20220630142132-142a1443a259 // indirect
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
+	go.etcd.io/bbolt v1.3.8 // indirect
 	go.sia.tech/mux v1.2.0 // indirect
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca // indirect
 	go.uber.org/dig v1.17.0 // indirect
