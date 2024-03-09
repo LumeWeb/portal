@@ -211,6 +211,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 		}
 
 		uploadId = upload.UploadID
+		siaUpload.UploadID = uploadId
 		if tx := r.db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload); tx.Error != nil {
 			return tx.Error
 		}
