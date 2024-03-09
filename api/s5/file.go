@@ -181,6 +181,24 @@ func (f *S5File) init(offset int64) error {
 
 func (f *S5File) Record() (*metadata.UploadMetadata, error) {
 	if f.record == nil {
+		exists, tusRecord := f.tus.UploadExists(context.Background(), f.hash)
+
+		if exists {
+			size, err := f.tus.GetUploadSize(context.Background(), f.hash)
+			if err != nil {
+				return nil, err
+			}
+			return &metadata.UploadMetadata{
+				Hash:       f.hash,
+				Size:       uint64(size),
+				MimeType:   tusRecord.MimeType,
+				Created:    tusRecord.CreatedAt,
+				Protocol:   f.protocol.Name(),
+				UploaderIP: tusRecord.UploaderIP,
+				UserID:     tusRecord.UploaderID,
+			}, nil
+		}
+
 		record, err := f.metadata.GetUpload(context.Background(), f.hash)
 
 		if err != nil {
