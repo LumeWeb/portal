@@ -92,6 +92,13 @@ func NewFile(params FileParams) *S5File {
 }
 
 func (f *S5File) Exists() bool {
+	ctx := context.Background()
+	exists, _ := f.tus.UploadExists(ctx, f.hash)
+
+	if exists {
+		return true
+	}
+
 	_, err := f.metadata.GetUpload(context.Background(), f.hash)
 
 	if err != nil {
