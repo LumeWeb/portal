@@ -309,6 +309,26 @@ func (t *TusHandler) SetStorageProtocol(storageProtocol storage.StorageProtocol)
 	t.storageProtocol = storageProtocol
 }
 
+func (t *TusHandler) GetUploadSize(ctx context.Context, hash []byte) (int64, error) {
+	exists, upload := t.UploadExists(ctx, hash)
+
+	if !exists {
+		return 0, metadata.ErrNotFound
+	}
+
+	meta, err := t.tusStore.GetUpload(ctx, upload.UploadID)
+	if err != nil {
+		return 0, err
+	}
+
+	info, err := meta.GetInfo(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.Size, nil
+}
+
 func (t *TusHandler) uploadTask(hash []byte) error {
 	ctx := context.Background()
 	exists, upload := t.UploadExists(ctx, hash)
