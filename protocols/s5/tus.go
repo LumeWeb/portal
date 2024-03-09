@@ -445,7 +445,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 }
 
 func (t *TusHandler) worker() {
-
+	ctx := context.Background()
 	for {
 		select {
 		case info := <-t.tus.CreatedUploads:
@@ -475,7 +475,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			_, err = t.CreateUpload(info.Context, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name())
+			_, err = t.CreateUpload(ctx, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name())
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
 				info.Upload.StopUpload(errorResponse)
@@ -483,13 +483,13 @@ func (t *TusHandler) worker() {
 				continue
 			}
 		case info := <-t.tus.UploadProgress:
-			err := t.UploadProgress(info.Context, info.Upload.ID)
+			err := t.UploadProgress(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not update tus upload", zap.Error(err))
 				continue
 			}
 		case info := <-t.tus.TerminatedUploads:
-			err := t.DeleteUpload(info.Context, info.Upload.ID)
+			err := t.DeleteUpload(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not delete tus upload", zap.Error(err))
 				continue
@@ -499,12 +499,12 @@ func (t *TusHandler) worker() {
 			if !(!info.Upload.SizeIsDeferred && info.Upload.Offset == info.Upload.Size) {
 				continue
 			}
-			err := t.UploadCompleted(info.Context, info.Upload.ID)
+			err := t.UploadCompleted(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not complete tus upload", zap.Error(err))
 				continue
 			}
-			err = t.ScheduleUpload(info.Context, info.Upload.ID)
+			err = t.ScheduleUpload(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not schedule tus upload", zap.Error(err))
 				continue
