@@ -121,7 +121,7 @@ func (f *S5File) Read(p []byte) (n int, err error) {
 func (f *S5File) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
-		if !f.read {
+		if !f.read && offset == 0 {
 			return 0, nil
 		}
 
