@@ -16,6 +16,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/storage"
 
 	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
+	s5db "git.lumeweb.com/LumeWeb/libs5-go/db"
 	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	s5fx "git.lumeweb.com/LumeWeb/libs5-go/fx"
@@ -23,7 +24,6 @@ import (
 	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	bolt "go.etcd.io/bbolt"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -60,7 +60,7 @@ type S5ProtocolResult struct {
 	Protocol     registry.Protocol `group:"protocol"`
 	S5Protocol   *S5Protocol
 	S5NodeConfig *s5config.NodeConfig
-	Db           *bolt.DB
+	Db           s5db.KVStore
 }
 
 type S5ProviderStoreParams struct {
@@ -144,12 +144,7 @@ func configureS5Protocol(proto *S5Protocol) (*s5config.NodeConfig, error) {
 	p := ed25519.NewKeyFromSeed(derivedSeed)
 	cfg.KeyPair = s5ed.New(p)
 
-	db, err := bolt.Open(cfg.DbPath, 0600, nil)
-	if err != nil {
-		proto.logger.Fatal("Failed to open db", zap.Error(err))
-	}
-
-	cfg.DB = db
+	cfg.DB = s5db.NewBboltDBKVStore(cfg.DbPath)
 
 	cfg.Logger = proto.logger.Named("s5")
 
