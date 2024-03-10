@@ -278,3 +278,14 @@ func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSetting
 
 	return settings, nil
 }
+
+func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancySettings, error) {
+	var settings api.RedundancySettings
+	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
+
+	if err != nil {
+		return api.RedundancySettings{}, err
+	}
+
+	return settings, nil
+}
