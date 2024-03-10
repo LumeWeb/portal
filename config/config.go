@@ -49,7 +49,7 @@ func NewManager() (*Manager, error) {
 		root:  &config,
 	}
 
-	m.setDefaultsForObject(m.root.Core, "")
+	m.setDefaultsForObject(m.root.Core, "core")
 	err = m.maybeSave()
 	if err != nil {
 		return nil, err
