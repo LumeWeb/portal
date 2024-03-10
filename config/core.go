@@ -18,7 +18,6 @@ type CoreConfig struct {
 	Log             LogConfig      `mapstructure:"log"`
 	Port            uint           `mapstructure:"port"`
 	PostUploadLimit uint64         `mapstructure:"post_upload_limit"`
-	Sia             SiaConfig      `mapstructure:"sia"`
 	Storage         StorageConfig  `mapstructure:"storage"`
 	Protocols       []string       `mapstructure:"protocols"`
 	Mail            MailConfig     `mapstructure:"mail"`

@@ -111,8 +111,8 @@ func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket
 }
 
 func (r *RenterDefault) init() error {
-	addr := r.config.Config().Core.Sia.URL
-	passwd := r.config.Config().Core.Sia.Key
+	addr := r.config.Config().Core.Storage.Sia.URL
+	passwd := r.config.Config().Core.Storage.Sia.Key
 
 	addrURL, err := url.Parse(addr)
 

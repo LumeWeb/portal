@@ -102,27 +102,27 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	gouge.MaxDownloadPrice, err = siacoinsFromFloat(p.config.Config().Core.Sia.MaxDownloadPrice / averageRate)
+	gouge.MaxDownloadPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxUploadPrice, err = siacoinsFromFloat(p.config.Config().Core.Sia.MaxUploadPrice / averageRate)
+	gouge.MaxUploadPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxUploadPrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxContractPrice, err = siacoinsFromFloat(p.config.Config().Core.Sia.MaxContractPrice / averageRate)
+	gouge.MaxContractPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxContractPrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxStoragePrice, err = siacoinsFromFloat(p.config.Config().Core.Sia.MaxStoragePrice / averageRate)
+	gouge.MaxStoragePrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxRPCPrice, err = siacoinsFromFloat(p.config.Config().Core.Sia.MaxRPCPrice / averageRate)
+	gouge.MaxRPCPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (p PriceTracker) importPrices() error {
 		return err
 	}
 
-	daysOfHistory := p.config.Config().Core.Sia.PriceHistoryDays
+	daysOfHistory := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 
 	// Check if the count is less than x
 	if uint64(count) < daysOfHistory {
