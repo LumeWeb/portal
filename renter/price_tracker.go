@@ -149,9 +149,10 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate
+	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice
 	maxStoragePrice = maxStoragePrice / redundancy.Redundancy()
 	maxStoragePrice = maxStoragePrice / units.TiB
+	maxStoragePrice = maxStoragePrice / averageRate
 
 	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
 
