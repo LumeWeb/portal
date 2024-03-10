@@ -390,7 +390,13 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 
 	uploadMeta, err := t.storage.UploadObject(ctx, t.storageProtocol, nil, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
-			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+			rangeHeader := "bytes=%d-"
+			if end != 0 {
+				rangeHeader += "%d"
+				rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
+			} else {
+				rangeHeader = fmt.Sprintf("bytes=%d-", start)
+			}
 			ctx = context.WithValue(ctx, "range", rangeHeader)
 			return tusUpload.GetReader(ctx)
 		},

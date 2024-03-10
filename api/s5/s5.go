@@ -2059,7 +2059,13 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
-			rangeHeader := fmt.Sprintf("bytes=%d-%d", start, end)
+			rangeHeader := "bytes=%d-"
+			if end != 0 {
+				rangeHeader += "%d"
+				rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
+			} else {
+				rangeHeader = fmt.Sprintf("bytes=%d-", start)
+			}
 			object, err := client.GetObject(ctx, &s3.GetObjectInput{
 				Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
 				Key:    aws.String(cid),
