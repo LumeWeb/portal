@@ -14,8 +14,12 @@ func NewLogger(cm *config.Manager) (*zap.Logger, *zap.AtomicLevel) {
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()
 
-	// Set initial log level, for example, info level
-	atomicLevel.SetLevel(mapLogLevel(cm.Config().Core.Log.Level))
+	if cm != nil {
+		// Set initial log level, for example, info level
+		atomicLevel.SetLevel(mapLogLevel(cm.Config().Core.Log.Level))
+	} else {
+		atomicLevel.SetLevel(mapLogLevel("debug"))
+	}
 
 	// Create the logger with the atomic level
 	logger := zap.New(zapcore.NewCore(
