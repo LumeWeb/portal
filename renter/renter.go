@@ -15,6 +15,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
+	sia "github.com/siacentral/apisdkgo"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
 	busClient "go.sia.tech/renterd/bus/client"
@@ -55,7 +56,12 @@ type MultiPartUploadParams struct {
 var Module = fx.Module("renter",
 	fx.Options(
 		fx.Provide(NewRenterService),
+		fx.Provide(sia.NewSiaClient),
+		fx.Provide(NewPriceTracker),
 		fx.Invoke(func(r *RenterDefault) error {
+			return r.init()
+		}),
+		fx.Invoke(func(r *PriceTracker) error {
 			return r.init()
 		}),
 	),
@@ -256,4 +262,19 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *Multi
 
 func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileName string) error {
 	return r.workerClient.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
+}
+
+func (r *RenterDefault) UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error {
+	return r.busClient.UpdateSetting(ctx, api.SettingGouging, settings)
+}
+
+func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSettings, error) {
+	var settings api.GougingSettings
+	err := r.GetSetting(ctx, api.SettingGouging, &settings)
+
+	if err != nil {
+		return api.GougingSettings{}, err
+	}
+
+	return settings, nil
 }
