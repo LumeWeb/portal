@@ -114,29 +114,44 @@ SELECT AVG(rate) as average_rate FROM (
 	maxDownloadPrice := p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate
 	maxDownloadPrice = maxDownloadPrice / redundancy.Redundancy()
 
-	maxDownloadPriceSc, err := siacoinsFromFloat(maxDownloadPrice)
+	gouge.MaxDownloadPrice, err = siacoinsFromFloat(maxDownloadPrice)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxDownloadPrice = maxDownloadPriceSc
+	maxUploadPrice := p.config.Config().Core.Storage.Sia.MaxUploadPrice / averageRate
 
-	gouge.MaxUploadPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxUploadPrice / averageRate)
+	p.logger.Debug("Setting max upload price", zap.Float64("maxUploadPrice", maxUploadPrice))
+
+	gouge.MaxUploadPrice, err = siacoinsFromFloat(maxUploadPrice)
 	if err != nil {
 		return err
 	}
+
+	maxContractPrice := p.config.Config().Core.Storage.Sia.MaxContractPrice / averageRate
+
+	p.logger.Debug("Setting max contract price", zap.Float64("maxContractPrice", maxContractPrice))
 
 	gouge.MaxContractPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxContractPrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxStoragePrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate)
+	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate
+
+	p.logger.Debug("Setting max RPC price", zap.Float64("maxRPCPrice", maxRPCPrice))
+
+	gouge.MaxRPCPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate)
 	if err != nil {
 		return err
 	}
 
-	gouge.MaxRPCPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate)
+	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate
+	maxStoragePrice = maxStoragePrice / redundancy.Redundancy()
+
+	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
+
+	gouge.MaxStoragePrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate)
 	if err != nil {
 		return err
 	}
