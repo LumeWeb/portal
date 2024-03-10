@@ -79,7 +79,7 @@ func (p PriceTracker) updatePrices() error {
 SELECT AVG(rate) as average_rate FROM (
   SELECT rate FROM (
     SELECT rate, ROW_NUMBER() OVER (PARTITION BY DATE(created_at) ORDER BY created_at DESC) as rn
-    FROM sc_price_histories
+    FROM sc_price_history
     WHERE created_at >= NOW() - INTERVAL ? day
   ) tmp WHERE rn = 1
 ) final;
