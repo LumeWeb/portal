@@ -213,17 +213,17 @@ func (p PriceTracker) init() error {
 	p.cron.RegisterService(p)
 	p.api = apisdkgo.NewSiaClient()
 
-	err := p.importPrices()
-	if err != nil {
-		p.logger.Error("failed to import prices", zap.Error(err))
-		return err
-	}
+	go func() {
+		err := p.importPrices()
+		if err != nil {
+			p.logger.Fatal("failed to import prices", zap.Error(err))
+		}
 
-	err = p.updatePrices()
-	if err != nil {
-		p.logger.Error("failed to update prices", zap.Error(err))
-		return err
-	}
+		err = p.updatePrices()
+		if err != nil {
+			p.logger.Fatal("failed to update prices", zap.Error(err))
+		}
+	}()
 
 	return nil
 }
