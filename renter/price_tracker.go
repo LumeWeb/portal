@@ -25,6 +25,7 @@ import (
 var _ cron.CronableService = (*PriceTracker)(nil)
 
 const usdSymbol = "usd"
+const blocksPerMonth = 30 * 144
 
 type PriceTracker struct {
 	config *config.Manager
@@ -152,6 +153,7 @@ SELECT AVG(rate) as average_rate FROM (
 	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice
 	maxStoragePrice = maxStoragePrice / redundancy.Redundancy()
 	maxStoragePrice = maxStoragePrice / units.TiB
+	maxStoragePrice = maxStoragePrice / blocksPerMonth
 	maxStoragePrice = maxStoragePrice / averageRate
 
 	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
