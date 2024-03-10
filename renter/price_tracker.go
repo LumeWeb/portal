@@ -128,20 +128,20 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxContractPrice := p.config.Config().Core.Storage.Sia.MaxContractPrice / averageRate
+	maxContractPrice := p.config.Config().Core.Storage.Sia.MaxContractSCPrice
 
 	p.logger.Debug("Setting max contract price", zap.Float64("maxContractPrice", maxContractPrice))
 
-	gouge.MaxContractPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxContractPrice / averageRate)
+	gouge.MaxContractPrice, err = siacoinsFromFloat(maxContractPrice)
 	if err != nil {
 		return err
 	}
 
-	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate
+	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCSCPrice / averageRate
 
 	p.logger.Debug("Setting max RPC price", zap.Float64("maxRPCPrice", maxRPCPrice))
 
-	gouge.MaxRPCPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxRPCPrice / averageRate)
+	gouge.MaxRPCPrice, err = siacoinsFromFloat(maxRPCPrice)
 	if err != nil {
 		return err
 	}

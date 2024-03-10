@@ -6,14 +6,14 @@ var _ Validator = (*SiaConfig)(nil)
 var _ Defaults = (*SiaConfig)(nil)
 
 type SiaConfig struct {
-	Key              string  `mapstructure:"key"`
-	URL              string  `mapstructure:"url"`
-	PriceHistoryDays uint64  `mapstructure:"price_history_days"`
-	MaxUploadPrice   float64 `mapstructure:"max_upload_price"`
-	MaxDownloadPrice float64 `mapstructure:"max_download_price"`
-	MaxStoragePrice  float64 `mapstructure:"max_storage_price"`
-	MaxContractPrice float64 `mapstructure:"max_contract_price"`
-	MaxRPCPrice      float64 `mapstructure:"max_rpc_price"`
+	Key                string  `mapstructure:"key"`
+	URL                string  `mapstructure:"url"`
+	PriceHistoryDays   uint64  `mapstructure:"price_history_days"`
+	MaxUploadPrice     float64 `mapstructure:"max_upload_price"`
+	MaxDownloadPrice   float64 `mapstructure:"max_download_price"`
+	MaxStoragePrice    float64 `mapstructure:"max_storage_price"`
+	MaxContractSCPrice float64 `mapstructure:"max_contract_sc_price"`
+	MaxRPCSCPrice      float64 `mapstructure:"max_rpc_sc_price"`
 }
 
 func (s SiaConfig) Defaults() map[string]interface{} {
@@ -43,12 +43,12 @@ func (s SiaConfig) Validate() error {
 		return errors.New("core.storage.sia.max_storage_price must be greater than 0")
 	}
 
-	if s.MaxContractPrice <= 0 {
-		return errors.New("core.storage.sia.max_contract_price must be greater than 0")
+	if s.MaxRPCSCPrice <= 0 {
+		return errors.New("core.storage.sia.max_rpc_sc_price must be greater than 0")
 	}
 
-	if s.MaxRPCPrice <= 0 {
-		return errors.New("core.storage.sia.max_rpc_price must be greater than 0")
+	if s.MaxRPCSCPrice <= 0 {
+		return errors.New("core.storage.sia.max_contract_sc_price must be greater than 0")
 	}
 
 	return nil
