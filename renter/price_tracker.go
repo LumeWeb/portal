@@ -139,7 +139,7 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCSCPrice / averageRate
+	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCSCPrice
 	maxRPCPrice = maxRPCPrice / 1_000_000
 
 	p.logger.Debug("Setting max RPC price", zap.Float64("maxRPCPrice", maxRPCPrice))
