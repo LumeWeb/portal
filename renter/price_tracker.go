@@ -95,17 +95,31 @@ SELECT AVG(rate) as average_rate FROM (
 		return errors.New("average rate is 0")
 	}
 
-	gouge, err := p.renter.GougingSettings(context.Background())
+	ctx := context.Background()
+
+	gouge, err := p.renter.GougingSettings(ctx)
 
 	if err != nil {
 		p.logger.Error("failed to fetch gouging settings", zap.Error(err))
 		return err
 	}
 
-	gouge.MaxDownloadPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate)
+	redundancy, err := p.renter.RedundancySettings(ctx)
+
+	if err != nil {
+		p.logger.Error("failed to fetch redundancy settings", zap.Error(err))
+		return err
+	}
+
+	maxDownloadPrice := p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate
+	maxDownloadPrice = maxDownloadPrice / redundancy.Redundancy()
+
+	maxDownloadPriceSc, err := siacoinsFromFloat(maxDownloadPrice)
 	if err != nil {
 		return err
 	}
+
+	gouge.MaxDownloadPrice = maxDownloadPriceSc
 
 	gouge.MaxUploadPrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxUploadPrice / averageRate)
 	if err != nil {
