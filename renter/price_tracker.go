@@ -115,7 +115,6 @@ SELECT AVG(rate) as average_rate FROM (
 	}
 
 	maxDownloadPrice := p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate
-	maxDownloadPrice = maxDownloadPrice / redundancy.Redundancy()
 
 	gouge.MaxDownloadPrice, err = siacoinsFromFloat(maxDownloadPrice)
 	if err != nil {
