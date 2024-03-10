@@ -74,7 +74,7 @@ func (p PriceTracker) recordRate() {
 
 func (p PriceTracker) updatePrices() error {
 	var averageRate float64
-	x := 1
+	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 	sql := `
 SELECT AVG(rate) as average_rate FROM (
   SELECT rate FROM (
@@ -84,9 +84,9 @@ SELECT AVG(rate) as average_rate FROM (
   ) tmp WHERE rn = 1
 ) final;
 `
-	err := p.db.Raw(sql, x).Scan(&averageRate).Error
+	err := p.db.Raw(sql, days).Scan(&averageRate).Error
 	if err != nil {
-		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Int("days", x))
+		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Uint64("days", days))
 		return err
 	}
 
