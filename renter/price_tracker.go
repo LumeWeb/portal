@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/docker/go-units"
+
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 
 	"github.com/siacentral/apisdkgo"
@@ -148,6 +150,7 @@ SELECT AVG(rate) as average_rate FROM (
 
 	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate
 	maxStoragePrice = maxStoragePrice / redundancy.Redundancy()
+	maxStoragePrice = maxStoragePrice / units.TiB
 
 	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
 
