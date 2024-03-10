@@ -18,7 +18,7 @@ type SiaConfig struct {
 
 func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
-		"max_rpc_sc_price":      1,
+		"max_rpc_sc_price":      0.1,
 		"max_contract_sc_price": 1,
 		"price_history_days":    90,
 	}
