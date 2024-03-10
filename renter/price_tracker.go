@@ -155,7 +155,7 @@ SELECT AVG(rate) as average_rate FROM (
 
 	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
 
-	gouge.MaxStoragePrice, err = siacoinsFromFloat(p.config.Config().Core.Storage.Sia.MaxStoragePrice / averageRate)
+	gouge.MaxStoragePrice, err = siacoinsFromFloat(maxStoragePrice)
 	if err != nil {
 		return err
 	}
