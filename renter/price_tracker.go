@@ -139,12 +139,17 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxRPCPrice := p.config.Config().Core.Storage.Sia.MaxRPCSCPrice
-	maxRPCPrice = maxRPCPrice / 1_000_000
+	maxRPCPrice, ok := new(big.Rat).SetString(p.config.Config().Core.Storage.Sia.MaxRPCSCPrice)
 
-	p.logger.Debug("Setting max RPC price", zap.Float64("maxRPCPrice", maxRPCPrice))
+	if !ok {
+		return errors.New("failed to parse max rpc price")
+	}
 
-	gouge.MaxRPCPrice, err = siacoinsFromFloat(maxRPCPrice)
+	maxRPCPrice = new(big.Rat).Quo(maxRPCPrice, new(big.Rat).SetUint64(1_000_000))
+
+	p.logger.Debug("Setting max RPC price", zap.String("maxRPCPrice", maxRPCPrice.FloatString(2)))
+
+	gouge.MaxRPCPrice, err = siacoinsFromRat(maxRPCPrice)
 	if err != nil {
 		return err
 	}
@@ -260,8 +265,7 @@ func NewPriceTracker(params PriceTrackerParams) *PriceTracker {
 	}
 }
 
-func siacoinsFromFloat(f float64) (types.Currency, error) {
-	r := new(big.Rat).SetFloat64(f)
+func siacoinsFromRat(r *big.Rat) (types.Currency, error) {
 	r.Mul(r, new(big.Rat).SetInt(types.HastingsPerSiacoin.Big()))
 	i := new(big.Int).Div(r.Num(), r.Denom())
 	if i.Sign() < 0 {
@@ -270,4 +274,9 @@ func siacoinsFromFloat(f float64) (types.Currency, error) {
 		return types.ZeroCurrency, errors.New("value overflows Currency representation")
 	}
 	return types.NewCurrency(i.Uint64(), new(big.Int).Rsh(i, 64).Uint64()), nil
+}
+
+func siacoinsFromFloat(f float64) (types.Currency, error) {
+	r := new(big.Rat).SetFloat64(f)
+	return siacoinsFromRat(r)
 }
