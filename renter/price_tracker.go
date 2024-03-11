@@ -40,7 +40,7 @@ type PriceTracker struct {
 }
 
 func (p PriceTracker) LoadInitialTasks(cron cron.CronService) error {
-	job := gocron.DurationJob(time.Minute)
+	job := gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
 	_, err := cron.Scheduler().NewJob(
 		job,
 		gocron.NewTask(p.recordRate),
