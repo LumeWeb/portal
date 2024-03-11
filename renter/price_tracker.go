@@ -26,6 +26,7 @@ var _ cron.CronableService = (*PriceTracker)(nil)
 
 const usdSymbol = "usd"
 const blocksPerMonth = 30 * 144
+const decimalsInSiacoin = 28
 
 type PriceTracker struct {
 	config *config.Manager
@@ -147,7 +148,7 @@ SELECT AVG(rate) as average_rate FROM (
 
 	maxRPCPrice = new(big.Rat).Quo(maxRPCPrice, new(big.Rat).SetUint64(1_000_000))
 
-	p.logger.Debug("Setting max RPC price", zap.String("maxRPCPrice", maxRPCPrice.FloatString(2)))
+	p.logger.Debug("Setting max RPC price", zap.String("maxRPCPrice", maxRPCPrice.FloatString(decimalsInSiacoin)))
 
 	gouge.MaxRPCPrice, err = siacoinsFromRat(maxRPCPrice)
 	if err != nil {
