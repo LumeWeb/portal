@@ -18,7 +18,7 @@ func init() {
 type SCPriceHistory struct {
 	gorm.Model
 	CreatedAt time.Time       `gorm:"index:idx_rate"`
-	Rate      decimal.Decimal `gorm:"type:DECIMAL(10,20);index:idx_rate"`
+	Rate      decimal.Decimal `gorm:"type:DECIMAL(30,20);index:idx_rate"`
 }
 
 func (SCPriceHistory) TableName() string {
