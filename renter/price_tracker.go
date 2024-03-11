@@ -151,9 +151,9 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxRPCPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxRPCSCPrice, averageRate, "max rpc price")
-	if err != nil {
-		return err
+	maxRPCPrice, ok := new(big.Rat).SetString(p.config.Config().Core.Storage.Sia.MaxRPCSCPrice)
+	if !ok {
+		return errors.New("failed to parse max rpc price")
 	}
 
 	maxRPCPrice = ratDivide(maxRPCPrice, 1_000_000)
