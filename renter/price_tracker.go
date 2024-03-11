@@ -190,39 +190,47 @@ SELECT AVG(rate) as average_rate FROM (
 }
 
 func (p PriceTracker) importPrices() error {
-	var count int64
+	var existingDates []time.Time
+	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
+	startDate := time.Now().UTC().AddDate(0, 0, -daysOfHistory)
 
-	// Query to count the number of historical records
-	err := p.db.Model(&models.SCPriceHistory{}).Count(&count).Error
+	// Query to find which dates already have records within the last daysOfHistory days
+	err := p.db.Model(&models.SCPriceHistory{}).
+		Where("created_at >= ?", startDate).
+		Select("DATE(created_at) as date").
+		Group("DATE(created_at)").
+		Order("date ASC").
+		Pluck("date", &existingDates).Error
+
 	if err != nil {
-		p.logger.Error("failed to count historical records", zap.Error(err))
+		p.logger.Error("failed to fetch existing historical dates", zap.Error(err))
 		return err
 	}
 
-	daysOfHistory := p.config.Config().Core.Storage.Sia.PriceHistoryDays
+	existingDateMap := make(map[string]bool)
+	for _, d := range existingDates {
+		existingDateMap[d.Format("2006-01-02")] = true
+	}
 
-	// Check if the count is less than x
-	if uint64(count) < daysOfHistory {
-		// Calculate how many records need to be fetched and created
-		missingRecords := daysOfHistory - uint64(count)
-		for i := uint64(0); i < missingRecords; i++ {
-			currentDate := time.Now().UTC().AddDate(0, 0, int(-i))
+	for i := 0; i < daysOfHistory; i++ {
+		currentDate := startDate.AddDate(0, 0, i)
+		dateKey := currentDate.Format("2006-01-02")
+		if _, exists := existingDateMap[dateKey]; !exists {
+			// Fetch and store data for currentDate as it's missing
 			timestamp := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-			// Fetch the historical exchange rate for the calculated timestamp
 			rates, err := p.api.GetHistoricalExchangeRate(timestamp)
 			if err != nil {
 				p.logger.Error("failed to fetch historical exchange rate", zap.Error(err))
 				return err
 			}
 
-			// Assuming you want to store rates for a specific currency, say "USD"
+			// Assuming USD rates as an example
 			rate, exists := rates[usdSymbol]
 			if !exists {
-				p.logger.Error("USD rate not found for timestamp", zap.String("timestamp", timestamp.String()))
-				return errors.New("USD rate not found for timestamp")
+				p.logger.Error("USD rate not found for date", zap.String("date", dateKey))
+				continue // Skip to the next date
 			}
 
-			// Create a new record in the database for each fetched rate
 			priceRecord := &models.SCPriceHistory{
 				Rate:      rate,
 				CreatedAt: timestamp,
@@ -230,7 +238,7 @@ func (p PriceTracker) importPrices() error {
 
 			err = p.db.Create(&priceRecord).Error
 			if err != nil {
-				p.logger.Error("failed to create historical record", zap.Error(err))
+				p.logger.Error("failed to create historical record for date", zap.String("date", dateKey), zap.Error(err))
 				return err
 			}
 		}
