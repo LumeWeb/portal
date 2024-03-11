@@ -6,16 +6,18 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/docker/go-units"
 
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 
-	"github.com/siacentral/apisdkgo"
+	siasdk "github.com/LumeWeb/siacentral-api"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/cron"
+	siasdksia "github.com/LumeWeb/siacentral-api/sia"
 	"github.com/go-co-op/gocron/v2"
-	siasdk "github.com/siacentral/apisdkgo/sia"
 	"go.sia.tech/core/types"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -34,7 +36,7 @@ type PriceTracker struct {
 	cron   *cron.CronServiceDefault
 	db     *gorm.DB
 	renter *RenterDefault
-	api    *siasdk.APIClient
+	api    *siasdksia.APIClient
 }
 
 func (p PriceTracker) LoadInitialTasks(cron cron.CronService) error {
@@ -77,7 +79,7 @@ func (p PriceTracker) recordRate() {
 }
 
 func (p PriceTracker) updatePrices() error {
-	var averageRate float64
+	var averageRate decimal.Decimal
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 	sql := `
 SELECT AVG(rate) as average_rate FROM (
@@ -94,7 +96,7 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	if averageRate == 0 {
+	if averageRate.Equal(decimal.Zero) {
 		p.logger.Error("average rate is 0")
 		return errors.New("average rate is 0")
 	}
@@ -115,38 +117,46 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxDownloadPrice := p.config.Config().Core.Storage.Sia.MaxDownloadPrice / averageRate
-
-	gouge.MaxDownloadPrice, err = siacoinsFromFloat(maxDownloadPrice)
+	maxDownloadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxDownloadPrice, averageRate, "max download price")
 	if err != nil {
 		return err
 	}
 
-	maxUploadPrice := p.config.Config().Core.Storage.Sia.MaxUploadPrice / averageRate
-
-	p.logger.Debug("Setting max upload price", zap.Float64("maxUploadPrice", maxUploadPrice))
-
-	gouge.MaxUploadPrice, err = siacoinsFromFloat(maxUploadPrice)
+	gouge.MaxDownloadPrice, err = siacoinsFromRat(maxDownloadPrice)
 	if err != nil {
 		return err
 	}
 
-	maxContractPrice := p.config.Config().Core.Storage.Sia.MaxContractSCPrice
-
-	p.logger.Debug("Setting max contract price", zap.Float64("maxContractPrice", maxContractPrice))
-
-	gouge.MaxContractPrice, err = siacoinsFromFloat(maxContractPrice)
+	maxUploadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxUploadPrice, averageRate, "max upload price")
 	if err != nil {
 		return err
 	}
 
-	maxRPCPrice, ok := new(big.Rat).SetString(p.config.Config().Core.Storage.Sia.MaxRPCSCPrice)
+	p.logger.Debug("Setting max upload price", zap.String("maxUploadPrice", maxUploadPrice.FloatString(decimalsInSiacoin)))
 
-	if !ok {
-		return errors.New("failed to parse max rpc price")
+	gouge.MaxUploadPrice, err = siacoinsFromRat(maxUploadPrice)
+	if err != nil {
+		return err
 	}
 
-	maxRPCPrice = new(big.Rat).Quo(maxRPCPrice, new(big.Rat).SetUint64(1_000_000))
+	maxContractPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxContractSCPrice, averageRate, "max contract price")
+	if err != nil {
+		return err
+	}
+
+	p.logger.Debug("Setting max contract price", zap.String("maxContractPrice", maxContractPrice.FloatString(decimalsInSiacoin)))
+
+	gouge.MaxContractPrice, err = siacoinsFromRat(maxContractPrice)
+	if err != nil {
+		return err
+	}
+
+	maxRPCPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxRPCSCPrice, averageRate, "max rpc price")
+	if err != nil {
+		return err
+	}
+
+	maxRPCPrice = ratDivide(maxRPCPrice, 1_000_000)
 
 	p.logger.Debug("Setting max RPC price", zap.String("maxRPCPrice", maxRPCPrice.FloatString(decimalsInSiacoin)))
 
@@ -155,15 +165,18 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxStoragePrice := p.config.Config().Core.Storage.Sia.MaxStoragePrice
-	maxStoragePrice = maxStoragePrice / redundancy.Redundancy()
-	maxStoragePrice = maxStoragePrice / units.TiB
-	maxStoragePrice = maxStoragePrice / blocksPerMonth
-	maxStoragePrice = maxStoragePrice / averageRate
+	maxStoragePrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxStoragePrice, averageRate, "max storage price")
+	if err != nil {
+		return err
+	}
 
-	p.logger.Debug("Setting max storage price", zap.Float64("maxStoragePrice", maxStoragePrice))
+	maxStoragePrice = ratDivideFloat(maxStoragePrice, redundancy.Redundancy())
+	maxStoragePrice = ratDivide(maxStoragePrice, units.TiB)
+	maxStoragePrice = ratDivide(maxStoragePrice, blocksPerMonth)
 
-	gouge.MaxStoragePrice, err = siacoinsFromFloat(maxStoragePrice)
+	p.logger.Debug("Setting max storage price", zap.String("maxStoragePrice", maxStoragePrice.FloatString(decimalsInSiacoin)))
+
+	gouge.MaxStoragePrice, err = siacoinsFromRat(maxStoragePrice)
 	if err != nil {
 		return err
 	}
@@ -233,12 +246,12 @@ type PriceTrackerParams struct {
 	Cron     *cron.CronServiceDefault
 	Db       *gorm.DB
 	Renter   *RenterDefault
-	PriceApi *siasdk.APIClient
+	PriceApi *siasdksia.APIClient
 }
 
 func (p PriceTracker) init() error {
 	p.cron.RegisterService(p)
-	p.api = apisdkgo.NewSiaClient()
+	p.api = siasdk.NewSiaClient()
 
 	go func() {
 		err := p.importPrices()
@@ -277,7 +290,21 @@ func siacoinsFromRat(r *big.Rat) (types.Currency, error) {
 	return types.NewCurrency(i.Uint64(), new(big.Int).Rsh(i, 64).Uint64()), nil
 }
 
-func siacoinsFromFloat(f float64) (types.Currency, error) {
-	r := new(big.Rat).SetFloat64(f)
-	return siacoinsFromRat(r)
+func computeByRate(num string, rate decimal.Decimal, name string) (*big.Rat, error) {
+	parsedNum, ok := new(big.Rat).SetString(num)
+
+	if !ok {
+		return nil, errors.New("failed to parse " + name)
+	}
+
+	parsedRate := new(big.Rat).Quo(parsedNum, rate.Rat())
+
+	return parsedRate, nil
+}
+
+func ratDivide(a *big.Rat, b uint64) *big.Rat {
+	return new(big.Rat).Quo(a, new(big.Rat).SetUint64(b))
+}
+func ratDivideFloat(a *big.Rat, b float64) *big.Rat {
+	return new(big.Rat).Quo(a, new(big.Rat).SetFloat64(b))
 }

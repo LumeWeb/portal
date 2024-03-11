@@ -15,7 +15,7 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
-	sia "github.com/siacentral/apisdkgo"
+	sia "github.com/LumeWeb/siacentral-api"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
 	busClient "go.sia.tech/renterd/bus/client"

@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -15,8 +17,8 @@ func init() {
 
 type SCPriceHistory struct {
 	gorm.Model
-	CreatedAt time.Time `gorm:"index:idx_rate"`
-	Rate      float64   `gorm:"index:idx_rate"`
+	CreatedAt time.Time       `gorm:"index:idx_rate"`
+	Rate      decimal.Decimal `gorm:"type:DECIMAL(10,6);index:idx_rate"`
 }
 
 func (SCPriceHistory) TableName() string {

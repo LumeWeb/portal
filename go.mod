@@ -5,6 +5,7 @@ go 1.21.6
 require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240310131713-ee6f140b7e98
 	github.com/AfterShip/email-verifier v1.4.0
+	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.25.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.2
@@ -27,6 +28,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
+	github.com/shopspring/decimal v1.3.1
 	github.com/siacentral/apisdkgo v0.2.10
 	github.com/spf13/viper v1.18.2
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
@@ -112,7 +114,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
