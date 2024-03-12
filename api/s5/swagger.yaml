@@ -626,6 +626,8 @@ paths:
                         application/json:
                             schema:
                                 type: object
+                '415':
+                    description: Unsupported content type
     /s5/download/{cid}:
         get:
             summary: Download a file
