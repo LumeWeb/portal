@@ -1769,7 +1769,7 @@ func (s *S5API) downloadMetadata(jc jape.Context) {
 
 	switch cidDecoded.Type {
 	case types.CIDTypeRaw:
-		_ = jc.Error(errors.New("Raw CIDs do not have s5libmetadata"), http.StatusBadRequest)
+		_ = jc.Error(errors.New("Raw CIDs do not have metadata"), http.StatusBadRequest)
 		return
 
 	case types.CIDTypeResolver:
@@ -1779,8 +1779,8 @@ func (s *S5API) downloadMetadata(jc jape.Context) {
 
 	meta, err := s.getNode().Services().Storage().GetMetadataByCID(cidDecoded)
 
-	if jc.Check("error getting s5libmetadata", err) != nil {
-		s.logger.Error("error getting s5libmetadata", zap.Error(err))
+	if jc.Check("error getting metadata", err) != nil {
+		s.logger.Error("error getting metadata", zap.Error(err))
 		return
 	}
 
