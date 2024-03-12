@@ -1769,11 +1769,11 @@ func (s *S5API) downloadMetadata(jc jape.Context) {
 
 	switch cidDecoded.Type {
 	case types.CIDTypeRaw:
-		_ = jc.Error(errors.New("Raw CIDs do not have metadata"), http.StatusBadRequest)
+		_ = jc.Error(errors.New("Raw CIDs do not have metadata"), http.StatusUnsupportedMediaType)
 		return
 
 	case types.CIDTypeResolver:
-		_ = jc.Error(errors.New("Resolver CIDs not yet supported"), http.StatusBadRequest)
+		_ = jc.Error(errors.New("Resolver CIDs not yet supported"), http.StatusUnsupportedMediaType)
 		return
 	}
 
