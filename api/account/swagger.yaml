@@ -147,14 +147,14 @@ components:
         RegisterRequest:
             type: object
             required:
-                - firstName
-                - lastName
+                - first_name
+                - last_name
                 - email
                 - password
             properties:
-                firstName:
+                first_name:
                     type: string
-                lastName:
+                last_name:
                     type: string
                 email:
                     type: string
