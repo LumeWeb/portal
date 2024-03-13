@@ -42,3 +42,7 @@ type PasswordResetVerifyRequest struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }
+
+type PongResponse struct {
+	Ping string `json:"ping"`
+}

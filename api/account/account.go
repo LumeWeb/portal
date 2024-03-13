@@ -264,6 +264,12 @@ func (a AccountAPI) passwordResetConfirm(jc jape.Context) {
 	jc.ResponseWriter.WriteHeader(http.StatusOK)
 }
 
+func (a AccountAPI) pong(jc jape.Context) {
+	jc.Encode(&PongResponse{
+		Ping: "pong",
+	})
+}
+
 func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity: a.identity,
@@ -280,6 +286,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	})
 
 	routes := map[string]jape.Handler{
+		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.pong, authMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, authMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
 		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
