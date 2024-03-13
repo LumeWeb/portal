@@ -271,13 +271,6 @@ func (a AccountAPI) ping(jc jape.Context) {
 }
 
 func (a AccountAPI) Routes() (*httprouter.Router, error) {
-	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
-		Identity: a.identity,
-		Accounts: a.accounts,
-		Config:   a.config,
-		Purpose:  account.JWTPurpose2FA,
-	})
-
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
 		Accounts:     a.accounts,
@@ -290,11 +283,18 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		Identity: a.identity,
 		Accounts: a.accounts,
 		Config:   a.config,
+		Purpose:  account.JWTPurposeNone,
+	})
+
+	pingAuthMw := authMiddleware(middleware.AuthMiddlewareOptions{
+		Identity: a.identity,
+		Accounts: a.accounts,
+		Config:   a.config,
 		Purpose:  account.JWTPurposeLogin,
 	})
 
 	routes := map[string]jape.Handler{
-		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.ping, authMw2fa, middleware.ProxyMiddleware),
+		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.ping, pingAuthMw, middleware.ProxyMiddleware),
 		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, loginAuthMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
 		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
