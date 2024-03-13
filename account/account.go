@@ -358,7 +358,7 @@ func (s AccountServiceDefault) ValidLoginByEmail(email string, password string) 
 		return false, nil, nil
 	}
 
-	return true, nil, nil
+	return true, &user, nil
 }
 
 func (s AccountServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
