@@ -118,8 +118,8 @@ paths:
             responses:
                 '200':
                     description: Password reset successfully
-    /api/auth/pong:
-        get:
+    /api/auth/ping:
+        post:
             summary: Auth check endpoint
             responses:
                 '200':
