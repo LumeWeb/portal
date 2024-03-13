@@ -104,9 +104,6 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 	if options.AuthContextKey == "" {
 		options.AuthContextKey = DEFAULT_AUTH_CONTEXT_KEY
 	}
-	if options.Purpose == "" {
-		panic("purpose is missing")
-	}
 
 	domain := options.Config.Config().Core.Domain
 
@@ -126,7 +123,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			claim, err := account.JWTVerifyToken(authToken, domain, options.Identity, func(claim *jwt.RegisteredClaims) error {
 				aud, _ := claim.GetAudience()
 
-				if slices.Contains[jwt.ClaimStrings, string](aud, string(options.Purpose)) == false {
+				if options.Purpose != account.JWTPurposeNone && slices.Contains[jwt.ClaimStrings, string](aud, string(options.Purpose)) == false {
 					return account.ErrJWTInvalid
 				}
 

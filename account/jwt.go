@@ -26,6 +26,7 @@ var (
 const (
 	JWTPurposeLogin JWTPurpose = "login"
 	JWTPurpose2FA   JWTPurpose = "2fa"
+	JWTPurposeNone  JWTPurpose = ""
 )
 
 func JWTGenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose) (string, error) {
