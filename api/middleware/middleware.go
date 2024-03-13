@@ -97,6 +97,7 @@ type AuthMiddlewareOptions struct {
 	Purpose        account.JWTPurpose
 	AuthContextKey string
 	Config         *config.Manager
+	EmptyAllowed   bool
 }
 
 func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handler {
@@ -114,7 +115,11 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			authToken := options.FindToken(r)
 
 			if authToken == "" {
-				http.Error(w, "Invalid JWT", http.StatusUnauthorized)
+				if !options.EmptyAllowed {
+					http.Error(w, "Invalid JWT", http.StatusUnauthorized)
+					return
+				}
+				next.ServeHTTP(w, r)
 				return
 			}
 
