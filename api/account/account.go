@@ -272,10 +272,11 @@ func (a AccountAPI) pong(jc jape.Context) {
 
 func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	authMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
-		Identity: a.identity,
-		Accounts: a.accounts,
-		Config:   a.config,
-		Purpose:  account.JWTPurpose2FA,
+		Identity:     a.identity,
+		Accounts:     a.accounts,
+		Config:       a.config,
+		Purpose:      account.JWTPurpose2FA,
+		EmptyAllowed: true,
 	})
 
 	authMw := authMiddleware(middleware.AuthMiddlewareOptions{
