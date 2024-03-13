@@ -124,6 +124,10 @@ paths:
             responses:
                 '200':
                     description: Pong
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PingResponse'
                 '401':
                     description: Unauthorized
 
@@ -215,4 +219,9 @@ components:
                 token:
                     type: string
                 password:
+                    type: string
+        PingResponse:
+            type: object
+            properties:
+                ping:
                     type: string
