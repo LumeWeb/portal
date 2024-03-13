@@ -100,6 +100,9 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string, ver
 
 	result := s.db.Create(&user)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return nil, NewAccountError(ErrKeyEmailAlreadyExists, nil)
+		}
 		return nil, NewAccountError(ErrKeyAccountCreationFailed, result.Error)
 	}
 
