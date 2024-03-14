@@ -299,15 +299,24 @@ func siacoinsFromRat(r *big.Rat) (types.Currency, error) {
 }
 
 func computeByRate(num string, rate decimal.Decimal, name string) (*big.Rat, error) {
+	parsedNum, err := newRat(num, name)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedRate := new(big.Rat).Quo(parsedNum, rate.Rat())
+
+	return parsedRate, nil
+}
+
+func newRat(num string, name string) (*big.Rat, error) {
 	parsedNum, ok := new(big.Rat).SetString(num)
 
 	if !ok {
 		return nil, errors.New("failed to parse " + name)
 	}
 
-	parsedRate := new(big.Rat).Quo(parsedNum, rate.Rat())
-
-	return parsedRate, nil
+	return parsedNum, nil
 }
 
 func ratDivide(a *big.Rat, b uint64) *big.Rat {
