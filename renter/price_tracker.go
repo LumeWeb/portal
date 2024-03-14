@@ -139,7 +139,7 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
-	maxContractPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxContractSCPrice, averageRate, "max contract price")
+	maxContractPrice, err := newRat(p.config.Config().Core.Storage.Sia.MaxContractSCPrice, "max contract price")
 	if err != nil {
 		return err
 	}
