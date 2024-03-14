@@ -130,6 +130,18 @@ paths:
                                 $ref: '#/components/schemas/PingResponse'
                 '401':
                     description: Unauthorized
+    /api/account:
+        get:
+            summary: Get account information
+            responses:
+                '200':
+                    description: Account information retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AccountInfoResponse'
+                '401':
+                    description: Unauthorized
 
 components:
     schemas:
@@ -224,4 +236,15 @@ components:
             type: object
             properties:
                 ping:
+                    type: string
+        AccountInfoResponse:
+            type: object
+            properties:
+                id:
+                    type: number
+                first_name:
+                    type: string
+                last_name:
+                    type: string
+                email:
                     type: string

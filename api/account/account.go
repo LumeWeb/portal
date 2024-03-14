@@ -270,6 +270,20 @@ func (a AccountAPI) ping(jc jape.Context) {
 	})
 }
 
+func (a AccountAPI) accountInfo(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	_, acct, _ := a.accounts.AccountExists(user)
+
+	jc.Encode(&AccountInfoResponse{
+		ID:        acct.ID,
+		Email:     acct.Email,
+		FirstName: acct.FirstName,
+		LastName:  acct.LastName,
+	})
+
+}
+
 func (a AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
@@ -304,6 +318,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
+		"GET /api/account":                      middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
 	}
 
 	routes, err := swagger.Swagger(swagSpec, routes)
