@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	_ "embed"
 	"net/http"
+	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/swagger"
 
@@ -103,13 +104,22 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	jwt, _, err := a.accounts.LoginPassword(request.Email, request.Password, jc.Request.RemoteAddr)
+	jwt, user, err := a.accounts.LoginPassword(request.Email, request.Password, jc.Request.RemoteAddr)
 	if err != nil {
 		return
 	}
 
+	http.SetCookie(jc.ResponseWriter, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
+	account.SendJWT(jc, jwt)
+
 	jc.Encode(&LoginResponse{
 		Token: jwt,
+		Otp:   user.OTPEnabled && user.OTPVerified,
 	})
 }
 
@@ -199,7 +209,18 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		return
 	}
 
+	http.SetCookie(jc.ResponseWriter, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
 	account.SendJWT(jc, jwt)
+
+	jc.Encode(&LoginResponse{
+		Token: jwt,
+		Otp:   false,
+	})
 }
 
 func (a AccountAPI) otpDisable(jc jape.Context) {

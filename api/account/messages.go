@@ -7,6 +7,7 @@ type LoginRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
+	Otp   bool   `json:"otp"`
 }
 
 type RegisterRequest struct {
