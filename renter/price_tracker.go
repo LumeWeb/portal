@@ -212,7 +212,7 @@ func (p PriceTracker) importPrices() error {
 		existingDateMap[d.Format("2006-01-02")] = true
 	}
 
-	for i := 0; i < daysOfHistory; i++ {
+	for i := 1; i <= daysOfHistory; i++ {
 		currentDate := startDate.AddDate(0, 0, i)
 		dateKey := currentDate.Format("2006-01-02")
 		if _, exists := existingDateMap[dateKey]; !exists {
