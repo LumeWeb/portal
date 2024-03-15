@@ -5,13 +5,13 @@ import "errors"
 var _ Validator = (*MailConfig)(nil)
 
 type MailConfig struct {
-	Host     string
-	Port     int
-	SSL      bool
-	AuthType string
-	Username string
-	Password string
-	From     string
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	SSL      bool   `mapstructure:"ssl"`
+	AuthType string `mapstructure:"auth_type"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
 }
 
 func (m MailConfig) Validate() error {
