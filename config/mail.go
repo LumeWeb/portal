@@ -11,6 +11,7 @@ type MailConfig struct {
 	AuthType string
 	Username string
 	Password string
+	From     string
 }
 
 func (m MailConfig) Validate() error {
@@ -22,6 +23,9 @@ func (m MailConfig) Validate() error {
 	}
 	if m.Password == "" {
 		return errors.New("password is required")
+	}
+	if m.From == "" {
+		return errors.New("from is required")
 	}
 	return nil
 }
