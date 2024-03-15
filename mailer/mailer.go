@@ -35,6 +35,9 @@ func (m *Mailer) TemplateSend(template string, subjectVars TemplateData, bodyVar
 		return err
 	}
 
+	email.SetFrom(m.config.Config().Core.Mail.From)
+	email.SetTo(to)
+
 	msg, err := email.ToMessage()
 	if err != nil {
 		return err
