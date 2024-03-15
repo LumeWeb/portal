@@ -1,8 +1,11 @@
 package config
 
-import "errors"
+import (
+	"errors"
+)
 
 var _ Validator = (*MailConfig)(nil)
+var _ Defaults = (*MailConfig)(nil)
 
 type MailConfig struct {
 	Host     string `mapstructure:"host"`
@@ -28,4 +31,9 @@ func (m MailConfig) Validate() error {
 		return errors.New("from is required")
 	}
 	return nil
+}
+func (c MailConfig) Defaults() map[string]interface{} {
+	return map[string]interface{}{
+		"auth_type": "plain",
+	}
 }
