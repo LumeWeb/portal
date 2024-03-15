@@ -2,6 +2,7 @@ package mailer
 
 import (
 	"context"
+	"strings"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"github.com/wneessen/go-mail"
@@ -58,7 +59,7 @@ func NewMailer(lc fx.Lifecycle, config *config.Manager, logger *zap.Logger, temp
 			}
 
 			if config.Config().Core.Mail.AuthType != "" {
-				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(config.Config().Core.Mail.AuthType)))
+				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(config.Config().Core.Mail.AuthType))))
 			}
 
 			if config.Config().Core.Mail.SSL {
