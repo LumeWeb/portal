@@ -134,7 +134,7 @@ func (s *AccountServiceDefault) SendEmailVerification(user *models.User) error {
 		"FirstName":        user.FirstName,
 		"Email":            user.Email,
 		"VerificationCode": token,
-		"ExpireTime":       verification.ExpiresAt,
+		"ExpireTime":       verification.ExpiresAt.Sub(time.Now()).Round(time.Second * 2),
 		"PortalName":       s.config.Config().Core.PortalName,
 	}
 
