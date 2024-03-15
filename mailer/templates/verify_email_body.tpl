@@ -4,7 +4,7 @@ Thank you for registering with {{.PortalName}}. To complete your registration an
 
 Verification Code: {{.VerificationCode}}
 
-Please note, this code will expire in {{.ExpireTime}} minutes. If you did not initiate this request, please ignore this email or contact our support team for assistance.
+Please note, this code will expire in {{.ExpireTime}}. If you did not initiate this request, please ignore this email or contact our support team for assistance.
 
 Best regards,
 The {{.PortalName}} Team
