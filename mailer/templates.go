@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-const EMAIL_FS_PREFIX = "templates"
+const EMAIL_FS_PREFIX = "templates/"
 
 const TPL_PASSWORD_RESET = "password_reset.tpl"
 const TPL_VERIFY_EMAIL = "verify_email.tpl"
@@ -41,10 +41,12 @@ func (tr *TemplateRegistry) loadTemplates() error {
 	}
 
 	for _, subjectTemplate := range subjectTemplates {
-		templateName := strings.TrimSuffix(strings.TrimPrefix(subjectTemplate, EMAIL_FS_PREFIX), "_subject.tpl")
+		templateName := strings.TrimPrefix(subjectTemplate, EMAIL_FS_PREFIX)
+		templateName = strings.TrimSuffix(templateName, "_subject.tpl")
 		bodyTemplate := strings.TrimSuffix(subjectTemplate, "_subject.tpl") + "_body.tpl"
+		bodyTemplate = strings.TrimPrefix(bodyTemplate, EMAIL_FS_PREFIX)
 
-		subjectContent, err := fs.ReadFile(templateFS, templateName+"_subject.tpl")
+		subjectContent, err := fs.ReadFile(templateFS, EMAIL_FS_PREFIX+templateName+"_subject.tpl")
 		if err != nil {
 			return err
 		}
@@ -54,7 +56,7 @@ func (tr *TemplateRegistry) loadTemplates() error {
 			return err
 		}
 
-		bodyContent, err := fs.ReadFile(templateFS, bodyTemplate)
+		bodyContent, err := fs.ReadFile(templateFS, EMAIL_FS_PREFIX+bodyTemplate)
 		if err != nil {
 			return err
 		}
