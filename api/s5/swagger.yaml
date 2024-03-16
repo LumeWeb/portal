@@ -94,6 +94,8 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/AccountPinsResponse'
+                '401':
+                    description: Unauthorized
     /s5/account/pins.bin:
         get:
             summary: Retrieve account pins
@@ -102,6 +104,8 @@ paths:
             responses:
                 '200':
                     description: Account pins
+                '401':
+                    description: Unauthorized
 
     # Upload API
     /s5/upload:
