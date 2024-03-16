@@ -188,7 +188,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"POST /s5/account/login":    s.accountLogin,
 		"GET /s5/account":           middleware.ApplyMiddlewares(s.accountInfo, authMw),
 		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.accountStats, authMw),
-		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.accountPins, authMw),
+		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.accountPinsBinary, authMw),
 
 		// Upload API
 		"POST /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, authMw),
@@ -794,7 +794,7 @@ func (s *S5API) accountStats(jc jape.Context) {
 	jc.Encode(info)
 }
 
-func (s *S5API) accountPins(jc jape.Context) {
+func (s *S5API) accountPinsBinary(jc jape.Context) {
 	var cursor uint64
 	if err := jc.DecodeForm("cursor", &cursor); err != nil {
 		return
@@ -808,7 +808,7 @@ func (s *S5API) accountPins(jc jape.Context) {
 		return
 	}
 
-	pinResponse := &AccountPinResponse{Cursor: cursor, Pins: pins}
+	pinResponse := &AccountPinBinaryResponse{Cursor: cursor, Pins: pins}
 	result, err2 := msgpack.Marshal(pinResponse)
 	if err2 != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err2))
@@ -820,6 +820,17 @@ func (s *S5API) accountPins(jc jape.Context) {
 	if _, err := jc.ResponseWriter.Write(result); err != nil {
 		s.logger.Error("failed to write account pins response", zap.Error(err))
 	}
+}
+
+func (s *S5API) accountPins(jc jape.Context) {
+	userID := middleware.GetUserFromContext(jc.Request.Context())
+	pins, err := s.accounts.AccountPins(userID, 0)
+	if err != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+		return
+	}
+
+	jc.Encode(&AccountPinBinaryResponse{Pins: pins})
 }
 
 func (s *S5API) accountPinDelete(jc jape.Context) {

@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	_ msgpack.CustomEncoder = (*AccountPinResponse)(nil)
+	_ msgpack.CustomEncoder = (*AccountPinBinaryResponse)(nil)
 )
 
 type AccountRegisterRequest struct {
@@ -90,12 +90,12 @@ type DebugStorageLocationsResponse struct {
 	Locations []DebugStorageLocation `json:"locations"`
 }
 
-type AccountPinResponse struct {
+type AccountPinBinaryResponse struct {
 	Pins   []models.Pin
 	Cursor uint64
 }
 
-func (a AccountPinResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
+func (a AccountPinBinaryResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
 	err := enc.EncodeInt(0)
 	if err != nil {
 		return err
