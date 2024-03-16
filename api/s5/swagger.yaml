@@ -82,6 +82,20 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/AccountStatsResponse"
+    /s5/account/pins:
+        get:
+            summary: Retrieve account pins
+            tags:
+                - account
+            responses:
+                '200':
+                    description: Account pins
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: string
     /s5/account/pins.bin:
         get:
             summary: Retrieve account pins
@@ -882,6 +896,20 @@ components:
                   properties:
                       stats:
                           $ref: "#/components/schemas/AccountStats"
+        AccountPinsResponse:
+            type: object
+            properties:
+                pins:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AccountPin'
+        AccountPin:
+            type: object
+            properties:
+                hash:
+                    type: string
+                mime_type:
+                    type: string
         RegistryQueryResponse:
             type: object
             properties:

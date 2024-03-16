@@ -189,6 +189,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"GET /s5/account":           middleware.ApplyMiddlewares(s.accountInfo, authMw),
 		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.accountStats, authMw),
 		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.accountPinsBinary, authMw),
+		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, authMw),
 
 		// Upload API
 		"POST /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, authMw),
@@ -824,13 +825,27 @@ func (s *S5API) accountPinsBinary(jc jape.Context) {
 
 func (s *S5API) accountPins(jc jape.Context) {
 	userID := middleware.GetUserFromContext(jc.Request.Context())
-	pins, err := s.accounts.AccountPins(userID, 0)
+	pinsRet, err := s.accounts.AccountPins(userID, 0)
 	if err != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 		return
 	}
 
-	jc.Encode(&AccountPinBinaryResponse{Pins: pins})
+	pins := make([]AccountPin, len(pinsRet))
+
+	for i, pin := range pinsRet {
+		base64Url, err := encoding.NewMultihash(append([]byte{byte(types.HashTypeBlake3)}, pin.Upload.Hash...)).ToBase64Url()
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+		pins[i] = AccountPin{
+			Hash:     base64Url,
+			MimeType: pin.Upload.MimeType,
+		}
+	}
+
+	jc.Encode(&AccountPinResponse{Pins: pins})
 }
 
 func (s *S5API) accountPinDelete(jc jape.Context) {

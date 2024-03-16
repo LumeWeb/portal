@@ -120,3 +120,12 @@ func (a AccountPinBinaryResponse) EncodeMsgpack(enc *msgpack.Encoder) error {
 
 	return nil
 }
+
+type AccountPinResponse struct {
+	Pins []AccountPin `json:"pins"`
+}
+
+type AccountPin struct {
+	Hash     string `json:"hash"`
+	MimeType string `json:"mime_type"`
+}
