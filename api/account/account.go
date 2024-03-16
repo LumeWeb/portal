@@ -3,7 +3,9 @@ package account
 import (
 	"context"
 	"crypto/ed25519"
+	"embed"
 	_ "embed"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -26,6 +28,9 @@ import (
 
 //go:embed swagger.yaml
 var swagSpec []byte
+
+//go:embed app/build/client/build
+var appFs embed.FS
 
 var (
 	_ registry.API       = (*AccountAPI)(nil)
@@ -328,6 +333,13 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		Purpose:  account.JWTPurposeLogin,
 	})
 
+	appFiles, _ := fs.Sub(appFs, "app")
+	appServ := http.FileServer(http.FS(appFiles))
+
+	appHandler := func(c jape.Context) {
+		appServ.ServeHTTP(c.ResponseWriter, c.Request)
+	}
+
 	routes := map[string]jape.Handler{
 		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.ping, pingAuthMw, middleware.ProxyMiddleware),
 		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, loginAuthMw2fa, middleware.ProxyMiddleware),
@@ -340,6 +352,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
 		"GET /api/account":                      middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
+		"GET /*path":                            middleware.ApplyMiddlewares(appHandler, middleware.ProxyMiddleware),
 	}
 
 	routes, err := swagger.Swagger(swagSpec, routes)

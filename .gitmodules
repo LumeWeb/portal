@@ -1,0 +1,3 @@
+[submodule "api/account/app"]
+	path = api/account/app
+	url = https://git.lumeweb.com/LumeWeb/portal-dashboard.git
