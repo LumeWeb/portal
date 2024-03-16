@@ -29,7 +29,7 @@ import (
 //go:embed swagger.yaml
 var swagSpec []byte
 
-//go:embed app/build/client/build
+//go:embed app/build/client
 var appFs embed.FS
 
 var (
@@ -333,7 +333,7 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		Purpose:  account.JWTPurposeLogin,
 	})
 
-	appFiles, _ := fs.Sub(appFs, "app")
+	appFiles, _ := fs.Sub(appFs, "app/build/client")
 	appServ := http.FileServer(http.FS(appFiles))
 
 	appHandler := func(c jape.Context) {
