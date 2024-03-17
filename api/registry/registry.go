@@ -48,6 +48,10 @@ func GetAPI(name string) API {
 	return apiRegistry[name]
 }
 
+func GetAllAPIs() map[string]API {
+	return apiRegistry
+}
+
 func GetRouter() *router2.APIRouter {
 	return router
 }
