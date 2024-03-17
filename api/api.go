@@ -23,11 +23,11 @@ func BuildApis(cm *config.Manager) fx.Option {
 
 	type initParams struct {
 		fx.In
-		Protocols []registry.API `group:"api"`
+		Apis []registry.API `group:"api"`
 	}
 
 	options = append(options, fx.Invoke(func(params initParams) error {
-		for _, protocol := range params.Protocols {
+		for _, protocol := range params.Apis {
 			err := protocol.Init()
 			if err != nil {
 				return err
