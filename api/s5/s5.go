@@ -641,7 +641,7 @@ func (s *S5API) accountRegister(jc jape.Context) {
 		return
 	}
 
-	setAuthCookie(jwt, jc)
+	account.SetAuthCookie(jc, jwt, s.Name())
 }
 
 func (s *S5API) accountLoginChallenge(jc jape.Context) {
