@@ -118,7 +118,7 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc, "")
+	account.SetAuthCookie(jc, jwt, "")
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
@@ -213,7 +213,7 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc, "")
+	account.SetAuthCookie(jc, jwt, "")
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
