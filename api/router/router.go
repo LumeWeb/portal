@@ -93,3 +93,7 @@ func (hs *APIRouter) SetLogger(logger *zap.Logger) {
 func (hs *APIRouter) SetConfig(config *config.Manager) {
 	hs.config = config
 }
+
+func BuildSubdomain(api RoutableAPI, cfg *config.Manager) string {
+	return api.Name() + "." + cfg.Config().Core.Domain
+}
