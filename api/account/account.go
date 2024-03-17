@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
-	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/swagger"
 
@@ -119,13 +118,8 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	http.SetCookie(jc.ResponseWriter, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwt,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-	})
+	account.SetAuthCookie(jc.ResponseWriter, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
+	account.SetAuthCookie(jc.ResponseWriter, authCookieName, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
@@ -220,13 +214,8 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		return
 	}
 
-	http.SetCookie(jc.ResponseWriter, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwt,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-	})
+	account.SetAuthCookie(jc.ResponseWriter, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
+	account.SetAuthCookie(jc.ResponseWriter, authCookieName, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
