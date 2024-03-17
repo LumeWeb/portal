@@ -15,7 +15,7 @@ var alwaysEnabled = []string{"account"}
 func BuildApis(cm *config.Manager) fx.Option {
 	var options []fx.Option
 	enabledProtocols := cm.Viper().GetStringSlice("core.protocols")
-	for _, entry := range registry.GetRegistry() {
+	for _, entry := range registry.GetEntryRegistry() {
 		if slices.Contains(enabledProtocols, entry.Key) || slices.Contains(alwaysEnabled, entry.Key) {
 			options = append(options, entry.Module)
 		}
@@ -47,7 +47,7 @@ type LifecyclesParams struct {
 }
 
 func SetupLifecycles(lifecycle fx.Lifecycle, params LifecyclesParams) error {
-	for _, entry := range registry.GetRegistry() {
+	for _, entry := range registry.GetEntryRegistry() {
 		for _, protocol := range params.Protocols {
 			if protocol.Name() == entry.Key {
 				lifecycle.Append(fx.Hook{

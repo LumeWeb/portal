@@ -19,19 +19,19 @@ type APIEntry struct {
 	Module fx.Option
 }
 
-var apiRegistry []APIEntry
+var apiEntryRegistry []APIEntry
 var router *router2.APIRouter
 
 func init() {
 	router = router2.NewAPIRouter()
 }
 
-func Register(entry APIEntry) {
-	apiRegistry = append(apiRegistry, entry)
+func RegisterEntry(entry APIEntry) {
+	apiEntryRegistry = append(apiEntryRegistry, entry)
 }
 
-func GetRegistry() []APIEntry {
-	return apiRegistry
+func GetEntryRegistry() []APIEntry {
+	return apiEntryRegistry
 }
 
 func GetRouter() *router2.APIRouter {

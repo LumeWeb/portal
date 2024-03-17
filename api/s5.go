@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registry.Register(registry.APIEntry{
+	registry.RegisterEntry(registry.APIEntry{
 		Key:    "s5",
 		Module: s5.Module,
 	})

@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	registry.Register(registry.APIEntry{
+	registry.RegisterEntry(registry.APIEntry{
 		Key:    "account",
 		Module: account.Module,
 	})
