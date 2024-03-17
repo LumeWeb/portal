@@ -16,7 +16,6 @@ import (
 )
 
 const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
-const DEFAULT_AUTH_COOKIE_NAME = "auth_token"
 
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
 type HttpMiddlewareFunc func(http.Handler) http.Handler
@@ -76,7 +75,7 @@ func FindAuthToken(r *http.Request, cookieName string, queryParam string) string
 		return cookie.Value
 	}
 
-	if cookie, err := r.Cookie(DEFAULT_AUTH_COOKIE_NAME); cookie != nil && err == nil {
+	if cookie, err := r.Cookie(account.AUTH_COOKIE_NAME); cookie != nil && err == nil {
 		return cookie.Value
 	}
 

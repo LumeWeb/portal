@@ -11,6 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const AUTH_COOKIE_NAME = "auth_token"
+
 type JWTPurpose string
 type VerifyTokenFunc func(claim *jwt.RegisteredClaims) error
 
