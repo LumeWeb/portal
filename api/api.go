@@ -32,6 +32,8 @@ func BuildApis(cm *config.Manager) fx.Option {
 			if err != nil {
 				return err
 			}
+
+			registry.RegisterAPI(protocol)
 		}
 
 		return nil
