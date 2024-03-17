@@ -8,6 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/api/router"
+
+	apiRegistry "git.lumeweb.com/LumeWeb/portal/api/registry"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -93,13 +97,25 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 	return claim, err
 }
 
-func SetAuthCookie(w http.ResponseWriter, name, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		Secure:   true,
-		HttpOnly: true,
-		Path:     "/",
-	})
+func SetAuthCookie(w http.ResponseWriter, token string, apiName string) {
+	for name, api := range apiRegistry.GetAllAPIs() {
+		routeableApi, ok := api.(router.RoutableAPI)
+		if !ok {
+			continue
+		}
+
+		if len(apiName) > 0 && apiName != name {
+			continue
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     name,
+			Value:    token,
+			Expires:  time.Now().Add(24 * time.Hour),
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			Domain:   routeableApi.Domain(),
+		})
+	}
 }
