@@ -111,7 +111,11 @@ func (a AccountAPI) login(jc jape.Context) {
 	}
 
 	jwt, user, err := a.accounts.LoginPassword(request.Email, request.Password, jc.Request.RemoteAddr)
-	if err != nil {
+	if err != nil || user == nil {
+		_ = jc.Error(account.NewAccountError(account.ErrKeyInvalidLogin, err), http.StatusUnauthorized)
+		if err != nil {
+			a.logger.Error("failed to login", zap.Error(err))
+		}
 		return
 	}
 
