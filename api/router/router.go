@@ -12,6 +12,7 @@ import (
 
 type RoutableAPI interface {
 	Name() string
+	Domain() string
 	Can(w http.ResponseWriter, r *http.Request) bool
 	Handle(w http.ResponseWriter, r *http.Request)
 	Routes() (*httprouter.Router, error)
