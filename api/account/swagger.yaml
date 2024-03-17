@@ -148,6 +148,16 @@ paths:
                                 $ref: '#/components/schemas/AccountInfoResponse'
                 '401':
                     description: Unauthorized
+    /api/upload-limit:
+        get:
+            summary: Get the basic file upload (POST) upload limit set by the portal
+            responses:
+                '200':
+                    description: Upload limit retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UploadLimitResponse'
 
 components:
     schemas:
@@ -254,3 +264,10 @@ components:
                     type: string
                 email:
                     type: string
+        UploadLimitResponse:
+            type: object
+            properties:
+                limit:
+                    type: number
+            required:
+                - limit

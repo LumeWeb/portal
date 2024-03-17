@@ -53,3 +53,7 @@ type AccountInfoResponse struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 }
+
+type UploadLimitResponse struct {
+	Limit uint64 `json:"limit"`
+}

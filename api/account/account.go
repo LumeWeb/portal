@@ -308,6 +308,12 @@ func (a AccountAPI) logout(c jape.Context) {
 	account.ClearAuthCookie(c, "")
 }
 
+func (a AccountAPI) uploadLimit(c jape.Context) {
+	c.Encode(&UploadLimitResponse{
+		Limit: a.config.Config().Core.PostUploadLimit,
+	})
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
@@ -350,6 +356,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	getApiJape := jape.Mux(map[string]jape.Handler{
 		"GET /api/auth/otp/generate": middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"GET /api/account":           middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
+		"GET /api/upload-limit":      middleware.ApplyMiddlewares(a.uploadLimit, middleware.ProxyMiddleware),
 	})
 
 	getHandler := func(c jape.Context) {
