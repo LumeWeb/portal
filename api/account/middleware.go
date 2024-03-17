@@ -3,11 +3,13 @@ package account
 import (
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/account"
+
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 )
 
 const (
-	authCookieName = middleware.DEFAULT_AUTH_COOKIE_NAME
+	authCookieName = account.AUTH_COOKIE_NAME
 	authQueryParam = "auth_token"
 )
 
