@@ -21,7 +21,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/router"
 	"git.lumeweb.com/LumeWeb/portal/bao"
@@ -2140,19 +2139,6 @@ func isCidManifest(cid *encoding.CID) bool {
 	}
 
 	return slices.Contains(mTypes, cid.Type)
-}
-
-func setAuthCookie(jwt string, jc jape.Context) {
-	authCookie := http.Cookie{
-		Name:     "s5-auth-token",
-		Value:    jwt,
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   int(time.Hour.Seconds() * 24),
-		Secure:   true,
-	}
-
-	http.SetCookie(jc.ResponseWriter, &authCookie)
 }
 
 func extractMPFilename(header textproto.MIMEHeader) string {
