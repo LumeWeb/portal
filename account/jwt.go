@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -88,4 +89,15 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 	err = verifyFunc(claim)
 
 	return claim, err
+}
+
+func SetAuthCookie(w http.ResponseWriter, name, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		Secure:   true,
+		HttpOnly: true,
+		Path:     "/",
+	})
 }
