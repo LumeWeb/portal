@@ -121,3 +121,26 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 		})
 	}
 }
+
+func ClearAuthCookie(jc jape.Context, apiName string) {
+	for name, api := range apiRegistry.GetAllAPIs() {
+		routeableApi, ok := api.(router.RoutableAPI)
+		if !ok {
+			continue
+		}
+
+		if len(apiName) > 0 && apiName != name {
+			continue
+		}
+
+		http.SetCookie(jc.ResponseWriter, &http.Cookie{
+			Name:     routeableApi.AuthTokenName(),
+			Value:    "",
+			Expires:  time.Now().Add(-1 * time.Hour),
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			Domain:   routeableApi.Domain(),
+		})
+	}
+}

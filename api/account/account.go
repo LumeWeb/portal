@@ -304,6 +304,10 @@ func (a AccountAPI) accountInfo(jc jape.Context) {
 
 }
 
+func (a AccountAPI) logout(c jape.Context) {
+	account.ClearAuthCookie(c, "")
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
@@ -375,6 +379,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
+		"POST /api/auth/logout":                 middleware.ApplyMiddlewares(a.logout, authMw, middleware.ProxyMiddleware),
 		"GET /*path":                            getHandler,
 	}
 

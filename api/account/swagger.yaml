@@ -22,6 +22,12 @@ paths:
                                 $ref: '#/components/schemas/LoginResponse'
                 '401':
                     description: Unauthorized
+    /api/auth/logout:
+        post:
+            summary: Logout of account service
+            responses:
+                '200':
+                    description: Successfully logged out
     /api/auth/register:
         post:
             summary: Register a new account
