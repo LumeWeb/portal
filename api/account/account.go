@@ -388,3 +388,11 @@ func (a AccountAPI) Can(w http.ResponseWriter, r *http.Request) bool {
 
 func (a AccountAPI) Handle(w http.ResponseWriter, r *http.Request) {
 }
+
+func (a *AccountAPI) Domain() string {
+	return router.BuildSubdomain(a, a.config)
+}
+
+func (a AccountAPI) AuthTokenName() string {
+	return account.AUTH_COOKIE_NAME
+}
