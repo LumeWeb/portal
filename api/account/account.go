@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"io/fs"
 	"net/http"
+	"strings"
 	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/swagger"
@@ -29,7 +30,7 @@ import (
 //go:embed swagger.yaml
 var swagSpec []byte
 
-//go:embed app/build/client
+//go:embed all:app/build/client
 var appFs embed.FS
 
 var (
@@ -310,7 +311,7 @@ func (a AccountAPI) accountInfo(jc jape.Context) {
 
 }
 
-func (a AccountAPI) Routes() (*httprouter.Router, error) {
+func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
 		Accounts:     a.accounts,
@@ -340,24 +341,48 @@ func (a AccountAPI) Routes() (*httprouter.Router, error) {
 		appServ.ServeHTTP(c.ResponseWriter, c.Request)
 	}
 
+	appServer := middleware.ApplyMiddlewares(appHandler, middleware.ProxyMiddleware)
+
+	swaggerRoutes, err := swagger.Swagger(swagSpec, map[string]jape.Handler{})
+	if err != nil {
+		return nil, err
+	}
+
+	swaggerJape := jape.Mux(swaggerRoutes)
+
+	getApiJape := jape.Mux(map[string]jape.Handler{
+		"GET /api/auth/otp/generate": middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
+		"GET /api/account":           middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
+	})
+
+	getHandler := func(c jape.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			getApiJape.ServeHTTP(c.ResponseWriter, c.Request)
+			return
+		}
+
+		if strings.HasPrefix(c.Request.URL.Path, "/swagger") {
+			swaggerJape.ServeHTTP(c.ResponseWriter, c.Request)
+			return
+		}
+
+		if !strings.HasPrefix(c.Request.URL.Path, "/assets") && c.Request.URL.Path != "favicon.ico" && c.Request.URL.Path != "/" && !strings.HasSuffix(c.Request.URL.Path, ".html") {
+			c.Request.URL.Path = "/"
+		}
+		appServer(c)
+	}
+
 	routes := map[string]jape.Handler{
 		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.ping, pingAuthMw, middleware.ProxyMiddleware),
 		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, loginAuthMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, middleware.ProxyMiddleware),
 		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, middleware.ProxyMiddleware),
-		"GET /api/auth/otp/generate":            middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/validate":           middleware.ApplyMiddlewares(a.otpValidate, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, middleware.ProxyMiddleware),
 		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, middleware.ProxyMiddleware),
-		"GET /api/account":                      middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
-		"GET /*path":                            middleware.ApplyMiddlewares(appHandler, middleware.ProxyMiddleware),
-	}
-
-	routes, err := swagger.Swagger(swagSpec, routes)
-	if err != nil {
-		return nil, err
+		"GET /*path":                            getHandler,
 	}
 
 	return jape.Mux(routes), nil
@@ -367,5 +392,4 @@ func (a AccountAPI) Can(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (a AccountAPI) Handle(w http.ResponseWriter, r *http.Request) {
-	// noop
 }
