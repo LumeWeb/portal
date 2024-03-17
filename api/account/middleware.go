@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	authCookieName = "auth-token"
+	authCookieName = middleware.DEFAULT_AUTH_COOKIE_NAME
 	authQueryParam = "auth_token"
 )
 
