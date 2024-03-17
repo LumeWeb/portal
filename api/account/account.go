@@ -118,8 +118,8 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc.ResponseWriter, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
-	account.SetAuthCookie(jc.ResponseWriter, authCookieName, jwt)
+	account.SetAuthCookie(jc, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
+	account.SetAuthCookie(jc, authCookieName, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
@@ -214,8 +214,8 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc.ResponseWriter, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
-	account.SetAuthCookie(jc.ResponseWriter, authCookieName, jwt)
+	account.SetAuthCookie(jc, middleware.DEFAULT_AUTH_COOKIE_NAME, jwt)
+	account.SetAuthCookie(jc, authCookieName, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.sia.tech/jape"
+
 	"git.lumeweb.com/LumeWeb/portal/api/router"
 
 	apiRegistry "git.lumeweb.com/LumeWeb/portal/api/registry"
@@ -97,7 +99,7 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 	return claim, err
 }
 
-func SetAuthCookie(w http.ResponseWriter, token string, apiName string) {
+func SetAuthCookie(jc jape.Context, token string, apiName string) {
 	for name, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
@@ -108,7 +110,7 @@ func SetAuthCookie(w http.ResponseWriter, token string, apiName string) {
 			continue
 		}
 
-		http.SetCookie(w, &http.Cookie{
+		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     name,
 			Value:    token,
 			Expires:  time.Now().Add(24 * time.Hour),
