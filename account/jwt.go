@@ -99,7 +99,7 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 	return claim, err
 }
 
-func SetAuthCookie(jc jape.Context, token string, apiName string) {
+func SetAuthCookie(jc jape.Context, apiName string) {
 	for name, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
@@ -112,7 +112,7 @@ func SetAuthCookie(jc jape.Context, token string, apiName string) {
 
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     name,
-			Value:    token,
+			Value:    routeableApi.AuthTokenName(),
 			Expires:  time.Now().Add(24 * time.Hour),
 			Secure:   true,
 			HttpOnly: true,
