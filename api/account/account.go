@@ -120,6 +120,7 @@ func (a AccountAPI) login(jc jape.Context) {
 		Value:    jwt,
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
+		Path:     "/",
 	})
 	account.SendJWT(jc, jwt)
 
@@ -220,6 +221,7 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		Value:    jwt,
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
+		Path:     "/",
 	})
 	account.SendJWT(jc, jwt)
 
