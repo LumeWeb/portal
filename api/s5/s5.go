@@ -2123,6 +2123,14 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	return nil
 }
 
+func (s *S5API) Domain() string {
+	return router.BuildSubdomain(s, s.config)
+}
+
+func (s *S5API) AuthTokenName() string {
+	return "s5-auth-token"
+}
+
 func isCidManifest(cid *encoding.CID) bool {
 	mTypes := []types.CIDType{
 		types.CIDTypeMetadataMedia,
