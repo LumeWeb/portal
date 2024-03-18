@@ -155,7 +155,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			}
 
 			ctx := context.WithValue(r.Context(), options.AuthContextKey, uint(userId))
-			ctx = context.WithValue(r.Context(), AUTH_TOKEN_CONTEXT_KEY, authToken)
+			ctx = context.WithValue(ctx, AUTH_TOKEN_CONTEXT_KEY, authToken)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
