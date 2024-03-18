@@ -183,7 +183,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		AllowOriginFunc: func(origin string) bool {
 			return true
 		},
-		AllowedMethods: []string{"*"},
+		AllowedMethods: []string{"POST"},
 	})
 
 	routes := map[string]jape.Handler{
