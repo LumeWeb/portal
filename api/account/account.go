@@ -287,6 +287,7 @@ func (a AccountAPI) passwordResetConfirm(jc jape.Context) {
 }
 
 func (a AccountAPI) ping(jc jape.Context) {
+	account.EchoAuthCookie(jc, a.Name())
 	jc.Encode(&PongResponse{
 		Ping: "pong",
 	})
