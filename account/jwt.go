@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/samber/lo"
+
 	"go.sia.tech/jape"
 
 	"git.lumeweb.com/LumeWeb/portal/api/router"
@@ -119,6 +121,29 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 			Path:     "/",
 			Domain:   routeableApi.Domain(),
 		})
+	}
+}
+
+func EchoAuthCookie(jc jape.Context, apiName string) {
+	for name, api := range apiRegistry.GetAllAPIs() {
+		routeableApi, ok := api.(router.RoutableAPI)
+		if !ok {
+			continue
+		}
+
+		if len(apiName) > 0 && apiName != name {
+			continue
+		}
+
+		cookies := lo.Filter(jc.Request.Cookies(), func(item *http.Cookie, _ int) bool {
+			return item.Name == routeableApi.AuthTokenName()
+		})
+
+		if len(cookies) == 0 {
+			continue
+		}
+
+		http.SetCookie(jc.ResponseWriter, cookies[0])
 	}
 }
 
