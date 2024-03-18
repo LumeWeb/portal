@@ -386,7 +386,9 @@ func (w *s5TusJwtResponseWriter) WriteHeader(statusCode int) {
 func BuildTusCors() func(h http.Handler) http.Handler {
 	mw :=
 		cors.New(cors.Options{
-			AllowedOrigins: []string{"*"},
+			AllowOriginFunc: func(origin string) bool {
+				return true
+			},
 			AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 			AllowedHeaders: []string{
 				"Authorization",
