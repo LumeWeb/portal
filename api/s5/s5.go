@@ -179,6 +179,13 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 
 	debugCors := cors.Default()
 
+	uploadCors := cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
+		AllowedMethods: []string{"*"},
+	})
+
 	routes := map[string]jape.Handler{
 		// Account API
 		"GET /s5/account/register":  s.accountRegisterChallenge,
@@ -191,8 +198,8 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, authMw),
 
 		// Upload API
-		"POST /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, authMw),
-		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.directoryUpload, authMw),
+		"POST /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
+		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
