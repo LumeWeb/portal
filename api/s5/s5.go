@@ -198,8 +198,10 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, authMw),
 
 		// Upload API
-		"POST /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
-		"POST /s5/upload/directory": middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
+		"POST /s5/upload":              middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
+		"POST /s5/upload/directory":    middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
+		"OPTIONS /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
+		"OPTIONS /s5/upload/directory": middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
