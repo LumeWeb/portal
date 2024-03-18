@@ -184,6 +184,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 			return true
 		},
 		AllowedMethods: []string{"POST"},
+		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	})
 
 	routes := map[string]jape.Handler{
