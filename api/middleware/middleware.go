@@ -194,6 +194,17 @@ func GetUserFromContext(ctx context.Context, key ...string) uint {
 
 	return userId
 }
+
+func GetAuthTokenFromContext(ctx context.Context) string {
+	authToken, ok := ctx.Value(AUTH_TOKEN_CONTEXT_KEY).(string)
+
+	if !ok {
+		panic("auth token stored in context is not of type string")
+	}
+
+	return authToken
+}
+
 func CtxAborted(ctx context.Context) bool {
 	select {
 	case <-ctx.Done():
