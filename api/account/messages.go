@@ -45,7 +45,8 @@ type PasswordResetVerifyRequest struct {
 }
 
 type PongResponse struct {
-	Ping string `json:"ping"`
+	Ping  string `json:"ping"`
+	Token string `json:"token"`
 }
 type AccountInfoResponse struct {
 	ID        uint   `json:"id"`

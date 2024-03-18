@@ -253,6 +253,8 @@ components:
             properties:
                 ping:
                     type: string
+                token:
+                    type: string
         AccountInfoResponse:
             type: object
             properties:
