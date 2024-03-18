@@ -395,6 +395,7 @@ func BuildTusCors() func(h http.Handler) http.Handler {
 				"Expires",
 				"Upload-Concat",
 				"Upload-Length",
+				"Upload-Metadata",
 				"Upload-Offset",
 				"X-Requested-With",
 				"Tus-Version",
