@@ -16,6 +16,7 @@ import (
 )
 
 const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
+const AUTH_TOKEN_CONTEXT_KEY = "auth_token"
 
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
 type HttpMiddlewareFunc func(http.Handler) http.Handler
@@ -154,6 +155,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			}
 
 			ctx := context.WithValue(r.Context(), options.AuthContextKey, uint(userId))
+			ctx = context.WithValue(r.Context(), AUTH_TOKEN_CONTEXT_KEY, authToken)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
