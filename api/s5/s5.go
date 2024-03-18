@@ -403,6 +403,7 @@ func BuildTusCors() func(h http.Handler) http.Handler {
 				"Tus-Extension",
 				"Tus-Max-Size",
 				"X-HTTP-Method-Override",
+				"Content-Type",
 			},
 			AllowCredentials: true,
 		})
