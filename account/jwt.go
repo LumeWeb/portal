@@ -137,7 +137,6 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 			Name:     routeableApi.AuthTokenName(),
 			Value:    "",
 			Expires:  time.Now().Add(-1 * time.Hour),
-			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
 			Domain:   routeableApi.Domain(),
