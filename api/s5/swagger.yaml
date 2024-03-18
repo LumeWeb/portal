@@ -839,7 +839,7 @@ components:
         BasicUploadResponse:
             type: object
             properties:
-                CID:
+                cid:
                     type: string
         UploadRequestTryFiles:
             type: array
