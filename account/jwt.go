@@ -114,6 +114,7 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 			Name:     routeableApi.AuthTokenName(),
 			Value:    jwt,
 			Expires:  time.Now().Add(24 * time.Hour),
+			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
 			Domain:   routeableApi.Domain(),
