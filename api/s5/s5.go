@@ -169,17 +169,17 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 
 	tusHandler := BuildS5TusApi(authMw, s.tusHandler)
 
-	tusOptionsHandler := func(c jape.Context) {
+	corsOptionsHandler := func(c jape.Context) {
 		c.ResponseWriter.WriteHeader(http.StatusOK)
 	}
 
 	tusCors := BuildTusCors()
 
-	wrappedTusHandler := middleware.ApplyMiddlewares(tusOptionsHandler, tusCors, authMw)
+	wrappedTusHandler := middleware.ApplyMiddlewares(corsOptionsHandler, tusCors, authMw)
 
 	debugCors := cors.Default()
 
-	uploadCors := cors.New(cors.Options{
+	defaultCors := cors.New(cors.Options{
 		AllowOriginFunc: func(origin string) bool {
 			return true
 		},
@@ -200,10 +200,10 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, authMw),
 
 		// Upload API
-		"POST /s5/upload":              middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
-		"POST /s5/upload/directory":    middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
-		"OPTIONS /s5/upload":           middleware.ApplyMiddlewares(s.smallFileUpload, uploadCors.Handler, authMw),
-		"OPTIONS /s5/upload/directory": middleware.ApplyMiddlewares(s.directoryUpload, uploadCors.Handler, authMw),
+		"POST /s5/upload":              middleware.ApplyMiddlewares(s.smallFileUpload, defaultCors.Handler, authMw),
+		"POST /s5/upload/directory":    middleware.ApplyMiddlewares(s.directoryUpload, defaultCors.Handler, authMw),
+		"OPTIONS /s5/upload":           middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
+		"OPTIONS /s5/upload/directory": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
@@ -214,9 +214,12 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"OPTIONS /s5/upload/tus/:id": wrappedTusHandler,
 
 		// Download API
-		"GET /s5/blob/:cid":     middleware.ApplyMiddlewares(s.downloadBlob, authMw),
-		"GET /s5/metadata/:cid": s.downloadMetadata,
-		"GET /s5/download/:cid": middleware.ApplyMiddlewares(s.downloadFile, cors.Default().Handler),
+		"GET /s5/blob/:cid":         middleware.ApplyMiddlewares(s.downloadBlob, authMw),
+		"GET /s5/metadata/:cid":     s.downloadMetadata,
+		"GET /s5/download/:cid":     middleware.ApplyMiddlewares(s.downloadFile, defaultCors.Handler),
+		"OPTIONS /s5/blob/:cid":     middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
+		"OPTIONS /s5/metadata/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler),
+		"OPTIONS /s5/download/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler),
 
 		// Pins API
 		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.accountPin, authMw),
