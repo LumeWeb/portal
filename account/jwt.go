@@ -172,7 +172,7 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     routeableApi.AuthTokenName(),
-			Value:    "deleted",
+			Value:    "",
 			Expires:  time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC),
 			Secure:   true,
 			HttpOnly: true,
