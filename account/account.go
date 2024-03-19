@@ -279,8 +279,8 @@ func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, 
 }
 
 func (s AccountServiceDefault) UpdateAccountEmail(userId uint, email string, password string) error {
-	exists, _, err := s.EmailExists(email)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) || exists {
+	exists, euser, err := s.EmailExists(email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) || (exists && euser.ID != userId) {
 		return NewAccountError(ErrKeyEmailAlreadyExists, nil)
 	}
 
