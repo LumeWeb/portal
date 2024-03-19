@@ -58,3 +58,7 @@ type AccountInfoResponse struct {
 type UploadLimitResponse struct {
 	Limit uint64 `json:"limit"`
 }
+type UpdateEmailRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}

@@ -148,6 +148,18 @@ paths:
                                 $ref: '#/components/schemas/AccountInfoResponse'
                 '401':
                     description: Unauthorized
+    /api/account/update-email:
+        post:
+            summary: Update email address
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateEmailRequest'
+            responses:
+                '200':
+                    description: Email updated successfully
     /api/upload-limit:
         get:
             summary: Get the basic file upload (POST) upload limit set by the portal
@@ -245,6 +257,16 @@ components:
                 email:
                     type: string
                 token:
+                    type: string
+                password:
+                    type: string
+        UpdateEmailRequest:
+            type: object
+            required:
+                - email
+                - password
+            properties:
+                email:
                     type: string
                 password:
                     type: string

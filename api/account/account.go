@@ -319,6 +319,21 @@ func (a AccountAPI) uploadLimit(c jape.Context) {
 	})
 }
 
+func (a AccountAPI) updateEmail(c jape.Context) {
+	user := middleware.GetUserFromContext(c.Request.Context())
+
+	var request UpdateEmailRequest
+
+	if c.Decode(&request) != nil {
+		return
+	}
+
+	err := a.accounts.UpdateAccountEmail(user, request.Email, request.Password)
+	if c.Check("failed to update email", err) != nil {
+		return
+	}
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
@@ -387,17 +402,21 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	})
 
 	routes := map[string]jape.Handler{
+		// Auth
 		"POST /api/auth/ping":         middleware.ApplyMiddlewares(a.ping, corsMw.Handler, pingAuthMw, middleware.ProxyMiddleware),
 		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, corsMw.Handler, loginAuthMw2fa, middleware.ProxyMiddleware),
 		"POST /api/auth/register":     middleware.ApplyMiddlewares(a.register, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/auth/logout":       middleware.ApplyMiddlewares(a.logout, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
+		// Account
 		"POST /api/account/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, middleware.ProxyMiddleware),
+
 		"GET /*path": middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
 	}
 
