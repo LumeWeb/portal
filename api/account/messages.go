@@ -62,3 +62,7 @@ type UpdateEmailRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+type UpdatePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}

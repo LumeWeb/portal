@@ -160,6 +160,18 @@ paths:
             responses:
                 '200':
                     description: Email updated successfully
+    /api/account/update-password:
+        post:
+            summary: Update password
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdatePasswordRequest'
+            responses:
+                '200':
+                    description: Password updated successfully
     /api/upload-limit:
         get:
             summary: Get the basic file upload (POST) upload limit set by the portal
@@ -269,6 +281,16 @@ components:
                 email:
                     type: string
                 password:
+                    type: string
+        UpdatePasswordRequest:
+            type: object
+            required:
+                - current_password
+                - new_password
+            properties:
+                current_password:
+                    type: string
+                new_password:
                     type: string
         PingResponse:
             type: object

@@ -334,6 +334,22 @@ func (a AccountAPI) updateEmail(c jape.Context) {
 	}
 }
 
+func (a AccountAPI) updatePassword(c jape.Context) {
+	user := middleware.GetUserFromContext(c.Request.Context())
+
+	var request UpdatePasswordRequest
+
+	if c.Decode(&request) != nil {
+		return
+	}
+
+	err := a.accounts.UpdateAccountPassword(user, request.CurrentPassword, request.NewPassword)
+	if c.Check("failed to update password", err) != nil {
+		return
+	}
+
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:     a.identity,
@@ -416,6 +432,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/account/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"POST /api/account/update-password":        middleware.ApplyMiddlewares(a.updatePassword, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
 		"GET /*path": middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
 	}

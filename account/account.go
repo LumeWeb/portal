@@ -304,6 +304,24 @@ func (s AccountServiceDefault) UpdateAccountEmail(userId uint, email string, pas
 	return s.updateAccountInfo(userId, update)
 }
 
+func (s AccountServiceDefault) UpdateAccountPassword(userId uint, password string, newPassword string) error {
+	valid, _, err := s.ValidLoginByUserID(userId, password)
+	if err != nil {
+		return err
+	}
+
+	if !valid {
+		return NewAccountError(ErrKeyInvalidPassword, nil)
+	}
+
+	passwordHash, err := s.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	return s.updateAccountInfo(userId, models.User{PasswordHash: passwordHash})
+}
+
 func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
