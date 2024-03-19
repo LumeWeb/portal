@@ -100,7 +100,7 @@ paths:
             responses:
                 '200':
                     description: OTP disabled successfully
-    /api/password-rese/password-reset/request:
+    /api/account/password-reset/request:
         post:
             summary: Request a password reset
             requestBody:
@@ -112,7 +112,7 @@ paths:
             responses:
                 '200':
                     description: Password reset requested successfully
-    /api/password-rese/password-reset/confirm:
+    /api/account/password-reset/confirm:
         post:
             summary: Confirm a password reset
             requestBody:
