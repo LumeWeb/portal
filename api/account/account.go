@@ -417,6 +417,10 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		AllowedMethods: []string{"*"},
 	})
 
+	corsOptionsHandler := func(c jape.Context) {
+		c.ResponseWriter.WriteHeader(http.StatusOK)
+	}
+
 	routes := map[string]jape.Handler{
 		// Auth
 		"POST /api/auth/ping":         middleware.ApplyMiddlewares(a.ping, corsMw.Handler, pingAuthMw, middleware.ProxyMiddleware),
@@ -433,6 +437,26 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/account/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/update-password":        middleware.ApplyMiddlewares(a.updatePassword, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+
+		// CORS
+		"OPTIONS /api/auth/ping":         middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"OPTIONS /api/auth/login":        middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, loginAuthMw2fa, middleware.ProxyMiddleware),
+		"OPTIONS /api/auth/register":     middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/auth/otp/validate": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/auth/logout":       middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+
+		"OPTIONS /api/account/verify-email":           middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/otp/verify":             middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/otp/disable":            middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/password-reset/request": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/password-reset/confirm": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/update-email":           middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/update-password":        middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+
+		// Get Routes
+		"OPTIONS /api/upload-limit":      middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/account":           middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"OPTIONS /api/auth/otp/generate": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
 		"GET /*path": middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
 	}
