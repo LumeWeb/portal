@@ -417,6 +417,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 			return true
 		},
 		AllowedMethods: []string{"GET", "POST", "DELETE"},
+		AllowedHeaders: []string{"Authorization"},
 	})
 
 	corsOptionsHandler := func(c jape.Context) {
