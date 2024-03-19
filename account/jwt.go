@@ -143,7 +143,15 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 			continue
 		}
 
-		http.SetCookie(jc.ResponseWriter, cookies[0])
+		http.SetCookie(jc.ResponseWriter, &http.Cookie{
+			Name:     cookies[0].Name,
+			Value:    cookies[0].Value,
+			Expires:  cookies[0].Expires,
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			Domain:   cookies[0].Domain,
+		})
 	}
 }
 
