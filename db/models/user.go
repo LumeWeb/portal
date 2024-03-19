@@ -34,8 +34,10 @@ type User struct {
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
+	dest := tx.Statement.Dest.(*User)
+
 	if tx.Statement.Changed("Email") {
-		verify, err := getEmailVerfier().Verify(u.Email)
+		verify, err := getEmailVerfier().Verify(dest.Email)
 		if err != nil {
 			return err
 		}
