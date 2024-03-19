@@ -166,6 +166,10 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 			continue
 		}
 
+		jc.ResponseWriter.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		jc.ResponseWriter.Header().Set("Pragma", "no-cache")
+		jc.ResponseWriter.Header().Set("Expires", "0")
+
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     routeableApi.AuthTokenName(),
 			Value:    "deleted",
@@ -175,5 +179,6 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 			Path:     "/",
 			Domain:   routeableApi.Domain(),
 		})
+
 	}
 }
