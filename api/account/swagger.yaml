@@ -42,7 +42,7 @@ paths:
                     description: Successfully registered
                 '400':
                     description: Bad Request
-    /api/auth/verify-email:
+    /api/account/verify-email:
         post:
             summary: Verify email address
             requestBody:
@@ -64,7 +64,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/OTPGenerateResponse'
-    /api/auth/otp/verify:
+    /api/account/otp/verify:
         post:
             summary: Verify OTP for enabling two-factor authentication
             requestBody:
@@ -76,7 +76,7 @@ paths:
             responses:
                 '200':
                     description: OTP verified successfully
-    /api/auth/otp/validate:
+    /api/account/otp/validate:
         post:
             summary: Validate OTP for two-factor authentication login
             requestBody:
@@ -100,7 +100,7 @@ paths:
             responses:
                 '200':
                     description: OTP disabled successfully
-    /api/auth/password-reset/request:
+    /api/password-rese/password-reset/request:
         post:
             summary: Request a password reset
             requestBody:
@@ -112,7 +112,7 @@ paths:
             responses:
                 '200':
                     description: Password reset requested successfully
-    /api/auth/password-reset/confirm:
+    /api/password-rese/password-reset/confirm:
         post:
             summary: Confirm a password reset
             requestBody:

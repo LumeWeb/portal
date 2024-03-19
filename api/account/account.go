@@ -387,17 +387,18 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	})
 
 	routes := map[string]jape.Handler{
-		"POST /api/auth/ping":                   middleware.ApplyMiddlewares(a.ping, corsMw.Handler, pingAuthMw, middleware.ProxyMiddleware),
-		"POST /api/auth/login":                  middleware.ApplyMiddlewares(a.login, corsMw.Handler, loginAuthMw2fa, middleware.ProxyMiddleware),
-		"POST /api/auth/register":               middleware.ApplyMiddlewares(a.register, corsMw.Handler, middleware.ProxyMiddleware),
-		"POST /api/auth/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, corsMw.Handler, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/validate":           middleware.ApplyMiddlewares(a.otpValidate, corsMw.Handler, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
-		"POST /api/auth/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
-		"POST /api/auth/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
-		"POST /api/auth/logout":                 middleware.ApplyMiddlewares(a.logout, corsMw.Handler, authMw, middleware.ProxyMiddleware),
-		"GET /*path":                            middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
+		"POST /api/auth/ping":         middleware.ApplyMiddlewares(a.ping, corsMw.Handler, pingAuthMw, middleware.ProxyMiddleware),
+		"POST /api/auth/login":        middleware.ApplyMiddlewares(a.login, corsMw.Handler, loginAuthMw2fa, middleware.ProxyMiddleware),
+		"POST /api/auth/register":     middleware.ApplyMiddlewares(a.register, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/auth/otp/validate": middleware.ApplyMiddlewares(a.otpValidate, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"POST /api/auth/logout":       middleware.ApplyMiddlewares(a.logout, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+
+		"POST /api/account/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"POST /api/account/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+		"POST /api/account/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
+		"GET /*path": middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
 	}
 
 	return jape.Mux(routes), nil
