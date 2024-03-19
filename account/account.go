@@ -284,13 +284,17 @@ func (s AccountServiceDefault) UpdateAccountEmail(userId uint, email string, pas
 		return NewAccountError(ErrKeyEmailAlreadyExists, nil)
 	}
 
-	valid, _, err := s.ValidLoginByUserID(userId, password)
+	valid, user, err := s.ValidLoginByUserID(userId, password)
 	if err != nil {
 		return err
 	}
 
 	if !valid {
 		return NewAccountError(ErrKeyInvalidLogin, nil)
+	}
+
+	if user.Email == email {
+		return NewAccountError(ErrKeyUpdatingSameEmail, nil)
 	}
 
 	var update models.User

@@ -9,6 +9,7 @@ const (
 	// Account creation errors
 	ErrKeyAccountCreationFailed = "ErrAccountCreationFailed"
 	ErrKeyEmailAlreadyExists    = "ErrEmailAlreadyExists"
+	ErrKeyUpdatingSameEmail     = "ErrUpdatingSameEmail"
 	ErrKeyPasswordHashingFailed = "ErrPasswordHashingFailed"
 
 	// Account lookup and existence verification errors
@@ -56,6 +57,7 @@ var defaultErrorMessages = map[string]string{
 	ErrKeyAccountCreationFailed: "Account creation failed due to an internal error.",
 	ErrKeyEmailAlreadyExists:    "The email address provided is already in use.",
 	ErrKeyPasswordHashingFailed: "Failed to secure the password, please try again later.",
+	ErrKeyUpdatingSameEmail:     "The email address provided is the same as your current one.",
 
 	// Account lookup and existence verification errors
 	ErrKeyUserNotFound:      "The requested user was not found.",
