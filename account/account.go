@@ -278,6 +278,32 @@ func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, 
 	return s.updateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
 }
 
+func (s AccountServiceDefault) UpdateAccountEmail(userId uint, email string, password string) error {
+	exists, _, err := s.EmailExists(email)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return NewAccountError(ErrKeyEmailAlreadyExists, nil)
+	}
+
+	valid, _, err := s.ValidLoginByUserID(userId, password)
+	if err != nil {
+		return err
+	}
+
+	if !valid {
+		return NewAccountError(ErrKeyInvalidLogin, nil)
+	}
+
+	var update models.User
+
+	update.Email = email
+
+	return s.updateAccountInfo(userId, update)
+}
+
 func (s AccountServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
