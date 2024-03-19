@@ -175,7 +175,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 
 	tusCors := BuildTusCors()
 
-	wrappedTusHandler := middleware.ApplyMiddlewares(corsOptionsHandler, tusCors, authMw)
+	wrappedTusHandler := middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, tusCors, authMw)
 
 	debugCors := cors.Default()
 
@@ -190,20 +190,20 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 
 	routes := map[string]jape.Handler{
 		// Account API
-		"GET /s5/account/register":  s.accountRegisterChallenge,
-		"POST /s5/account/register": s.accountRegister,
-		"GET /s5/account/login":     s.accountLoginChallenge,
-		"POST /s5/account/login":    s.accountLogin,
-		"GET /s5/account":           middleware.ApplyMiddlewares(s.accountInfo, authMw),
-		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.accountStats, authMw),
-		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.accountPinsBinary, authMw),
-		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, authMw),
+		"GET /s5/account/register":  middleware.ApplyMiddlewares(s.accountRegisterChallenge, middleware.ProxyMiddleware),
+		"POST /s5/account/register": middleware.ApplyMiddlewares(s.accountRegister, middleware.ProxyMiddleware),
+		"GET /s5/account/login":     middleware.ApplyMiddlewares(s.accountLoginChallenge, middleware.ProxyMiddleware),
+		"POST /s5/account/login":    middleware.ApplyMiddlewares(s.accountLogin, middleware.ProxyMiddleware),
+		"GET /s5/account":           middleware.ApplyMiddlewares(s.accountInfo, middleware.ProxyMiddleware, authMw),
+		"GET /s5/account/stats":     middleware.ApplyMiddlewares(s.accountStats, middleware.ProxyMiddleware, authMw),
+		"GET /s5/account/pins.bin":  middleware.ApplyMiddlewares(s.accountPinsBinary, middleware.ProxyMiddleware, authMw),
+		"GET /s5/account/pins":      middleware.ApplyMiddlewares(s.accountPins, middleware.ProxyMiddleware, authMw),
 
 		// Upload API
-		"POST /s5/upload":              middleware.ApplyMiddlewares(s.smallFileUpload, defaultCors.Handler, authMw),
-		"POST /s5/upload/directory":    middleware.ApplyMiddlewares(s.directoryUpload, defaultCors.Handler, authMw),
-		"OPTIONS /s5/upload":           middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
-		"OPTIONS /s5/upload/directory": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
+		"POST /s5/upload":              middleware.ApplyMiddlewares(s.smallFileUpload, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"POST /s5/upload/directory":    middleware.ApplyMiddlewares(s.directoryUpload, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/upload":           middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/upload/directory": middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
 
 		// Tus API
 		"POST /s5/upload/tus":        tusHandler,
@@ -214,25 +214,25 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"OPTIONS /s5/upload/tus/:id": wrappedTusHandler,
 
 		// Download API
-		"GET /s5/blob/:cid":         middleware.ApplyMiddlewares(s.downloadBlob, authMw),
+		"GET /s5/blob/:cid":         middleware.ApplyMiddlewares(s.downloadBlob, middleware.ProxyMiddleware, authMw),
 		"GET /s5/metadata/:cid":     s.downloadMetadata,
-		"GET /s5/download/:cid":     middleware.ApplyMiddlewares(s.downloadFile, defaultCors.Handler),
-		"OPTIONS /s5/blob/:cid":     middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler, authMw),
-		"OPTIONS /s5/metadata/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler),
-		"OPTIONS /s5/download/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, defaultCors.Handler),
+		"GET /s5/download/:cid":     middleware.ApplyMiddlewares(s.downloadFile, middleware.ProxyMiddleware, defaultCors.Handler),
+		"OPTIONS /s5/blob/:cid":     middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/metadata/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler),
+		"OPTIONS /s5/download/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler),
 
 		// Pins API
-		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.accountPin, authMw),
-		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.accountPinDelete, authMw),
+		"POST /s5/pin/:cid":      middleware.ApplyMiddlewares(s.accountPin, middleware.ProxyMiddleware, authMw),
+		"DELETE /s5/delete/:cid": middleware.ApplyMiddlewares(s.accountPinDelete, middleware.ProxyMiddleware, authMw),
 
 		// Debug API
 		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, middleware.ProxyMiddleware, debugCors.Handler),
 		"GET /s5/debug/storage_locations/:hash": middleware.ApplyMiddlewares(s.debugStorageLocations, middleware.ProxyMiddleware, debugCors.Handler),
 
 		// Registry API
-		"GET /s5/registry":              middleware.ApplyMiddlewares(s.registryQuery, authMw),
-		"POST /s5/registry":             middleware.ApplyMiddlewares(s.registrySet, authMw),
-		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.registrySubscription, authMw),
+		"GET /s5/registry":              middleware.ApplyMiddlewares(s.registryQuery, middleware.ProxyMiddleware, authMw),
+		"POST /s5/registry":             middleware.ApplyMiddlewares(s.registrySet, middleware.ProxyMiddleware, authMw),
+		"GET /s5/registry/subscription": middleware.ApplyMiddlewares(s.registrySubscription, middleware.ProxyMiddleware, authMw),
 	}
 
 	routes, err := swagger.Swagger(swagSpec, routes)
