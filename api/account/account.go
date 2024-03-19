@@ -415,7 +415,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/account/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/confirm": middleware.ApplyMiddlewares(a.passwordResetConfirm, corsMw.Handler, middleware.ProxyMiddleware),
-		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
 		"GET /*path": middleware.ApplyMiddlewares(getHandler, corsMw.Handler),
 	}
