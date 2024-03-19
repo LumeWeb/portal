@@ -279,7 +279,7 @@ func (s AccountServiceDefault) UpdateAccountName(userId uint, firstName string, 
 }
 
 func (s AccountServiceDefault) UpdateAccountEmail(userId uint, email string, password string) error {
-	exists, _, err := s.AccountExists(userId)
+	exists, _, err := s.EmailExists(email)
 	if err != nil {
 		return err
 	}
