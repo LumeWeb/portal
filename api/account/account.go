@@ -413,7 +413,9 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	}
 
 	corsMw := cors.New(cors.Options{
-		AllowedOrigins: []string{"*." + a.config.Config().Core.Domain},
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
 		AllowedMethods: []string{"*"},
 	})
 
