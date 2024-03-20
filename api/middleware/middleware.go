@@ -172,8 +172,8 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 
 				if unauthorized {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
 				}
-				return
 			}
 
 			userId, err := strconv.ParseUint(claim.Subject, 10, 64)
