@@ -7,6 +7,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+
 	"git.lumeweb.com/LumeWeb/portal/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/mailer"
@@ -103,6 +105,13 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string, ver
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return nil, NewAccountError(ErrKeyEmailAlreadyExists, nil)
 		}
+
+		if err, ok := result.Error.(*mysql.MySQLError); ok {
+			if err.Number == 1062 {
+				return nil, NewAccountError(ErrKeyEmailAlreadyExists, nil)
+			}
+		}
+
 		return nil, NewAccountError(ErrKeyAccountCreationFailed, result.Error)
 	}
 
