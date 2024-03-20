@@ -120,7 +120,7 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc, jwt, "")
+	account.SetAuthCookie(jc, jwt, a.Name())
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
