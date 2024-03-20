@@ -102,13 +102,17 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 }
 
 func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
+	if len(apiName) == 0 {
+		panic("apiName is required")
+	}
+
 	for name, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
 			continue
 		}
 
-		if len(apiName) > 0 && apiName != name {
+		if apiName != name {
 			continue
 		}
 
@@ -125,13 +129,17 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 }
 
 func EchoAuthCookie(jc jape.Context, apiName string) {
+	if len(apiName) == 0 {
+		panic("apiName is required")
+	}
+
 	for name, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
 			continue
 		}
 
-		if len(apiName) > 0 && apiName != name {
+		if apiName != name {
 			continue
 		}
 
@@ -168,13 +176,17 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 }
 
 func ClearAuthCookie(jc jape.Context, apiName string) {
+	if len(apiName) == 0 {
+		panic("apiName is required")
+	}
+
 	for name, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
 			continue
 		}
 
-		if len(apiName) > 0 && apiName != name {
+		if apiName != name {
 			continue
 		}
 
