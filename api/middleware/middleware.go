@@ -171,7 +171,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				}
 
 				if unauthorized {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					http.Error(w, err.Error(), http.StatusUnauthorized)
 					return
 				}
 			}
