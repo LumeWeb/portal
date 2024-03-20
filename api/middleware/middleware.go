@@ -147,7 +147,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 					unauthorized = false
 				}
 
-				if unauthorized && audList == nil {
+				if !unauthorized && audList == nil {
 					if audList == nil {
 						var claim jwt.RegisteredClaims
 
