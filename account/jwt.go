@@ -143,10 +143,22 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 			continue
 		}
 
+		unverified, _, err := jwt.NewParser().ParseUnverified(cookies[0].Value, &jwt.RegisteredClaims{})
+		if err != nil {
+			http.Error(jc.ResponseWriter, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		exp, err := unverified.Claims.GetExpirationTime()
+		if err != nil {
+			http.Error(jc.ResponseWriter, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     cookies[0].Name,
 			Value:    cookies[0].Value,
-			Expires:  cookies[0].Expires,
+			Expires:  exp.Time,
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
