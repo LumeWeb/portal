@@ -123,7 +123,6 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   routeableApi.Domain(),
 		})
 	}
 }
@@ -170,7 +169,6 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   cookies[0].Domain,
 		})
 	}
 }
@@ -202,7 +200,7 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   routeableApi.Domain(),
+			//	Domain:   "." + routeableApi.Domain(),
 		})
 
 	}
