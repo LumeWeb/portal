@@ -310,7 +310,7 @@ func (a AccountAPI) accountInfo(jc jape.Context) {
 }
 
 func (a AccountAPI) logout(c jape.Context) {
-	account.ClearAuthCookie(c, "")
+	account.ClearAuthCookie(c, a.Name())
 }
 
 func (a AccountAPI) uploadLimit(c jape.Context) {
