@@ -168,10 +168,10 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 						}
 
 					}
+				}
 
-					if unauthorized {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-					}
+				if unauthorized {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
