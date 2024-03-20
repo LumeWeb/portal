@@ -127,12 +127,12 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			var audList jwt.ClaimStrings
+			var audList *jwt.ClaimStrings
 
 			claim, err := account.JWTVerifyToken(authToken, domain, options.Identity, func(claim *jwt.RegisteredClaims) error {
 				aud, _ := claim.GetAudience()
 
-				audList = aud
+				audList = &aud
 
 				if options.Purpose != account.JWTPurposeNone && jwtPurposeEqual(aud, options.Purpose) == false {
 					return account.ErrJWTInvalid
@@ -147,8 +147,31 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 					unauthorized = false
 				}
 
-				if unauthorized && jwtPurposeEqual(audList, options.Purpose) == true {
-					http.Error(w, err.Error(), http.StatusUnauthorized)
+				if unauthorized && audList == nil {
+					if audList == nil {
+						var claim jwt.RegisteredClaims
+
+						unverified, _, err := jwt.NewParser().ParseUnverified(authToken, &claim)
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						audList, err := unverified.Claims.GetAudience()
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						if jwtPurposeEqual(audList, options.Purpose) == true {
+							unauthorized = true
+						}
+
+					}
+
+					if unauthorized {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+					}
 				}
 				return
 			}
