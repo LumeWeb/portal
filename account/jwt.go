@@ -119,7 +119,7 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     routeableApi.AuthTokenName(),
 			Value:    jwt,
-			Expires:  time.Now().Add(24 * time.Hour),
+			MaxAge:   int((24 * time.Hour).Seconds()),
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
@@ -166,7 +166,7 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     cookies[0].Name,
 			Value:    cookies[0].Value,
-			Expires:  exp.Time,
+			MaxAge:   int(exp.Time.Sub(time.Now()).Seconds()),
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
