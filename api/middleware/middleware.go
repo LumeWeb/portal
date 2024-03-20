@@ -129,7 +129,9 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				aud, _ := claim.GetAudience()
 
 				if options.Purpose != account.JWTPurposeNone && slices.Contains[jwt.ClaimStrings, string](aud, string(options.Purpose)) == false {
-					return account.ErrJWTInvalid
+					if !options.EmptyAllowed {
+						return account.ErrJWTInvalid
+					}
 				}
 
 				return nil
