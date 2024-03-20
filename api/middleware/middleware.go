@@ -176,6 +176,11 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				}
 			}
 
+			if claim == nil && options.ExpiredAllowed {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			userId, err := strconv.ParseUint(claim.Subject, 10, 64)
 
 			if err != nil {
