@@ -127,8 +127,12 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
+			var audList jwt.ClaimStrings
+
 			claim, err := account.JWTVerifyToken(authToken, domain, options.Identity, func(claim *jwt.RegisteredClaims) error {
 				aud, _ := claim.GetAudience()
+
+				audList = aud
 
 				if options.Purpose != account.JWTPurposeNone && jwtPurposeEqual(aud, options.Purpose) == false {
 					return account.ErrJWTInvalid
@@ -143,7 +147,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 					unauthorized = false
 				}
 
-				if unauthorized && jwtPurposeEqual(claim.Audience, options.Purpose) == true {
+				if unauthorized && jwtPurposeEqual(audList, options.Purpose) == true {
 					http.Error(w, err.Error(), http.StatusUnauthorized)
 				}
 				return
