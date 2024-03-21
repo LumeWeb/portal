@@ -183,7 +183,7 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		AllowOriginFunc: func(origin string) bool {
 			return true
 		},
-		AllowedMethods:   []string{"POST"},
+		AllowedMethods:   []string{"POST", "GET", "DELETE"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	})
