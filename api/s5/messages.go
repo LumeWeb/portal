@@ -1,6 +1,8 @@
 package s5
 
 import (
+	"time"
+
 	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
@@ -126,7 +128,8 @@ type AccountPinResponse struct {
 }
 
 type AccountPin struct {
-	Hash     string `json:"hash"`
-	Size     uint64 `json:"size"`
-	MimeType string `json:"mime_type"`
+	Hash     string    `json:"hash"`
+	Size     uint64    `json:"size"`
+	PinnedAt time.Time `json:"pinned_at"`
+	MimeType string    `json:"mime_type"`
 }

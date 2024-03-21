@@ -912,12 +912,15 @@ components:
             required:
                 - hash
                 - size
+                - pinned_at
                 - mime_type
             properties:
                 hash:
                     type: string
                 size:
                     type: integer
+                pinned_at:
+                    type: string
                 mime_type:
                     type: string
         RegistryQueryResponse:
