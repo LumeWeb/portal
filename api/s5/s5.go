@@ -497,6 +497,12 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 		return
 	}
 
+	err2 = s.accounts.PinByHash(newUpload.Hash, user)
+	if err2 != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
+		return
+	}
+
 	cidStr, err2 := cid.ToString()
 	if err2 != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
