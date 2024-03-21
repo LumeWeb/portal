@@ -50,7 +50,7 @@ var Module = fx.Module("metadata",
 )
 
 type MetadataService interface {
-	SaveUpload(ctx context.Context, metadata UploadMetadata) error
+	SaveUpload(ctx context.Context, metadata UploadMetadata, skipExisting bool) error
 	GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error)
 	DeleteUpload(ctx context.Context, objectHash []byte) error
 }
@@ -70,7 +70,7 @@ func NewMetadataService(params MetadataServiceParams) *MetadataServiceDefault {
 	}
 }
 
-func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata UploadMetadata) error {
+func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata UploadMetadata, skipExisting bool) error {
 	var upload models.Upload
 
 	upload.Hash = metadata.Hash
@@ -82,6 +82,10 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata Upload
 			return m.createUpload(ctx, metadata)
 		}
 		return ret.Error
+	}
+
+	if skipExisting {
+		return nil
 	}
 
 	changed := false

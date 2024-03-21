@@ -435,7 +435,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 	uploadMeta.UserID = upload.UploaderID
 	uploadMeta.UploaderIP = upload.UploaderIP
 
-	err = t.metadata.SaveUpload(ctx, *uploadMeta)
+	err = t.metadata.SaveUpload(ctx, *uploadMeta, true)
 	if err != nil {
 		t.logger.Error("Could not create upload", zap.Error(err))
 		return err

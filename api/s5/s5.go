@@ -484,7 +484,7 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 	newUpload.UserID = user
 	newUpload.UploaderIP = jc.Request.RemoteAddr
 
-	err2 = s.metadata.SaveUpload(jc.Request.Context(), *newUpload)
+	err2 = s.metadata.SaveUpload(jc.Request.Context(), *newUpload, true)
 
 	if err2 != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
@@ -1359,7 +1359,7 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 			upload.UserID = user
 			upload.UploaderIP = r.RemoteAddr
 
-			err = s.metadata.SaveUpload(r.Context(), *upload)
+			err = s.metadata.SaveUpload(r.Context(), *upload, true)
 			if err != nil {
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
 			}
@@ -1430,7 +1430,7 @@ func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http
 	upload.UserID = userId
 	upload.UploaderIP = r.RemoteAddr
 
-	err = s.metadata.SaveUpload(r.Context(), *upload)
+	err = s.metadata.SaveUpload(r.Context(), *upload, true)
 	if err != nil {
 		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
 	}
@@ -2004,7 +2004,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 	saveAndPin := func(upload *metadata.UploadMetadata) error {
 		upload.UserID = userId
-		if err := s.metadata.SaveUpload(ctx, *upload); err != nil {
+		if err := s.metadata.SaveUpload(ctx, *upload, true); err != nil {
 			return err
 		}
 
