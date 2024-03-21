@@ -909,6 +909,9 @@ components:
                         $ref: '#/components/schemas/AccountPin'
         AccountPin:
             type: object
+            required:
+                - hash
+                - mime_type
             properties:
                 hash:
                     type: string
