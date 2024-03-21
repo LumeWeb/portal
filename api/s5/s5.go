@@ -859,7 +859,12 @@ func (s *S5API) accountPins(jc jape.Context) {
 	pins := make([]AccountPin, len(pinsRet))
 
 	for i, pin := range pinsRet {
-		base64Url, err := encoding.NewMultihash(append([]byte{byte(types.HashTypeBlake3)}, pin.Upload.Hash...)).ToBase64Url()
+		cid, err := encoding.CIDFromHash(pin.Upload.Hash, pin.Upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+		base64Url, err := cid.Hash.ToBase64Url()
 		if err != nil {
 			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
 			return
