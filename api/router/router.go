@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"sync"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
 
@@ -25,6 +26,7 @@ type APIRouter struct {
 	apiHandlers map[string]http.Handler
 	logger      *zap.Logger
 	config      *config.Manager
+	mutex       *sync.RWMutex
 }
 
 // Implement the ServeHTTP method on our new type
@@ -59,6 +61,8 @@ func (hs *APIRouter) getHandlerByDomain(domain string) http.Handler {
 }
 
 func (hs *APIRouter) getHandler(protocol string) http.Handler {
+	hs.mutex.RLock()
+	defer hs.mutex.RUnlock()
 	if handler := hs.apiHandlers[protocol]; handler == nil {
 		if proto := hs.apis[protocol]; proto == nil {
 			hs.logger.Fatal("Protocol not found", zap.String("protocol", protocol))
@@ -72,6 +76,8 @@ func (hs *APIRouter) getHandler(protocol string) http.Handler {
 			return nil
 		}
 
+		hs.mutex.Lock()
+		defer hs.mutex.Unlock()
 		hs.apiHandlers[protocol] = routes
 	}
 
@@ -83,6 +89,7 @@ func NewAPIRouter() *APIRouter {
 		apis:        make(map[string]RoutableAPI),
 		apiHandlers: make(map[string]http.Handler),
 		apiDomain:   make(map[string]string),
+		mutex:       &sync.RWMutex{},
 	}
 }
 
