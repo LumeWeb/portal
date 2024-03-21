@@ -62,26 +62,35 @@ func (hs *APIRouter) getHandlerByDomain(domain string) http.Handler {
 
 func (hs *APIRouter) getHandler(protocol string) http.Handler {
 	hs.mutex.RLock()
-	defer hs.mutex.RUnlock()
-	if handler := hs.apiHandlers[protocol]; handler == nil {
-		if proto := hs.apis[protocol]; proto == nil {
-			hs.logger.Fatal("Protocol not found", zap.String("protocol", protocol))
-			return nil
-		}
+	handler, ok := hs.apiHandlers[protocol]
+	hs.mutex.RUnlock()
 
-		routes, err := hs.apis[protocol].Routes()
-
-		if err != nil {
-			hs.logger.Fatal("Error getting routes", zap.Error(err))
-			return nil
-		}
-
-		hs.mutex.Lock()
-		defer hs.mutex.Unlock()
-		hs.apiHandlers[protocol] = routes
+	if ok {
+		return handler
 	}
 
-	return hs.apiHandlers[protocol]
+	hs.mutex.Lock()
+	defer hs.mutex.Unlock()
+
+	// Double-check if the handler was created while acquiring the write lock
+	if handler, ok := hs.apiHandlers[protocol]; ok {
+		return handler
+	}
+
+	proto, ok := hs.apis[protocol]
+	if !ok {
+		hs.logger.Fatal("Protocol not found", zap.String("protocol", protocol))
+		return nil
+	}
+
+	routes, err := proto.Routes()
+	if err != nil {
+		hs.logger.Fatal("Error getting routes", zap.Error(err))
+		return nil
+	}
+
+	hs.apiHandlers[protocol] = routes
+	return routes
 }
 
 func NewAPIRouter() *APIRouter {
