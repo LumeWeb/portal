@@ -858,6 +858,7 @@ func (s *S5API) accountPins(jc jape.Context) {
 		}
 		pins[i] = AccountPin{
 			Hash:     base64Url,
+			Size:     pin.Upload.Size,
 			MimeType: pin.Upload.MimeType,
 		}
 	}

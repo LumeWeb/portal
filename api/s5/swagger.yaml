@@ -911,10 +911,13 @@ components:
             type: object
             required:
                 - hash
+                - size
                 - mime_type
             properties:
                 hash:
                     type: string
+                size:
+                    type: integer
                 mime_type:
                     type: string
         RegistryQueryResponse:

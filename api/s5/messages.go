@@ -127,5 +127,6 @@ type AccountPinResponse struct {
 
 type AccountPin struct {
 	Hash     string `json:"hash"`
+	Size     uint64 `json:"size"`
 	MimeType string `json:"mime_type"`
 }
