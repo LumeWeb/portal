@@ -120,7 +120,7 @@ func (a AccountAPI) login(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc, jwt, a.Name())
+	account.SetAuthCookie(jc, a.config, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
@@ -215,7 +215,7 @@ func (a AccountAPI) otpValidate(jc jape.Context) {
 		return
 	}
 
-	account.SetAuthCookie(jc, jwt, "")
+	account.SetAuthCookie(jc, a.config, jwt)
 	account.SendJWT(jc, jwt)
 
 	jc.Encode(&LoginResponse{
@@ -288,7 +288,7 @@ func (a AccountAPI) passwordResetConfirm(jc jape.Context) {
 
 func (a AccountAPI) ping(jc jape.Context) {
 	token := middleware.GetAuthTokenFromContext(jc.Request.Context())
-	account.EchoAuthCookie(jc, a.Name())
+	account.EchoAuthCookie(jc, a.config)
 	jc.Encode(&PongResponse{
 		Ping:  "pong",
 		Token: token,
@@ -310,7 +310,7 @@ func (a AccountAPI) accountInfo(jc jape.Context) {
 }
 
 func (a AccountAPI) logout(c jape.Context) {
-	account.ClearAuthCookie(c, a.Name())
+	account.ClearAuthCookie(c, a.config)
 }
 
 func (a AccountAPI) uploadLimit(c jape.Context) {

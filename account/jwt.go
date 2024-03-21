@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/config"
+
 	"github.com/samber/lo"
 
 	"go.sia.tech/jape"
@@ -101,18 +103,11 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 	return claim, err
 }
 
-func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
-	if len(apiName) == 0 {
-		panic("apiName is required")
-	}
+func SetAuthCookie(jc jape.Context, c *config.Manager, jwt string) {
 
-	for name, api := range apiRegistry.GetAllAPIs() {
+	for _, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
-			continue
-		}
-
-		if apiName != name {
 			continue
 		}
 
@@ -123,22 +118,15 @@ func SetAuthCookie(jc jape.Context, jwt string, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
+			Domain:   c.Config().Core.Domain,
 		})
 	}
 }
 
-func EchoAuthCookie(jc jape.Context, apiName string) {
-	if len(apiName) == 0 {
-		panic("apiName is required")
-	}
-
-	for name, api := range apiRegistry.GetAllAPIs() {
+func EchoAuthCookie(jc jape.Context, config *config.Manager) {
+	for _, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
-			continue
-		}
-
-		if apiName != name {
 			continue
 		}
 
@@ -169,22 +157,15 @@ func EchoAuthCookie(jc jape.Context, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
+			Domain:   config.Config().Core.Domain,
 		})
 	}
 }
 
-func ClearAuthCookie(jc jape.Context, apiName string) {
-	if len(apiName) == 0 {
-		panic("apiName is required")
-	}
-
-	for name, api := range apiRegistry.GetAllAPIs() {
+func ClearAuthCookie(jc jape.Context, config *config.Manager) {
+	for _, api := range apiRegistry.GetAllAPIs() {
 		routeableApi, ok := api.(router.RoutableAPI)
 		if !ok {
-			continue
-		}
-
-		if apiName != name {
 			continue
 		}
 
@@ -200,8 +181,7 @@ func ClearAuthCookie(jc jape.Context, apiName string) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			//	Domain:   "." + routeableApi.Domain(),
+			Domain:   config.Config().Core.Domain,
 		})
-
 	}
 }
