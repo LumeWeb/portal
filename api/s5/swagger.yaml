@@ -900,6 +900,8 @@ components:
                           $ref: "#/components/schemas/AccountStats"
         AccountPinsResponse:
             type: object
+            required:
+                - pins
             properties:
                 pins:
                     type: array
