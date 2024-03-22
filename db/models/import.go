@@ -7,6 +7,7 @@ type ImportStatus string
 const (
 	ImportStatusQueued     ImportStatus = "queued"
 	ImportStatusProcessing ImportStatus = "processing"
+	ImportStatusCompleted  ImportStatus = "completed"
 )
 
 func init() {
