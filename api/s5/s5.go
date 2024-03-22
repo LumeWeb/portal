@@ -2045,7 +2045,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 	__import.Status = models.ImportStatusProcessing
 
-	err = s._import.SaveImport(ctx, __import, true)
+	err = s._import.SaveImport(ctx, __import, false)
 	if err != nil {
 		return err
 	}
