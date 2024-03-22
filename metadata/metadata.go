@@ -13,6 +13,8 @@ import (
 
 var ErrNotFound = gorm.ErrRecordNotFound
 
+var _ MetadataService = (*MetadataServiceDefault)(nil)
+
 type UploadMetadata struct {
 	ID         uint      `json:"upload_id"`
 	UserID     uint      `json:"user_id"`
