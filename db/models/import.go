@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	registerModel(&Upload{})
+	registerModel(&Import{})
 }
 
 type Import struct {
