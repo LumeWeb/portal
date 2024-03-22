@@ -84,22 +84,27 @@ func (i ImportServiceDefault) SaveImport(ctx context.Context, metadata ImportMet
 	changed := false
 
 	if __import.UserID != metadata.UserID {
+		__import.UserID = metadata.UserID
 		changed = true
 	}
 
 	if __import.Status != metadata.Status {
+		__import.Status = metadata.Status
 		changed = true
 	}
 
 	if __import.Progress != metadata.Progress {
+		__import.Progress = metadata.Progress
 		changed = true
 	}
 
 	if __import.Protocol != metadata.Protocol {
+		__import.Protocol = metadata.Protocol
 		changed = true
 	}
 
 	if __import.ImporterIP != metadata.ImporterIP {
+		__import.ImporterIP = metadata.ImporterIP
 		changed = true
 	}
 	if changed {
