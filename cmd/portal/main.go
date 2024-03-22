@@ -4,6 +4,8 @@ import (
 	"flag"
 	"net/http"
 
+	_import "git.lumeweb.com/LumeWeb/portal/import"
+
 	"git.lumeweb.com/LumeWeb/portal/mailer"
 
 	"git.lumeweb.com/LumeWeb/portal/config"
@@ -61,6 +63,7 @@ func main() {
 		cron.Module,
 		account.Module,
 		metadata.Module,
+		_import.Module,
 		mailer.Module,
 		protocols.BuildProtocols(cfg),
 		api.BuildApis(cfg),
