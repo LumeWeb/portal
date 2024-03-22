@@ -1166,7 +1166,10 @@ func (s *S5API) accountPinStatus(jc jape.Context) {
 	meta, err := s._import.GetImport(jc.Request.Context(), decodedCid.Hash.HashBytes())
 
 	if err != nil {
-		s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+		jc.Encode(&AccountPinStatusResponse{
+			Status:   models.ImportStatusCompleted,
+			Progress: 100,
+		})
 		return
 	}
 
