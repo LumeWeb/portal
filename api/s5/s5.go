@@ -229,9 +229,12 @@ func (s *S5API) Routes() (*httprouter.Router, error) {
 		"OPTIONS /s5/download/:cid": middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler),
 
 		// Pins API
-		"POST /s5/pin/:cid":       middleware.ApplyMiddlewares(s.accountPin, middleware.ProxyMiddleware, authMw),
-		"GET /s5/pin/:cid/status": middleware.ApplyMiddlewares(s.accountPinStatus, middleware.ProxyMiddleware, authMw),
-		"DELETE /s5/delete/:cid":  middleware.ApplyMiddlewares(s.accountPinDelete, middleware.ProxyMiddleware, authMw),
+		"POST /s5/pin/:cid":           middleware.ApplyMiddlewares(s.accountPin, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"GET /s5/pin/:cid/status":     middleware.ApplyMiddlewares(s.accountPinStatus, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"DELETE /s5/delete/:cid":      middleware.ApplyMiddlewares(s.accountPinDelete, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/pin/:cid":        middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/delete/:cid":     middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
+		"OPTIONS /s5/pin/:cid/status": middleware.ApplyMiddlewares(corsOptionsHandler, middleware.ProxyMiddleware, defaultCors.Handler, authMw),
 
 		// Debug API
 		"GET /s5/debug/download_urls/:cid":      middleware.ApplyMiddlewares(s.debugDownloadUrls, middleware.ProxyMiddleware, debugCors.Handler),
