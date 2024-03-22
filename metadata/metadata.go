@@ -93,22 +93,27 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata Upload
 	changed := false
 
 	if upload.UserID != metadata.UserID {
+		upload.UserID = metadata.UserID
 		changed = true
 	}
 
 	if upload.MimeType != metadata.MimeType {
+		upload.MimeType = metadata.MimeType
 		changed = true
 	}
 
 	if upload.Protocol != metadata.Protocol {
+		upload.Protocol = metadata.Protocol
 		changed = true
 	}
 
 	if upload.UploaderIP != metadata.UploaderIP {
+		upload.UploaderIP = metadata.UploaderIP
 		changed = true
 	}
 
 	if upload.Size != metadata.Size {
+		upload.Size = metadata.Size
 		changed = true
 	}
 
