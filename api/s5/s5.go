@@ -1141,7 +1141,39 @@ func (s *S5API) accountPin(jc jape.Context) {
 }
 
 func (s *S5API) accountPinStatus(jc jape.Context) {
+	var cid string
+	if err := jc.DecodeParam("cid", &cid); err != nil {
+		return
+	}
 
+	userID := middleware.GetUserFromContext(jc.Request.Context())
+
+	decodedCid, err := encoding.CIDFromString(cid)
+	if err != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
+		return
+	}
+
+	if err := s.accounts.PinByHash(decodedCid.Hash.HashBytes(), userID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+			return
+		}
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+		return
+	}
+
+	meta, err := s._import.GetImport(jc.Request.Context(), decodedCid.Hash.HashBytes())
+
+	if err != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyResourceNotFound, err))
+		return
+	}
+
+	jc.Encode(&AccountPinStatusResponse{
+		Status:   meta.Status,
+		Progress: meta.Progress,
+	})
 }
 
 func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *encoding.CID) error {

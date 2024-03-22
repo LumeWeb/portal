@@ -679,6 +679,24 @@ paths:
             responses:
                 '204':
                     description: File pinned
+    /s5/pin/{cid}/status:
+        get:
+            summary: Retrieve pin status
+            tags:
+                - pin
+            parameters:
+                - name: cid
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                '200':
+                    description: Pin status
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AccountPinStatusResponse'
     /s5/delete/{cid}:
         delete:
             summary: Delete a file. This will only unpin it from the account, and potentially delete it later if there are no more global pins.
@@ -923,6 +941,16 @@ components:
                     type: string
                 mime_type:
                     type: string
+        AccountPinStatusResponse:
+            type: object
+            required:
+                - status
+                - progress
+            properties:
+                status:
+                    type: string
+                progress:
+                    type: number
         RegistryQueryResponse:
             type: object
             properties:

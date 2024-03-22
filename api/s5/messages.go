@@ -133,3 +133,8 @@ type AccountPin struct {
 	PinnedAt time.Time `json:"pinned_at"`
 	MimeType string    `json:"mime_type"`
 }
+
+type AccountPinStatusResponse struct {
+	Status   models.ImportStatus `json:"status"`
+	Progress float64             `json:"progress"`
+}
