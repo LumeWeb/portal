@@ -241,6 +241,9 @@ func (i *ImportReader) Read(p []byte) (n int, err error) {
 }
 
 func (i *ImportReader) ReadBytes(n int) (err error) {
+	if n > 0 {
+		i.bytesRead += uint64(n)
+	}
 	stageProgress := float64(100) / float64(i.totalStages)
 
 	// Calculate progress based on bytes read
