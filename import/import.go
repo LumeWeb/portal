@@ -223,6 +223,9 @@ func (i *ImportReader) Close() error {
 func (i *ImportReader) Read(p []byte) (n int, err error) {
 	n, err = i.reader.Read(p)
 	if err != nil {
+		if err == io.EOF {
+			return n, err
+		}
 		return 0, err
 	}
 
