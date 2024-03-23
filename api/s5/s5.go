@@ -1119,18 +1119,14 @@ func (s *S5API) accountPin(jc jape.Context) {
 			}
 		}
 	} else {
-		cids, err := s.getManifestCids(jc.Request.Context(), decodedCid, false)
-		if err != nil {
-			s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-			return
-		}
+		if isCidManifest(decodedCid) {
+			cids, err := s.getManifestCids(jc.Request.Context(), decodedCid, false)
+			if err != nil {
+				s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+				return
+			}
 
-		for _, cid := range cids {
-			if err := s.accounts.PinByHash(cid.Hash.HashBytes(), userID); err != nil {
-				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-					return
-				}
+			for _, cid := range cids {
 				err := s.pinEntity(jc.Request.Context(), userID, jc.Request.RemoteAddr, cid)
 				if err != nil {
 					s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
