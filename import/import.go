@@ -232,7 +232,7 @@ func (i *ImportReader) Read(p []byte) (n int, err error) {
 	// Update cumulative bytes read
 	i.bytesRead += uint64(n)
 
-	err = i.ReadBytes(n)
+	err = i.ReadBytes(0)
 	if err != nil {
 		return 0, err
 	}
