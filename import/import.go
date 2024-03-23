@@ -32,6 +32,8 @@ type ImportService interface {
 	SaveImport(ctx context.Context, metadata ImportMetadata, skipExisting bool) error
 	GetImport(ctx context.Context, objectHash []byte) (ImportMetadata, error)
 	DeleteImport(ctx context.Context, objectHash []byte) error
+	UpdateProgress(ctx context.Context, objectHash []byte, stage int, totalStages int) error
+	UpdateStatus(ctx context.Context, objectHash []byte, status models.ImportStatus) error
 }
 
 func (u ImportMetadata) IsEmpty() bool {
@@ -61,6 +63,36 @@ var Module = fx.Module("import",
 
 type ImportServiceDefault struct {
 	db *gorm.DB
+}
+
+func (i ImportServiceDefault) UpdateProgress(ctx context.Context, objectHash []byte, stage int, totalStages int) error {
+	_import, err := i.GetImport(ctx, objectHash)
+	if err != nil {
+		return err
+	}
+
+	if _import.IsEmpty() {
+		return ErrNotFound
+	}
+
+	_import.Progress = float64(stage) / float64(totalStages) * 100.0
+
+	return i.SaveImport(ctx, _import, false)
+}
+
+func (i ImportServiceDefault) UpdateStatus(ctx context.Context, objectHash []byte, status models.ImportStatus) error {
+	_import, err := i.GetImport(ctx, objectHash)
+	if err != nil {
+		return err
+	}
+
+	if _import.IsEmpty() {
+		return ErrNotFound
+	}
+
+	_import.Status = status
+
+	return i.SaveImport(ctx, _import, false)
 }
 
 func (i ImportServiceDefault) SaveImport(ctx context.Context, metadata ImportMetadata, skipExisting bool) error {
