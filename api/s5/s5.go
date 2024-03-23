@@ -2034,14 +2034,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 		return err
 	}
 
-	__import, err := s._import.GetImport(ctx, parsedCid.Hash.HashBytes())
-	if err != nil {
-		return err
-	}
-
-	__import.Status = models.ImportStatusProcessing
-
-	err = s._import.SaveImport(ctx, __import, false)
+	err = s._import.UpdateStatus(ctx, parsedCid.Hash.HashBytes(), models.ImportStatusProcessing)
 	if err != nil {
 		return err
 	}
@@ -2067,9 +2060,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return nil, err
 		}
 
-		importReader := _import.NewImportReader(s._import, __import, res.Body, parsedCid.Size, 1, totalStages)
-
-		defer closeBody(importReader)
+		defer closeBody(res.Body)
 
 		if res.StatusCode != http.StatusOK {
 			errMsg := "error fetching URL: " + fetchUrl
@@ -2077,15 +2068,26 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return nil, fmt.Errorf(errMsg+" with status: %s", res.Status)
 		}
 
-		data, err := io.ReadAll(importReader)
+		data, err := io.ReadAll(res.Body)
 		if err != nil {
 			s.logger.Error("error reading response body", zap.Error(err))
 			return nil, err
 		}
+
+		err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), 1, totalStages)
+		if err != nil {
+			return nil, err
+		}
+
 		return data, nil
 	}
 
 	saveAndPin := func(upload *metadata.UploadMetadata) error {
+		err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), 3, totalStages)
+		if err != nil {
+			return err
+		}
+
 		upload.UserID = userId
 		if err := s.metadata.SaveUpload(ctx, *upload, true); err != nil {
 			return err
@@ -2119,9 +2121,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return fmt.Errorf("hash mismatch")
 		}
 
-		importReader := _import.NewImportReader(s._import, __import, bytes.NewReader(fileData), parsedCid.Size, 2, totalStages)
-
-		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), importReader, nil, hash)
+		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), bytes.NewReader(fileData), nil, hash)
 		if err != nil {
 			return err
 		}
@@ -2174,13 +2174,11 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 	}(verifier)
 
-	importReader := _import.NewImportReader(s._import, __import, verifier, parsedCid.Size, 2, totalStages)
-
 	if parsedCid.Size < storage.S3_MULTIPART_MIN_PART_SIZE {
 		_, err = client.PutObject(ctx, &s3.PutObjectInput{
 			Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
 			Key:           aws.String(cid),
-			Body:          importReader,
+			Body:          verifier,
 			ContentLength: aws.Int64(int64(parsedCid.Size)),
 		})
 		if err != nil {
@@ -2188,14 +2186,17 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return err
 		}
 	} else {
-		err := s.storage.S3MultipartUpload(ctx, importReader, s.config.Config().Core.Storage.S3.BufferBucket, cid, parsedCid.Size)
+		err := s.storage.S3MultipartUpload(ctx, verifier, s.config.Config().Core.Storage.S3.BufferBucket, cid, parsedCid.Size)
 		if err != nil {
 			s.logger.Error("error uploading object", zap.Error(err))
 			return err
 		}
 	}
 
-	importReader = _import.NewImportReader(s._import, __import, res.Body, parsedCid.Size, 3, totalStages)
+	err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), 2, totalStages)
+	if err != nil {
+		return err
+	}
 
 	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
@@ -2212,11 +2213,6 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 				Range:  aws.String(rangeHeader),
 			})
 
-			if err != nil {
-				return nil, err
-			}
-
-			err = importReader.ReadBytes(int(end - start))
 			if err != nil {
 				return nil, err
 			}
