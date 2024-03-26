@@ -468,6 +468,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"OPTIONS /api/auth/logout":       middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
 		"OPTIONS /api/account/verify-email":           middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
+		"OPTIONS /api/account/verify-email/resend":    middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"OPTIONS /api/account/otp/verify":             middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"OPTIONS /api/account/otp/disable":            middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"OPTIONS /api/account/password-reset/request": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
