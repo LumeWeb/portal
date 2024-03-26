@@ -116,7 +116,7 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string, ver
 	}
 
 	if verifyEmail {
-		err = s.SendEmailVerification(&user)
+		err = s.SendEmailVerification(user.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +125,12 @@ func (s *AccountServiceDefault) CreateAccount(email string, password string, ver
 	return &user, nil
 }
 
-func (s *AccountServiceDefault) SendEmailVerification(user *models.User) error {
+func (s AccountServiceDefault) SendEmailVerification(userId uint) error {
+	exists, user, err := s.AccountExists(userId)
+	if !exists || err != nil {
+		return err
+	}
+
 	token := GenerateSecurityToken()
 
 	var verification models.EmailVerification
@@ -134,7 +139,7 @@ func (s *AccountServiceDefault) SendEmailVerification(user *models.User) error {
 	verification.Token = token
 	verification.ExpiresAt = time.Now().Add(time.Hour)
 
-	err := s.db.Create(&verification).Error
+	err = s.db.Create(&verification).Error
 	if err != nil {
 		return NewAccountError(ErrKeyDatabaseOperationFailed, err)
 	}
