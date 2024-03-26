@@ -147,7 +147,7 @@ func (s AccountServiceDefault) SendEmailVerification(userId uint) error {
 		return NewAccountError(ErrKeyDatabaseOperationFailed, err)
 	}
 
-	verifyUrl := fmt.Sprintf("%s://%s/account/verify?email=%s&token=%s", fmt.Sprintf("https://%s.%s", ACCOUNT_SUBDOMAIN, s.config.Config().Core.Domain), user.Email, token)
+	verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", ACCOUNT_SUBDOMAIN, s.config.Config().Core.Domain), token)
 
 	vars := map[string]interface{}{
 		"FirstName":        user.FirstName,
