@@ -92,6 +92,10 @@ func (m *Manager) ConfigureProtocol(name string, cfg ProtocolConfig) error {
 		return err
 	}
 
+	if m.root.Protocol == nil {
+		m.root.Protocol = make(map[string]interface{})
+	}
+
 	m.root.Protocol[name] = cfg
 
 	return nil
