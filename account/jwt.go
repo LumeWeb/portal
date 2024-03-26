@@ -120,14 +120,6 @@ func SetAuthCookie(jc jape.Context, c *config.Manager, jwt string) {
 			Path:     "/",
 			Domain:   c.Config().Core.Domain,
 		})
-		http.SetCookie(jc.ResponseWriter, &http.Cookie{
-			Name:     routeableApi.AuthTokenName(),
-			Value:    jwt,
-			MaxAge:   int((24 * time.Hour).Seconds()),
-			Secure:   true,
-			HttpOnly: true,
-			Path:     "/",
-		})
 	}
 }
 
@@ -167,14 +159,6 @@ func EchoAuthCookie(jc jape.Context, config *config.Manager) {
 			Path:     "/",
 			Domain:   config.Config().Core.Domain,
 		})
-		http.SetCookie(jc.ResponseWriter, &http.Cookie{
-			Name:     cookies[0].Name,
-			Value:    cookies[0].Value,
-			MaxAge:   int(exp.Time.Sub(time.Now()).Seconds()),
-			Secure:   true,
-			HttpOnly: true,
-			Path:     "/",
-		})
 	}
 }
 
@@ -198,15 +182,6 @@ func ClearAuthCookie(jc jape.Context, config *config.Manager) {
 			HttpOnly: true,
 			Path:     "/",
 			Domain:   config.Config().Core.Domain,
-		})
-		http.SetCookie(jc.ResponseWriter, &http.Cookie{
-			Name:     routeableApi.AuthTokenName(),
-			Value:    "",
-			Expires:  time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC),
-			MaxAge:   -1,
-			Secure:   true,
-			HttpOnly: true,
-			Path:     "/",
 		})
 	}
 }
