@@ -451,7 +451,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/auth/logout":       middleware.ApplyMiddlewares(a.logout, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
 		// Account
-		"POST /api/account/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/verify-email/resend":    middleware.ApplyMiddlewares(a.resendVerifyEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
