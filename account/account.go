@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -26,6 +27,8 @@ import (
 var (
 	ErrInvalidOTPCode = errors.New("Invalid OTP code")
 )
+
+const ACCOUNT_SUBDOMAIN = "account"
 
 type AccountServiceParams struct {
 	fx.In
@@ -144,10 +147,12 @@ func (s AccountServiceDefault) SendEmailVerification(userId uint) error {
 		return NewAccountError(ErrKeyDatabaseOperationFailed, err)
 	}
 
+	verifyUrl := fmt.Sprintf("%s://%s/account/verify?email=%s&token=%s", fmt.Sprintf("https://%s.%s", ACCOUNT_SUBDOMAIN, s.config.Config().Core.Domain), user.Email, token)
+
 	vars := map[string]interface{}{
 		"FirstName":        user.FirstName,
 		"Email":            user.Email,
-		"VerificationCode": token,
+		"VerificationLink": verifyUrl,
 		"ExpireTime":       verification.ExpiresAt.Sub(time.Now()).Round(time.Second * 2),
 		"PortalName":       s.config.Config().Core.PortalName,
 	}
