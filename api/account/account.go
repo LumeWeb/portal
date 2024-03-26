@@ -314,6 +314,7 @@ func (a AccountAPI) accountInfo(jc jape.Context) {
 		Email:     acct.Email,
 		FirstName: acct.FirstName,
 		LastName:  acct.LastName,
+		Verified:  acct.Verified,
 	})
 
 }

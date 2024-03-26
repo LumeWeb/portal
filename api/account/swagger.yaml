@@ -327,6 +327,8 @@ components:
                     type: string
                 email:
                     type: string
+                verified:
+                    type: boolean
         UploadLimitResponse:
             type: object
             properties:
