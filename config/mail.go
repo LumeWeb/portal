@@ -19,16 +19,16 @@ type MailConfig struct {
 
 func (m MailConfig) Validate() error {
 	if m.Host == "" {
-		return errors.New("host is required")
+		return errors.New("core.mail.host is required")
 	}
 	if m.Username == "" {
-		return errors.New("username is required")
+		return errors.New("core.mail.username is required")
 	}
 	if m.Password == "" {
-		return errors.New("password is required")
+		return errors.New("core.mail.password is required")
 	}
 	if m.From == "" {
-		return errors.New("from is required")
+		return errors.New("core.mail.from is required")
 	}
 	return nil
 }
