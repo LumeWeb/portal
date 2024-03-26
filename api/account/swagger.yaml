@@ -182,6 +182,17 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/UploadLimitResponse'
+    /api/meta:
+        get:
+            summary: Get metadata about the portal
+            responses:
+                '200':
+                    description: Metadata retrieved successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MetaResponse'
+
 
 components:
     schemas:
@@ -317,3 +328,10 @@ components:
                     type: number
             required:
                 - limit
+        MetaResponse:
+            type: object
+            required:
+                - domain
+            properties:
+                domain:
+                    type: string

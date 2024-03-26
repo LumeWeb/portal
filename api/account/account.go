@@ -350,6 +350,13 @@ func (a AccountAPI) updatePassword(c jape.Context) {
 
 }
 
+func (a AccountAPI) meta(c jape.Context) {
+	c.Encode(&MetaResponse{
+		Domain: a.config.Config().Core.Domain,
+	})
+
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:       a.identity,
@@ -394,6 +401,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"GET /api/auth/otp/generate": middleware.ApplyMiddlewares(a.otpGenerate, authMw, middleware.ProxyMiddleware),
 		"GET /api/account":           middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
 		"GET /api/upload-limit":      middleware.ApplyMiddlewares(a.uploadLimit, middleware.ProxyMiddleware),
+		"GET /api/meta":              middleware.ApplyMiddlewares(a.meta, middleware.ProxyMiddleware),
 	})
 
 	getHandler := func(c jape.Context) {
