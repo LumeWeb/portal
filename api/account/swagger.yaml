@@ -54,6 +54,12 @@ paths:
             responses:
                 '200':
                     description: Email verified successfully
+    /api/account/verify-email/resend:
+        post:
+            summary: Resend email verification
+            responses:
+                '200':
+                    description: Email verification resent successfully
     /api/auth/otp/generate:
         get:
             summary: Generate OTP for two-factor authentication

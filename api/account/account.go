@@ -169,7 +169,16 @@ func (a AccountAPI) verifyEmail(jc jape.Context) {
 	if jc.Check("failed to verify email", err) != nil {
 		return
 	}
+}
 
+func (a AccountAPI) resendVerifyEmail(jc jape.Context) {
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	err := a.accounts.SendEmailVerification(user)
+
+	if jc.Check("failed to resend email verification", err) != nil {
+		return
+	}
 }
 
 func (a AccountAPI) otpGenerate(jc jape.Context) {
@@ -443,6 +452,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 
 		// Account
 		"POST /api/account/verify-email":           middleware.ApplyMiddlewares(a.verifyEmail, corsMw.Handler, middleware.ProxyMiddleware),
+		"POST /api/account/verify-email/resend":    middleware.ApplyMiddlewares(a.resendVerifyEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/otp/verify":             middleware.ApplyMiddlewares(a.otpVerify, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/otp/disable":            middleware.ApplyMiddlewares(a.otpDisable, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/password-reset/request": middleware.ApplyMiddlewares(a.passwordResetRequest, corsMw.Handler, middleware.ProxyMiddleware),
