@@ -318,6 +318,12 @@ components:
                     type: string
         AccountInfoResponse:
             type: object
+            required:
+                - id
+                - first_name
+                - last_name
+                - email
+                - verified
             properties:
                 id:
                     type: number
