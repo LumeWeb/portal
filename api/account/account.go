@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"embed"
 	_ "embed"
+	"errors"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -161,6 +162,11 @@ func (a AccountAPI) verifyEmail(jc jape.Context) {
 	var request VerifyEmailRequest
 
 	if jc.Decode(&request) != nil {
+		return
+	}
+
+	if request.Email == "" || request.Token == "" {
+		_ = jc.Error(errors.New("invalid request"), http.StatusBadRequest)
 		return
 	}
 
