@@ -134,6 +134,10 @@ func (s AccountServiceDefault) SendEmailVerification(userId uint) error {
 		return err
 	}
 
+	if user.Verified {
+		return NewAccountError(ErrKeyAccountAlreadyVerified, nil)
+	}
+
 	token := GenerateSecurityToken()
 
 	var verification models.EmailVerification
