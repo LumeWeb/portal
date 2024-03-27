@@ -2049,7 +2049,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	}
 
 	// Inline fetching and reading body, directly incorporating your checks.
-	fetchAndProcess := func(fetchUrl string) ([]byte, error) {
+	fetchAndProcess := func(fetchUrl string, progressStage int) ([]byte, error) {
 		req, err := rq.Get(fetchUrl).ParseRequest()
 		if err != nil {
 			s.logger.Error("error parsing request", zap.Error(err))
@@ -2076,7 +2076,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return nil, err
 		}
 
-		err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), 1, totalStages)
+		err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), progressStage, totalStages)
 		if err != nil {
 			return nil, err
 		}
@@ -2108,7 +2108,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	}
 	// Fetch file and process if under post upload limit.
 	if parsedCid.Size <= s.config.Config().Core.PostUploadLimit {
-		fileData, err := fetchAndProcess(url)
+		fileData, err := fetchAndProcess(url, 1)
 		if err != nil {
 			return err // Error logged in fetchAndProcess
 		}
@@ -2121,6 +2121,11 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 
 		if !bytes.Equal(hash.Hash, parsedCid.Hash.HashBytes()) {
 			return fmt.Errorf("hash mismatch")
+		}
+
+		err = s._import.UpdateProgress(ctx, parsedCid.Hash.HashBytes(), 2, totalStages)
+		if err != nil {
+			return err
 		}
 
 		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), bytes.NewReader(fileData), nil, hash)
@@ -2137,7 +2142,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 	}
 
 	// Fetch proof.
-	proof, err := fetchAndProcess(proofUrl)
+	proof, err := fetchAndProcess(proofUrl, 1)
 	if err != nil {
 		return err
 	}
