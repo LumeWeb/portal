@@ -89,7 +89,7 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 		return nil
 	}
 
-	if !errors.Is(err, api.ErrBucketNotFound) {
+	if strings.Contains(err.Error(), api.ErrBucketNotFound.Error()) {
 		return err
 	}
 
