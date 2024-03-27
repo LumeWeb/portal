@@ -172,7 +172,7 @@ func (a AccountAPI) verifyEmail(jc jape.Context) {
 
 	err := a.accounts.VerifyEmail(request.Email, request.Token)
 
-	if jc.Check("failed to verify email", err) != nil {
+	if jc.Check("Failed to verify email", err) != nil {
 		return
 	}
 }
