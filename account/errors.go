@@ -25,9 +25,8 @@ const (
 	ErrKeyHashingFailed         = "ErrHashingFailed"
 
 	// Account update errors
-	ErrKeyAccountUpdateFailed     = "ErrAccountUpdateFailed"
-	ErrKeyAccountAlreadyVerified  = "ErrAccountAlreadyVerified"
-	ErrKeyEmailVerificationFailed = "ErrEmailVerificationFailed"
+	ErrKeyAccountUpdateFailed    = "ErrAccountUpdateFailed"
+	ErrKeyAccountAlreadyVerified = "ErrAccountAlreadyVerified"
 
 	// JWT generation errors
 	ErrKeyJWTGenerationFailed = "ErrJWTGenerationFailed"
@@ -74,9 +73,8 @@ var defaultErrorMessages = map[string]string{
 	ErrKeyLoginFailed:           "Login failed due to an internal error.",
 
 	// Account update errors
-	ErrKeyAccountUpdateFailed:     "Failed to update account information.",
-	ErrKeyAccountAlreadyVerified:  "Account is already verified.",
-	ErrKeyEmailVerificationFailed: "Failed to verify email address.",
+	ErrKeyAccountUpdateFailed:    "Failed to update account information.",
+	ErrKeyAccountAlreadyVerified: "Account is already verified.",
 
 	// JWT generation errors
 	ErrKeyJWTGenerationFailed: "Failed to generate a new JWT token.",
@@ -122,9 +120,8 @@ var (
 		ErrKeyLoginFailed:           http.StatusInternalServerError,
 
 		// Account update errors
-		ErrKeyAccountUpdateFailed:     http.StatusInternalServerError,
-		ErrKeyAccountAlreadyVerified:  http.StatusConflict,
-		ErrKeyEmailVerificationFailed: http.StatusInternalServerError,
+		ErrKeyAccountUpdateFailed:    http.StatusInternalServerError,
+		ErrKeyAccountAlreadyVerified: http.StatusConflict,
 
 		// JWT generation errors
 		ErrKeyJWTGenerationFailed: http.StatusInternalServerError,
