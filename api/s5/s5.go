@@ -1238,8 +1238,10 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *
 		}
 
 		if !isCidManifest(cid) {
-			if limitedReader.N >= 0 && uint64(len(data)) != cid.Size {
-				return nil, false
+			if limitedReader.N > 0 {
+				if uint64(len(data)) != cid.Size {
+					return nil, false
+				}
 			}
 		} else {
 			dataCont, err := io.ReadAll(res.Body)
