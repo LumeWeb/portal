@@ -202,7 +202,7 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return NewAccountError(ErrKeyEmailVerificationFailed, result.Error)
+			return NewAccountError(ErrKeyEmailVerificationFailed, nil)
 		}
 
 		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
