@@ -202,10 +202,10 @@ func (s AccountServiceDefault) VerifyEmail(email string, token string) error {
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return NewAccountError(ErrKeyUserNotFound, nil)
+			return NewAccountError(ErrKeySecurityInvalidToken, nil)
 		}
 
-		return NewAccountError(ErrKeyDatabaseOperationFailed, result.Error)
+		return NewAccountError(ErrKeyDatabaseOperationFailed, nil)
 	}
 
 	if verification.ExpiresAt.Before(time.Now()) {
