@@ -175,6 +175,17 @@ func (t *TusHandler) UploadExists(ctx context.Context, hash []byte) (bool, model
 	return result.RowsAffected > 0, upload
 }
 
+func (t *TusHandler) Uploads(ctx context.Context, uploaderID uint) ([]models.TusUpload, error) {
+	var uploads []models.TusUpload
+	result := t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(&models.TusUpload{UploaderID: uploaderID}).Find(&uploads)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return uploads, nil
+}
+
 func (t *TusHandler) CreateUpload(ctx context.Context, hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
 	upload := &models.TusUpload{
 		Hash:       hash,
