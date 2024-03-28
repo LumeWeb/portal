@@ -865,7 +865,13 @@ func (s *S5API) accountPins(jc jape.Context) {
 		return
 	}
 
-	pins := make([]AccountPin, len(pinsRet))
+	tusRet, err := s.tusHandler.Uploads(jc.Request.Context(), userID)
+	if err != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
+		return
+	}
+
+	pins := make([]AccountPin, len(pinsRet)+len(tusRet))
 
 	for i, pin := range pinsRet {
 		cid, err := encoding.CIDFromHash(pin.Upload.Hash, pin.Upload.Size, types.CIDTypeRaw, types.HashTypeBlake3)
@@ -883,6 +889,33 @@ func (s *S5API) accountPins(jc jape.Context) {
 			Size:     pin.Upload.Size,
 			PinnedAt: pin.CreatedAt,
 			MimeType: pin.Upload.MimeType,
+		}
+	}
+
+	for i, tus := range tusRet {
+		size, err := s.tusHandler.GetUploadSize(jc.Request.Context(), tus.Hash)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+
+		cid, err := encoding.CIDFromHash(tus.Hash, uint64(size), types.CIDTypeRaw, types.HashTypeBlake3)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+
+		base64Url, err := cid.Hash.ToBase64Url()
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyInternalError, err))
+			return
+		}
+
+		pins[i+len(pinsRet)] = AccountPin{
+			Hash:     base64Url,
+			Size:     uint64(size),
+			PinnedAt: tus.CreatedAt,
+			MimeType: tus.MimeType,
 		}
 	}
 
