@@ -116,7 +116,7 @@ func (t *TusHandler) Init() error {
 
 		exists, _ := t.UploadExists(hook.Context, decodedHash.HashBytes())
 
-		if exists {
+		if exists && !hook.Upload.IsPartial {
 			return blankResp, blankChanges, errors.New("file is already being uploaded")
 		}
 
