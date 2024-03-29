@@ -14,10 +14,12 @@ require (
 	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba
 	github.com/dnslink-std/go v0.6.0
 	github.com/docker/go-units v0.5.0
+	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-co-op/gocron/v2 v2.2.4
 	github.com/go-gorm/caches/v4 v4.0.0
 	github.com/go-resty/resty/v2 v2.11.0
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/golang-queue/queue v0.2.0
 	github.com/google/uuid v1.6.0
@@ -75,7 +77,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/jsonpointer v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.8 // indirect
-	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/go-hclog v1.6.2 // indirect

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net/http"
 	"sort"
 	"time"
 
@@ -38,6 +37,7 @@ import (
 	"gorm.io/gorm"
 
 	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/gabriel-vasile/mimetype"
 )
 
 const PROOF_EXTENSION = ".obao"
@@ -166,13 +166,12 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 		return &meta, nil
 	}
 
-	mimeBytes := make([]byte, 512)
-
 	reader, err = getReader()
 	if err != nil {
 		return nil, err
 	}
-	_, err = io.ReadFull(reader, mimeBytes)
+
+	mimeType, err := mimetype.DetectReader(reader)
 	if err != nil {
 		if !errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, err
@@ -183,15 +182,18 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 			return nil, err
 		}
 
-		mimeBytes, err = io.ReadAll(reader)
+		mimeBytes, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		mimeType = mimetype.Detect(mimeBytes)
 	}
 
 	reader, err = getReader()
 	if err != nil {
 		return nil, err
 	}
-
-	mimeType := http.DetectContentType(mimeBytes)
 
 	protocolName := protocol.Name()
 
@@ -211,7 +213,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 	uploadMeta := &metadata.UploadMetadata{
 		Protocol: protocolName,
 		Hash:     proof.Hash,
-		MimeType: mimeType,
+		MimeType: mimeType.String(),
 		Size:     uint64(proof.Length),
 	}
 
