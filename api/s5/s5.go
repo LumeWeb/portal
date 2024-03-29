@@ -2003,8 +2003,9 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		detectedType, err := mimetype.DetectReader(file)
 		if err != nil {
 			s.logger.Error("error detecting mime type", zap.Error(err))
+			_ = jc.Error(err, http.StatusInternalServerError)
+			return
 		}
-		_ = jc.Error(err, http.StatusInternalServerError)
 		mimeType = detectedType.String()
 	}
 
