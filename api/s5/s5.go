@@ -1991,7 +1991,9 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		return
 	}
 
-	jc.ResponseWriter.Header().Set("Content-Type", file.Mime())
+	if len(file.Mime()) > 0 {
+		jc.ResponseWriter.Header().Set("Content-Type", file.Mime())
+	}
 
 	http.ServeContent(jc.ResponseWriter, jc.Request, file.Name(), file.Modtime(), file)
 }
