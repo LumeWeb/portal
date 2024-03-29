@@ -556,7 +556,6 @@ func (t *TusHandler) worker() {
 			}
 
 			mutex.(*sync.Mutex).Lock()
-			err = t.UploadCompleted(ctx, info.Upload.ID)
 			exists, _ := t.UploadExists(ctx, decodedHash.HashBytes())
 			if !exists {
 				mutex.(*sync.Mutex).Unlock()
@@ -566,6 +565,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 			mutex.(*sync.Mutex).Unlock()
+			err = t.UploadCompleted(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not complete tus upload", zap.Error(err))
 				continue
