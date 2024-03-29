@@ -340,6 +340,11 @@ func (f *S5File) Manifest() (s5libmetadata.Metadata, error) {
 			return nil, err
 		}
 
+		_, err = f.Seek(0, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+
 		md, err := f.protocol.Node().Services().Storage().ParseMetadata(data, cid)
 		if err != nil {
 			return nil, err
