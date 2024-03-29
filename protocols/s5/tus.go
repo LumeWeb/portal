@@ -188,7 +188,7 @@ func (t *TusHandler) Uploads(ctx context.Context, uploaderID uint) ([]models.Tus
 	return uploads, nil
 }
 
-func (t *TusHandler) CreateUpload(ctx context.Context, hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string) (*models.TusUpload, error) {
+func (t *TusHandler) CreateUpload(ctx context.Context, hash []byte, uploadID string, uploaderID uint, uploaderIP string, protocol string, mimeType string) (*models.TusUpload, error) {
 	upload := &models.TusUpload{
 		Hash:       hash,
 		UploadID:   uploadID,
@@ -196,6 +196,7 @@ func (t *TusHandler) CreateUpload(ctx context.Context, hash []byte, uploadID str
 		UploaderIP: uploaderIP,
 		Uploader:   models.User{},
 		Protocol:   protocol,
+		MimeType:   mimeType,
 	}
 
 	result := t.db.WithContext(ctx).Create(upload)
@@ -512,7 +513,17 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			_, err = t.CreateUpload(ctx, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name())
+			var mimeType string
+
+			for _, field := range []string{"mimeType", "mimetype", "filetype"} {
+				typ, ok := info.Upload.MetaData[field]
+				if ok {
+					mimeType = typ
+					break
+				}
+			}
+
+			_, err = t.CreateUpload(ctx, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name(), mimeType)
 			mutex.(*sync.Mutex).Unlock()
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
