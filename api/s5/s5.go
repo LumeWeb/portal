@@ -2007,6 +2007,12 @@ func (s *S5API) downloadFile(jc jape.Context) {
 			return
 		}
 		mimeType = detectedType.String()
+		_, err = file.Seek(0, io.SeekStart)
+		if err != nil {
+			s.logger.Error("error seeking file", zap.Error(err))
+			_ = jc.Error(err, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	if len(mimeType) == 0 {
