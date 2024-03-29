@@ -494,7 +494,8 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			mapKey := append(decodedHash.HashBytes(), []byte(info.Upload.ID)...)
+			mapKey := append([]byte{}, decodedHash.HashBytes()...)
+			mapKey = append(mapKey, []byte(info.Upload.ID)...)
 			if _, ok := t.uploadMutexMap.Load(mapKey); !ok {
 				t.uploadMutexMap.Store(mapKey, &sync.Mutex{})
 			}
