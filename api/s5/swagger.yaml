@@ -709,7 +709,7 @@ paths:
                   schema:
                     type: string
             responses:
-                '204':
+                '200':
                     description: File deleted
 
     # Debug API

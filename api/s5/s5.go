@@ -943,7 +943,7 @@ func (s *S5API) accountPinDelete(jc jape.Context) {
 		return
 	}
 
-	jc.ResponseWriter.WriteHeader(http.StatusNoContent)
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
 }
 
 func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID, addSelf bool) ([]*encoding.CID, error) {
