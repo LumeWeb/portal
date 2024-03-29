@@ -512,7 +512,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			_, err = t.CreateUpload(ctx, mapKey, info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name())
+			_, err = t.CreateUpload(ctx, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name())
 			mutex.(*sync.Mutex).Unlock()
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
