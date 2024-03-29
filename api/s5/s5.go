@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
+
 	_import "git.lumeweb.com/LumeWeb/portal/import"
 
 	"git.lumeweb.com/LumeWeb/portal/api/router"
@@ -1991,9 +1993,26 @@ func (s *S5API) downloadFile(jc jape.Context) {
 		return
 	}
 
+	var mimeType string
+
 	if len(file.Mime()) > 0 {
-		jc.ResponseWriter.Header().Set("Content-Type", file.Mime())
+		mimeType = file.Mime()
 	}
+
+	if len(mimeType) == 0 {
+		detectedType, err := mimetype.DetectReader(file)
+		if err != nil {
+			s.logger.Error("error detecting mime type", zap.Error(err))
+		}
+		_ = jc.Error(err, http.StatusInternalServerError)
+		mimeType = detectedType.String()
+	}
+
+	if len(mimeType) == 0 {
+		mimeType = "application/octet-stream"
+	}
+
+	jc.ResponseWriter.Header().Set("Content-Type", mimeType)
 
 	http.ServeContent(jc.ResponseWriter, jc.Request, file.Name(), file.Modtime(), file)
 }
