@@ -1,5 +1,3 @@
-# Use the bufbuild/buf image for extracting the buf command binary
-FROM bufbuild/buf:latest as buf
 # Use the official Node.js image as the base image for building the api/account/portal
 FROM node:20-alpine as nodejs-builder
 
@@ -28,17 +26,9 @@ RUN apk add --no-cache git && git clone --recurse-submodules https://git.lumeweb
 
 # Copy the built dashboard from the nodejs-builder stage
 COPY --from=nodejs-builder /portal/api/account/app/build/client /portal/api/account/app/build/client
-# Copy buf from the buf stage
-COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
 
 # Install the necessary dependencies
 RUN apk add bash gcc curl musl-dev
-
-# Install the necessary dependencies
-RUN curl -sSf https://sh.rustup.rs | bash -s -- -y
-
-# Set the necessary environment variables
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 ## Build the Go application
 RUN go mod download
