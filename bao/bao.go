@@ -1,35 +1,26 @@
 package bao
 
 import (
-	"bufio"
 	"bytes"
 	_ "embed"
 	"errors"
 	"io"
-	"math"
-	"os"
-	"os/exec"
 	"time"
 
 	"github.com/samber/lo"
 
 	"go.uber.org/zap"
 
-	"github.com/docker/go-units"
-	"github.com/hashicorp/go-plugin"
+	"lukechampine.com/blake3/bao"
 )
 
-//go:generate buf generate
-//go:generate bash -c "cd rust && cargo build -r"
-//go:embed rust/target/release/rust
-var pluginBin []byte
-
-var bao Bao
-var client *plugin.Client
-
 var _ io.ReadCloser = (*Verifier)(nil)
+var _ io.WriterAt = (*proofWriter)(nil)
 
 var ErrVerifyFailed = errors.New("verification failed")
+
+const groupLog = 8
+const groupChunks = 1 << groupLog
 
 type Verifier struct {
 	r          io.ReadCloser
@@ -39,6 +30,12 @@ type Verifier struct {
 	logger     *zap.Logger
 	readTime   []time.Duration
 	verifyTime time.Duration
+}
+
+type Result struct {
+	Hash   []byte
+	Proof  []byte
+	Length uint
 }
 
 func (v *Verifier) Read(p []byte) (int, error) {
@@ -52,7 +49,7 @@ func (v *Verifier) Read(p []byte) (int, error) {
 		return n, err
 	}
 
-	buf := make([]byte, VERIFY_CHUNK_SIZE)
+	buf := make([]byte, groupChunks)
 	// Continue reading from the source and verifying until we have enough data or hit an error
 	for v.buffer.Len() < len(p)-n {
 		readStart := time.Now()
@@ -68,7 +65,7 @@ func (v *Verifier) Read(p []byte) (int, error) {
 		timeStart := time.Now()
 
 		if bytesRead > 0 {
-			if status, err := bao.Verify(buf[:bytesRead], v.read, v.proof.Proof, v.proof.Hash); err != nil || !status {
+			if status := bao.VerifyChunk(buf[:bytesRead], v.proof.Proof, groupChunks, v.read, [32]byte(v.proof.Hash)); !status {
 				return n, errors.Join(ErrVerifyFailed, err)
 			}
 			v.read += uint64(bytesRead)
@@ -92,7 +89,7 @@ func (v *Verifier) Read(p []byte) (int, error) {
 		v.logger.Debug("Read time", zap.Duration("average", averageReadTime))
 	}
 
-	averageVerifyTime := v.verifyTime / time.Duration(v.read/VERIFY_CHUNK_SIZE)
+	averageVerifyTime := v.verifyTime / time.Duration(v.read/groupChunks)
 	v.logger.Debug("Verification time", zap.Duration("average", averageVerifyTime))
 
 	// Attempt to read the remainder of the data from the buffer
@@ -103,94 +100,20 @@ func (v *Verifier) Read(p []byte) (int, error) {
 func (v *Verifier) Close() error {
 	return v.r.Close()
 }
+func Hash(r io.Reader, size uint64) (*Result, error) {
+	reader := newSizeReader(r)
+	writer := newProofWriter(int(size))
 
-func init() {
-	temp, err := os.CreateTemp(os.TempDir(), "bao")
+	hash, err := bao.Encode(writer, reader, int64(size), groupLog, true)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	err = temp.Chmod(1755)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = io.Copy(temp, bytes.NewReader(pluginBin))
-	if err != nil {
-		panic(err)
-	}
-
-	err = temp.Close()
-	if err != nil {
-		panic(err)
-	}
-
-	clientInst := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: plugin.HandshakeConfig{
-			ProtocolVersion: 1,
-		},
-		Plugins: plugin.PluginSet{
-			"bao": &BaoPlugin{},
-		},
-		Cmd:              exec.Command(temp.Name()),
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-	})
-
-	rpcClient, err := clientInst.Client()
-	if err != nil {
-		panic(err)
-	}
-
-	pluginInst, err := rpcClient.Dispense("bao")
-	if err != nil {
-		panic(err)
-	}
-
-	bao = pluginInst.(Bao)
-}
-
-func Shutdown() {
-	client.Kill()
-}
-
-func Hash(r io.Reader) (*Result, error) {
-	hasherId := bao.NewHasher()
-	initialSize := 4 * units.KiB
-	maxSize := 3.5 * units.MiB
-	bufSize := initialSize
-
-	reader := bufio.NewReaderSize(r, bufSize)
-	var totalReadSize int
-
-	buf := make([]byte, bufSize)
-	for {
-
-		n, err := reader.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-		totalReadSize += n
-
-		if !bao.Hash(hasherId, buf[:n]) {
-			return nil, errors.New("hashing failed")
-		}
-
-		// Adaptively adjust buffer size based on read patterns
-		if n == bufSize && float64(bufSize) < maxSize {
-			// If buffer was fully used, consider increasing buffer size
-			bufSize = int(math.Min(float64(bufSize*2), float64(maxSize))) // Double the buffer size, up to a maximum
-			buf = make([]byte, bufSize)                                   // Apply new buffer size
-			reader = bufio.NewReaderSize(r, bufSize)                      // Apply new buffer size
-		}
-	}
-
-	result := bao.Finish(hasherId)
-	result.Length = uint(totalReadSize)
-
-	return &result, nil
+	return &Result{
+		Hash:   hash[:],
+		Proof:  writer.buf,
+		Length: uint(size),
+	}, nil
 }
 
 func NewVerifier(r io.ReadCloser, proof Result, logger *zap.Logger) *Verifier {
@@ -199,5 +122,40 @@ func NewVerifier(r io.ReadCloser, proof Result, logger *zap.Logger) *Verifier {
 		proof:  proof,
 		buffer: new(bytes.Buffer),
 		logger: logger,
+	}
+}
+
+type proofWriter struct {
+	buf []byte
+}
+
+func (p proofWriter) WriteAt(b []byte, off int64) (n int, err error) {
+	if copy(p.buf[off:], b) != len(b) {
+		panic("bad buffer size")
+	}
+	return len(b), nil
+}
+
+func newProofWriter(size int) *proofWriter {
+	return &proofWriter{
+		buf: make([]byte, bao.EncodedSize(size, groupLog, true)),
+	}
+}
+
+type sizeReader struct {
+	reader io.Reader
+	read   int64
+}
+
+func (s sizeReader) Read(p []byte) (int, error) {
+	n, err := s.reader.Read(p)
+	s.read += int64(n)
+	return n, err
+}
+
+func newSizeReader(r io.Reader) *sizeReader {
+	return &sizeReader{
+		reader: r,
+		read:   0,
 	}
 }

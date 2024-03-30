@@ -384,7 +384,13 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 		return err
 	}
 
-	proof, err := t.storage.HashObject(ctx, reader)
+	info, err := tusUpload.GetInfo(ctx)
+	if err != nil {
+		t.logger.Error("Could not get tus info", zap.Error(err))
+		return err
+	}
+
+	proof, err := t.storage.HashObject(ctx, reader, uint64(info.Size))
 
 	if err != nil {
 		t.logger.Error("Could not compute proof", zap.Error(err))
@@ -396,13 +402,7 @@ func (t *TusHandler) uploadTask(hash []byte) error {
 		return err
 	}
 
-	info, err := tusUpload.GetInfo(ctx)
-	if err != nil {
-		t.logger.Error("Could not get tus info", zap.Error(err))
-		return err
-	}
-
-	uploadMeta, err := t.storage.UploadObject(ctx, t.storageProtocol, nil, &renter.MultiPartUploadParams{
+	uploadMeta, err := t.storage.UploadObject(ctx, t.storageProtocol, nil, 0, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
 			rangeHeader := "bytes=%d-"
 			if end != 0 {

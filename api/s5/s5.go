@@ -473,7 +473,7 @@ func (rsnc readSeekNopCloser) Close() error {
 func (s *S5API) smallFileUpload(jc jape.Context) {
 	user := middleware.GetUserFromContext(jc.Request.Context())
 
-	file, err := s.prepareFileUpload(jc)
+	file, size, err := s.prepareFileUpload(jc)
 	if err != nil {
 		s.sendErrorResponse(jc, err)
 		return
@@ -485,7 +485,7 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 		}
 	}(file)
 
-	newUpload, err2 := s.storage.UploadObject(jc.Request.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
+	newUpload, err2 := s.storage.UploadObject(jc.Request.Context(), s5.GetStorageProtocol(s.protocol), file, size, nil, nil)
 
 	if err2 != nil {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
@@ -525,33 +525,35 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 	})
 }
 
-func (s *S5API) prepareFileUpload(jc jape.Context) (file io.ReadSeekCloser, s5Err *S5Error) {
+func (s *S5API) prepareFileUpload(jc jape.Context) (file io.ReadSeekCloser, size uint64, s5Err *S5Error) {
 	r := jc.Request
 	contentType := r.Header.Get("Content-Type")
 
 	// Handle multipart form data uploads
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(int64(s.config.Config().Core.PostUploadLimit)); err != nil {
-			return nil, NewS5Error(ErrKeyFileUploadFailed, err)
+			return nil, size, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
 
 		multipartFile, _, err := r.FormFile("file")
 		if err != nil {
-			return nil, NewS5Error(ErrKeyFileUploadFailed, err)
+			return nil, size, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
 
-		return multipartFile, nil
+		return multipartFile, size, nil
 	}
 
 	// Handle raw body uploads
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, NewS5Error(ErrKeyFileUploadFailed, err)
+		return nil, size, NewS5Error(ErrKeyFileUploadFailed, err)
 	}
 
 	buffer := readSeekNopCloser{bytes.NewReader(data)}
 
-	return buffer, nil
+	size = uint64(len(data))
+
+	return buffer, size, nil
 }
 
 func (s *S5API) accountRegisterChallenge(jc jape.Context) {
@@ -1275,7 +1277,7 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *
 
 			data = append(data, dataCont...)
 
-			proof, err := s.storage.HashObject(ctx, bytes.NewReader(data))
+			proof, err := s.storage.HashObject(ctx, bytes.NewReader(data), uint64(len(data)))
 			if err != nil {
 				return nil, false
 			}
@@ -1444,7 +1446,7 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 				}
 			}(file)
 
-			upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
+			upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, uint64(fileHeader.Size), nil, nil)
 			if err != nil {
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
 			}
@@ -1515,7 +1517,7 @@ func (s *S5API) uploadAppMetadata(appData *s5libmetadata.WebAppMetadata, r *http
 
 	file := bytes.NewReader(appDataRaw)
 
-	upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, nil, nil)
+	upload, err := s.storage.UploadObject(r.Context(), s5.GetStorageProtocol(s.protocol), file, uint64(len(appDataRaw)), nil, nil)
 	if err != nil {
 		return "", NewS5Error(ErrKeyStorageOperationFailed, err)
 	}
@@ -2163,7 +2165,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return err // Error logged in fetchAndProcess
 		}
 
-		hash, err := s.storage.HashObject(ctx, bytes.NewReader(fileData))
+		hash, err := s.storage.HashObject(ctx, bytes.NewReader(fileData), uint64(len(fileData)))
 		if err != nil {
 			s.logger.Error("error hashing object", zap.Error(err))
 			return err
@@ -2178,7 +2180,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 			return err
 		}
 
-		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), bytes.NewReader(fileData), nil, hash)
+		upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), bytes.NewReader(fileData), parsedCid.Size, nil, hash)
 		if err != nil {
 			return err
 		}
@@ -2255,7 +2257,7 @@ func (s *S5API) pinImportCronJob(cid string, url string, proofUrl string, userId
 		return err
 	}
 
-	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, &renter.MultiPartUploadParams{
+	upload, err := s.storage.UploadObject(ctx, s5.GetStorageProtocol(s.protocol), nil, 0, &renter.MultiPartUploadParams{
 		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
 			rangeHeader := "bytes=%d-"
 			if end != 0 {

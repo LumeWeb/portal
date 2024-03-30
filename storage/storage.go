@@ -63,9 +63,9 @@ var Module = fx.Module("storage",
 )
 
 type StorageService interface {
-	UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error)
-	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result) error
-	HashObject(ctx context.Context, data io.Reader) (*bao.Result, error)
+	UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, size uint64, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error)
+	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result, size uint64) error
+	HashObject(ctx context.Context, data io.Reader, size uint64) (*bao.Result, error)
 	DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash []byte, start int64) (io.ReadCloser, error)
 	DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) (io.ReadCloser, error)
 	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
@@ -101,7 +101,7 @@ func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
 	}
 }
 
-func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error) {
+func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, size uint64, muParams *renter.MultiPartUploadParams, proof *bao.Result) (*metadata.UploadMetadata, error) {
 	readers := make([]io.ReadCloser, 0)
 	defer func() {
 		for _, reader := range readers {
@@ -148,7 +148,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 	}
 
 	if proof == nil {
-		hashResult, err := s.HashObject(ctx, reader)
+		hashResult, err := s.HashObject(ctx, reader, size)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 
 	filename := protocol.EncodeFileName(proof.Hash)
 
-	err = s.UploadObjectProof(ctx, protocol, nil, proof)
+	err = s.UploadObjectProof(ctx, protocol, nil, proof, size)
 
 	if err != nil {
 		return nil, err
@@ -237,9 +237,9 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 	return uploadMeta, nil
 }
 
-func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result) error {
+func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof *bao.Result, size uint64) error {
 	if proof == nil {
-		hashResult, err := s.HashObject(ctx, data)
+		hashResult, err := s.HashObject(ctx, data, size)
 		if err != nil {
 			return err
 		}
@@ -258,8 +258,8 @@ func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol S
 	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof), protocolName, s.getProofPath(protocol, proof.Hash))
 }
 
-func (s StorageServiceDefault) HashObject(ctx context.Context, data io.Reader) (*bao.Result, error) {
-	result, err := bao.Hash(data)
+func (s StorageServiceDefault) HashObject(ctx context.Context, data io.Reader, size uint64) (*bao.Result, error) {
+	result, err := bao.Hash(data, size)
 
 	if err != nil {
 		return nil, err
