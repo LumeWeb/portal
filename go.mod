@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.50.3
-	github.com/casbin/casbin/v2 v2.82.0
+	github.com/casbin/casbin/v2 v2.87.1
 	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba
 	github.com/dnslink-std/go v0.6.0
 	github.com/docker/go-units v0.5.0
