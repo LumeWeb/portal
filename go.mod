@@ -42,7 +42,6 @@ require (
 	golang.org/x/crypto v0.21.0
 	gorm.io/driver/mysql v1.5.4
 	gorm.io/gorm v1.25.7
-	lukechampine.com/blake3 v1.2.2-0.20240329192137-af604d0fbc33
 	nhooyr.io/websocket v1.8.10
 )
 
@@ -134,6 +133,7 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	lukechampine.com/blake3 v1.2.2 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
 
