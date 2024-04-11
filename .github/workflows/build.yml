@@ -4,12 +4,10 @@ on:
     push:
         branches:
             - '**'
-env:
-    BUILD_TAGS: s5
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
     build:
         uses: ./.github/workflows/_build.yml
         with:
-            build_tags: ${{ env.BUILD_TAGS }}
+            build_tags: s5
