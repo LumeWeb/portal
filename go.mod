@@ -18,7 +18,7 @@ require (
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-co-op/gocron/v2 v2.2.9
 	github.com/go-gorm/caches/v4 v4.0.0
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/golang-queue/queue v0.2.0
 	github.com/google/uuid v1.6.0
@@ -47,6 +47,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.15.1 // indirect
