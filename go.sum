@@ -389,8 +389,8 @@ gitlab.com/NebulousLabs/writeaheadlog v0.0.0-20200618142844-c59a90f49130/go.mod 
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.8 h1:xs88BrvEv273UsB79e0hcVrlUWmS0a8upikMFhSyAtA=
 go.etcd.io/bbolt v1.3.8/go.mod h1:N9Mkw9X8x5fupy0IKsmuqVtoGDyxsaDlbk4Rd05IAQw=
-go.sia.tech/core v0.1.12 h1:nrq/BvYbTGVLtZu0MHBTExUAP5nfNbcGhaJbuK839gc=
-go.sia.tech/core v0.1.12/go.mod h1:3EoY+rR78w1/uGoXXVqcYdwSjSJKuEMI5bL7WROA27Q=
+go.sia.tech/core v0.2.2 h1:33RJrt08o7KyUOY4tITH6ECmRq1lhtapqc/SncIF/2A=
+go.sia.tech/core v0.2.2/go.mod h1:Zk7HaybEPgkPC1p6e6tTQr8PIeZClTgNcLNGYDLQJeE=
 go.sia.tech/gofakes3 v0.0.0-20231109151325-e0d47c10dce2 h1:ulzfJNjxN5DjXHClkW2pTiDk+eJ+0NQhX87lFDZ03t0=
 go.sia.tech/gofakes3 v0.0.0-20231109151325-e0d47c10dce2/go.mod h1:PlsiVCn6+wssrR7bsOIlZm0DahsVrDydrlbjY4F14sg=
 go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 h1:qdPohazZ009Xh2Vkd/SBcy0nNUX9M0qnhslAHsomPdw=

@@ -33,7 +33,7 @@ require (
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/wneessen/go-mail v0.4.1
-	go.sia.tech/core v0.1.12
+	go.sia.tech/core v0.2.2
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231
 	go.sia.tech/renterd v1.0.5
 	go.uber.org/fx v1.20.1
