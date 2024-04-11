@@ -4,29 +4,25 @@ on:
   push:
     branches:
       - develop
+      - master
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-      - name: Setup Node.js 20.x
-        uses: actions/setup-node@v4
+    build:
+        uses: ./.github/workflows/_build.yml
         with:
-          node-version: 20.x
-          cache: 'pnpm'
-
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            build_tags: ${{ env.BUILD_TAGS }}
+            upload_artifact: true
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/download-artifact@v4
+          with:
+              name: build-${{ github.sha }}
+              path: .
+        - name: Create Release Pull Request or Publish
+          id: changesets
+          uses: changesets/action@v1
+          env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
