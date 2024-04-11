@@ -1,0 +1,60 @@
+name: Build
+
+on:
+    push:
+        branches:
+            - '**'
+env:
+    BUILD_TAGS: s5
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout Repo
+                uses: actions/checkout@v4
+            -   name: Setup Node.js 20.x
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 20.x
+            -   name: Setup Go
+                uses: actions/setup-go@v5
+                with:
+                    go-version: 1.21
+            -   uses: pnpm/action-setup@v3
+                name: Install pnpm
+                with:
+                    run_install: false
+            -   name: Get pnpm store directory
+                shell: bash
+                run: |
+                    echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+            -   uses: actions/cache@v3
+                name: Setup pnpm cache
+                with:
+                    path: ${{ env.STORE_PATH }}
+                    key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                    restore-keys: |
+                        ${{ runner.os }}-pnpm-store-
+            -   name: Install dependencies
+                run: pnpm install
+            -   name: Install dashboard dependencies
+                run: pnpm install
+                working-directory: api/account/app
+            -   name: Cache Nx
+                uses: actions/cache@v4
+                with:
+                    path: api/account/app/node_modules/.cache/nx
+                    key: cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ matrix.target }}-${{ matrix.jobIndex }}-${{ github.sha }}
+                    restore-keys: |
+                        cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ matrix.target }}-${{ matrix.jobIndex }}-
+                        cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-
+            -   name: Build Dashboard
+                run: pnpm build:portal-dashboard
+            -   name: Build Dashboard
+                run: |
+                    go mod download
+                    go generate ./...
+                    go build -tags "${BUILD_TAGS}" -gcflags="all=-N -l" -o portal ./cmd/portal
