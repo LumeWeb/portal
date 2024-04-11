@@ -16,7 +16,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/getkin/kin-openapi v0.118.0
-	github.com/go-co-op/gocron/v2 v2.2.4
+	github.com/go-co-op/gocron/v2 v2.2.9
 	github.com/go-gorm/caches/v4 v4.0.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
