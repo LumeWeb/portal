@@ -12,7 +12,7 @@ jobs:
     build:
         uses: ./.github/workflows/_build.yml
         with:
-            build_tags: ${{ env.BUILD_TAGS }}
+            build_tags: s5
             upload_artifact: true
     publish:
         runs-on: ubuntu-latest
