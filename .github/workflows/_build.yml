@@ -60,6 +60,7 @@ jobs:
                         cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-
             -   name: Build Dashboard
                 run: pnpm build:portal-dashboard
+                working-directory: api/account/app
             -   name: Build Portal
                 run: |
                     go mod download
