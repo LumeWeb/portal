@@ -6,7 +6,7 @@ require (
 	git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240314105331-6510beddf2cf
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
-	github.com/aws/aws-sdk-go-v2 v1.25.1
+	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.50.3
@@ -61,7 +61,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.19.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.22.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.27.2 // indirect
-	github.com/aws/smithy-go v1.20.1 // indirect
+	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/casbin/govaluate v1.1.0 // indirect
