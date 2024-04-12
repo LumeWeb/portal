@@ -43,7 +43,7 @@ require (
 	gorm.io/driver/mysql v1.5.4
 	gorm.io/gorm v1.25.7
 	lukechampine.com/blake3 v1.2.2-0.20240329192137-af604d0fbc33
-	nhooyr.io/websocket v1.8.10
+	nhooyr.io/websocket v1.8.11
 )
 
 require (
