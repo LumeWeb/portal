@@ -49,11 +49,9 @@ jobs:
                         ${{ runner.os }}-pnpm-store-
             -   name: Install dependencies
                 run: pnpm install
-            -   uses: pnpm/action-setup@v3
-                name: Install dashboard dependencies
-                with:
-                    run_install: |
-                        - cwd: api/account/app
+            -   name: Install dashboard dependencies
+                run: pnpm install
+                working-directory: ./api/account/app
             -   name: Cache Nx
                 uses: actions/cache@v4
                 with:
