@@ -15,7 +15,6 @@ on:
 env:
     BUILD_TAGS: s5
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
     build:
         name: Build
