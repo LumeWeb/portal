@@ -109,9 +109,11 @@ func (c *CronServiceDefault) kickOffJob(job models.CronJob) error {
 
 	args := argsFunc.(TaskArgsFactoryFunction)()
 
-	err := json.Unmarshal([]byte(job.Args), &args)
-	if err != nil {
-		return err
+	if len(job.Args) > 0 {
+		err := json.Unmarshal([]byte(job.Args), &args)
+		if err != nil {
+			return err
+		}
 	}
 
 	taskFunc, ok := c.tasks.Load(job.Function)
@@ -148,7 +150,7 @@ func (c *CronServiceDefault) kickOffJob(job models.CronJob) error {
 
 	options = append(options, gocron.WithEventListeners(listeners...))
 
-	_, err = c.scheduler.NewJob(gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now())), task, options...)
+	_, err := c.scheduler.NewJob(gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now())), task, options...)
 	if err != nil {
 		return err
 	}
@@ -173,12 +175,14 @@ func (c *CronServiceDefault) CreateJob(name string, tags []string, function stri
 		Function: function,
 	}
 
-	bytes, err := json.Marshal(args)
-	if err != nil {
-		return err
-	}
+	if args != nil {
+		bytes, err := json.Marshal(args)
+		if err != nil {
+			return err
+		}
 
-	job.Args = string(bytes)
+		job.Args = string(bytes)
+	}
 
 	result := c.db.Create(&job)
 
