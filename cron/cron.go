@@ -27,7 +27,6 @@ type TaskFunction func(any) error
 type TaskArgsFactoryFunction func() any
 
 type CronService interface {
-	Scheduler() gocron.Scheduler
 	RegisterService(service CronableService)
 	RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction)
 }
@@ -57,10 +56,6 @@ type CronServiceDefault struct {
 	db        *gorm.DB
 	tasks     sync.Map
 	taskArgs  sync.Map
-}
-
-func (c *CronServiceDefault) Scheduler() gocron.Scheduler {
-	return c.scheduler
 }
 
 func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefault {
