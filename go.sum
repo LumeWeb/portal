@@ -6,6 +6,8 @@ github.com/Acconut/go-httptest-recorder v1.0.0/go.mod h1:CwQyhTH1kq/gLyWiRieo7c0
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
 github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8JRa/ZElbCAJCEgikg=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240414080020-1f776248b980 h1:cEbUYJpmQscDkM0NF2wxusKdImC9BGYfjaxrEBq+ub4=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240414080020-1f776248b980/go.mod h1:mZx3gMSlFnb97k3hRqX3+GdlG3+DUwTh6B8fnsTScXg=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5 h1:PLu5lde5k11bZcv1gFOHTw3j1JSDg6NE11g8yGml4U4=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5/go.mod h1:uxlJTAnfhfebzHGPvKlyaGmS2G7QOX+xRcdmpMiLfXE=
 github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120 h1:+FYQ83a3c0p6Y/sqp3373CJ2m/b0mskdG3ma/opxtlk=
@@ -112,8 +114,6 @@ github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcP
 github.com/getkin/kin-openapi v0.118.0 h1:z43njxPmJ7TaPpMSCQb7PN0dEYno4tyBPQcrFdHoLuM=
 github.com/getkin/kin-openapi v0.118.0/go.mod h1:l5e9PaFUo9fyLJCPGQeXI2ML8c3P8BHOEV2VaAVf/pc=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
-github.com/go-co-op/gocron/v2 v2.2.9 h1:aoKosYWSSdXFLecjFWX1i8+R6V7XdZb8sB2ZKAY5Yis=
-github.com/go-co-op/gocron/v2 v2.2.9/go.mod h1:mZx3gMSlFnb97k3hRqX3+GdlG3+DUwTh6B8fnsTScXg=
 github.com/go-gorm/caches/v4 v4.0.0 h1:3nfNy1ya6f9s0RjpJ6lFMOfeyOzQjPoaXuLMmagFL8k=
 github.com/go-gorm/caches/v4 v4.0.0/go.mod h1:Ms8LnWVoW4GkTofpDzFH8OfDGNTjLxQDyxBmRN67Ujw=
 github.com/go-gormigrate/gormigrate/v2 v2.1.1 h1:eGS0WTFRV30r103lU8JNXY27KbviRnqqIDobW3EV3iY=

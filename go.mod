@@ -137,4 +137,7 @@ require (
 	lukechampine.com/frand v1.4.2 // indirect
 )
 
-replace github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120
+replace (
+	github.com/go-co-op/gocron/v2 => github.com/LumeWeb/gocron/v2 v2.0.0-20240414080020-1f776248b980
+	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120
+)
