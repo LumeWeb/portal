@@ -29,6 +29,8 @@ type TaskArgsFactoryFunction func() any
 type CronService interface {
 	RegisterService(service CronableService)
 	RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction)
+	CreateJob(function string, args any, tags []string) error
+	JobExists(tags []string, function string, args any) (bool, *models.CronJob)
 }
 
 type CronableService interface {
