@@ -61,15 +61,6 @@ var Module = fx.Module("renter",
 		fx.Invoke(func(r *RenterDefault) error {
 			return r.init()
 		}),
-		fx.Invoke(func(lc fx.Lifecycle, r *PriceTracker) error {
-			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					return r.init()
-
-				},
-			})
-			return nil
-		}),
 	),
 )
 

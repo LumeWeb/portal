@@ -276,8 +276,8 @@ func (p PriceTracker) init() error {
 	return nil
 }
 
-func NewPriceTracker(params PriceTrackerParams) *PriceTracker {
-	return &PriceTracker{
+func NewPriceTracker(lc fx.Lifecycle, params PriceTrackerParams) *PriceTracker {
+	pt := &PriceTracker{
 		config: params.Config,
 		logger: params.Logger,
 		cron:   params.Cron,
@@ -285,6 +285,14 @@ func NewPriceTracker(params PriceTrackerParams) *PriceTracker {
 		renter: params.Renter,
 		api:    params.PriceApi,
 	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return pt.init()
+		},
+	})
+
+	return pt
 }
 
 func siacoinsFromRat(r *big.Rat) (types.Currency, error) {
