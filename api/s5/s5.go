@@ -73,8 +73,9 @@ import (
 )
 
 var (
-	_ registry.API       = (*S5API)(nil)
-	_ router.RoutableAPI = (*S5API)(nil)
+	_ registry.API         = (*S5API)(nil)
+	_ router.RoutableAPI   = (*S5API)(nil)
+	_ cron.CronableService = (*S5API)(nil)
 )
 
 //go:embed swagger.yaml
@@ -371,6 +372,29 @@ func (s *S5API) handleDnsLinkWebapp(w http.ResponseWriter, r *http.Request, cid 
 
 func (s *S5API) handleDnsLinkDirectory(w http.ResponseWriter, r *http.Request, cid *encoding.CID) {
 	http.FileServer(http.FS(newDirFs(cid, s))).ServeHTTP(w, r)
+}
+
+func (s *S5API) RegisterTasks(cron cron.CronService) error {
+	cron.RegisterTask(cronTaskPinImportValidateName, s.cronTaskPinImportValidate, cronTaskPinImportValidateArgsFactory)
+	cron.RegisterTask(cronTaskPinImportProcessSmallFileName, s.cronTaskPinImportProcessSmallFile, cronTaskPinImportProcessSmallFileArgsFactory)
+	cron.RegisterTask(cronTaskPinImportProcessLargeFileName, s.cronTaskPinImportProcessLargeFile, cronTaskPinImportProcessLargeFileArgsFactory)
+	return nil
+}
+
+func (s *S5API) ScheduleJobs(_ cron.CronService) error {
+	return nil
+}
+
+func (s *S5API) cronTaskPinImportValidate(args any) error {
+	return cronTaskPinImportValidate(args.(cronTaskPinImportValidateArgs), s)
+}
+
+func (s *S5API) cronTaskPinImportProcessSmallFile(args any) error {
+	return cronTaskPinImportProcessSmallFile(args.(cronTaskPinImportProcessSmallFileArgs), s)
+}
+
+func (s *S5API) cronTaskPinImportProcessLargeFile(args any) error {
+	return cronTaskPinImportProcessLargeFile(args.(cronTaskPinImportProcessLargeFileArgs), s)
 }
 
 type s5TusJwtResponseWriter struct {
@@ -1305,37 +1329,15 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *
 		return ctx.Err()
 	}
 
-	jobName := fmt.Sprintf("pin-import-%s", cid64)
+	err = s.cron.CreateJobIfNotExists(cronTaskPinImportValidateName, cronTaskPinImportValidateArgs{
+		cid:      cid64,
+		url:      location.Location().BytesURL(),
+		proofUrl: location.Location().OutboardBytesURL(),
+		userId:   userId,
+	}, []string{cid64})
 
-	if job := s.cron.GetJobByName(jobName); job == nil {
-		job := s.cron.RetryableJob(
-			cron.RetryableJobParams{
-				Name:     jobName,
-				Tags:     nil,
-				Function: s.pinImportCronJob,
-				Args:     []interface{}{cid64, location.Location().BytesURL(), location.Location().OutboardBytesURL(), userId},
-				Attempt:  0,
-				Limit:    10,
-				After:    nil,
-				Error:    nil,
-			},
-		)
-
-		_, err = s.cron.CreateJob(job)
-		if err != nil {
-			return nil
-		}
-
-		err = s._import.SaveImport(ctx, _import.ImportMetadata{
-			UserID:     userId,
-			Hash:       cid.Hash.HashBytes(),
-			Protocol:   s5.GetStorageProtocol(s.protocol).Name(),
-			ImporterIP: userIp,
-		}, true)
-		if err != nil {
-			return err
-		}
-
+	if err != nil {
+		return err
 	}
 
 	return nil
