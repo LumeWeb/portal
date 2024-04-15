@@ -121,9 +121,9 @@ func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) 
 		return err
 	}
 
-	err = tus.cron.CreateJob([]string{upload.UploadID}, cronTaskTusUploadProcessName, cronTaskTusUploadProcessArgs{
+	err = tus.cron.CreateJob(cronTaskTusUploadProcessName, cronTaskTusUploadProcessArgs{
 		hash: args.hash,
-	})
+	}, []string{upload.UploadID})
 	if err != nil {
 		return err
 	}
@@ -165,12 +165,12 @@ func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler
 		return err
 	}
 
-	err = tus.cron.CreateJob([]string{upload.UploadID}, cronTaskTusUploadCleanupName, cronTaskTusUploadCleanupArgs{
+	err = tus.cron.CreateJob(cronTaskTusUploadCleanupName, cronTaskTusUploadCleanupArgs{
 		protocol: uploadMeta.Protocol,
 		hash:     uploadMeta.Hash,
 		mimeType: uploadMeta.MimeType,
 		size:     uploadMeta.Size,
-	})
+	}, []string{upload.UploadID})
 	if err != nil {
 		return err
 	}

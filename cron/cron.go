@@ -167,7 +167,7 @@ func (c *CronServiceDefault) RegisterTask(name string, taskFunc TaskFunction, ta
 	c.taskArgs.Store(name, taskArgFunc)
 }
 
-func (c *CronServiceDefault) CreateJob(tags []string, function string, args any) error {
+func (c *CronServiceDefault) CreateJob(function string, args any, tags []string) error {
 	job := models.CronJob{
 		UUID:     uuid.New(),
 		Tags:     tags,
