@@ -33,6 +33,7 @@ type CronService interface {
 	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
 	CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error
 	CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error
+	CreateJobIfNotExists(function string, args any, tags []string) error
 }
 
 type CronableService interface {
@@ -215,6 +216,16 @@ func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID, jobDef g
 	}
 
 	return c.kickOffJob(&job, jobDef)
+}
+
+func (c *CronServiceDefault) CreateJobIfNotExists(function string, args any, tags []string) error {
+	exists, _ := c.JobExists(function, args, tags)
+
+	if !exists {
+		return c.CreateJob(function, args, tags)
+	}
+
+	return nil
 }
 
 func (c *CronServiceDefault) JobExists(function string, args any, tags []string) (bool, *models.CronJob) {
