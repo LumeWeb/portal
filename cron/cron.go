@@ -92,7 +92,7 @@ func (c *CronServiceDefault) start() error {
 	}
 
 	for _, cronJob := range cronJobs {
-		err := c.kickOffJob(cronJob)
+		err := c.kickOffJob(&cronJob, nil)
 		if err != nil {
 			c.logger.Error("Failed to kick off job", zap.Error(err))
 			return err
@@ -112,7 +112,7 @@ func (c *CronServiceDefault) start() error {
 	return nil
 }
 
-func (c *CronServiceDefault) kickOffJob(job models.CronJob) error {
+func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDefinition) error {
 	argsFunc, ok := c.taskArgs.Load(job.Function)
 
 	if !ok {
@@ -162,6 +162,10 @@ func (c *CronServiceDefault) kickOffJob(job models.CronJob) error {
 
 	options = append(options, gocron.WithEventListeners(listeners...))
 
+	if jobDef == nil {
+		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now()))
+	}
+
 	_, err := c.scheduler.NewJob(gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now())), task, options...)
 	if err != nil {
 		return err
@@ -180,28 +184,35 @@ func (c *CronServiceDefault) RegisterTask(name string, taskFunc TaskFunction, ta
 }
 
 func (c *CronServiceDefault) CreateJob(function string, args any, tags []string) error {
-	job := models.CronJob{
-		UUID:     uuid.New(),
-		Tags:     tags,
-		Function: function,
+	job, err := c.createJobRecord(function, args, tags)
+	if err != nil {
+		return err
 	}
 
-	if args != nil {
-		bytes, err := json.Marshal(args)
-		if err != nil {
-			return err
-		}
+	return c.kickOffJob(job, nil)
+}
 
-		job.Args = string(bytes)
+func (c *CronServiceDefault) CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error {
+	job, err := c.createJobRecord(function, args, tags)
+	if err != nil {
+		return err
 	}
 
-	result := c.db.Create(&job)
+	return c.kickOffJob(job, jobDef)
+}
+
+func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error {
+	var job models.CronJob
+
+	job.UUID = uuid
+
+	result := c.db.First(&job)
 
 	if result.Error != nil {
 		return result.Error
 	}
 
-	return c.kickOffJob(job)
+	return c.kickOffJob(&job, jobDef)
 }
 
 func (c *CronServiceDefault) JobExists(function string, args any, tags []string) (bool, *models.CronJob) {
@@ -226,4 +237,29 @@ func (c *CronServiceDefault) JobExists(function string, args any, tags []string)
 	result := c.db.Where(&job).First(&job)
 
 	return result.Error == nil, &job
+}
+
+func (c *CronServiceDefault) createJobRecord(function string, args any, tags []string) (*models.CronJob, error) {
+	job := models.CronJob{
+		UUID:     uuid.New(),
+		Tags:     tags,
+		Function: function,
+	}
+
+	if args != nil {
+		bytes, err := json.Marshal(args)
+		if err != nil {
+			return nil, err
+		}
+
+		job.Args = string(bytes)
+	}
+
+	result := c.db.Create(&job)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &job, nil
 }
