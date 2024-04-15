@@ -28,7 +28,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/rs/cors v1.10.1
 	github.com/samber/lo v1.39.0
-	github.com/shopspring/decimal v1.3.1
+	github.com/shopspring/decimal v1.4.0
 	github.com/spf13/viper v1.18.2
 	github.com/tus/tusd/v2 v2.2.3-0.20240125123123-9080d351525d
 	github.com/vmihailenco/msgpack/v5 v5.4.1
