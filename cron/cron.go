@@ -31,6 +31,8 @@ type CronService interface {
 	RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction)
 	CreateJob(function string, args any, tags []string) error
 	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
+	CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error
+	CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error
 }
 
 type CronableService interface {
