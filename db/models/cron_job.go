@@ -12,7 +12,6 @@ func init() {
 type CronJob struct {
 	gorm.Model
 	UUID     uuid.UUID
-	Name     string
 	Tags     []string
 	Function string
 	Args     string

@@ -125,7 +125,7 @@ func (c *CronServiceDefault) kickOffJob(job models.CronJob) error {
 	task := gocron.NewTask(taskFunc, args)
 
 	options := []gocron.JobOption{}
-	options = append(options, gocron.WithName(job.Name))
+	options = append(options, gocron.WithName(job.UUID.String()))
 	options = append(options, gocron.WithTags(job.Tags...))
 	options = append(options, gocron.WithIdentifier(job.UUID))
 
@@ -167,10 +167,9 @@ func (c *CronServiceDefault) RegisterTask(name string, taskFunc TaskFunction, ta
 	c.taskArgs.Store(name, taskArgFunc)
 }
 
-func (c *CronServiceDefault) CreateJob(name string, tags []string, function string, args any) error {
+func (c *CronServiceDefault) CreateJob(tags []string, function string, args any) error {
 	job := models.CronJob{
 		UUID:     uuid.New(),
-		Name:     name,
 		Tags:     tags,
 		Function: function,
 	}
