@@ -33,6 +33,7 @@ type CronService interface {
 
 type CronableService interface {
 	RegisterTasks(cron CronService) error
+	ScheduleJobs(cron CronService) error
 }
 
 type CronServiceParams struct {
@@ -92,6 +93,15 @@ func (c *CronServiceDefault) start() error {
 		err := c.kickOffJob(cronJob)
 		if err != nil {
 			c.logger.Error("Failed to kick off job", zap.Error(err))
+			return err
+		}
+	}
+
+	for _, service := range c.services {
+		err := service.ScheduleJobs(c)
+		if err != nil {
+			c.logger.Error("Failed to schedule jobs for service", zap.Error(err))
+			return err
 		}
 	}
 
