@@ -207,6 +207,10 @@ func (c *CronServiceDefault) CreateJob(function string, args any, tags []string)
 func (c *CronServiceDefault) JobExists(function string, args any, tags []string) (bool, *models.CronJob) {
 	var job models.CronJob
 
+	if tags != nil {
+		job.Tags = tags
+	}
+
 	job.Tags = tags
 	job.Function = function
 
