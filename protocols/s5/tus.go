@@ -169,6 +169,10 @@ func (t *TusHandler) RegisterTasks(cron cron.CronService) error {
 	return nil
 }
 
+func (t *TusHandler) ScheduleJobs(cron cron.CronService) error {
+	return nil
+}
+
 func (t *TusHandler) cronTaskTusUploadVerify(args any) error {
 	return cronTaskTusUploadVerify(args.(cronTaskTusUploadVerifyArgs), t)
 }
