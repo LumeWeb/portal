@@ -191,3 +191,23 @@ func (c *CronServiceDefault) CreateJob(tags []string, function string, args any)
 
 	return c.kickOffJob(job)
 }
+
+func (c *CronServiceDefault) JobExists(tags []string, function string, args any) (bool, *models.CronJob) {
+	var job models.CronJob
+
+	job.Tags = tags
+	job.Function = function
+
+	if args != nil {
+		bytes, err := json.Marshal(args)
+		if err != nil {
+			return false, nil
+		}
+
+		job.Args = string(bytes)
+	}
+
+	result := c.db.Where(&job).First(&job)
+
+	return result.Error == nil, &job
+}
