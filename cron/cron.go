@@ -30,7 +30,7 @@ type CronService interface {
 	RegisterService(service CronableService)
 	RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction)
 	CreateJob(function string, args any, tags []string) error
-	JobExists(tags []string, function string, args any) (bool, *models.CronJob)
+	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
 }
 
 type CronableService interface {
@@ -204,7 +204,7 @@ func (c *CronServiceDefault) CreateJob(function string, args any, tags []string)
 	return c.kickOffJob(job)
 }
 
-func (c *CronServiceDefault) JobExists(tags []string, function string, args any) (bool, *models.CronJob) {
+func (c *CronServiceDefault) JobExists(function string, args any, tags []string) (bool, *models.CronJob) {
 	var job models.CronJob
 
 	job.Tags = tags
