@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"net/http"
-	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/cron"
 
@@ -72,6 +71,7 @@ func main() {
 		fx.Provide(api.NewCasbin),
 		fx.Invoke(protocols.SetupLifecycles),
 		fx.Invoke(api.SetupLifecycles),
+		fx.Invoke(cron.Start),
 		fx.Provide(NewServer),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()
