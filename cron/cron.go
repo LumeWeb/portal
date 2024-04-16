@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/db/types"
 
@@ -178,7 +177,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	options = append(options, gocron.WithEventListeners(listeners...))
 
 	if jobDef == nil {
-		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now()))
+		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 	}
 
 	_, err := c.scheduler.NewJob(jobDef, task, options...)
