@@ -59,14 +59,14 @@ func (p PriceTracker) ScheduleJobs(cron cron.CronService) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		err := cron.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
+		if err != nil {
+			return err
+		}
 	}
 
-	err := cron.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
-	if err != nil {
-		return err
-	}
-
-	err = cron.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
+	err := cron.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
 	if err != nil {
 		return err
 	}
