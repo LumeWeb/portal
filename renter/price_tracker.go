@@ -274,6 +274,11 @@ func (p PriceTracker) importPrices(_ any) error {
 		}
 	}
 
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
