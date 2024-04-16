@@ -181,7 +181,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now()))
 	}
 
-	_, err := c.scheduler.NewJob(gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now())), task, options...)
+	_, err := c.scheduler.NewJob(jobDef, task, options...)
 	if err != nil {
 		return err
 	}
