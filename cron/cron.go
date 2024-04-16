@@ -159,7 +159,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 		var job models.CronJob
 
 		job.UUID = types.BinaryUUID(jobID)
-		if tx := c.db.Model(&models.CronJob{}).Delete(&job); tx.Error != nil {
+		if tx := c.db.Model(&models.CronJob{}).Where(&job).Delete(&job); tx.Error != nil {
 			c.logger.Error("Failed to delete job", zap.Error(tx.Error))
 		}
 
