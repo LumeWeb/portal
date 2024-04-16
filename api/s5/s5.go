@@ -759,7 +759,7 @@ func (s *S5API) accountLogin(jc jape.Context) {
 	}
 
 	decodedKey, err := base64.RawURLEncoding.DecodeString(request.Pubkey)
-	if err != nil || len(decodedKey) != 32 {
+	if err != nil || len(decodedKey) != 33 {
 		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidFileFormat, err))
 		return
 	}
