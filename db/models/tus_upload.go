@@ -9,7 +9,7 @@ func init() {
 
 type TusUpload struct {
 	gorm.Model
-	Hash       []byte `gorm:"type:binary(32);uniqueIndex:idx_hash_deleted"`
+	Hash       []byte `gorm:"type:binary(32);"`
 	MimeType   string
 	UploadID   string `gorm:"uniqueIndex"`
 	UploaderID uint
@@ -17,5 +17,4 @@ type TusUpload struct {
 	Uploader   User `gorm:"foreignKey:UploaderID"`
 	Protocol   string
 	Completed  bool
-	DeletedAt  gorm.DeletedAt `gorm:"uniqueIndex:idx_hash_deleted"`
 }

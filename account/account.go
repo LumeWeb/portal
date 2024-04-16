@@ -625,7 +625,7 @@ func (s AccountServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink
 		return false, nil, err
 	}
 
-	pinned, err := s.UploadPinned(hash)
+	pinned, err := s.UploadPinnedGlobal(hash)
 	if err != nil {
 		return false, nil, err
 	}
@@ -637,14 +637,21 @@ func (s AccountServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink
 	return true, model.(*models.DNSLink), nil
 }
 
-func (s AccountServiceDefault) UploadPinned(hash []byte) (bool, error) {
+func (s AccountServiceDefault) UploadPinnedGlobal(hash []byte) (bool, error) {
+	return s.UploadPinnedByUser(hash, 0)
+}
+
+func (s AccountServiceDefault) UploadPinnedByUser(hash []byte, userId uint) (bool, error) {
 	upload, err := s.metadata.GetUpload(context.Background(), hash)
 	if err != nil {
+		if errors.Is(err, metadata.ErrNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
 
 	var pin models.Pin
-	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: upload.ID}).First(&pin)
+	result := s.db.Model(&models.Pin{}).Where(&models.Pin{UploadID: upload.ID, UserID: userId}).First(&pin)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {

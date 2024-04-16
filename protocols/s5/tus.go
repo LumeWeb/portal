@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"git.lumeweb.com/LumeWeb/portal/api/middleware"
@@ -55,7 +54,6 @@ type TusHandler struct {
 	tusStore        tusd.DataStore
 	s3Client        *s3.Client
 	storageProtocol storage.StorageProtocol
-	uploadMutexMap  sync.Map
 }
 
 type TusHandlerParams struct {
@@ -113,12 +111,6 @@ func (t *TusHandler) Init() error {
 				return blankResp, blankChanges, err
 			}
 			return blankResp, blankChanges, errors.New("file already exists")
-		}
-
-		exists, _ := t.UploadExists(hook.Context, decodedHash.HashBytes())
-
-		if exists && !hook.Upload.IsPartial && !hook.Upload.IsFinal {
-			return blankResp, blankChanges, errors.New("file is already being uploaded")
 		}
 
 		return blankResp, blankChanges, nil
@@ -189,7 +181,14 @@ func (t *TusHandler) Tus() *tusd.Handler {
 	return t.tus
 }
 
-func (t *TusHandler) UploadExists(ctx context.Context, hash []byte) (bool, models.TusUpload) {
+func (t *TusHandler) UploadExists(ctx context.Context, id string) (bool, models.TusUpload) {
+	var upload models.TusUpload
+	result := t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(&models.TusUpload{UploadID: id}).First(&upload)
+
+	return result.RowsAffected > 0, upload
+}
+
+func (t *TusHandler) UploadHashExists(ctx context.Context, hash []byte) (bool, models.TusUpload) {
 	var upload models.TusUpload
 	result := t.db.WithContext(ctx).Model(&models.TusUpload{}).Where(&models.TusUpload{Hash: hash}).First(&upload)
 
@@ -287,7 +286,7 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 	uploadID = upload.UploadID
 
 	err := t.cron.CreateJob(cronTaskTusUploadVerifyName, cronTaskTusUploadVerifyArgs{
-		hash: upload.Hash,
+		id: uploadID,
 	}, []string{uploadID})
 	if err != nil {
 		return err
@@ -297,7 +296,7 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 }
 
 func (t *TusHandler) GetUploadReader(ctx context.Context, hash []byte, start int64) (io.ReadCloser, error) {
-	exists, upload := t.UploadExists(ctx, hash)
+	exists, upload := t.UploadHashExists(ctx, hash)
 
 	if !exists {
 		return nil, metadata.ErrNotFound
@@ -332,7 +331,7 @@ func (t *TusHandler) SetStorageProtocol(storageProtocol storage.StorageProtocol)
 }
 
 func (t *TusHandler) GetUploadSize(ctx context.Context, hash []byte) (int64, error) {
-	exists, upload := t.UploadExists(ctx, hash)
+	exists, upload := t.UploadHashExists(ctx, hash)
 
 	if !exists {
 		return 0, metadata.ErrNotFound
@@ -353,7 +352,7 @@ func (t *TusHandler) GetUploadSize(ctx context.Context, hash []byte) (int64, err
 
 func (t *TusHandler) uploadTask(hash []byte) error {
 	ctx := context.Background()
-	exists, upload := t.UploadExists(ctx, hash)
+	exists, upload := t.UploadHashExists(ctx, hash)
 
 	if !exists {
 		t.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(hash)))
@@ -503,24 +502,6 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			mapKey := append([]byte{}, decodedHash.HashBytes()...)
-			mapKey = append(mapKey, []byte(info.Upload.ID)...)
-			mapKeyStr := string(mapKey)
-			if _, ok := t.uploadMutexMap.Load(mapKeyStr); !ok {
-				t.uploadMutexMap.Store(mapKeyStr, &sync.Mutex{})
-			}
-
-			mutex, _ := t.uploadMutexMap.Load(mapKeyStr)
-
-			mutex.(*sync.Mutex).Lock()
-			exists, _ := t.UploadExists(ctx, decodedHash.HashBytes())
-
-			if exists {
-				t.logger.Debug("Upload already exists", zap.String("hash", hex.EncodeToString(decodedHash.HashBytes())))
-				mutex.(*sync.Mutex).Unlock()
-				continue
-			}
-
 			var mimeType string
 
 			for _, field := range []string{"mimeType", "mimetype", "filetype"} {
@@ -532,7 +513,6 @@ func (t *TusHandler) worker() {
 			}
 
 			_, err = t.CreateUpload(ctx, decodedHash.HashBytes(), info.Upload.ID, uploaderID, uploaderIP, t.storageProtocol.Name(), mimeType)
-			mutex.(*sync.Mutex).Unlock()
 			if err != nil {
 				errorResponse.Body = "Could not create tus upload"
 				info.Upload.StopUpload(errorResponse)
@@ -557,34 +537,7 @@ func (t *TusHandler) worker() {
 				continue
 			}
 
-			hash, ok := info.Upload.MetaData["hash"]
-			if !ok {
-				t.logger.Error("Missing hash in metadata")
-				continue
-			}
-
-			decodedHash, err := encoding.MultihashFromBase64Url(hash)
-
-			mapKey := append([]byte{}, decodedHash.HashBytes()...)
-			mapKey = append(mapKey, []byte(info.Upload.ID)...)
-			mapKeyStr := string(mapKey)
-			mutex, ok := t.uploadMutexMap.Load(mapKeyStr)
-			if !ok {
-				t.logger.Error("Could not find mutex for upload")
-				continue
-			}
-
-			mutex.(*sync.Mutex).Lock()
-			exists, _ := t.UploadExists(ctx, decodedHash.HashBytes())
-			if !exists {
-				mutex.(*sync.Mutex).Unlock()
-				if !info.Upload.IsFinal && !info.Upload.IsPartial {
-					t.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(decodedHash.HashBytes())))
-				}
-				continue
-			}
-			mutex.(*sync.Mutex).Unlock()
-			err = t.UploadCompleted(ctx, info.Upload.ID)
+			err := t.UploadCompleted(ctx, info.Upload.ID)
 			if err != nil {
 				t.logger.Error("Could not complete tus upload", zap.Error(err))
 				continue
@@ -594,7 +547,6 @@ func (t *TusHandler) worker() {
 				t.logger.Error("Could not schedule tus upload", zap.Error(err))
 				continue
 			}
-
 		}
 	}
 }

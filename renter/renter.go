@@ -145,6 +145,23 @@ func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any)
 	return nil
 }
 
+func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileName string) (bool, error) {
+	var siaUpload models.SiaUpload
+
+	siaUpload.Bucket = bucket
+	siaUpload.Key = fileName
+
+	ret := r.db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
+	if ret.Error != nil {
+		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, ret.Error
+	}
+
+	return true, nil
+}
+
 func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *MultiPartUploadParams) error {
 	size := params.Size
 	rf := params.ReaderFactory
