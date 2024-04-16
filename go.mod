@@ -41,7 +41,7 @@ require (
 	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.22.0
 	gorm.io/driver/mysql v1.5.4
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.9
 	lukechampine.com/blake3 v1.2.2-0.20240329192137-af604d0fbc33
 	nhooyr.io/websocket v1.8.11
 )
