@@ -141,7 +141,15 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 		return fmt.Errorf("function %s not found", job.Function)
 	}
 
-	task := gocron.NewTask(taskFunc, args)
+	varArgs := []interface{}{
+		interface{}(struct{}{}),
+	}
+
+	if args != nil {
+		varArgs = []interface{}{args}
+	}
+
+	task := gocron.NewTask(taskFunc, varArgs...)
 
 	options := []gocron.JobOption{}
 	options = append(options, gocron.WithName(job.UUID.String()))
