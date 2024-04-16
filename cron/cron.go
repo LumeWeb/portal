@@ -261,7 +261,11 @@ func (c *CronServiceDefault) JobExists(function string, args any, tags []string)
 
 	result := c.db.Where(&job).First(&job)
 
-	return result.Error == nil, &job
+	if result.Error != nil {
+		return false, nil
+	}
+
+	return true, &job
 }
 
 func (c *CronServiceDefault) createJobRecord(function string, args any, tags []string) (*models.CronJob, error) {
