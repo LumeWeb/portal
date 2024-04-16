@@ -32,7 +32,7 @@ import (
 //go:embed swagger.yaml
 var swagSpec []byte
 
-//go:embed all:app/build/client
+//go:embed all:app/dist/apps/portal-dashboard/client
 var appFs embed.FS
 
 var (

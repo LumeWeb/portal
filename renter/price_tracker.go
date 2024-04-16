@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/shopspring/decimal"
 
 	"github.com/docker/go-units"
@@ -17,7 +19,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/config"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	siasdksia "github.com/LumeWeb/siacentral-api/sia"
-	"github.com/go-co-op/gocron/v2"
 	"go.sia.tech/core/types"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -39,30 +40,49 @@ type PriceTracker struct {
 	api    *siasdksia.APIClient
 }
 
-func (p PriceTracker) LoadInitialTasks(cron cron.CronService) error {
-	job := gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
-	_, err := cron.Scheduler().NewJob(
-		job,
-		gocron.NewTask(p.recordRate),
-	)
+func (p PriceTracker) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, cronTaskRecordSiaRateDefinition, nopArgsFactory)
+	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, cron.TaskDefinitionOneTimeJob, nopArgsFactory)
+	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, cron.TaskDefinitionOneTimeJob, nopArgsFactory)
+	return nil
+}
+
+func (p PriceTracker) ScheduleJobs(crn cron.CronService) error {
+	rateJob := cronTaskRecordSiaRateDefinition()
+
+	exists, rateJobItem := crn.JobExists(cronTaskRecordSiaRateName, nil, nil)
+
+	if !exists {
+		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil, nil, rateJob)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := crn.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
+		if err != nil {
+			return err
+		}
+	}
+
+	err := crn.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	return err
+	return nil
 }
 
-func (p PriceTracker) recordRate() {
+func (p PriceTracker) recordRate(_ any) error {
 	rate, _, err := p.api.GetExchangeRate()
 	if err != nil {
 		p.logger.Error("failed to get exchange rate", zap.Error(err))
-		return
+		return err
 	}
 
 	siaPrice, ok := rate[usdSymbol]
 	if !ok {
 		p.logger.Error("exchange rate not found")
-		return
+		return err
 	}
 
 	var history models.SCPriceHistory
@@ -73,12 +93,15 @@ func (p PriceTracker) recordRate() {
 		p.logger.Error("failed to save price history", zap.Error(tx.Error))
 	}
 
-	if err := p.updatePrices(); err != nil {
-		p.logger.Error("failed to update prices", zap.Error(err))
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	if err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func (p PriceTracker) updatePrices() error {
+func (p PriceTracker) updatePrices(_ any) error {
 	var averageRate decimal.Decimal
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 	sql := `
@@ -186,10 +209,15 @@ SELECT AVG(rate) as average_rate FROM (
 		return err
 	}
 
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (p PriceTracker) importPrices() error {
+func (p PriceTracker) importPrices(_ any) error {
 	var existingDates []time.Time
 	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
 	startDate := time.Now().UTC().AddDate(0, 0, -daysOfHistory)
@@ -244,6 +272,11 @@ func (p PriceTracker) importPrices() error {
 		}
 	}
 
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -261,22 +294,10 @@ func (p PriceTracker) init() error {
 	p.cron.RegisterService(p)
 	p.api = siasdk.NewSiaClient()
 
-	go func() {
-		err := p.importPrices()
-		if err != nil {
-			p.logger.Fatal("failed to import prices", zap.Error(err))
-		}
-
-		err = p.updatePrices()
-		if err != nil {
-			p.logger.Fatal("failed to update prices", zap.Error(err))
-		}
-	}()
-
 	return nil
 }
 
-func NewPriceTracker(params PriceTrackerParams) *PriceTracker {
+func NewPriceTracker(lc fx.Lifecycle, params PriceTrackerParams) *PriceTracker {
 	return &PriceTracker{
 		config: params.Config,
 		logger: params.Logger,
@@ -285,6 +306,7 @@ func NewPriceTracker(params PriceTrackerParams) *PriceTracker {
 		renter: params.Renter,
 		api:    params.PriceApi,
 	}
+
 }
 
 func siacoinsFromRat(r *big.Rat) (types.Currency, error) {

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"net/http"
 
+	"git.lumeweb.com/LumeWeb/portal/cron"
+
 	_import "git.lumeweb.com/LumeWeb/portal/import"
 
 	"git.lumeweb.com/LumeWeb/portal/mailer"
@@ -12,7 +14,6 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/account"
 	"git.lumeweb.com/LumeWeb/portal/api"
-	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db"
 	_logger "git.lumeweb.com/LumeWeb/portal/logger"
 	"git.lumeweb.com/LumeWeb/portal/metadata"
@@ -60,16 +61,17 @@ func main() {
 		db.Module,
 		renter.Module,
 		storage.Module,
-		cron.Module,
 		account.Module,
 		metadata.Module,
 		_import.Module,
 		mailer.Module,
+		cron.Module,
 		protocols.BuildProtocols(cfg),
 		api.BuildApis(cfg),
 		fx.Provide(api.NewCasbin),
 		fx.Invoke(protocols.SetupLifecycles),
 		fx.Invoke(api.SetupLifecycles),
+		fx.Invoke(cron.Start),
 		fx.Provide(NewServer),
 		fx.Invoke(func(*http.Server) {}),
 	).Run()

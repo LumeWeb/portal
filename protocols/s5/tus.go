@@ -35,7 +35,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )
@@ -162,8 +161,28 @@ func (t *TusHandler) Init() error {
 	return nil
 }
 
-func (t *TusHandler) LoadInitialTasks(cron cron.CronService) error {
+func (t *TusHandler) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskTusUploadVerifyName, t.cronTaskTusUploadVerify, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadVerifyArgsFactory)
+	crn.RegisterTask(cronTaskTusUploadProcessName, t.cronTaskTusUploadProcess, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadProcessArgsFactory)
+	crn.RegisterTask(cronTaskTusUploadCleanupName, t.cronTaskTusUploadCleanup, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadCleanupArgsFactory)
+
 	return nil
+}
+
+func (t *TusHandler) ScheduleJobs(cron cron.CronService) error {
+	return nil
+}
+
+func (t *TusHandler) cronTaskTusUploadVerify(args any) error {
+	return cronTaskTusUploadVerify(args.(cronTaskTusUploadVerifyArgs), t)
+}
+
+func (t *TusHandler) cronTaskTusUploadProcess(args any) error {
+	return cronTaskTusUploadProcess(args.(cronTaskTusUploadProcessArgs), t)
+}
+
+func (t *TusHandler) cronTaskTusUploadCleanup(args any) error {
+	return cronTaskTusUploadCleanup(args.(cronTaskTusUploadCleanupArgs), t)
 }
 
 func (t *TusHandler) Tus() *tusd.Handler {
@@ -265,26 +284,15 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 		return errors.New("upload not found")
 	}
 
-	job := t.cron.RetryableJob(cron.RetryableJobParams{
-		Name:     "tusUpload",
-		Function: t.uploadTask,
-		Args:     []interface{}{upload.Hash},
-		Attempt:  0,
-		Limit:    0,
-		After: func(jobID uuid.UUID, jobName string) {
-			t.logger.Info("Job finished", zap.String("jobName", jobName), zap.String("uploadID", uploadID))
-			err := t.DeleteUpload(ctx, uploadID)
-			if err != nil {
-				t.logger.Error("Error deleting tus upload", zap.Error(err))
-			}
-		},
-	})
+	uploadID = upload.UploadID
 
-	_, err := t.cron.CreateJob(job)
-
+	err := t.cron.CreateJob(cronTaskTusUploadVerifyName, cronTaskTusUploadVerifyArgs{
+		hash: upload.Hash,
+	}, []string{uploadID})
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
