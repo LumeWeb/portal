@@ -61,6 +61,9 @@ var Module = fx.Module("renter",
 		fx.Invoke(func(r *RenterDefault) error {
 			return r.init()
 		}),
+		fx.Invoke(func(r *PriceTracker) error {
+			return r.init()
+		}),
 	),
 )
 

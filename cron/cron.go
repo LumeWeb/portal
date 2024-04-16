@@ -67,19 +67,21 @@ type CronServiceDefault struct {
 }
 
 func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefault {
-	sc := &CronServiceDefault{
+	return &CronServiceDefault{
 		logger:    params.Logger,
 		scheduler: params.Scheduler,
 		db:        params.Db,
 	}
+}
 
+func Start(lc fx.Lifecycle, service *CronServiceDefault) error {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			return sc.start()
+			return service.start()
 		},
 	})
 
-	return sc
+	return nil
 }
 
 func (c *CronServiceDefault) start() error {
