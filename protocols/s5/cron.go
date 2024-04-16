@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"time"
+
+	"git.lumeweb.com/LumeWeb/portal/storage"
 
 	"git.lumeweb.com/LumeWeb/portal/bao"
 
@@ -27,7 +30,7 @@ const cronTaskTusUploadProcessName = "TUSUploadProcess"
 const cronTaskTusUploadCleanupName = "TUSUploadCleanup"
 
 type cronTaskTusUploadVerifyArgs struct {
-	hash []byte
+	id string
 }
 
 func cronTaskTusUploadVerifyArgsFactory() any {
@@ -35,18 +38,17 @@ func cronTaskTusUploadVerifyArgsFactory() any {
 }
 
 type cronTaskTusUploadProcessArgs struct {
-	hash  []byte
+	id    string
 	proof []byte
 }
 
 func cronTaskTusUploadProcessArgsFactory() any {
 	return cronTaskTusUploadProcessArgs{}
-
 }
 
 type cronTaskTusUploadCleanupArgs struct {
 	protocol string
-	hash     []byte
+	id       string
 	mimeType string
 	size     uint64
 }
@@ -70,11 +72,11 @@ func closeReader(reader io.ReadCloser, tus *TusHandler) {
 	}
 }
 
-func cronTaskTusGetUpload(ctx context.Context, hash []byte, tus *TusHandler) (*models.TusUpload, tusd.Upload, *tusd.FileInfo, error) {
-	exists, upload := tus.UploadExists(ctx, hash)
+func cronTaskTusGetUpload(ctx context.Context, id string, tus *TusHandler) (*models.TusUpload, tusd.Upload, *tusd.FileInfo, error) {
+	exists, upload := tus.UploadExists(ctx, id)
 
 	if !exists {
-		tus.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(hash)))
+		tus.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(upload.Hash)))
 		return nil, nil, nil, metadata.ErrNotFound
 	}
 
@@ -96,7 +98,7 @@ func cronTaskTusGetUpload(ctx context.Context, hash []byte, tus *TusHandler) (*m
 func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.hash, tus)
+	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.id, tus)
 	if err != nil {
 		return err
 	}
@@ -122,7 +124,7 @@ func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) 
 	}
 
 	err = tus.cron.CreateJob(cronTaskTusUploadProcessName, cronTaskTusUploadProcessArgs{
-		hash: args.hash,
+		id: args.id,
 	}, []string{upload.UploadID})
 	if err != nil {
 		return err
@@ -134,40 +136,78 @@ func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) 
 func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.hash, tus)
+	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.id, tus)
 	if err != nil {
 		return err
 	}
 
-	uploadMeta, err := tus.storage.UploadObject(ctx, tus.storageProtocol, nil, 0, &renter.MultiPartUploadParams{
-		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
-			rangeHeader := "bytes=%d-"
-			if end != 0 {
-				rangeHeader += "%d"
-				rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
-			} else {
-				rangeHeader = fmt.Sprintf("bytes=%d-", start)
-			}
-			ctx = context.WithValue(ctx, "range", rangeHeader)
-			return tusUpload.GetReader(ctx)
-		},
-		Bucket:   upload.Protocol,
-		FileName: tus.storageProtocol.EncodeFileName(upload.Hash),
-		Size:     uint64(info.Size),
-	}, &bao.Result{
-		Hash:   args.hash,
-		Proof:  args.proof,
-		Length: uint(info.Size),
-	})
+	var uploadMeta metadata.UploadMetadata
 
+	doUpload := true
+
+	pinned, err := tus.accounts.UploadPinnedByUser(upload.Hash, upload.UploaderID)
 	if err != nil {
-		tus.logger.Error("Could not upload file", zap.Error(err))
 		return err
+	}
+
+	if !pinned {
+		status, err := tus.storage.UploadStatus(ctx, tus.storageProtocol, tus.storageProtocol.EncodeFileName(upload.Hash))
+		if err != nil {
+			return err
+		}
+
+		if status == storage.UploadStatusActive {
+			doUpload = false
+
+			err = waitForUploadCompletion(ctx, tus, upload.Hash)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		doUpload = false
+	}
+
+	if doUpload {
+		meta, err := tus.storage.UploadObject(ctx, tus.storageProtocol, nil, 0, &renter.MultiPartUploadParams{
+			ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
+				rangeHeader := "bytes=%d-"
+				if end != 0 {
+					rangeHeader += "%d"
+					rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
+				} else {
+					rangeHeader = fmt.Sprintf("bytes=%d-", start)
+				}
+				ctx = context.WithValue(ctx, "range", rangeHeader)
+				return tusUpload.GetReader(ctx)
+			},
+			Bucket:   upload.Protocol,
+			FileName: tus.storageProtocol.EncodeFileName(upload.Hash),
+			Size:     uint64(info.Size),
+		}, &bao.Result{
+			Hash:   upload.Hash,
+			Proof:  args.proof,
+			Length: uint(info.Size),
+		})
+
+		if err != nil {
+			tus.logger.Error("Could not upload file", zap.Error(err))
+			return err
+		}
+
+		uploadMeta = *meta
+	} else {
+		meta, err := tus.metadata.GetUpload(ctx, upload.Hash)
+		if err != nil {
+			return err
+		}
+
+		uploadMeta = meta
 	}
 
 	err = tus.cron.CreateJob(cronTaskTusUploadCleanupName, cronTaskTusUploadCleanupArgs{
 		protocol: uploadMeta.Protocol,
-		hash:     uploadMeta.Hash,
+		id:       args.id,
 		mimeType: uploadMeta.MimeType,
 		size:     uploadMeta.Size,
 	}, []string{upload.UploadID})
@@ -181,7 +221,7 @@ func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler
 func cronTaskTusUploadCleanup(args cronTaskTusUploadCleanupArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, _, _, err := cronTaskTusGetUpload(ctx, args.hash, tus)
+	upload, _, _, err := cronTaskTusGetUpload(ctx, args.id, tus)
 	if err != nil {
 		return err
 	}
@@ -209,7 +249,7 @@ func cronTaskTusUploadCleanup(args cronTaskTusUploadCleanupArgs, tus *TusHandler
 	}
 
 	uploadMeta := metadata.UploadMetadata{
-		Hash:     args.hash,
+		Hash:     upload.Hash,
 		MimeType: args.mimeType,
 		Protocol: args.protocol,
 		Size:     args.size,
@@ -236,5 +276,18 @@ func cronTaskTusUploadCleanup(args cronTaskTusUploadCleanupArgs, tus *TusHandler
 		return err
 	}
 
+	return nil
+}
+func waitForUploadCompletion(ctx context.Context, tus *TusHandler, hash []byte) error {
+	for {
+		status, err := tus.storage.UploadStatus(ctx, tus.storageProtocol, tus.storageProtocol.EncodeFileName(hash))
+		if err != nil {
+			return err
+		}
+		if status != storage.UploadStatusActive {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
 	return nil
 }

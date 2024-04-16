@@ -93,7 +93,7 @@ func NewFile(params FileParams) *S5File {
 
 func (f *S5File) Exists() bool {
 	ctx := context.Background()
-	exists, _ := f.tus.UploadExists(ctx, f.hash)
+	exists, _ := f.tus.UploadHashExists(ctx, f.hash)
 
 	if exists {
 		return true
@@ -181,7 +181,7 @@ func (f *S5File) init(offset int64) error {
 
 func (f *S5File) Record() (*metadata.UploadMetadata, error) {
 	if f.record == nil {
-		exists, tusRecord := f.tus.UploadExists(context.Background(), f.hash)
+		exists, tusRecord := f.tus.UploadHashExists(context.Background(), f.hash)
 
 		if exists {
 			size, err := f.tus.GetUploadSize(context.Background(), f.hash)

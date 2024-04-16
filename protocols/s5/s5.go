@@ -245,7 +245,7 @@ func (s S5ProviderStore) CanProvide(hash *encoding.Multihash, kind []types.Stora
 		case types.StorageLocationTypeArchive, types.StorageLocationTypeFile, types.StorageLocationTypeFull:
 			rawHash := hash.HashBytes()
 
-			if exists, upload := s.tus.UploadExists(ctx, rawHash); exists {
+			if exists, upload := s.tus.UploadHashExists(ctx, rawHash); exists {
 				if upload.Completed {
 					return true
 				}

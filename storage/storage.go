@@ -46,6 +46,14 @@ const S3_MULTIPART_MIN_PART_SIZE = uint64(5 * units.MiB)
 
 var _ StorageService = (*StorageServiceDefault)(nil)
 
+type UploadStatus string
+
+const (
+	UploadStatusUnknown    UploadStatus = "unknown"
+	UploadStatusProcessing UploadStatus = "processing"
+	UploadStatusActive     UploadStatus = "completed"
+)
+
 type FileNameEncoderFunc func([]byte) string
 
 type StorageProtocol interface {
@@ -72,6 +80,7 @@ type StorageService interface {
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
 	S3Client(ctx context.Context) (*s3.Client, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
+	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (UploadStatus, error)
 }
 
 type StorageServiceDefault struct {
@@ -81,7 +90,6 @@ type StorageServiceDefault struct {
 	logger   *zap.Logger
 	metadata metadata.MetadataService
 }
-
 type StorageServiceParams struct {
 	fx.In
 	Config   *config.Manager
@@ -495,6 +503,20 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	s.logger.Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket), zap.Duration("duration", endTime.Sub(startTime)))
 
 	return nil
+}
+
+func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (UploadStatus, error) {
+	exists, err := s.renter.UploadExists(ctx, protocol.Name(), objectName)
+	if err != nil {
+		return UploadStatusUnknown, err
+	}
+
+	if exists {
+		return UploadStatusActive, nil
+	}
+
+	return UploadStatusProcessing, nil
+
 }
 
 func (s StorageServiceDefault) getProofPath(protocol StorageProtocol, objectHash []byte) string {
