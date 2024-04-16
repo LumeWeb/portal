@@ -270,7 +270,6 @@ func (c *CronServiceDefault) JobExists(function string, args any, tags []string)
 
 func (c *CronServiceDefault) createJobRecord(function string, args any, tags []string) (*models.CronJob, error) {
 	job := models.CronJob{
-		UUID:     uuid.New(),
 		Tags:     tags,
 		Function: function,
 	}
