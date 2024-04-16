@@ -66,7 +66,7 @@ func (p PriceTracker) ScheduleJobs(cron cron.CronService) error {
 		return err
 	}
 
-	err = cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	err = cron.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
 	if err != nil {
 		return err
 	}
