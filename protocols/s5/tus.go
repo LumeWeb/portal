@@ -161,10 +161,10 @@ func (t *TusHandler) Init() error {
 	return nil
 }
 
-func (t *TusHandler) RegisterTasks(cron cron.CronService) error {
-	cron.RegisterTask(cronTaskTusUploadVerifyName, t.cronTaskTusUploadVerify, cronTaskTusUploadVerifyArgsFactory)
-	cron.RegisterTask(cronTaskTusUploadProcessName, t.cronTaskTusUploadProcess, cronTaskTusUploadProcessArgsFactory)
-	cron.RegisterTask(cronTaskTusUploadCleanupName, t.cronTaskTusUploadCleanup, cronTaskTusUploadCleanupArgsFactory)
+func (t *TusHandler) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskTusUploadVerifyName, t.cronTaskTusUploadVerify, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadVerifyArgsFactory)
+	crn.RegisterTask(cronTaskTusUploadProcessName, t.cronTaskTusUploadProcess, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadProcessArgsFactory)
+	crn.RegisterTask(cronTaskTusUploadCleanupName, t.cronTaskTusUploadCleanup, cron.TaskDefinitionOneTimeJob, cronTaskTusUploadCleanupArgsFactory)
 
 	return nil
 }

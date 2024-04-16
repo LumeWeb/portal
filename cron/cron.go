@@ -26,10 +26,11 @@ var (
 
 type TaskFunction func(any) error
 type TaskArgsFactoryFunction func() any
+type TaskDefArgsFactoryFunction func() gocron.JobDefinition
 
 type CronService interface {
 	RegisterService(service CronableService)
-	RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction)
+	RegisterTask(name string, taskFunc TaskFunction, taskDefFunc TaskDefArgsFactoryFunction, taskArgFunc TaskArgsFactoryFunction)
 	CreateJob(function string, args any, tags []string) error
 	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
 	CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error
@@ -63,6 +64,7 @@ type CronServiceDefault struct {
 	db        *gorm.DB
 	tasks     sync.Map
 	taskArgs  sync.Map
+	taskDefs  sync.Map
 }
 
 func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefault {
@@ -177,7 +179,13 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	options = append(options, gocron.WithEventListeners(listeners...))
 
 	if jobDef == nil {
-		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
+		taskDefFunc, ok := c.taskDefs.Load(job.Function)
+
+		if !ok {
+			return fmt.Errorf("function %s not found", job.Function)
+		}
+
+		jobDef = taskDefFunc.(TaskDefArgsFactoryFunction)()
 	}
 
 	_, err := c.scheduler.NewJob(jobDef, task, options...)
@@ -192,8 +200,9 @@ func (c *CronServiceDefault) RegisterService(service CronableService) {
 	c.services = append(c.services, service)
 }
 
-func (c *CronServiceDefault) RegisterTask(name string, taskFunc TaskFunction, taskArgFunc TaskArgsFactoryFunction) {
+func (c *CronServiceDefault) RegisterTask(name string, taskFunc TaskFunction, taskDefFunc TaskDefArgsFactoryFunction, taskArgFunc TaskArgsFactoryFunction) {
 	c.tasks.Store(name, taskFunc)
+	c.taskDefs.Store(name, taskDefFunc)
 	c.taskArgs.Store(name, taskArgFunc)
 }
 
@@ -289,4 +298,8 @@ func (c *CronServiceDefault) createJobRecord(function string, args any, tags []s
 	}
 
 	return &job, nil
+}
+
+func TaskDefinitionOneTimeJob() gocron.JobDefinition {
+	return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 }

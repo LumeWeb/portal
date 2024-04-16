@@ -8,8 +8,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/go-co-op/gocron/v2"
-
 	"github.com/shopspring/decimal"
 
 	"github.com/docker/go-units"
@@ -42,31 +40,31 @@ type PriceTracker struct {
 	api    *siasdksia.APIClient
 }
 
-func (p PriceTracker) RegisterTasks(cron cron.CronService) error {
-	cron.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, nopArgsFactory)
-	cron.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, nopArgsFactory)
-	cron.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, nopArgsFactory)
+func (p PriceTracker) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, cronTaskRecordSiaRateDefinition, nopArgsFactory)
+	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, cron.TaskDefinitionOneTimeJob, nopArgsFactory)
+	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, cron.TaskDefinitionOneTimeJob, nopArgsFactory)
 	return nil
 }
 
-func (p PriceTracker) ScheduleJobs(cron cron.CronService) error {
-	rateJob := gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
+func (p PriceTracker) ScheduleJobs(crn cron.CronService) error {
+	rateJob := cronTaskRecordSiaRateDefinition()
 
-	exists, rateJobItem := cron.JobExists(cronTaskRecordSiaRateName, nil, nil)
+	exists, rateJobItem := crn.JobExists(cronTaskRecordSiaRateName, nil, nil)
 
 	if !exists {
-		err := cron.CreateJobScheduled(cronTaskRecordSiaRateName, nil, nil, rateJob)
+		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil, nil, rateJob)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := cron.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
+		err := crn.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := cron.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
+	err := crn.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
 	if err != nil {
 		return err
 	}

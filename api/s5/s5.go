@@ -374,10 +374,10 @@ func (s *S5API) handleDnsLinkDirectory(w http.ResponseWriter, r *http.Request, c
 	http.FileServer(http.FS(newDirFs(cid, s))).ServeHTTP(w, r)
 }
 
-func (s *S5API) RegisterTasks(cron cron.CronService) error {
-	cron.RegisterTask(cronTaskPinImportValidateName, s.cronTaskPinImportValidate, cronTaskPinImportValidateArgsFactory)
-	cron.RegisterTask(cronTaskPinImportProcessSmallFileName, s.cronTaskPinImportProcessSmallFile, cronTaskPinImportProcessSmallFileArgsFactory)
-	cron.RegisterTask(cronTaskPinImportProcessLargeFileName, s.cronTaskPinImportProcessLargeFile, cronTaskPinImportProcessLargeFileArgsFactory)
+func (s *S5API) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskPinImportValidateName, s.cronTaskPinImportValidate, cron.TaskDefinitionOneTimeJob, cronTaskPinImportValidateArgsFactory)
+	crn.RegisterTask(cronTaskPinImportProcessSmallFileName, s.cronTaskPinImportProcessSmallFile, cron.TaskDefinitionOneTimeJob, cronTaskPinImportProcessSmallFileArgsFactory)
+	crn.RegisterTask(cronTaskPinImportProcessLargeFileName, s.cronTaskPinImportProcessLargeFile, cron.TaskDefinitionOneTimeJob, cronTaskPinImportProcessLargeFileArgsFactory)
 	return nil
 }
 
