@@ -11,8 +11,8 @@ func init() {
 
 type CronJob struct {
 	gorm.Model
-	UUID     uuid.UUID
-	Tags     []string
-	Function string
-	Args     string
+	UUID     uuid.UUID `gorm:"type:varchar(16);"`
+	Tags     []string  `gorm:"serializer:json;type:text;"`
+	Function string    `gorm:"type:varchar(255);"`
+	Args     string    `gorm:"type:text;"`
 }
