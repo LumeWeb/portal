@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"git.lumeweb.com/LumeWeb/portal/db/types"
+
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 
 	"gorm.io/gorm"
@@ -142,12 +144,12 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	options := []gocron.JobOption{}
 	options = append(options, gocron.WithName(job.UUID.String()))
 	options = append(options, gocron.WithTags(job.Tags...))
-	options = append(options, gocron.WithIdentifier(job.UUID))
+	options = append(options, gocron.WithIdentifier(uuid.UUID(job.UUID)))
 
 	listenerFunc := func(jobID uuid.UUID, jobName string, err error) {
 		var job models.CronJob
 
-		job.UUID = jobID
+		job.UUID = types.BinaryUUID(jobID)
 		if tx := c.db.Model(&models.CronJob{}).Delete(&job); tx.Error != nil {
 			c.logger.Error("Failed to delete job", zap.Error(tx.Error))
 		}
@@ -207,7 +209,7 @@ func (c *CronServiceDefault) CreateJobScheduled(function string, args any, tags 
 func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error {
 	var job models.CronJob
 
-	job.UUID = uuid
+	job.UUID = types.BinaryUUID(uuid)
 
 	result := c.db.First(&job)
 

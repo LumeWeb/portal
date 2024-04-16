@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/go-co-op/gocron/v2"
 
 	"github.com/shopspring/decimal"
@@ -59,7 +61,7 @@ func (p PriceTracker) ScheduleJobs(cron cron.CronService) error {
 		}
 	}
 
-	err := cron.CreateExistingJobScheduled(rateJobItem.UUID, rateJob)
+	err := cron.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
 	if err != nil {
 		return err
 	}
