@@ -149,6 +149,8 @@ func (s *S5API) Init() error {
 	s5protocolInstance := s5protocol.(*s5.S5Protocol)
 	s.protocol = s5protocolInstance
 
+	s.cron.RegisterService(s)
+
 	return nil
 }
 
