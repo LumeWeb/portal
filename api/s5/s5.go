@@ -1152,10 +1152,10 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *
 	}
 
 	err = s.cron.CreateJobIfNotExists(cronTaskPinImportValidateName, cronTaskPinImportValidateArgs{
-		cid:      cid64,
-		url:      location.Location().BytesURL(),
-		proofUrl: location.Location().OutboardBytesURL(),
-		userId:   userId,
+		Cid:      cid64,
+		Url:      location.Location().BytesURL(),
+		ProofUrl: location.Location().OutboardBytesURL(),
+		UserId:   userId,
 	}, []string{cid64})
 
 	if err != nil {
