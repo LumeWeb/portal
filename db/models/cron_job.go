@@ -15,7 +15,7 @@ type CronJob struct {
 	UUID     types.BinaryUUID
 	Tags     []string `gorm:"serializer:json;type:text;"`
 	Function string   `gorm:"type:varchar(255);"`
-	Args     string   `gorm:"type:text;"`
+	Args     string   `gorm:"type:longtext;"`
 }
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {
