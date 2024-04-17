@@ -1151,6 +1151,15 @@ func (s *S5API) pinEntity(ctx context.Context, userId uint, userIp string, cid *
 		return ctx.Err()
 	}
 
+	err = s._import.SaveImport(ctx, _import.ImportMetadata{
+		UserID:     userId,
+		Hash:       cid.Hash.HashBytes(),
+		Protocol:   s5.GetStorageProtocol(s.protocol).Name(),
+		ImporterIP: userIp,
+	}, true)
+	if err != nil {
+		return err
+	}
 	err = s.cron.CreateJobIfNotExists(cronTaskPinImportValidateName, cronTaskPinImportValidateArgs{
 		Cid:      cid64,
 		Url:      location.Location().BytesURL(),
