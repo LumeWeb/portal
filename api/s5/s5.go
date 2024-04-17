@@ -66,7 +66,6 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
 	dnslink "github.com/dnslink-std/go"
-	"github.com/golang-queue/queue"
 	"github.com/rs/cors"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
@@ -972,164 +971,6 @@ func (s *S5API) accountPinDelete(jc jape.Context) {
 	jc.ResponseWriter.WriteHeader(http.StatusOK)
 }
 
-func (s *S5API) getManifestCids(ctx context.Context, cid *encoding.CID, addSelf bool) ([]*encoding.CID, error) {
-	var cids []*encoding.CID
-
-	if middleware.CtxAborted(ctx) {
-		return nil, ctx.Err()
-	}
-
-	manifest, err := s.getNode().Services().Storage().GetMetadataByCID(cid)
-	if err != nil {
-		return nil, err
-	}
-
-	if addSelf {
-		cids = append(cids, cid)
-	}
-
-	switch cid.Type {
-	case types.CIDTypeMetadataMedia:
-		media := manifest.(*s5libmetadata.MediaMetadata)
-		for _, mediaType := range media.MediaTypes {
-			lo.ForEach(mediaType, func(format s5libmetadata.MediaFormat, _i int) {
-				if format.Cid != nil {
-					cids = append(cids, format.Cid)
-				}
-			})
-		}
-
-	case types.CIDTypeDirectory:
-		dir := manifest.(*s5libmetadata.DirectoryMetadata)
-
-		lo.ForEach(lo.Values(dir.Directories.Items()), func(d *s5libmetadata.DirectoryReference, _i int) {
-			if middleware.CtxAborted(ctx) {
-				return
-			}
-			entry, err := s.getNode().Services().Registry().Get(d.PublicKey)
-			if err != nil || entry == nil {
-				s.logger.Error("Error getting registry entry", zap.Error(err))
-				return
-			}
-
-			cid, err := encoding.CIDFromRegistry(entry.Data())
-			if err != nil {
-				s.logger.Error("Error getting CID from registry entry", zap.Error(err))
-				return
-			}
-
-			childCids, err := s.getManifestCids(ctx, cid, true)
-			if err != nil {
-				s.logger.Error("Error getting child manifest CIDs", zap.Error(err))
-				return
-			}
-
-			cids = append(cids, childCids...)
-		})
-
-		lo.ForEach(lo.Values(dir.Files.Items()), func(f *s5libmetadata.FileReference, _i int) {
-			cids = append(cids, f.File.CID())
-		})
-
-	case types.CIDTypeMetadataWebapp:
-		webapp := manifest.(*s5libmetadata.WebAppMetadata)
-
-		lo.ForEach(webapp.Paths.Values(), func(f s5libmetadata.WebAppMetadataFileReference, _i int) {
-			cids = append(cids, f.Cid)
-		})
-	}
-
-	if middleware.CtxAborted(ctx) {
-		return nil, ctx.Err()
-	}
-
-	return cids, nil
-}
-
-func (s *S5API) accountPinManifest(jc jape.Context, userId uint, cid *encoding.CID, addSelf bool) {
-	type pinResult struct {
-		Success bool  `json:"success"`
-		Error   error `json:"error,omitempty"`
-	}
-
-	type pinQueueResult struct {
-		success bool
-		error   error
-		cid     *encoding.CID
-	}
-
-	cids, err := s.getManifestCids(jc.Request.Context(), cid, addSelf)
-	if err != nil {
-		s.sendErrorResponse(jc, NewS5Error(ErrKeyInvalidOperation, err))
-		return
-	}
-
-	q := queue.NewPool(10)
-	defer q.Release()
-	rets := make(chan pinQueueResult)
-	defer close(rets)
-
-	results := make(map[string]pinResult, len(cids))
-
-	for i := 0; i < len(cids); i++ {
-		cid := cids[i]
-		go func(cid *encoding.CID) {
-			if err := q.QueueTask(func(ctx context.Context) error {
-				ret := pinQueueResult{
-					success: true,
-					error:   nil,
-					cid:     cid,
-				}
-				err := s.pinEntity(ctx, userId, jc.Request.RemoteAddr, cid)
-				if err != nil {
-					s.logger.Error("Error pinning entity", zap.Error(err))
-					ret.success = false
-					ret.error = err
-				}
-
-				rets <- ret
-				return nil
-			}); err != nil {
-				s.logger.Error("Error queueing task", zap.Error(err))
-				rets <- pinQueueResult{
-					success: false,
-					error:   err,
-					cid:     cid,
-				}
-			}
-		}(cid)
-	}
-
-	go func() {
-		received := 0
-		for ret := range rets {
-			b64, err := ret.cid.ToBase64Url()
-			if err != nil {
-				s.logger.Error("Error encoding CID to base64", zap.Error(err))
-				continue
-			}
-
-			results[b64] = pinResult{
-				Success: ret.success,
-				Error:   ret.error,
-			}
-
-			received++
-
-			if received == len(cids) {
-				q.Release()
-			}
-		}
-	}()
-
-	q.Wait()
-
-	if middleware.CtxAborted(jc.Request.Context()) {
-		return
-	}
-	jc.Encode(&results)
-}
-
 func (s *S5API) accountPin(jc jape.Context) {
 	var cid string
 	if err := jc.DecodeParam("cid", &cid); err != nil {
@@ -1169,31 +1010,10 @@ func (s *S5API) accountPin(jc jape.Context) {
 	}
 
 	if !found {
-		if isCidManifest(decodedCid) {
-			s.accountPinManifest(jc, userID, decodedCid, true)
+		err = s.pinEntity(jc.Request.Context(), userID, jc.Request.RemoteAddr, decodedCid)
+		if err != nil {
+			s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
 			return
-		} else {
-			err = s.pinEntity(jc.Request.Context(), userID, jc.Request.RemoteAddr, decodedCid)
-			if err != nil {
-				s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-				return
-			}
-		}
-	} else {
-		if isCidManifest(decodedCid) {
-			cids, err := s.getManifestCids(jc.Request.Context(), decodedCid, false)
-			if err != nil {
-				s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-				return
-			}
-
-			for _, cid := range cids {
-				err := s.pinEntity(jc.Request.Context(), userID, jc.Request.RemoteAddr, cid)
-				if err != nil {
-					s.sendErrorResponse(jc, NewS5Error(ErrKeyStorageOperationFailed, err))
-					return
-				}
-			}
 		}
 	}
 
