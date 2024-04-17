@@ -286,7 +286,7 @@ func (t *TusHandler) ScheduleUpload(ctx context.Context, uploadID string) error 
 	uploadID = upload.UploadID
 
 	err := t.cron.CreateJob(cronTaskTusUploadVerifyName, cronTaskTusUploadVerifyArgs{
-		id: uploadID,
+		Id: uploadID,
 	}, []string{uploadID})
 	if err != nil {
 		return err
