@@ -240,7 +240,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 		return err
 	}
 
-	req, err := rq.Get(args.Cid).ParseRequest()
+	req, err := rq.Get(args.Url).ParseRequest()
 	if err != nil {
 		api.logger.Error("error parsing request", zap.Error(err))
 		return err
