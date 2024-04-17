@@ -34,7 +34,7 @@ type cronTaskTusUploadVerifyArgs struct {
 }
 
 func cronTaskTusUploadVerifyArgsFactory() any {
-	return cronTaskTusUploadVerifyArgs{}
+	return &cronTaskTusUploadVerifyArgs{}
 }
 
 type cronTaskTusUploadProcessArgs struct {
@@ -43,7 +43,7 @@ type cronTaskTusUploadProcessArgs struct {
 }
 
 func cronTaskTusUploadProcessArgsFactory() any {
-	return cronTaskTusUploadProcessArgs{}
+	return &cronTaskTusUploadProcessArgs{}
 }
 
 type cronTaskTusUploadCleanupArgs struct {
@@ -54,7 +54,7 @@ type cronTaskTusUploadCleanupArgs struct {
 }
 
 func cronTaskTusUploadCleanupArgsFactory() any {
-	return cronTaskTusUploadCleanupArgs{}
+	return &cronTaskTusUploadCleanupArgs{}
 }
 
 func getReader(ctx context.Context, upload tusd.Upload) (io.ReadCloser, error) {
