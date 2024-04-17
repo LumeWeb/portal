@@ -30,7 +30,7 @@ const cronTaskTusUploadProcessName = "TUSUploadProcess"
 const cronTaskTusUploadCleanupName = "TUSUploadCleanup"
 
 type cronTaskTusUploadVerifyArgs struct {
-	id string
+	Id string `json:"id"`
 }
 
 func cronTaskTusUploadVerifyArgsFactory() any {
@@ -38,8 +38,8 @@ func cronTaskTusUploadVerifyArgsFactory() any {
 }
 
 type cronTaskTusUploadProcessArgs struct {
-	id    string
-	proof []byte
+	Id    string `json:"id"`
+	Proof []byte `json:"proof"`
 }
 
 func cronTaskTusUploadProcessArgsFactory() any {
@@ -47,10 +47,10 @@ func cronTaskTusUploadProcessArgsFactory() any {
 }
 
 type cronTaskTusUploadCleanupArgs struct {
-	protocol string
-	id       string
-	mimeType string
-	size     uint64
+	Id       string `json:"id"`
+	Protocol string `json:"protocol"`
+	MimeType string `json:"mimeType"`
+	Size     uint64 `json:"size"`
 }
 
 func cronTaskTusUploadCleanupArgsFactory() any {
@@ -95,10 +95,10 @@ func cronTaskTusGetUpload(ctx context.Context, id string, tus *TusHandler) (*mod
 	return &upload, tusUpload, &info, nil
 }
 
-func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) error {
+func cronTaskTusUploadVerify(args *cronTaskTusUploadVerifyArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.id, tus)
+	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.Id, tus)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,8 @@ func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) 
 	}
 
 	err = tus.cron.CreateJob(cronTaskTusUploadProcessName, cronTaskTusUploadProcessArgs{
-		id: args.id,
+		Id:    args.Id,
+		Proof: proof.Proof,
 	}, []string{upload.UploadID})
 	if err != nil {
 		return err
@@ -133,10 +134,10 @@ func cronTaskTusUploadVerify(args cronTaskTusUploadVerifyArgs, tus *TusHandler) 
 	return nil
 }
 
-func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler) error {
+func cronTaskTusUploadProcess(args *cronTaskTusUploadProcessArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.id, tus)
+	upload, tusUpload, info, err := cronTaskTusGetUpload(ctx, args.Id, tus)
 	if err != nil {
 		return err
 	}
@@ -186,7 +187,7 @@ func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler
 			Size:     uint64(info.Size),
 		}, &bao.Result{
 			Hash:   upload.Hash,
-			Proof:  args.proof,
+			Proof:  args.Proof,
 			Length: uint(info.Size),
 		})
 
@@ -206,10 +207,10 @@ func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler
 	}
 
 	err = tus.cron.CreateJob(cronTaskTusUploadCleanupName, cronTaskTusUploadCleanupArgs{
-		protocol: uploadMeta.Protocol,
-		id:       args.id,
-		mimeType: uploadMeta.MimeType,
-		size:     uploadMeta.Size,
+		Protocol: uploadMeta.Protocol,
+		Id:       args.Id,
+		MimeType: uploadMeta.MimeType,
+		Size:     uploadMeta.Size,
 	}, []string{upload.UploadID})
 	if err != nil {
 		return err
@@ -218,10 +219,10 @@ func cronTaskTusUploadProcess(args cronTaskTusUploadProcessArgs, tus *TusHandler
 	return nil
 }
 
-func cronTaskTusUploadCleanup(args cronTaskTusUploadCleanupArgs, tus *TusHandler) error {
+func cronTaskTusUploadCleanup(args *cronTaskTusUploadCleanupArgs, tus *TusHandler) error {
 	ctx := context.Background()
 
-	upload, _, _, err := cronTaskTusGetUpload(ctx, args.id, tus)
+	upload, _, _, err := cronTaskTusGetUpload(ctx, args.Id, tus)
 	if err != nil {
 		return err
 	}
@@ -250,9 +251,9 @@ func cronTaskTusUploadCleanup(args cronTaskTusUploadCleanupArgs, tus *TusHandler
 
 	uploadMeta := metadata.UploadMetadata{
 		Hash:     upload.Hash,
-		MimeType: args.mimeType,
-		Protocol: args.protocol,
-		Size:     args.size,
+		MimeType: args.MimeType,
+		Protocol: args.Protocol,
+		Size:     args.Size,
 	}
 
 	uploadMeta.UserID = upload.UploaderID
