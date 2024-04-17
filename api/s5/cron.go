@@ -131,7 +131,7 @@ func pinImportSaveAndPin(upload *metadata.UploadMetadata, api *S5API, cid *encod
 	return nil
 }
 
-func cronTaskPinImportValidate(args cronTaskPinImportValidateArgs, api *S5API) error {
+func cronTaskPinImportValidate(args *cronTaskPinImportValidateArgs, api *S5API) error {
 	ctx := context.Background()
 
 	// Parse CID early to avoid unnecessary operations if it fails.
@@ -171,7 +171,7 @@ func cronTaskPinImportValidate(args cronTaskPinImportValidateArgs, api *S5API) e
 	return nil
 }
 
-func cronTaskPinImportProcessSmallFile(args cronTaskPinImportProcessSmallFileArgs, api *S5API) error {
+func cronTaskPinImportProcessSmallFile(args *cronTaskPinImportProcessSmallFileArgs, api *S5API) error {
 	ctx := context.Background()
 
 	parsedCid, err := encoding.CIDFromString(args.cid)
@@ -213,7 +213,7 @@ func cronTaskPinImportProcessSmallFile(args cronTaskPinImportProcessSmallFileArg
 	return nil
 }
 
-func cronTaskPinImportProcessLargeFile(args cronTaskPinImportProcessLargeFileArgs, api *S5API) error {
+func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileArgs, api *S5API) error {
 	ctx := context.Background()
 
 	parsedCid, err := encoding.CIDFromString(args.cid)

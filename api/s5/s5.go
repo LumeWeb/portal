@@ -387,15 +387,15 @@ func (s *S5API) ScheduleJobs(_ cron.CronService) error {
 }
 
 func (s *S5API) cronTaskPinImportValidate(args any) error {
-	return cronTaskPinImportValidate(args.(cronTaskPinImportValidateArgs), s)
+	return cronTaskPinImportValidate(args.(*cronTaskPinImportValidateArgs), s)
 }
 
 func (s *S5API) cronTaskPinImportProcessSmallFile(args any) error {
-	return cronTaskPinImportProcessSmallFile(args.(cronTaskPinImportProcessSmallFileArgs), s)
+	return cronTaskPinImportProcessSmallFile(args.(*cronTaskPinImportProcessSmallFileArgs), s)
 }
 
 func (s *S5API) cronTaskPinImportProcessLargeFile(args any) error {
-	return cronTaskPinImportProcessLargeFile(args.(cronTaskPinImportProcessLargeFileArgs), s)
+	return cronTaskPinImportProcessLargeFile(args.(*cronTaskPinImportProcessLargeFileArgs), s)
 }
 
 type s5TusJwtResponseWriter struct {
