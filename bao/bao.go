@@ -65,7 +65,7 @@ func (v *Verifier) Read(p []byte) (int, error) {
 		timeStart := time.Now()
 
 		if bytesRead > 0 {
-			if status := bao.VerifyChunk(buf[:bytesRead], v.proof.Proof, groupChunks, v.read, [32]byte(v.proof.Hash)); !status {
+			if status := bao.VerifyChunk(buf[:bytesRead], v.proof.Proof, groupLog, v.read, [32]byte(v.proof.Hash)); !status {
 				return n, errors.Join(ErrVerifyFailed, err)
 			}
 			v.read += uint64(bytesRead)
