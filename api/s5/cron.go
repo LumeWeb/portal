@@ -28,10 +28,10 @@ const totalPinImportStages = 3
 const cronTaskPinImportValidateName = "PinImportValidate"
 
 type cronTaskPinImportValidateArgs struct {
-	cid      string
-	url      string
-	proofUrl string
-	userId   uint
+	Cid      string
+	Url      string
+	ProofUrl string
+	UserId   uint
 }
 
 func cronTaskPinImportValidateArgsFactory() any {
@@ -41,10 +41,10 @@ func cronTaskPinImportValidateArgsFactory() any {
 const cronTaskPinImportProcessSmallFileName = "PinImportVerify"
 
 type cronTaskPinImportProcessSmallFileArgs struct {
-	cid      string
-	url      string
-	proofUrl string
-	userId   uint
+	Cid      string
+	Url      string
+	ProofUrl string
+	UserId   uint
 }
 
 func cronTaskPinImportProcessSmallFileArgsFactory() any {
@@ -54,10 +54,10 @@ func cronTaskPinImportProcessSmallFileArgsFactory() any {
 const cronTaskPinImportProcessLargeFileName = "PinImportProcessLarge"
 
 type cronTaskPinImportProcessLargeFileArgs struct {
-	cid      string
-	url      string
-	proofUrl string
-	userId   uint
+	Cid      string
+	Url      string
+	ProofUrl string
+	UserId   uint
 }
 
 func cronTaskPinImportProcessLargeFileArgsFactory() any {
@@ -135,7 +135,7 @@ func cronTaskPinImportValidate(args *cronTaskPinImportValidateArgs, api *S5API) 
 	ctx := context.Background()
 
 	// Parse CID early to avoid unnecessary operations if it fails.
-	parsedCid, err := encoding.CIDFromString(args.cid)
+	parsedCid, err := encoding.CIDFromString(args.Cid)
 	if err != nil {
 		api.logger.Error("error parsing cid", zap.Error(err))
 		return err
@@ -148,22 +148,22 @@ func cronTaskPinImportValidate(args *cronTaskPinImportValidateArgs, api *S5API) 
 
 	if parsedCid.Size <= api.config.Config().Core.PostUploadLimit {
 		err = api.cron.CreateJobIfNotExists(cronTaskPinImportProcessSmallFileName, cronTaskPinImportProcessSmallFileArgs{
-			cid:      args.cid,
-			url:      args.url,
-			proofUrl: args.proofUrl,
-			userId:   args.userId,
-		}, []string{args.cid})
+			Cid:      args.Cid,
+			Url:      args.Url,
+			ProofUrl: args.ProofUrl,
+			UserId:   args.UserId,
+		}, []string{args.Cid})
 		if err != nil {
 			return err
 		}
 	}
 
 	err = api.cron.CreateJobIfNotExists(cronTaskPinImportProcessLargeFileName, cronTaskPinImportProcessLargeFileArgs{
-		cid:      args.cid,
-		url:      args.url,
-		proofUrl: args.proofUrl,
-		userId:   args.userId,
-	}, []string{args.cid})
+		Cid:      args.Cid,
+		Url:      args.Url,
+		ProofUrl: args.ProofUrl,
+		UserId:   args.UserId,
+	}, []string{args.Cid})
 	if err != nil {
 		return err
 	}
@@ -174,13 +174,13 @@ func cronTaskPinImportValidate(args *cronTaskPinImportValidateArgs, api *S5API) 
 func cronTaskPinImportProcessSmallFile(args *cronTaskPinImportProcessSmallFileArgs, api *S5API) error {
 	ctx := context.Background()
 
-	parsedCid, err := encoding.CIDFromString(args.cid)
+	parsedCid, err := encoding.CIDFromString(args.Cid)
 	if err != nil {
 		api.logger.Error("error parsing cid", zap.Error(err))
 		return err
 	}
 
-	fileData, err := pinImportFetchAndProcess(args.url, 1, api, parsedCid)
+	fileData, err := pinImportFetchAndProcess(args.Url, 1, api, parsedCid)
 	if err != nil {
 		return err // Error logged in fetchAndProcess
 	}
@@ -205,7 +205,7 @@ func cronTaskPinImportProcessSmallFile(args *cronTaskPinImportProcessSmallFileAr
 		return err
 	}
 
-	err = pinImportSaveAndPin(upload, api, parsedCid, args.userId)
+	err = pinImportSaveAndPin(upload, api, parsedCid, args.UserId)
 	if err != nil {
 		return err
 	}
@@ -216,14 +216,14 @@ func cronTaskPinImportProcessSmallFile(args *cronTaskPinImportProcessSmallFileAr
 func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileArgs, api *S5API) error {
 	ctx := context.Background()
 
-	parsedCid, err := encoding.CIDFromString(args.cid)
+	parsedCid, err := encoding.CIDFromString(args.Cid)
 	if err != nil {
 		api.logger.Error("error parsing cid", zap.Error(err))
 		return err
 	}
 
 	// Fetch proof.
-	proof, err := pinImportFetchAndProcess(args.proofUrl, 1, api, parsedCid)
+	proof, err := pinImportFetchAndProcess(args.ProofUrl, 1, api, parsedCid)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 		return err
 	}
 
-	req, err := rq.Get(args.cid).ParseRequest()
+	req, err := rq.Get(args.Cid).ParseRequest()
 	if err != nil {
 		api.logger.Error("error parsing request", zap.Error(err))
 		return err
@@ -265,7 +265,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 	if parsedCid.Size < storage.S3_MULTIPART_MIN_PART_SIZE {
 		_, err = client.PutObject(ctx, &s3.PutObjectInput{
 			Bucket:        aws.String(api.config.Config().Core.Storage.S3.BufferBucket),
-			Key:           aws.String(args.cid),
+			Key:           aws.String(args.Cid),
 			Body:          verifier,
 			ContentLength: aws.Int64(int64(parsedCid.Size)),
 		})
@@ -274,7 +274,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 			return err
 		}
 	} else {
-		err := api.storage.S3MultipartUpload(ctx, verifier, api.config.Config().Core.Storage.S3.BufferBucket, args.cid, parsedCid.Size)
+		err := api.storage.S3MultipartUpload(ctx, verifier, api.config.Config().Core.Storage.S3.BufferBucket, args.Cid, parsedCid.Size)
 		if err != nil {
 			api.logger.Error("error uploading object", zap.Error(err))
 			return err
@@ -297,7 +297,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 			}
 			object, err := client.GetObject(ctx, &s3.GetObjectInput{
 				Bucket: aws.String(api.config.Config().Core.Storage.S3.BufferBucket),
-				Key:    aws.String(args.cid),
+				Key:    aws.String(args.Cid),
 				Range:  aws.String(rangeHeader),
 			})
 
@@ -318,7 +318,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 		return err
 	}
 
-	err = pinImportSaveAndPin(upload, api, parsedCid, args.userId)
+	err = pinImportSaveAndPin(upload, api, parsedCid, args.UserId)
 	if err != nil {
 		return err
 	}
