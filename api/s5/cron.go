@@ -35,7 +35,7 @@ type cronTaskPinImportValidateArgs struct {
 }
 
 func cronTaskPinImportValidateArgsFactory() any {
-	return cronTaskPinImportValidateArgs{}
+	return &cronTaskPinImportValidateArgs{}
 }
 
 const cronTaskPinImportProcessSmallFileName = "PinImportVerify"
@@ -48,7 +48,7 @@ type cronTaskPinImportProcessSmallFileArgs struct {
 }
 
 func cronTaskPinImportProcessSmallFileArgsFactory() any {
-	return cronTaskPinImportProcessSmallFileArgs{}
+	return &cronTaskPinImportProcessSmallFileArgs{}
 }
 
 const cronTaskPinImportProcessLargeFileName = "PinImportProcessLarge"
@@ -61,7 +61,7 @@ type cronTaskPinImportProcessLargeFileArgs struct {
 }
 
 func cronTaskPinImportProcessLargeFileArgsFactory() any {
-	return cronTaskPinImportProcessLargeFileArgs{}
+	return &cronTaskPinImportProcessLargeFileArgs{}
 }
 
 func pinImportCloseBody(body io.ReadCloser, api *S5API) {

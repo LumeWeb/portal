@@ -166,15 +166,15 @@ func (t *TusHandler) ScheduleJobs(cron cron.CronService) error {
 }
 
 func (t *TusHandler) cronTaskTusUploadVerify(args any) error {
-	return cronTaskTusUploadVerify(args.(cronTaskTusUploadVerifyArgs), t)
+	return cronTaskTusUploadVerify(args.(*cronTaskTusUploadVerifyArgs), t)
 }
 
 func (t *TusHandler) cronTaskTusUploadProcess(args any) error {
-	return cronTaskTusUploadProcess(args.(cronTaskTusUploadProcessArgs), t)
+	return cronTaskTusUploadProcess(args.(*cronTaskTusUploadProcessArgs), t)
 }
 
 func (t *TusHandler) cronTaskTusUploadCleanup(args any) error {
-	return cronTaskTusUploadCleanup(args.(cronTaskTusUploadCleanupArgs), t)
+	return cronTaskTusUploadCleanup(args.(*cronTaskTusUploadCleanupArgs), t)
 }
 
 func (t *TusHandler) Tus() *tusd.Handler {

@@ -130,7 +130,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	args := argsFunc.(TaskArgsFactoryFunction)()
 
 	if len(job.Args) > 0 {
-		err := json.Unmarshal([]byte(job.Args), &args)
+		err := json.Unmarshal([]byte(job.Args), args)
 		if err != nil {
 			return err
 		}
