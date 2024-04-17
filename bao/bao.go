@@ -7,6 +7,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/docker/go-units"
+
 	"github.com/samber/lo"
 
 	"go.uber.org/zap"
@@ -20,7 +22,7 @@ var _ io.WriterAt = (*proofWriter)(nil)
 var ErrVerifyFailed = errors.New("verification failed")
 
 const groupLog = 8
-const groupChunks = 1 << groupLog
+const groupChunks = (1 << groupLog) * units.KiB
 
 type Verifier struct {
 	r          io.ReadCloser
