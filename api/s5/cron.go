@@ -254,13 +254,7 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 	defer pinImportCloseBody(res.Body, api)
 
 	verifier := bao.NewVerifier(res.Body, baoProof, api.logger)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			api.logger.Error("error closing verifier stream", zap.Error(err))
-		}
-
-	}(verifier)
+	defer pinImportCloseBody(verifier, api)
 
 	if parsedCid.Size < storage.S3_MULTIPART_MIN_PART_SIZE {
 		_, err = client.PutObject(ctx, &s3.PutObjectInput{
