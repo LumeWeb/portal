@@ -52,7 +52,9 @@ jobs:
                     restore-keys: |
                         ${{ runner.os }}-pnpm-store-
             -   name: Install dependencies
-                run: pnpm install
+                run: |
+                    go mod download
+                    go generate ./...
             -   name: Install dashboard dependencies
                 run: pnpm install
                 working-directory: ./api/account/app
@@ -70,8 +72,7 @@ jobs:
                 run: pnpm build:portal-dashboard
                 working-directory: ./api/account/app
             -   name: Build Portal
-                run: |
-                    go build -tags "${BUILD_TAGS}" -gcflags="all=-N -l" -o portal ./cmd/portal
+                run: go build -tags "${BUILD_TAGS}" -gcflags="all=-N -l" -o portal ./cmd/portal
             - uses: actions/upload-artifact@v3
               if: ${{ inputs.upload_artifact }}
               with:
