@@ -40,7 +40,7 @@ func (t *TusLock) TryLock(db *gorm.DB, ctx context.Context) error {
 					return err
 				}
 
-				t = &existingLock
+				*t = existingLock
 				return nil
 			}
 
@@ -55,7 +55,7 @@ func (t *TusLock) TryLock(db *gorm.DB, ctx context.Context) error {
 				return err
 			}
 
-			t = &existingLock
+			*t = existingLock
 
 			return nil
 		}

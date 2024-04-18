@@ -175,11 +175,11 @@ func cronTaskTusUploadProcess(args *cronTaskTusUploadProcessArgs, tus *TusHandle
 				rangeHeader := "bytes=%d-"
 				if end != 0 {
 					rangeHeader += "%d"
-					rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
+					rangeHeader = fmt.Sprintf(rangeHeader, start, end)
 				} else {
 					rangeHeader = fmt.Sprintf("bytes=%d-", start)
 				}
-				ctx = context.WithValue(ctx, "range", rangeHeader)
+				ctx = context.WithValue(ctx, ctxRangeKey, rangeHeader)
 				return tusUpload.GetReader(ctx)
 			},
 			Bucket:   upload.Protocol,

@@ -3,6 +3,7 @@ package swagger
 import (
 	"embed"
 	"io/fs"
+	"log"
 	"net/http"
 
 	"github.com/LumeWeb/portal/api/middleware"
@@ -20,7 +21,10 @@ var swagfs embed.FS
 func byteHandler(b []byte) jape.Handler {
 	return func(c jape.Context) {
 		c.ResponseWriter.Header().Set("Content-Type", "application/json")
-		c.ResponseWriter.Write(b)
+		_, err := c.ResponseWriter.Write(b)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 

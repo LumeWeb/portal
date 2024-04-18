@@ -290,7 +290,7 @@ type PriceTrackerParams struct {
 	PriceApi *siasdksia.APIClient
 }
 
-func (p PriceTracker) init() error {
+func (p *PriceTracker) init() error {
 	p.cron.RegisterService(p)
 	p.api = siasdk.NewSiaClient()
 
