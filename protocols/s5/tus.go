@@ -27,10 +27,10 @@ import (
 	"git.lumeweb.com/LumeWeb/portal/storage"
 	"gorm.io/gorm"
 
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/portal/cron"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/LumeWeb/libs5-go/encoding"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"

@@ -5,8 +5,8 @@ import (
 	"io/fs"
 	"path"
 
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	"git.lumeweb.com/LumeWeb/libs5-go/metadata"
+	"github.com/LumeWeb/libs5-go/encoding"
+	"github.com/LumeWeb/libs5-go/metadata"
 )
 
 var _ fs.FS = (*webAppFs)(nil)
