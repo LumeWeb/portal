@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	s5libmetadata "git.lumeweb.com/LumeWeb/libs5-go/metadata"
+	s5libmetadata "github.com/LumeWeb/libs5-go/metadata"
 
 	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
 
@@ -20,8 +20,8 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/storage"
 
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	"git.lumeweb.com/LumeWeb/libs5-go/types"
+	"github.com/LumeWeb/libs5-go/encoding"
+	"github.com/LumeWeb/libs5-go/types"
 )
 
 var _ io.ReadSeekCloser = (*S5File)(nil)

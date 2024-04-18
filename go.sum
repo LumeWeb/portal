@@ -1,8 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
-git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240314105331-6510beddf2cf h1:+kkNHM9vOQ7CG1ckhcxUOy3MOmiQapeOlYU8no0Wl/o=
-git.lumeweb.com/LumeWeb/libs5-go v0.0.0-20240314105331-6510beddf2cf/go.mod h1:h/1HUjA2mWT14QsRprG6o7WDeP3paAB23tkh/OczmUk=
 github.com/Acconut/go-httptest-recorder v1.0.0 h1:TAv2dfnqp/l+SUvIaMAUK4GeN4+wqb6KZsFFFTGhoJg=
 github.com/Acconut/go-httptest-recorder v1.0.0/go.mod h1:CwQyhTH1kq/gLyWiRieo7c0uokpu3PXeyF/nZjUNtmM=
 github.com/AfterShip/email-verifier v1.4.0 h1:DoQplvVFVhZUfS5fPiVnmCQDr5i1tv+ivUV0TFd2AZo=
@@ -10,6 +8,8 @@ github.com/AfterShip/email-verifier v1.4.0/go.mod h1:JNPV1KZpTq4TArmss1NAOJsTD8J
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/LumeWeb/gocron/v2 v2.0.0-20240414080020-1f776248b980 h1:cEbUYJpmQscDkM0NF2wxusKdImC9BGYfjaxrEBq+ub4=
 github.com/LumeWeb/gocron/v2 v2.0.0-20240414080020-1f776248b980/go.mod h1:mZx3gMSlFnb97k3hRqX3+GdlG3+DUwTh6B8fnsTScXg=
+github.com/LumeWeb/libs5-go v0.0.0-20240418052614-817dee4dffab h1:vh4nPNPsHOIM3ycAXBVA0DOtJA/dEsJ7vqPU2As/fpA=
+github.com/LumeWeb/libs5-go v0.0.0-20240418052614-817dee4dffab/go.mod h1:J5oJ7bOpic6mw9ULjOP1yfqInk5cDSLiN2mJrXldRXo=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5 h1:PLu5lde5k11bZcv1gFOHTw3j1JSDg6NE11g8yGml4U4=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5/go.mod h1:uxlJTAnfhfebzHGPvKlyaGmS2G7QOX+xRcdmpMiLfXE=
 github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120 h1:+FYQ83a3c0p6Y/sqp3373CJ2m/b0mskdG3ma/opxtlk=

@@ -15,15 +15,15 @@ import (
 
 	"git.lumeweb.com/LumeWeb/portal/storage"
 
-	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
-	s5db "git.lumeweb.com/LumeWeb/libs5-go/db"
-	s5ed "git.lumeweb.com/LumeWeb/libs5-go/ed25519"
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
-	s5fx "git.lumeweb.com/LumeWeb/libs5-go/fx"
-	s5node "git.lumeweb.com/LumeWeb/libs5-go/node"
-	s5storage "git.lumeweb.com/LumeWeb/libs5-go/storage"
-	"git.lumeweb.com/LumeWeb/libs5-go/types"
 	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	s5config "github.com/LumeWeb/libs5-go/config"
+	s5db "github.com/LumeWeb/libs5-go/db"
+	s5ed "github.com/LumeWeb/libs5-go/ed25519"
+	"github.com/LumeWeb/libs5-go/encoding"
+	s5fx "github.com/LumeWeb/libs5-go/fx"
+	s5node "github.com/LumeWeb/libs5-go/node"
+	s5storage "github.com/LumeWeb/libs5-go/storage"
+	"github.com/LumeWeb/libs5-go/types"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

@@ -1,8 +1,8 @@
 package s5
 
 import (
-	s5config "git.lumeweb.com/LumeWeb/libs5-go/config"
 	"git.lumeweb.com/LumeWeb/portal/config"
+	s5config "github.com/LumeWeb/libs5-go/config"
 )
 
 var _ config.ProtocolConfig = (*Config)(nil)

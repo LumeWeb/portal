@@ -19,8 +19,8 @@ import (
 
 	"github.com/ddo/rq"
 
-	"git.lumeweb.com/LumeWeb/libs5-go/encoding"
 	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/libs5-go/encoding"
 	"go.uber.org/zap"
 )
 
