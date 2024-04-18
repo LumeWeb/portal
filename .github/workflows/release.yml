@@ -18,6 +18,8 @@ jobs:
             upload_artifact: true
     publish:
         runs-on: ubuntu-latest
+        needs:
+            - build
         steps:
         - uses: actions/download-artifact@v4
           with:
