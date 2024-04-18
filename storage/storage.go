@@ -160,12 +160,6 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 		if err != nil {
 			return nil, err
 		}
-
-		reader, err = getReader()
-		if err != nil {
-			return nil, err
-		}
-
 		proof = hashResult
 	}
 

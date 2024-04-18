@@ -250,6 +250,11 @@ func (a AccountAPI) otpDisable(jc jape.Context) {
 
 	valid, _, err := a.accounts.ValidLoginByUserID(user, request.Password)
 
+	if err != nil {
+		_ = jc.Error(account.NewAccountError(account.ErrKeyDatabaseOperationFailed, err), http.StatusInternalServerError)
+		return
+	}
+
 	if !valid {
 		_ = jc.Error(account.NewAccountError(account.ErrKeyInvalidLogin, nil), http.StatusUnauthorized)
 		return

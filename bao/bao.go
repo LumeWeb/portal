@@ -149,7 +149,7 @@ type sizeReader struct {
 	read   int64
 }
 
-func (s sizeReader) Read(p []byte) (int, error) {
+func (s *sizeReader) Read(p []byte) (int, error) {
 	n, err := s.reader.Read(p)
 	s.read += int64(n)
 	return n, err

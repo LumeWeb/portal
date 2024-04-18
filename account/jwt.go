@@ -153,7 +153,7 @@ func EchoAuthCookie(jc jape.Context, config *config.Manager) {
 		http.SetCookie(jc.ResponseWriter, &http.Cookie{
 			Name:     cookies[0].Name,
 			Value:    cookies[0].Value,
-			MaxAge:   int(exp.Time.Sub(time.Now()).Seconds()),
+			MaxAge:   int(time.Until(exp.Time).Seconds()),
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",

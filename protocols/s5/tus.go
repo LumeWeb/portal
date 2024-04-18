@@ -1,9 +1,7 @@
 package s5
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -30,10 +28,7 @@ import (
 	"github.com/LumeWeb/libs5-go/encoding"
 	"github.com/LumeWeb/portal/cron"
 	"github.com/LumeWeb/portal/db/models"
-	"github.com/LumeWeb/portal/renter"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )
@@ -41,6 +36,10 @@ import (
 var (
 	_ cron.CronableService = (*TusHandler)(nil)
 )
+
+type ctxRangeKeyType string
+
+const ctxRangeKey ctxRangeKeyType = "range"
 
 type TusHandler struct {
 	config          *config.Manager
@@ -315,7 +314,7 @@ func (t *TusHandler) GetUploadReader(ctx context.Context, hash []byte, start int
 	if start > 0 {
 		endPosition := start + info.Size - 1
 		rangeHeader := fmt.Sprintf("bytes=%d-%d", start, endPosition)
-		ctx = context.WithValue(ctx, "range", rangeHeader)
+		ctx = context.WithValue(ctx, ctxRangeKey, rangeHeader)
 	}
 
 	reader, err := meta.GetReader(ctx)
@@ -348,127 +347,6 @@ func (t *TusHandler) GetUploadSize(ctx context.Context, hash []byte) (int64, err
 	}
 
 	return info.Size, nil
-}
-
-func (t *TusHandler) uploadTask(hash []byte) error {
-	ctx := context.Background()
-	exists, upload := t.UploadHashExists(ctx, hash)
-
-	if !exists {
-		t.logger.Error("Upload not found", zap.String("hash", hex.EncodeToString(hash)))
-		return metadata.ErrNotFound
-	}
-
-	tusUpload, err := t.tusStore.GetUpload(ctx, upload.UploadID)
-	if err != nil {
-		t.logger.Error("Could not get upload", zap.Error(err))
-		return err
-	}
-
-	readers := make([]io.ReadCloser, 0)
-	getReader := func() (io.Reader, error) {
-		muReader, err := tusUpload.GetReader(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		readers = append(readers, muReader)
-		return muReader, nil
-	}
-
-	defer func() {
-		for _, reader := range readers {
-			err := reader.Close()
-			if err != nil {
-				t.logger.Error("error closing reader", zap.Error(err))
-			}
-		}
-	}()
-
-	reader, err := getReader()
-	if err != nil {
-		t.logger.Error("Could not get tus file", zap.Error(err))
-		return err
-	}
-
-	info, err := tusUpload.GetInfo(ctx)
-	if err != nil {
-		t.logger.Error("Could not get tus info", zap.Error(err))
-		return err
-	}
-
-	proof, err := t.storage.HashObject(ctx, reader, uint64(info.Size))
-
-	if err != nil {
-		t.logger.Error("Could not compute proof", zap.Error(err))
-		return err
-	}
-
-	if !bytes.Equal(proof.Hash, upload.Hash) {
-		t.logger.Error("Hashes do not match", zap.Any("upload", upload), zap.Any("dbHash", hex.EncodeToString(upload.Hash)))
-		return err
-	}
-
-	uploadMeta, err := t.storage.UploadObject(ctx, t.storageProtocol, nil, 0, &renter.MultiPartUploadParams{
-		ReaderFactory: func(start uint, end uint) (io.ReadCloser, error) {
-			rangeHeader := "bytes=%d-"
-			if end != 0 {
-				rangeHeader += "%d"
-				rangeHeader = fmt.Sprintf("bytes=%d-%d", start, end)
-			} else {
-				rangeHeader = fmt.Sprintf("bytes=%d-", start)
-			}
-			ctx = context.WithValue(ctx, "range", rangeHeader)
-			return tusUpload.GetReader(ctx)
-		},
-		Bucket:   upload.Protocol,
-		FileName: t.storageProtocol.EncodeFileName(upload.Hash),
-		Size:     uint64(info.Size),
-	}, proof)
-
-	if err != nil {
-		t.logger.Error("Could not upload file", zap.Error(err))
-		return err
-	}
-
-	s3InfoId, _ := splitS3Ids(upload.UploadID)
-
-	_, err = t.s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
-		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-		Delete: &s3types.Delete{
-			Objects: []s3types.ObjectIdentifier{
-				{
-					Key: aws.String(s3InfoId),
-				},
-				{
-					Key: aws.String(s3InfoId + ".info"),
-				},
-			},
-			Quiet: aws.Bool(true),
-		},
-	})
-
-	if err != nil {
-		t.logger.Error("Could not delete upload metadata", zap.Error(err))
-		return err
-	}
-
-	uploadMeta.UserID = upload.UploaderID
-	uploadMeta.UploaderIP = upload.UploaderIP
-
-	err = t.metadata.SaveUpload(ctx, *uploadMeta, true)
-	if err != nil {
-		t.logger.Error("Could not create upload", zap.Error(err))
-		return err
-	}
-
-	err = t.accounts.PinByHash(upload.Hash, upload.UploaderID)
-	if err != nil {
-		t.logger.Error("Could not pin upload", zap.Error(err))
-		return err
-	}
-
-	return nil
 }
 
 func (t *TusHandler) worker() {

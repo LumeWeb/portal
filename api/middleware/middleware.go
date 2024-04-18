@@ -16,8 +16,10 @@ import (
 	"go.sia.tech/jape"
 )
 
+type AuthTokenContextKeyType string
+
 const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
-const AUTH_TOKEN_CONTEXT_KEY = "auth_token"
+const AUTH_TOKEN_CONTEXT_KEY AuthTokenContextKeyType = "auth_token"
 
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
 type HttpMiddlewareFunc func(http.Handler) http.Handler
@@ -134,7 +136,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 
 				audList = &aud
 
-				if options.Purpose != account.JWTPurposeNone && jwtPurposeEqual(aud, options.Purpose) == false {
+				if options.Purpose != account.JWTPurposeNone && !jwtPurposeEqual(aud, options.Purpose) {
 					return account.ErrJWTInvalid
 				}
 
@@ -163,7 +165,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 							return
 						}
 
-						if jwtPurposeEqual(audList, options.Purpose) == true {
+						if jwtPurposeEqual(audList, options.Purpose) {
 							unauthorized = true
 						}
 
@@ -195,7 +197,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), options.AuthContextKey, uint(userId))
+			ctx := context.WithValue(r.Context(), AuthTokenContextKeyType(options.AuthContextKey), uint(userId))
 			ctx = context.WithValue(ctx, AUTH_TOKEN_CONTEXT_KEY, authToken)
 			r = r.WithContext(ctx)
 

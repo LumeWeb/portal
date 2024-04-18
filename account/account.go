@@ -157,7 +157,7 @@ func (s AccountServiceDefault) SendEmailVerification(userId uint) error {
 		"FirstName":        user.FirstName,
 		"Email":            user.Email,
 		"VerificationLink": verifyUrl,
-		"ExpireTime":       verification.ExpiresAt.Sub(time.Now()).Round(time.Second * 2),
+		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second * 2),
 		"PortalName":       s.config.Config().Core.PortalName,
 	}
 
@@ -579,6 +579,11 @@ func (s AccountServiceDefault) OTPGenerate(userId uint) (string, error) {
 	}
 
 	err = s.updateAccountInfo(user.ID, models.User{OTPSecret: otp})
+
+	if err != nil {
+		return "", err
+	}
+
 	return otp, nil
 }
 
