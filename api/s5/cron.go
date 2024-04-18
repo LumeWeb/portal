@@ -7,20 +7,20 @@ import (
 	"io"
 	"net/http"
 
-	"git.lumeweb.com/LumeWeb/portal/bao"
-	"git.lumeweb.com/LumeWeb/portal/renter"
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/bao"
+	"github.com/LumeWeb/portal/renter"
+	"github.com/LumeWeb/portal/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
+	"github.com/LumeWeb/portal/protocols/s5"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
 	"github.com/ddo/rq"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"github.com/LumeWeb/libs5-go/encoding"
+	"github.com/LumeWeb/portal/db/models"
 	"go.uber.org/zap"
 )
 

@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

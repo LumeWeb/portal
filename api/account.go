@@ -1,8 +1,8 @@
 package api
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/api/account"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/LumeWeb/portal/api/account"
+	"github.com/LumeWeb/portal/api/registry"
 )
 
 func init() {

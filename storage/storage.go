@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
@@ -22,21 +22,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/fx"
 
 	"go.sia.tech/renterd/api"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
 	"go.uber.org/zap"
 
-	"git.lumeweb.com/LumeWeb/portal/bao"
+	"github.com/LumeWeb/portal/bao"
 
 	"gorm.io/gorm"
 
-	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/LumeWeb/portal/renter"
 	"github.com/gabriel-vasile/mimetype"
 )
 

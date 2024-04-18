@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/fx"
 )

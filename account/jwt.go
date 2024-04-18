@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"github.com/samber/lo"
 
 	"go.sia.tech/jape"
 
-	"git.lumeweb.com/LumeWeb/portal/api/router"
+	"github.com/LumeWeb/portal/api/router"
 
-	apiRegistry "git.lumeweb.com/LumeWeb/portal/api/registry"
+	apiRegistry "github.com/LumeWeb/portal/api/registry"
 
 	"github.com/golang-jwt/jwt/v5"
 )

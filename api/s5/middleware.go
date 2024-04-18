@@ -1,8 +1,9 @@
 package s5
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
 	"net/http"
+
+	"github.com/LumeWeb/portal/api/middleware"
 )
 
 const (

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/account"
+	"github.com/LumeWeb/portal/account"
 	"github.com/golang-jwt/jwt/v5"
 	"go.sia.tech/jape"
 )

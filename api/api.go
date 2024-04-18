@@ -4,9 +4,9 @@ import (
 	"context"
 	"slices"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/LumeWeb/portal/api/registry"
 	"go.uber.org/fx"
 )
 

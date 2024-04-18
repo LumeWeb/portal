@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"git.lumeweb.com/LumeWeb/portal/api/router"
+	"github.com/LumeWeb/portal/api/router"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/LumeWeb/portal/api/registry"
 	"go.sia.tech/core/wallet"
 	"go.uber.org/fx"
 	"go.uber.org/zap"

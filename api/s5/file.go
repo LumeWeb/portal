@@ -14,11 +14,11 @@ import (
 
 	s5libmetadata "github.com/LumeWeb/libs5-go/metadata"
 
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
+	"github.com/LumeWeb/portal/protocols/s5"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/storage"
 
 	"github.com/LumeWeb/libs5-go/encoding"
 	"github.com/LumeWeb/libs5-go/types"

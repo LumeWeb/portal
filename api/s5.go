@@ -3,8 +3,8 @@
 package api
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	"git.lumeweb.com/LumeWeb/portal/api/s5"
+	"github.com/LumeWeb/portal/api/registry"
+	"github.com/LumeWeb/portal/api/s5"
 )
 
 func init() {

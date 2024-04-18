@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
+	"github.com/LumeWeb/portal/api/middleware"
 
 	"go.sia.tech/jape"
 
