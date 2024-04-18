@@ -8,14 +8,13 @@ import (
 	"io"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 	"golang.org/x/crypto/hkdf"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/storage"
 
-	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
 	s5config "github.com/LumeWeb/libs5-go/config"
 	s5db "github.com/LumeWeb/libs5-go/db"
 	s5ed "github.com/LumeWeb/libs5-go/ed25519"
@@ -24,6 +23,7 @@ import (
 	s5node "github.com/LumeWeb/libs5-go/node"
 	s5storage "github.com/LumeWeb/libs5-go/storage"
 	"github.com/LumeWeb/libs5-go/types"
+	"github.com/LumeWeb/portal/protocols/registry"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )

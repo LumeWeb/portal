@@ -10,15 +10,15 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
-	"git.lumeweb.com/LumeWeb/portal/mailer"
+	"github.com/LumeWeb/portal/mailer"
 
 	"gorm.io/gorm/clause"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"

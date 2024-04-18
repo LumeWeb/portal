@@ -3,9 +3,9 @@ package protocols
 import (
 	"context"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
+	"github.com/LumeWeb/portal/protocols/registry"
 	"github.com/samber/lo"
 	"go.uber.org/fx"
 )

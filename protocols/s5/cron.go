@@ -8,20 +8,20 @@ import (
 	"io"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/storage"
 
-	"git.lumeweb.com/LumeWeb/portal/bao"
+	"github.com/LumeWeb/portal/bao"
 
-	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/LumeWeb/portal/renter"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 	"go.uber.org/zap"
 )
 

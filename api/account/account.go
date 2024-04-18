@@ -12,19 +12,19 @@ import (
 
 	"github.com/rs/cors"
 
-	"git.lumeweb.com/LumeWeb/portal/api/swagger"
+	"github.com/LumeWeb/portal/api/swagger"
 
-	"git.lumeweb.com/LumeWeb/portal/api/router"
+	"github.com/LumeWeb/portal/api/router"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/zap"
 
 	"github.com/julienschmidt/httprouter"
 
-	"git.lumeweb.com/LumeWeb/portal/account"
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
+	"github.com/LumeWeb/portal/account"
+	"github.com/LumeWeb/portal/api/middleware"
+	"github.com/LumeWeb/portal/api/registry"
 	"go.sia.tech/jape"
 	"go.uber.org/fx"
 )

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sync"
 
-	"git.lumeweb.com/LumeWeb/portal/db/types"
+	"github.com/LumeWeb/portal/db/types"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	"gorm.io/gorm"
 

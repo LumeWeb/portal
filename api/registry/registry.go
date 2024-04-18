@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 
-	router2 "git.lumeweb.com/LumeWeb/portal/api/router"
+	router2 "github.com/LumeWeb/portal/api/router"
 	"go.uber.org/fx"
 )
 

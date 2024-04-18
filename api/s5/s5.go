@@ -24,25 +24,24 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 
-	_import "git.lumeweb.com/LumeWeb/portal/import"
+	_import "github.com/LumeWeb/portal/import"
 
-	"git.lumeweb.com/LumeWeb/portal/api/router"
-	"git.lumeweb.com/LumeWeb/portal/bao"
-	"git.lumeweb.com/LumeWeb/portal/renter"
+	"github.com/LumeWeb/portal/api/router"
+	"github.com/LumeWeb/portal/bao"
+	"github.com/LumeWeb/portal/renter"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
-	"git.lumeweb.com/LumeWeb/portal/cron"
+	"github.com/LumeWeb/portal/cron"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/api/swagger"
+	"github.com/LumeWeb/portal/api/swagger"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/storage"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"github.com/LumeWeb/libs5-go/encoding"
 	s5libmetadata "github.com/LumeWeb/libs5-go/metadata"
 	"github.com/LumeWeb/libs5-go/node"
@@ -51,6 +50,7 @@ import (
 	storage2 "github.com/LumeWeb/libs5-go/storage"
 	"github.com/LumeWeb/libs5-go/storage/provider"
 	"github.com/LumeWeb/libs5-go/types"
+	"github.com/LumeWeb/portal/db/models"
 	"github.com/samber/lo"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
@@ -59,11 +59,11 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"git.lumeweb.com/LumeWeb/portal/account"
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
-	"git.lumeweb.com/LumeWeb/portal/api/registry"
-	protoRegistry "git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
+	"github.com/LumeWeb/portal/account"
+	"github.com/LumeWeb/portal/api/middleware"
+	"github.com/LumeWeb/portal/api/registry"
+	protoRegistry "github.com/LumeWeb/portal/protocols/registry"
+	"github.com/LumeWeb/portal/protocols/s5"
 	"github.com/ddo/rq"
 	dnslink "github.com/dnslink-std/go"
 	"github.com/rs/cors"

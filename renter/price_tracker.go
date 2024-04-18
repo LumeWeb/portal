@@ -12,12 +12,12 @@ import (
 
 	"github.com/docker/go-units"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	siasdk "github.com/LumeWeb/siacentral-api"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
-	"git.lumeweb.com/LumeWeb/portal/cron"
+	"github.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/cron"
 	siasdksia "github.com/LumeWeb/siacentral-api/sia"
 	"go.sia.tech/core/types"
 	"go.uber.org/fx"

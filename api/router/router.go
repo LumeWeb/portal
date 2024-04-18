@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/zap"
 

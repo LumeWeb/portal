@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	"go.uber.org/fx"
 	"gorm.io/gorm"

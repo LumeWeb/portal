@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	"github.com/redis/go-redis/v9"
 
 	"go.uber.org/zap"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
 	"github.com/go-gorm/caches/v4"
 	"go.uber.org/fx"

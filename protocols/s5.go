@@ -3,8 +3,8 @@
 package protocols
 
 import (
-	"git.lumeweb.com/LumeWeb/portal/protocols/registry"
-	"git.lumeweb.com/LumeWeb/portal/protocols/s5"
+	"github.com/LumeWeb/portal/protocols/registry"
+	"github.com/LumeWeb/portal/protocols/s5"
 )
 
 func init() {

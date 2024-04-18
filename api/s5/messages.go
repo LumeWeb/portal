@@ -3,9 +3,9 @@ package s5
 import (
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
 	"github.com/LumeWeb/libs5-go/encoding"
 	"github.com/LumeWeb/libs5-go/types"
+	"github.com/LumeWeb/portal/db/models"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

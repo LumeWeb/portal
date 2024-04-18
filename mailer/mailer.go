@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 	"github.com/wneessen/go-mail"
 	"go.uber.org/fx"
 	"go.uber.org/zap"

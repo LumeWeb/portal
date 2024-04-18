@@ -8,13 +8,13 @@ import (
 	"net/url"
 	"strings"
 
-	"git.lumeweb.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/db/models"
 
 	"gorm.io/gorm"
 
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/config"
 
-	"git.lumeweb.com/LumeWeb/portal/cron"
+	"github.com/LumeWeb/portal/cron"
 	sia "github.com/LumeWeb/siacentral-api"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"

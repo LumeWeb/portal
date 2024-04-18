@@ -11,26 +11,26 @@ import (
 	"strings"
 	"time"
 
-	"git.lumeweb.com/LumeWeb/portal/api/middleware"
-	"git.lumeweb.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/api/middleware"
+	"github.com/LumeWeb/portal/config"
 
 	"go.uber.org/fx"
 
-	"git.lumeweb.com/LumeWeb/portal/account"
+	"github.com/LumeWeb/portal/account"
 
-	"git.lumeweb.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/metadata"
 
 	"github.com/tus/tusd/v2/pkg/s3store"
 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 
-	"git.lumeweb.com/LumeWeb/portal/storage"
+	"github.com/LumeWeb/portal/storage"
 	"gorm.io/gorm"
 
-	"git.lumeweb.com/LumeWeb/portal/cron"
-	"git.lumeweb.com/LumeWeb/portal/db/models"
-	"git.lumeweb.com/LumeWeb/portal/renter"
 	"github.com/LumeWeb/libs5-go/encoding"
+	"github.com/LumeWeb/portal/cron"
+	"github.com/LumeWeb/portal/db/models"
+	"github.com/LumeWeb/portal/renter"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
