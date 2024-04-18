@@ -1,4 +1,4 @@
-module git.lumeweb.com/LumeWeb/portal
+module github.com/LumeWeb/portal
 
 go 1.21.6
 
