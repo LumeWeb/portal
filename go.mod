@@ -1,6 +1,6 @@
 module github.com/LumeWeb/portal
 
-go 1.21.6
+go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
