@@ -55,7 +55,7 @@ jobs:
             -   name: Cache Nx
                 uses: actions/cache@v4
                 with:
-                    path: api/account/app/node_modules/.cache/nx
+                    path: api/account/app/.nx
                     key: cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ matrix.target }}-${{ matrix.jobIndex }}-${{ github.sha }}
                     restore-keys: |
                         cache-nx-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ matrix.target }}-${{ matrix.jobIndex }}-
