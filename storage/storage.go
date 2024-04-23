@@ -10,6 +10,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/LumeWeb/portal/sync"
+
 	"github.com/LumeWeb/portal/db/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -89,6 +91,7 @@ type StorageServiceDefault struct {
 	renter   *renter.RenterDefault
 	logger   *zap.Logger
 	metadata metadata.MetadataService
+	sync     *sync.SyncServiceDefault
 }
 type StorageServiceParams struct {
 	fx.In
@@ -97,6 +100,7 @@ type StorageServiceParams struct {
 	Renter   *renter.RenterDefault
 	Logger   *zap.Logger
 	Metadata metadata.MetadataService
+	Sync     *sync.SyncServiceDefault
 }
 
 func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
@@ -106,6 +110,7 @@ func NewStorageService(params StorageServiceParams) *StorageServiceDefault {
 		renter:   params.Renter,
 		logger:   params.Logger,
 		metadata: params.Metadata,
+		sync:     params.Sync,
 	}
 }
 
@@ -228,10 +233,22 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol Storag
 			return nil, err
 		}
 
+		err = s.sync.Update(*uploadMeta)
+
+		if err != nil {
+			return nil, err
+		}
+
 		return uploadMeta, nil
 	}
 
 	err = s.renter.UploadObject(ctx, reader, protocolName, filename)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.sync.Update(*uploadMeta)
+
 	if err != nil {
 		return nil, err
 	}
