@@ -4,6 +4,9 @@ import (
 	"flag"
 	"net/http"
 
+	"github.com/LumeWeb/portal/metadata"
+	"github.com/LumeWeb/portal/sync"
+
 	"github.com/LumeWeb/portal/cron"
 
 	_import "github.com/LumeWeb/portal/import"
@@ -16,7 +19,6 @@ import (
 	"github.com/LumeWeb/portal/api"
 	"github.com/LumeWeb/portal/db"
 	_logger "github.com/LumeWeb/portal/logger"
-	"github.com/LumeWeb/portal/metadata"
 	"github.com/LumeWeb/portal/protocols"
 	"github.com/LumeWeb/portal/renter"
 	"github.com/LumeWeb/portal/storage"
@@ -60,9 +62,10 @@ func main() {
 		fx.Provide(NewIdentity),
 		db.Module,
 		renter.Module,
+		metadata.Module,
+		sync.Module,
 		storage.Module,
 		account.Module,
-		metadata.Module,
 		_import.Module,
 		mailer.Module,
 		cron.Module,

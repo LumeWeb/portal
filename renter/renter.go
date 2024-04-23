@@ -136,6 +136,16 @@ func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName s
 	return r.workerClient.GetObject(ctx, bucket, fileName, options)
 }
 
+func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error) {
+	ret, err := r.busClient.Object(ctx, bucket, fileName, api.GetObjectOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ret.Object, nil
+}
+
 func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any) error {
 	err := r.busClient.Setting(ctx, setting, out)
 
