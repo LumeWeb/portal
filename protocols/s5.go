@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	registry.Register(registry.ProtocolEntry{
+	registry.RegisterEntry(registry.ProtocolEntry{
 		Key:         "s5",
 		Module:      s5.ProtocolModule,
 		PreInitFunc: s5.PreInit,

@@ -87,7 +87,6 @@ type S5API struct {
 	storage    storage.StorageService
 	metadata   metadata.MetadataService
 	db         *gorm.DB
-	protocols  []protoRegistry.Protocol
 	protocol   *s5.S5Protocol
 	logger     *zap.Logger
 	tusHandler *s5.TusHandler
@@ -103,7 +102,6 @@ type APIParams struct {
 	Storage    storage.StorageService
 	Metadata   metadata.MetadataService
 	Db         *gorm.DB
-	Protocols  []protoRegistry.Protocol `group:"protocol"`
 	Logger     *zap.Logger
 	TusHandler *s5.TusHandler
 	Cron       *cron.CronServiceDefault
@@ -124,7 +122,6 @@ func NewS5(params APIParams) (S5ApiResult, error) {
 		storage:    params.Storage,
 		metadata:   params.Metadata,
 		db:         params.Db,
-		protocols:  params.Protocols,
 		logger:     params.Logger,
 		tusHandler: params.TusHandler,
 		cron:       params.Cron,
@@ -141,7 +138,7 @@ var Module = fx.Module("s5_api",
 )
 
 func (s *S5API) Init() error {
-	s5protocol := protoRegistry.FindProtocolByName("s5", s.protocols)
+	s5protocol := protoRegistry.GetProtocol("s5")
 	if s5protocol == nil {
 		return fmt.Errorf("s5 protocol not found")
 	}

@@ -8,8 +8,6 @@ import (
 	"go.uber.org/fx"
 )
 
-const GroupName = "protocols"
-
 type Protocol interface {
 	Name() string
 	Init(ctx context.Context) error
@@ -24,21 +22,33 @@ type ProtocolEntry struct {
 	PreInitFunc interface{}
 }
 
-var protocolEntry []ProtocolEntry
+var protocolEntryRegistry []ProtocolEntry
+var protocolRegistry map[string]Protocol
 
-func Register(entry ProtocolEntry) {
-	protocolEntry = append(protocolEntry, entry)
+func init() {
+	protocolRegistry = make(map[string]Protocol)
 }
 
-func GetRegistry() []ProtocolEntry {
-	return protocolEntry
+func RegisterEntry(entry ProtocolEntry) {
+	protocolEntryRegistry = append(protocolEntryRegistry, entry)
 }
 
-func FindProtocolByName(name string, protocols []Protocol) Protocol {
-	for _, protocol := range protocols {
-		if protocol.Name() == name {
-			return protocol
-		}
+func RegisterProtocol(protocol Protocol) {
+	protocolRegistry[protocol.Name()] = protocol
+}
+
+func GetEntryRegistry() []ProtocolEntry {
+	return protocolEntryRegistry
+}
+
+func GetProtocol(name string) Protocol {
+	if _, ok := protocolRegistry[name]; !ok {
+		return nil
 	}
-	return nil
+
+	return protocolRegistry[name]
+}
+
+func GetAllProtocols() map[string]Protocol {
+	return protocolRegistry
 }
