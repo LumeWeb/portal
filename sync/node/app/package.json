@@ -1,0 +1,26 @@
+{
+    "name": "app",
+    "version": "0.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "private": true,
+    "dependencies": {
+        "@grpc/grpc-js": "^1.10.6",
+        "@grpc/proto-loader": "^0.7.12",
+        "@grpc/reflection": "^1.0.3",
+        "@noble/curves": "^1.4.0",
+        "corestore": "^6.18.2",
+        "google-protobuf": "^3.21.2",
+        "grpc-health-check": "^2.0.1",
+        "grpc-js-health-check": "^1.2.2",
+        "hyperbee": "^2.19.3",
+        "hyperswarm": "^4.7.14",
+        "portfinder": "^1.0.32",
+        "protobufjs": "^7.2.6"
+    },
+    "devDependencies": {
+        "grpc-tools": "^1.12.4",
+        "protobufjs-cli": "^1.1.2"
+    }
+}

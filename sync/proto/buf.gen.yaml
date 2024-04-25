@@ -1,0 +1,8 @@
+version: v1
+managed:
+    enabled: true
+plugins:
+    - plugin: buf.build/protocolbuffers/go
+      out: gen
+    - plugin: buf.build/grpc/go:v1.3.0
+      out: gen
