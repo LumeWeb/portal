@@ -1,0 +1,24 @@
+syntax = "proto3";
+package sync;
+
+option go_package = "./proto";
+
+message InitRequest {
+    bytes privateKey = 1;
+}
+
+message InitResponse {
+}
+
+message UpdateRequest {
+    bytes hash = 1;
+    bytes data = 2;
+}
+
+message UpdateResponse {
+}
+
+service Sync {
+    rpc Init(InitRequest) returns (InitResponse) {}
+    rpc Update(UpdateRequest) returns (UpdateResponse) {}
+}
