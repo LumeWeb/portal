@@ -35,9 +35,15 @@ importers:
       hyperbee:
         specifier: ^2.19.3
         version: 2.19.3
+      hypercore:
+        specifier: ^10.36.4
+        version: 10.36.4
       hyperswarm:
         specifier: ^4.7.14
         version: 4.7.14
+      multiformats:
+        specifier: ^13.1.0
+        version: 13.1.0
       portfinder:
         specifier: ^1.0.32
         version: 1.0.32
@@ -435,8 +441,8 @@ packages:
   hypercore-id-encoding@1.3.0:
     resolution: {integrity: sha512-W6sHdGo5h7LXEsoWfKf/KfuROZmZRQDlGqJF2EPHW+noCK66Vvr0+zE6cL0vqQi18s0kQPeN7Sq3QyR0Ytc2VQ==}
 
-  hypercore@10.36.3:
-    resolution: {integrity: sha512-y5seZFpTwXKauRT3Vm1MBrCn3dfN6M7nCuNeyNJ8yjUCXm4LgKQAaKZZXIXR6yU6HfJOyNw/zfg3dGVeGEnn/A==}
+  hypercore@10.36.4:
+    resolution: {integrity: sha512-vEVV49frIItzeKFg0uf+hhuYa4+i2M7xn9uLQzNI9CVz3wcOFigSzbij72GIC34ZNnljgWUmQb+RE2wL2rfCWg==}
 
   hyperdht@6.14.0:
     resolution: {integrity: sha512-jfRAMV5BgHbGDrO8gcvbpg1N6ZcA9jHswIlWCseLcaOUUmVc2Pcp2ys7PrvF5dv74ZLeb6hhss5Kek0y9FFE9A==}
@@ -553,6 +559,9 @@ packages:
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+
+  multiformats@13.1.0:
+    resolution: {integrity: sha512-HzdtdBwxsIkzpeXzhQ5mAhhuxcHbjEHH+JQoxt7hG/2HGFjjwyolLo7hbaexcnhoEuV4e0TNJ8kkpMjiEYY4VQ==}
 
   mutexify@1.4.0:
     resolution: {integrity: sha512-pbYSsOrSB/AKN5h/WzzLRMFgZhClWccf2XIB4RSMC8JbquiB0e0/SH5AIfdQMdyHmYtv4seU7yV/TvAwPLJ1Yg==}
@@ -1099,7 +1108,7 @@ snapshots:
   corestore@6.18.2:
     dependencies:
       b4a: 1.6.6
-      hypercore: 10.36.3
+      hypercore: 10.36.4
       hypercore-crypto: 3.4.0
       hypercore-id-encoding: 1.3.0
       read-write-mutexify: 2.1.0
@@ -1298,7 +1307,7 @@ snapshots:
       b4a: 1.6.6
       z32: 1.1.0
 
-  hypercore@10.36.3:
+  hypercore@10.36.4:
     dependencies:
       '@hyperswarm/secret-stream': 6.4.0
       b4a: 1.6.6
@@ -1475,6 +1484,8 @@ snapshots:
   ms@2.1.2: {}
 
   ms@2.1.3: {}
+
+  multiformats@13.1.0: {}
 
   mutexify@1.4.0:
     dependencies:
