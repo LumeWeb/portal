@@ -21,11 +21,12 @@ message UpdateResponse {
 message FileMeta {
     bytes hash = 1;
     bytes multihash = 2;
-    string protocol = 3;
-    EncryptionKey key = 4;
-    uint64 size = 5;
-    repeated SlabSlice slabs = 6;
-    repeated string aliases = 7;
+    bytes proof = 3;
+    string protocol = 4;
+    EncryptionKey key = 5;
+    uint64 size = 6;
+    repeated SlabSlice slabs = 7;
+    repeated string aliases = 8;
 }
 
 message EncryptionKey {

@@ -71,6 +71,7 @@ async function main () {
                 const toHex = (str) => Buffer.from(str).toString("hex");
 
                 json.hash = baseToHex(json.hash);
+                json.proof = toHex(json.proof);
                 if (json.multihash) {
                     const multihashRaw = decodeB64(json.multihash);
                     if (multihashRaw.length > 0) {
