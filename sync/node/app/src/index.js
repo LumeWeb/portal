@@ -75,9 +75,9 @@ function prepareRpcMethod (func) {
     return async (call, callback) => {
         try {
             const response = await func(call.request);
-            callback(null, response);
+            callback?.(null, response);
         } catch (err) {
-            callback(err, null);
+            callback?.(err, null);
         }
     };
 }
