@@ -58,7 +58,7 @@ async function main () {
                 swarm.join(bee.discoveryKey);
                 swarm.on("connection", conn => bee.replicate(conn));
 
-                return {};
+                return { discoveryKey: bee.discoveryKey };
             },
             Update (request) {
                 return {};
