@@ -3,6 +3,7 @@ import * as grpc from "@grpc/grpc-js";
 import { HealthImplementation } from "grpc-health-check";
 import protoLoader from "@grpc/proto-loader";
 import protoBufSpec from "./generated/protobuf.json" with { type: "json" };
+import stdioSpec from "./generated/grpc_stdio.json" with { type: "json" };
 import Protobuf from "protobufjs";
 import { ReflectionService } from "@grpc/reflection";
 import Hyperswarm from "hyperswarm";
@@ -30,6 +31,7 @@ async function main () {
 
     const root = new Protobuf.Root();
     root.addJSON(protoBufSpec.nested).resolveAll();
+    root.addJSON(stdioSpec.nested).resolveAll();
     const packageDefinition = await protoLoader.loadFileDescriptorSetFromObject(root.toDescriptor());
     const syncPackage = grpc.loadPackageDefinition(packageDefinition);
 
@@ -63,6 +65,12 @@ async function main () {
             }
         }),
     );
+    server.addService(syncPackage.plugin.GRPCStdio.service, prepareServiceImpl({
+        StreamStdio (call) {
+
+        },
+    }));
+
     healthImpl.addToServer(server);
     reflection.addToServer(server);
     server.bindAsync(`127.0.0.1:${foundPort}`, grpc.ServerCredentials.createInsecure(), () => {
