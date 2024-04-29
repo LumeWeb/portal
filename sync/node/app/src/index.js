@@ -10,6 +10,7 @@ import Hyperswarm from "hyperswarm";
 import Hypercore from "hypercore";
 import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
+import * as b58 from "multiformats/bases/base58";
 
 let swarm;
 let core;
@@ -60,9 +61,42 @@ async function main () {
 
                 return { discoveryKey: bee.discoveryKey };
             },
-            Update (request) {
+            Update (call) {
+                const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);
+
+                const json = req.data.toJSON();
+
+                const decodeB64 = (str) => Buffer.from(str, "base64");
+                const baseToHex = (str) => toHex(Buffer.from(decodeB64(str)));
+                const toHex = (str) => Buffer.from(str).toString("hex");
+
+                json.hash = baseToHex(json.hash);
+                if (json.multihash) {
+                    const multihashRaw = decodeB64(json.multihash);
+                    if (multihashRaw.length > 0) {
+                        json.multihash = b58.encode(Buffer.from(multihashRaw));
+                    }
+                } else {
+                    json.multihash = "";
+                }
+                json.key = baseToHex(json.key.entropy);
+                json.size = Number(json.size);
+
+                for (const slab of json.slabs) {
+                    slab.slab.key = toHex(slab.slab.key.entropy);
+                }
+
+                const aliases = json.aliases || [];
+                delete json.aliases;
+
+                bee.put(json.hash, json);
+
+                for (const alias of aliases) {
+                    bee.put(alias, req);
+                }
+
                 return {};
-            }
+            },
         }),
     );
     server.addService(syncPackage.plugin.GRPCStdio.service, prepareServiceImpl({
