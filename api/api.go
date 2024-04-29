@@ -10,7 +10,7 @@ import (
 	"go.uber.org/fx"
 )
 
-var alwaysEnabled = []string{"account"}
+var alwaysEnabled = []string{"account", "sync"}
 
 func BuildApis(cm *config.Manager) fx.Option {
 	var options []fx.Option
