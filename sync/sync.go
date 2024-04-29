@@ -4,12 +4,9 @@ import (
 	"context"
 	"crypto/ed25519"
 	"errors"
-	"hash"
 	"os"
 	"os/exec"
 	"path"
-
-	"golang.org/x/crypto/blake2b"
 
 	"github.com/hashicorp/go-plugin"
 
@@ -30,7 +27,7 @@ type SyncServiceDefault struct {
 	grpcClient *plugin.Client
 	grpcPlugin sync
 	identity   ed25519.PrivateKey
-	logKey     hash.Hash
+	logKey     []byte
 }
 
 type SyncServiceParams struct {
@@ -109,6 +106,11 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 
 	return nil
 }
+
+func (s *SyncServiceDefault) LogKey() []byte {
+	return s.logKey
+}
+
 func (s *SyncServiceDefault) init() error {
 	/*temp, err := os.CreateTemp(os.TempDir(), "sync")
 	  if err != nil {
@@ -137,7 +139,7 @@ func (s *SyncServiceDefault) init() error {
 
 	}
 
-	cmd := exec.Command("/root/.nvm/versions/node/v21.7.1/bin/node", "--inspect-brk=0.0.0.0", path.Join(cwd, "./sync/node/app/src/index.js"))
+	cmd := exec.Command("/root/.nvm/versions/node/v21.7.1/bin/node", path.Join(cwd, "./sync/node/app/src/index.js"))
 	cmd.Env = append(os.Environ(), "NODE_NO_WARNINGS=1")
 	cmd.Dir = path.Join(cwd, "./sync/node/app")
 	clientInst := plugin.NewClient(&plugin.ClientConfig{
@@ -170,11 +172,7 @@ func (s *SyncServiceDefault) init() error {
 		return err
 	}
 
-	s.logKey, err = blake2b.New256(ret.GetDiscoveryKey())
-
-	if err != nil {
-		return err
-	}
+	s.logKey = ret.GetDiscoveryKey()
 
 	return nil
 }
