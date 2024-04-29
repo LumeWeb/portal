@@ -90,11 +90,13 @@ type APIParams struct {
 	SyncService *sync.SyncServiceDefault
 }
 
-func NewSync(params APIParams) (*SyncAPI, error) {
-	return &SyncAPI{
-		config:      params.Config,
-		syncService: params.SyncService,
-	}, nil
+func NewSync(params APIParams) SyncApiResult {
+	api := &SyncAPI{config: params.Config, syncService: params.SyncService}
+
+	return SyncApiResult{
+		API:     api,
+		SyncAPI: api,
+	}
 }
 
 var Module = fx.Module("sync_api",
