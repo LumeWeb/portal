@@ -7,12 +7,12 @@ import stdioSpec from "./generated/grpc_stdio.json" with { type: "json" };
 import Protobuf from "protobufjs";
 import { ReflectionService } from "@grpc/reflection";
 import Hyperswarm from "hyperswarm";
-import Corestore from "corestore";
+import Hypercore from "hypercore";
 import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
 
 let swarm;
-let store;
+let core;
 let bee;
 
 const heathCheckStatusMap = {
@@ -47,11 +47,11 @@ async function main () {
                 const pubKey = ed25519.getPublicKey(privateKey);
                 const keyPair = {
                     publicKey: pubKey,
-                    secretKey: Buffer.concat([pubKey, privateKey]),
+                    secretKey: privateKey,
                 };
 
-                store = new Corestore("./data", { primaryKey: privateKey });
-                bee = new Hyperbee(store.get({ name: "default" }), { keyEncoding: "utf-8", valueEncoding: "json" });
+                core = new Hypercore("./data", { keyPair });
+                bee = new Hyperbee(core, { keyEncoding: "utf-8", valueEncoding: "json" });
                 await bee.ready();
 
                 swarm = new Hyperswarm({ keyPair });
