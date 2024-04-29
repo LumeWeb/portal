@@ -39,7 +39,8 @@ async function main () {
     const server = new grpc.Server();
     server.addService(syncPackage.sync.Sync.service,
         prepareServiceImpl({
-            async Init (request) {
+            async Init (call) {
+                const request = call.request;
                 const privateKey = request.privateKey;
                 const pubKey = ed25519.getPublicKey(privateKey);
                 const keyPair = {
@@ -74,7 +75,7 @@ main();
 function prepareRpcMethod (func) {
     return async (call, callback) => {
         try {
-            const response = await func(call.request);
+            const response = await func(call);
             callback?.(null, response);
         } catch (err) {
             callback?.(err, null);
