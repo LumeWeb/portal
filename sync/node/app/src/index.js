@@ -65,7 +65,7 @@ async function main () {
     healthImpl.addToServer(server);
     reflection.addToServer(server);
     server.bindAsync(`127.0.0.1:${foundPort}`, grpc.ServerCredentials.createInsecure(), () => {
-        console.log("1|1|tcp|127.0.0.1:{}|grpc", foundPort);
+        console.log("1|1|tcp|127.0.0.1:%d|grpc", foundPort);
     });
 }
 
