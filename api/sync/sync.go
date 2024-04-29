@@ -79,9 +79,8 @@ func (s *SyncAPI) logKey(jc jape.Context) {
 
 type SyncApiResult struct {
 	fx.Out
-	API         registry.API `group:"api"`
-	SyncAPI     *SyncAPI
-	SyncService *sync.SyncServiceDefault
+	API     registry.API `group:"api"`
+	SyncAPI *SyncAPI
 }
 
 type APIParams struct {
