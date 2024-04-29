@@ -8,6 +8,7 @@ import (
 type FileMeta struct {
 	Hash      []byte
 	Multihash []byte
+	Proof     []byte
 	Protocol  string
 	Key       object.EncryptionKey
 	Size      uint64

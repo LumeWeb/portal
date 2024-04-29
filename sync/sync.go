@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/ed25519"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"path"
+
+	"github.com/LumeWeb/portal/storage"
 
 	"github.com/hashicorp/go-plugin"
 
@@ -23,6 +26,7 @@ import (
 type SyncServiceDefault struct {
 	config     *config.Manager
 	renter     *renter.RenterDefault
+	storage    *storage.StorageServiceDefault
 	logger     *zap.Logger
 	grpcClient *plugin.Client
 	grpcPlugin sync
@@ -34,6 +38,7 @@ type SyncServiceParams struct {
 	fx.In
 	Config   *config.Manager
 	Renter   *renter.RenterDefault
+	Storage  *storage.StorageServiceDefault
 	Logger   *zap.Logger
 	Identity ed25519.PrivateKey
 }
@@ -64,6 +69,7 @@ func NewSyncServiceDefault(params SyncServiceParams) *SyncServiceDefault {
 	return &SyncServiceDefault{
 		config:   params.Config,
 		renter:   params.Renter,
+		storage:  params.Storage,
 		logger:   params.Logger,
 		identity: params.Identity,
 	}
@@ -89,8 +95,17 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 		return err
 	}
 
+	proofReader, err := s.storage.DownloadObjectProof(ctx, syncProto, upload.Hash)
+
+	if err != nil {
+		return err
+	}
+
+	proof, err := io.ReadAll(proofReader)
+
 	meta := FileMeta{
 		Hash:      upload.Hash,
+		Proof:     proof,
 		Multihash: nil,
 		Protocol:  upload.Protocol,
 		Key:       object.Key,
