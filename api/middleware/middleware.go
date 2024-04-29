@@ -17,8 +17,9 @@ import (
 )
 
 type AuthTokenContextKeyType string
+type UserIdContextKeyType string
 
-const DEFAULT_AUTH_CONTEXT_KEY = "user_id"
+const DEFAULT_USER_ID_CONTEXT_KEY UserIdContextKeyType = "user_id"
 const AUTH_TOKEN_CONTEXT_KEY AuthTokenContextKeyType = "auth_token"
 
 type JapeMiddlewareFunc func(jape.Handler) jape.Handler
@@ -111,7 +112,7 @@ type AuthMiddlewareOptions struct {
 
 func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handler {
 	if options.AuthContextKey == "" {
-		options.AuthContextKey = DEFAULT_AUTH_CONTEXT_KEY
+		options.AuthContextKey = string(DEFAULT_USER_ID_CONTEXT_KEY)
 	}
 
 	domain := options.Config.Config().Core.Domain
@@ -197,7 +198,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), AuthTokenContextKeyType(options.AuthContextKey), uint(userId))
+			ctx := context.WithValue(r.Context(), UserIdContextKeyType(options.AuthContextKey), uint(userId))
 			ctx = context.WithValue(ctx, AUTH_TOKEN_CONTEXT_KEY, authToken)
 			r = r.WithContext(ctx)
 
@@ -226,10 +227,12 @@ func GetUserFromContext(ctx context.Context, key ...string) uint {
 	}
 
 	if realKey == "" {
-		realKey = DEFAULT_AUTH_CONTEXT_KEY
+		realKey = string(DEFAULT_USER_ID_CONTEXT_KEY)
 	}
 
-	userId, ok := ctx.Value(realKey).(uint)
+	realKeyCtx := UserIdContextKeyType(realKey)
+
+	userId, ok := ctx.Value(realKeyCtx).(uint)
 
 	if !ok {
 		panic("user id stored in context is not of type uint")
