@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/LumeWeb/portal/sync"
+
 	"github.com/gabriel-vasile/mimetype"
 
 	_import "github.com/LumeWeb/portal/import"
@@ -92,6 +94,7 @@ type S5API struct {
 	tusHandler *s5.TusHandler
 	cron       *cron.CronServiceDefault
 	_import    _import.ImportService
+	sync       *sync.SyncServiceDefault
 }
 
 type APIParams struct {
@@ -106,6 +109,7 @@ type APIParams struct {
 	TusHandler *s5.TusHandler
 	Cron       *cron.CronServiceDefault
 	Import     _import.ImportService
+	Sync       *sync.SyncServiceDefault
 }
 
 type S5ApiResult struct {
@@ -126,6 +130,7 @@ func NewS5(params APIParams) (S5ApiResult, error) {
 		tusHandler: params.TusHandler,
 		cron:       params.Cron,
 		_import:    params.Import,
+		sync:       params.Sync,
 	}
 	return S5ApiResult{
 		API:   api,
@@ -1294,6 +1299,12 @@ func (s *S5API) processMultipartFiles(r *http.Request) (map[string]*metadata.Upl
 			err = s.accounts.PinByHash(upload.Hash, user)
 			if err != nil {
 				return nil, NewS5Error(ErrKeyStorageOperationFailed, err)
+			}
+
+			err = s.sync.Update(*upload)
+
+			if err != nil {
+				return nil, err
 			}
 
 			uploadMap[filename] = upload
