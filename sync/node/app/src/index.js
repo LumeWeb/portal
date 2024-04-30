@@ -13,6 +13,8 @@ import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
 import * as b58 from "multiformats/bases/base58";
 import hypercoreCrypto from "hypercore-crypto";
+import Protomux from "protomux";
+import c from "compact-encoding";
 
 let swarm;
 let core;
@@ -115,6 +117,30 @@ async function main () {
                 swarm.join(hypercoreCrypto.hash(SYNC_PROTOCOL));
                 swarm.on("connection", conn => bee.replicate(conn));
                 swarm.on("connection", conn => store.replicate(conn));
+                swarm.on("connection", (conn) => {
+                    const mux = Protomux.from(conn);
+                    mux.pair({ protocol: SYNC_PROTOCOL }, () => {
+                        const sync = mux.createChannel({
+                            protocol: SYNC_PROTOCOL,
+                        });
+
+                        const sendKey = sync.addMessage({
+                            encoding: c.raw,
+                            onmessage (m) {
+                                if (c.raw.length === 32) {
+                                    const dKey = toHex(m);
+                                    if (!DISCOVERED_BEES.has(dKey)) {
+                                        DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m, sparse: true })));
+                                    }
+                                }
+                            },
+                        });
+
+                        sync.open();
+                        sendKey.send(core.key);
+                    });
+                });
+
                 return { discoveryKey: bee.discoveryKey };
             },
             Update (call) {
