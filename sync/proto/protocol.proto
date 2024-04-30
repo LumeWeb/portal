@@ -8,7 +8,7 @@ message InitRequest {
 }
 
 message InitResponse {
-    bytes discovery_key = 1;
+    bytes log_key = 1;
 }
 
 message UpdateRequest {
