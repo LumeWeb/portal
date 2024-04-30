@@ -46,6 +46,7 @@ type SyncServiceParams struct {
 type SyncProtocol interface {
 	Name() string
 	EncodeFileName([]byte) string
+	ValidIdentifier(string) bool
 }
 
 var Module = fx.Module("sync",
