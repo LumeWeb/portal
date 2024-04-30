@@ -12,6 +12,7 @@ import Corestore from "corestore";
 import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
 import * as b58 from "multiformats/bases/base58";
+import hypercoreCrypto from "hypercore-crypto";
 
 let swarm;
 let core;
@@ -111,6 +112,7 @@ async function main () {
 
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
+                swarm.join(hypercoreCrypto.hash(SYNC_PROTOCOL));
                 swarm.on("connection", conn => bee.replicate(conn));
                 swarm.on("connection", conn => store.replicate(conn));
                 return { discoveryKey: bee.discoveryKey };
