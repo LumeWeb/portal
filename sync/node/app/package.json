@@ -10,6 +10,7 @@
         "@grpc/proto-loader": "^0.7.12",
         "@grpc/reflection": "^1.0.3",
         "@noble/curves": "^1.4.0",
+        "compact-encoding": "^2.15.0",
         "corestore": "^6.18.2",
         "google-protobuf": "^3.21.2",
         "grpc-health-check": "^2.0.1",
@@ -19,7 +20,8 @@
         "hyperswarm": "^4.7.14",
         "multiformats": "^13.1.0",
         "portfinder": "^1.0.32",
-        "protobufjs": "^7.2.6"
+        "protobufjs": "^7.2.6",
+        "protomux": "^3.5.2"
     },
     "devDependencies": {
         "grpc-tools": "^1.12.4",
