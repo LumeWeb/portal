@@ -114,7 +114,7 @@ async function main () {
 
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
-                swarm.join(hypercoreCrypto.hash(SYNC_PROTOCOL));
+                swarm.join(hypercoreCrypto.hash(Buffer.from(SYNC_PROTOCOL)));
                 swarm.on("connection", conn => bee.replicate(conn));
                 swarm.on("connection", conn => store.replicate(conn));
                 swarm.on("connection", (conn) => {
