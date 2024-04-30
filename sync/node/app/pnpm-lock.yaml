@@ -41,6 +41,9 @@ importers:
       hypercore:
         specifier: ^10.36.4
         version: 10.36.4
+      hypercore-crypto:
+        specifier: ^3.4.1
+        version: 3.4.1
       hyperswarm:
         specifier: ^4.7.14
         version: 4.7.14
@@ -438,8 +441,8 @@ packages:
   hyperbee@2.19.3:
     resolution: {integrity: sha512-HSSRWJ/aXabWka/JqqxL0iWNZN1Luqc8CA8GQhaYOQ1bOxlWhIOAfo86aEMLcMD/pHfpIWUBkh8b4I9THgn33w==}
 
-  hypercore-crypto@3.4.0:
-    resolution: {integrity: sha512-0cZA1B58p1J84TDbTh8DMMIj7Qr7Rzz8NyGIo+ykUhdwD21gtjiiLWoME92QvN+lgbfu0Zfr9vwxT8sRmyg+AA==}
+  hypercore-crypto@3.4.1:
+    resolution: {integrity: sha512-6X0HmWg50eaHtxA5gU1XAu1mLoyRz6sTZMqSNtSPvErTKnaBF/EajklQL3HFsWPbgi2FK4xHAsa0cKY1L6aBbg==}
 
   hypercore-errors@1.2.0:
     resolution: {integrity: sha512-mOIWDsg7+EoS2xMURH7vpxRwJdV1GsBVm1Wst1CHbWbyeMI+9OfUK9bjvcHZ4XR86Q+CSzJkSbnuk7C44kuybw==}
@@ -898,7 +901,7 @@ snapshots:
   '@hyperswarm/secret-stream@6.4.0':
     dependencies:
       b4a: 1.6.6
-      hypercore-crypto: 3.4.0
+      hypercore-crypto: 3.4.1
       noise-curve-ed: 2.0.1
       noise-handshake: 3.1.0
       sodium-secretstream: 1.1.0
@@ -1115,7 +1118,7 @@ snapshots:
     dependencies:
       b4a: 1.6.6
       hypercore: 10.36.4
-      hypercore-crypto: 3.4.0
+      hypercore-crypto: 3.4.1
       hypercore-id-encoding: 1.3.0
       read-write-mutexify: 2.1.0
       ready-resource: 1.0.3
@@ -1298,7 +1301,7 @@ snapshots:
       streamx: 2.16.1
       xache: 1.2.1
 
-  hypercore-crypto@3.4.0:
+  hypercore-crypto@3.4.1:
     dependencies:
       b4a: 1.6.6
       compact-encoding: 2.15.0
@@ -1323,7 +1326,7 @@ snapshots:
       crc-universal: 1.0.4
       fast-fifo: 1.3.2
       flat-tree: 1.10.0
-      hypercore-crypto: 3.4.0
+      hypercore-crypto: 3.4.1
       hypercore-errors: 1.2.0
       hypercore-id-encoding: 1.3.0
       hypertrace: 1.4.2
@@ -1351,7 +1354,7 @@ snapshots:
       compact-encoding-net: 1.2.0
       debugging-stream: 2.0.0
       dht-rpc: 6.11.2
-      hypercore-crypto: 3.4.0
+      hypercore-crypto: 3.4.1
       hypercore-id-encoding: 1.3.0
       hypertrace: 1.4.2
       noise-curve-ed: 2.0.1

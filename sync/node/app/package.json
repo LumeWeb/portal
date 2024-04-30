@@ -17,6 +17,7 @@
         "grpc-js-health-check": "^1.2.2",
         "hyperbee": "^2.19.3",
         "hypercore": "^10.36.4",
+        "hypercore-crypto": "^3.4.1",
         "hyperswarm": "^4.7.14",
         "multiformats": "^13.1.0",
         "portfinder": "^1.0.32",
