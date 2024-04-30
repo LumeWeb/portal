@@ -203,5 +203,11 @@ func cronTaskUploadObject(args *cronTaskUploadObjectArgs, sync *SyncServiceDefau
 		return err
 	}
 
+	err = sync.Update(*upload)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

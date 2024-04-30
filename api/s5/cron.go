@@ -210,6 +210,12 @@ func cronTaskPinImportProcessSmallFile(args *cronTaskPinImportProcessSmallFileAr
 		return err
 	}
 
+	err = api.sync.Update(*upload)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -313,6 +319,12 @@ func cronTaskPinImportProcessLargeFile(args *cronTaskPinImportProcessLargeFileAr
 	}
 
 	err = pinImportSaveAndPin(upload, api, parsedCid, args.UserId)
+	if err != nil {
+		return err
+	}
+
+	err = api.sync.Update(*upload)
+
 	if err != nil {
 		return err
 	}
