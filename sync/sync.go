@@ -31,7 +31,7 @@ type SyncServiceDefault struct {
 	config     *config.Manager
 	renter     *renter.RenterDefault
 	metadata   metadata.MetadataService
-	storage    *storage.StorageServiceDefault
+	storage    storage.StorageService
 	cron       *cron.CronServiceDefault
 	logger     *zap.Logger
 	grpcClient *plugin.Client
@@ -45,7 +45,7 @@ type SyncServiceParams struct {
 	Config   *config.Manager
 	Renter   *renter.RenterDefault
 	Metadata metadata.MetadataService
-	Storage  *storage.StorageServiceDefault
+	Storage  storage.StorageService
 	Cron     *cron.CronServiceDefault
 	Logger   *zap.Logger
 	Identity ed25519.PrivateKey
