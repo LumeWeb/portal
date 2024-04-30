@@ -20,6 +20,57 @@ const heathCheckStatusMap = {
     "sync.Sync": "SERVING",
     "": "NOT_SERVING",
 };
+const root = new Protobuf.Root();
+
+const SYNC_PROTOCOL = "lumeweb.portal.sync";
+
+const DISCOVERED_BEES = new Map();
+
+const decodeB64 = (str) => Buffer.from(str, "base64");
+const baseToHex = (str) => toHex(Buffer.from(decodeB64(str)));
+const fromHex = (str) => Buffer.from(str, "hex");
+const toHex = (str) => Buffer.from(str).toString("hex");
+
+function objectToLogEntry (obj) {
+    const entry = obj.toJSON();
+
+    entry.hash = baseToHex(entry.hash);
+    entry.proof = toHex(entry.proof);
+    if (entry.multihash) {
+        const multihashRaw = decodeB64(entry.multihash);
+        if (multihashRaw.length > 0) {
+            entry.multihash = b58.encode(Buffer.from(multihashRaw));
+        }
+    } else {
+        entry.multihash = "";
+    }
+    entry.key = baseToHex(entry.key.entropy);
+    entry.size = Number(entry.size);
+
+    for (const slab of entry.slabs) {
+        slab.slab.key = toHex(slab.slab.key.entropy);
+    }
+
+    return entry;
+}
+
+function logEntryToObject (entry) {
+    entry.hash = fromHex(entry.hash);
+    entry.proof = fromHex(entry.proof);
+    if (entry.multihash) {
+        entry.multihash = b58.decode(entry.multihash);
+    } else {
+        entry.multihash = new Buffer();
+    }
+
+    entry.key = { entropy: fromHex(entry.key) };
+
+    for (const slab of entry.slabs) {
+        slab.slab.key = { entropy: fromHex(slab.slab.key) };
+    }
+
+    return root.lookupType("sync.FileMeta").fromObject(entry);
+}
 
 async function main () {
     let foundPort;
@@ -30,7 +81,6 @@ async function main () {
         return;
     }
 
-    const root = new Protobuf.Root();
     root.addJSON(protoBufSpec.nested).resolveAll();
     root.addJSON(stdioSpec.nested).resolveAll();
     const packageDefinition = await protoLoader.loadFileDescriptorSetFromObject(root.toDescriptor());
@@ -64,24 +114,10 @@ async function main () {
             Update (call) {
                 const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);
 
-                const json = req.data.toJSON();
+                const obj = objectToLogEntry(req.data);
 
-                const decodeB64 = (str) => Buffer.from(str, "base64");
-                const baseToHex = (str) => toHex(Buffer.from(decodeB64(str)));
-                const toHex = (str) => Buffer.from(str).toString("hex");
-
-                json.hash = baseToHex(json.hash);
-                json.proof = toHex(json.proof);
-                if (json.multihash) {
-                    const multihashRaw = decodeB64(json.multihash);
-                    if (multihashRaw.length > 0) {
-                        json.multihash = b58.encode(Buffer.from(multihashRaw));
-                    }
-                } else {
-                    json.multihash = "";
-                }
-                json.key = baseToHex(json.key.entropy);
-                json.size = Number(json.size);
+                const aliases = obj.aliases || [];
+                delete obj.aliases;
 
                 for (const slab of json.slabs) {
                     slab.slab.key = toHex(slab.slab.key.entropy);
