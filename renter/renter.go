@@ -18,6 +18,7 @@ import (
 	sia "github.com/LumeWeb/siacentral-api"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
+	autoPilotClient "go.sia.tech/renterd/autopilot"
 	busClient "go.sia.tech/renterd/bus/client"
 	"go.sia.tech/renterd/object"
 	workerClient "go.sia.tech/renterd/worker/client"
@@ -37,12 +38,13 @@ type RenterServiceParams struct {
 }
 
 type RenterDefault struct {
-	busClient    *busClient.Client
-	workerClient *workerClient.Client
-	config       *config.Manager
-	logger       *zap.Logger
-	cron         *cron.CronServiceDefault
-	db           *gorm.DB
+	busClient       *busClient.Client
+	workerClient    *workerClient.Client
+	autoPilotClient *autoPilotClient.Client
+	config          *config.Manager
+	logger          *zap.Logger
+	cron            *cron.CronServiceDefault
+	db              *gorm.DB
 }
 
 type MultiPartUploadParams struct {
@@ -110,6 +112,14 @@ func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket
 	return nil
 }
 
+func (r *RenterDefault) ImportObjectMetadata(ctx context.Context, bucket string, fileName string, object_ object.Object) error {
+	cfg, err := r.autoPilotClient.Config()
+	if err != nil {
+		return err
+	}
+	return r.busClient.AddObject(ctx, bucket, fileName, cfg.Contracts.Set, object_, api.AddObjectOptions{})
+}
+
 func (r *RenterDefault) init() error {
 	addr := r.config.Config().Core.Storage.Sia.URL
 	passwd := r.config.Config().Core.Storage.Sia.Key
@@ -127,6 +137,10 @@ func (r *RenterDefault) init() error {
 	addrURL.Path = "/api/bus"
 
 	r.busClient = busClient.New(addrURL.String(), passwd)
+
+	addrURL.Path = "/api/autopilot"
+
+	r.autoPilotClient = autoPilotClient.NewClient(addrURL.String(), passwd)
 
 	return nil
 }

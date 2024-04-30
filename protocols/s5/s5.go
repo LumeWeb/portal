@@ -264,6 +264,10 @@ func (s *S5Protocol) ValidIdentifier(identifier string) bool {
 	return false
 }
 
+func (s *S5Protocol) StorageProtocol() storage.StorageProtocol {
+	return s
+}
+
 type S5ProviderStore struct {
 	config   *config.Manager
 	logger   *zap.Logger
@@ -313,6 +317,7 @@ func (s S5ProviderStore) Provide(hash *encoding.Multihash, kind []types.StorageL
 
 	return nil, fmt.Errorf("could not provide hash %s for types %v", hashStr, kind)
 }
+
 func calculateExpiry(duration time.Duration) int64 {
 	return time.Now().Add(duration).Unix()
 }
