@@ -63,6 +63,7 @@ func (fm *FileMeta) ToProtobuf() *proto.FileMeta {
 
 	return &proto.FileMeta{
 		Hash:      fm.Hash,
+		Proof:     fm.Proof,
 		Multihash: fm.Multihash,
 		Protocol:  fm.Protocol,
 		Key:       &proto.EncryptionKey{Entropy: key},
