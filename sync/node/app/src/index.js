@@ -47,7 +47,7 @@ setTraceFunction(({ id, caller, object, parentObject }) => {
     })
 })
 
-function objectToLogEntry (obj) {
+function objectToLogEntry(obj) {
     const entry = obj.toJSON();
 
     entry.hash = baseToHex(entry.hash);
@@ -63,31 +63,56 @@ function objectToLogEntry (obj) {
     entry.key = baseToHex(entry.key.entropy);
     entry.size = Number(entry.size);
 
-    for (const slab of entry.slabs) {
-        slab.slab.key = toHex(slab.slab.key.entropy);
+    if (Array.isArray(entry.slabs)) {
+        for (const slab of entry.slabs) {
+            slab.slab.key = `key:${toHex(slab.slab.key.entropy)}`;
+            if (Array.isArray(slab.slab.shards)) {
+                for (const shard of slab.slab.shards) {
+                    shard.root = `h:${shard.root.slice(2)}`;
+                    shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
+
+                    for (const [key, contracts] of Object.entries(shard.contracts)) {
+                        shard.contracts[`ed25519:${key.slice(8)}`] = contracts.map(contract => `fcid:${contract.slice(5)}`);
+                        delete shard.contracts[key];
+                    }
+                }
+            }
+        }
     }
 
     return entry;
 }
 
-function logEntryToObject (entry) {
+function logEntryToObject(entry) {
     entry.hash = fromHex(entry.hash);
     entry.proof = fromHex(entry.proof);
     if (entry.multihash) {
-        entry.multihash = b58.decode(entry.multihash);
+        entry.multihash = b58.decode(entry.multihash).toString('base64');
     } else {
         entry.multihash = new Buffer();
     }
+    entry.key = { entropy: fromHex(entry.key.slice(4)) };
 
-    entry.key = { entropy: fromHex(entry.key) };
+    if (Array.isArray(entry.slabs)) {
+        for (const slab of entry.slabs) {
+            slab.slab.key = { entropy: fromHex(slab.slab.key.slice(4)) };
 
-    for (const slab of entry.slabs) {
-        slab.slab.key = { entropy: fromHex(slab.slab.key) };
+            if (Array.isArray(slab.slab.shards)) {
+                for (const shard of slab.slab.shards) {
+                    shard.root = `h:${shard.root.slice(2)}`;
+                    shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
+
+                    for (const [key, contracts] of Object.entries(shard.contracts)) {
+                        shard.contracts[`ed25519:${key.slice(8)}`] = contracts.map(contract => `fcid:${contract.slice(5)}`);
+                        delete shard.contracts[key];
+                    }
+                }
+            }
+        }
     }
 
     return root.lookupType("sync.FileMeta").fromObject(entry);
 }
-
 async function main () {
     let foundPort;
     try {
