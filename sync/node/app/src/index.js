@@ -196,7 +196,7 @@ async function main () {
                 process.on("SIGTERM", exit);
                 process.on("exit", exit);
 
-                return { discoveryKey: bee.discoveryKey };
+                return { logKey: bee.key };
             },
             Update (call) {
                 const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);

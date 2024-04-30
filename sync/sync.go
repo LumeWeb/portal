@@ -258,7 +258,7 @@ func (s *SyncServiceDefault) init() error {
 		return err
 	}
 
-	s.logKey = ret.GetDiscoveryKey()
+	s.logKey = ret.GetLogKey()
 
 	return nil
 }
