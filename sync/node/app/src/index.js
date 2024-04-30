@@ -163,7 +163,7 @@ async function main () {
                             if (m.length === 32) {
                                 const dKey = toHex(m);
                                 if (!DISCOVERED_BEES.has(dKey)) {
-                                    DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m, sparse: true })));
+                                    DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m })));
                                 }
                             }
                         },
