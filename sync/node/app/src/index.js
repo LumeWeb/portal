@@ -155,6 +155,13 @@ async function main () {
                     mux.pair({ protocol: SYNC_PROTOCOL }, peerHandler.bind(null, conn));
                 });
 
+                async function exit() {
+                    await swarm.destroy();
+                }
+
+                process.on("SIGTERM", exit);
+                process.on("exit", exit);
+
                 return { discoveryKey: bee.discoveryKey };
             },
             Update (call) {
