@@ -15,6 +15,7 @@ import * as b58 from "multiformats/bases/base58";
 import hypercoreCrypto from "hypercore-crypto";
 import Protomux from "protomux";
 import c from "compact-encoding";
+import { setTraceFunction } from 'hypertrace'
 
 let swarm;
 let core;
