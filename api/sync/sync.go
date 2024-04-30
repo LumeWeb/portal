@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"net/http"
 
@@ -27,6 +28,8 @@ var (
 type SyncAPI struct {
 	config      *config.Manager
 	syncService *sync.SyncServiceDefault
+	identity    ed25519.PrivateKey
+	accounts    *account.AccountServiceDefault
 }
 
 func (s *SyncAPI) Init() error {
@@ -62,9 +65,19 @@ func (s *SyncAPI) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SyncAPI) Routes() (*httprouter.Router, error) {
+
+	authMiddlewareOpts := middleware.AuthMiddlewareOptions{
+		Identity: s.identity,
+		Accounts: s.accounts,
+		Config:   s.config,
+		Purpose:  account.JWTPurposeLogin,
+	}
+
+	authMw := middleware.AuthMiddleware(authMiddlewareOpts)
+
 	routes := map[string]jape.Handler{
-		"GET /api/log/key": middleware.ApplyMiddlewares(s.logKey, middleware.ProxyMiddleware),
-		"POST /api/import": middleware.ApplyMiddlewares(s.objectImport, middleware.ProxyMiddleware),
+		"GET /api/log/key": middleware.ApplyMiddlewares(s.logKey, middleware.ProxyMiddleware, authMw),
+		"POST /api/import": middleware.ApplyMiddlewares(s.objectImport, middleware.ProxyMiddleware, authMw),
 	}
 
 	return jape.Mux(routes), nil
@@ -85,7 +98,9 @@ func (s *SyncAPI) objectImport(jc jape.Context) {
 		return
 	}
 
-	err := s.syncService.Import(req.Object)
+	user := middleware.GetUserFromContext(jc.Request.Context())
+
+	err := s.syncService.Import(req.Object, uint64(user))
 
 	if err != nil {
 		_ = jc.Error(err, http.StatusBadRequest)
@@ -105,10 +120,17 @@ type APIParams struct {
 	fx.In
 	Config      *config.Manager
 	SyncService *sync.SyncServiceDefault
+	Identity    ed25519.PrivateKey
+	Accounts    *account.AccountServiceDefault
 }
 
 func NewSync(params APIParams) SyncApiResult {
-	api := &SyncAPI{config: params.Config, syncService: params.SyncService}
+	api := &SyncAPI{
+		config:      params.Config,
+		syncService: params.SyncService,
+		identity:    params.Identity,
+		accounts:    params.Accounts,
+	}
 
 	return SyncApiResult{
 		API:     api,

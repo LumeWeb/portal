@@ -55,6 +55,7 @@ type SyncProtocol interface {
 	Name() string
 	EncodeFileName([]byte) string
 	ValidIdentifier(string) bool
+	StorageProtocol() storage.StorageProtocol
 }
 
 var Module = fx.Module("sync",
@@ -88,12 +89,17 @@ func NewSyncServiceDefault(params SyncServiceParams) *SyncServiceDefault {
 
 func (s *SyncServiceDefault) RegisterTasks(crn cron.CronService) error {
 	crn.RegisterTask(cronTaskVerifyObjectName, s.cronTaskVerifyObject, cron.TaskDefinitionOneTimeJob, cronTaskVerifyObjectArgsFactory)
+	crn.RegisterTask(cronTaskUploadObjectName, s.cronTaskUploadObject, cron.TaskDefinitionOneTimeJob, cronTaskUploadObjectArgsFactory)
 
 	return nil
 }
 
 func (s *SyncServiceDefault) cronTaskVerifyObject(args any) error {
 	return cronTaskVerifyObject(args.(*cronTaskVerifyObjectArgs), s)
+}
+
+func (s *SyncServiceDefault) cronTaskUploadObject(args any) error {
+	return cronTaskUploadObject(args.(*cronTaskUploadObjectArgs), s)
 }
 
 func (s *SyncServiceDefault) ScheduleJobs(crn cron.CronService) error {
@@ -151,7 +157,7 @@ func (s *SyncServiceDefault) LogKey() []byte {
 	return s.logKey
 }
 
-func (s *SyncServiceDefault) Import(object string) error {
+func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 	protos := registry.GetAllProtocols()
 	ctx := context.Background()
 	for _, proto := range protos {
@@ -177,7 +183,7 @@ func (s *SyncServiceDefault) Import(object string) error {
 				metaDeref = append(metaDeref, *m)
 			}
 
-			err = s.cron.CreateJobIfNotExists(cronTaskVerifyObjectName, cronTaskVerifyObjectArgs{Object: metaDeref}, []string{object})
+			err = s.cron.CreateJobIfNotExists(cronTaskVerifyObjectName, cronTaskVerifyObjectArgs{Object: metaDeref, UploaderID: uploaderID}, []string{object})
 			if err != nil {
 				return err
 			}
