@@ -20,6 +20,9 @@ importers:
       '@noble/curves':
         specifier: ^1.4.0
         version: 1.4.0
+      compact-encoding:
+        specifier: ^2.15.0
+        version: 2.15.0
       corestore:
         specifier: ^6.18.2
         version: 6.18.2
@@ -50,6 +53,9 @@ importers:
       protobufjs:
         specifier: ^7.2.6
         version: 7.2.6
+      protomux:
+        specifier: ^3.5.2
+        version: 3.5.2
     devDependencies:
       grpc-tools:
         specifier: ^1.12.4
