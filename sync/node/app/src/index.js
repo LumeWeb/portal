@@ -38,6 +38,15 @@ const baseToHex = (str) => toHex(Buffer.from(decodeB64(str)));
 const fromHex = (str) => Buffer.from(str, "hex");
 const toHex = (str) => Buffer.from(str).toString("hex");
 
+setTraceFunction(({ id, caller, object, parentObject }) => {
+    console.log({
+        id,
+        caller,
+        object,
+        parentObject,
+    })
+})
+
 function objectToLogEntry (obj) {
     const entry = obj.toJSON();
 
