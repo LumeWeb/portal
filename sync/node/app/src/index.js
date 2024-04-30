@@ -162,7 +162,7 @@ async function main () {
             },
             async Query (call) {
                 const req = root.lookupType("sync.QueryRequest").fromObject(call.request);
-                const key = req.key;
+                const keys = req.keys;
 
                 const resolveAlias = async (bee, key) => {
                     try {
@@ -206,13 +206,25 @@ async function main () {
                 };
 
                 try {
-                    const values = await searchHyperbees(key);
-                    if (values.length > 0) {
-                        const data = values.map(value => logEntryToObject(value).toObject());
-                        return { data };
-                    } else {
-                        return { data: [] };
+                    const uniqueEntries = [];
+                    const data = [];
+
+                    for (const key of keys) {
+                        const values = await searchHyperbees(key);
+                        if (values.length > 0) {
+                            const entries = values.map(value => logEntryToObject(value).toObject());
+                            entries.forEach(entry => {
+                                // Check if the entry is already present in uniqueEntries using deepEqual()
+                                const isDuplicate = uniqueEntries.some(uniqueEntry => deepEqual(entry, uniqueEntry));
+                                if (!isDuplicate) {
+                                    uniqueEntries.push(entry);
+                                    data.push(entry);
+                                }
+                            });
+                        }
                     }
+
+                    return { data };
                 } catch (err) {
                     console.error(err);
                     return { data: [] };
