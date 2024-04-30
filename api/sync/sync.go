@@ -64,6 +64,7 @@ func (s *SyncAPI) Handle(w http.ResponseWriter, r *http.Request) {
 func (s *SyncAPI) Routes() (*httprouter.Router, error) {
 	routes := map[string]jape.Handler{
 		"GET /api/log/key": middleware.ApplyMiddlewares(s.logKey, middleware.ProxyMiddleware),
+		"POST /api/import": middleware.ApplyMiddlewares(s.objectImport, middleware.ProxyMiddleware),
 	}
 
 	return jape.Mux(routes), nil
@@ -75,6 +76,23 @@ func (s *SyncAPI) logKey(jc jape.Context) {
 	jc.Encode(&LogKeyResponse{
 		Key: keyHex,
 	})
+}
+
+func (s *SyncAPI) objectImport(jc jape.Context) {
+	var req ObjectImportRequest
+
+	if err := jc.Decode(&req); err != nil {
+		return
+	}
+
+	err := s.syncService.Import(req.Object)
+
+	if err != nil {
+		_ = jc.Error(err, http.StatusBadRequest)
+		return
+	}
+
+	jc.ResponseWriter.WriteHeader(http.StatusOK)
 }
 
 type SyncApiResult struct {
