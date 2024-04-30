@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/LumeWeb/portal/cron"
+
 	"github.com/LumeWeb/portal/storage"
 
 	"github.com/hashicorp/go-plugin"
@@ -21,6 +23,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var _ cron.CronableService = (*SyncServiceDefault)(nil)
+
 //go:generate bash -c "cd proto && buf generate"
 
 type SyncServiceDefault struct {
@@ -28,6 +32,7 @@ type SyncServiceDefault struct {
 	renter     *renter.RenterDefault
 	metadata   metadata.MetadataService
 	storage    *storage.StorageServiceDefault
+	cron       *cron.CronServiceDefault
 	logger     *zap.Logger
 	grpcClient *plugin.Client
 	grpcPlugin sync
@@ -41,6 +46,7 @@ type SyncServiceParams struct {
 	Renter   *renter.RenterDefault
 	Metadata metadata.MetadataService
 	Storage  *storage.StorageServiceDefault
+	Cron     *cron.CronServiceDefault
 	Logger   *zap.Logger
 	Identity ed25519.PrivateKey
 }
@@ -72,11 +78,26 @@ func NewSyncServiceDefault(params SyncServiceParams) *SyncServiceDefault {
 	return &SyncServiceDefault{
 		config:   params.Config,
 		renter:   params.Renter,
-		storage:  params.Storage,
 		metadata: params.Metadata,
+		storage:  params.Storage,
+		cron:     params.Cron,
 		logger:   params.Logger,
 		identity: params.Identity,
 	}
+}
+
+func (s *SyncServiceDefault) RegisterTasks(crn cron.CronService) error {
+	crn.RegisterTask(cronTaskVerifyObjectName, s.cronTaskVerifyObject, cron.TaskDefinitionOneTimeJob, cronTaskVerifyObjectArgsFactory)
+
+	return nil
+}
+
+func (s *SyncServiceDefault) cronTaskVerifyObject(args any) error {
+	return cronTaskVerifyObject(args.(*cronTaskVerifyObjectArgs), s)
+}
+
+func (s *SyncServiceDefault) ScheduleJobs(crn cron.CronService) error {
+	return nil
 }
 
 func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
@@ -169,6 +190,8 @@ func (s *SyncServiceDefault) Import(object string) error {
 }
 
 func (s *SyncServiceDefault) init() error {
+	s.cron.RegisterService(s)
+
 	/*temp, err := os.CreateTemp(os.TempDir(), "sync")
 	  if err != nil {
 	  	return err
