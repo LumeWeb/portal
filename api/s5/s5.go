@@ -547,6 +547,13 @@ func (s *S5API) smallFileUpload(jc jape.Context) {
 		return
 	}
 
+	err2 = s.sync.Update(*newUpload)
+
+	if err2 != nil {
+		s.sendErrorResponse(jc, NewS5Error(ErrKeyFileUploadFailed, err2))
+		return
+	}
+
 	jc.Encode(&SmallUploadResponse{
 		CID: cidStr,
 	})
