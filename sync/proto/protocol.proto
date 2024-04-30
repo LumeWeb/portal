@@ -64,7 +64,16 @@ message FileContractID {
     bytes id = 1;
 }
 
+message QueryRequest {
+    repeated string keys = 1;
+}
+
+message QueryResponse {
+    repeated FileMeta data = 1;
+}
+
 service Sync {
     rpc Init(InitRequest) returns (InitResponse) {}
     rpc Update(UpdateRequest) returns (UpdateResponse) {}
+    rpc Query(QueryRequest) returns (QueryResponse) {}
 }
