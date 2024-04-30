@@ -76,7 +76,7 @@ func (s *SyncAPI) Routes() (*httprouter.Router, error) {
 	authMw := authMiddleware(authMiddlewareOpts)
 
 	routes := map[string]jape.Handler{
-		"GET /api/log/key": middleware.ApplyMiddlewares(s.logKey, middleware.ProxyMiddleware, authMw),
+		"GET /api/log/key": middleware.ApplyMiddlewares(s.logKey, middleware.ProxyMiddleware),
 		"POST /api/import": middleware.ApplyMiddlewares(s.objectImport, middleware.ProxyMiddleware, authMw),
 	}
 
