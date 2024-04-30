@@ -102,7 +102,7 @@ async function main () {
             async Init (call) {
                 const request = call.request;
                 const privateKey = request.privateKey;
-                const pubKey = ed25519.getPublicKey(privateKey.slice(32));
+                const pubKey = ed25519.getPublicKey(privateKey.slice(0, 32));
                 const keyPair = {
                     publicKey: pubKey,
                     secretKey: privateKey,
