@@ -14,6 +14,7 @@ var _ sync = (*syncGRPC)(nil)
 type sync interface {
 	Init(privateKey ed25519.PrivateKey) (*proto.InitResponse, error)
 	Update(meta FileMeta) error
+	Query(keys []string) ([]*FileMeta, error)
 }
 
 type syncGrpcPlugin struct {
@@ -54,4 +55,28 @@ func (b *syncGRPC) Update(meta FileMeta) error {
 	}
 
 	return nil
+}
+
+func (b *syncGRPC) Query(keys []string) ([]*FileMeta, error) {
+	ret, err := b.client.Query(context.Background(), &proto.QueryRequest{Keys: keys})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if ret == nil || len(ret.Data) == 0 {
+		return nil, nil
+	}
+
+	meta := make([]*FileMeta, len(ret.Data))
+
+	for _, data := range ret.Data {
+		fileMeta, err := FileMetaFromProtobuf(data)
+		if err != nil {
+			return nil, err
+		}
+		meta = append(meta, fileMeta)
+	}
+
+	return meta, nil
 }

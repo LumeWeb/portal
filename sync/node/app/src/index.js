@@ -159,7 +159,65 @@ async function main () {
 
                 return {};
             },
-        }),
+            async Query (call) {
+                const req = root.lookupType("sync.QueryRequest").fromObject(call.request);
+                const key = req.key;
+
+                const resolveAlias = async (bee, key) => {
+                    try {
+                        const value = await bee.get(key);
+                        if (value) {
+                            if (typeof value === "string") {
+                                // Value is an alias/pointer within the same Hyperbee, recursively search for the actual value
+                                return await resolveAlias(bee, value);
+                            } else {
+                                // Value is not an alias/pointer, return it as is
+                                return value;
+                            }
+                        } else {
+                            return null;
+                        }
+                    } catch (err) {
+                        return null;
+                    }
+                };
+
+                const searchHyperbees = async (key) => {
+                    const foundEntries = [];
+
+                    // Search the local Hyperbee
+                    const localValue = await resolveAlias(bee, key);
+                    if (localValue) {
+                        foundEntries.push(localValue);
+                    }
+
+                    // Search the discovered Hyperbees
+                    for (const bee of DISCOVERED_BEES.values()) {
+                        await bee.ready();
+
+                        const remoteValue = await resolveAlias(bee, key);
+                        if (remoteValue) {
+                            foundEntries.push(remoteValue);
+                        }
+                    }
+
+                    return foundEntries;
+                };
+
+                try {
+                    const values = await searchHyperbees(key);
+                    if (values.length > 0) {
+                        const data = values.map(value => logEntryToObject(value).toObject());
+                        return { data };
+                    } else {
+                        return { data: [] };
+                    }
+                } catch (err) {
+                    console.error(err);
+                    return { data: [] };
+                }
+            }
+        })
     );
     server.addService(syncPackage.plugin.GRPCStdio.service, prepareServiceImpl({
         StreamStdio (call) {
