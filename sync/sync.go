@@ -60,7 +60,7 @@ type SyncProtocol interface {
 
 var Module = fx.Module("sync",
 	fx.Options(
-		fx.Provide(NewSyncServiceDefault),
+		fx.Provide(NewSyncService),
 		fx.Invoke(func(lifecycle fx.Lifecycle, service *SyncServiceDefault) error {
 			lifecycle.Append(fx.Hook{
 				OnStart: func(context.Context) error {
@@ -75,7 +75,7 @@ var Module = fx.Module("sync",
 	),
 )
 
-func NewSyncServiceDefault(params SyncServiceParams) *SyncServiceDefault {
+func NewSyncService(params SyncServiceParams) *SyncServiceDefault {
 	return &SyncServiceDefault{
 		config:   params.Config,
 		renter:   params.Renter,
