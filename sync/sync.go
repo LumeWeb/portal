@@ -26,6 +26,7 @@ import (
 type SyncServiceDefault struct {
 	config     *config.Manager
 	renter     *renter.RenterDefault
+	metadata   metadata.MetadataService
 	storage    *storage.StorageServiceDefault
 	logger     *zap.Logger
 	grpcClient *plugin.Client
@@ -38,6 +39,7 @@ type SyncServiceParams struct {
 	fx.In
 	Config   *config.Manager
 	Renter   *renter.RenterDefault
+	Metadata metadata.MetadataService
 	Storage  *storage.StorageServiceDefault
 	Logger   *zap.Logger
 	Identity ed25519.PrivateKey
@@ -71,6 +73,7 @@ func NewSyncServiceDefault(params SyncServiceParams) *SyncServiceDefault {
 		config:   params.Config,
 		renter:   params.Renter,
 		storage:  params.Storage,
+		metadata: params.Metadata,
 		logger:   params.Logger,
 		identity: params.Identity,
 	}
@@ -125,6 +128,44 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 
 func (s *SyncServiceDefault) LogKey() []byte {
 	return s.logKey
+}
+
+func (s *SyncServiceDefault) Import(object string) error {
+	protos := registry.GetAllProtocols()
+	ctx := context.Background()
+	for _, proto := range protos {
+		syncProto, ok := proto.(SyncProtocol)
+		if !ok {
+			continue
+		}
+
+		if syncProto.ValidIdentifier(object) {
+			meta, err := s.grpcPlugin.Query([]string{object})
+
+			if err != nil {
+				return err
+			}
+
+			upload, err := s.metadata.GetUpload(ctx, meta[0].Hash)
+			if err == nil || !upload.IsEmpty() {
+				return errors.New("object already exists")
+			}
+
+			metaDeref := make([]FileMeta, len(meta))
+			for _, m := range meta {
+				metaDeref = append(metaDeref, *m)
+			}
+
+			err = s.cron.CreateJobIfNotExists(cronTaskVerifyObjectName, cronTaskVerifyObjectArgs{Object: metaDeref}, []string{object})
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}
+	}
+
+	return errors.New("invalid object")
 }
 
 func (s *SyncServiceDefault) init() error {
