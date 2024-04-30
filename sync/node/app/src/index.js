@@ -15,6 +15,7 @@ import * as b58 from "multiformats/bases/base58";
 import hypercoreCrypto from "hypercore-crypto";
 import Protomux from "protomux";
 import c from "compact-encoding";
+import b4a from "b4a";
 import { setTraceFunction } from 'hypertrace'
 
 let swarm;
@@ -116,30 +117,42 @@ async function main () {
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
                 swarm.join(hypercoreCrypto.hash(Buffer.from(SYNC_PROTOCOL)));
+
+                const peerHandler = (conn) => {
+                    const sync = Protomux.from(conn).createChannel({
+                        protocol: SYNC_PROTOCOL,
+                    });
+
+                    const sendKey = sync.addMessage({
+                        encoding: c.raw,
+                        onmessage (m) {
+                            if (m.length === 32) {
+                                const dKey = toHex(m);
+                                if (!DISCOVERED_BEES.has(dKey)) {
+                                    DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m, sparse: true })));
+                                }
+                            }
+                        },
+                    });
+
+                    sync.open();
+                    sendKey.send(core.key);
+                }
+
+
                 swarm.on("connection", conn => bee.replicate(conn));
                 swarm.on("connection", conn => store.replicate(conn));
                 swarm.on("connection", (conn) => {
                     const mux = Protomux.from(conn);
-                    mux.pair({ protocol: SYNC_PROTOCOL }, () => {
-                        const sync = mux.createChannel({
-                            protocol: SYNC_PROTOCOL,
-                        });
+                    if (b4a.equals(swarm.keyPair.publicKey, mux.stream.remotePublicKey)) {
+                        return;
+                    }
+                    if (mux.stream.isInitiator) {
+                        peerHandler(conn);
+                        return;
+                    }
 
-                        const sendKey = sync.addMessage({
-                            encoding: c.raw,
-                            onmessage (m) {
-                                if (c.raw.length === 32) {
-                                    const dKey = toHex(m);
-                                    if (!DISCOVERED_BEES.has(dKey)) {
-                                        DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m, sparse: true })));
-                                    }
-                                }
-                            },
-                        });
-
-                        sync.open();
-                        sendKey.send(core.key);
-                    });
+                    mux.pair({ protocol: SYNC_PROTOCOL }, peerHandler.bind(null, conn));
                 });
 
                 return { discoveryKey: bee.discoveryKey };
