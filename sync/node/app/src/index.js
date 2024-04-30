@@ -8,12 +8,14 @@ import Protobuf from "protobufjs";
 import { ReflectionService } from "@grpc/reflection";
 import Hyperswarm from "hyperswarm";
 import Hypercore from "hypercore";
+import Corestore from "corestore";
 import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
 import * as b58 from "multiformats/bases/base58";
 
 let swarm;
 let core;
+let store;
 let bee;
 
 const heathCheckStatusMap = {
@@ -105,10 +107,12 @@ async function main () {
                 bee = new Hyperbee(core, { keyEncoding: "utf-8", valueEncoding: "json" });
                 await bee.ready();
 
+                store = new Corestore("./data");
+
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
                 swarm.on("connection", conn => bee.replicate(conn));
-
+                swarm.on("connection", conn => store.replicate(conn));
                 return { discoveryKey: bee.discoveryKey };
             },
             Update (call) {
