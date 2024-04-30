@@ -132,6 +132,7 @@ func (r *RenterDefault) init() error {
 }
 
 func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+	fileName = "/" + strings.TrimLeft(fileName, "/")
 	return r.workerClient.GetObject(ctx, bucket, fileName, options)
 }
 
