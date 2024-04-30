@@ -125,17 +125,10 @@ async function main () {
                 const aliases = obj.aliases || [];
                 delete obj.aliases;
 
-                for (const slab of json.slabs) {
-                    slab.slab.key = toHex(slab.slab.key.entropy);
-                }
-
-                const aliases = json.aliases || [];
-                delete json.aliases;
-
-                bee.put(json.hash, json);
+                bee.put(obj.hash, obj);
 
                 for (const alias of aliases) {
-                    bee.put(alias, req);
+                    bee.put(alias, obj.hash);
                 }
 
                 return {};
