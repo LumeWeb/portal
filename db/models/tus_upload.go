@@ -11,7 +11,7 @@ type TusUpload struct {
 	gorm.Model
 	Hash       []byte `gorm:"type:binary(32);"`
 	MimeType   string
-	UploadID   string `gorm:"uniqueIndex"`
+	UploadID   string `gorm:"type:varchar(500);uniqueIndex"`
 	UploaderID uint
 	UploaderIP string
 	Uploader   User `gorm:"foreignKey:UploaderID"`
