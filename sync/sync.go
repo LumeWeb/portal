@@ -173,6 +173,10 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 				return err
 			}
 
+			if len(meta) == 0 {
+				return errors.New("object not found")
+			}
+
 			upload, err := s.metadata.GetUpload(ctx, meta[0].Hash)
 			if err == nil || !upload.IsEmpty() {
 				return errors.New("object already exists")
