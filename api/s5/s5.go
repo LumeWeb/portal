@@ -557,10 +557,12 @@ func (s *S5API) prepareFileUpload(jc jape.Context) (file io.ReadSeekCloser, size
 			return nil, size, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
 
-		multipartFile, _, err := r.FormFile("file")
+		multipartFile, multipartHeader, err := r.FormFile("file")
 		if err != nil {
 			return nil, size, NewS5Error(ErrKeyFileUploadFailed, err)
 		}
+
+		size = uint64(multipartHeader.Size)
 
 		return multipartFile, size, nil
 	}
