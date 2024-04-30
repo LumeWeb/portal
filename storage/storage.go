@@ -295,7 +295,7 @@ func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol Stor
 }
 
 func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) (io.ReadCloser, error) {
-	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash)+".bao", api.DownloadObjectOptions{})
+	object, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), api.DownloadObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
