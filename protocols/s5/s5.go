@@ -4,9 +4,13 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"time"
+
+	"github.com/LumeWeb/portal/sync"
 
 	"github.com/LumeWeb/portal/config"
 	"golang.org/x/crypto/hkdf"
@@ -31,6 +35,7 @@ import (
 var (
 	_ s5storage.ProviderStore = (*S5ProviderStore)(nil)
 	_ registry.Protocol       = (*S5Protocol)(nil)
+	_ sync.SyncProtocol       = (*S5Protocol)(nil)
 	_ storage.StorageProtocol = (*S5Protocol)(nil)
 )
 
@@ -229,6 +234,34 @@ func (s *S5Protocol) EncodeFileName(bytes []byte) string {
 	}
 
 	return hash
+}
+
+func (s *S5Protocol) ValidIdentifier(identifier string) bool {
+	hash, err := encoding.MultihashFromBase64Url(identifier)
+
+	if err == nil {
+		return hash.FunctionType() == types.HashTypeBlake3
+	}
+
+	cid, err := encoding.CIDFromString(identifier)
+
+	if err == nil {
+		return cid.Hash.FunctionType() == types.HashTypeBlake3
+	}
+
+	_, err = base64.RawURLEncoding.DecodeString(identifier)
+
+	if err == nil {
+		return true
+	}
+
+	_, err = hex.DecodeString(identifier)
+
+	if err == nil {
+		return true
+	}
+
+	return false
 }
 
 type S5ProviderStore struct {
