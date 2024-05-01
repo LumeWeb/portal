@@ -237,14 +237,14 @@ func (s *S5Protocol) EncodeFileName(bytes []byte) string {
 }
 
 func (s *S5Protocol) ValidIdentifier(identifier string) bool {
-	_, err := hex.DecodeString(identifier)
-	if err == nil {
+	ret, err := hex.DecodeString(identifier)
+	if err == nil && len(ret) == 32 {
 		return true
 	}
 
-	_, err = base64.RawURLEncoding.DecodeString(identifier)
+	ret, err = base64.RawURLEncoding.DecodeString(identifier)
 
-	if err == nil {
+	if err == nil && len(ret) == 32 {
 		hash, err := encoding.MultihashFromBase64Url(identifier)
 
 		if err == nil {
@@ -258,9 +258,9 @@ func (s *S5Protocol) ValidIdentifier(identifier string) bool {
 		return cid.Hash.FunctionType() == types.HashTypeBlake3
 	}
 
-	_, err = base64.RawURLEncoding.DecodeString(identifier)
+	ret, err = base64.RawURLEncoding.DecodeString(identifier)
 
-	if err == nil {
+	if err == nil && len(ret) == 32 {
 		return true
 	}
 
