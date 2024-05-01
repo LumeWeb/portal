@@ -217,13 +217,13 @@ async function main () {
                 const resolveAlias = async (bee, key) => {
                     try {
                         const value = await bee.get(key);
-                        if (value) {
-                            if (typeof value === "string") {
+                        if (value?.value) {
+                            if (typeof value?.value === "string") {
                                 // Value is an alias/pointer within the same Hyperbee, recursively search for the actual value
-                                return await resolveAlias(bee, value);
+                                return await resolveAlias(bee, value?.value);
                             } else {
                                 // Value is not an alias/pointer, return it as is
-                                return value;
+                                return value?.value;
                             }
                         } else {
                             return null;
