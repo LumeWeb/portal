@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -72,7 +73,12 @@ func cronTaskVerifyObject(args *cronTaskVerifyObjectArgs, sync *SyncServiceDefau
 	success := false
 
 	for _, object_ := range args.Object {
-		fileName, err := encodeProtocolFileName(args.Hash, object_.Protocol)
+		if !bytes.Equal(object_.Hash, args.Hash) {
+			sync.logger.Error("hash mismatch", zap.Binary("expected", args.Hash), zap.Binary("actual", object_.Hash))
+			continue
+		}
+
+		fileName, err := encodeProtocolFileName(object_.Hash, object_.Protocol)
 		if err != nil {
 			sync.logger.Error("failed to encode protocol file name", zap.Error(err))
 			return err
