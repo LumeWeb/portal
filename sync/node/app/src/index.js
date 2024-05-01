@@ -7,7 +7,6 @@ import stdioSpec from "./generated/grpc_stdio.json" with { type: "json" };
 import Protobuf from "protobufjs";
 import { ReflectionService } from "@grpc/reflection";
 import Hyperswarm from "hyperswarm";
-import Hypercore from "hypercore";
 import Corestore from "corestore";
 import Hyperbee from "hyperbee";
 import { ed25519 } from "@noble/curves/ed25519";
@@ -19,7 +18,6 @@ import b4a from "b4a";
 import { setTraceFunction } from 'hypertrace'
 
 let swarm;
-let core;
 let store;
 let bee;
 
@@ -142,11 +140,10 @@ async function main () {
                     secretKey: privateKey,
                 };
 
-                core = new Hypercore("./data", { keyPair });
-                bee = new Hyperbee(core, { keyEncoding: "utf-8", valueEncoding: "json" });
-                await bee.ready();
-
                 store = new Corestore("./data");
+                await store.ready();
+                bee = new Hyperbee(store.get({ keyPair }), { ...encoding });
+                await bee.ready();
 
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
@@ -163,16 +160,15 @@ async function main () {
                             if (m.length === 32) {
                                 const dKey = toHex(m);
                                 if (!DISCOVERED_BEES.has(dKey)) {
-                                    DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m })));
+                                    DISCOVERED_BEES.set(dKey, new Hyperbee(store.get({ key: m }), { ...encoding }));
                                 }
                             }
                         },
                     });
 
                     sync.open();
-                    sendKey.send(core.key);
-                }
-
+                    sendKey.send(bee.key);
+                };
 
                 swarm.on("connection", conn => bee.replicate(conn));
                 swarm.on("connection", conn => store.replicate(conn));
