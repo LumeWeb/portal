@@ -267,6 +267,30 @@ func (s *S5Protocol) ValidIdentifier(identifier string) bool {
 	return false
 }
 
+func (s *S5Protocol) HashFromIdentifier(identifier string) ([]byte, error) {
+	ret, err := hex.DecodeString(identifier)
+	if err == nil && len(ret) == 32 {
+		return ret, nil
+	}
+
+	ret, err = base64.RawURLEncoding.DecodeString(identifier)
+	if err == nil && len(ret) == 32 {
+		return ret, nil
+	}
+
+	hash, err := encoding.MultihashFromBase64Url(identifier)
+	if err == nil {
+		return hash.HashBytes(), nil
+	}
+
+	cid, err := encoding.CIDFromString(identifier)
+	if err == nil {
+		return cid.Hash.HashBytes(), nil
+	}
+
+	return nil, fmt.Errorf("invalid identifier")
+}
+
 func (s *S5Protocol) StorageProtocol() storage.StorageProtocol {
 	return s
 }
