@@ -65,7 +65,7 @@ function objectToLogEntry (obj) {
 
     if (Array.isArray(entry.slabs)) {
         for (const slab of entry.slabs) {
-            slab.slab.key = `key:${toHex(slab.slab.key.entropy)}`;
+            slab.slab.key = `key:${baseToHex(slab.slab.key.entropy)}`;
             if (Array.isArray(slab.slab.shards)) {
                 for (const shard of slab.slab.shards) {
                     shard.root = `h:${shard.root.slice(2)}`;
