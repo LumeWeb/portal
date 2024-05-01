@@ -15,7 +15,7 @@ import hypercoreCrypto from "hypercore-crypto";
 import Protomux from "protomux";
 import c from "compact-encoding";
 import b4a from "b4a";
-import { setTraceFunction } from 'hypertrace'
+import { setTraceFunction } from "hypertrace";
 
 let swarm;
 let store;
@@ -44,10 +44,10 @@ setTraceFunction(({ id, caller, object, parentObject }) => {
         caller,
         object,
         parentObject,
-    })
-})
+    });
+});
 
-function objectToLogEntry(obj) {
+function objectToLogEntry (obj) {
     const entry = obj.toJSON();
 
     entry.hash = baseToHex(entry.hash);
@@ -83,11 +83,11 @@ function objectToLogEntry(obj) {
     return entry;
 }
 
-function logEntryToObject(entry) {
+function logEntryToObject (entry) {
     entry.hash = fromHex(entry.hash);
     entry.proof = fromHex(entry.proof);
     if (entry.multihash) {
-        entry.multihash = b58.decode(entry.multihash).toString('base64');
+        entry.multihash = b58.decode(entry.multihash).toString("base64");
     } else {
         entry.multihash = Buffer.from([]);
     }
@@ -113,6 +113,7 @@ function logEntryToObject(entry) {
 
     return root.lookupType("sync.FileMeta").fromObject(entry);
 }
+
 async function main () {
     let foundPort;
     try {
@@ -187,7 +188,7 @@ async function main () {
                     mux.pair({ protocol: SYNC_PROTOCOL }, peerHandler.bind(null, conn));
                 });
 
-                async function exit() {
+                async function exit () {
                     await swarm.destroy();
                 }
 
@@ -281,8 +282,8 @@ async function main () {
                     console.error(err);
                     return { data: [] };
                 }
-            }
-        })
+            },
+        }),
     );
     server.addService(syncPackage.plugin.GRPCStdio.service, prepareServiceImpl({
         StreamStdio (call) {
