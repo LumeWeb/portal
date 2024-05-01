@@ -68,7 +68,7 @@ func (b *syncGRPC) Query(keys []string) ([]*FileMeta, error) {
 		return nil, nil
 	}
 
-	meta := make([]*FileMeta, len(ret.Data))
+	meta := make([]*FileMeta, 0)
 
 	for _, data := range ret.Data {
 		fileMeta, err := FileMetaFromProtobuf(data)
