@@ -262,7 +262,7 @@ async function main () {
                     for (const key of keys) {
                         const values = await searchHyperbees(key);
                         if (values.length > 0) {
-                            const entries = values.map(value => logEntryToObject(value).toObject());
+                            const entries = values.map(value => root.lookupType("sync.FileMeta").toObject(logEntryToObject(value)));
                             entries.forEach(entry => {
                                 // Check if the entry is already present in uniqueEntries using deepEqual()
                                 const isDuplicate = uniqueEntries.some(uniqueEntry => deepEqual(entry, uniqueEntry));
