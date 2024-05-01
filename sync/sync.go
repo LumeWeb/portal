@@ -55,6 +55,7 @@ type SyncProtocol interface {
 	Name() string
 	EncodeFileName([]byte) string
 	ValidIdentifier(string) bool
+	HashFromIdentifier(string) ([]byte, error)
 	StorageProtocol() storage.StorageProtocol
 }
 
@@ -167,6 +168,10 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 		}
 
 		if syncProto.ValidIdentifier(object) {
+			hash, err := syncProto.HashFromIdentifier(object)
+			if err != nil {
+				return err
+			}
 			meta, err := s.grpcPlugin.Query([]string{object})
 
 			if err != nil {
@@ -177,7 +182,7 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 				return errors.New("object not found")
 			}
 
-			upload, err := s.metadata.GetUpload(ctx, meta[0].Hash)
+			upload, err := s.metadata.GetUpload(ctx, hash)
 			if err == nil || !upload.IsEmpty() {
 				return errors.New("object already exists")
 			}

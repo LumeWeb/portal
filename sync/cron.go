@@ -21,6 +21,7 @@ const cronTaskUploadObjectName = "SyncUploadObject"
 const syncBucketName = "sync"
 
 type cronTaskVerifyObjectArgs struct {
+	Hash       []byte     `json:"hash"`
 	Object     []FileMeta `json:"object"`
 	UploaderID uint64     `json:"uploader_id"`
 }
@@ -71,7 +72,7 @@ func cronTaskVerifyObject(args *cronTaskVerifyObjectArgs, sync *SyncServiceDefau
 	success := false
 
 	for _, object_ := range args.Object {
-		fileName, err := encodeProtocolFileName(object_.Hash, object_.Protocol)
+		fileName, err := encodeProtocolFileName(args.Hash, object_.Protocol)
 		if err != nil {
 			sync.logger.Error("failed to encode protocol file name", zap.Error(err))
 			return err
