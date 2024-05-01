@@ -182,7 +182,7 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 				return errors.New("object already exists")
 			}
 
-			metaDeref := make([]FileMeta, len(meta))
+			metaDeref := make([]FileMeta, 0)
 			for _, m := range meta {
 				metaDeref = append(metaDeref, *m)
 			}
