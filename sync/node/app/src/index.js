@@ -58,7 +58,7 @@ function objectToLogEntry(obj) {
     } else {
         entry.multihash = "";
     }
-    entry.key = baseToHex(entry.key.entropy);
+    entry.key = `key:${baseToHex(entry.key.entropy)}`;
     entry.size = Number(entry.size);
 
     if (Array.isArray(entry.slabs)) {
