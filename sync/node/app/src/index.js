@@ -87,7 +87,7 @@ function logEntryToObject(entry) {
     if (entry.multihash) {
         entry.multihash = b58.decode(entry.multihash).toString('base64');
     } else {
-        entry.multihash = new Buffer();
+        entry.multihash = Buffer.from([]);
     }
     entry.key = { entropy: fromHex(entry.key.slice(4)) };
 
