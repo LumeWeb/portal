@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"io"
 
@@ -72,6 +73,8 @@ func cronTaskVerifyObject(args *cronTaskVerifyObjectArgs, sync *SyncServiceDefau
 
 	success := false
 
+	var foundObject FileMeta
+
 	for _, object_ := range args.Object {
 		if !bytes.Equal(object_.Hash, args.Hash) {
 			sync.logger.Error("hash mismatch", zap.Binary("expected", args.Hash), zap.Binary("actual", object_.Hash))
@@ -112,10 +115,19 @@ func cronTaskVerifyObject(args *cronTaskVerifyObjectArgs, sync *SyncServiceDefau
 		}
 
 		success = true
+		foundObject = object_
 	}
 
 	if success {
-
+		err := sync.cron.CreateJobIfNotExists(cronTaskUploadObjectName, cronTaskUploadObjectArgs{
+			Hash:       args.Hash,
+			Protocol:   foundObject.Protocol,
+			Size:       foundObject.Size,
+			UploaderID: args.UploaderID,
+		}, []string{hex.EncodeToString(args.Hash)})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
