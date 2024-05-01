@@ -192,7 +192,11 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 				metaDeref = append(metaDeref, *m)
 			}
 
-			err = s.cron.CreateJobIfNotExists(cronTaskVerifyObjectName, cronTaskVerifyObjectArgs{Object: metaDeref, UploaderID: uploaderID}, []string{object})
+			err = s.cron.CreateJobIfNotExists(cronTaskVerifyObjectName, cronTaskVerifyObjectArgs{
+				Hash:       hash,
+				Object:     metaDeref,
+				UploaderID: uploaderID,
+			}, []string{object})
 			if err != nil {
 				return err
 			}
