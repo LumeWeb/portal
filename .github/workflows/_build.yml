@@ -54,6 +54,7 @@ jobs:
             -   name: Install dependencies
                 run: |
                     go mod download
+                    go get github.com/ulikunitz/xz
                     go generate ./...
             -   name: Install dashboard dependencies
                 run: pnpm install
