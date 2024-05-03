@@ -245,7 +245,7 @@ func (s *SyncServiceDefault) init() error {
 	}
 
 	nodePath := path.Join(mountDir, "node")
-	appPath := path.Join(nodePath, "app/app/bundle.js")
+	appPath := path.Join(mountDir, "app/app/bundle.js")
 
 	cmd := exec.Command(nodePath, appPath)
 	cmd.Env = append(os.Environ(), "NODE_NO_WARNINGS=1")
