@@ -1,0 +1,22 @@
+diff --git a/index.js b/index.js
+index 7eb54fcaf22e37b90afea3607f7523b6dd749e36..13e36de7ace1d1243f499a8348a04345ff06866a 100644
+--- a/index.js
++++ b/index.js
+@@ -1,4 +1,4 @@
+-const binding = require('node-gyp-build')(__dirname)
++const binding = require('bindings')({ bindings: "quickbit-native.node", module_root: __dirname })
+ const b4a = require('b4a')
+ 
+ exports.get = function get (field, bit) {
+diff --git a/vendor/libquickbit/CMakeLists.txt b/vendor/libquickbit/CMakeLists.txt
+deleted file mode 100644
+index 2f9dc7071f5ee26e7e83e636228949e593901ceb..0000000000000000000000000000000000000000
+diff --git a/vendor/libquickbit/README.md b/vendor/libquickbit/README.md
+deleted file mode 100644
+index b61bfbd514a5c2b9983ac78cd6e2caafd1177267..0000000000000000000000000000000000000000
+diff --git a/vendor/libquickbit/vendor/libsimdle/CMakeLists.txt b/vendor/libquickbit/vendor/libsimdle/CMakeLists.txt
+deleted file mode 100644
+index 1f49d53d69cda42f81cd1f8b52b910b69c70f714..0000000000000000000000000000000000000000
+diff --git a/vendor/libquickbit/vendor/libsimdle/README.md b/vendor/libquickbit/vendor/libsimdle/README.md
+deleted file mode 100644
+index 578e79bcd2a31370db964eeaf48d57c99169138b..0000000000000000000000000000000000000000
