@@ -40,6 +40,7 @@ var _ cron.CronableService = (*SyncServiceDefault)(nil)
 var nodeServer embed.FS
 
 const nodeEmbedPrefix = "node/app"
+const syncDataFolder = "sync_data"
 
 type SyncServiceDefault struct {
 	config          *config.Manager
@@ -273,7 +274,9 @@ func (s *SyncServiceDefault) init() error {
 
 	s.grpcPlugin = pluginInst.(sync)
 
-	ret, err := s.grpcPlugin.Init(s.identity)
+	dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
+
+	ret, err := s.grpcPlugin.Init(s.identity, dataDir)
 	if err != nil {
 		return err
 	}

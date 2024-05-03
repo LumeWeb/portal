@@ -20,6 +20,7 @@ import { setTraceFunction } from "hypertrace";
 let swarm;
 let store;
 let bee;
+let dataDir
 
 const heathCheckStatusMap = {
     "sync.Sync": "SERVING",
@@ -143,7 +144,9 @@ async function main () {
                     secretKey: privateKey,
                 };
 
-                store = new Corestore("./data");
+                dataDir = request.dataDir;
+
+                store = new Corestore(dataDir);
                 await store.ready();
                 bee = new Hyperbee(store.get({ keyPair }), { ...encoding });
                 await bee.ready();

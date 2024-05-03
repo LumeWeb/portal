@@ -5,6 +5,7 @@ option go_package = "./proto";
 
 message InitRequest {
     bytes privateKey = 1;
+    string data_dir = 2;
 }
 
 message InitResponse {
