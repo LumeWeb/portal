@@ -227,6 +227,7 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 func (s *SyncServiceDefault) init() error {
 	s.cron.RegisterService(s)
 	fuseFs := go_fuse_embed.New(&nodeServer, nodeEmbedPrefix)
+	fuseFs.ChmodFile("/node", 0555)
 
 	mountDir, err := os.MkdirTemp("", "")
 	if err != nil {
