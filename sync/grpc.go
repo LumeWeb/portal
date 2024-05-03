@@ -21,11 +21,11 @@ type syncGrpcPlugin struct {
 	plugin.Plugin
 }
 
-func (p *syncGrpcPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+func (p *syncGrpcPlugin) GRPCServer(_ *plugin.GRPCBroker, _ *grpc.Server) error {
 	return nil
 }
 
-func (p *syncGrpcPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
+func (p *syncGrpcPlugin) GRPCClient(_ context.Context, _ *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	return &syncGRPC{client: proto.NewSyncClient(c)}, nil
 }
 
