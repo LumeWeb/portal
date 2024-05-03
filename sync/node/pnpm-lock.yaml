@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   crc-native@1.0.11:
-    hash: f6tiv3zlstkmiwi57jwqagyule
+    hash: y5prpuaf7q32dol5i5wufnlu7y
     path: patches/crc-native@1.0.11.patch
   fs-native-extensions@1.2.7:
     hash: f6ppi3ssw53nyrjyjdpzhcfi4i
@@ -48,7 +48,7 @@ importers:
         version: 6.18.2
       crc-native:
         specifier: ^1.0.11
-        version: 1.0.11(patch_hash=f6tiv3zlstkmiwi57jwqagyule)
+        version: 1.0.11(patch_hash=y5prpuaf7q32dol5i5wufnlu7y)
       deep-equal:
         specifier: ^2.2.3
         version: 2.2.3
@@ -1674,14 +1674,14 @@ snapshots:
     transitivePeerDependencies:
       - sodium-javascript
 
-  crc-native@1.0.11(patch_hash=f6tiv3zlstkmiwi57jwqagyule):
+  crc-native@1.0.11(patch_hash=y5prpuaf7q32dol5i5wufnlu7y):
     dependencies:
       napi-macros: 2.2.2
       node-gyp-build: 4.8.0
 
   crc-universal@1.0.4:
     optionalDependencies:
-      crc-native: 1.0.11(patch_hash=f6tiv3zlstkmiwi57jwqagyule)
+      crc-native: 1.0.11(patch_hash=y5prpuaf7q32dol5i5wufnlu7y)
 
   debounceify@1.1.0: {}
 

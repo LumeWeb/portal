@@ -46,8 +46,8 @@
             "sodium-native@4.1.1": "patches/sodium-native@4.1.1.patch",
             "fs-native-extensions@1.2.7": "patches/fs-native-extensions@1.2.7.patch",
             "udx-native@1.8.9": "patches/udx-native@1.8.9.patch",
-            "crc-native@1.0.11": "patches/crc-native@1.0.11.patch",
-            "quickbit-native@2.2.6": "patches/quickbit-native@2.2.6.patch"
+            "quickbit-native@2.2.6": "patches/quickbit-native@2.2.6.patch",
+            "crc-native@1.0.11": "patches/crc-native@1.0.11.patch"
         }
     }
 }

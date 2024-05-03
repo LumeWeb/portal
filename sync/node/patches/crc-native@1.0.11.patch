@@ -1,0 +1,13 @@
+diff --git a/index.js b/index.js
+index e2a37cf9af722457ce713d01d6ad2acb9094f766..99e1a9d8f6368c531ef7b8a27cc09f76575ba8b3 100644
+--- a/index.js
++++ b/index.js
+@@ -1,4 +1,4 @@
+-const binding = require('node-gyp-build')(__dirname)
++const binding = require('bindings')({ bindings: "crc-native.node", module_root: __dirname })
+ 
+ exports.crc32 = function crc32 (buffer) {
+   return binding.crc_u32_napi(buffer)
+diff --git a/vendor/libcrc/CMakeLists.txt b/vendor/libcrc/CMakeLists.txt
+deleted file mode 100644
+index f85de91f47846a77be8395a2dcc337cf0686cf3b..0000000000000000000000000000000000000000
