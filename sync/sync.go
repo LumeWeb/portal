@@ -3,11 +3,18 @@ package sync
 import (
 	"context"
 	"crypto/ed25519"
+	"embed"
 	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path"
+
+	"github.com/hanwen/go-fuse/v2/fuse"
+
+	gfs "github.com/hanwen/go-fuse/v2/fs"
+
+	go_fuse_embed "github.com/LumeWeb/go-fuse-embed"
 
 	"github.com/LumeWeb/portal/cron"
 
@@ -26,18 +33,26 @@ import (
 var _ cron.CronableService = (*SyncServiceDefault)(nil)
 
 //go:generate bash -c "cd proto && buf generate"
+//go:generate bash -c "cd node && bash build.sh"
+//go:generate go run download_node.go
+
+//go:embed node/app/*
+var nodeServer embed.FS
+
+const nodeEmbedPrefix = "node/app"
 
 type SyncServiceDefault struct {
-	config     *config.Manager
-	renter     *renter.RenterDefault
-	metadata   metadata.MetadataService
-	storage    storage.StorageService
-	cron       *cron.CronServiceDefault
-	logger     *zap.Logger
-	grpcClient *plugin.Client
-	grpcPlugin sync
-	identity   ed25519.PrivateKey
-	logKey     []byte
+	config          *config.Manager
+	renter          *renter.RenterDefault
+	metadata        metadata.MetadataService
+	storage         storage.StorageService
+	cron            *cron.CronServiceDefault
+	logger          *zap.Logger
+	grpcClient      *plugin.Client
+	grpcPlugin      sync
+	identity        ed25519.PrivateKey
+	logKey          []byte
+	syncServerMount *fuse.Server
 }
 
 type SyncServiceParams struct {
@@ -210,37 +225,29 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 
 func (s *SyncServiceDefault) init() error {
 	s.cron.RegisterService(s)
+	fuseFs := go_fuse_embed.New(&nodeServer, nodeEmbedPrefix)
 
-	/*temp, err := os.CreateTemp(os.TempDir(), "sync")
-	  if err != nil {
-	  	return err
-	  }
-
-	  err = temp.Chmod(1755)
-	  if err != nil {
-	  	return err
-	  }
-
-	  _, err = io.Copy(temp, bytes.NewReader(pluginBin))
-	  if err != nil {
-	  	return err
-	  }
-
-	  err = temp.Close()
-	  if err != nil {
-	  	return err
-	  }*/
-
-	cwd, err := os.Getwd()
-
+	mountDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
-
 	}
 
-	cmd := exec.Command("/root/.nvm/versions/node/v21.7.1/bin/node", path.Join(cwd, "./sync/node/app/src/index.js"))
+	server, err := gfs.Mount(mountDir, fuseFs, &gfs.Options{})
+	if err != nil {
+		return err
+	}
+
+	err = server.WaitMount()
+	if err != nil {
+		return err
+	}
+
+	nodePath := path.Join(mountDir, "node")
+	appPath := path.Join(nodePath, "app/app/bundle.js")
+
+	cmd := exec.Command(nodePath, appPath)
 	cmd.Env = append(os.Environ(), "NODE_NO_WARNINGS=1")
-	cmd.Dir = path.Join(cwd, "./sync/node/app")
+	cmd.Dir = mountDir
 	clientInst := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: plugin.HandshakeConfig{
 			ProtocolVersion: 1,
@@ -277,7 +284,12 @@ func (s *SyncServiceDefault) init() error {
 }
 
 func (s *SyncServiceDefault) stop() error {
-	s.grpcClient.Kill()
+	if s.syncServerMount != nil {
+		err := s.syncServerMount.Unmount()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
