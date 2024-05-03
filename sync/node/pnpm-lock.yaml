@@ -32,6 +32,9 @@ importers:
       deep-equal:
         specifier: ^2.2.3
         version: 2.2.3
+      fs-native-extensions:
+        specifier: ^1.2.7
+        version: 1.2.7
       google-protobuf:
         specifier: ^3.21.2
         version: 3.21.2
@@ -1784,7 +1787,6 @@ snapshots:
     dependencies:
       napi-macros: 2.2.2
       node-gyp-build: 4.8.0
-    optional: true
 
   fs.realpath@1.0.0: {}
 

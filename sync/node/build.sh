@@ -2,7 +2,9 @@
 mkdir -p app/proto
 cp -r ./node_modules/@grpc/reflection/build/proto/grpc ./app/proto
 cp -r ./node_modules/grpc-health-check/proto/health ./app/proto
-mkdir -p app/app/app/build/Release && cp ./node_modules/sodium-native/prebuilds/linux-x64/sodium-native.node app/app/app/build/Release
+mkdir -p app/app/app/build/Release
+cp ./node_modules/sodium-native/prebuilds/linux-x64/sodium-native.node app/app/app/build/Release
+cp ./node_modules/fs-native-extensions/prebuilds/linux-x64/fs-native-extensions.node app/app/app/build/Release
 mkdir -p src/generated
 ./node_modules/protobufjs-cli/bin/pbjs -t json ../proto/protocol.proto > src/generated/protobuf.json
 

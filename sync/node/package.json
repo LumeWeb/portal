@@ -14,6 +14,7 @@
         "compact-encoding": "^2.15.0",
         "corestore": "^6.18.2",
         "deep-equal": "^2.2.3",
+        "fs-native-extensions": "^1.2.7",
         "google-protobuf": "^3.21.2",
         "grpc-health-check": "^2.0.1",
         "grpc-js-health-check": "^1.2.2",
