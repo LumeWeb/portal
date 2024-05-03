@@ -33,8 +33,17 @@
         "@rollup/plugin-commonjs": "^25.0.7",
         "@rollup/plugin-json": "^6.1.0",
         "@rollup/plugin-node-resolve": "^15.2.3",
+        "bindings": "^1.5.0",
         "grpc-tools": "^1.12.4",
         "protobufjs-cli": "^1.1.2",
-        "rollup": "^4.17.2"
+        "rollup": "^4.17.2",
+        "udx-native": "^1.8.9"
+    },
+    "pnpm": {
+        "patchedDependencies": {
+            "sodium-native@4.1.1": "patches/sodium-native@4.1.1.patch",
+            "fs-native-extensions@1.2.7": "patches/fs-native-extensions@1.2.7.patch",
+            "udx-native@1.8.9": "patches/udx-native@1.8.9.patch"
+        }
     }
 }

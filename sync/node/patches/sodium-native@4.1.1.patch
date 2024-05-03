@@ -1,0 +1,13 @@
+diff --git a/index.js b/index.js
+index ffd938652efb873a7b3beb4054bb22bae2cfd7bd..c01914b8c53cb7206977097a678d3fbeb51092aa 100644
+--- a/index.js
++++ b/index.js
+@@ -1 +1 @@
+-module.exports = require('node-gyp-build')(__dirname)
++module.exports = require('bindings')({ bindings: "sodium-native.node", module_root: __dirname })
+diff --git a/vendor/libsodium/LICENSE b/vendor/libsodium/LICENSE
+deleted file mode 100644
+index 62510f35e28a5fb42fdd499b804e9176b6cf5522..0000000000000000000000000000000000000000
+diff --git a/vendor/libsodium/README.markdown b/vendor/libsodium/README.markdown
+deleted file mode 100644
+index 412693d36bb836380dd38bc66080fa5db3abe417..0000000000000000000000000000000000000000

@@ -1,0 +1,10 @@
+diff --git a/binding.js b/binding.js
+index ffd938652efb873a7b3beb4054bb22bae2cfd7bd..859a1b59fcce9d96313198f31d5fffba95b2feee 100644
+--- a/binding.js
++++ b/binding.js
+@@ -1 +1 @@
+-module.exports = require('node-gyp-build')(__dirname)
++module.exports = require('bindings')({ bindings: "udx-native.node", module_root: __dirname });
+diff --git a/vendor/libudx/README.md b/vendor/libudx/README.md
+deleted file mode 100644
+index a50a056ed12babab9a0558f1f03fbce7fc392769..0000000000000000000000000000000000000000
