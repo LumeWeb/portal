@@ -25,10 +25,15 @@
         "multiformats": "^13.1.0",
         "portfinder": "^1.0.32",
         "protobufjs": "^7.2.6",
-        "protomux": "^3.5.2"
+        "protomux": "^3.5.2",
+        "sodium-native": "^4.1.1"
     },
     "devDependencies": {
+        "@rollup/plugin-commonjs": "^25.0.7",
+        "@rollup/plugin-json": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^15.2.3",
         "grpc-tools": "^1.12.4",
-        "protobufjs-cli": "^1.1.2"
+        "protobufjs-cli": "^1.1.2",
+        "rollup": "^4.17.2"
     }
 }

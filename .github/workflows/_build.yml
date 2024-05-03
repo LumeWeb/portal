@@ -58,6 +58,9 @@ jobs:
             -   name: Install dashboard dependencies
                 run: pnpm install
                 working-directory: ./api/account/app
+            -   name: Install sync server dependencies
+                run: pnpm install
+                working-directory: ./sync/node
             -   name: Delete NX cache
                 run: rm -rf api/account/app/.nx
             -   name: Cache Nx

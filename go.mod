@@ -4,6 +4,7 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
+	github.com/LumeWeb/go-fuse-embed v0.0.0-20240503092654-6dfd644f0b40
 	github.com/LumeWeb/libs5-go v0.0.0-20240418052614-817dee4dffab
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.26.1
@@ -82,6 +83,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/gotd/contrib v0.19.0 // indirect
+	github.com/hanwen/go-fuse/v2 v2.5.1 // indirect
 	github.com/hashicorp/go-hclog v1.6.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
