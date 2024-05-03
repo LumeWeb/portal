@@ -263,26 +263,35 @@ func (s *SyncServiceDefault) init() error {
 
 	s.grpcClient = clientInst
 
-	rpcClient, err := clientInst.Client()
-	if err != nil {
-		return err
-	}
+	go func() {
+		err := func() error {
+			rpcClient, err := clientInst.Client()
+			if err != nil {
 
-	pluginInst, err := rpcClient.Dispense("sync")
-	if err != nil {
-		return err
-	}
+				return err
+			}
 
-	s.grpcPlugin = pluginInst.(sync)
+			pluginInst, err := rpcClient.Dispense("sync")
+			if err != nil {
+				return err
+			}
 
-	dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
+			s.grpcPlugin = pluginInst.(sync)
 
-	ret, err := s.grpcPlugin.Init(s.identity, dataDir)
-	if err != nil {
-		return err
-	}
+			dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
 
-	s.logKey = ret.GetLogKey()
+			ret, err := s.grpcPlugin.Init(s.identity, dataDir)
+			if err != nil {
+				return err
+			}
+
+			s.logKey = ret.GetLogKey()
+			return nil
+		}()
+		if err != nil {
+			s.logger.Fatal("failed to start sync service", zap.Error(err))
+		}
+	}()
 
 	return nil
 }
