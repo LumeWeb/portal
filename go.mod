@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
-	github.com/LumeWeb/go-fuse-embed v0.0.0-20240503092654-6dfd644f0b40
+	github.com/LumeWeb/go-fuse-embed v0.0.0-20240503150402-82859d690194
 	github.com/LumeWeb/libs5-go v0.0.0-20240418052614-817dee4dffab
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.26.1
