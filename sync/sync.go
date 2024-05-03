@@ -36,7 +36,7 @@ var _ cron.CronableService = (*SyncServiceDefault)(nil)
 //go:generate bash -c "cd node && bash build.sh"
 //go:generate go run download_node.go
 
-//go:embed node/app/*
+//go:embed node/app
 var nodeServer embed.FS
 
 const nodeEmbedPrefix = "node/app"
