@@ -12,7 +12,7 @@ export default {
     json(),
     nodeResolve(),
     commonjs({
-      dynamicRequireTargets: ["package.json"],
+        ignoreDynamicRequires: true,
     }),
   ],
 };
