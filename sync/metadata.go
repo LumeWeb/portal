@@ -32,10 +32,10 @@ func (fm *FileMeta) ToProtobuf() *proto.FileMeta {
 		shards := make([]*proto.Sector, 0, len(slab.Shards))
 
 		for _, shard := range slab.Shards {
-			contracts := make(map[string]*proto.FileContracts, len(shard.Contracts))
+			contracts := make(map[string]*proto.FileContracts)
 			for h, fcids := range shard.Contracts {
 				fcidSet := &proto.FileContracts{
-					Contracts: make([]*proto.FileContractID, 0, len(fcids)),
+					Contracts: make([]*proto.FileContractID, 0),
 				}
 
 				for _, fcid := range fcids {
