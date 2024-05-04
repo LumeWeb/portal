@@ -48,7 +48,7 @@ setTraceFunction(({ id, caller, object, parentObject }) => {
     });
 });
 
-function objectToLogEntry (obj) {
+function objectToLogEntry(obj, raw) {
     const entry = obj.toJSON();
 
     entry.hash = baseToHex(entry.hash);
@@ -65,17 +65,25 @@ function objectToLogEntry (obj) {
     entry.size = Number(entry.size);
 
     if (Array.isArray(entry.slabs)) {
-        for (const slab of entry.slabs) {
+        for (const [index, slab] of entry.slabs.entries()) {
             slab.slab.key = `key:${baseToHex(slab.slab.key.entropy)}`;
             if (Array.isArray(slab.slab.shards)) {
-                for (const shard of slab.slab.shards) {
+                for (const [shardIndex, shard] of slab.slab.shards.entries()) {
                     shard.root = `h:${shard.root.slice(2)}`;
                     shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
 
-                    for (const [key, contracts] of Object.entries(shard.contracts)) {
-                        shard.contracts[`ed25519:${key.slice(8)}`] = contracts.map(contract => `fcid:${contract.slice(5)}`);
-                        delete shard.contracts[key];
+                    const rawShard = raw.data.slabs[index].slab.shards[shardIndex];
+                    const transformedContracts = {};
+
+                    if (Array.isArray(rawShard.contractSet)) {
+                        // Transform the contractSet array
+                        rawShard.contractSet.forEach(contractSet => {
+                            transformedContracts[contractSet.key] = contractSet.value.contracts.map(contract => `fcid:${toHex(contract.id)}`);
+                        });
                     }
+
+                    shard.contracts = transformedContracts;
+                    delete shard.contractSet;
                 }
             }
         }
@@ -203,7 +211,7 @@ async function main () {
             Update (call) {
                 const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);
 
-                const obj = objectToLogEntry(req.data);
+                const obj = objectToLogEntry(req.data, call.request);
 
                 const aliases = obj.aliases || [];
                 delete obj.aliases;
