@@ -107,6 +107,7 @@ func NewSyncService(params SyncServiceParams) *SyncServiceDefault {
 func (s *SyncServiceDefault) RegisterTasks(crn cron.CronService) error {
 	crn.RegisterTask(cronTaskVerifyObjectName, s.cronTaskVerifyObject, cron.TaskDefinitionOneTimeJob, cronTaskVerifyObjectArgsFactory)
 	crn.RegisterTask(cronTaskUploadObjectName, s.cronTaskUploadObject, cron.TaskDefinitionOneTimeJob, cronTaskUploadObjectArgsFactory)
+	crn.RegisterTask(cronTaskScanObjectsName, s.cronTaskScanObjects, cronTaskScanObjectsDefinition, cronTaskScanObjectsArgsFactory)
 
 	return nil
 }
@@ -119,7 +120,15 @@ func (s *SyncServiceDefault) cronTaskUploadObject(args any) error {
 	return cronTaskUploadObject(args.(*cronTaskUploadObjectArgs), s)
 }
 
+func (s *SyncServiceDefault) cronTaskScanObjects(args any) error {
+	return cronTaskScanObjects(args.(*cronTaskScanObjectsArgs), s)
+}
+
 func (s *SyncServiceDefault) ScheduleJobs(crn cron.CronService) error {
+	err := crn.CreateJobIfNotExists(cronTaskScanObjectsName, nil, nil)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -141,6 +150,19 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 	object, err := s.renter.GetObjectMetadata(ctx, upload.Protocol, fileName)
 	if err != nil {
 		return err
+	}
+
+	hasShards := false
+
+	for _, slab := range object.Slabs {
+		if len(slab.Shards) > 0 {
+			hasShards = true
+			break
+		}
+	}
+
+	if !hasShards {
+		return nil
 	}
 
 	proofReader, err := s.storage.DownloadObjectProof(ctx, syncProto, upload.Hash)
