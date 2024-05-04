@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/go-co-op/gocron/v2"
+
 	"github.com/LumeWeb/portal/bao"
 
 	"go.sia.tech/renterd/api"
@@ -20,6 +22,7 @@ import (
 
 const cronTaskVerifyObjectName = "SyncVerifyObject"
 const cronTaskUploadObjectName = "SyncUploadObject"
+const cronTaskScanObjectsName = "SyncScanObjects"
 const syncBucketName = "sync"
 
 type cronTaskVerifyObjectArgs struct {
@@ -41,6 +44,18 @@ type cronTaskUploadObjectArgs struct {
 
 func cronTaskUploadObjectArgsFactory() any {
 	return &cronTaskUploadObjectArgs{}
+}
+
+type cronTaskScanObjectsArgs struct {
+}
+
+func cronTaskScanObjectsArgsFactory() any {
+	return &cronTaskScanObjectsArgs{}
+
+}
+
+func cronTaskScanObjectsDefinition() gocron.JobDefinition {
+	return gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
 }
 
 func getSyncProtocol(protocol string) (SyncProtocol, error) {
@@ -226,6 +241,24 @@ func cronTaskUploadObject(args *cronTaskUploadObjectArgs, sync *SyncServiceDefau
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func cronTaskScanObjects(_ *cronTaskScanObjectsArgs, sync *SyncServiceDefault) error {
+	ctx := context.Background()
+
+	uploads, err := sync.metadata.GetAllUploads(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, upload := range uploads {
+		err := sync.Update(upload)
+		if err != nil {
+			sync.logger.Error("failed to update upload", zap.Error(err))
+		}
 	}
 
 	return nil

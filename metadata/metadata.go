@@ -55,6 +55,7 @@ type MetadataService interface {
 	SaveUpload(ctx context.Context, metadata UploadMetadata, skipExisting bool) error
 	GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error)
 	DeleteUpload(ctx context.Context, objectHash []byte) error
+	GetAllUploads(ctx context.Context) ([]UploadMetadata, error)
 }
 
 type MetadataServiceDefault struct {
@@ -148,15 +149,7 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 		return UploadMetadata{}, ret.Error
 	}
 
-	return UploadMetadata{
-		ID:         upload.ID,
-		UserID:     upload.UserID,
-		Hash:       upload.Hash,
-		MimeType:   upload.MimeType,
-		Protocol:   upload.Protocol,
-		UploaderIP: upload.UploaderIP,
-		Size:       upload.Size,
-	}, nil
+	return m.uploadToMetadata(upload), nil
 }
 
 func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash []byte) error {
@@ -171,4 +164,35 @@ func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash []
 	}
 
 	return m.db.Delete(&upload).Error
+}
+
+func (m *MetadataServiceDefault) GetAllUploads(ctx context.Context) ([]UploadMetadata, error) {
+	var uploads []models.Upload
+
+	ret := m.db.WithContext(ctx).Find(&uploads)
+
+	if ret.Error != nil {
+		return nil, ret.Error
+	}
+
+	var metadata []UploadMetadata
+
+	for _, upload := range uploads {
+		metadata = append(metadata, m.uploadToMetadata(upload))
+	}
+
+	return metadata, nil
+}
+
+func (m *MetadataServiceDefault) uploadToMetadata(upload models.Upload) UploadMetadata {
+	return UploadMetadata{
+		ID:         upload.ID,
+		UserID:     upload.UserID,
+		Hash:       upload.Hash,
+		MimeType:   upload.MimeType,
+		Protocol:   upload.Protocol,
+		UploaderIP: upload.UploaderIP,
+		Size:       upload.Size,
+		Created:    upload.CreatedAt,
+	}
 }
