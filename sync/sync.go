@@ -162,6 +162,7 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 	}
 
 	if !hasShards {
+		s.logger.Debug("object has no shards", zap.String("hash", fileName))
 		return nil
 	}
 
