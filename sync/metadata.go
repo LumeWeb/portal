@@ -96,10 +96,10 @@ func FileMetaFromProtobuf(fm *proto.FileMeta) (*FileMeta, error) {
 		shards := make([]object.Sector, 0, len(slab.Slab.Shards))
 
 		for _, sector := range slab.Slab.Shards {
-			contracts := make(map[types.PublicKey][]types.FileContractID, len(sector.ContractSet))
+			contracts := make(map[types.PublicKey][]types.FileContractID)
 
 			for h, fcidSet := range sector.ContractSet {
-				fcids := make([]types.FileContractID, 0, len(fcidSet.Contracts))
+				fcids := make([]types.FileContractID, 0)
 				for _, fcid := range fcidSet.Contracts {
 					fcids = append(fcids, types.FileContractID(fcid.Id[:]))
 				}
