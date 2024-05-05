@@ -53,7 +53,7 @@ function objectToLogEntry(obj, raw) {
     const entry = obj.toJSON();
 
     entry.hash = baseToHex(entry.hash);
-    entry.proof = toHex(entry.proof);
+    entry.proof = baseToHex(entry.proof);
     if (entry.multihash) {
         const multihashRaw = decodeB64(entry.multihash);
         if (multihashRaw.length > 0) {
