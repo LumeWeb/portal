@@ -96,7 +96,14 @@ func (v *Verifier) Read(p []byte) (int, error) {
 
 	// Attempt to read the remainder of the data from the buffer
 	additionalBytes, _ := v.buffer.Read(p[n:])
-	return n + additionalBytes, nil
+	n += additionalBytes
+
+	if v.buffer.Len() == 0 && err == io.EOF {
+		// If the buffer is empty and the underlying reader reached EOF, return EOF
+		return n, io.EOF
+	}
+
+	return n, nil
 }
 
 func (v *Verifier) Close() error {
