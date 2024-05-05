@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path"
 
+	"github.com/samber/lo"
+
 	"github.com/hanwen/go-fuse/v2/fuse"
 
 	gfs "github.com/hanwen/go-fuse/v2/fs"
@@ -216,6 +218,18 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 			if err != nil {
 				return err
 			}
+
+			meta = lo.Filter(meta, func(m *FileMeta, _ int) bool {
+				noShards := false
+				for _, slab := range m.Slabs {
+					if len(slab.Shards) == 0 {
+						noShards = true
+						break
+					}
+				}
+
+				return !noShards
+			})
 
 			if len(meta) == 0 {
 				return errors.New("object not found")
