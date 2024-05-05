@@ -155,6 +155,7 @@ type seekableSiaStream struct {
 	args  *cronTaskUploadObjectArgs
 	pos   int64
 	reset bool
+	size  int64
 }
 
 func (r *seekableSiaStream) Read(p []byte) (n int, err error) {
@@ -188,6 +189,11 @@ func (r *seekableSiaStream) Seek(offset int64, whence int) (int64, error) {
 		r.reset = true
 		return 0, nil
 	}
+
+	if offset == 0 && whence == io.SeekEnd {
+		return r.size, nil
+	}
+
 	return 0, errors.New("seek not supported")
 }
 
@@ -222,6 +228,7 @@ func cronTaskUploadObject(args *cronTaskUploadObjectArgs, sync *SyncServiceDefau
 		sync: sync,
 		ctx:  ctx,
 		args: args,
+		size: objectRet.Size,
 	}
 
 	upload, err := sync.storage.UploadObject(ctx, storeProtocol, wrapper, args.Size, nil, nil)
