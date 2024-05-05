@@ -152,17 +152,17 @@ func (s *SyncServiceDefault) Update(upload metadata.UploadMetadata) error {
 		return err
 	}
 
-	hasShards := false
+	noShards := false
 
 	for _, slab := range object.Slabs {
-		if len(slab.Shards) > 0 {
-			hasShards = true
+		if len(slab.Shards) == 0 {
+			noShards = true
 			break
 		}
 	}
 
-	if !hasShards {
-		s.logger.Debug("object has no shards", zap.String("hash", fileName))
+	if noShards {
+		s.logger.Debug("object has at-least one slab with no shards", zap.String("hash", fileName))
 		return nil
 	}
 
