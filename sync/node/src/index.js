@@ -111,10 +111,19 @@ function logEntryToObject (entry) {
                     shard.root = `h:${shard.root.slice(2)}`;
                     shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
 
+                    const transformedContracts = {};
                     for (const [key, contracts] of Object.entries(shard.contracts)) {
-                        shard.contracts[`ed25519:${key.slice(8)}`] = contracts.map(contract => `fcid:${contract.slice(5)}`);
-                        delete shard.contracts[key];
+                        transformedContracts[key] = {
+                            key: key,
+                            value: {
+                                contracts: contracts.map(contract => ({
+                                    id: fromHex(contract.slice(5)),
+                                })),
+                            },
+                        };
                     }
+                    shard.contractSet = Object.values(transformedContracts);
+                    delete shard.contracts;
                 }
             }
         }
