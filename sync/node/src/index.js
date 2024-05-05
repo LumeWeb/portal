@@ -33,6 +33,7 @@ const SYNC_PROTOCOL = "lumeweb.portal.sync";
 const DISCOVERED_BEES = new Map();
 
 const decodeB64 = (str) => Buffer.from(str, "base64");
+const encodeB64 = (str) => Buffer.from(str).toString("base64");
 const baseToHex = (str) => toHex(Buffer.from(decodeB64(str)));
 const fromHex = (str) => Buffer.from(str, "hex");
 const toHex = (str) => Buffer.from(str).toString("hex");
@@ -69,8 +70,8 @@ function objectToLogEntry(obj, raw) {
             slab.slab.key = `key:${baseToHex(slab.slab.key.entropy)}`;
             if (Array.isArray(slab.slab.shards)) {
                 for (const [shardIndex, shard] of slab.slab.shards.entries()) {
-                    shard.root = `h:${shard.root.slice(2)}`;
-                    shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
+                    shard.root = `h:${baseToHex(shard.root)}`;
+                    shard.latestHost = `ed25519:${baseToHex(shard.latestHost)}`;
 
                     const rawShard = raw.data.slabs[index].slab.shards[shardIndex];
                     const transformedContracts = {};
@@ -108,8 +109,8 @@ function logEntryToObject (entry) {
 
             if (Array.isArray(slab.slab.shards)) {
                 for (const shard of slab.slab.shards) {
-                    shard.root = `h:${shard.root.slice(2)}`;
-                    shard.latestHost = `ed25519:${shard.latestHost.slice(8)}`;
+                    shard.root = `${encodeB64(fromHex(shard.root.slice(2)))}`;
+                    shard.latestHost = `${encodeB64(fromHex(shard.latestHost.slice(8)))}`;
 
                     const transformedContracts = {};
                     for (const [key, contracts] of Object.entries(shard.contracts)) {
