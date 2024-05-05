@@ -160,6 +160,10 @@ func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fi
 	return ret.Object, nil
 }
 
+func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error {
+	return r.busClient.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
+}
+
 func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any) error {
 	err := r.busClient.Setting(ctx, setting, out)
 
