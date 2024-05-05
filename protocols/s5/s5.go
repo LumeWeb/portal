@@ -244,7 +244,7 @@ func (s *S5Protocol) ValidIdentifier(identifier string) bool {
 
 	ret, err = base64.RawURLEncoding.DecodeString(identifier)
 
-	if err == nil && len(ret) == 32 {
+	if err == nil && len(ret) == 33 {
 		hash, err := encoding.MultihashFromBase64Url(identifier)
 
 		if err == nil {
