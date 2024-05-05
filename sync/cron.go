@@ -250,6 +250,11 @@ func cronTaskUploadObject(args *cronTaskUploadObjectArgs, sync *SyncServiceDefau
 		return err
 	}
 
+	err = sync.renter.DeleteObjectMetadata(ctx, syncBucketName, fileName)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
