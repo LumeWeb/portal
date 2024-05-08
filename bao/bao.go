@@ -56,7 +56,7 @@ func (v *Verifier) Read(p []byte) (int, error) {
 	for v.buffer.Len() < len(p)-n {
 		readStart := time.Now()
 		bytesRead, err := io.ReadFull(v.r, buf)
-		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		if err != nil && err != io.EOF {
 			return n, err // Return any read error immediately
 		}
 
