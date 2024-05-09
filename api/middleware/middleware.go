@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/casbin/casbin/v2"
+
 	"github.com/LumeWeb/portal/config"
 
 	"github.com/LumeWeb/portal/account"
@@ -201,6 +203,43 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			ctx := context.WithValue(r.Context(), UserIdContextKeyType(options.AuthContextKey), uint(userId))
 			ctx = context.WithValue(ctx, AUTH_TOKEN_CONTEXT_KEY, authToken)
 			r = r.WithContext(ctx)
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+type AuthzOptions struct {
+	Accounts *account.AccountServiceDefault
+	Casbin   *casbin.Enforcer
+	Role     string
+}
+
+func AuthzMiddleware(options AuthzOptions) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := r.Context().Value(DEFAULT_USER_ID_CONTEXT_KEY)
+
+			deny := func() {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			}
+
+			exists, m, err := options.Accounts.AccountExists(user.(uint))
+			if err != nil || !exists {
+				deny()
+				return
+			}
+
+			if options.Role != m.Role {
+				deny()
+				return
+			}
+
+			ok, err := options.Casbin.Enforce(m.Role, r.URL.Path, r.Method)
+			if err != nil || !ok {
+				deny()
+				return
+			}
 
 			next.ServeHTTP(w, r)
 		})
