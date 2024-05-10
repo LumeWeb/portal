@@ -55,7 +55,7 @@ func NewManager() (*Manager, error) {
 		return nil, err
 	}
 
-	err = v.Unmarshal(&config, viper.DecodeHook(clusterConfigHook()), viper.DecodeHook(cacheConfigHook()), viper.DecodeHook(coreConfigNodeIdHook()))
+	err = v.Unmarshal(&config, viper.DecodeHook(clusterConfigHook()), viper.DecodeHook(cacheConfigHook(m)), viper.DecodeHook(coreConfigNodeIdHook()))
 	if err != nil {
 		return nil, err
 	}
