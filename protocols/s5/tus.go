@@ -479,7 +479,7 @@ func getLocker(cm *config.Manager, db *gorm.DB, logger *zap.Logger) (tusd.Locker
 	case "none":
 		return nil, nil
 	case "db":
-		return NewMySQLLocker(db, logger), nil
+		return NewDbLocker(db, logger), nil
 	case "etcd":
 		client, err := cm.Config().Core.Clustered.Etcd.Client()
 		if err != nil {

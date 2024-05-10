@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	_ tusd.Locker = (*MySQLLocker)(nil)
+	_ tusd.Locker = (*DbLocker)(nil)
 	_ tusd.Lock   = (*Lock)(nil)
 )
 
-type MySQLLocker struct {
+type DbLocker struct {
 	AcquirerPollInterval time.Duration
 	HolderPollInterval   time.Duration
 	db                   *gorm.DB
@@ -25,7 +25,7 @@ type MySQLLocker struct {
 }
 
 type Lock struct {
-	locker               *MySQLLocker
+	locker               *DbLocker
 	id                   string
 	holderPollInterval   time.Duration
 	acquirerPollInterval time.Duration
@@ -34,8 +34,8 @@ type Lock struct {
 	once                 sync.Once
 }
 
-func NewMySQLLocker(db *gorm.DB, logger *zap.Logger) *MySQLLocker {
-	return &MySQLLocker{HolderPollInterval: 5 * time.Second, AcquirerPollInterval: 2 * time.Second, db: db, logger: logger}
+func NewDbLocker(db *gorm.DB, logger *zap.Logger) *DbLocker {
+	return &DbLocker{HolderPollInterval: 5 * time.Second, AcquirerPollInterval: 2 * time.Second, db: db, logger: logger}
 }
 
 func (l *Lock) released() error {
@@ -116,7 +116,7 @@ func (l *Lock) Unlock() error {
 	return l.lockRecord.Delete(l.locker.db)
 }
 
-func (m *MySQLLocker) NewLock(id string) (tusd.Lock, error) {
+func (m *DbLocker) NewLock(id string) (tusd.Lock, error) {
 	return &Lock{
 		locker:               m,
 		id:                   id,
