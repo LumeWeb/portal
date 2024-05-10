@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
+
+	"github.com/LumeWeb/portal/config"
 
 	"github.com/LumeWeb/portal/db/types"
 
@@ -17,6 +20,7 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 
+	redislock "github.com/go-co-op/gocron-redis-lock/v2"
 	"github.com/go-co-op/gocron/v2"
 )
 
@@ -53,7 +57,7 @@ type CronServiceParams struct {
 var Module = fx.Module("cron",
 	fx.Options(
 		fx.Provide(NewCronService),
-		fx.Provide(gocron.NewScheduler),
+		fx.Provide(newScheduler),
 	),
 )
 
@@ -73,6 +77,23 @@ func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefau
 		scheduler: params.Scheduler,
 		db:        params.Db,
 	}
+}
+
+func newScheduler(config *config.Config) (gocron.Scheduler, error) {
+	if config.Core.Clustered.Enabled && config.Core.Clustered.Redis != nil {
+		redisClient, err := config.Core.Clustered.Redis.Client()
+		if err != nil {
+			return nil, err
+		}
+		locker, err := redislock.NewRedisLocker(redisClient, redislock.WithTries(1), redislock.WithExpiry(time.Hour))
+		if err != nil {
+			return nil, err
+		}
+
+		return gocron.NewScheduler(gocron.WithDistributedLocker(locker))
+	}
+
+	return gocron.NewScheduler()
 }
 
 func Start(lc fx.Lifecycle, service *CronServiceDefault) error {
