@@ -17,6 +17,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/getkin/kin-openapi v0.118.0
+	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1
 	github.com/go-co-op/gocron/v2 v2.2.9
 	github.com/go-gorm/caches/v4 v4.0.4
 	github.com/go-sql-driver/mysql v1.8.1
@@ -87,9 +88,12 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/jsonpointer v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.8 // indirect
+	github.com/go-redsync/redsync/v4 v4.10.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/gotd/contrib v0.19.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
