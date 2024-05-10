@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -256,6 +257,130 @@ func (m *Manager) Save() error {
 	}
 
 	return nil
+}
+func (m *Manager) LiveConfig() map[string]interface{} {
+	keys := m.GetEditableConfigKeys()
+
+	liveConfig := make(map[string]interface{})
+
+	for _, key := range keys {
+		liveConfig[key] = m.viper.Get(key)
+	}
+
+	return liveConfig
+}
+
+func (m *Manager) UpdateLiveConfig(setting string, value interface{}) error {
+	// Find the corresponding field in the configuration struct
+	field, err := m.findConfigField(setting)
+	if err != nil {
+		return err
+	}
+
+	// Check if the value type matches the field type
+	if !reflect.TypeOf(value).AssignableTo(field.Type) {
+		return fmt.Errorf("invalid type for setting %s: expected %s, got %s", setting, field.Type, reflect.TypeOf(value))
+	}
+
+	// Update the value in the Viper store
+	m.viper.Set(setting, value)
+	m.changes = true
+
+	err = m.maybeSave()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Manager) GetEditableConfigKeys() []string {
+	var keys []string
+	m.traverseConfig(reflect.ValueOf(m.root), "", func(key string, field reflect.StructField) {
+		if isFieldEditable(field) {
+			keys = append(keys, key)
+		}
+	})
+	return keys
+}
+
+func (m *Manager) traverseConfig(value reflect.Value, prefix string, callback func(string, reflect.StructField)) {
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	if value.Kind() != reflect.Struct {
+		return
+	}
+
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Type().Field(i)
+		if field.PkgPath != "" {
+			// Skip unexported fields
+			continue
+		}
+
+		tag := field.Tag.Get("mapstructure")
+		if tag == "-" {
+			// Skip fields with "-" tag
+			continue
+		}
+
+		fieldValue := value.Field(i)
+		if fieldValue.Kind() == reflect.Ptr {
+			if fieldValue.IsNil() {
+				continue
+			}
+			fieldValue = fieldValue.Elem()
+		}
+
+		if fieldValue.Kind() == reflect.Struct {
+			// Recursively traverse nested structs
+			m.traverseConfig(fieldValue, prefix+tag+".", callback)
+		} else {
+			callback(prefix+tag, field)
+		}
+	}
+}
+
+func (m *Manager) findConfigField(setting string) (reflect.StructField, error) {
+	parts := strings.Split(setting, ".")
+	var structValue reflect.Value = reflect.ValueOf(m.root)
+
+	for _, part := range parts {
+		if structValue.Kind() == reflect.Ptr {
+			structValue = structValue.Elem()
+		}
+
+		if structValue.Kind() != reflect.Struct {
+			return reflect.StructField{}, fmt.Errorf("invalid setting: %s", setting)
+		}
+
+		field, ok := structValue.Type().FieldByNameFunc(func(name string) bool {
+			return strings.EqualFold(name, part)
+		})
+
+		if !ok {
+			return reflect.StructField{}, fmt.Errorf("setting not found: %s", setting)
+		}
+
+		structValue = structValue.FieldByIndex(field.Index)
+	}
+
+	if structValue.Kind() == reflect.Ptr {
+		structValue = structValue.Elem()
+	}
+
+	if structValue.Kind() != reflect.Struct {
+		return structValue.Type().Field(0), nil
+	}
+
+	return reflect.StructField{}, fmt.Errorf("setting not found: %s", setting)
+}
+
+func isFieldEditable(field reflect.StructField) bool {
+	editable := field.Tag.Get("editable")
+	return editable == "true"
 }
 
 func newConfig() (*viper.Viper, error) {
