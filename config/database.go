@@ -57,7 +57,7 @@ type CacheConfig struct {
 type MemoryConfig struct {
 }
 
-func cacheConfigHook() mapstructure.DecodeHookFuncType {
+func cacheConfigHook(cm *Manager) mapstructure.DecodeHookFuncType {
 	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 		// This hook is designed to operate on the options field within the CacheConfig
 		if f.Kind() != reflect.Map || t != reflect.TypeOf(&CacheConfig{}) {
@@ -72,6 +72,11 @@ func cacheConfigHook() mapstructure.DecodeHookFuncType {
 		// Assuming the input data map includes "mode" and "options"
 		switch cacheConfig.Mode {
 		case "redis":
+			if cm.Config().Core.Clustered.Enabled {
+				cm.Config().Core.DB.Cache.Options = cm.Config().Core.Clustered.Redis
+				return cacheConfig, nil
+			}
+
 			var redisOptions RedisConfig
 			if opts, ok := cacheConfig.Options.(map[string]interface{}); ok && opts != nil {
 				if err := mapstructure.Decode(opts, &redisOptions); err != nil {
