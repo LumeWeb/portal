@@ -10,6 +10,7 @@ var _ config.ProtocolConfig = (*Config)(nil)
 type Config struct {
 	*s5config.NodeConfig `mapstructure:",squash"`
 	DbPath               string `mapstructure:"db_path"`
+	TUSLockerMode        string `mapstructure:"tus_locker_mode"`
 }
 
 func (c Config) Defaults() map[string]interface{} {
@@ -22,6 +23,7 @@ func (c Config) Defaults() map[string]interface{} {
 	}
 	defaults["db_path"] = "s5.db"
 	defaults["p2p.max_connection_attempts"] = 10
+	defaults["tus_locker_mode"] = "db"
 
 	return defaults
 }

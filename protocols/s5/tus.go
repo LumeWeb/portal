@@ -29,6 +29,7 @@ import (
 	"github.com/LumeWeb/portal/cron"
 	"github.com/LumeWeb/portal/db/models"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/tus/tusd-etcd3-locker/pkg/etcd3locker"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )
@@ -122,11 +123,17 @@ func (t *TusHandler) Init() error {
 
 	store := s3store.New(t.config.Config().Core.Storage.S3.BufferBucket, s3Client)
 
-	locker := NewMySQLLocker(t.db, t.logger)
+	locker, err := getLocker(t.config, t.db, t.logger)
+	if err != nil {
+		return err
+	}
 
 	composer := tusd.NewStoreComposer()
 	store.UseIn(composer)
-	composer.UseLocker(locker)
+
+	if locker != nil {
+		composer.UseLocker(locker)
+	}
 
 	handler, err := tusd.NewHandler(tusd.Config{
 		BasePath:                "/s5/upload/tus",
@@ -429,6 +436,10 @@ func (t *TusHandler) worker() {
 	}
 }
 
+func GetStorageProtocol(proto *S5Protocol) storage.StorageProtocol {
+	return interface{}(proto).(storage.StorageProtocol)
+}
+
 func splitS3Ids(id string) (objectId, multipartId string) {
 	index := strings.Index(id, "+")
 	if index == -1 {
@@ -439,6 +450,47 @@ func splitS3Ids(id string) (objectId, multipartId string) {
 	multipartId = id[index+1:]
 	return
 }
-func GetStorageProtocol(proto *S5Protocol) storage.StorageProtocol {
-	return interface{}(proto).(storage.StorageProtocol)
+
+func getLockerMode(cm *config.Manager, logger *zap.Logger) string {
+	cfg := cm.Config().Protocol["s5"].(*Config)
+
+	switch cfg.TUSLockerMode {
+	case "", "none":
+		return "none"
+	case "db":
+		return "db"
+	case "etcd":
+		if cm.Config().Core.Clustered.Enabled {
+			return "etcd"
+		}
+
+		return "db"
+	default:
+		logger.Fatal("invalid locker mode", zap.String("mode", cfg.TUSLockerMode))
+	}
+
+	return "none"
+}
+
+func getLocker(cm *config.Manager, db *gorm.DB, logger *zap.Logger) (tusd.Locker, error) {
+	mode := getLockerMode(cm, logger)
+
+	switch mode {
+	case "none":
+		return nil, nil
+	case "db":
+		return NewMySQLLocker(db, logger), nil
+	case "etcd":
+		client, err := cm.Config().Core.Clustered.Etcd.Client()
+		if err != nil {
+			return nil, err
+		}
+		locker, err := etcd3locker.NewWithPrefix(client, "s5-tus-locks")
+		if err != nil {
+			return nil, err
+		}
+		return locker, nil
+	}
+
+	return nil, nil
 }
