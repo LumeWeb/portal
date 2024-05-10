@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/casbin/casbin/v2"
+
 	"github.com/rs/cors"
 
 	"github.com/LumeWeb/portal/api/swagger"
@@ -43,6 +45,7 @@ var (
 type AccountAPI struct {
 	config   *config.Manager
 	accounts *account.AccountServiceDefault
+	casbin   *casbin.Enforcer
 	identity ed25519.PrivateKey
 	logger   *zap.Logger
 }
@@ -51,6 +54,7 @@ type AccountAPIParams struct {
 	fx.In
 	Config   *config.Manager
 	Accounts *account.AccountServiceDefault
+	Casbin   *casbin.Enforcer
 	Identity ed25519.PrivateKey
 	Logger   *zap.Logger
 }
@@ -59,6 +63,7 @@ func NewS5(params AccountAPIParams) AccountApiResult {
 	api := &AccountAPI{
 		config:   params.Config,
 		accounts: params.Accounts,
+		casbin:   params.Casbin,
 		identity: params.Identity,
 		logger:   params.Logger,
 	}
@@ -378,6 +383,30 @@ func (a AccountAPI) meta(c jape.Context) {
 
 }
 
+func (a AccountAPI) adminConfig(c jape.Context) {
+	c.Encode(a.config.LiveConfig())
+}
+
+func (a AccountAPI) adminConfigUpdate(c jape.Context) {
+	name := c.PathParam("name")
+
+	if name == "" {
+		_ = c.Error(errors.New("invalid request"), http.StatusBadRequest)
+		return
+	}
+
+	var req AdminConfigUpdateRequest
+
+	if c.Decode(&req) != nil {
+		return
+	}
+
+	err := a.config.UpdateLiveConfig(name, req.Value)
+	if c.Check("failed to update config", err) != nil {
+		return
+	}
+}
+
 func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 	loginAuthMw2fa := authMiddleware(middleware.AuthMiddlewareOptions{
 		Identity:       a.identity,
@@ -402,6 +431,12 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		Purpose:  account.JWTPurposeLogin,
 	})
 
+	authzMw := middleware.AuthzMiddleware(middleware.AuthzOptions{
+		Accounts: a.accounts,
+		Casbin:   a.casbin,
+		Role:     "admin",
+	})
+
 	appFiles, _ := fs.Sub(appFs, "app/build/client")
 	appServ := http.FileServer(http.FS(appFiles))
 
@@ -423,6 +458,7 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"GET /api/account":           middleware.ApplyMiddlewares(a.accountInfo, authMw, middleware.ProxyMiddleware),
 		"GET /api/upload-limit":      middleware.ApplyMiddlewares(a.uploadLimit, middleware.ProxyMiddleware),
 		"GET /api/meta":              middleware.ApplyMiddlewares(a.meta, middleware.ProxyMiddleware),
+		"GET /api/admin/config":      middleware.ApplyMiddlewares(a.adminConfig, middleware.ProxyMiddleware, authMw, authzMw),
 	})
 
 	getHandler := func(c jape.Context) {
@@ -472,6 +508,9 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"POST /api/account/update-email":           middleware.ApplyMiddlewares(a.updateEmail, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"POST /api/account/update-password":        middleware.ApplyMiddlewares(a.updatePassword, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 
+		// Admin
+		"POST /api/admin/config/:name": middleware.ApplyMiddlewares(a.adminConfigUpdate, corsMw.Handler, authMw, authzMw, middleware.ProxyMiddleware),
+
 		// CORS
 		"OPTIONS /api/auth/ping":         middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"OPTIONS /api/auth/login":        middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, loginAuthMw2fa, middleware.ProxyMiddleware),
@@ -487,6 +526,9 @@ func (a *AccountAPI) Routes() (*httprouter.Router, error) {
 		"OPTIONS /api/account/password-reset/confirm": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),
 		"OPTIONS /api/account/update-email":           middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
 		"OPTIONS /api/account/update-password":        middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, middleware.ProxyMiddleware),
+
+		// CORS Admin
+		"OPTIONS /api/admin/config": middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, authMw, authzMw, middleware.ProxyMiddleware),
 
 		// Get Routes
 		"OPTIONS /api/upload-limit":      middleware.ApplyMiddlewares(corsOptionsHandler, corsMw.Handler, middleware.ProxyMiddleware),

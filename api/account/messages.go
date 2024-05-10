@@ -71,3 +71,7 @@ type UpdatePasswordRequest struct {
 type MetaResponse struct {
 	Domain string `json:"domain"`
 }
+
+type AdminConfigUpdateRequest struct {
+	Value any `json:"value"`
+}
