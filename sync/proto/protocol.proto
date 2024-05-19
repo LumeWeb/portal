@@ -4,8 +4,9 @@ package sync;
 option go_package = "./proto";
 
 message InitRequest {
-    bytes privateKey = 1;
-    string data_dir = 2;
+    bytes log_private_key = 1;
+    bytes node_private_key = 2;
+    string data_dir = 3;
 }
 
 message InitResponse {
