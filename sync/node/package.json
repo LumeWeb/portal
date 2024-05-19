@@ -10,6 +10,7 @@
         "@grpc/proto-loader": "^0.7.12",
         "@grpc/reflection": "^1.0.3",
         "@noble/curves": "^1.4.0",
+        "autobase": "^6.0.32",
         "b4a": "^1.6.6",
         "compact-encoding": "^2.15.0",
         "corestore": "^6.18.2",
