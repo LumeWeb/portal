@@ -3,12 +3,15 @@ package sync
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"embed"
 	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path"
+
+	"golang.org/x/crypto/hkdf"
 
 	"github.com/samber/lo"
 
@@ -317,7 +320,16 @@ func (s *SyncServiceDefault) init() error {
 
 			dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
 
-			ret, err := s.grpcPlugin.Init(s.identity, dataDir)
+			hasher := hkdf.New(sha256.New, s.identity, s.config.Config().Core.NodeID.Bytes(), []byte("sync"))
+			derivedSeed := make([]byte, 32)
+
+			if _, err := io.ReadFull(hasher, derivedSeed); err != nil {
+				s.logger.Fatal("failed to generate child key seed", zap.Error(err))
+			}
+
+			nodeKey := ed25519.NewKeyFromSeed(derivedSeed)
+
+			ret, err := s.grpcPlugin.Init(s.identity, nodeKey, dataDir)
 			if err != nil {
 				return err
 			}

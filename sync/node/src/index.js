@@ -16,7 +16,7 @@ import Protomux from "protomux";
 import c from "compact-encoding";
 import b4a from "b4a";
 import { setTraceFunction } from "hypertrace";
-
+import Autobee from "./autobee.js";
 let swarm;
 let store;
 let bee;
@@ -155,19 +155,38 @@ async function main () {
         prepareServiceImpl({
             async Init (call) {
                 const request = call.request;
-                const privateKey = request.privateKey;
-                const pubKey = ed25519.getPublicKey(privateKey.slice(0, 32));
+                const logPrivateKey = request.logPrivateKey;
+                const nodePrivateKey = request.nodePrivateKey;
+                const pubKey = ed25519.getPublicKey(nodePrivateKey.slice(0, 32));
                 const keyPair = {
                     publicKey: pubKey,
-                    secretKey: privateKey,
+                    secretKey: nodePrivateKey,
                 };
 
                 dataDir = request.dataDir;
 
                 store = new Corestore(dataDir);
-                await store.ready();
-                bee = new Hyperbee(store.get({ keyPair }), { ...encoding });
-                await bee.ready();
+                bee = new Autobee(store, logPrivateKey, {
+                    apply: async (batch, view, base) => {
+                        // Add .addWriter functionality
+                        for (const node of batch) {
+                            const op = node.value
+                            if (op.type === 'addWriter') {
+                                await base.addWriter(b4a.from(op.key, 'hex'))
+                            }
+                        }
+
+                        // Pass through to Autobee's apply
+                        await Autobee.apply(batch, view, base)
+                    },
+
+                    // Set encodings for autobase/hyperbee
+                    ...encoding
+                })
+                    // Print any errors from apply() etc
+                    .on('error', console.error)
+
+                await bee.update()
 
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
@@ -195,7 +214,6 @@ async function main () {
                 };
 
                 swarm.on("connection", conn => bee.replicate(conn));
-                swarm.on("connection", conn => store.replicate(conn));
                 swarm.on("connection", (conn) => {
                     const mux = Protomux.from(conn);
                     if (b4a.equals(swarm.keyPair.publicKey, mux.stream.remotePublicKey)) {
@@ -218,8 +236,12 @@ async function main () {
 
                 return { logKey: bee.key };
             },
-            Update (call) {
+            async Update (call) {
                 const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);
+
+                if (!bee.writable()) {
+                    throw new Error("log is not writable");
+                }
 
                 const obj = objectToLogEntry(req.data, call.request);
 
