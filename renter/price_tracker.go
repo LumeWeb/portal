@@ -194,7 +194,7 @@ SELECT AVG(rate) as average_rate FROM (
 	}
 
 	maxStoragePrice = ratDivideFloat(maxStoragePrice, redundancy.Redundancy())
-	maxStoragePrice = ratDivide(maxStoragePrice, units.TiB)
+	maxStoragePrice = ratDivide(maxStoragePrice, units.TB)
 	maxStoragePrice = ratDivide(maxStoragePrice, blocksPerMonth)
 
 	p.logger.Debug("Setting max storage price", zap.String("maxStoragePrice", maxStoragePrice.FloatString(decimalsInSiacoin)))
