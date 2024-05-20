@@ -166,7 +166,7 @@ async function main () {
                 dataDir = request.dataDir;
 
                 store = new Corestore(dataDir);
-                bee = new Autobee(store, logPrivateKey, {
+                bee = new Autobee(store, logPrivateKey.slice(32), {
                     apply: async (batch, view, base) => {
                         // Add .addWriter functionality
                         for (const node of batch) {
