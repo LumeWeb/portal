@@ -50,42 +50,34 @@ func (c CoreConfig) Defaults() map[string]interface{} {
 	}
 }
 
-func coreConfigHook() mapstructure.DecodeHookFuncType {
+func coreConfigNodeIdHook() mapstructure.DecodeHookFuncType {
 	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-		if f.Kind() != reflect.Map || t != reflect.TypeOf(CoreConfig{}) {
+		if f.Kind() != reflect.String || t != reflect.TypeOf(UUID{}) {
 			return data, nil
 		}
 
-		var coreConfig CoreConfig
-		if err := mapstructure.Decode(data, &coreConfig); err != nil {
-			return nil, err
-		}
-
-		// Check if the input data map includes "node_id" configuration
-		if nodeID, ok := data.(map[string]interface{})["node_id"]; ok {
-			switch v := nodeID.(type) {
-			case string:
-				if v != "" {
-					parsed, err := ParseUUID(v)
-					if err != nil {
-						return nil, err
-					}
-					coreConfig.NodeID = parsed
+		switch v := data.(type) {
+		case string:
+			if v != "" {
+				parsed, err := ParseUUID(v)
+				if err != nil {
+					return nil, err
 				}
-			case []byte:
-				s := string(v)
-				if s != "" {
-					parsed, err := ParseUUID(s)
-					if err != nil {
-						return nil, err
-					}
-					coreConfig.NodeID = parsed
-				}
-			default:
-				return nil, fmt.Errorf("unsupported type for node_id: %T", v)
+				return parsed, nil
 			}
+		case []byte:
+			s := string(v)
+			if s != "" {
+				parsed, err := ParseUUID(s)
+				if err != nil {
+					return nil, err
+				}
+				return parsed, nil
+			}
+		default:
+			return nil, fmt.Errorf("unsupported type for UUID: %T", v)
 		}
 
-		return coreConfig, nil
+		return UUID{}, nil
 	}
 }
