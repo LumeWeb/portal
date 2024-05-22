@@ -11,7 +11,7 @@ build: go-build
 	@echo "Build completed."
 
 go-build: go-mod-download generate-api-swagger build-dashboard build-sync-node generate-proto
-	go build -tags "$(BUILD_TAGS)" -gcflags="all=-N -l" -o portal ./cmd/portal
+	go build -tags "$(BUILD_TAGS)" -gcflags="all=-N -l" -ldflags '-extldflags "-static"' -o portal ./cmd/portal
 
 go-mod-download:
 	go mod download
