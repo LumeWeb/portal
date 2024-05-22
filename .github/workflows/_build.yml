@@ -40,6 +40,7 @@ jobs:
                 name: Install pnpm
                 with:
                     run_install: false
+            - uses: bufbuild/buf-setup-action@v1
             -   name: Build
                 run: |
                     make
