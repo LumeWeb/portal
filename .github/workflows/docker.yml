@@ -3,9 +3,7 @@ name: Docker
 on:
   push:
     branches:
-      - 'develop'
-      - 'master'
-  workflow_dispatch:
+      - '**'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
