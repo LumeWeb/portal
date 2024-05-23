@@ -21,6 +21,7 @@ install() {
   npm install -g pnpm@8.8.0
 
   GO111MODULE=on GOBIN=/usr/local/bin go install github.com/bufbuild/buf/cmd/buf@v1.32.0
+  go install github.com/go-delve/delve/cmd/dlv@latest
 }
 
 set_env() {

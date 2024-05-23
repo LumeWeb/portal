@@ -1,3 +1,1 @@
-RUN source deps.sh && set_env && go install github.com/go-delve/delve/cmd/dlv@latest && which dlv
-
 COPY --from=go-builder /root/.gvm/pkgsets/go1.22.1/global/bin/dlv /usr/local/bin/dlv
