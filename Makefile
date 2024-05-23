@@ -11,8 +11,11 @@ build: go-build
 	@echo "Build completed."
 
 go-build: go-mod-download generate-api-swagger build-dashboard build-sync-node generate-proto
-	go build -tags "$(BUILD_TAGS)" -gcflags="all=-N -l" -ldflags '-extldflags "-static"' -o portal ./cmd/portal
-
+ifeq ($(ENV),dev)
+	go build -tags "$(BUILD_TAGS)" -gcflags="all=-N -l" -o portal ./cmd/portal
+else
+	go build -tags "$(BUILD_TAGS)" -ldflags='-s -w -linkmode external -extldflags "-static"' -o portal ./cmd/portal
+endif
 go-mod-download:
 	go mod download
 

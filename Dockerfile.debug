@@ -1,0 +1,10 @@
+# syntax = edrevo/dockerfile-plus
+INCLUDE+ Dockerfile.include.start
+
+ENV ENV=prod
+
+INCLUDE+ Dockerfile.include.end
+INCLUDE+ Dockerfile.include.debug
+
+# Run the application
+CMD ["/usr/local/bin/dlv", "exec", "./portal", "--listen=:2345", "--headless=true", "--api-version=2", "exec", "--", "./portal"]
