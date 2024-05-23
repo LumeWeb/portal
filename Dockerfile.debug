@@ -1,7 +1,7 @@
 # syntax = edrevo/dockerfile-plus
 INCLUDE+ Dockerfile.include.start
 
-ENV ENV=prod
+ENV ENV=dev
 
 INCLUDE+ Dockerfile.include.end
 INCLUDE+ Dockerfile.include.debug
