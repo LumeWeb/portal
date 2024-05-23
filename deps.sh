@@ -6,6 +6,7 @@ export NVM_DIR="$HOME/.nvm"
 download() {
   curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | bash
   curl -s -S -L https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+  echo "node" > .nvmrc
 }
 
 install() {
