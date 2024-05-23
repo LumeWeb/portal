@@ -22,7 +22,7 @@ install() {
   GO111MODULE=on GOBIN=/usr/local/bin go install github.com/bufbuild/buf/cmd/buf@v1.32.0
 }
 
-env() {
+set_env() {
   source "$HOME/.gvm/scripts/gvm"
   gvm use go${GO_VERSION}
   source "$NVM_DIR/nvm.sh"

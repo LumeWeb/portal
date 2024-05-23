@@ -1,33 +1,9 @@
-FROM ubuntu:jammy as go-builder
+# syntax = edrevo/dockerfile-plus
+INCLUDE+ Dockerfile.include.start
 
-SHELL ["bash", "-c"]
-ENV TERM xterm
-ENV GO_VERSION 1.22.1
-ENV NODE_VERSION stable
+ENV ENV=prod
 
-RUN apt-get update && apt-get install -y git curl bsdmainutils make bison gcc
-
-WORKDIR /portal
-
-COPY . .
-COPY ./.git ./.git
-
-RUN git submodule update --init --recursive
-
-COPY build.sh .
-RUN chmod +x deps.sh && source deps.sh && download && install && make
-
-# Use a lightweight base image for the final stage
-FROM debian:latest
-
-# Set the working directory
-WORKDIR /portal
-
-# Copy the built binary from the go-builder stage
-COPY --from=go-builder /portal/portal .
-
-# Expose the necessary port(s)
-EXPOSE 8080
+INCLUDE+ Dockerfile.include.end
 
 # Run the application
 CMD ["./portal"]
