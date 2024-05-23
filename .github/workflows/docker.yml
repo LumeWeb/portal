@@ -18,9 +18,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            ${{ github.repository.ref_name }}
-            ${{ github.repository.ref_name == 'master' && 'latest' || '' }}
-            ${{ github.repository.ref_name == 'develop' && 'next' || '' }}
+            ${{ github.ref_name }}
+            ${{ github.ref_name == 'master' && 'latest' || '' }}
+            ${{ github.ref_name == 'develop' && 'next' || '' }}
           labels: |
             org.opencontainers.image.title=${{ github.repository }}
             org.opencontainers.image.description=${{ github.repository }}
@@ -49,9 +49,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            ${{ github.repository.ref_name }}-debug
-            ${{ github.repository.ref_name == 'master' && 'latest-debug' || '' }}
-            ${{ github.repository.ref_name == 'develop' && 'next-debug' || '' }}
+            ${{ github.ref_name }}-debug
+            ${{ github.ref_name == 'master' && 'latest-debug' || '' }}
+            ${{ github.ref_name == 'develop' && 'next-debug' || '' }}
           labels: |
             org.opencontainers.image.title=${{ github.repository }}
             org.opencontainers.image.description=${{ github.repository }}
