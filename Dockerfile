@@ -15,10 +15,10 @@ COPY ./.git ./.git
 RUN git submodule update --init --recursive
 
 COPY build.sh .
-RUN chmod +x build.sh && source build.sh && deps && make
+RUN chmod +x deps.sh && source deps.sh && download && install && make
 
 # Use a lightweight base image for the final stage
-FROM alpine:latest
+FROM debian:latest
 
 # Set the working directory
 WORKDIR /portal
