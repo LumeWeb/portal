@@ -30,3 +30,4 @@ fi
 # Run protobufjs-cli command
 ./node_modules/protobufjs-cli/bin/pbjs -t json "$proto_file" > src/generated/grpc_stdio.json
 ./node_modules/.bin/rollup -c rollup.config.js --silent
+zip -r bundle.zip app

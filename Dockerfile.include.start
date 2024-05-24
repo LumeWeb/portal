@@ -6,7 +6,7 @@ ENV TERM xterm
 ENV GO_VERSION 1.22.1
 ENV NODE_VERSION stable
 
-RUN apt-get update && apt-get install -y git curl bsdmainutils make bison gcc
+RUN apt-get update && apt-get install -y git curl bsdmainutils make bison gcc zip
 
 WORKDIR /portal
 

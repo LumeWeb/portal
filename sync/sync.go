@@ -1,10 +1,12 @@
 package sync
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
-	"embed"
+	_ "embed"
 	"errors"
 	"io"
 	"os"
@@ -16,10 +18,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
-
-	gfs "github.com/hanwen/go-fuse/v2/fs"
-
-	go_fuse_embed "github.com/LumeWeb/go-fuse-embed"
 
 	"github.com/LumeWeb/portal/cron"
 
@@ -39,8 +37,8 @@ var _ cron.CronableService = (*SyncServiceDefault)(nil)
 
 //go:generate go run download_node.go
 
-//go:embed node/app
-var nodeServer embed.FS
+//go:embed node/bundle.zip
+var bundle []byte
 
 const nodeEmbedPrefix = "node/app"
 const syncDataFolder = "sync_data"
@@ -264,30 +262,28 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 
 func (s *SyncServiceDefault) init() error {
 	s.cron.RegisterService(s)
-	fuseFs := go_fuse_embed.New(&nodeServer, nodeEmbedPrefix)
-	fuseFs.ChmodFile("/node", 0555)
-
-	mountDir, err := os.MkdirTemp("", "")
+	extractDir, err := os.MkdirTemp(os.TempDir(), "")
 	if err != nil {
 		return err
 	}
 
-	server, err := gfs.Mount(mountDir, fuseFs, &gfs.Options{})
+	err = unzip(bundle, extractDir, s.logger)
+
 	if err != nil {
 		return err
 	}
 
-	err = server.WaitMount()
+	nodePath := path.Join(extractDir, "app", "node")
+	appPath := path.Join(extractDir, "app", "app", "app", "bundle.js")
+
+	err = os.Chmod(nodePath, 0755)
 	if err != nil {
 		return err
 	}
-
-	nodePath := path.Join(mountDir, "node")
-	appPath := path.Join(mountDir, "app/app/bundle.js")
 
 	cmd := exec.Command(nodePath, appPath)
 	cmd.Env = append(os.Environ(), "NODE_NO_WARNINGS=1")
-	cmd.Dir = mountDir
+	cmd.Dir = extractDir
 	clientInst := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: plugin.HandshakeConfig{
 			ProtocolVersion: 1,
@@ -301,45 +297,36 @@ func (s *SyncServiceDefault) init() error {
 
 	s.grpcClient = clientInst
 
-	go func() {
-		err := func() error {
-			rpcClient, err := clientInst.Client()
-			if err != nil {
+	rpcClient, err := clientInst.Client()
+	if err != nil {
 
-				return err
-			}
+		return err
+	}
 
-			pluginInst, err := rpcClient.Dispense("sync")
-			if err != nil {
-				return err
-			}
+	pluginInst, err := rpcClient.Dispense("sync")
+	if err != nil {
+		return err
+	}
 
-			s.grpcPlugin = pluginInst.(sync)
+	s.grpcPlugin = pluginInst.(sync)
 
-			dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
+	dataDir := path.Join(path.Dir(s.config.Viper().ConfigFileUsed()), syncDataFolder)
 
-			hasher := hkdf.New(sha256.New, s.identity, s.config.Config().Core.NodeID.Bytes(), []byte("sync"))
-			derivedSeed := make([]byte, 32)
+	hasher := hkdf.New(sha256.New, s.identity, s.config.Config().Core.NodeID.Bytes(), []byte("sync"))
+	derivedSeed := make([]byte, 32)
 
-			if _, err := io.ReadFull(hasher, derivedSeed); err != nil {
-				s.logger.Fatal("failed to generate child key seed", zap.Error(err))
-			}
+	if _, err := io.ReadFull(hasher, derivedSeed); err != nil {
+		s.logger.Fatal("failed to generate child key seed", zap.Error(err))
+	}
 
-			nodeKey := ed25519.NewKeyFromSeed(derivedSeed)
+	nodeKey := ed25519.NewKeyFromSeed(derivedSeed)
 
-			ret, err := s.grpcPlugin.Init(s.identity, nodeKey, dataDir)
-			if err != nil {
-				return err
-			}
+	ret, err := s.grpcPlugin.Init(s.identity, nodeKey, dataDir)
+	if err != nil {
+		return err
+	}
 
-			s.logKey = ret.GetLogKey()
-			return nil
-		}()
-		if err != nil {
-			s.logger.Fatal("failed to start sync service", zap.Error(err))
-		}
-	}()
-
+	s.logKey = ret.GetLogKey()
 	return nil
 }
 
@@ -351,5 +338,40 @@ func (s *SyncServiceDefault) stop() error {
 		}
 	}
 
+	return nil
+}
+func unzip(data []byte, dest string, logger *zap.Logger) error {
+	read, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return err
+	}
+	for _, file := range read.File {
+		if file.Mode().IsDir() {
+			continue
+		}
+		open, err := file.Open()
+		if err != nil {
+			return err
+		}
+		name := path.Join(dest, file.Name)
+		err = os.MkdirAll(path.Dir(name), os.ModeDir)
+		if err != nil {
+			return err
+		}
+		create, err := os.Create(name)
+		if err != nil {
+			return err
+		}
+		defer func(create *os.File) {
+			err := create.Close()
+			if err != nil {
+				logger.Error("failed to close file", zap.Error(err))
+			}
+		}(create)
+		_, err = create.ReadFrom(open)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
