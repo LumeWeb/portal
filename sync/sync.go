@@ -37,8 +37,6 @@ import (
 
 var _ cron.CronableService = (*SyncServiceDefault)(nil)
 
-//go:generate bash -c "cd proto && buf generate"
-//go:generate bash -c "cd node && bash build.sh"
 //go:generate go run download_node.go
 
 //go:embed node/app
