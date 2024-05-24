@@ -20,7 +20,7 @@ jobs:
               });
               
               for (const pkg of pkgs.data) {
-                  const tags = [deletedBranch, `${deletedBranch}-debug`]
+                  const tags = [context.ref, `${context.ref}-debug`]
                   for (const tag of tags) {
                       if (pkg.metadata.container.tags.includes(tag) || pkg.metadata.container.tags.includes(tag.replace("/", "-"))) {
                           await github.rest.packages.deletePackageVersionForOrg({
