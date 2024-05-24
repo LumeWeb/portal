@@ -3,6 +3,8 @@ RUN chmod +x deps.sh && source deps.sh && download && install && set_env && make
 # Use a lightweight base image for the final stage
 FROM debian:latest
 
+RUN apt-get update && apt-get install -y ca-certificates fuse && apt-get clean
+
 # Set the working directory
 WORKDIR /portal
 
