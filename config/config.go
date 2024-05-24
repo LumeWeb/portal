@@ -229,6 +229,9 @@ func (m *Manager) maybeSave() error {
 
 func (m *Manager) maybeConfigureCluster() error {
 	if m.root.Core.Clustered != nil && m.root.Core.Clustered.Enabled {
+		if m.root.Core.DB.Cache == nil {
+			m.root.Core.DB.Cache = &CacheConfig{}
+		}
 		m.root.Core.DB.Cache.Mode = "redis"
 		m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
 	}
