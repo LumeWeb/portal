@@ -98,7 +98,7 @@ func getCacher(cm *config.Manager, logger *zap.Logger) caches.Cacher {
 	case "memory":
 		return &memoryCacher{}
 	case "redis":
-		rcfg, ok := cm.Config().Core.DB.Cache.Options.(config.RedisConfig)
+		rcfg, ok := cm.Config().Core.DB.Cache.Options.(*config.RedisConfig)
 		if !ok {
 			logger.Fatal("invalid redis config")
 			return nil
