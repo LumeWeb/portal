@@ -10,7 +10,7 @@ default: build
 build: go-build
 	@echo "Build completed."
 
-go-build: go-mod-download generate-api-swagger build-dashboard build-sync-node generate-proto
+go-build: go-mod-download generate-api-swagger generate-download-node build-dashboard build-sync-node generate-proto
 ifeq ($(ENV),dev)
 	go build -tags "$(BUILD_TAGS)" -gcflags="all=-N -l" -o portal ./cmd/portal
 else
@@ -24,6 +24,9 @@ go-get-xz:
 
 generate-api-swagger: go-mod-download go-get-xz
 	go generate api/swagger/swagger.go
+
+generate-download-node:
+	go generate sync/sync.go
 
 build-sync: generate-proto build-node
 
