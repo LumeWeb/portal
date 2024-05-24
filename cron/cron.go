@@ -49,6 +49,7 @@ type CronableService interface {
 
 type CronServiceParams struct {
 	fx.In
+	Config    *config.Manager
 	Logger    *zap.Logger
 	Scheduler gocron.Scheduler
 	Db        *gorm.DB
@@ -71,7 +72,7 @@ type CronServiceDefault struct {
 	taskDefs  sync.Map
 }
 
-func NewCronService(lc fx.Lifecycle, params CronServiceParams) *CronServiceDefault {
+func NewCronService(params CronServiceParams) *CronServiceDefault {
 	return &CronServiceDefault{
 		logger:    params.Logger,
 		scheduler: params.Scheduler,
