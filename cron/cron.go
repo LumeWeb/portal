@@ -80,9 +80,10 @@ func NewCronService(params CronServiceParams) *CronServiceDefault {
 	}
 }
 
-func newScheduler(config *config.Config) (gocron.Scheduler, error) {
-	if config.Core.Clustered.Enabled && config.Core.Clustered.Redis != nil {
-		redisClient, err := config.Core.Clustered.Redis.Client()
+func newScheduler(cm *config.Manager) (gocron.Scheduler, error) {
+	cfg := cm.Config()
+	if cfg.Core.Clustered.Enabled && cfg.Core.Clustered.Redis != nil {
+		redisClient, err := cfg.Core.Clustered.Redis.Client()
 		if err != nil {
 			return nil, err
 		}
