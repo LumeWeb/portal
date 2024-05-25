@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"crypto/ed25519"
+	"github.com/samber/lo"
 
 	"github.com/LumeWeb/portal/sync/proto/gen/proto"
 	"github.com/hashicorp/go-plugin"
@@ -15,6 +16,8 @@ type sync interface {
 	Init(logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error)
 	Update(meta FileMeta) error
 	Query(keys []string) ([]*FileMeta, error)
+	UpdateNodes(nodes []ed25519.PublicKey) error
+	RemoveNode(node ed25519.PublicKey) error
 }
 
 type syncGrpcPlugin struct {
@@ -79,4 +82,32 @@ func (b *syncGRPC) Query(keys []string) ([]*FileMeta, error) {
 	}
 
 	return meta, nil
+}
+
+func (b *syncGRPC) UpdateNodes(nodes []ed25519.PublicKey) error {
+	nodeList := lo.Map[ed25519.PublicKey, []byte](nodes, func(node ed25519.PublicKey, _ int) []byte {
+		return node
+	})
+
+	ret, err := b.client.UpdateNodes(context.Background(), &proto.UpdateNodesRequest{Nodes: nodeList})
+
+	if err != nil {
+		return err
+	}
+
+	if ret == nil {
+		return nil
+	}
+
+	return nil
+}
+
+func (b *syncGRPC) RemoveNode(node ed25519.PublicKey) error {
+	_, err := b.client.RemoveNode(context.Background(), &proto.RemoveNodeRequest{Node: node})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -2,10 +2,9 @@ package main
 
 import (
 	"flag"
-	"net/http"
-
 	"github.com/LumeWeb/portal/metadata"
 	"github.com/LumeWeb/portal/sync"
+	"net/http"
 
 	"github.com/LumeWeb/portal/cron"
 

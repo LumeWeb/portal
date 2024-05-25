@@ -93,4 +93,18 @@ export default class Autobee extends Autobase {
   createReadStream(range, opts) {
     return this.view.createReadStream(range, opts);
   }
+
+  addNode(key) {
+      return this.append({
+          type: 'addWriter',
+          key
+      })
+  }
+
+  removeNode(key) {
+      return this.append({
+          type: 'removeWriter',
+          key
+      })
+  }
 }

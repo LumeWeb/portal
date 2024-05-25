@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/hkdf"
@@ -38,7 +39,10 @@ import (
 
 var _ cron.CronableService = (*SyncServiceDefault)(nil)
 
-const ETC_SYNC_PREFIX = "/node/%s/sync"
+const ETC_NODE_PREFIX = "/node/"
+const ETC_NODE_PLACEHOLDER = "%s"
+const ETC_NODE_SYNC_SUFFIX = "/sync"
+const ETC_SYNC_PREFIX = ETC_NODE_PREFIX + ETC_NODE_PLACEHOLDER + ETC_NODE_SYNC_SUFFIX
 
 //go:generate go run download_node.go
 
@@ -351,6 +355,26 @@ func (s *SyncServiceDefault) init() error {
 		if err != nil {
 			return err
 		}
+
+		nodes, err := fetchSyncNodes(client)
+		if err != nil {
+			return err
+		}
+
+		err = s.grpcPlugin.UpdateNodes(nodes)
+
+		if err != nil {
+			return err
+		}
+
+		go watchExpiringNodes(client, s.logger, func(nodeID config.UUID) {
+			if nodeID == s.config.Config().Core.NodeID {
+				err := s.grpcPlugin.RemoveNode(pubKey)
+				if err != nil {
+					s.logger.Error("failed to remove node", zap.Error(err))
+				}
+			}
+		})
 	}
 
 	return nil
@@ -400,4 +424,38 @@ func unzip(data []byte, dest string, logger *zap.Logger) error {
 		}
 	}
 	return nil
+}
+
+func fetchSyncNodes(client *clientv3.Client) ([]ed25519.PublicKey, error) {
+	resp, err := client.Get(context.Background(), ETC_NODE_PREFIX, clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+
+	var syncNodes []ed25519.PublicKey
+	for _, kv := range resp.Kvs {
+		nodeID := strings.TrimPrefix(string(kv.Key), ETC_NODE_PREFIX)
+		nodeID = strings.TrimSuffix(nodeID, ETC_NODE_SYNC_SUFFIX)
+		syncNodes = append(syncNodes, ed25519.PublicKey(nodeID))
+	}
+
+	return syncNodes, nil
+}
+func watchExpiringNodes(client *clientv3.Client, logger *zap.Logger, onExpire func(nodeID config.UUID)) {
+	watchChan := client.Watch(context.Background(), "/node/", clientv3.WithPrefix())
+
+	for watchResp := range watchChan {
+		for _, event := range watchResp.Events {
+			if event.Type == clientv3.EventTypeDelete {
+				nodeID := strings.TrimPrefix(string(event.Kv.Key), ETC_NODE_PREFIX)
+				nodeID = strings.TrimSuffix(nodeID, ETC_NODE_SYNC_SUFFIX)
+				nodeUUID, err := config.ParseUUID(nodeID)
+				if err != nil {
+					logger.Error("failed to parse node ID", zap.Error(err))
+					continue
+				}
+				onExpire(nodeUUID)
+			}
+		}
+	}
 }
