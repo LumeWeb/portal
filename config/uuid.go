@@ -44,3 +44,7 @@ func ParseUUID(s string) (UUID, error) {
 
 	return UUID(id), nil
 }
+
+func (u UUID) String() string {
+	return uuid.UUID(u).String()
+}
