@@ -4,7 +4,6 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
-	github.com/LumeWeb/go-fuse-embed v0.0.0-20240503150402-82859d690194
 	github.com/LumeWeb/libs5-go v0.0.0-20240418052614-817dee4dffab
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.26.1
@@ -39,7 +38,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.13
-	go.sia.tech/core v0.1.12
+	go.sia.tech/core v0.2.3
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231
 	go.sia.tech/renterd v1.0.5
 	go.uber.org/fx v1.21.0
@@ -47,9 +46,6 @@ require (
 	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.23.0
 	google.golang.org/grpc v1.63.2
-	google.golang.org/protobuf v1.34.1
-	google.golang.org/grpc v1.60.1
-	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.6
 	gorm.io/gorm v1.25.9
@@ -92,10 +88,10 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
-	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/gotd/contrib v0.19.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.2 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
@@ -135,7 +131,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	gitlab.com/NebulousLabs/bolt v1.4.4 // indirect
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe // indirect
@@ -165,6 +160,7 @@ require (
 	golang.org/x/tools v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240509183442-62759503f434 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
