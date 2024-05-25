@@ -13,7 +13,7 @@ import (
 var _ sync = (*syncGRPC)(nil)
 
 type sync interface {
-	Init(logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error)
+	Init(bootstrap bool, logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error)
 	Update(meta FileMeta) error
 	Query(keys []string) ([]*FileMeta, error)
 	UpdateNodes(nodes []ed25519.PublicKey) error
@@ -41,8 +41,8 @@ type syncGRPC struct {
 	client proto.SyncClient
 }
 
-func (b *syncGRPC) Init(logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error) {
-	ret, err := b.client.Init(context.Background(), &proto.InitRequest{LogPrivateKey: logPrivateKey, NodePrivateKey: nodePrivateKey, DataDir: dataDir})
+func (b *syncGRPC) Init(bootstrap bool, logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error) {
+	ret, err := b.client.Init(context.Background(), &proto.InitRequest{Bootstrap: bootstrap, LogPrivateKey: logPrivateKey, NodePrivateKey: nodePrivateKey, DataDir: dataDir})
 
 	if err != nil {
 		return nil, err

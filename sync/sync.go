@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"io"
 	"os"
 	"os/exec"
@@ -43,6 +44,8 @@ const ETC_NODE_PREFIX = "/node/"
 const ETC_NODE_PLACEHOLDER = "%s"
 const ETC_NODE_SYNC_SUFFIX = "/sync"
 const ETC_SYNC_PREFIX = ETC_NODE_PREFIX + ETC_NODE_PLACEHOLDER + ETC_NODE_SYNC_SUFFIX
+const ETC_SYNC_BOOTSTRAP_KEY = "/sync/bootstrap"
+const ETC_SYNC_LEADER_ELECTION_KEY = "/sync/leader"
 
 //go:generate go run download_node.go
 
@@ -330,7 +333,84 @@ func (s *SyncServiceDefault) init() error {
 
 	nodeKey := ed25519.NewKeyFromSeed(derivedSeed)
 
-	ret, err := s.grpcPlugin.Init(s.identity, nodeKey, dataDir)
+	clusterEnabled := s.config.Config().Core.Clustered != nil && s.config.Config().Core.Clustered.Enabled
+
+	bootstrap := true
+	var client *clientv3.Client
+
+	if clusterEnabled {
+		client, err = s.config.Config().Core.Clustered.Etcd.Client()
+		if err != nil {
+			return err
+		}
+
+		// Check if the bootstrap key exists
+		resp, err := client.Get(context.Background(), ETC_SYNC_BOOTSTRAP_KEY)
+		if err != nil {
+			return err
+		}
+
+		if resp.Count > 0 {
+			// Bootstrap key already exists, no need to bootstrap
+			bootstrap = false
+		} else {
+			// Create a new session
+			session, err := concurrency.NewSession(client)
+			if err != nil {
+				return err
+			}
+			defer func(session *concurrency.Session) {
+				err := session.Close()
+				if err != nil {
+					s.logger.Error("failed to close etcd session", zap.Error(err))
+				}
+			}(session)
+
+			// Create a new election
+			election := concurrency.NewElection(session, ETC_SYNC_LEADER_ELECTION_KEY)
+
+			// Check if a leader is already elected
+			_, err = election.Leader(context.Background())
+			if err == nil {
+				// Leader already exists, no need to participate in the election
+				bootstrap = false
+			} else if err == concurrency.ErrElectionNoLeader {
+				// No leader exists, participate in the leader election with a timeout
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+
+				err := election.Campaign(ctx, s.config.Config().Core.NodeID.String())
+				if err != nil {
+					if err == context.DeadlineExceeded {
+						// Timeout occurred, node did not become the leader
+						bootstrap = false
+					} else {
+						// Other error occurred
+						return err
+					}
+				} else {
+					// Successfully elected as the leader
+					bootstrap = true
+					defer func(election *concurrency.Election, ctx context.Context) {
+						err := election.Resign(ctx)
+						if err != nil {
+							s.logger.Error("failed to resign from leader election", zap.Error(err))
+						}
+					}(election, context.Background())
+
+					// Set the bootstrap key to the node ID
+					_, err = client.Put(context.Background(), ETC_SYNC_BOOTSTRAP_KEY, s.config.Config().Core.NodeID.String())
+					if err != nil {
+						return err
+					}
+				}
+			} else {
+				return err
+			}
+		}
+	}
+
+	ret, err := s.grpcPlugin.Init(bootstrap, s.identity, nodeKey, dataDir)
 	if err != nil {
 		return err
 	}
@@ -338,10 +418,6 @@ func (s *SyncServiceDefault) init() error {
 	s.logKey = ret.GetLogKey()
 
 	if s.config.Config().Core.Clustered != nil && s.config.Config().Core.Clustered.Enabled {
-		client, err := s.config.Config().Core.Clustered.Etcd.Client()
-		if err != nil {
-			return err
-		}
 
 		lease := clientv3.NewLease(client)
 		ttl := int64((time.Hour * 24).Seconds())
