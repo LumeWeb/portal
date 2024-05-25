@@ -8,10 +8,13 @@ import (
 	"crypto/sha256"
 	_ "embed"
 	"errors"
+	"fmt"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"io"
 	"os"
 	"os/exec"
 	"path"
+	"time"
 
 	"golang.org/x/crypto/hkdf"
 
@@ -34,6 +37,8 @@ import (
 )
 
 var _ cron.CronableService = (*SyncServiceDefault)(nil)
+
+const ETC_SYNC_PREFIX = "/node/%s/sync"
 
 //go:generate go run download_node.go
 
@@ -327,6 +332,27 @@ func (s *SyncServiceDefault) init() error {
 	}
 
 	s.logKey = ret.GetLogKey()
+
+	if s.config.Config().Core.Clustered != nil && s.config.Config().Core.Clustered.Enabled {
+		client, err := s.config.Config().Core.Clustered.Etcd.Client()
+		if err != nil {
+			return err
+		}
+
+		lease := clientv3.NewLease(client)
+		ttl := int64((time.Hour * 24).Seconds())
+		grantResp, err := lease.Grant(context.Background(), ttl) // 60 seconds TTL
+		if err != nil {
+			return err
+		}
+
+		pubKey := nodeKey.Public().(ed25519.PublicKey)
+		_, err = client.Put(context.Background(), fmt.Sprintf(ETC_SYNC_PREFIX, s.config.Config().Core.NodeID.String()), string(pubKey), clientv3.WithLease(grantResp.ID))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
