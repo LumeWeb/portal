@@ -166,13 +166,20 @@ async function main () {
                 dataDir = request.dataDir;
 
                 store = new Corestore(dataDir);
-                bee = new Autobee(store, logPrivateKey.slice(32), {
+                const logPublicKey = ed25519.getPublicKey(logPrivateKey.slice(0, 32));
+
+                bee = new Autobee(store, null, {
+                    keyPair,
                     apply: async (batch, view, base) => {
                         // Add .addWriter functionality
                         for (const node of batch) {
                             const op = node.value
                             if (op.type === 'addWriter') {
                                 await base.addWriter(b4a.from(op.key, 'hex'))
+                            }
+
+                            if (op.type === 'removeWriter') {
+                                await base.removeWriter(b4a.from(op.key, 'hex'))
                             }
                         }
 
@@ -186,8 +193,15 @@ async function main () {
                     // Print any errors from apply() etc
                     .on('error', console.error)
 
-                await bee.update()
+                try {
+                    await bee.ready();
+                    console.log('Core exists, bootstrapping from the existing core');
+                } catch (error) {
+                    console.log('Core does not exist, creating a new core');
+                    await bee.addNode(b4a.from(bee.local.key).toString("hex"));
+                }
 
+                await bee.update();
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
                 swarm.join(hypercoreCrypto.hash(Buffer.from(SYNC_PROTOCOL)));
@@ -239,7 +253,7 @@ async function main () {
             async Update (call) {
                 const req = root.lookupType("sync.UpdateRequest").fromObject(call.request);
 
-                if (!bee.writable()) {
+                if (!bee.writable) {
                     throw new Error("log is not writable");
                 }
 
@@ -326,6 +340,30 @@ async function main () {
                     return { data: [] };
                 }
             },
+            async UpdateNodes (call) {
+                if (!bee.writable) {
+                    throw new Error("log is not writable");
+                }
+                const req = root.lookupType("sync.UpdateNodesRequest").fromObject(call.request);
+
+                const existingNodes = new Set(bee.activeWriters);
+
+                // Add missing nodes to bee
+                for (const node of req.nodes) {
+                    if (!existingNodes.has(node)) {
+                        await bee.addNode(b4a.from(node).toString("hex"));
+                    }
+                }
+
+                return {};
+            },
+            async RemoveNode(call) {
+                const req = root.lookupType("sync.RemoveNodeRequest").fromObject(call.request);
+
+                await bee.removeNode(b4a.from(req.node).toString("hex"));
+
+                return {};
+            }
         }),
     );
     server.addService(syncPackage.plugin.GRPCStdio.service, prepareServiceImpl({
