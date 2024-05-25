@@ -155,21 +155,23 @@ async function main () {
         prepareServiceImpl({
             async Init (call) {
                 const request = call.request;
+                const bootstrap = request.bootstrap;
                 const logPrivateKey = request.logPrivateKey;
                 const nodePrivateKey = request.nodePrivateKey;
                 const pubKey = ed25519.getPublicKey(nodePrivateKey.slice(0, 32));
-                const keyPair = {
-                    publicKey: pubKey,
-                    secretKey: nodePrivateKey,
-                };
 
                 dataDir = request.dataDir;
 
                 store = new Corestore(dataDir);
                 const logPublicKey = ed25519.getPublicKey(logPrivateKey.slice(0, 32));
 
-                bee = new Autobee(store, null, {
-                    keyPair,
+                if (bootstrap) {
+                    const bootstrapCore = store.get({ keyPair: { publicKey: logPublicKey, secretKey: logPrivateKey } });
+                    await bootstrapCore.ready();
+                    await bootstrapCore.setUserData('autobase/local', bootstrap.key);
+                }
+
+                bee = new Autobee(store, logPublicKey, {
                     apply: async (batch, view, base) => {
                         // Add .addWriter functionality
                         for (const node of batch) {
@@ -193,15 +195,11 @@ async function main () {
                     // Print any errors from apply() etc
                     .on('error', console.error)
 
-                try {
-                    await bee.ready();
-                    console.log('Core exists, bootstrapping from the existing core');
-                } catch (error) {
-                    console.log('Core does not exist, creating a new core');
-                    await bee.addNode(b4a.from(bee.local.key).toString("hex"));
+                await bee.update();
+                if (bootstrap) {
+                    await bee.addNode(b4a.from(pubKey).toString("hex"));
                 }
 
-                await bee.update();
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);
                 swarm.join(hypercoreCrypto.hash(Buffer.from(SYNC_PROTOCOL)));
