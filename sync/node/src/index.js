@@ -351,16 +351,17 @@ async function main () {
                 }
                 const req = root.lookupType("sync.UpdateNodesRequest").fromObject(call.request);
 
-                const existingNodes = new Set();
+                const existingNodes =  [];
 
                 for(const writer of bee.activeWriters) {
-                    existingNodes.add(writer.core.key.toString("hex"));
+                    existingNodes.push(b4a.from(writer.core.key).toString("hex"));
                 }
 
                 // Add missing nodes to bee
                 for (const node of req.nodes) {
-                    if (!existingNodes.has(node.toString("hex"))) {
-                        await bee.addNode(b4a.from(node).toString("hex"));
+                    const keyStr = b4a.from(node).toString("hex");
+                    if (!existingNodes.includes(keyStr)) {
+                        await bee.addNode(keyStr);
                     }
                 }
 
