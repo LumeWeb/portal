@@ -159,6 +159,7 @@ async function main () {
                 const logPrivateKey = request.logPrivateKey;
                 const nodePrivateKey = request.nodePrivateKey;
                 const pubKey = ed25519.getPublicKey(nodePrivateKey.slice(0, 32));
+                const keyPair = { publicKey: pubKey, secretKey: nodePrivateKey };
 
                 dataDir = request.dataDir;
 
@@ -168,7 +169,7 @@ async function main () {
                 if (bootstrap) {
                     const bootstrapCore = store.get({ keyPair: { publicKey: logPublicKey, secretKey: logPrivateKey } });
                     await bootstrapCore.ready();
-                    await bootstrapCore.setUserData('autobase/local', bootstrap.key);
+                    await bootstrapCore.setUserData('autobase/local', bootstrapCore.key);
                 }
 
                 bee = new Autobee(store, logPublicKey, {
@@ -344,11 +345,15 @@ async function main () {
                 }
                 const req = root.lookupType("sync.UpdateNodesRequest").fromObject(call.request);
 
-                const existingNodes = new Set(bee.activeWriters);
+                const existingNodes = new Set();
+
+                for(const writer of bee.activeWriters) {
+                    existingNodes.add(writer.core.key.toString("hex"));
+                }
 
                 // Add missing nodes to bee
                 for (const node of req.nodes) {
-                    if (!existingNodes.has(node)) {
+                    if (!existingNodes.has(node.toString("hex"))) {
                         await bee.addNode(b4a.from(node).toString("hex"));
                     }
                 }
