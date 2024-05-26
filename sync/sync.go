@@ -510,9 +510,7 @@ func fetchSyncNodes(client *clientv3.Client) ([]ed25519.PublicKey, error) {
 
 	var syncNodes []ed25519.PublicKey
 	for _, kv := range resp.Kvs {
-		nodeID := strings.TrimPrefix(string(kv.Key), ETC_NODE_PREFIX)
-		nodeID = strings.TrimSuffix(nodeID, ETC_NODE_SYNC_SUFFIX)
-		syncNodes = append(syncNodes, ed25519.PublicKey(nodeID))
+		syncNodes = append(syncNodes, kv.Value)
 	}
 
 	return syncNodes, nil
