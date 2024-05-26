@@ -170,6 +170,8 @@ async function main () {
                     const bootstrapCore = store.get({ keyPair: { publicKey: logPublicKey, secretKey: logPrivateKey } });
                     await bootstrapCore.ready();
                     await bootstrapCore.setUserData('autobase/local', bootstrapCore.key);
+
+                    await store.get({ keyPair }).ready();
                 }
 
                 bee = new Autobee(store, logPublicKey, {
