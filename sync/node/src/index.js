@@ -178,7 +178,11 @@ async function main () {
                         for (const node of batch) {
                             const op = node.value
                             if (op.type === 'addWriter') {
-                                await base.addWriter(b4a.from(op.key, 'hex'))
+                                const key = b4a.from(op.key, "hex");
+                                await base.addWriter(key);
+                                if (op.bootstrap) {
+                                    await base.system.add(key, { isIndexer: true, isPending: false });
+                                }
                             }
 
                             if (op.type === 'removeWriter') {
@@ -196,10 +200,10 @@ async function main () {
                     // Print any errors from apply() etc
                     .on('error', console.error)
 
-                await bee.update();
                 if (bootstrap) {
-                    await bee.addNode(b4a.from(pubKey).toString("hex"));
+                    await bee.addNode(b4a.from(pubKey).toString("hex"), true);
                 }
+                await bee.update();
 
                 swarm = new Hyperswarm({ keyPair });
                 swarm.join(bee.discoveryKey);

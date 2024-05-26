@@ -94,10 +94,11 @@ export default class Autobee extends Autobase {
     return this.view.createReadStream(range, opts);
   }
 
-  addNode(key) {
+  addNode(key, bootstrap = false) {
       return this.append({
           type: 'addWriter',
-          key
+          key,
+          bootstrap
       })
   }
 
