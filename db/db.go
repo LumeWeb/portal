@@ -1,54 +1,43 @@
 package db
 
 import (
-	"context"
 	"fmt"
-
+	"github.com/LumeWeb/portal/config"
+	"github.com/LumeWeb/portal/core"
 	"github.com/LumeWeb/portal/db/models"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 
 	"github.com/redis/go-redis/v9"
 
 	"go.uber.org/zap"
 
-	"github.com/LumeWeb/portal/config"
-
 	"github.com/go-gorm/caches/v4"
-	"go.uber.org/fx"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type DatabaseParams struct {
-	fx.In
-	Config      *config.Manager
-	Logger      *zap.Logger
-	LoggerLevel *zap.AtomicLevel
-}
+func NewDatabase(ctx *core.Context) *gorm.DB {
+	cfg := ctx.Config()
+	rootLogger := ctx.Logger()
 
-var Module = fx.Module("db",
-	fx.Options(
-		fx.Provide(NewDatabase),
-	),
-)
+	dbType := cfg.Config().Core.DB.Type
+	var db *gorm.DB
+	var err error
 
-func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
-	username := params.Config.Config().Core.DB.Username
-	password := params.Config.Config().Core.DB.Password
-	host := params.Config.Config().Core.DB.Host
-	port := params.Config.Config().Core.DB.Port
-	dbname := params.Config.Config().Core.DB.Name
-	charset := params.Config.Config().Core.DB.Charset
+	switch dbType {
+	case "mysql":
+		db, err = openMySQLDatabase(cfg, rootLogger)
+	case "sqlite":
+		db, err = openSQLiteDatabase(cfg.Config().Core.DB.File, rootLogger)
+	default:
+		panic(fmt.Sprintf("unsupported database type: %s", dbType))
+	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: newLogger(params.Logger, params.LoggerLevel),
-	})
 	if err != nil {
 		panic(err)
 	}
 
-	cacher := getCacher(params.Config, params.Logger)
+	cacher := getCacher(cfg, rootLogger)
 	if cacher != nil {
 		cache := &caches.Caches{Conf: &caches.Config{
 			Cacher: cacher,
@@ -59,17 +48,14 @@ func NewDatabase(lc fx.Lifecycle, params DatabaseParams) *gorm.DB {
 		}
 	}
 
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			return db.AutoMigrate(models.GetModels()...)
-		},
+	ctx.OnStartup(func(ctx core.Context) error {
+		return db.AutoMigrate(models.GetModels()...)
 	})
 
 	return db
 }
 
-func getCacheMode(cm *config.Manager, logger *zap.Logger) string {
-
+func getCacheMode(cm config.Manager, logger *core.Logger) string {
 	if cm.Config().Core.DB.Cache == nil {
 		return "none"
 	}
@@ -88,7 +74,28 @@ func getCacheMode(cm *config.Manager, logger *zap.Logger) string {
 	return "none"
 }
 
-func getCacher(cm *config.Manager, logger *zap.Logger) caches.Cacher {
+func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, error) {
+	username := cfg.Config().Core.DB.Username
+	password := cfg.Config().Core.DB.Password
+	host := cfg.Config().Core.DB.Host
+	port := cfg.Config().Core.DB.Port
+	dbname := cfg.Config().Core.DB.Name
+	charset := cfg.Config().Core.DB.Charset
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
+
+	return gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),
+	})
+}
+
+func openSQLiteDatabase(file string, rootLogger *core.Logger) (*gorm.DB, error) {
+	return gorm.Open(sqlite.Open(file), &gorm.Config{
+		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),
+	})
+}
+
+func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	mode := getCacheMode(cm, logger)
 
 	switch mode {

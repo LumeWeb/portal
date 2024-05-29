@@ -1,8 +1,11 @@
 package config
 
-import "errors"
+import (
+	"errors"
+)
 
-var _ Validator = (*DatabaseConfig)(nil)
+var _ Validator = (*S3Config)(nil)
+var _ Defaults = (*S3Config)(nil)
 
 type S3Config struct {
 	BufferBucket string `mapstructure:"buffer_bucket"`
@@ -10,6 +13,16 @@ type S3Config struct {
 	Region       string `mapstructure:"region"`
 	AccessKey    string `mapstructure:"access_key"`
 	SecretKey    string `mapstructure:"secret_key"`
+}
+
+func (s S3Config) Defaults() map[string]any {
+	return map[string]any{
+		"buffer_bucket": "",
+		"endpoint":      "",
+		"region":        "",
+		"access_key":    "",
+		"secret_key":    "",
+	}
 }
 
 func (s S3Config) Validate() error {

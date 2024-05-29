@@ -9,6 +9,6 @@ func init() {
 type SiaUpload struct {
 	gorm.Model
 	UploadID string `gorm:"unique;not null"`
-	Bucket   string `gorm:"not null;index:idx_bucket_key"`
-	Key      string `gorm:"not null;index:idx_bucket_key"`
+	Bucket   string `gorm:"not null;index:idx_sia_bucket_key"`
+	Key      string `gorm:"not null;index:idx_sia_bucket_key"`
 }

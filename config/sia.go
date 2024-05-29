@@ -21,6 +21,11 @@ type SiaConfig struct {
 
 func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
+		"key":                   "",
+		"url":                   "",
+		"max_upload_price":      0,
+		"max_download_price":    0,
+		"max_storage_price":     0,
 		"max_rpc_sc_price":      0.1,
 		"max_contract_sc_price": 1,
 		"price_history_days":    90,
