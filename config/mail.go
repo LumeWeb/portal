@@ -34,6 +34,12 @@ func (m MailConfig) Validate() error {
 }
 func (c MailConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
+		"host":      "",
 		"auth_type": "plain",
+		"port":      25,
+		"ssl":       false,
+		"from":      "",
+		"username":  "",
+		"password":  "",
 	}
 }

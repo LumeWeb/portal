@@ -11,6 +11,8 @@ var _ Defaults = (*DatabaseConfig)(nil)
 var _ Validator = (*DatabaseConfig)(nil)
 
 type DatabaseConfig struct {
+	Type     string       `mapstructure:"type"`
+	File     string       `mapstructure:"file"`
 	Charset  string       `mapstructure:"charset"`
 	Host     string       `mapstructure:"host"`
 	Name     string       `mapstructure:"name"`
@@ -21,32 +23,47 @@ type DatabaseConfig struct {
 }
 
 func (d DatabaseConfig) Validate() error {
-	if d.Host == "" {
-		return errors.New("core.db.host is required")
+	if d.Type == "sqlite" {
+		if d.File == "" {
+			return errors.New("core.db.file is required")
+		}
 	}
-	if d.Port == 0 {
-		return errors.New("core.db.port is required")
-	}
-	if d.Username == "" {
-		return errors.New("core.db.username is required")
-	}
-	if d.Password == "" {
-		return errors.New("core.db.password is required")
-	}
-	if d.Name == "" {
-		return errors.New("core.db.name is required")
+
+	if d.Type == "mysql" {
+		if d.Host == "" {
+			return errors.New("core.db.host is required")
+		}
+		if d.Port == 0 {
+			return errors.New("core.db.port is required")
+		}
+		if d.Username == "" {
+			return errors.New("core.db.username is required")
+		}
+		if d.Password == "" {
+			return errors.New("core.db.password is required")
+		}
+		if d.Name == "" {
+			return errors.New("core.db.name is required")
+		}
 	}
 
 	return nil
 }
 
 func (d DatabaseConfig) Defaults() map[string]interface{} {
-	return map[string]interface{}{
+	def := map[string]interface{}{
+		"type":    "sqlite",
 		"host":    "localhost",
 		"charset": "utf8mb4",
 		"port":    3306,
 		"name":    "portal",
 	}
+
+	if d.Type == "sqlite" || d.Type == "" {
+		def["file"] = "portal.db"
+	}
+
+	return def
 }
 
 type CacheConfig struct {
@@ -57,7 +74,7 @@ type CacheConfig struct {
 type MemoryConfig struct {
 }
 
-func cacheConfigHook(cm *Manager) mapstructure.DecodeHookFuncType {
+func cacheConfigHook(cm *ManagerDefault) mapstructure.DecodeHookFuncType {
 	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 		// This hook is designed to operate on the options field within the CacheConfig
 		if f.Kind() != reflect.Map || t != reflect.TypeOf(&CacheConfig{}) {

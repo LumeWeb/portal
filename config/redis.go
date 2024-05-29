@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-
 	"github.com/redis/go-redis/v9"
 )
 
