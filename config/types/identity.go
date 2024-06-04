@@ -25,7 +25,7 @@ func (i Identity) Valid() bool {
 	return true
 }
 
-func (i Identity) derive() error {
+func (i *Identity) derive() error {
 	key, err := wallet.KeyFromPhrase(i.seed)
 
 	if err != nil {
@@ -37,11 +37,11 @@ func (i Identity) derive() error {
 	return nil
 }
 
-func (i Identity) Derive() error {
+func (i *Identity) Derive() error {
 	return i.derive()
 }
 
-func (i Identity) PrivateKey() ed25519.PrivateKey {
+func (i *Identity) PrivateKey() ed25519.PrivateKey {
 	if i.key == nil || len(i.key) != ed25519.PrivateKeySize {
 		err := i.derive()
 		if err != nil {
