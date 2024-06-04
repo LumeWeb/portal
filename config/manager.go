@@ -310,13 +310,13 @@ func (m *ManagerDefault) Save() error {
 }
 
 func (m *ManagerDefault) ConfigFile() string {
-	return findConfigFile(false)
+	return findConfigFile(false, false)
 }
 
 func newConfig() (*koanf.Koanf, error) {
 	k := koanf.New(".")
 
-	configFile := findConfigFile(false)
+	configFile := findConfigFile(false, false)
 
 	if configFile == "" {
 		return k, errConfigFileNotFound
@@ -329,16 +329,16 @@ func newConfig() (*koanf.Koanf, error) {
 	return k, nil
 }
 
-func findConfigFile(dirCheck bool) string {
+func findConfigFile(dirCheck bool, ignoreExist bool) string {
 	for _, _path := range configFilePaths {
 		expandedPath := os.ExpandEnv(_path)
 		_, err := os.Stat(expandedPath)
 		if err == nil {
 			return expandedPath
-		} else if !os.IsNotExist(err) {
+		} else if os.IsNotExist(err) {
 			if dirCheck {
 				_, err := os.Stat(path.Dir(expandedPath))
-				if err == nil {
+				if err == nil || ignoreExist {
 					return expandedPath
 				}
 			}
