@@ -6,8 +6,8 @@ option go_package = "./proto";
 message InitRequest {
   bool bootstrap = 1;
   bytes log_private_key = 2;
-  bytes node_private_key = 4;
-  string data_dir = 5;
+  bytes node_private_key = 3;
+  string data_dir = 4;
 }
 
 message InitResponse {
