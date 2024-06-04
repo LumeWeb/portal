@@ -270,8 +270,12 @@ func (m *ManagerDefault) maybeSave() error {
 			return err
 		}
 
-		configFile := findConfigFile(true)
+		configFile := findConfigFile(true, true)
 
+		err = os.MkdirAll(path.Dir(configFile), 0755)
+		if err != nil {
+			return err
+		}
 		err = os.WriteFile(configFile, data, 0644)
 
 		if err != nil {
