@@ -25,7 +25,6 @@ require (
 	github.com/hashicorp/go-plugin v1.6.0
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
 	github.com/redis/go-redis/v9 v9.5.1
