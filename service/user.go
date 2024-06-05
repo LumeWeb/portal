@@ -6,7 +6,7 @@ import (
 	"github.com/LumeWeb/portal/config"
 	"github.com/LumeWeb/portal/core"
 	"github.com/LumeWeb/portal/db/models"
-	"github.com/LumeWeb/portal/service/mailer"
+	"github.com/LumeWeb/portal/service/internal/mailer"
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"

@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/service/mailer"
+	"github.com/LumeWeb/portal/service/internal/mailer"
 	"github.com/wneessen/go-mail"
 	"strings"
 )
