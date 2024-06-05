@@ -1,4 +1,4 @@
-package main
+package portalcmd
 
 import (
 	"github.com/LumeWeb/portal"
