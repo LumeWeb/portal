@@ -5,7 +5,6 @@ import (
 	"github.com/LumeWeb/portal/core"
 	"github.com/LumeWeb/portal/db"
 	"github.com/LumeWeb/portal/service"
-	"github.com/LumeWeb/portal/service/internal/mailer"
 	"go.uber.org/zap"
 	"reflect"
 	"sync"
@@ -25,7 +24,7 @@ var services = []any{
 	service.NewOTPService,
 	service.NewImportService,
 	func(ctx *core.Context) any {
-		return service.NewMailerService(ctx, mailer.NewTemplateRegistry())
+		return service.NewMailerService(ctx, service.NewMailerTemplateRegistry())
 	},
 	service.NewRenterService,
 	service.NewMetadataService,

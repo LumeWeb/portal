@@ -70,3 +70,6 @@ func NewMailerService(ctx *core.Context, templateRegistry *mailer.TemplateRegist
 
 	return m
 }
+func NewMailerTemplateRegistry() *mailer.TemplateRegistry {
+	return mailer.NewTemplateRegistry()
+}
