@@ -5,7 +5,7 @@ import (
 	"github.com/LumeWeb/portal/core"
 	"github.com/LumeWeb/portal/db"
 	"github.com/LumeWeb/portal/service"
-	"github.com/LumeWeb/portal/service/mailer"
+	"github.com/LumeWeb/portal/service/internal/mailer"
 	"go.uber.org/zap"
 	"reflect"
 	"sync"
