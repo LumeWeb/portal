@@ -4,7 +4,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"github.com/go-viper/mapstructure/v2"
-	"go.sia.tech/renterd/wallet"
+	"go.sia.tech/coreutils/wallet"
 	"gopkg.in/yaml.v3"
 )
 
@@ -26,14 +26,13 @@ func (i Identity) Valid() bool {
 }
 
 func (i *Identity) derive() error {
-	key, err := wallet.KeyFromPhrase(i.seed)
-
+	var seed [32]byte
+	err := wallet.SeedFromPhrase(&seed, i.seed)
 	if err != nil {
 		return err
 	}
 
-	i.key = ed25519.PrivateKey(key)
-
+	i.key = ed25519.NewKeyFromSeed(seed[:])
 	return nil
 }
 
