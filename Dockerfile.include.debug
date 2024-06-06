@@ -1,1 +1,0 @@
-COPY --from=go-builder /root/.gvm/pkgsets/go1.22.1/global/bin/dlv /usr/local/bin/dlv
