@@ -3,10 +3,9 @@ package sync
 import (
 	"context"
 	"crypto/ed25519"
-	"github.com/LumeWeb/portal/service/internal/sync/proto/gen/proto"
-	"github.com/samber/lo"
-
+	"github.com/LumeWeb/portal-plugin-sync-grpc/gen/proto"
 	"github.com/hashicorp/go-plugin"
+	"github.com/samber/lo"
 	"google.golang.org/grpc"
 )
 

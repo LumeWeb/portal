@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	node_server "github.com/LumeWeb/portal-plugin-sync-node-server/go"
 	"github.com/LumeWeb/portal/config"
 	"github.com/LumeWeb/portal/config/types"
 	"github.com/LumeWeb/portal/core"
@@ -35,11 +36,6 @@ const ETC_NODE_SYNC_SUFFIX = "/sync"
 const ETC_SYNC_PREFIX = ETC_NODE_PREFIX + ETC_NODE_PLACEHOLDER + ETC_NODE_SYNC_SUFFIX
 const ETC_SYNC_BOOTSTRAP_KEY = "/sync/bootstrap"
 const ETC_SYNC_LEADER_ELECTION_KEY = "/sync/leader"
-
-//go:generate go run download_node.go
-
-//go:embed internal/sync/node/bundle.zip
-var bundle []byte
 
 const syncDataFolder = "sync_data"
 
@@ -248,7 +244,7 @@ func (s *SyncServiceDefault) init() error {
 		return err
 	}
 
-	err = unzip(bundle, extractDir, s.logger)
+	err = unzip(node_server.GetBundle(), extractDir, s.logger)
 
 	if err != nil {
 		return err
