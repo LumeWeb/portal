@@ -1,7 +1,0 @@
-diff --git a/binding.js b/binding.js
-index ffd938652efb873a7b3beb4054bb22bae2cfd7bd..82766a9b19b640d0f12dfd72f24fc907279b2d50 100644
---- a/binding.js
-+++ b/binding.js
-@@ -1 +1 @@
--module.exports = require('node-gyp-build')(__dirname)
-+module.exports = require('bindings')({ bindings: "fs-native-extensions.node", module_root: __dirname })
