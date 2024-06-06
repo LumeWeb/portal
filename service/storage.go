@@ -223,11 +223,10 @@ func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core
 		partialRange = api.DownloadRange{
 			Offset: start,
 			Length: int64(upload.Size) - start + 1,
-			Size:   int64(upload.Size),
 		}
 	}
 
-	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: partialRange})
+	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: &partialRange})
 	if err != nil {
 		return nil, err
 	}

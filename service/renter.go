@@ -205,7 +205,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 	}
 
 	if len(uploadId) == 0 {
-		upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{Key: object.NoOpKey})
+		upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{GenerateKey: true})
 		if err != nil {
 			return err
 		}
@@ -270,7 +270,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 		}
 	}
 
-	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts)
+	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts, api.CompleteMultipartOptions{})
 	if err != nil {
 		return err
 	}
