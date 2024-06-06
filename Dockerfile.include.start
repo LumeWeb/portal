@@ -1,12 +1,6 @@
-
-FROM ubuntu:jammy as go-builder
+FROM golang:1.22.1 as go-builder
 
 SHELL ["bash", "-c"]
-ENV TERM xterm
-ENV GO_VERSION 1.22.1
-ENV NODE_VERSION stable
-
-RUN apt-get update && apt-get install -y git curl bsdmainutils make bison gcc zip
 
 WORKDIR /portal
 
@@ -14,5 +8,3 @@ COPY . .
 COPY ./.git ./.git
 
 RUN git submodule update --init --recursive
-
-COPY deps.sh .
