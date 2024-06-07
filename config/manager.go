@@ -116,10 +116,11 @@ func (m *ManagerDefault) ConfigureProtocol(name string, cfg ProtocolConfig) erro
 	err = m.config.UnmarshalWithConf(protocolPrefix, cfg, koanf.UnmarshalConf{
 		Tag: "mapstructure",
 		DecoderConfig: &mapstructure.DecoderConfig{
-			DecodeHook:       mapstructure.ComposeDecodeHookFunc(hooks...),
-			Metadata:         nil,
-			Result:           cfg,
-			WeaklyTypedInput: true,
+			DecodeHook:           mapstructure.ComposeDecodeHookFunc(hooks...),
+			Metadata:             nil,
+			Result:               cfg,
+			WeaklyTypedInput:     true,
+			IgnoreUntaggedFields: true,
 		},
 	})
 	if err != nil {
