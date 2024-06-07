@@ -118,7 +118,7 @@ func (m *ManagerDefault) ConfigureProtocol(name string, cfg ProtocolConfig) erro
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook:       mapstructure.ComposeDecodeHookFunc(hooks...),
 			Metadata:         nil,
-			Result:           &m.root,
+			Result:           cfg,
 			WeaklyTypedInput: true,
 		},
 	})
