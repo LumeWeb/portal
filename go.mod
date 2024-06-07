@@ -4,14 +4,17 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
+	github.com/LumeWeb/portal-plugin-account v0.0.0-20240606234014-9287571eff05
+	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240607001354-d9439d1a6af2
+	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240605022653-7f27f0a3197d
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
-	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606013451-4044ba87c204
+	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606095140-9f4e05b8a0af
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.27.1
-	github.com/aws/aws-sdk-go-v2/config v1.27.16
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.16
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.54.4
-	github.com/casbin/casbin/v2 v2.87.1
+	github.com/aws/aws-sdk-go-v2/config v1.27.17
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.17
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.0
+	github.com/casbin/casbin/v2 v2.89.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/getkin/kin-openapi v0.118.0
@@ -48,14 +51,44 @@ require (
 	lukechampine.com/blake3 v1.3.0
 )
 
-require google.golang.org/protobuf v1.34.1 // indirect
+require (
+	github.com/LumeWeb/httputil v0.0.0-20240601144746-504fd57b96e6 // indirect
+	github.com/LumeWeb/libs5-go v0.0.0-20240606191331-125741e0f4a6 // indirect
+	github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240605230410-a5d8badfc00d // indirect
+	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba // indirect
+	github.com/dnslink-std/go v0.6.0 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
+	github.com/miekg/dns v1.1.59 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/multiformats/go-base32 v0.1.0 // indirect
+	github.com/multiformats/go-base36 v0.2.0 // indirect
+	github.com/multiformats/go-multibase v0.2.0 // indirect
+	github.com/olebedev/emitter v0.0.0-20230411050614-349169dec2ba // indirect
+	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
+	github.com/prometheus/common v0.53.0 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/rs/cors v1.11.0 // indirect
+	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 // indirect
+	github.com/tus/tusd/v2 v2.4.0 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	go.etcd.io/bbolt v1.3.10 // indirect
+	go.uber.org/zap/exp v0.2.0 // indirect
+	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
+	nhooyr.io/websocket v1.8.11 // indirect
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	// indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.8 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.8 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
@@ -64,12 +97,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.20.9 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.20.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.11 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
-	github.com/casbin/govaluate v1.1.0 // indirect
+	github.com/casbin/govaluate v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
@@ -79,11 +112,10 @@ require (
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-openapi/jsonpointer v0.20.2 // indirect
-	github.com/go-openapi/swag v0.22.8 // indirect
+	github.com/go-openapi/jsonpointer v0.21.0 // indirect
+	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-redsync/redsync/v4 v4.13.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/gotd/contrib v0.20.0 // indirect
@@ -92,7 +124,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
-	github.com/invopop/yaml v0.2.0 // indirect
+	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
