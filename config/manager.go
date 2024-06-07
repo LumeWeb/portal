@@ -111,7 +111,17 @@ func (m *ManagerDefault) ConfigureProtocol(name string, cfg ProtocolConfig) erro
 		return err
 	}
 
-	err = m.config.Unmarshal(protocolPrefix, cfg)
+	hooks := append([]mapstructure.DecodeHookFunc{}, mapstructure.StringToTimeDurationHookFunc())
+
+	err = m.config.UnmarshalWithConf(protocolPrefix, cfg, koanf.UnmarshalConf{
+		Tag: "mapstructure",
+		DecoderConfig: &mapstructure.DecoderConfig{
+			DecodeHook:       mapstructure.ComposeDecodeHookFunc(hooks...),
+			Metadata:         nil,
+			Result:           &m.root,
+			WeaklyTypedInput: true,
+		},
+	})
 	if err != nil {
 		return err
 	}
