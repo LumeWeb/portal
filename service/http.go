@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/LumeWeb/portal/core"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -40,6 +41,18 @@ func NewHTTPService(ctx *core.Context) *HTTPServiceDefault {
 		Addr:    ":" + strconv.FormatUint(uint64(ctx.Config().Config().Core.Port), 10),
 		Handler: _http.router,
 	}
+
+	ctx.OnStartup(func(ctx core.Context) error {
+		for _, api := range core.GetAPIs() {
+			domain := fmt.Sprintf("%s.%s", api.Subdomain(), ctx.Config().Config().Core.Domain)
+			err := api.Configure(_http.Router().Host(domain).Subrouter())
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 
 	ctx.OnExit(func(ctx core.Context) error {
 		return srv.Shutdown(ctx)
