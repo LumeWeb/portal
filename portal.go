@@ -95,12 +95,12 @@ func (p *PortalImpl) Init() error {
 
 	for _, plugin := range plugins {
 		if core.PluginHasProtocol(plugin) {
-			proto, err := plugin.GetProtocol(&ctx)
+			_proto, err := plugin.GetProtocol(&ctx)
 			if err != nil {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
 				return err
 			}
-			core.RegisterProtocol(plugin.ID, proto)
+			core.RegisterProtocol(plugin.ID, _proto)
 		}
 	}
 
@@ -115,16 +115,25 @@ func (p *PortalImpl) Init() error {
 		}
 	}
 
-	for _, proto := range core.GetProtocols() {
-		err := ctx.Config().ConfigureProtocol(proto.Name(), proto.Config())
+	for _, _proto := range core.GetProtocols() {
+		err := ctx.Config().ConfigureProtocol(_proto.Name(), _proto.Config())
 		if err != nil {
-			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", proto.Name()), zap.Error(err))
+			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
 			return err
 		}
 
-		if initPlugin, ok := proto.(core.ProtocolInit); ok {
-			if err := initPlugin.Init(&ctx); err != nil {
-				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", proto.Name()), zap.Error(err))
+		if initProto, ok := _proto.(core.ProtocolInit); ok {
+			if err := initProto.Init(&ctx); err != nil {
+				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
+				return err
+			}
+		}
+	}
+
+	for _, api := range core.GetAPIs() {
+		if initApi, ok := api.(core.APIInit); ok {
+			if err := initApi.Init(&ctx); err != nil {
+				ctx.Logger().Error("Error initializing api", zap.String("api", api.Subdomain()), zap.Error(err))
 				return err
 			}
 		}
