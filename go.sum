@@ -24,6 +24,12 @@ github.com/LumeWeb/portal-plugin-account v0.0.0-20240610014523-4e001500ce2f h1:X
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610014523-4e001500ce2f/go.mod h1:jh2oI07F0DjWFcWTElKsiyKlvTDwpYRMkpCDrwZtJ/o=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610015525-8a3dc6a0bf5e h1:nCU8EKgEf4Rv/8GC8IvmWoAbC51GAu5J5+iMUDC3gLA=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610015525-8a3dc6a0bf5e/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610112843-35d80e815772 h1:8l9ZTSTc10LJczJj9oOtyhtQagRcTeqE12MHyL9+kAk=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610112843-35d80e815772/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610113918-846c2124ab12 h1:fOdMteMttKmersvAkjPkkV3L8QJD5diE527QXm6r6WY=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610113918-846c2124ab12/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f h1:k/nyGgaUjOuSzFQP3pVWlsK6RcSZldSlaggZx07qj1o=
+github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e h1:UkLoFZO4s9A7HIXLQa2TzHNSx4Yfat+7ahzLOSZqc7E=
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e/go.mod h1:aBnLYGqcxLXP5FzZ+JVPMYtjY/Sk3H86s5PMu5DkoWI=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240605022653-7f27f0a3197d h1:e3WmAuMldHqrIKGaPM8N0jmlot2BL8IgZ1dEh/QXZuE=
