@@ -165,6 +165,10 @@ type API interface {
 	AuthTokenName() string
 }
 
+type APIInit interface {
+	Init(ctx *Context) error
+}
+
 type RoutableAPI interface {
 	Can(w http.ResponseWriter, r *http.Request) bool
 	Handle(w http.ResponseWriter, r *http.Request)
