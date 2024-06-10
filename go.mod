@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.17
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.0
-	github.com/casbin/casbin/v2 v2.92.0
+	github.com/casbin/casbin/v2 v2.95.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/getkin/kin-openapi v0.118.0
