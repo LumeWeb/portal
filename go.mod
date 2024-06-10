@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
-	github.com/LumeWeb/portal-plugin-account v0.0.0-20240606234014-9287571eff05
+	github.com/LumeWeb/portal-plugin-account v0.0.0-20240610015525-8a3dc6a0bf5e
 	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e
 	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240605022653-7f27f0a3197d
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
@@ -54,7 +54,7 @@ require (
 require (
 	github.com/LumeWeb/httputil v0.0.0-20240601144746-504fd57b96e6 // indirect
 	github.com/LumeWeb/libs5-go v0.0.0-20240606191331-125741e0f4a6 // indirect
-	github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240605230410-a5d8badfc00d // indirect
+	github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240610014333-4ef16ded2991 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba // indirect
 	github.com/dnslink-std/go v0.6.0 // indirect
