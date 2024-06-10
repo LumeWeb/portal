@@ -20,14 +20,6 @@ github.com/LumeWeb/libs5-go v0.0.0-20240606191331-125741e0f4a6 h1:PkjzKGAEkD3s1T
 github.com/LumeWeb/libs5-go v0.0.0-20240606191331-125741e0f4a6/go.mod h1:MhyAfjlWFP7j3w52AOP5pN1fM2w3mtTJUogwx1EllUY=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6 h1:2dSiG0CN+bF72J89Zk0/icyDebCpySx9CwZ0Fp+QM8Q=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610014523-4e001500ce2f h1:XP3pGeV63BilEdIn6qR4yk+A/pOHFcqd4X3EB5uvuX8=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610014523-4e001500ce2f/go.mod h1:jh2oI07F0DjWFcWTElKsiyKlvTDwpYRMkpCDrwZtJ/o=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610015525-8a3dc6a0bf5e h1:nCU8EKgEf4Rv/8GC8IvmWoAbC51GAu5J5+iMUDC3gLA=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610015525-8a3dc6a0bf5e/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610112843-35d80e815772 h1:8l9ZTSTc10LJczJj9oOtyhtQagRcTeqE12MHyL9+kAk=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610112843-35d80e815772/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610113918-846c2124ab12 h1:fOdMteMttKmersvAkjPkkV3L8QJD5diE527QXm6r6WY=
-github.com/LumeWeb/portal-plugin-account v0.0.0-20240610113918-846c2124ab12/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f h1:k/nyGgaUjOuSzFQP3pVWlsK6RcSZldSlaggZx07qj1o=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e h1:UkLoFZO4s9A7HIXLQa2TzHNSx4Yfat+7ahzLOSZqc7E=
@@ -44,8 +36,6 @@ github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053 h1:GhYSP
 github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053/go.mod h1:oCkYMGOVR+cdsxDmGvM5CxOPL2RSeQ3139XZGGBYiPk=
 github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120 h1:+FYQ83a3c0p6Y/sqp3373CJ2m/b0mskdG3ma/opxtlk=
 github.com/LumeWeb/tusd/v2 v2.2.3-0.20240224143554-96925dd43120/go.mod h1:lqzUzWTG5OwezKgA1HJ+uwyjJusv6StTYdLTIvo0nxE=
-github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240605230410-a5d8badfc00d h1:mSKiH5XjCKbtIq8YNN1rZd1qD884V5GTII1sPljIj6Y=
-github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240605230410-a5d8badfc00d/go.mod h1:f3idpY2G3RhW59d0hrANI7p5GAsQ0xTe0lJmBgg0O7I=
 github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240610014333-4ef16ded2991 h1:yR16B0j2ZlCCosiNNQZ38iwFIHJZUFw9Niu0JP4+pFc=
 github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240610014333-4ef16ded2991/go.mod h1:f3idpY2G3RhW59d0hrANI7p5GAsQ0xTe0lJmBgg0O7I=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
@@ -714,8 +704,8 @@ go.etcd.io/etcd/client/pkg/v3 v3.5.14/go.mod h1:8uMgAokyG1czCtIdsq+AGyYQMvpIKnSv
 go.etcd.io/etcd/client/v3 v3.5.4/go.mod h1:ZaRkVgBZC+L+dLCjTcF1hRXpgZXQPOvnA/Ak/gq3kiY=
 go.etcd.io/etcd/client/v3 v3.5.14 h1:CWfRs4FDaDoSz81giL7zPpZH2Z35tbOrAJkkjMqOupg=
 go.etcd.io/etcd/client/v3 v3.5.14/go.mod h1:k3XfdV/VIHy/97rqWjoUzrj9tk7GgJGH9J8L4dNXmAk=
-go.sia.tech/core v0.2.5 h1:uGyaFQNPbbMOg6YpvSevx+FXoQn9Itfsq6rbB6MMq34=
-go.sia.tech/core v0.2.5/go.mod h1:tf07w3f/8XRtK1XoHl8C/MXzzUp/MEUuZE22L5uoCDQ=
+go.sia.tech/core v0.2.6 h1:JrbZwW4cPHCB2Q6TeqCsAj2GAFXrRqLq0q/GNevtnPU=
+go.sia.tech/core v0.2.6/go.mod h1:B7ooFH3F6cLjxQz6IX33kgjOY392Ava7pzpPeccagac=
 go.sia.tech/coreutils v0.0.4 h1:I8FhhVwpWF1kHu+PkHl4jW/UteEJ64mlqTlOWYLd1J4=
 go.sia.tech/coreutils v0.0.4/go.mod h1:JOzeygRc1EGx6LQo4v7GrNrE1omJB3wpTUE7YTIlm+M=
 go.sia.tech/gofakes3 v0.0.2 h1:oWnsYjHvSyf4ddtEH6XO76xeXC10N2cRqduI6B0d/EU=

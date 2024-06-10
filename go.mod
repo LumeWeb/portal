@@ -37,7 +37,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
-	go.sia.tech/core v0.2.5
+	go.sia.tech/core v0.2.6
 	go.sia.tech/coreutils v0.0.4
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231
 	go.sia.tech/renterd v1.0.7
