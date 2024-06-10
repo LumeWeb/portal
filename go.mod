@@ -10,7 +10,7 @@ require (
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
 	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606095140-9f4e05b8a0af
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
-	github.com/aws/aws-sdk-go-v2 v1.27.1
+	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.17
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.0
