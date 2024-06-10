@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/portal-plugin-account v0.0.0-20240606234014-9287571eff05
-	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240607031701-36225a1d4311
+	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610002727-68b7fb456bab
 	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240605022653-7f27f0a3197d
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
 	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606095140-9f4e05b8a0af
