@@ -100,6 +100,11 @@ func (p *PortalImpl) Init() error {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
 				return err
 			}
+
+			if _proto == nil {
+				continue
+			}
+
 			core.RegisterProtocol(plugin.ID, _proto)
 		}
 	}
@@ -111,6 +116,11 @@ func (p *PortalImpl) Init() error {
 				ctx.Logger().Error("Error building API", zap.String("plugin", plugin.ID), zap.Error(err))
 				return err
 			}
+
+			if api == nil {
+				continue
+			}
+
 			core.RegisterAPI(plugin.ID, api)
 		}
 	}
