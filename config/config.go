@@ -18,4 +18,5 @@ type Manager interface {
 	Config() *Config
 	Save() error
 	ConfigFile() string
+	ConfigDir() string
 }
