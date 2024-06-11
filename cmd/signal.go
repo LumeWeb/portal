@@ -2,6 +2,7 @@ package portalcmd
 
 import (
 	"github.com/LumeWeb/portal"
+	"github.com/LumeWeb/portal/core"
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
@@ -16,11 +17,11 @@ func exitProcessFromSignal(sigName string) {
 }
 
 func exitProcess(logger *zap.Logger) {
-	exitCode := exitCodeSuccess
+	exitCode := core.ExitCodeSuccess
 
 	if err := portal.Stop(); err != nil {
 		logger.Error("failed to stop portal", zap.Error(err))
-		exitCode = exitCodeFailedQuit
+		exitCode = core.ExitCodeFailedQuit
 	}
 
 	ctx := portal.Context()
@@ -35,7 +36,7 @@ func exitProcess(logger *zap.Logger) {
 	go func() {
 		defer func() {
 			logger = logger.With(zap.Int("exit_code", exitCode))
-			if exitCode == exitCodeSuccess {
+			if exitCode == core.ExitCodeSuccess {
 				logger.Info("shutdown complete")
 			} else {
 				logger.Error("unclean shutdown")
@@ -56,7 +57,7 @@ func trapSignals() {
 			switch sig {
 			case syscall.SIGQUIT:
 				logger.Info("quitting process immediately", zap.String("signal", "SIGQUIT"))
-				os.Exit(exitCodeForceQuit)
+				os.Exit(core.ExitCodeForceQuit)
 
 			case syscall.SIGTERM:
 				logger.Info("shutting down apps, then terminating", zap.String("signal", "SIGTERM"))
@@ -76,13 +77,3 @@ func trapSignals() {
 
 	}()
 }
-
-// Exit codes. Generally, you should NOT
-// automatically restart the process if the
-// exit code is ExitCodeFailedStartup (1).
-const (
-	exitCodeSuccess = iota
-	exitCodeFailedStartup
-	exitCodeForceQuit
-	exitCodeFailedQuit
-)
