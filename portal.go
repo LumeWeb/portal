@@ -207,7 +207,7 @@ func (p *PortalImpl) Serve() error {
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
-	core.NewContext(ctx)
+	ctx = core.NewContext(ctx)
 
 	return &PortalImpl{
 		ctx: ctx,
