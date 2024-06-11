@@ -199,7 +199,7 @@ func CronTaskUploadObject(input any, ctx core.Context) error {
 	renter := ctx.Services().Renter()
 	storage := ctx.Services().Storage()
 	metadata := ctx.Services().Metadata()
-	_sync := ctx.Services().Syncer()
+	_sync := ctx.Services().Sync()
 
 	fileName, err := encodeProtocolFileName(args.Hash, args.Protocol)
 	if err != nil {
@@ -257,7 +257,7 @@ func CronTaskUploadObject(input any, ctx core.Context) error {
 func CronTaskScanObjects(_ any, ctx core.Context) error {
 	logger := ctx.Logger()
 	metadata := ctx.Services().Metadata()
-	_sync := ctx.Services().Syncer()
+	_sync := ctx.Services().Sync()
 	uploads, err := metadata.GetAllUploads(ctx)
 	if err != nil {
 		return err
