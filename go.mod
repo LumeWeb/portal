@@ -39,7 +39,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.sia.tech/core v0.2.6
 	go.sia.tech/coreutils v0.0.5
-	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231
 	go.sia.tech/renterd v1.0.7
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.24.0
@@ -76,6 +75,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.10 // indirect
+	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
 	go.uber.org/zap/exp v0.2.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
