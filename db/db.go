@@ -7,6 +7,7 @@ import (
 	"github.com/LumeWeb/portal/db/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"path"
 
 	"github.com/redis/go-redis/v9"
 
@@ -28,7 +29,15 @@ func NewDatabase(ctx *core.Context) *gorm.DB {
 	case "mysql":
 		db, err = openMySQLDatabase(cfg, rootLogger)
 	case "sqlite":
-		db, err = openSQLiteDatabase(cfg.Config().Core.DB.File, rootLogger)
+		var dbFile string
+
+		if path.IsAbs(cfg.Config().Core.DB.File) {
+			dbFile = cfg.Config().Core.DB.File
+		} else {
+			dbFile = path.Join(cfg.ConfigDir(), cfg.Config().Core.DB.File)
+		}
+
+		db, err = openSQLiteDatabase(dbFile, rootLogger)
 	default:
 		panic(fmt.Sprintf("unsupported database type: %s", dbType))
 	}
