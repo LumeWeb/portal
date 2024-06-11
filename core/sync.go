@@ -11,4 +11,5 @@ type SyncService interface {
 	Update(upload UploadMetadata) error
 	LogKey() []byte
 	Import(object string, uploaderID uint64) error
+	Enabled() bool
 }

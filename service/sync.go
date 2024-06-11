@@ -72,22 +72,25 @@ func NewSyncService(ctx *core.Context) *SyncServiceDefault {
 	}
 
 	ctx.RegisterService(_sync)
-	ctx.OnStartup(func(ctx core.Context) error {
-		err := _sync.init()
-		if err != nil {
-			_sync.logger.Error("failed to initialize sync service", zap.Error(err))
-		}
 
-		return err
-	})
-	ctx.OnExit(func(ctx core.Context) error {
-		err := _sync.stop()
-		if err != nil {
-			_sync.logger.Error("failed to stop sync service", zap.Error(err))
-		}
+	if ctx.Config().Config().Core.Sync.Enabled {
+		ctx.OnStartup(func(ctx core.Context) error {
+			err := _sync.init()
+			if err != nil {
+				_sync.logger.Error("failed to initialize sync service", zap.Error(err))
+			}
 
-		return err
-	})
+			return err
+		})
+		ctx.OnExit(func(ctx core.Context) error {
+			err := _sync.stop()
+			if err != nil {
+				_sync.logger.Error("failed to stop sync service", zap.Error(err))
+			}
+
+			return err
+		})
+	}
 
 	return _sync
 }
@@ -422,6 +425,11 @@ func (s *SyncServiceDefault) init() error {
 func (s *SyncServiceDefault) stop() error {
 	return nil
 }
+
+func (s *SyncServiceDefault) Enabled() bool {
+	return s.config.Config().Core.Sync.Enabled
+}
+
 func unzip(data []byte, dest string, logger *core.Logger) error {
 	read, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
