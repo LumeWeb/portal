@@ -5,6 +5,7 @@ import (
 	"github.com/LumeWeb/portal/core"
 	"github.com/LumeWeb/portal/db"
 	"github.com/LumeWeb/portal/service"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"os"
 	"reflect"
@@ -98,6 +99,9 @@ func (p *PortalImpl) Init() error {
 
 	for _, plugin := range plugins {
 		if core.PluginHasProtocol(plugin) {
+			if !lo.Contains(ctx.Config().Config().Core.Protocols, plugin.ID) {
+				continue
+			}
 			_proto, err := plugin.GetProtocol(&ctx)
 			if err != nil {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
