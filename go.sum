@@ -24,6 +24,8 @@ github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f h1:k
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611021542-951ae4e6fe56 h1:s9SvJxsNgWse8xctY3poAMLpesxz5TfXLikshDV9S4Y=
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611021542-951ae4e6fe56/go.mod h1:7O+QwnhzP/LqIX1jgn5QogFuHaP7Mp0P/FhAR3rMCmo=
+github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611042144-b8a59f5d1297 h1:SgMil2xPDwuSNpJDkSVJp29sIHBq2BtLePOtpWkckbQ=
+github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611042144-b8a59f5d1297/go.mod h1:7O+QwnhzP/LqIX1jgn5QogFuHaP7Mp0P/FhAR3rMCmo=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246 h1:SLDvt9HynKnJNvHixybYTEUaLHPCt4ip85/LBPANCvQ=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246/go.mod h1:O1UvbPBqVK7GxDalfCdVtuUgdlZa+Nzus33Wfg3kjDM=
 github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391 h1:SdD0rUz0l3z8Cjq+vkhwzETAw7dPCjfs4TvG5UFXILU=
