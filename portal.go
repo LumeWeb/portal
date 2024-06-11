@@ -30,6 +30,7 @@ var services = []any{
 	service.NewMetadataService,
 	service.NewStorageService,
 	service.NewPinService,
+	service.NewDNSLinkService,
 	service.NewSyncService,
 	service.NewHTTPService,
 }
