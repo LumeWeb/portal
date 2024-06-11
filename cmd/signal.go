@@ -17,33 +17,7 @@ func exitProcessFromSignal(sigName string) {
 }
 
 func exitProcess(logger *zap.Logger) {
-	exitCode := core.ExitCodeSuccess
-
-	if err := portal.Stop(); err != nil {
-		logger.Error("failed to stop portal", zap.Error(err))
-		exitCode = core.ExitCodeFailedQuit
-	}
-
-	ctx := portal.Context()
-	for _, exitFunc := range ctx.ExitFuncs() {
-		err := exitFunc(ctx)
-		if err != nil {
-			logger.Error("error during exit", zap.Error(err))
-			exitCode = exitCodeFailedQuit
-		}
-	}
-
-	go func() {
-		defer func() {
-			logger = logger.With(zap.Int("exit_code", exitCode))
-			if exitCode == core.ExitCodeSuccess {
-				logger.Info("shutdown complete")
-			} else {
-				logger.Error("unclean shutdown")
-			}
-			os.Exit(exitCode)
-		}()
-	}()
+	portal.Shutdown(portal.ActivePortal(), logger)
 }
 
 func trapSignals() {

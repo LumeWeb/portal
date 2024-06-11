@@ -6,6 +6,7 @@ import (
 	"github.com/LumeWeb/portal/db"
 	"github.com/LumeWeb/portal/service"
 	"go.uber.org/zap"
+	"os"
 	"reflect"
 	"sync"
 )
@@ -252,4 +253,27 @@ func Context() core.Context {
 
 func ActivePortal() Portal {
 	return activePortal
+}
+
+func Shutdown(activePortal Portal, logger *zap.Logger) {
+	ctx := activePortal.Context()
+
+	if logger == nil {
+		logger = ctx.Logger().Logger
+	}
+
+	// Cancel the context
+	ctx.Cancel()
+
+	// Wait for the context to be canceled
+	<-ctx.Done()
+
+	// Stop the portal
+	if err := activePortal.Stop(); err != nil {
+		logger.Error("Failed to stop portal", zap.Error(err))
+		ctx.SetExitCode(core.ExitCodeFailedQuit)
+	}
+
+	// Exit the process
+	os.Exit(ctx.ExitCode())
 }
