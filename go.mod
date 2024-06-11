@@ -6,14 +6,14 @@ require (
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f
 	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e
-	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240605022653-7f27f0a3197d
+	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611011711-ba0ece8b0837
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
 	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606095140-9f4e05b8a0af
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.18
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.1
 	github.com/casbin/casbin/v2 v2.95.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.4
@@ -32,7 +32,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
-	github.com/redis/go-redis/v9 v9.5.2
+	github.com/redis/go-redis/v9 v9.5.3
 	github.com/samber/lo v1.39.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
@@ -92,11 +92,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.9 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.9 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.8 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.11 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12 // indirect
@@ -117,7 +117,7 @@ require (
 	github.com/go-redsync/redsync/v4 v4.13.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/gorilla/websocket v1.5.2 // indirect
 	github.com/gotd/contrib v0.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
@@ -130,7 +130,7 @@ require (
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/klauspost/reedsolomon v1.12.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -167,8 +167,8 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240610135401-a8a62080eff3 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240610135401-a8a62080eff3 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
 
