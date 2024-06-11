@@ -28,14 +28,14 @@ func Main() {
 
 	if err != nil {
 		logger.Fatal("Failed to initialize portal", zap.Error(err))
-		os.Exit(exitCodeFailedStartup)
+		os.Exit(core.ExitCodeFailedStartup)
 	}
 
 	err = portal.Start()
 
 	if err != nil {
 		logger.Error("Failed to start portal", zap.Error(err))
-		os.Exit(exitCodeFailedStartup)
+		os.Exit(core.ExitCodeFailedStartup)
 	}
 
 	trapSignals()
@@ -43,6 +43,6 @@ func Main() {
 	err = portal.Serve()
 	if err != nil {
 		logger.Error("Failed to serve portal", zap.Error(err))
-		os.Exit(exitCodeFailedStartup)
+		os.Exit(core.ExitCodeFailedStartup)
 	}
 }
