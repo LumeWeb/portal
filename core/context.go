@@ -12,8 +12,10 @@ type Context struct {
 	cfg          config.Manager
 	logger       *Logger
 	exitFuncs    []func(Context) error
+	exitCode     int
 	startupFuncs []func(Context) error
 	db           *gorm.DB
+	cancel       context.CancelFunc
 }
 
 func (ctx *Context) Services() Services {
@@ -42,16 +44,14 @@ func NewBaseContext(config config.Manager, logger *Logger) Context {
 	return Context{Context: context.Background(), cfg: config, logger: logger}
 }
 
-func NewContext(ctx Context) (Context, context.CancelFunc) {
+func NewContext(ctx Context) Context {
 	newCtx := Context{cfg: ctx.cfg, logger: ctx.logger}
 	c, cancel := context.WithCancel(ctx)
 
-	wrappedCancel := func() {
-		cancel()
-	}
-
 	newCtx.Context = c
-	return newCtx, wrappedCancel
+	newCtx.cancel = cancel
+
+	return newCtx
 }
 func (ctx *Context) OnExit(f func(Context) error) {
 	ctx.exitFuncs = append(ctx.exitFuncs, f)
@@ -118,6 +118,18 @@ func (ctx *Context) Logger() *Logger {
 
 func (ctx *Context) Config() config.Manager {
 	return ctx.cfg
+}
+
+func (ctx *Context) Cancel() {
+	ctx.cancel()
+}
+
+func (ctx *Context) ExitCode() int {
+	return ctx.exitCode
+}
+
+func (ctx *Context) SetExitCode(code int) {
+	ctx.exitCode = code
 }
 
 func (s Services) Auth() AuthService {
