@@ -22,8 +22,8 @@ github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6 h1:2dSiG0C
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f h1:k/nyGgaUjOuSzFQP3pVWlsK6RcSZldSlaggZx07qj1o=
 github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f/go.mod h1:QZqfhuax85E/gBym1YPvYpIxTfuXxfKl6lyCEVql8F0=
-github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611052155-4f6c44831f67 h1:F20YbyC4AagViw0QDDzQ/Z6qix6bUgadQJn1TKS7PdM=
-github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611052155-4f6c44831f67/go.mod h1:7O+QwnhzP/LqIX1jgn5QogFuHaP7Mp0P/FhAR3rMCmo=
+github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c h1:jpDBIIj/5PHUOViQCWTW+LyNPYKGtOVEt6rhoXxZrCk=
+github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c/go.mod h1:NIJqleavsQg+ve2KpSZoT1St0TvlfkTwofB8bduiQoo=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246 h1:SLDvt9HynKnJNvHixybYTEUaLHPCt4ip85/LBPANCvQ=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246/go.mod h1:O1UvbPBqVK7GxDalfCdVtuUgdlZa+Nzus33Wfg3kjDM=
 github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391 h1:SdD0rUz0l3z8Cjq+vkhwzETAw7dPCjfs4TvG5UFXILU=
