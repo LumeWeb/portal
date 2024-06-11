@@ -3,9 +3,7 @@ package swagger
 import (
 	"embed"
 	"github.com/gorilla/mux"
-	"go.sia.tech/jape"
 	"io/fs"
-	"log"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -15,16 +13,6 @@ import (
 
 //go:embed embed
 var swagfs embed.FS
-
-func byteHandler(b []byte) jape.Handler {
-	return func(c jape.Context) {
-		c.ResponseWriter.Header().Set("Content-Type", "application/json")
-		_, err := c.ResponseWriter.Write(b)
-		if err != nil {
-			log.Println(err)
-		}
-	}
-}
 
 func Swagger(spec []byte, router *mux.Router) error {
 	loader := openapi3.NewLoader()
