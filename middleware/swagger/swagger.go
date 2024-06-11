@@ -43,18 +43,18 @@ func Swagger(spec []byte, router *mux.Router) error {
 	}
 
 	swaggerFiles, _ := fs.Sub(swagfs, "embed")
-	swaggerHandler := http.StripPrefix("/swagger/", http.FileServer(http.FS(swaggerFiles)))
+	swaggerHandler := http.StripPrefix("/swagger", http.FileServer(http.FS(swaggerFiles)))
 
 	router.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonDoc)
+		_, _ = w.Write(jsonDoc)
 	}).Methods("GET")
 
-	router.HandleFunc("/swagger/", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/swagger", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
 	}).Methods("GET")
 
-	router.PathPrefix("/swagger/").Handler(swaggerHandler)
+	router.PathPrefix("/swagger").Handler(swaggerHandler)
 
 	return nil
 }
