@@ -12,6 +12,7 @@ import (
 )
 
 const AUTH_COOKIE_NAME = "auth_token"
+const AUTH_TOKEN_NAME = "auth_token"
 
 type JWTPurpose string
 type VerifyTokenFunc func(claim *jwt.RegisteredClaims) error
