@@ -6,7 +6,7 @@ require (
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f
 	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240610005727-27486ac1759e
-	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611011711-ba0ece8b0837
+	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246
 	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
 	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240606095140-9f4e05b8a0af
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
