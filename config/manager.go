@@ -324,6 +324,10 @@ func (m *ManagerDefault) ConfigFile() string {
 	return findConfigFile(false, false)
 }
 
+func (m *ManagerDefault) ConfigDir() string {
+	return path.Dir(m.ConfigFile())
+}
+
 func newConfig() (*koanf.Koanf, error) {
 	k := koanf.New(".")
 
