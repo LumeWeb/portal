@@ -182,18 +182,18 @@ func (p *PortalImpl) Start() error {
 func (p *PortalImpl) Stop() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Stopping portal")
-	for _, exitFunc := range ctx.ExitFuncs() {
-		if err := exitFunc(ctx); err != nil {
-			ctx.Logger().Error("Error stopping portal", zap.Error(err))
-		}
-	}
-
 	for _, proto := range core.GetProtocols() {
 		if stopPlugin, ok := proto.(core.ProtocolStop); ok {
 			if err := stopPlugin.Stop(ctx); err != nil {
 				ctx.Logger().Error("Error stopping protocol", zap.String("protocol", proto.Name()), zap.Error(err))
 				return err
 			}
+		}
+	}
+
+	for _, exitFunc := range ctx.ExitFuncs() {
+		if err := exitFunc(ctx); err != nil {
+			ctx.Logger().Error("Error stopping portal", zap.Error(err))
 		}
 	}
 
