@@ -29,6 +29,7 @@ var services = []any{
 	service.NewRenterService,
 	service.NewMetadataService,
 	service.NewStorageService,
+	service.NewPinService,
 	service.NewSyncService,
 	service.NewHTTPService,
 }
