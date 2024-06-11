@@ -34,7 +34,7 @@ type Services struct {
 	storage    StorageService
 	otp        OTPService
 	renter     RenterService
-	syncer     SyncService
+	sync       SyncService
 	http       HTTPService
 }
 
@@ -98,7 +98,7 @@ func (ctx *Context) RegisterService(svc any) {
 	case RenterService:
 		ctx.services.renter = svc
 	case SyncService:
-		ctx.services.syncer = svc
+		ctx.services.sync = svc
 	case HTTPService:
 		ctx.services.http = svc
 	}
@@ -172,8 +172,8 @@ func (s Services) Renter() RenterService {
 	return s.renter
 }
 
-func (s Services) Syncer() SyncService {
-	return s.syncer
+func (s Services) Sync() SyncService {
+	return s.sync
 }
 
 func (s Services) HTTP() HTTPService {
