@@ -17,11 +17,11 @@ var (
 
 var services = []any{
 	service.NewCronService,
-	service.NewAuthService,
 	service.NewUserService,
+	service.NewOTPService,
+	service.NewAuthService,
 	service.NewEmailVerificationService,
 	service.NewPasswordResetService,
-	service.NewOTPService,
 	service.NewImportService,
 	func(ctx *core.Context) any {
 		return service.NewMailerService(ctx, service.NewMailerTemplateRegistry())
