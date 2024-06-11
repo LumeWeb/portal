@@ -111,6 +111,10 @@ func (s *SyncServiceDefault) ScheduleJobs(crn core.CronService) error {
 }
 
 func (s *SyncServiceDefault) Update(upload core.UploadMetadata) error {
+	if !s.Enabled() {
+		return nil
+	}
+
 	proto, err := core.GetProtocol(upload.Protocol)
 	if err != nil {
 		return err
