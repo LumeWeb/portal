@@ -36,15 +36,15 @@ func NewUserService(ctx *core.Context) *UserServiceDefault {
 
 func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error) {
 	user := &models.User{}
-	exists, model, err := u.exists(user, map[string]interface{}{"email": email})
+	exists, model, err := u.Exists(user, map[string]interface{}{"email": email})
 	if !exists || err != nil {
 		return false, nil, err
 	}
-	return true, model.(*models.User), nil // Type assertion since `exists` returns interface{}
+	return true, model.(*models.User), nil // Type assertion since `Exists` returns interface{}
 }
 func (u UserServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey, error) {
 	publicKey := &models.PublicKey{}
-	exists, model, err := u.exists(publicKey, map[string]interface{}{"key": pubkey})
+	exists, model, err := u.Exists(publicKey, map[string]interface{}{"key": pubkey})
 	if !exists || err != nil {
 		return false, nil, err
 	}
@@ -53,7 +53,7 @@ func (u UserServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey
 
 func (u UserServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
 	user := &models.User{}
-	exists, model, err := u.exists(user, map[string]interface{}{"id": id})
+	exists, model, err := u.Exists(user, map[string]interface{}{"id": id})
 	if !exists || err != nil {
 		return false, nil, err
 	}
@@ -252,7 +252,7 @@ func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) 
 	return nil
 }
 
-func (s UserServiceDefault) exists(model interface{}, conditions map[string]interface{}) (bool, interface{}, error) {
+func (s UserServiceDefault) Exists(model any, conditions map[string]any) (bool, any, error) {
 	// Conduct a query with the provided model and conditions
 	result := s.db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
 

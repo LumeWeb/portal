@@ -3,6 +3,9 @@ package core
 import "github.com/LumeWeb/portal/db/models"
 
 type UserService interface {
+	// Exists checks if a record with the given conditions exists.
+	Exists(model any, conditions map[string]any) (bool, any, error)
+
 	// EmailExists checks if an email already exists in the system.
 	EmailExists(email string) (bool, *models.User, error)
 
