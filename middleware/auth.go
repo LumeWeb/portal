@@ -61,6 +61,12 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 		options.AuthContextKey = string(DEFAULT_USER_ID_CONTEXT_KEY)
 	}
 
+	if options.FindToken == nil {
+		options.FindToken = func(r *http.Request) string {
+			return FindAuthToken(r, core.AUTH_COOKIE_NAME, core.AUTH_TOKEN_NAME)
+		}
+	}
+
 	domain := config.Config().Core.Domain
 
 	return func(next http.Handler) http.Handler {
