@@ -51,6 +51,7 @@ func (c CoreConfig) Defaults() map[string]interface{} {
 		"domain":            "",
 		"portal_name":       "",
 		"port":              0,
+		"protocols":         []string{"s5"},
 	}
 }
 
