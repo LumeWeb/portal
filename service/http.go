@@ -3,11 +3,13 @@ package service
 import (
 	"fmt"
 	"github.com/LumeWeb/portal/core"
+	"github.com/LumeWeb/portal/middleware"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"strconv"
 	"sync"
 )
@@ -50,6 +52,13 @@ func NewHTTPService(ctx *core.Context) *HTTPServiceDefault {
 				return err
 			}
 		}
+
+		authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
+			Context: ctx,
+			Purpose: core.JWTPurposeLogin,
+		})
+
+		_http.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
 
 		return nil
 	})
