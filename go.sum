@@ -26,10 +26,10 @@ github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c h1:jpDBII
 github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c/go.mod h1:NIJqleavsQg+ve2KpSZoT1St0TvlfkTwofB8bduiQoo=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246 h1:SLDvt9HynKnJNvHixybYTEUaLHPCt4ip85/LBPANCvQ=
 github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246/go.mod h1:O1UvbPBqVK7GxDalfCdVtuUgdlZa+Nzus33Wfg3kjDM=
-github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391 h1:SdD0rUz0l3z8Cjq+vkhwzETAw7dPCjfs4TvG5UFXILU=
-github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391/go.mod h1:KHPnbSJkuchxDw9d5ik3SnTr1oHlCAp9tzM3HHOB09U=
-github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240612211232-f9c5853c3fa8 h1:pdag4lpKFAqziRBz6smFkuQ4wHSuRNMDDXlTPXVMtVg=
-github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240612211232-f9c5853c3fa8/go.mod h1:ZCAcEmwS4Aql081XbpiYy9jnNfEmwawmDlDw9MonBjI=
+github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240614014235-1c25210e92b7 h1:M9lqFcYr9FXcv8zQur3e/UiQxj9wPBz7zAK/8cyPZgc=
+github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240614014235-1c25210e92b7/go.mod h1:KHPnbSJkuchxDw9d5ik3SnTr1oHlCAp9tzM3HHOB09U=
+github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240614170757-d409ac7ef531 h1:iXA6MQob2rWGkHbT61ZyfIYUkannBunjM/Yu7vOxQWo=
+github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240614170757-d409ac7ef531/go.mod h1:ZCAcEmwS4Aql081XbpiYy9jnNfEmwawmDlDw9MonBjI=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5 h1:PLu5lde5k11bZcv1gFOHTw3j1JSDg6NE11g8yGml4U4=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5/go.mod h1:uxlJTAnfhfebzHGPvKlyaGmS2G7QOX+xRcdmpMiLfXE=
 github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053 h1:GhYSPWvtdQpg8SL+rIJBhyNwbd9XEMC7qsFrekYCj+g=

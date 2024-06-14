@@ -7,8 +7,8 @@ require (
 	github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f
 	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c
 	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246
-	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240606003743-d5e1a437a391
-	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240612211232-f9c5853c3fa8
+	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240614014235-1c25210e92b7
+	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240614170757-d409ac7ef531
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
