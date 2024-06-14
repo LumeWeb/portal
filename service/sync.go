@@ -380,15 +380,51 @@ func (s *SyncServiceDefault) init() error {
 		}
 	}
 
-	ret, err := s.grpcPlugin.Init(bootstrap, s.ctx.Config().Config().Core.Identity.PrivateKey(), nodeKey, dataDir)
+	var logPubKey ed25519.PublicKey
+
+	if !bootstrap {
+		var bootstrapNodeId string
+		var boostrapNodeKey ed25519.PrivateKey
+
+		if s.config.Config().Core.ClusterEnabled() {
+			resp, err := client.Get(context.Background(), ETC_SYNC_BOOTSTRAP_KEY)
+			if err != nil {
+				return err
+			}
+
+			bootstrapNodeId = string(resp.Kvs[0].Value)
+
+			uuid, err := types.ParseUUID(bootstrapNodeId)
+			if err != nil {
+				return err
+			}
+
+			boostrapHasher := hkdf.New(sha256.New, s.ctx.Config().Config().Core.Identity.PrivateKey(), uuid.Bytes(), []byte("sync"))
+			derivedBootstrapSeed := make([]byte, 32)
+
+			if _, err := io.ReadFull(boostrapHasher, derivedBootstrapSeed); err != nil {
+				s.logger.Fatal("failed to generate child key seed", zap.Error(err))
+			}
+
+			boostrapNodeKey = ed25519.NewKeyFromSeed(derivedBootstrapSeed)
+		} else {
+			boostrapNodeKey = nodeKey
+		}
+
+		logPubKey, err = sync.NodeKey(boostrapNodeKey.Public().([]byte), nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.grpcPlugin.Init(logPubKey, nodeKey, dataDir)
 	if err != nil {
 		return err
 	}
 
-	s.logKey = ret.GetLogKey()
+	s.logKey = sync.AutoBaseKey(nodeKey.Public().(ed25519.PublicKey))
 
-	if s.config.Config().Core.Clustered != nil && s.config.Config().Core.Clustered.Enabled {
-
+	if s.config.Config().Core.ClusterEnabled() {
 		lease := clientv3.NewLease(client)
 		ttl := int64((time.Hour * 24).Seconds())
 		grantResp, err := lease.Grant(context.Background(), ttl) // 60 seconds TTL

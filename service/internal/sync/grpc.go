@@ -12,7 +12,7 @@ import (
 var _ Sync = (*SyncGRPC)(nil)
 
 type Sync interface {
-	Init(bootstrap bool, logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error)
+	Init(logPublicKey ed25519.PublicKey, nodePrivateKey ed25519.PrivateKey, dataDir string) error
 	Update(meta FileMeta) error
 	Query(keys []string) ([]*FileMeta, error)
 	UpdateNodes(nodes []ed25519.PublicKey) error
@@ -40,14 +40,14 @@ type SyncGRPC struct {
 	client proto.SyncClient
 }
 
-func (b *SyncGRPC) Init(bootstrap bool, logPrivateKey ed25519.PrivateKey, nodePrivateKey ed25519.PrivateKey, dataDir string) (*proto.InitResponse, error) {
-	ret, err := b.client.Init(context.Background(), &proto.InitRequest{Bootstrap: bootstrap, LogPrivateKey: logPrivateKey, NodePrivateKey: nodePrivateKey, DataDir: dataDir})
+func (b *SyncGRPC) Init(logPublicKey ed25519.PublicKey, nodePrivateKey ed25519.PrivateKey, dataDir string) error {
+	_, err := b.client.Init(context.Background(), &proto.InitRequest{LogPublicKey: logPublicKey, NodePrivateKey: nodePrivateKey, DataDir: dataDir})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return ret, nil
+	return nil
 }
 func (b *SyncGRPC) Update(meta FileMeta) error {
 	_, err := b.client.Update(context.Background(), &proto.UpdateRequest{Data: meta.ToProtobuf()})
