@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/service/internal/mailer"
 	"github.com/wneessen/go-mail"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/service/internal/mailer"
 	"strings"
 )
 

@@ -2,7 +2,7 @@ package core
 
 import (
 	"context"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/db/models"
 	"time"
 )
 

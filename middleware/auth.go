@@ -3,8 +3,8 @@ package middleware
 import (
 	"context"
 	"errors"
-	"github.com/LumeWeb/portal/core"
 	"github.com/golang-jwt/jwt/v5"
+	"go.lumeweb.com/portal/core"
 	"net/http"
 	"strconv"
 	"strings"

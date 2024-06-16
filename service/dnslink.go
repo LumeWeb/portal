@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
 

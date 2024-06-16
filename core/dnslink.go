@@ -1,6 +1,6 @@
 package core
 
-import "github.com/LumeWeb/portal/db/models"
+import "go.lumeweb.com/portal/db/models"
 
 type DNSLinkService interface {
 	// DNSLinkExists checks if a DNS link exists for the given hash.

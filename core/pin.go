@@ -1,6 +1,6 @@
 package core
 
-import "github.com/LumeWeb/portal/db/models"
+import "go.lumeweb.com/portal/db/models"
 
 type PinService interface {
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,

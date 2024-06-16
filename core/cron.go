@@ -1,9 +1,9 @@
 package core
 
 import (
-	"github.com/LumeWeb/portal/db/models"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"go.lumeweb.com/portal/db/models"
 )
 
 type CronTaskFunction func(any, Context) error

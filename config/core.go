@@ -2,8 +2,8 @@ package config
 
 import (
 	"errors"
-	types2 "github.com/LumeWeb/portal/config/types"
 	"github.com/docker/go-units"
+	types2 "go.lumeweb.com/portal/config/types"
 	"go.sia.tech/coreutils/wallet"
 )
 

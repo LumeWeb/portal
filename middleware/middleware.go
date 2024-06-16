@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/LumeWeb/portal/core"
 	"github.com/golang-jwt/jwt/v5"
+	"go.lumeweb.com/portal/core"
 	"slices"
 )
 

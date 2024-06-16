@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db/models"
-	"github.com/LumeWeb/portal/service/internal/mailer"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service/internal/mailer"
 	"gorm.io/gorm"
 	"time"
 )
