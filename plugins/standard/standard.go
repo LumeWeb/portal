@@ -1,7 +1,7 @@
 package standard
 
 import (
-	_ "github.com/LumeWeb/portal-plugin-account"
-	_ "github.com/LumeWeb/portal-plugin-s5"
-	_ "github.com/LumeWeb/portal-plugin-sync"
+	_ "go.lumeweb.com/portal-plugin-account"
+	_ "go.lumeweb.com/portal-plugin-s5"
+	_ "go.lumeweb.com/portal-plugin-sync"
 )
