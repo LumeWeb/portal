@@ -70,7 +70,7 @@ func (p PriceTracker) ScheduleJobs(crn core.CronService) error {
 	return nil
 }
 
-func (p PriceTracker) recordRate(_ any) error {
+func (p PriceTracker) recordRate(_ any, _ core.Context) error {
 	rate, _, err := p.api.GetExchangeRate()
 	if err != nil {
 		p.logger.Error("failed to get exchange rate", zap.Error(err))
@@ -99,7 +99,7 @@ func (p PriceTracker) recordRate(_ any) error {
 	return nil
 }
 
-func (p PriceTracker) updatePrices(_ any) error {
+func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 	var averageRate decimal.Decimal
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 	sql := `
@@ -215,7 +215,7 @@ SELECT AVG(rate) as average_rate FROM (
 	return nil
 }
 
-func (p PriceTracker) importPrices(_ any) error {
+func (p PriceTracker) importPrices(_ any, _ core.Context) error {
 	var existingDates []time.Time
 	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
 	startDate := time.Now().UTC().AddDate(0, 0, -daysOfHistory)
