@@ -1,8 +1,8 @@
 package models
 
 import (
-	"github.com/LumeWeb/portal/db/types"
 	"github.com/google/uuid"
+	"go.lumeweb.com/portal/db/types"
 	"gorm.io/gorm"
 )
 

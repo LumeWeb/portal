@@ -1,9 +1,9 @@
 package portalcmd
 
 import (
-	"github.com/LumeWeb/portal"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
+	"go.lumeweb.com/portal"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
 	"os"
 )

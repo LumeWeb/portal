@@ -2,7 +2,7 @@ package core
 
 import (
 	"context"
-	"github.com/LumeWeb/portal/config"
+	"go.lumeweb.com/portal/config"
 	"gorm.io/gorm"
 )
 

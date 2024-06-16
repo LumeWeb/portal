@@ -2,10 +2,10 @@ package service
 
 import (
 	"fmt"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/middleware"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/middleware"
 	"go.uber.org/zap"
 	"net"
 	"net/http"

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
 

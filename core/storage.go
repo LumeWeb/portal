@@ -2,8 +2,8 @@ package core
 
 import (
 	"context"
-	"github.com/LumeWeb/portal/bao"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"go.lumeweb.com/portal/bao"
 	"io"
 )
 

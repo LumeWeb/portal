@@ -2,7 +2,7 @@ package core
 
 import (
 	"crypto/rand"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/db/models"
 )
 
 func GenerateSecurityToken() string {

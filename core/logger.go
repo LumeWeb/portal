@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/LumeWeb/portal/config"
+	"go.lumeweb.com/portal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"

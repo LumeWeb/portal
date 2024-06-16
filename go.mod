@@ -1,4 +1,4 @@
-module github.com/LumeWeb/portal
+module go.lumeweb.com/portal
 
 go 1.22.1
 

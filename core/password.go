@@ -1,6 +1,6 @@
 package core
 
-import "github.com/LumeWeb/portal/db/models"
+import "go.lumeweb.com/portal/db/models"
 
 type PasswordResetService interface {
 	// SendPasswordReset sends a password reset email to the given user.

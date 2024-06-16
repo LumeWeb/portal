@@ -1,8 +1,8 @@
 package main
 
 import (
-	portalcmd "github.com/LumeWeb/portal/cmd"
-	_ "github.com/LumeWeb/portal/plugins/standard"
+	portalcmd "go.lumeweb.com/portal/cmd"
+	_ "go.lumeweb.com/portal/plugins/standard"
 )
 
 func main() {

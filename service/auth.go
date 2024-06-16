@@ -2,9 +2,9 @@ package service
 
 import (
 	"errors"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"time"

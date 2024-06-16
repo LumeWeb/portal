@@ -3,8 +3,8 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/LumeWeb/portal/config"
 	gorilla "github.com/gorilla/mux"
+	"go.lumeweb.com/portal/config"
 	"net/http"
 	"sort"
 	"sync"

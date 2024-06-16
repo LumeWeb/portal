@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
 	autoPilotClient "go.sia.tech/renterd/autopilot"

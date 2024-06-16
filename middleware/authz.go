@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/LumeWeb/portal/core"
 	"github.com/casbin/casbin/v2"
+	"go.lumeweb.com/portal/core"
 	"net/http"
 )
 

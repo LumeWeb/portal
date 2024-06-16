@@ -3,8 +3,8 @@ package renter
 import (
 	"context"
 	"errors"
-	"github.com/LumeWeb/portal/config"
-	"github.com/LumeWeb/portal/core"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"math/big"
 	"time"
 
@@ -14,7 +14,7 @@ import (
 
 	"github.com/docker/go-units"
 
-	"github.com/LumeWeb/portal/db/models"
+	"go.lumeweb.com/portal/db/models"
 
 	siasdk "github.com/LumeWeb/siacentral-api"
 	siasdksia "github.com/LumeWeb/siacentral-api/sia"

@@ -3,7 +3,7 @@ package mailer
 import (
 	"embed"
 	"errors"
-	"github.com/LumeWeb/portal/core"
+	"go.lumeweb.com/portal/core"
 	"io/fs"
 	"strings"
 	"text/template"

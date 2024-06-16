@@ -2,10 +2,10 @@ package portal
 
 import (
 	"errors"
-	"github.com/LumeWeb/portal/core"
-	"github.com/LumeWeb/portal/db"
-	"github.com/LumeWeb/portal/service"
 	"github.com/samber/lo"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
+	"go.lumeweb.com/portal/service"
 	"go.uber.org/zap"
 	"os"
 	"reflect"
