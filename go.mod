@@ -4,11 +4,6 @@ go 1.22.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.0
-	github.com/LumeWeb/portal-plugin-account v0.0.0-20240610115132-f353cbfca85f
-	github.com/LumeWeb/portal-plugin-s5 v0.0.0-20240611170446-f880ecdcf38c
-	github.com/LumeWeb/portal-plugin-sync v0.0.0-20240611012249-034726cea246
-	github.com/LumeWeb/portal-plugin-sync-grpc v0.0.0-20240614014235-1c25210e92b7
-	github.com/LumeWeb/portal-plugin-sync-node-server/go v0.0.0-20240614170757-d409ac7ef531
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
@@ -37,6 +32,11 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
+	go.lumeweb.com/portal-plugin-account v0.0.0-20240616210850-c339ce46dc12
+	go.lumeweb.com/portal-plugin-s5 v0.0.0-20240616210355-d02b953a985c
+	go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7
+	go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d
+	go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec4c1
 	go.sia.tech/core v0.2.6
 	go.sia.tech/coreutils v0.0.5
 	go.sia.tech/renterd v1.0.7
@@ -51,10 +51,8 @@ require (
 )
 
 require (
-	github.com/LumeWeb/httputil v0.0.0-20240601144746-504fd57b96e6 // indirect
-	github.com/LumeWeb/libs5-go v0.0.0-20240606191331-125741e0f4a6 // indirect
-	github.com/LumeWeb/web/go/portal-dashboard v0.0.0-20240610014333-4ef16ded2991 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba // indirect
 	github.com/dnslink-std/go v0.6.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
@@ -65,6 +63,7 @@ require (
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/olebedev/emitter v0.0.0-20230411050614-349169dec2ba // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
@@ -75,6 +74,9 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.10 // indirect
+	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86 // indirect
+	go.lumeweb.com/libs5-go v0.0.0-20240616210226-ffb7d91f2f3b // indirect
+	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240616193943-ef7d423f8a2c // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
 	go.uber.org/zap/exp v0.2.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
@@ -106,7 +108,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.17.0 // indirect
@@ -143,7 +144,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	gitlab.com/NebulousLabs/bolt v1.4.4 // indirect
 	gitlab.com/NebulousLabs/encoding v0.0.0-20200604091946-456c3dc907fe // indirect

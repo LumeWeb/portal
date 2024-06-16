@@ -1,7 +1,7 @@
 package sync
 
 import (
-	proto "github.com/LumeWeb/portal-plugin-sync-grpc/gen/proto"
+	"go.lumeweb.com/portal-plugin-sync-grpc/gen/proto"
 	"go.sia.tech/core/types"
 	"go.sia.tech/renterd/object"
 )
