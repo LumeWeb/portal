@@ -698,6 +698,8 @@ go.lumeweb.com/portal-plugin-s5 v0.0.0-20240616210355-d02b953a985c h1:rsg5JLNwMd
 go.lumeweb.com/portal-plugin-s5 v0.0.0-20240616210355-d02b953a985c/go.mod h1:/SF3SHJ428mQEzS1Qs7uxhQL1BB3GmKxqYNwybbZgJI=
 go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617004024-00028b1cef63 h1:K26vsVJKHMMnhGuRBuk03g8j1PaG1N26wXz9SpDKADs=
 go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617004024-00028b1cef63/go.mod h1:/SF3SHJ428mQEzS1Qs7uxhQL1BB3GmKxqYNwybbZgJI=
+go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617004648-7328b29321d2 h1:Po0cmmKnlgVVhF9o/bUi73OuXOQe/RsUzZ3URxlvoNY=
+go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617004648-7328b29321d2/go.mod h1:/SF3SHJ428mQEzS1Qs7uxhQL1BB3GmKxqYNwybbZgJI=
 go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7 h1:9d9kJmu9jhlGhcvcgrhOtGtjS/YLZ3E3koWB7sKSd84=
 go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7/go.mod h1:K3lxJ/8v3+yGPXlFq+ps4/1EgKhK8BdDkrNb10KyHEM=
 go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d h1:/HAlg496mquW7l7PC3n3Pj1bGYVxgTWFlM49G+to/fc=
