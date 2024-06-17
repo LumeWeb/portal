@@ -37,8 +37,8 @@ require (
 	go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7
 	go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d
 	go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec4c1
-	go.sia.tech/core v0.2.6
-	go.sia.tech/coreutils v0.0.5
+	go.sia.tech/core v0.2.7
+	go.sia.tech/coreutils v0.0.6
 	go.sia.tech/renterd v1.0.7
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.24.0

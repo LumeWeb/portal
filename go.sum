@@ -704,10 +704,10 @@ go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec
 go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec4c1/go.mod h1:2lxnK38EO9NGna6t/9KM33I4xcO4GnrObEFMXcs62Xg=
 go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240616193943-ef7d423f8a2c h1:jk0rs1u74Ei4A8Kk4D7XNvpd8/A1aNsW5V2c7R5huvA=
 go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240616193943-ef7d423f8a2c/go.mod h1:goPhMCfHK+jTzXrO8F1ORs5HHFdJDbw3X3CSFK85C0M=
-go.sia.tech/core v0.2.6 h1:JrbZwW4cPHCB2Q6TeqCsAj2GAFXrRqLq0q/GNevtnPU=
-go.sia.tech/core v0.2.6/go.mod h1:B7ooFH3F6cLjxQz6IX33kgjOY392Ava7pzpPeccagac=
-go.sia.tech/coreutils v0.0.5 h1:Jj03VrqAayYHgA9fwV13+X88WB+Wr1p8wuLw2B8d2FI=
-go.sia.tech/coreutils v0.0.5/go.mod h1:SkSpHeq3tBh2ff4HXuBk2WtlhkYQQtdcvU4Yv1Rd2bU=
+go.sia.tech/core v0.2.7 h1:9Q/3BHL6ziAMPeiko863hhTD/Zs2s7OqEUiPKouDny8=
+go.sia.tech/core v0.2.7/go.mod h1:BMgT/reXtgv6XbDgUYTCPY7wSMbspDRDs7KMi1vL6Iw=
+go.sia.tech/coreutils v0.0.6 h1:xLpv3JyvbOoXcX3gC6a6Y3zQ/MZn/fyFvuPIzv/e/Eg=
+go.sia.tech/coreutils v0.0.6/go.mod h1:EiDcQk2qLuP32Qoj/XphY9fbjTXphJhJZMERoC4LF0c=
 go.sia.tech/gofakes3 v0.0.2 h1:oWnsYjHvSyf4ddtEH6XO76xeXC10N2cRqduI6B0d/EU=
 go.sia.tech/gofakes3 v0.0.2/go.mod h1:+NLzpsL6M0WJvdRGL3q7SWo9O1DdBaBrPGm++Ue9WHo=
 go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 h1:qdPohazZ009Xh2Vkd/SBcy0nNUX9M0qnhslAHsomPdw=
