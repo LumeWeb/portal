@@ -7,6 +7,8 @@ import (
 	"io"
 )
 
+const STORAGE_SERVICE = "storage"
+
 type StorageUploadStatus string
 
 const (
@@ -33,4 +35,6 @@ type StorageService interface {
 	S3Client(ctx context.Context) (*s3.Client, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, error)
+
+	Service
 }

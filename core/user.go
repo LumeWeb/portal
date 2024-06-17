@@ -2,6 +2,8 @@ package core
 
 import "go.lumeweb.com/portal/db/models"
 
+const USER_SERVICE = "user"
+
 type UserService interface {
 	// Exists checks if a record with the given conditions exists.
 	Exists(model any, conditions map[string]any) (bool, any, error)
@@ -35,4 +37,6 @@ type UserService interface {
 
 	// AddPubkeyToAccount adds a public key to the account of the user with the given ID.
 	AddPubkeyToAccount(user models.User, pubkey string) error
+
+	Service
 }

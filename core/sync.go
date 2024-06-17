@@ -1,5 +1,7 @@
 package core
 
+const SYNC_SERVICE = "sync"
+
 type SyncProtocol interface {
 	Name() string
 	EncodeFileName([]byte) string
@@ -12,4 +14,6 @@ type SyncService interface {
 	LogKey() []byte
 	Import(object string, uploaderID uint64) error
 	Enabled() bool
+
+	Service
 }

@@ -26,8 +26,18 @@ import (
 
 var _ core.StorageService = (*StorageServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.STORAGE_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewStorageService()
+		},
+		Depends: []string{core.RENTER_SERVICE, core.METADATA_SERVICE},
+	})
+}
+
 type StorageServiceDefault struct {
-	ctx      *core.Context
+	ctx      core.Context
 	config   config.Manager
 	db       *gorm.DB
 	renter   core.RenterService
@@ -35,19 +45,22 @@ type StorageServiceDefault struct {
 	logger   *core.Logger
 }
 
-func NewStorageService(ctx *core.Context) *StorageServiceDefault {
-	storage := &StorageServiceDefault{
-		ctx:      ctx,
-		config:   ctx.Config(),
-		db:       ctx.DB(),
-		renter:   ctx.Services().Renter(),
-		metadata: ctx.Services().Metadata(),
-		logger:   ctx.Logger(),
-	}
+func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, error) {
+	storage := &StorageServiceDefault{}
 
-	ctx.RegisterService(storage)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			storage.ctx = ctx
+			storage.config = ctx.Config()
+			storage.db = ctx.DB()
+			storage.renter = ctx.Service(core.RENTER_SERVICE).(core.RenterService)
+			storage.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			storage.logger = ctx.Logger()
+			return nil
+		}),
+	)
 
-	return storage
+	return storage, opts, nil
 }
 
 func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol core.StorageProtocol, data io.ReadSeeker, size uint64, muParams *core.MultiPartUploadParams, proof *bao.Result) (*core.UploadMetadata, error) {

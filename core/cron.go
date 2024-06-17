@@ -10,6 +10,8 @@ type CronTaskFunction func(any, Context) error
 type CronTaskArgsFactoryFunction func() any
 type CronTaskDefArgsFactoryFunction func() gocron.JobDefinition
 
+const CRON_SERVICE = "cron"
+
 type CronService interface {
 	RegisterService(service CronableService)
 	RegisterTask(name string, taskFunc CronTaskFunction, taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction)
@@ -18,6 +20,8 @@ type CronService interface {
 	CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error
 	CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error
 	CreateJobIfNotExists(function string, args any, tags []string) error
+
+	Service
 }
 type CronableService interface {
 	RegisterTasks(cron CronService) error

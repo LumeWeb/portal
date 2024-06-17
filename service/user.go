@@ -16,22 +16,37 @@ import (
 
 var _ core.UserService = (*UserServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.USER_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewUserService()
+		},
+		Depends: []string{core.MAILER_SERVICE},
+	})
+}
+
 type UserServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	config config.Manager
 	db     *gorm.DB
 	mailer core.MailerService
 }
 
-func NewUserService(ctx *core.Context) *UserServiceDefault {
-	user := &UserServiceDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-		mailer: ctx.Services().Mailer(),
-	}
+func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) {
+	user := &UserServiceDefault{}
 
-	return user
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			user.ctx = ctx
+			user.config = ctx.Config()
+			user.db = ctx.DB()
+			user.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+			return nil
+		}),
+	)
+
+	return user, opts, nil
 }
 
 func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error) {

@@ -9,6 +9,15 @@ import (
 
 var _ core.MailerService = (*Mailer)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.MAILER_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewMailerService(NewMailerTemplateRegistry())
+		},
+	})
+}
+
 type Mailer struct {
 	ctx              core.Context
 	client           *mail.Client
@@ -33,42 +42,51 @@ func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateDa
 	return m.client.DialAndSend(msg)
 }
 
-func NewMailerService(ctx *core.Context, templateRegistry *mailer.TemplateRegistry) *Mailer {
+func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []core.ContextBuilderOption, error) {
 	m := &Mailer{
 		templateRegistry: templateRegistry,
 	}
 
-	ctx.RegisterService(m)
-	ctx.OnStartup(func(ctx core.Context) error {
-		var options []mail.Option
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			m.ctx = ctx
+			return nil
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			var options []mail.Option
 
-		cfg := ctx.Config()
+			cfg := ctx.Config()
 
-		if cfg.Config().Core.Mail.Port != 0 {
-			options = append(options, mail.WithPort(cfg.Config().Core.Mail.Port))
-		}
+			if cfg.Config().Core.Mail.Port != 0 {
+				options = append(options, mail.WithPort(cfg.Config().Core.Mail.Port))
+			}
 
-		if cfg.Config().Core.Mail.AuthType != "" {
-			options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(cfg.Config().Core.Mail.AuthType))))
-		}
+			if cfg.Config().Core.Mail.AuthType != "" {
+				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(cfg.Config().Core.Mail.AuthType))))
+			}
 
-		if cfg.Config().Core.Mail.SSL {
-			options = append(options, mail.WithSSLPort(true))
-		}
+			if cfg.Config().Core.Mail.SSL {
+				options = append(options, mail.WithSSLPort(true))
+			}
 
-		options = append(options, mail.WithUsername(cfg.Config().Core.Mail.Username))
-		options = append(options, mail.WithPassword(cfg.Config().Core.Mail.Password))
+			options = append(options, mail.WithUsername(cfg.Config().Core.Mail.Username))
+			options = append(options, mail.WithPassword(cfg.Config().Core.Mail.Password))
 
-		client, err := mail.NewClient(cfg.Config().Core.Mail.Host, options...)
-		if err != nil {
-			return err
-		}
+			client, err := mail.NewClient(cfg.Config().Core.Mail.Host, options...)
+			if err != nil {
+				return err
+			}
 
-		m.client = client
-		return nil
-	})
+			m.client = client
 
-	return m
+			return nil
+		}),
+		core.ContextWithExitFunc(func(ctx core.Context) error {
+			return m.client.Close()
+		}),
+	)
+
+	return m, opts, nil
 }
 func NewMailerTemplateRegistry() *mailer.TemplateRegistry {
 	return mailer.NewTemplateRegistry()

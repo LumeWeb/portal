@@ -11,23 +11,37 @@ import (
 
 var _ core.PinService = (*PinServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.PIN_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewPinService()
+		},
+		Depends: []string{core.METADATA_SERVICE},
+	})
+}
+
 type PinServiceDefault struct {
-	ctx      *core.Context
+	ctx      core.Context
 	config   config.Manager
 	db       *gorm.DB
 	metadata core.MetadataService
 }
 
-func NewPinService(ctx *core.Context) *PinServiceDefault {
-	pinService := &PinServiceDefault{
-		ctx:      ctx,
-		config:   ctx.Config(),
-		db:       ctx.DB(),
-		metadata: ctx.Services().Metadata(),
-	}
-	ctx.RegisterService(pinService)
+func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
+	pinService := &PinServiceDefault{}
 
-	return pinService
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			pinService.ctx = ctx
+			pinService.config = ctx.Config()
+			pinService.db = ctx.DB()
+			pinService.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			return nil
+		}),
+	)
+
+	return pinService, opts, nil
 }
 func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, error) {
 	var pins []models.Pin

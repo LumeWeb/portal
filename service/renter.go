@@ -22,36 +22,47 @@ import (
 
 var _ core.RenterService = (*RenterDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.RENTER_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewRenterService()
+		},
+	})
+}
+
 type RenterDefault struct {
 	busClient       *busClient.Client
 	workerClient    *workerClient.Client
 	autoPilotClient *autoPilotClient.Client
-	ctx             *core.Context
+	ctx             core.Context
 	config          config.Manager
 	db              *gorm.DB
 	logger          *core.Logger
 }
 
-func NewRenterService(ctx *core.Context) *RenterDefault {
-	renter := &RenterDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-		logger: ctx.Logger(),
-	}
+func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
+	renter := &RenterDefault{}
 
-	ctx.RegisterService(renter)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			renter.ctx = ctx
+			renter.config = ctx.Config()
+			renter.db = ctx.DB()
+			renter.logger = ctx.Logger()
+			return nil
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			err := renter.init()
+			if err != nil {
+				renter.logger.Error("failed to initialize renter service", zap.Error(err))
+			}
 
-	ctx.OnStartup(func(ctx core.Context) error {
-		err := renter.init()
-		if err != nil {
-			renter.logger.Error("failed to initialize renter service", zap.Error(err))
-		}
+			return err
+		}),
+	)
 
-		return err
-	})
-
-	return renter
+	return renter, opts, nil
 }
 
 func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {

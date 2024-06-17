@@ -18,8 +18,17 @@ import (
 
 var _ core.CronService = (*CronServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.CRON_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewCronService()
+		},
+	})
+}
+
 type CronServiceDefault struct {
-	ctx       *core.Context
+	ctx       core.Context
 	db        *gorm.DB
 	logger    *core.Logger
 	services  []core.CronableService
@@ -29,36 +38,37 @@ type CronServiceDefault struct {
 	taskDefs  sync.Map
 }
 
-func NewCronService(ctx *core.Context) *CronServiceDefault {
-	cron := &CronServiceDefault{
-		ctx:    ctx,
-		db:     ctx.DB(),
-		logger: ctx.Logger(),
-	}
+func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) {
+	cron := &CronServiceDefault{}
 
-	ctx.RegisterService(cron)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			cron.ctx = ctx
+			cron.db = ctx.DB()
+			cron.logger = ctx.Logger()
+			return nil
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			scheduler, err := newScheduler(ctx.Config())
+			if err != nil {
+				return err
+			}
 
-	ctx.OnStartup(func(ctx core.Context) error {
-		scheduler, err := newScheduler(ctx.Config())
-		if err != nil {
-			return err
-		}
+			cron.scheduler = scheduler
 
-		cron.scheduler = scheduler
+			err = cron.Start(ctx)
+			if err != nil {
+				return err
+			}
 
-		err = cron.Start(ctx)
-		if err != nil {
-			return err
-		}
+			return nil
+		}),
+		core.ContextWithExitFunc(func(ctx core.Context) error {
+			return cron.Stop(ctx)
+		}),
+	)
 
-		return nil
-	})
-
-	ctx.OnExit(func(ctx core.Context) error {
-		return cron.Stop(ctx)
-	})
-
-	return cron
+	return cron, opts, nil
 }
 
 func newScheduler(cm config.Manager) (gocron.Scheduler, error) {

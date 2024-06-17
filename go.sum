@@ -685,6 +685,10 @@ go.lumeweb.com/libs5-go v0.0.0-20240616210226-ffb7d91f2f3b h1:PsHaGCy8tuI01fl8DV
 go.lumeweb.com/libs5-go v0.0.0-20240616210226-ffb7d91f2f3b/go.mod h1:UTUWJJAn0qFASEj/h8ZnF+47yVAtSv9Ttsu21Avuxnw=
 go.lumeweb.com/portal-plugin-account v0.0.0-20240616210850-c339ce46dc12 h1:FCF89vfG0TAjhNTZzxpVvOz9z3DzdXI34S5U/0vk2sw=
 go.lumeweb.com/portal-plugin-account v0.0.0-20240616210850-c339ce46dc12/go.mod h1:m5ojQatWJ2BXHmSRvh6io4W/WrohAFfYu8h3w9hzElc=
+go.lumeweb.com/portal-plugin-account v0.0.0-20240618061742-3389e23d5921 h1:K9wRZtNRA3vPENJFxmIhuB7BDmKQqVMMb+0nXbg6Srs=
+go.lumeweb.com/portal-plugin-account v0.0.0-20240618061742-3389e23d5921/go.mod h1:dUMDxCBM8R5Niv2Xp+GWLJEoMKxA+cnxqkgXv4hIeLI=
+go.lumeweb.com/portal-plugin-account v0.0.0-20240618070136-21215440bb06 h1:MasCuklLxjaYDXhApKS0qwV39sVBb301arcykhvNk/Q=
+go.lumeweb.com/portal-plugin-account v0.0.0-20240618070136-21215440bb06/go.mod h1:J2EmMmVvIiIbVCKYk9wUToxGeySbk+r2N5DpHZL/+S4=
 go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617005133-d5b152a5d530 h1:z3wVIPHogroraNX4Nbhbxv1aHHqCPyOwfBBkN5Hpa8w=
 go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617005133-d5b152a5d530/go.mod h1:/SF3SHJ428mQEzS1Qs7uxhQL1BB3GmKxqYNwybbZgJI=
 go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7 h1:9d9kJmu9jhlGhcvcgrhOtGtjS/YLZ3E3koWB7sKSd84=

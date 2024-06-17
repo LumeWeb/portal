@@ -39,9 +39,10 @@ func CronTaskScanObjectsDefinition() gocron.JobDefinition {
 }
 
 func getSyncProtocol(protocol string) (core.SyncProtocol, error) {
-	proto, err := core.GetProtocol(protocol)
-	if err != nil {
-		return nil, err
+	proto := core.GetProtocol(protocol)
+
+	if proto == nil {
+		return nil, errors.New("protocol not found")
 	}
 
 	syncProto, ok := proto.(core.SyncProtocol)
@@ -68,8 +69,8 @@ func CronTaskVerifyObject(input any, ctx core.Context) error {
 		return errors.New("invalid arguments type")
 	}
 	logger := ctx.Logger()
-	renter := ctx.Services().Renter()
-	cron := ctx.Services().Cron()
+	renter := ctx.Service(core.RENTER_SERVICE).(core.RenterService)
+	cron := ctx.Service(core.CRON_SERVICE).(core.CronService)
 	err := renter.CreateBucketIfNotExists(syncBucketName)
 	if err != nil {
 		return err
@@ -160,7 +161,7 @@ func (r *seekableSiaStream) Read(p []byte) (n int, err error) {
 			return 0, err
 		}
 
-		objectRet, err := r.ctx.Services().Renter().GetObject(r.ctx, syncBucketName, fileName, api.DownloadObjectOptions{})
+		objectRet, err := r.ctx.Service(core.RENTER_SERVICE).(core.RenterService).GetObject(r.ctx, syncBucketName, fileName, api.DownloadObjectOptions{})
 		if err != nil {
 			return 0, err
 		}
@@ -196,10 +197,10 @@ func CronTaskUploadObject(input any, ctx core.Context) error {
 	}
 
 	logger := ctx.Logger()
-	renter := ctx.Services().Renter()
-	storage := ctx.Services().Storage()
-	metadata := ctx.Services().Metadata()
-	_sync := ctx.Services().Sync()
+	renter := ctx.Service(core.RENTER_SERVICE).(core.RenterService)
+	storage := ctx.Service(core.STORAGE_SERVICE).(core.StorageService)
+	metadata := ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+	_sync := ctx.Service(core.SYNC_SERVICE).(core.SyncService)
 
 	fileName, err := encodeProtocolFileName(args.Hash, args.Protocol)
 	if err != nil {
@@ -256,8 +257,8 @@ func CronTaskUploadObject(input any, ctx core.Context) error {
 
 func CronTaskScanObjects(_ any, ctx core.Context) error {
 	logger := ctx.Logger()
-	metadata := ctx.Services().Metadata()
-	_sync := ctx.Services().Sync()
+	metadata := ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+	_sync := ctx.Service(core.SYNC_SERVICE).(core.SyncService)
 	uploads, err := metadata.GetAllUploads(ctx)
 	if err != nil {
 		return err

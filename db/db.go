@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewDatabase(ctx *core.Context) *gorm.DB {
+func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 	cfg := ctx.Config()
 	rootLogger := ctx.Logger()
 
@@ -53,15 +53,17 @@ func NewDatabase(ctx *core.Context) *gorm.DB {
 		}}
 		err := db.Use(cache)
 		if err != nil {
-			return nil
+			return nil, nil
 		}
 	}
 
-	ctx.OnStartup(func(ctx core.Context) error {
-		return db.AutoMigrate(models.GetModels()...)
-	})
+	ctxOpts := []core.ContextBuilderOption{
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			return db.AutoMigrate(models.GetModels()...)
+		}),
+	}
 
-	return db
+	return db, ctxOpts
 }
 
 func getCacheMode(cm config.Manager, logger *core.Logger) string {

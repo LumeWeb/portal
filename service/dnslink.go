@@ -10,8 +10,18 @@ import (
 
 var _ core.DNSLinkService = (*DNSLinkServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.DNSLINK_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewDNSLinkService()
+		},
+		Depends: []string{core.USER_SERVICE, core.METADATA_SERVICE, core.PIN_SERVICE},
+	})
+}
+
 type DNSLinkServiceDefault struct {
-	ctx      *core.Context
+	ctx      core.Context
 	config   config.Manager
 	db       *gorm.DB
 	user     core.UserService
@@ -19,18 +29,22 @@ type DNSLinkServiceDefault struct {
 	pin      core.PinService
 }
 
-func NewDNSLinkService(ctx *core.Context) *DNSLinkServiceDefault {
-	dnslinkService := &DNSLinkServiceDefault{
-		ctx:      ctx,
-		config:   ctx.Config(),
-		db:       ctx.DB(),
-		user:     ctx.Services().User(),
-		metadata: ctx.Services().Metadata(),
-		pin:      ctx.Services().Pin(),
-	}
-	ctx.RegisterService(dnslinkService)
+func NewDNSLinkService() (*DNSLinkServiceDefault, []core.ContextBuilderOption, error) {
+	dnslinkService := &DNSLinkServiceDefault{}
 
-	return dnslinkService
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			dnslinkService.ctx = ctx
+			dnslinkService.config = ctx.Config()
+			dnslinkService.db = ctx.DB()
+			dnslinkService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			dnslinkService.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			dnslinkService.pin = ctx.Service(core.PIN_SERVICE).(core.PinService)
+			return nil
+		}),
+	)
+
+	return dnslinkService, opts, nil
 }
 
 func (p DNSLinkServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink, error) {

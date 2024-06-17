@@ -14,8 +14,19 @@ import (
 	"sync"
 )
 
+var _ core.HTTPService = (*HTTPServiceDefault)(nil)
+
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.HTTP_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewHTTPService()
+		},
+	})
+}
+
 type HTTPServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	router *mux.Router
 	srv    *http.Server
 }
@@ -23,53 +34,55 @@ type HTTPServiceDefault struct {
 var _ handlers.RecoveryHandlerLogger = (*recoverLogger)(nil)
 
 type recoverLogger struct {
-	ctx *core.Context
+	ctx core.Context
 }
 
 func (r *recoverLogger) Println(v ...interface{}) {
 	r.ctx.Logger().Error("Recovered from panic", zap.Any("panic", v))
 }
 
-func NewHTTPService(ctx *core.Context) *HTTPServiceDefault {
+func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) {
 	_http := &HTTPServiceDefault{
-		ctx:    ctx,
 		router: mux.NewRouter(),
 	}
 
-	_http.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{ctx})))
-	ctx.RegisterService(_http)
-
 	srv := &http.Server{
-		Addr:    ":" + strconv.FormatUint(uint64(ctx.Config().Config().Core.Port), 10),
 		Handler: _http.router,
 	}
 
-	ctx.OnStartup(func(ctx core.Context) error {
-		for _, api := range core.GetAPIs() {
-			domain := fmt.Sprintf("%s.%s", api.Subdomain(), ctx.Config().Config().Core.Domain)
-			err := api.Configure(_http.Router().Host(domain).Subrouter())
-			if err != nil {
-				return err
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			_http.ctx = ctx
+			return nil
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			_http.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{ctx})))
+			srv.Addr = ":" + strconv.FormatUint(uint64(ctx.Config().Config().Core.Port), 10)
+			for _, api := range core.GetAPIs() {
+				domain := fmt.Sprintf("%s.%s", api.Subdomain(), ctx.Config().Config().Core.Domain)
+				err := api.Configure(_http.Router().Host(domain).Subrouter())
+				if err != nil {
+					return err
+				}
 			}
-		}
 
-		authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
-			Context: ctx,
-			Purpose: core.JWTPurposeLogin,
-		})
+			authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
+				Context: ctx,
+				Purpose: core.JWTPurposeLogin,
+			})
 
-		_http.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
+			_http.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
 
-		return nil
-	})
-
-	ctx.OnExit(func(ctx core.Context) error {
-		return srv.Shutdown(ctx)
-	})
+			return nil
+		}),
+		core.ContextWithExitFunc(func(ctx core.Context) error {
+			return srv.Shutdown(ctx)
+		}),
+	)
 
 	_http.srv = srv
 
-	return _http
+	return _http, opts, nil
 }
 
 func (h *HTTPServiceDefault) Router() *mux.Router {

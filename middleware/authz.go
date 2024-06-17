@@ -21,7 +21,7 @@ func AuthzMiddleware(options AuthzOptions) func(http.Handler) http.Handler {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			}
 
-			exists, m, err := options.Context.Services().User().AccountExists(user.(uint))
+			exists, m, err := options.Context.Service(core.USER_SERVICE).(core.UserService).AccountExists(user.(uint))
 			if err != nil || !exists {
 				deny()
 				return

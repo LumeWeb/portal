@@ -7,23 +7,39 @@ import (
 	"gorm.io/gorm"
 )
 
+var _ core.OTPService = (*OTPServiceDefault)(nil)
+
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.OTP_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewOTPService()
+		},
+		Depends: []string{core.USER_SERVICE},
+	})
+}
+
 type OTPServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	config config.Manager
 	db     *gorm.DB
 	user   core.UserService
 }
 
-func NewOTPService(ctx *core.Context) *OTPServiceDefault {
-	otp := &OTPServiceDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-	}
+func NewOTPService() (*OTPServiceDefault, []core.ContextBuilderOption, error) {
+	otp := &OTPServiceDefault{}
 
-	ctx.RegisterService(otp)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			otp.ctx = ctx
+			otp.config = ctx.Config()
+			otp.db = ctx.DB()
+			otp.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			return nil
+		}),
+	)
 
-	return otp
+	return otp, opts, nil
 }
 
 func (o OTPServiceDefault) OTPGenerate(userId uint) (string, error) {

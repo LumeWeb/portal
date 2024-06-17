@@ -2,6 +2,8 @@ package core
 
 import "go.lumeweb.com/portal/db/models"
 
+const PIN_SERVICE = "pin"
+
 type PinService interface {
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,
 	// created after the specified timestamp.
@@ -21,4 +23,6 @@ type PinService interface {
 
 	// UploadPinnedByUser checks if the upload with the given hash is pinned by the specified user.
 	UploadPinnedByUser(hash []byte, userId uint) (bool, error)
+
+	Service
 }

@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const IMPORT_SERVICE = "import"
+
 type ImportMetadata struct {
 	ID         uint
 	UserID     uint
@@ -39,4 +41,6 @@ type ImportService interface {
 	DeleteImport(ctx context.Context, objectHash []byte) error
 	UpdateProgress(ctx context.Context, objectHash []byte, stage int, totalStages int) error
 	UpdateStatus(ctx context.Context, objectHash []byte, status models.ImportStatus) error
+
+	Service
 }

@@ -1,11 +1,9 @@
 package portal
 
 import (
-	"errors"
 	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
-	"go.lumeweb.com/portal/service"
 	"go.uber.org/zap"
 	"os"
 	"reflect"
@@ -13,29 +11,8 @@ import (
 )
 
 var (
-	activePortal                 Portal
-	errInvalidServiceConstructor = errors.New("Invalid service constructor")
+	activePortal Portal
 )
-
-var services = []any{
-	service.NewCronService,
-	service.NewUserService,
-	service.NewOTPService,
-	service.NewAuthService,
-	service.NewEmailVerificationService,
-	service.NewPasswordResetService,
-	service.NewImportService,
-	func(ctx *core.Context) any {
-		return service.NewMailerService(ctx, service.NewMailerTemplateRegistry())
-	},
-	service.NewRenterService,
-	service.NewMetadataService,
-	service.NewStorageService,
-	service.NewPinService,
-	service.NewDNSLinkService,
-	service.NewSyncService,
-	service.NewHTTPService,
-}
 
 type Portal interface {
 	Init() error
@@ -53,30 +30,22 @@ type PortalImpl struct {
 func (p *PortalImpl) Init() error {
 	ctx := p.Context()
 
-	dbInst := db.NewDatabase(&ctx)
-	ctx.SetDB(dbInst)
-	p.SetContext(ctx)
+	dbInst, ctxOpts := db.NewDatabase(ctx)
 
-	instances := make([]any, 0)
+	svcs := core.GetServices()
 
-	for _, svc := range services {
-		svcVal := reflect.ValueOf(svc)
-		if svcVal.Kind() != reflect.Func {
-			ctx.Logger().Error("Invalid service constructor", zap.Any("constructor", svc))
-			return errInvalidServiceConstructor
+	for _, svcInfo := range svcs {
+		svc, opts, err := svcInfo.Factory()
+		if err != nil {
+			ctx.Logger().Error("Error creating service", zap.String("service", svcInfo.ID), zap.Error(err))
+			return err
 		}
 
-		ctxType := reflect.TypeOf((*core.Context)(nil))
-		if svcVal.Type().NumIn() != 1 || svcVal.Type().In(0) != ctxType {
-			ctx.Logger().Error("Invalid service constructor signature", zap.Any("constructor", svc))
-			return errInvalidServiceConstructor
+		if opts != nil {
+			opts = append(ctxOpts, opts...)
 		}
 
-		ctxVal := reflect.ValueOf(&ctx)
-		svcInstance := svcVal.Call([]reflect.Value{ctxVal})[0].Interface()
-
-		ctx.RegisterService(svcInstance)
-		instances = append(instances, svcInstance)
+		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
 	}
 
 	plugins := core.GetPlugins()
@@ -89,10 +58,15 @@ func (p *PortalImpl) Init() error {
 					ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
 					return core.ErrInvalidModel
 				}
-				if err := dbInst.AutoMigrate(model); err != nil {
-					ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
-					return err
-				}
+
+				ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
+					if err := dbInst.AutoMigrate(model); err != nil {
+						ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
+						return err
+					}
+
+					return nil
+				}))
 			}
 		}
 	}
@@ -102,7 +76,7 @@ func (p *PortalImpl) Init() error {
 			if !lo.Contains(ctx.Config().Config().Core.Protocols, plugin.ID) {
 				continue
 			}
-			_proto, err := plugin.GetProtocol(&ctx)
+			_proto, opts, err := plugin.Protocol()
 			if err != nil {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
 				return err
@@ -112,13 +86,15 @@ func (p *PortalImpl) Init() error {
 				continue
 			}
 
+			ctxOpts = append(ctxOpts, opts...)
+
 			core.RegisterProtocol(plugin.ID, _proto)
 		}
 	}
 
 	for _, plugin := range plugins {
 		if core.PluginHasAPI(plugin) {
-			api, err := plugin.GetAPI(&ctx)
+			api, opts, err := plugin.API()
 			if err != nil {
 				ctx.Logger().Error("Error building API", zap.String("plugin", plugin.ID), zap.Error(err))
 				return err
@@ -127,6 +103,8 @@ func (p *PortalImpl) Init() error {
 			if api == nil {
 				continue
 			}
+
+			ctxOpts = append(ctxOpts, opts...)
 
 			core.RegisterAPI(plugin.ID, api)
 		}
@@ -149,11 +127,21 @@ func (p *PortalImpl) Init() error {
 
 	for _, api := range core.GetAPIs() {
 		if initApi, ok := api.(core.APIInit); ok {
-			if err := initApi.Init(&ctx); err != nil {
+			opts, err := initApi.Init()
+			if err != nil {
 				ctx.Logger().Error("Error initializing api", zap.String("api", api.Subdomain()), zap.Error(err))
 				return err
 			}
+
+			ctxOpts = append(ctxOpts, opts...)
 		}
+	}
+
+	ctx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+
+	if err != nil {
+		ctx.Logger().Error("Error creating context", zap.Error(err))
+		return err
 	}
 
 	p.SetContext(ctx)
@@ -208,12 +196,10 @@ func (p *PortalImpl) Stop() error {
 func (p *PortalImpl) Serve() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Serving portal")
-	return ctx.Services().HTTP().Serve()
+	return ctx.Service(core.HTTP_SERVICE).(core.HTTPService).Serve()
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
-	ctx = core.NewContext(ctx)
-
 	return &PortalImpl{
 		ctx: ctx,
 	}

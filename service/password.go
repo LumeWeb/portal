@@ -10,26 +10,41 @@ import (
 	"time"
 )
 
+var _ core.PasswordResetService = (*PasswordResetServiceDefault)(nil)
+
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.PASSWORD_RESET_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewPasswordResetService()
+		},
+		Depends: []string{core.USER_SERVICE, core.MAILER_SERVICE},
+	})
+}
+
 type PasswordResetServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	config config.Manager
 	db     *gorm.DB
 	user   core.UserService
 	mailer core.MailerService
 }
 
-func NewPasswordResetService(ctx *core.Context) *PasswordResetServiceDefault {
-	passwordService := PasswordResetServiceDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-		user:   ctx.Services().User(),
-		mailer: ctx.Services().Mailer(),
-	}
+func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuilderOption, error) {
+	passwordService := PasswordResetServiceDefault{}
 
-	ctx.RegisterService(passwordService)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			passwordService.ctx = ctx
+			passwordService.config = ctx.Config()
+			passwordService.db = ctx.DB()
+			passwordService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			passwordService.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+			return nil
+		}),
+	)
 
-	return &passwordService
+	return &passwordService, opts, nil
 }
 
 func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error {

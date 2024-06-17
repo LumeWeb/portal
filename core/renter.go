@@ -7,6 +7,8 @@ import (
 	"io"
 )
 
+const RENTER_SERVICE = "renter"
+
 type ReaderFactory func(start uint, end uint) (io.ReadCloser, error)
 type UploadIDHandler func(uploadID string)
 
@@ -31,4 +33,6 @@ type RenterService interface {
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
 	GougingSettings(ctx context.Context) (api.GougingSettings, error)
 	RedundancySettings(ctx context.Context) (api.RedundancySettings, error)
+
+	Service
 }
