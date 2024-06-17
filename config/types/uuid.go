@@ -40,6 +40,9 @@ func (u *UUID) DecodeMapstructure(value interface{}) error {
 		}
 		*u = UUID(id)
 		return nil
+	case UUID:
+		*u = v
+		return nil
 	default:
 		return errors.New("unsupported type for UUID")
 	}
