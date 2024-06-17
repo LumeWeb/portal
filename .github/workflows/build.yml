@@ -9,6 +9,3 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
     build:
         uses: ./.github/workflows/_build.yml
-        with:
-            build_tags: s5
-            upload_artifact: false
