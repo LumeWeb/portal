@@ -12,8 +12,8 @@ github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 h1:UQHMgLO+TxOEl
 github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
-github.com/LumeWeb/gocron/v2 v2.0.0-20240513201659-b12ca98e93d9 h1:y5J2CYYcgjzvcDZMktjnrQy/2RTasL+P1he0+XBSnVA=
-github.com/LumeWeb/gocron/v2 v2.0.0-20240513201659-b12ca98e93d9/go.mod h1:ckPQw96ZuZLRUGu88vVpd9a6d9HakI14KWahFZtGvNw=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240617005936-d493ed747a81 h1:XU76oZhg6463hjIzW1ZP+XYUvn4I34aNkqKjGnDdNzQ=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240617005936-d493ed747a81/go.mod h1:ckPQw96ZuZLRUGu88vVpd9a6d9HakI14KWahFZtGvNw=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6 h1:2dSiG0CN+bF72J89Zk0/icyDebCpySx9CwZ0Fp+QM8Q=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5 h1:PLu5lde5k11bZcv1gFOHTw3j1JSDg6NE11g8yGml4U4=

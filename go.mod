@@ -173,7 +173,7 @@ require (
 )
 
 replace (
-	github.com/go-co-op/gocron/v2 => github.com/LumeWeb/gocron/v2 v2.0.0-20240513201659-b12ca98e93d9
+	github.com/go-co-op/gocron/v2 => github.com/LumeWeb/gocron/v2 v2.0.0-20240617005936-d493ed747a81
 	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 => github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053
