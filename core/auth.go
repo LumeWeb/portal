@@ -5,6 +5,8 @@ import (
 	"go.lumeweb.com/portal/db/models"
 )
 
+const AUTH_SERVICE = "auth"
+
 func GenerateSecurityToken() string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, 6)
@@ -41,4 +43,6 @@ type AuthService interface {
 	// ValidLoginByUserID checks if the provided user ID and password are valid.
 	// It returns a boolean indicating success, the authenticated user, and an error if any.
 	ValidLoginByUserID(id uint, password string) (bool, *models.User, error)
+
+	Service
 }

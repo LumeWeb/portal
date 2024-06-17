@@ -10,19 +10,32 @@ import (
 
 var _ core.MetadataService = (*MetadataServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.METADATA_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewMetadataService()
+		},
+	})
+}
+
 type MetadataServiceDefault struct {
-	ctx *core.Context
+	ctx core.Context
 	db  *gorm.DB
 }
 
-func NewMetadataService(ctx *core.Context) *MetadataServiceDefault {
-	meta := &MetadataServiceDefault{
-		ctx: ctx,
-		db:  ctx.DB(),
-	}
-	ctx.RegisterService(meta)
+func NewMetadataService() (*MetadataServiceDefault, []core.ContextBuilderOption, error) {
+	meta := &MetadataServiceDefault{}
 
-	return meta
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			meta.ctx = ctx
+			meta.db = ctx.DB()
+			return nil
+		}),
+	)
+
+	return meta, opts, nil
 }
 
 func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata core.UploadMetadata, skipExisting bool) error {

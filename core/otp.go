@@ -5,6 +5,8 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
+const OTP_SERVICE = "otp"
+
 var (
 	ErrInvalidOTPCode = errors.New("Invalid OTP code")
 )
@@ -25,6 +27,8 @@ type OTPService interface {
 	// OTPDisable disables OTP for the given user ID.
 	// It returns an error if any.
 	OTPDisable(userId uint) error
+
+	Service
 }
 
 func TOTPGenerate(domain string, email string) (string, error) {

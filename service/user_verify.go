@@ -11,26 +11,41 @@ import (
 	"time"
 )
 
+var _ core.EmailVerificationService = (*EmailVerificationServiceDefault)(nil)
+
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.EMAIL_VERIFICATION_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewEmailVerificationService()
+		},
+		Depends: []string{core.USER_SERVICE, core.MAILER_SERVICE},
+	})
+}
+
 type EmailVerificationServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	config config.Manager
 	db     *gorm.DB
 	user   core.UserService
 	mailer core.MailerService
 }
 
-func NewEmailVerificationService(ctx *core.Context) *EmailVerificationServiceDefault {
-	emailVerification := EmailVerificationServiceDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-		user:   ctx.Services().User(),
-		mailer: ctx.Services().Mailer(),
-	}
+func NewEmailVerificationService() (*EmailVerificationServiceDefault, []core.ContextBuilderOption, error) {
+	emailVerification := EmailVerificationServiceDefault{}
 
-	ctx.RegisterService(emailVerification)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			emailVerification.ctx = ctx
+			emailVerification.config = ctx.Config()
+			emailVerification.db = ctx.DB()
+			emailVerification.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			emailVerification.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+			return nil
+		}),
+	)
 
-	return &emailVerification
+	return &emailVerification, opts, nil
 }
 
 func (e EmailVerificationServiceDefault) SendEmailVerification(userId uint) error {

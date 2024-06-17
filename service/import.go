@@ -12,20 +12,32 @@ var ErrNotFound = gorm.ErrRecordNotFound
 
 var _ core.ImportService = (*ImportServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.IMPORT_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewImportService()
+		},
+	})
+}
+
 type ImportServiceDefault struct {
-	ctx *core.Context
+	ctx core.Context
 	db  *gorm.DB
 }
 
-func NewImportService(ctx *core.Context) *ImportServiceDefault {
-	_import := ImportServiceDefault{
-		ctx: ctx,
-		db:  ctx.DB(),
-	}
+func NewImportService() (*ImportServiceDefault, []core.ContextBuilderOption, error) {
+	_import := ImportServiceDefault{}
 
-	ctx.RegisterService(_import)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			_import.ctx = ctx
+			_import.db = ctx.DB()
+			return nil
+		}),
+	)
 
-	return &_import
+	return &_import, opts, nil
 }
 
 func (i ImportServiceDefault) UpdateProgress(ctx context.Context, objectHash []byte, stage int, totalStages int) error {

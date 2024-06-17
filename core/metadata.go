@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const METADATA_SERVICE = "metadata"
+
 type UploadMetadata struct {
 	ID         uint      `json:"upload_id"`
 	UserID     uint      `json:"user_id"`
@@ -37,4 +39,6 @@ type MetadataService interface {
 	GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error)
 	DeleteUpload(ctx context.Context, objectHash []byte) error
 	GetAllUploads(ctx context.Context) ([]UploadMetadata, error)
+
+	Service
 }

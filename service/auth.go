@@ -12,25 +12,38 @@ import (
 
 var _ core.AuthService = (*AuthServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.AUTH_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewAuthService()
+		},
+		Depends: []string{core.USER_SERVICE, core.OTP_SERVICE},
+	})
+}
+
 type AuthServiceDefault struct {
-	ctx    *core.Context
+	ctx    core.Context
 	config config.Manager
 	db     *gorm.DB
 	user   core.UserService
 	opt    core.OTPService
 }
 
-func NewAuthService(ctx *core.Context) *AuthServiceDefault {
-	authService := &AuthServiceDefault{
-		ctx:    ctx,
-		config: ctx.Config(),
-		db:     ctx.DB(),
-		user:   ctx.Services().User(),
-		opt:    ctx.Services().Otp(),
-	}
-	ctx.RegisterService(authService)
+func NewAuthService() (*AuthServiceDefault, []core.ContextBuilderOption, error) {
+	authService := &AuthServiceDefault{}
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			authService.ctx = ctx
+			authService.config = ctx.Config()
+			authService.db = ctx.DB()
+			authService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			authService.opt = ctx.Service(core.OTP_SERVICE).(core.OTPService)
+			return nil
+		}),
+	)
 
-	return authService
+	return authService, opts, nil
 }
 
 func (a AuthServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, error) {

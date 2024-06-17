@@ -25,16 +25,16 @@ func trapSignals() {
 	logger := ctx.Logger()
 	go func() {
 		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
 
 		for sig := range sigchan {
 			switch sig {
 			case syscall.SIGQUIT:
-				logger.Info("quitting process immediately", zap.String("signal", "SIGQUIT"))
+				logger.Info("Wuitting process immediately", zap.String("signal", "SIGQUIT"))
 				os.Exit(core.ExitCodeForceQuit)
 
 			case syscall.SIGTERM:
-				logger.Info("shutting down apps, then terminating", zap.String("signal", "SIGTERM"))
+				logger.Info("Shutting down portal, then terminating", zap.String("signal", "SIGTERM"))
 				exitProcessFromSignal("SIGTERM")
 
 			case syscall.SIGUSR1:
@@ -46,6 +46,9 @@ func trapSignals() {
 			case syscall.SIGHUP:
 				// ignore; this signal is sometimes sent outside of the user's control
 				logger.Info("not implemented", zap.String("signal", "SIGHUP"))
+			case syscall.SIGINT:
+				logger.Info("Shutting down portal, then terminating", zap.String("signal", "SIGINT"))
+				exitProcessFromSignal("SIGINT")
 			}
 		}
 

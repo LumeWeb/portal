@@ -3,29 +3,29 @@ package core
 import (
 	"errors"
 	"fmt"
-	gorilla "github.com/gorilla/mux"
-	"go.lumeweb.com/portal/config"
-	"net/http"
-	"sort"
+	_ "github.com/gorilla/mux"
+	_ "go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core/internal"
+	_ "net/http"
 	"sync"
 )
 
 type PluginFactory func() PluginInfo
 
 type PluginInfo struct {
-	ID          string
-	GetAPI      func(*Context) (API, error)
-	GetProtocol func(*Context) (Protocol, error)
-	Models      []any
+	ID       string
+	API      func() (API, []ContextBuilderOption, error)
+	Protocol func() (Protocol, []ContextBuilderOption, error)
+	Services func() ([]ServiceInfo, error)
+	Models   []any
+	Depends  []string
 }
 
 var (
-	plugins     = make(map[string]PluginInfo)
-	pluginsMu   sync.RWMutex
-	apis        = make(map[string]API)
-	apisMu      sync.RWMutex
-	protocols   = make(map[string]Protocol)
-	protocolsMu sync.RWMutex
+	plugins          = make(map[string]PluginInfo)
+	pluginsMu        sync.RWMutex
+	pluginsOrdered   []PluginInfo
+	pluginsOrderedMu sync.RWMutex
 )
 
 var (
@@ -36,157 +36,87 @@ func (pi PluginInfo) String() string {
 	return pi.ID
 }
 
-func RegisterPlugin(factory PluginFactory) {
-	info := factory()
-
+func RegisterPlugin(info PluginInfo) {
 	if info.ID == "" {
 		panic("plugin ID must not be empty")
 	}
 
-	if info.GetAPI == nil && info.GetProtocol == nil {
-		panic("plugin must have at least one of GetAPI or GetProtocol")
+	if info.API == nil && info.Protocol == nil && info.Services == nil {
+		panic("plugin must have at least one of GetAPI, GetProtocol, or GetServices")
 	}
 
 	pluginsMu.Lock()
 	defer pluginsMu.Unlock()
 
+	pluginsOrderedMu.Lock()
+	defer pluginsOrderedMu.Unlock()
+
 	if _, ok := plugins[info.ID]; ok {
 		panic(fmt.Sprintf("plugin already registered: %s", info.ID))
 	}
 
-	plugins[info.ID] = info
-}
-
-func RegisterAPI(id string, api API) {
-	apisMu.Lock()
-	defer apisMu.Unlock()
-
-	apis[id] = api
-}
-
-func RegisterProtocol(id string, protocol Protocol) {
-	protocolsMu.Lock()
-	defer protocolsMu.Unlock()
-
-	protocols[id] = protocol
-}
-
-func GetAPI(id string) (API, error) {
-	apisMu.RLock()
-	defer apisMu.RUnlock()
-
-	api, ok := apis[id]
-
-	if !ok {
-		return nil, fmt.Errorf("api not found: %s", id)
+	if pluginsOrdered != nil && len(pluginsOrdered) > 0 {
+		pluginsOrdered = make([]PluginInfo, 0)
 	}
 
-	return api, nil
+	plugins[info.ID] = info
 }
-
-func GetProtocol(id string) (Protocol, error) {
+func GetProtocol(id string) Protocol {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
 
 	protocol, ok := protocols[id]
 
 	if !ok {
-		return nil, fmt.Errorf("protocol not found: %s", id)
+		return nil
 	}
 
-	return protocol, nil
+	return protocol
 }
 
-func GetPlugin(name string) (PluginInfo, error) {
+func GetPlugin(name string) PluginInfo {
 	pluginsMu.RLock()
 	defer pluginsMu.RUnlock()
 
 	plugin, ok := plugins[name]
 
 	if !ok {
-		return PluginInfo{}, fmt.Errorf("plugin not found: %s", name)
+		return PluginInfo{}
 	}
 
-	return plugin, nil
+	return plugin
 }
 
 func GetPlugins() []PluginInfo {
 	pluginsMu.RLock()
 	defer pluginsMu.RUnlock()
 
-	var pluginList []PluginInfo
-	for _, plugin := range plugins {
-		pluginList = append(pluginList, plugin)
+	pluginsOrderedMu.Lock()
+	defer pluginsOrderedMu.Unlock()
+
+	if len(pluginsOrdered) > 0 {
+		return pluginsOrdered
 	}
 
-	// make return value deterministic
-	sort.Slice(pluginList, func(i, j int) bool {
-		return pluginList[i].ID < pluginList[j].ID
-	})
+	graph := internal.NewDependsGraph()
+
+	for _, k := range plugins {
+		graph.AddNode(k.ID, k.Depends...)
+	}
+
+	list, err := graph.Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	var pluginList []PluginInfo
+
+	for _, k := range list {
+		pluginList = append(pluginList, plugins[k])
+	}
+
+	pluginsOrdered = pluginList
 
 	return pluginList
-}
-
-func GetProtocols() []Protocol {
-	protocolsMu.RLock()
-	defer protocolsMu.RUnlock()
-
-	var protocolList []Protocol
-	for _, protocol := range protocols {
-		protocolList = append(protocolList, protocol)
-	}
-
-	return protocolList
-}
-
-func GetAPIs() []API {
-	apisMu.RLock()
-	defer apisMu.RUnlock()
-
-	var apiList []API
-	for _, api := range apis {
-		apiList = append(apiList, api)
-	}
-
-	return apiList
-}
-
-func PluginHasAPI(plugin PluginInfo) bool {
-	return plugin.GetAPI != nil
-}
-
-func PluginHasProtocol(plugin PluginInfo) bool {
-	return plugin.GetProtocol != nil
-}
-
-type API interface {
-	Subdomain() string
-	Configure(router *gorilla.Router) error
-	AuthTokenName() string
-}
-
-type APIInit interface {
-	Init(ctx *Context) error
-}
-
-type RoutableAPI interface {
-	Can(w http.ResponseWriter, r *http.Request) bool
-	Handle(w http.ResponseWriter, r *http.Request)
-}
-
-type Protocol interface {
-	Name() string
-	Config() config.ProtocolConfig
-}
-
-type ProtocolInit interface {
-	Init(ctx *Context) error
-}
-
-type ProtocolStart interface {
-	Start(ctx Context) error
-}
-
-type ProtocolStop interface {
-	Stop(ctx Context) error
 }

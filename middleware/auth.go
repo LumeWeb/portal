@@ -143,7 +143,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			exists, _, err := options.Context.Services().User().AccountExists(uint(userId))
+			exists, _, err := options.Context.Service(core.USER_SERVICE).(core.UserService).AccountExists(uint(userId))
 
 			if !exists || err != nil {
 				http.Error(w, core.ErrJWTInvalid.Error(), http.StatusBadRequest)

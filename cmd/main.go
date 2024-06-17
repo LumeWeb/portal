@@ -9,11 +9,20 @@ import (
 )
 
 func Main() {
+
 	cfg, err := config.NewManager()
 	logger := core.NewLogger(cfg)
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))
 	}
+
+	ctx, err := core.NewContext(cfg, logger)
+
+	if err != nil {
+		logger.Fatal("Failed to create context", zap.Error(err))
+	}
+
+	core.RegisterServicesFromPlugins()
 
 	err = cfg.Init()
 	if err != nil {
@@ -22,7 +31,7 @@ func Main() {
 
 	logger.SetLevelFromConfig()
 
-	portal.NewActivePortal(core.NewBaseContext(cfg, logger))
+	portal.NewActivePortal(ctx)
 
 	err = portal.Init()
 

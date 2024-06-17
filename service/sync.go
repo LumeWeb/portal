@@ -30,6 +30,16 @@ import (
 
 var _ core.CronableService = (*SyncServiceDefault)(nil)
 
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.SYNC_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewSyncService()
+		},
+		Depends: []string{core.RENTER_SERVICE, core.STORAGE_SERVICE, core.METADATA_SERVICE, core.CRON_SERVICE},
+	})
+}
+
 const ETC_NODE_PREFIX = "/node/"
 const ETC_NODE_PLACEHOLDER = "%s"
 const ETC_NODE_SYNC_SUFFIX = "/sync"
@@ -40,7 +50,7 @@ const ETC_SYNC_LEADER_ELECTION_KEY = "/sync/leader"
 const syncDataFolder = "sync_data"
 
 type SyncServiceDefault struct {
-	ctx        *core.Context
+	ctx        core.Context
 	config     config.Manager
 	logger     *core.Logger
 	grpcClient *plugin.Client
@@ -60,39 +70,38 @@ type SyncProtocol interface {
 	StorageProtocol() core.StorageProtocol
 }
 
-func NewSyncService(ctx *core.Context) *SyncServiceDefault {
-	_sync := &SyncServiceDefault{
-		ctx:      ctx,
-		config:   ctx.Config(),
-		logger:   ctx.Logger(),
-		renter:   ctx.Services().Renter(),
-		storage:  ctx.Services().Storage(),
-		metadata: ctx.Services().Metadata(),
-		cron:     ctx.Services().Cron(),
-	}
+func NewSyncService() (*SyncServiceDefault, []core.ContextBuilderOption, error) {
+	_sync := &SyncServiceDefault{}
 
-	ctx.RegisterService(_sync)
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			_sync.ctx = ctx
+			_sync.config = ctx.Config()
+			_sync.logger = ctx.Logger()
+			_sync.renter = ctx.Service(core.RENTER_SERVICE).(core.RenterService)
+			_sync.storage = ctx.Service(core.STORAGE_SERVICE).(core.StorageService)
+			_sync.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			_sync.cron = ctx.Service(core.CRON_SERVICE).(core.CronService)
+			return nil
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			if ctx.Config().Config().Core.Sync.Enabled {
+				err := _sync.init()
+				if err != nil {
+					_sync.logger.Error("failed to initialize sync service", zap.Error(err))
+				}
 
-	if ctx.Config().Config().Core.Sync.Enabled {
-		ctx.OnStartup(func(ctx core.Context) error {
-			err := _sync.init()
-			if err != nil {
-				_sync.logger.Error("failed to initialize sync service", zap.Error(err))
+				return err
 			}
 
-			return err
-		})
-		ctx.OnExit(func(ctx core.Context) error {
-			err := _sync.stop()
-			if err != nil {
-				_sync.logger.Error("failed to stop sync service", zap.Error(err))
-			}
+			return nil
+		}),
+		core.ContextWithExitFunc(func(ctx core.Context) error {
+			return _sync.stop()
+		}),
+	)
 
-			return err
-		})
-	}
-
-	return _sync
+	return _sync, opts, nil
 }
 
 func (s *SyncServiceDefault) RegisterTasks(crn core.CronService) error {
@@ -115,11 +124,7 @@ func (s *SyncServiceDefault) Update(upload core.UploadMetadata) error {
 		return nil
 	}
 
-	proto, err := core.GetProtocol(upload.Protocol)
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
+	proto := core.GetProtocol(upload.Protocol)
 
 	if proto == nil {
 		return errors.New("protocol not found")
@@ -132,7 +137,7 @@ func (s *SyncServiceDefault) Update(upload core.UploadMetadata) error {
 
 	fileName := syncProto.EncodeFileName(upload.Hash)
 
-	object, err := s.renter.GetObjectMetadata(ctx, upload.Protocol, fileName)
+	object, err := s.renter.GetObjectMetadata(s.ctx, upload.Protocol, fileName)
 	if err != nil {
 		return err
 	}
@@ -151,7 +156,7 @@ func (s *SyncServiceDefault) Update(upload core.UploadMetadata) error {
 		return nil
 	}
 
-	proofReader, err := s.storage.DownloadObjectProof(ctx, syncProto, upload.Hash)
+	proofReader, err := s.storage.DownloadObjectProof(s.ctx, syncProto, upload.Hash)
 
 	if err != nil {
 		return err

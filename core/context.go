@@ -6,9 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
+type ContextBuilderFunc func() error
+type ContextBuilderOption func(Context) (Context, error)
+
+type StartupFunc func(Context) error
+type ExitFunc func(Context) error
+
 type Context struct {
 	context.Context
-	services     Services
+	services     map[string]any
 	cfg          config.Manager
 	logger       *Logger
 	exitFuncs    []func(Context) error
@@ -18,41 +24,38 @@ type Context struct {
 	cancel       context.CancelFunc
 }
 
-func (ctx *Context) Services() Services {
-	return ctx.services
-}
-
-type Services struct {
-	auth       AuthService
-	user       UserService
-	userVerify EmailVerificationService
-	dnslink    DNSLinkService
-	pin        PinService
-	password   PasswordResetService
-	cron       CronService
-	importer   ImportService
-	mailer     MailerService
-	metadata   MetadataService
-	storage    StorageService
-	otp        OTPService
-	renter     RenterService
-	sync       SyncService
-	http       HTTPService
-}
-
-func NewBaseContext(config config.Manager, logger *Logger) Context {
-	return Context{Context: context.Background(), cfg: config, logger: logger}
-}
-
-func NewContext(ctx Context) Context {
-	newCtx := Context{cfg: ctx.cfg, logger: ctx.logger}
-	c, cancel := context.WithCancel(ctx)
+func NewContext(config config.Manager, logger *Logger, options ...ContextBuilderOption) (Context, error) {
+	newCtx := Context{
+		Context:  context.Background(),
+		services: make(map[string]any),
+		cfg:      config,
+		logger:   logger,
+	}
+	c, cancel := context.WithCancel(newCtx)
 
 	newCtx.Context = c
 	newCtx.cancel = cancel
 
-	return newCtx
+	var err error
+
+	for _, opt := range options {
+		newCtx, err = opt(newCtx)
+		if err != nil {
+			return newCtx, err
+		}
+	}
+
+	return newCtx, nil
 }
+
+func (ctx *Context) Service(id string) any {
+	if svc, ok := ctx.services[id]; ok {
+		return svc
+	}
+
+	return nil
+}
+
 func (ctx *Context) OnExit(f func(Context) error) {
 	ctx.exitFuncs = append(ctx.exitFuncs, f)
 }
@@ -67,41 +70,6 @@ func (ctx *Context) StartupFuncs() []func(Context) error {
 
 func (ctx *Context) ExitFuncs() []func(Context) error {
 	return ctx.exitFuncs
-}
-
-func (ctx *Context) RegisterService(svc any) {
-	switch svc := svc.(type) {
-	case AuthService:
-		ctx.services.auth = svc
-	case UserService:
-		ctx.services.user = svc
-	case EmailVerificationService:
-		ctx.services.userVerify = svc
-	case DNSLinkService:
-		ctx.services.dnslink = svc
-	case PinService:
-		ctx.services.pin = svc
-	case PasswordResetService:
-		ctx.services.password = svc
-	case CronService:
-		ctx.services.cron = svc
-	case ImportService:
-		ctx.services.importer = svc
-	case MailerService:
-		ctx.services.mailer = svc
-	case MetadataService:
-		ctx.services.metadata = svc
-	case StorageService:
-		ctx.services.storage = svc
-	case OTPService:
-		ctx.services.otp = svc
-	case RenterService:
-		ctx.services.renter = svc
-	case SyncService:
-		ctx.services.sync = svc
-	case HTTPService:
-		ctx.services.http = svc
-	}
 }
 
 func (ctx *Context) SetDB(db *gorm.DB) {
@@ -132,62 +100,27 @@ func (ctx *Context) SetExitCode(code int) {
 	ctx.exitCode = code
 }
 
-func (s Services) Auth() AuthService {
-	return s.auth
+func ContextWithService(id string, svc Service) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.services[id] = svc
+		return ctx, nil
+	}
 }
 
-func (s Services) User() UserService {
-	return s.user
+func ContextWithStartupFunc(f StartupFunc) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.OnStartup(f)
+		return ctx, nil
+	}
 }
 
-func (s Services) UserVerify() EmailVerificationService {
-	return s.userVerify
+func ContextWithExitFunc(f ExitFunc) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.OnExit(f)
+		return ctx, nil
+	}
 }
 
-func (s Services) DNSLink() DNSLinkService {
-	return s.dnslink
-}
-
-func (s Services) Pin() PinService {
-	return s.pin
-}
-
-func (s Services) Password() PasswordResetService {
-	return s.password
-}
-
-func (s Services) Cron() CronService {
-	return s.cron
-}
-
-func (s Services) Importer() ImportService {
-	return s.importer
-}
-
-func (s Services) Mailer() MailerService {
-	return s.mailer
-}
-
-func (s Services) Metadata() MetadataService {
-	return s.metadata
-}
-
-func (s Services) Storage() StorageService {
-	return s.storage
-}
-
-func (s Services) Otp() OTPService {
-	return s.otp
-}
-
-func (s Services) Renter() RenterService {
-	return s.renter
-}
-
-func (s Services) Sync() SyncService {
-	return s.sync
-}
-
-func (s Services) HTTP() HTTPService {
-	return s.http
+func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
+	return options
 }
