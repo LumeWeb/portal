@@ -13,20 +13,15 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
     build:
         uses: ./.github/workflows/_build.yml
-        with:
-            build_tags: s5
-            upload_artifact: true
     publish:
         runs-on: ubuntu-latest
         needs:
             - build
         steps:
-        - uses: actions/download-artifact@v4
-          with:
-              name: build-${{ github.sha }}
-              path: .
         - name: Create Release Pull Request or Publish
           id: changesets
           uses: changesets/action@v1
+          with:
+            publish: "exit 0"
           env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
