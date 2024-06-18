@@ -1,9 +1,5 @@
 package config
 
-type ProtocolConfig interface {
-	Defaults
-}
-
 type Defaults interface {
 	Defaults() map[string]any
 }
@@ -14,7 +10,9 @@ type Validator interface {
 
 type Manager interface {
 	Init() error
-	ConfigureProtocol(name string, cfg ProtocolConfig) error
+	ConfigureProtocol(pluginName string, cfg ProtocolConfig) error
+	ConfigureAPI(pluginName string, cfg APIConfig) error
+	ConfigureService(pluginName string, serviceName string, cfg ServiceConfig) error
 	Config() *Config
 	Save() error
 	ConfigFile() string

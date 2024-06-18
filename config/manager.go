@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"sync"
 )
 
 var (
@@ -27,14 +28,15 @@ var (
 var _ Manager = (*ManagerDefault)(nil)
 
 type Config struct {
-	Core     CoreConfig             `mapstructure:"core"`
-	Protocol map[string]interface{} `mapstructure:"protocol"`
+	Core   CoreConfig              `mapstructure:"core"`
+	Plugin map[string]PluginEntity `mapstructure:"plugin"`
 }
 
 type ManagerDefault struct {
 	config  *koanf.Koanf
 	root    *Config
 	changes bool
+	lock    sync.Mutex
 }
 
 func NewManager() (*ManagerDefault, error) {
@@ -48,6 +50,7 @@ func NewManager() (*ManagerDefault, error) {
 	return &ManagerDefault{
 		config:  k,
 		changes: !exists,
+		lock:    sync.Mutex{},
 	}, nil
 }
 
@@ -99,21 +102,100 @@ func (m *ManagerDefault) Init() error {
 	return nil
 }
 
-func (m *ManagerDefault) ConfigureProtocol(name string, cfg ProtocolConfig) error {
-	protocolPrefix := fmt.Sprintf("protocol.%s", name)
+func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig) error {
+	if cfg == nil {
+		return nil
+	}
 
-	err := m.setDefaultsForObject(cfg, protocolPrefix)
+	m.initPlugin(pluginName)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	prefix := fmt.Sprintf("plugin.%s.protocol", pluginName)
+	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
 	}
-	err = m.maybeSave()
+
+	pluginEntity := m.root.Plugin[pluginName]
+	pluginEntity.Protocol = section.(ProtocolConfig)
+	m.root.Plugin[pluginName] = pluginEntity
+
+	return nil
+}
+
+func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
+	if cfg == nil {
+		return nil
+	}
+
+	m.initPlugin(pluginName)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	prefix := fmt.Sprintf("plugin.%s.api", pluginName)
+	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
+	}
+
+	pluginEntity := m.root.Plugin[pluginName]
+	pluginEntity.API = section.(APIConfig)
+	m.root.Plugin[pluginName] = pluginEntity
+
+	return nil
+}
+
+func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string, cfg ServiceConfig) error {
+	if cfg == nil {
+		return nil
+	}
+
+	m.initPlugin(pluginName)
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	prefix := fmt.Sprintf("plugin.%s.service.%s", pluginName, serviceName)
+	section, err := m.configureSection(prefix, cfg)
+
+	if err != nil {
+		return err
+	}
+
+	m.root.Plugin[pluginName].Service[serviceName] = section.(ServiceConfig)
+	return nil
+}
+
+func (m *ManagerDefault) initPlugin(name string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if m.root.Plugin == nil {
+		m.root.Plugin = make(map[string]PluginEntity)
+	}
+
+	if _, ok := m.root.Plugin[name]; ok {
+		return
+	}
+
+	m.root.Plugin[name] = PluginEntity{
+		Service: make(map[string]ServiceConfig),
+	}
+
+	return
+}
+
+func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, error) {
+	err := m.setDefaultsForObject(cfg, name)
+	if err != nil {
+		return nil, err
+	}
+	err = m.maybeSave()
+	if err != nil {
+		return nil, err
 	}
 
 	hooks := append([]mapstructure.DecodeHookFunc{}, mapstructure.StringToTimeDurationHookFunc())
 
-	err = m.config.UnmarshalWithConf(protocolPrefix, cfg, koanf.UnmarshalConf{
+	err = m.config.UnmarshalWithConf(name, cfg, koanf.UnmarshalConf{
 		Tag: "mapstructure",
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook:           mapstructure.ComposeDecodeHookFunc(hooks...),
@@ -124,21 +206,15 @@ func (m *ManagerDefault) ConfigureProtocol(name string, cfg ProtocolConfig) erro
 		},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = m.validateObject(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if m.root.Protocol == nil {
-		m.root.Protocol = make(map[string]interface{})
-	}
-
-	m.root.Protocol[name] = cfg
-
-	return nil
+	return cfg, nil
 }
 
 func (m *ManagerDefault) setDefaultsForObject(obj interface{}, prefix string) error {

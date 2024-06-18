@@ -40,7 +40,14 @@ func RegisterProtocol(id string, protocol Protocol) {
 	protocols[id] = protocol
 }
 
-func GetProtocols() []Protocol {
+func GetProtocols() map[string]Protocol {
+	apisMu.RLock()
+	defer apisMu.RUnlock()
+
+	return protocols
+}
+
+func GetProtocolList() []Protocol {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
 
@@ -60,5 +67,5 @@ func GetProtocols() []Protocol {
 }
 
 func PluginHasProtocol(plugin PluginInfo) bool {
-	return plugin.API != nil
+	return plugin.Protocol != nil
 }

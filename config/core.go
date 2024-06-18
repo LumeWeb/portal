@@ -3,7 +3,7 @@ package config
 import (
 	"errors"
 	"github.com/docker/go-units"
-	types2 "go.lumeweb.com/portal/config/types"
+	"go.lumeweb.com/portal/config/types"
 	"go.sia.tech/coreutils/wallet"
 )
 
@@ -11,21 +11,18 @@ var _ Defaults = (*CoreConfig)(nil)
 var _ Validator = (*CoreConfig)(nil)
 
 type CoreConfig struct {
-	DB               DatabaseConfig  `mapstructure:"db"`
-	Domain           string          `mapstructure:"domain"`
-	PortalName       string          `mapstructure:"portal_name"`
-	AccountSubdomain string          `mapstructure:"account_subdomain"`
-	ExternalPort     uint            `mapstructure:"external_port"`
-	Identity         types2.Identity `mapstructure:"identity"`
-	Log              LogConfig       `mapstructure:"log"`
-	Port             uint            `mapstructure:"port"`
-	PostUploadLimit  uint64          `mapstructure:"post_upload_limit"`
-	Storage          StorageConfig   `mapstructure:"storage"`
-	Protocols        []string        `mapstructure:"protocols"`
-	Mail             MailConfig      `mapstructure:"mail"`
-	Clustered        *ClusterConfig  `mapstructure:"clustered"`
-	NodeID           types2.UUID     `mapstructure:"node_id"`
-	Sync             SyncConfig      `mapstructure:"sync"`
+	DB              DatabaseConfig `mapstructure:"db"`
+	Domain          string         `mapstructure:"domain"`
+	PortalName      string         `mapstructure:"portal_name"`
+	ExternalPort    uint           `mapstructure:"external_port"`
+	Identity        types.Identity `mapstructure:"identity"`
+	Log             LogConfig      `mapstructure:"log"`
+	Port            uint           `mapstructure:"port"`
+	PostUploadLimit uint64         `mapstructure:"post_upload_limit"`
+	Storage         StorageConfig  `mapstructure:"storage"`
+	Mail            MailConfig     `mapstructure:"mail"`
+	Clustered       *ClusterConfig `mapstructure:"clustered"`
+	NodeID          types.UUID     `mapstructure:"node_id"`
 }
 
 func (c CoreConfig) Validate() error {
@@ -45,13 +42,11 @@ func (c CoreConfig) Validate() error {
 func (c CoreConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
 		"post_upload_limit": units.MiB * 100,
-		"node_id":           types2.NewUUID(),
-		"account_subdomain": "account",
+		"node_id":           types.NewUUID(),
 		"identity":          wallet.NewSeedPhrase(),
 		"domain":            "",
 		"portal_name":       "",
 		"port":              0,
-		"protocols":         []string{"s5"},
 	}
 }
 

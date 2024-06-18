@@ -14,6 +14,8 @@ var (
 	servicesOrdered   []ServiceInfo
 	servicesMu        sync.RWMutex
 	servicesOrderedMu sync.RWMutex
+	pluginServices    = make(map[string][]string)
+	pluginServicesMu  sync.RWMutex
 )
 
 type ServiceInfo struct {
@@ -34,7 +36,7 @@ func RegisterServicesFromPlugins() {
 			}
 
 			for _, svc := range svcs {
-				RegisterService(svc)
+				RegisterService(svc, plugin.ID)
 			}
 		}
 	}
@@ -44,7 +46,7 @@ func PluginHasServices(plugin PluginInfo) bool {
 	return plugin.Services != nil
 }
 
-func RegisterService(service ServiceInfo) {
+func RegisterService(service ServiceInfo, plugin ...string) {
 	if service.ID == "" {
 		panic("service ID must not be empty")
 	}
@@ -68,6 +70,28 @@ func RegisterService(service ServiceInfo) {
 	}
 
 	services[service.ID] = service
+
+	if len(plugin) > 0 {
+		pluginServicesMu.Lock()
+		defer pluginServicesMu.Unlock()
+
+		pluginServices[plugin[0]] = append(pluginServices[plugin[0]], service.ID)
+	}
+}
+
+func IsCoreService(id string) bool {
+	pluginServicesMu.Lock()
+	defer pluginServicesMu.Unlock()
+
+	for _, svcs := range pluginServices {
+		for _, svc := range svcs {
+			if svc == id {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func GetServiceInfo(id string) *ServiceInfo {
@@ -81,6 +105,21 @@ func GetServiceInfo(id string) *ServiceInfo {
 	}
 
 	return &svc
+}
+
+func GetPluginForService(id string) string {
+	pluginServicesMu.RLock()
+	defer pluginServicesMu.RUnlock()
+
+	for k, v := range pluginServices {
+		for _, svc := range v {
+			if svc == id {
+				return k
+			}
+		}
+	}
+
+	return ""
 }
 
 func GetServices() []ServiceInfo {

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	gorilla "github.com/gorilla/mux"
+	"go.lumeweb.com/portal/config"
 	"net/http"
 	"sort"
 	"sync"
@@ -17,6 +18,7 @@ type API interface {
 	Subdomain() string
 	Configure(router *gorilla.Router) error
 	AuthTokenName() string
+	Config() config.APIConfig
 }
 
 type APIInit interface {
@@ -52,7 +54,14 @@ func GetAPI(id string) API {
 	return api
 }
 
-func GetAPIs() []API {
+func GetAPIs() map[string]API {
+	apisMu.RLock()
+	defer apisMu.RUnlock()
+
+	return apis
+}
+
+func GetAPIList() []API {
 	apisMu.RLock()
 	defer apisMu.RUnlock()
 
