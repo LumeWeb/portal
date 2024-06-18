@@ -1,7 +1,7 @@
 package portal
 
 import (
-	"github.com/samber/lo"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.uber.org/zap"
@@ -46,6 +46,31 @@ func (p *PortalImpl) Init() error {
 		}
 
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
+
+		if !core.IsCoreService(svcInfo.ID) {
+			if configurableSvc, ok := svc.(core.Configurable); ok {
+				cfg, err := configurableSvc.Config()
+				if err != nil {
+					ctx.Logger().Error("Error getting service config", zap.String("service", svcInfo.ID), zap.Error(err))
+					return err
+				}
+
+				svcConfig, ok := cfg.(config.ServiceConfig)
+				if !ok {
+					ctx.Logger().Error(config.ErrInvalidServiceConfig.Error(), zap.String("service", svcInfo.ID))
+					return config.ErrInvalidServiceConfig
+				}
+				plugin := core.GetPluginForService(svcInfo.ID)
+				if plugin == "" {
+					ctx.Logger().Error("Error getting plugin for service", zap.String("service", svcInfo.ID))
+					continue
+				}
+				if err := ctx.Config().ConfigureService(plugin, svcInfo.ID, svcConfig); err != nil {
+					ctx.Logger().Error("Error configuring service", zap.String("service", svcInfo.ID), zap.Error(err))
+					return err
+				}
+			}
+		}
 	}
 
 	plugins := core.GetPlugins()
@@ -73,9 +98,6 @@ func (p *PortalImpl) Init() error {
 
 	for _, plugin := range plugins {
 		if core.PluginHasProtocol(plugin) {
-			if !lo.Contains(ctx.Config().Config().Core.Protocols, plugin.ID) {
-				continue
-			}
 			_proto, opts, err := plugin.Protocol()
 			if err != nil {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
@@ -105,13 +127,12 @@ func (p *PortalImpl) Init() error {
 			}
 
 			ctxOpts = append(ctxOpts, opts...)
-
 			core.RegisterAPI(plugin.ID, api)
 		}
 	}
 
-	for _, _proto := range core.GetProtocols() {
-		err := ctx.Config().ConfigureProtocol(_proto.Name(), _proto.Config())
+	for name, _proto := range core.GetProtocols() {
+		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
 		if err != nil {
 			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
 			return err
@@ -125,7 +146,12 @@ func (p *PortalImpl) Init() error {
 		}
 	}
 
-	for _, api := range core.GetAPIs() {
+	for name, api := range core.GetAPIs() {
+		err := ctx.Config().ConfigureAPI(name, api.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring api", zap.String("api", api.Subdomain()), zap.Error(err))
+			return err
+		}
 		if initApi, ok := api.(core.APIInit); ok {
 			opts, err := initApi.Init()
 			if err != nil {

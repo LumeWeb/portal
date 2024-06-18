@@ -85,7 +85,8 @@ func NewSyncService() (*SyncServiceDefault, []core.ContextBuilderOption, error) 
 			return nil
 		}),
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			if ctx.Config().Config().Core.Sync.Enabled {
+			if true {
+				//if ctx.Config().Config().Core.Sync.Enabled {
 				err := _sync.init()
 				if err != nil {
 					_sync.logger.Error("failed to initialize sync service", zap.Error(err))
@@ -472,7 +473,8 @@ func (s *SyncServiceDefault) stop() error {
 }
 
 func (s *SyncServiceDefault) Enabled() bool {
-	return s.config.Config().Core.Sync.Enabled
+	return true
+	//	return s.config.Config().Core.Sync.Enabled
 }
 
 func unzip(data []byte, dest string, logger *core.Logger) error {

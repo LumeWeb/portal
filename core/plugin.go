@@ -21,6 +21,10 @@ type PluginInfo struct {
 	Depends  []string
 }
 
+type Configurable interface {
+	Config() (any, error)
+}
+
 var (
 	plugins          = make(map[string]PluginInfo)
 	pluginsMu        sync.RWMutex
