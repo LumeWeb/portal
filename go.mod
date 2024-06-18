@@ -33,8 +33,6 @@ require (
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.lumeweb.com/portal-plugin-account v0.0.0-20240618084837-e534ed3bea5c
-	go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617005133-d5b152a5d530
-	go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7
 	go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d
 	go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec4c1
 	go.sia.tech/core v0.2.7
@@ -51,39 +49,15 @@ require (
 )
 
 require (
-	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/ddo/rq v0.0.0-20190828174524-b3daa55fcaba // indirect
-	github.com/dnslink-std/go v0.6.0 // indirect
-	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/hashicorp/golang-lru v1.0.2 // indirect
-	github.com/miekg/dns v1.1.59 // indirect
-	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.1.0 // indirect
-	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.2.0 // indirect
-	github.com/olebedev/emitter v0.0.0-20230411050614-349169dec2ba // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.19.1 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.53.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rs/cors v1.11.0 // indirect
-	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 // indirect
-	github.com/tus/tusd/v2 v2.4.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
-	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	go.etcd.io/bbolt v1.3.10 // indirect
 	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86 // indirect
-	go.lumeweb.com/libs5-go v0.0.0-20240616210226-ffb7d91f2f3b // indirect
 	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240616193943-ef7d423f8a2c // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
-	go.uber.org/zap/exp v0.2.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
-	nhooyr.io/websocket v1.8.11 // indirect
 )
 
 require (
