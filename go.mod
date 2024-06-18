@@ -32,7 +32,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
-	go.lumeweb.com/portal-plugin-account v0.0.0-20240616210850-c339ce46dc12
+	go.lumeweb.com/portal-plugin-account v0.0.0-20240618084837-e534ed3bea5c
 	go.lumeweb.com/portal-plugin-s5 v0.0.0-20240617005133-d5b152a5d530
 	go.lumeweb.com/portal-plugin-sync v0.0.0-20240616192834-f624c664b9c7
 	go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d
