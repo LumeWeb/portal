@@ -71,6 +71,7 @@ require (
 	github.com/rs/cors v1.11.0 // indirect
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 // indirect
 	github.com/tus/tusd/v2 v2.4.0 // indirect
+	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.etcd.io/bbolt v1.3.10 // indirect
