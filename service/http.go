@@ -55,26 +55,6 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 			_http.ctx = ctx
 			return nil
 		}),
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			_http.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{ctx})))
-			srv.Addr = ":" + strconv.FormatUint(uint64(ctx.Config().Config().Core.Port), 10)
-			for _, api := range core.GetAPIs() {
-				domain := fmt.Sprintf("%s.%s", api.Subdomain(), ctx.Config().Config().Core.Domain)
-				err := api.Configure(_http.Router().Host(domain).Subrouter())
-				if err != nil {
-					return err
-				}
-			}
-
-			authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
-				Context: ctx,
-				Purpose: core.JWTPurposeLogin,
-			})
-
-			_http.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
-
-			return nil
-		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
 			return srv.Shutdown(ctx)
 		}),
@@ -87,6 +67,27 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 
 func (h *HTTPServiceDefault) Router() *mux.Router {
 	return h.router
+}
+
+func (h *HTTPServiceDefault) Init() error {
+	h.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{h.ctx})))
+	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
+	for _, api := range core.GetAPIs() {
+		domain := fmt.Sprintf("%s.%s", api.Subdomain(), h.ctx.Config().Config().Core.Domain)
+		err := api.Configure(h.Router().Host(domain).Subrouter())
+		if err != nil {
+			return err
+		}
+	}
+
+	authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
+		Context: h.ctx,
+		Purpose: core.JWTPurposeLogin,
+	})
+
+	h.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
+
+	return nil
 }
 
 func (h *HTTPServiceDefault) Serve() error {
