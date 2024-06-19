@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
+	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -43,15 +44,17 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			user.config = ctx.Config()
 			user.db = ctx.DB()
 			user.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+
+			ctx.Event().On(core.EVENT_USER_SUBDOMAIN_SET, event.ListenerFunc(func(e event.Event) error {
+				user.subdomain = e.Get("subdomain").(string)
+				return nil
+			}))
+
 			return nil
 		}),
 	)
 
 	return user, opts, nil
-}
-
-func (u *UserServiceDefault) SetAccountSubdomain(subdomain string) {
-	u.subdomain = subdomain
 }
 
 func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error) {
