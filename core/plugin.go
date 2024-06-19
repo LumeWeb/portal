@@ -18,6 +18,7 @@ type PluginInfo struct {
 	Protocol func() (Protocol, []ContextBuilderOption, error)
 	Services func() ([]ServiceInfo, error)
 	Models   []any
+	Events   []Eventer
 	Depends  []string
 }
 

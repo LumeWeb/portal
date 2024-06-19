@@ -4,6 +4,10 @@ import "go.lumeweb.com/portal/db/models"
 
 const USER_SERVICE = "user"
 
+const (
+	EVENT_USER_SUBDOMAIN_SET = "user.subdomain.set"
+)
+
 type UserService interface {
 	// Exists checks if a record with the given conditions exists.
 	Exists(model any, conditions map[string]any) (bool, any, error)
