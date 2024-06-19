@@ -38,5 +38,13 @@ type UserService interface {
 	// AddPubkeyToAccount adds a public key to the account of the user with the given ID.
 	AddPubkeyToAccount(user models.User, pubkey string) error
 
+	// SendEmailVerification sends an email verification email to the user with the given ID.
+	// It returns an error if any.
+	SendEmailVerification(userId uint) error
+
+	// VerifyEmail verifies the email for the given email address and token.
+	// It returns an error if any.
+	VerifyEmail(email string, token string) error
+
 	Service
 }
