@@ -176,23 +176,23 @@ func (m *ManagerDefault) GetPlugin(pluginName string) *PluginEntity {
 	return nil
 }
 
-func (m *ManagerDefault) GetService(serviceName string) *ServiceConfig {
+func (m *ManagerDefault) GetService(serviceName string) ServiceConfig {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	for _, plugin := range m.root.Plugin {
 		if service, ok := plugin.Service[serviceName]; ok {
-			return &service
+			return service
 		}
 	}
 
 	return nil
 }
 
-func (m *ManagerDefault) GetAPI(pluginName string) *APIConfig {
+func (m *ManagerDefault) GetAPI(pluginName string) APIConfig {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	if plugin, ok := m.root.Plugin[pluginName]; ok {
-		return &plugin.API
+		return plugin.API
 	}
 
 	return nil
