@@ -39,6 +39,10 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 	newCtx.Context = c
 	newCtx.cancel = cancel
 
+	options = append(options, ContextWithExitFunc(func(ctx Context) error {
+		return ctx.event.CloseWait()
+	}))
+
 	var err error
 
 	for _, opt := range options {
