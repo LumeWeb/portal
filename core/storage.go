@@ -8,6 +8,7 @@ import (
 )
 
 const STORAGE_SERVICE = "storage"
+const EVENT_STORAGE_OBJECT_UPLOADED = "storage.object.uploaded"
 
 type StorageUploadStatus string
 
