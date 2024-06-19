@@ -23,7 +23,6 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
-	github.com/hashicorp/go-plugin v1.6.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/naucon/casbin-fs-adapter v0.2.0
@@ -33,15 +32,11 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
-	go.lumeweb.com/portal-plugin-account v0.0.0-20240618084837-e534ed3bea5c
-	go.lumeweb.com/portal-plugin-sync-grpc v0.0.0-20240616192059-b1be81fc216d
-	go.lumeweb.com/portal-plugin-sync-node-server/go v0.0.0-20240616192258-76ef51cec4c1
 	go.sia.tech/core v0.2.7
 	go.sia.tech/coreutils v0.0.6
 	go.sia.tech/renterd v1.0.7
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.24.0
-	google.golang.org/grpc v1.64.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/sqlite v1.5.5
@@ -53,11 +48,9 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/rs/cors v1.11.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86 // indirect
-	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240616193943-ef7d423f8a2c // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
+	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 )
 
@@ -86,7 +79,6 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/dchest/threefish v0.0.0-20120919164726-3ecf4c494abf // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -97,9 +89,7 @@ require (
 	github.com/gorilla/websocket v1.5.2 // indirect
 	github.com/gotd/contrib v0.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -110,15 +100,11 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/klauspost/reedsolomon v1.12.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
-	github.com/oklog/run v1.1.0 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	gitlab.com/NebulousLabs/bolt v1.4.4 // indirect
