@@ -23,7 +23,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ core.CronableService = (*PriceTracker)(nil)
+var _ core.Cronable = (*PriceTracker)(nil)
 
 const usdSymbol = "usd"
 const blocksPerMonth = 30 * 144
