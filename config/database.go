@@ -50,17 +50,18 @@ func (d DatabaseConfig) Validate() error {
 	return nil
 }
 
-func (d DatabaseConfig) Defaults() map[string]interface{} {
-	def := map[string]interface{}{
-		"type":    "sqlite",
-		"host":    "localhost",
-		"charset": "utf8mb4",
-		"port":    3306,
-		"name":    "portal",
-	}
+func (d DatabaseConfig) Defaults() map[string]any {
+	def := map[string]any{}
 
 	if d.Type == "sqlite" || d.Type == "" {
 		def["file"] = "portal.db"
+	}
+
+	if d.Type == "mysql" {
+		def["host"] = "localhost"
+		def["port"] = 3306
+		def["charset"] = "utf8mb4"
+		def["name"] = "portal"
 	}
 
 	return def
