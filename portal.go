@@ -195,6 +195,11 @@ func (p *PortalImpl) Start() error {
 		}
 	}
 
+	err := ctx.Service(core.CRON_SERVICE).(core.CronService).Start()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

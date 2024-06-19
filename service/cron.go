@@ -56,11 +56,6 @@ func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) 
 
 			cron.scheduler = scheduler
 
-			err = cron.start()
-			if err != nil {
-				return err
-			}
-
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
@@ -88,7 +83,7 @@ func newScheduler(cm config.Manager) (gocron.Scheduler, error) {
 
 	return gocron.NewScheduler()
 }
-func (c *CronServiceDefault) start() error {
+func (c *CronServiceDefault) Start() error {
 	for _, service := range c.services {
 		err := service.RegisterTasks(c)
 		if err != nil {
