@@ -42,7 +42,7 @@ func (p *PortalImpl) Init() error {
 		}
 
 		if opts != nil {
-			opts = append(ctxOpts, opts...)
+			ctxOpts = append(ctxOpts, opts...)
 		}
 
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
