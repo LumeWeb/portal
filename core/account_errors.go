@@ -51,6 +51,9 @@ const (
 	// Security token errors
 	ErrKeySecurityTokenExpired = "ErrSecurityTokenExpired"
 	ErrKeySecurityInvalidToken = "ErrSecurityInvalidToken"
+
+	// Internal errors
+	ErrKeyAccountSubdomainNotSet = "ErrAccountSubdomainNotSet"
 )
 
 var defaultErrorMessages = map[string]string{
@@ -99,6 +102,9 @@ var defaultErrorMessages = map[string]string{
 	// Security token errors
 	ErrKeySecurityTokenExpired: "The security token has expired.",
 	ErrKeySecurityInvalidToken: "The security token is invalid.",
+
+	// Internal errors
+	ErrKeyAccountSubdomainNotSet: "The account subdomain is not set.",
 }
 
 var (
@@ -147,6 +153,9 @@ var (
 		// Security token errors
 		ErrKeySecurityTokenExpired: http.StatusUnauthorized,
 		ErrKeySecurityInvalidToken: http.StatusUnauthorized,
+
+		// Internal errors
+		ErrKeyAccountSubdomainNotSet: http.StatusInternalServerError,
 	}
 )
 

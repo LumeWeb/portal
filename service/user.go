@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -26,10 +27,11 @@ func init() {
 }
 
 type UserServiceDefault struct {
-	ctx    core.Context
-	config config.Manager
-	db     *gorm.DB
-	mailer core.MailerService
+	ctx       core.Context
+	config    config.Manager
+	db        *gorm.DB
+	mailer    core.MailerService
+	subdomain string
 }
 
 func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) {
@@ -46,6 +48,10 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 	)
 
 	return user, opts, nil
+}
+
+func (u *UserServiceDefault) SetAccountSubdomain(subdomain string) {
+	u.subdomain = subdomain
 }
 
 func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error) {
@@ -249,6 +255,10 @@ func (u UserServiceDefault) Exists(model any, conditions map[string]any) (bool, 
 }
 
 func (u UserServiceDefault) SendEmailVerification(userId uint) error {
+	if u.subdomain == "" {
+		return core.NewAccountError(core.ErrKeyAccountSubdomainNotSet, nil)
+	}
+
 	exists, user, err := u.AccountExists(userId)
 	if !exists || err != nil {
 		return err
@@ -271,9 +281,7 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
-	// TODO: Implement the verification link
-	//verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.config.Config().Core.AccountSubdomain, e.config.Config().Core.Domain), token)
-	verifyUrl := ""
+	verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.subdomain, u.config.Config().Core.Domain), token)
 	vars := map[string]interface{}{
 		"FirstName":        user.FirstName,
 		"Email":            user.Email,

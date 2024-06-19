@@ -5,6 +5,9 @@ import "go.lumeweb.com/portal/db/models"
 const USER_SERVICE = "user"
 
 type UserService interface {
+	// SetAccountSubdomain sets the subdomain used by the account service.
+	SetAccountSubdomain(subdomain string)
+
 	// Exists checks if a record with the given conditions exists.
 	Exists(model any, conditions map[string]any) (bool, any, error)
 
