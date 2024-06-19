@@ -279,7 +279,7 @@ func (p PriceTracker) importPrices(_ any, _ core.Context) error {
 }
 
 func (p *PriceTracker) init() error {
-	p.cron.RegisterService(p)
+	p.cron.RegisterEntity(p)
 	p.api = siasdk.NewSiaClient()
 
 	return nil
