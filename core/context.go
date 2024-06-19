@@ -132,6 +132,15 @@ func ContextWithExitFunc(f ExitFunc) ContextBuilderOption {
 	}
 }
 
+func ContextWithEvents(events ...Eventer) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		for _, e := range events {
+			ctx.event.AddEvent(e)
+		}
+		return ctx, nil
+	}
+}
+
 func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
 	return options
 }

@@ -131,6 +131,12 @@ func (p *PortalImpl) Init() error {
 		}
 	}
 
+	for _, plugin := range plugins {
+		for _, e := range plugin.Events {
+			core.RegisterEvent(e.Name(), e)
+		}
+	}
+
 	for name, _proto := range core.GetProtocols() {
 		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
 		if err != nil {
@@ -163,6 +169,7 @@ func (p *PortalImpl) Init() error {
 		}
 	}
 
+	ctxOpts = append(ctxOpts, core.ContextWithEvents(core.GetEvents()...))
 	ctx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 
 	if err != nil {
