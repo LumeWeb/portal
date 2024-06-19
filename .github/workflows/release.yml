@@ -33,6 +33,7 @@ jobs:
           id: changesets
           uses: changesets/action@v1
           with:
-            publish: "echo noop"
+            commit: "chore: release"
+            publish: "changeset publish"
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
