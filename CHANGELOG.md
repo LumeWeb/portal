@@ -1,5 +1,15 @@
 # [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
 
+## 0.1.1
+
+### Patch Changes
+
+- 4322c17: - CI/CD changes related to changesets and release workflow
+  - Added functionality for handling custom events and storage object uploads in the core module
+  - Fixed issues with array manipulation and cron service in the portal module
+  - Added helper functions for configuration and protocol handling
+  - Refactored HTTP startup logic into a dedicated init method
+
 ## 0.1.0
 
 ### Minor Changes
