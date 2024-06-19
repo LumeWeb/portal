@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -202,7 +203,14 @@ func (p *PortalImpl) Start() error {
 		}
 	}
 
-	err := ctx.Service(core.CRON_SERVICE).(core.CronService).Start()
+	cronSvc := ctx.Service(core.CRON_SERVICE)
+
+	if cronSvc == nil {
+		ctx.Logger().Error("Cron service not found")
+		return errors.New("cron service not found")
+	}
+
+	err := cronSvc.(core.CronService).Start()
 	if err != nil {
 		return err
 	}
