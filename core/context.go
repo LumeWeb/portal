@@ -79,10 +79,6 @@ func (ctx *Context) ExitFuncs() []func(Context) error {
 	return ctx.exitFuncs
 }
 
-func (ctx *Context) SetDB(db *gorm.DB) {
-	ctx.db = db
-}
-
 func (ctx *Context) DB() *gorm.DB {
 	return ctx.db
 }
@@ -137,6 +133,13 @@ func ContextWithEvents(events ...Eventer) ContextBuilderOption {
 		for _, e := range events {
 			ctx.event.AddEvent(e)
 		}
+		return ctx, nil
+	}
+}
+
+func ContextWithDB(db *gorm.DB) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.db = db
 		return ctx, nil
 	}
 }

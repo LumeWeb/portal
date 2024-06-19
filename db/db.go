@@ -61,6 +61,7 @@ func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			return db.AutoMigrate(models.GetModels()...)
 		}),
+		core.ContextWithDB(db),
 	}
 
 	return db, ctxOpts
