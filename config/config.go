@@ -13,6 +13,9 @@ type Manager interface {
 	ConfigureProtocol(pluginName string, cfg ProtocolConfig) error
 	ConfigureAPI(pluginName string, cfg APIConfig) error
 	ConfigureService(pluginName string, serviceName string, cfg ServiceConfig) error
+	GetPlugin(pluginName string) *PluginEntity
+	GetService(serviceName string) *ServiceConfig
+	GetAPI(pluginName string) *APIConfig
 	Config() *Config
 	Save() error
 	ConfigFile() string
