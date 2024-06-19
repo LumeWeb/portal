@@ -215,6 +215,19 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
+	httpSvc := ctx.Service(core.HTTP_SERVICE)
+
+	if httpSvc == nil {
+		ctx.Logger().Error("HTTP service not found")
+		return errors.New("http service not found")
+	}
+
+	err = httpSvc.(core.HTTPService).Init()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -242,7 +255,15 @@ func (p *PortalImpl) Stop() error {
 func (p *PortalImpl) Serve() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Serving portal")
-	return ctx.Service(core.HTTP_SERVICE).(core.HTTPService).Serve()
+
+	httpSvc := ctx.Service(core.HTTP_SERVICE)
+
+	if httpSvc == nil {
+		ctx.Logger().Error("HTTP service not found")
+		return errors.New("http service not found")
+	}
+
+	return httpSvc.(core.HTTPService).Serve()
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
