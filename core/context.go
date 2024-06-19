@@ -99,6 +99,10 @@ func (ctx *Context) ExitCode() int {
 	return ctx.exitCode
 }
 
+func (ctx *Context) Event() *event.Manager {
+	return ctx.event
+}
+
 func (ctx *Context) SetExitCode(code int) {
 	ctx.exitCode = code
 }
