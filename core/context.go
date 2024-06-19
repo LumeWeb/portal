@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"gorm.io/gorm"
 )
@@ -22,6 +23,7 @@ type Context struct {
 	startupFuncs []func(Context) error
 	db           *gorm.DB
 	cancel       context.CancelFunc
+	event        *event.Manager
 }
 
 func NewContext(config config.Manager, logger *Logger, options ...ContextBuilderOption) (Context, error) {
@@ -30,6 +32,7 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 		services: make(map[string]any),
 		cfg:      config,
 		logger:   logger,
+		event:    event.NewManager(""),
 	}
 	c, cancel := context.WithCancel(newCtx)
 
