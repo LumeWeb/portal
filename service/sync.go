@@ -251,7 +251,7 @@ func (s *SyncServiceDefault) Import(object string, uploaderID uint64) error {
 }
 
 func (s *SyncServiceDefault) init() error {
-	s.cron.RegisterService(s)
+	s.cron.RegisterEntity(s)
 	extractDir, err := os.MkdirTemp(os.TempDir(), "")
 	if err != nil {
 		return err

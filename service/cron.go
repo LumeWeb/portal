@@ -202,7 +202,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	return nil
 }
 
-func (c *CronServiceDefault) RegisterService(service core.Cronable) {
+func (c *CronServiceDefault) RegisterEntity(service core.Cronable) {
 	c.services = append(c.services, service)
 }
 
