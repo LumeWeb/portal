@@ -21,6 +21,7 @@ type CronService interface {
 	CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error
 	CreateJobIfNotExists(function string, args any, tags []string) error
 
+	Start() error
 	Service
 }
 type CronableService interface {
