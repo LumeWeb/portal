@@ -28,7 +28,7 @@ import (
 	"time"
 )
 
-var _ core.CronableService = (*SyncServiceDefault)(nil)
+var _ core.Cronable = (*SyncServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{

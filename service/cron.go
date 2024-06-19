@@ -31,7 +31,7 @@ type CronServiceDefault struct {
 	ctx       core.Context
 	db        *gorm.DB
 	logger    *core.Logger
-	services  []core.CronableService
+	services  []core.Cronable
 	scheduler gocron.Scheduler
 	tasks     sync.Map
 	taskArgs  sync.Map
@@ -202,7 +202,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 	return nil
 }
 
-func (c *CronServiceDefault) RegisterService(service core.CronableService) {
+func (c *CronServiceDefault) RegisterService(service core.Cronable) {
 	c.services = append(c.services, service)
 }
 

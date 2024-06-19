@@ -13,7 +13,7 @@ type CronTaskDefArgsFactoryFunction func() gocron.JobDefinition
 const CRON_SERVICE = "cron"
 
 type CronService interface {
-	RegisterService(service CronableService)
+	RegisterService(service Cronable)
 	RegisterTask(name string, taskFunc CronTaskFunction, taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction)
 	CreateJob(function string, args any, tags []string) error
 	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
@@ -24,7 +24,7 @@ type CronService interface {
 	Start() error
 	Service
 }
-type CronableService interface {
+type Cronable interface {
 	RegisterTasks(cron CronService) error
 	ScheduleJobs(cron CronService) error
 }
