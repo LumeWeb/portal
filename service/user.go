@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -119,42 +118,6 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 	return &user, nil
 }
 
-func (u UserServiceDefault) SendEmailVerification(userId uint) error {
-	exists, user, err := u.AccountExists(userId)
-	if !exists || err != nil {
-		return err
-	}
-
-	if user.Verified {
-		return core.NewAccountError(core.ErrKeyAccountAlreadyVerified, nil)
-	}
-
-	token := core.GenerateSecurityToken()
-
-	var verification models.EmailVerification
-
-	verification.UserID = user.ID
-	verification.Token = token
-	verification.ExpiresAt = time.Now().Add(time.Hour)
-
-	err = u.db.Create(&verification).Error
-	if err != nil {
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
-	}
-
-	verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.config.Config().Core.AccountSubdomain, u.config.Config().Core.Domain), token)
-
-	vars := map[string]interface{}{
-		"FirstName":        user.FirstName,
-		"Email":            user.Email,
-		"VerificationLink": verifyUrl,
-		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second * 2),
-		"PortalName":       u.config.Config().Core.PortalName,
-	}
-
-	return u.mailer.TemplateSend(mailer.TPL_VERIFY_EMAIL, vars, vars, user.Email)
-}
-
 func (u UserServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
 	return u.UpdateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
 }
@@ -226,7 +189,7 @@ func (u UserServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 	return true, &user, nil
 }
 
-func (s UserServiceDefault) validPassword(user *models.User, password string) bool {
+func (u UserServiceDefault) validPassword(user *models.User, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 
 	return err == nil
@@ -267,9 +230,9 @@ func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) 
 	return nil
 }
 
-func (s UserServiceDefault) Exists(model any, conditions map[string]any) (bool, any, error) {
+func (u UserServiceDefault) Exists(model any, conditions map[string]any) (bool, any, error) {
 	// Conduct a query with the provided model and conditions
-	result := s.db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
+	result := u.db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
 
 	// Check if any rows were found
 	exists := result.RowsAffected > 0
@@ -283,4 +246,101 @@ func (s UserServiceDefault) Exists(model any, conditions map[string]any) (bool, 
 	}
 
 	return false, model, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+}
+
+func (u UserServiceDefault) SendEmailVerification(userId uint) error {
+	exists, user, err := u.AccountExists(userId)
+	if !exists || err != nil {
+		return err
+	}
+
+	if user.Verified {
+		return core.NewAccountError(core.ErrKeyAccountAlreadyVerified, nil)
+	}
+
+	token := core.GenerateSecurityToken()
+
+	var verification models.EmailVerification
+
+	verification.UserID = user.ID
+	verification.Token = token
+	verification.ExpiresAt = time.Now().Add(time.Hour)
+
+	err = u.db.Create(&verification).Error
+	if err != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	// TODO: Implement the verification link
+	//verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.config.Config().Core.AccountSubdomain, e.config.Config().Core.Domain), token)
+	verifyUrl := ""
+	vars := map[string]interface{}{
+		"FirstName":        user.FirstName,
+		"Email":            user.Email,
+		"VerificationLink": verifyUrl,
+		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second * 2),
+		"PortalName":       u.config.Config().Core.PortalName,
+	}
+
+	return u.mailer.TemplateSend(mailer.TPL_VERIFY_EMAIL, vars, vars, user.Email)
+}
+
+func (u UserServiceDefault) VerifyEmail(email string, token string) error {
+	var verification models.EmailVerification
+
+	verification.Token = token
+
+	result := u.db.Model(&verification).
+		Preload("User").
+		Where(&verification).
+		First(&verification)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
+		}
+
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, nil)
+	}
+
+	if verification.ExpiresAt.Before(time.Now()) {
+		return core.NewAccountError(core.ErrKeySecurityTokenExpired, nil)
+	}
+
+	if len(verification.NewEmail) > 0 && verification.NewEmail != email {
+		return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
+	} else if verification.User.Email != email {
+		return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
+	}
+
+	var update models.User
+
+	doUpdate := false
+
+	if !verification.User.Verified {
+		update.Verified = true
+		doUpdate = true
+	}
+
+	if len(verification.NewEmail) > 0 {
+		update.Email = verification.NewEmail
+		doUpdate = true
+	}
+
+	if doUpdate {
+		err := u.UpdateAccountInfo(verification.UserID, update)
+		if err != nil {
+			return err
+		}
+	}
+
+	verification = models.EmailVerification{
+		UserID: verification.UserID,
+	}
+
+	if result := u.db.Where(&verification).Delete(&verification); result.Error != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+	}
+
+	return nil
 }
