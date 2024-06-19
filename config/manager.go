@@ -76,12 +76,12 @@ func (m *ManagerDefault) Init() error {
 	hooks := m.hooks()
 	hooks = append(hooks, mapstructure.StringToTimeDurationHookFunc())
 
-	err = m.config.UnmarshalWithConf("", &m.root, koanf.UnmarshalConf{
+	err = m.config.UnmarshalWithConf("core", &m.root.Core, koanf.UnmarshalConf{
 		Tag: "mapstructure",
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook:       mapstructure.ComposeDecodeHookFunc(m.hooks()...),
 			Metadata:         nil,
-			Result:           &m.root,
+			Result:           &m.root.Core,
 			WeaklyTypedInput: true,
 		},
 	})
