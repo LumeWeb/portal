@@ -36,7 +36,7 @@ type ManagerDefault struct {
 	config  *koanf.Koanf
 	root    *Config
 	changes bool
-	lock    sync.Mutex
+	lock    sync.RWMutex
 }
 
 func NewManager() (*ManagerDefault, error) {
@@ -50,7 +50,7 @@ func NewManager() (*ManagerDefault, error) {
 	return &ManagerDefault{
 		config:  k,
 		changes: !exists,
-		lock:    sync.Mutex{},
+		lock:    sync.RWMutex{},
 	}, nil
 }
 
@@ -165,6 +165,39 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	return nil
 }
 
+func (m *ManagerDefault) GetPlugin(pluginName string) *PluginEntity {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	if plugin, ok := m.root.Plugin[pluginName]; ok {
+		return &plugin
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) GetService(serviceName string) *ServiceConfig {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	for _, plugin := range m.root.Plugin {
+		if service, ok := plugin.Service[serviceName]; ok {
+			return &service
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) GetAPI(pluginName string) *APIConfig {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	if plugin, ok := m.root.Plugin[pluginName]; ok {
+		return &plugin.API
+	}
+
+	return nil
+}
+
 func (m *ManagerDefault) initPlugin(name string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -179,8 +212,6 @@ func (m *ManagerDefault) initPlugin(name string) {
 	m.root.Plugin[name] = PluginEntity{
 		Service: make(map[string]ServiceConfig),
 	}
-
-	return
 }
 
 func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, error) {
