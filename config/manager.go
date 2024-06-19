@@ -198,6 +198,16 @@ func (m *ManagerDefault) GetAPI(pluginName string) APIConfig {
 	return nil
 }
 
+func (m *ManagerDefault) GetProtocol(pluginName string) ProtocolConfig {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	if plugin, ok := m.root.Plugin[pluginName]; ok {
+		return plugin.Protocol
+	}
+
+	return nil
+}
+
 func (m *ManagerDefault) initPlugin(name string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()

@@ -15,6 +15,7 @@ type Manager interface {
 	ConfigureService(pluginName string, serviceName string, cfg ServiceConfig) error
 	GetPlugin(pluginName string) *PluginEntity
 	GetService(serviceName string) ServiceConfig
+	GetProtocol(pluginName string) ProtocolConfig
 	GetAPI(pluginName string) APIConfig
 	Config() *Config
 	Save() error
