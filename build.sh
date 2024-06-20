@@ -13,6 +13,13 @@ if [[ -n "$XPORTAL_PLUGINS" ]]; then
   do
     command+=" --with $plugin"
   done
+
+  command+=" --replace go.lumeweb.com/portal=$(readlink -f .)"
+  command+=" --replace go.lumeweb.com/portal/core=$(readlink -f .)/core"
+  command+=" --replace go.lumeweb.com/portal/cmd=$(readlink -f .)/cmd"
+  command+=" --replace go.lumeweb.com/portal/service=$(readlink -f .)/service"
+  command+=" --replace go.lumeweb.com/portal/db=$(readlink -f .)/db"
+  command+=" --replace go.lumeweb.com/portal/config=$(readlink -f .)/config"
 fi
 
 # Check if DEV environment variable is set
