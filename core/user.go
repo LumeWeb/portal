@@ -60,10 +60,6 @@ type UserSubdomainSetEvent struct {
 	Event
 }
 
-func (e *UserSubdomainSetEvent) Name() string {
-	return EVENT_USER_SUBDOMAIN_SET
-}
-
 func (e *UserSubdomainSetEvent) Subdomain() string {
 	return e.Get("subdomain").(string)
 }

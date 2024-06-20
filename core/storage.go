@@ -51,10 +51,6 @@ type StorageObjectUploadedEvent struct {
 	objectMetadata *UploadMetadata
 }
 
-func (e *StorageObjectUploadedEvent) Name() string {
-	return EVENT_STORAGE_OBJECT_UPLOADED
-}
-
 func (e *StorageObjectUploadedEvent) ObjectMetadata() *UploadMetadata {
 	return e.objectMetadata
 }
