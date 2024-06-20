@@ -14,12 +14,15 @@ jobs:
       matrix:
         include:
           - name: release
+            variant: 'release'
             plugins: 'go.lumeweb.com/portal-plugin-sync,go.lumeweb.com/portal-plugin-s5,go.lumeweb.com/portal-plugin-dashboard'
             dev: 'false'
           - name: release-dev
+            variant: 'debug'
             plugins: 'go.lumeweb.com/portal-plugin-sync,go.lumeweb.com/portal-plugin-s5,go.lumeweb.com/portal-plugin-dashboard'
             dev: 'true'
           - name: minimal
+            variant: 'release'
             plugins: ''
             dev: 'false'
     steps:
@@ -55,7 +58,7 @@ jobs:
         with:
           context: .
           push: true
-          file: Dockerfile
+          file: ${{ matrix.variant == 'debug' && 'Dockerfile.debug' || 'Dockerfile' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
