@@ -8,6 +8,10 @@ const (
 	EVENT_USER_SUBDOMAIN_SET = "user.subdomain.set"
 )
 
+func init() {
+	RegisterEvent(EVENT_USER_SUBDOMAIN_SET, &UserSubdomainSetEvent{})
+}
+
 type UserService interface {
 	// Exists checks if a record with the given conditions exists.
 	Exists(model any, conditions map[string]any) (bool, any, error)
@@ -51,4 +55,15 @@ type UserService interface {
 	VerifyEmail(email string, token string) error
 
 	Service
+}
+type UserSubdomainSetEvent struct {
+	Event
+}
+
+func (e *UserSubdomainSetEvent) Name() string {
+	return EVENT_USER_SUBDOMAIN_SET
+}
+
+func (e *UserSubdomainSetEvent) Subdomain() string {
+	return e.Get("subdomain").(string)
 }
