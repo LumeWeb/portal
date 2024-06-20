@@ -13,7 +13,7 @@ const (
 )
 
 func init() {
-	RegisterEvent(STORAGE_SERVICE, &StorageObjectUploadedEvent{})
+	RegisterEvent(EVENT_STORAGE_OBJECT_UPLOADED, &StorageObjectUploadedEvent{})
 }
 
 type StorageUploadStatus string
