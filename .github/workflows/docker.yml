@@ -25,6 +25,10 @@ jobs:
             variant: 'release'
             plugins: ''
             dev: 'false'
+          - name: dashboard
+            variant: 'release'
+            plugins: 'go.lumeweb.com/portal-plugin-dashboard'
+            dev: 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,9 +43,11 @@ jobs:
             ${{ github.ref_name == 'master' && matrix.name == 'release' && 'latest' || '' }}
             ${{ github.ref_name == 'master' && matrix.name == 'release-dev' && 'latest-debug' || '' }}
             ${{ github.ref_name == 'master' && matrix.name == 'minimal' && 'latest-minimal' || '' }}
+            ${{ github.ref_name == 'master' && matrix.name == 'dashboard' && 'latest-dashboard' || '' }}
             ${{ github.ref_name == 'develop' && matrix.name == 'release' && 'next' || '' }}
             ${{ github.ref_name == 'develop' && matrix.name == 'release-dev' && 'next-debug' || '' }}
             ${{ github.ref_name == 'develop' && matrix.name == 'minimal' && 'next-minimal' || '' }}
+            ${{ github.ref_name == 'develop' && matrix.name == 'minimal' && 'next-dashboard' || '' }}
           labels: |
             org.opencontainers.image.title=${{ github.repository }}
             org.opencontainers.image.description=${{ github.repository }}
