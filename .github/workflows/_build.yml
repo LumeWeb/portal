@@ -24,4 +24,5 @@ jobs:
                     go-version: 1.22.1
             -   name: Build
                 run: |
-                    make
+                    go install go.lumeweb.com/xportal/cmd/xportal@latest
+                    bash build.sh

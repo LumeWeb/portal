@@ -1,5 +1,5 @@
 # Use the official Golang image as the base image for the builder stage
-FROM golang:1.22.1 as go-builder
+FROM ghcr.io/lumeweb/xportal as portal-builder
 
 # Override the default shell to use bash
 SHELL ["bash", "-c"]
@@ -13,14 +13,16 @@ COPY . .
 # Copy the .git directory to enable Git operations
 COPY ./.git ./.git
 
-# Initialize and update Git submodules
-RUN git submodule update --init --recursive
+# Set default values for build arguments
+ARG PLUGINS=""
+ARG DEV=false
 
-# Set an environment variable
-ENV ENV=prod
+# Set environment variables based on build arguments
+ENV XPORTAL_PLUGINS=${PLUGINS}
+ENV DEV=${DEV}
 
-# Build the Go application
-RUN make
+# Build the Go application using the bash script
+RUN bash build.sh
 
 # Use a lightweight base image for the final stage
 FROM debian:latest AS main
@@ -32,7 +34,7 @@ RUN apt-get update && apt-get install -y ca-certificates && apt-get clean
 WORKDIR /portal
 
 # Copy the built binary from the go-builder stage
-COPY --from=go-builder /portal/portal .
+COPY --from=portal-builder /portal/portal .
 
 # Expose port 8080 for the application
 EXPOSE 8080
