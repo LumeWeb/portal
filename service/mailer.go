@@ -82,7 +82,12 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []cor
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
-			return m.client.Close()
+			err := m.client.Close()
+			if err != nil && err != mail.ErrNoActiveConnection {
+				return err
+			}
+
+			return nil
 		}),
 	)
 
