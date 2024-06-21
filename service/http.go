@@ -102,7 +102,7 @@ func (h *HTTPServiceDefault) Serve() error {
 	go func() {
 		defer wg.Done()
 		err := h.srv.Serve(ln)
-		if err != nil {
+		if err != nil && err != http.ErrServerClosed {
 			h.ctx.Logger().Fatal("Failed to serve", zap.Error(err))
 		}
 	}()
