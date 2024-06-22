@@ -14,10 +14,10 @@ type StorageObjectUploadedEvent struct {
 	core.Event
 }
 
-func (e StorageObjectUploadedEvent) SetObjectMetadata(metadata *core.UploadMetadata) {
+func (e *StorageObjectUploadedEvent) SetObjectMetadata(metadata *core.UploadMetadata) {
 	e.Set("metadata", metadata)
 }
 
-func (e UserSubdomainSetEvent) ObjectMetadata() *core.UploadMetadata {
+func (e StorageObjectUploadedEvent) ObjectMetadata() *core.UploadMetadata {
 	return e.Get("metadata").(*core.UploadMetadata)
 }
