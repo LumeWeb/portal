@@ -14,7 +14,7 @@ type UserSubdomainSetEvent struct {
 	core.Event
 }
 
-func (e UserSubdomainSetEvent) SetSubdomain(subdomain string) {
+func (e *UserSubdomainSetEvent) SetSubdomain(subdomain string) {
 	e.Set("subdomain", subdomain)
 }
 
