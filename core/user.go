@@ -1,16 +1,10 @@
 package core
 
-import "go.lumeweb.com/portal/db/models"
-
-const USER_SERVICE = "user"
-
-const (
-	EVENT_USER_SUBDOMAIN_SET = "user.subdomain.set"
+import (
+	"go.lumeweb.com/portal/db/models"
 )
 
-func init() {
-	RegisterEvent(EVENT_USER_SUBDOMAIN_SET, &UserSubdomainSetEvent{})
-}
+const USER_SERVICE = "user"
 
 type UserService interface {
 	// Exists checks if a record with the given conditions exists.
@@ -55,11 +49,4 @@ type UserService interface {
 	VerifyEmail(email string, token string) error
 
 	Service
-}
-type UserSubdomainSetEvent struct {
-	Event
-}
-
-func (e *UserSubdomainSetEvent) Subdomain() string {
-	return e.Get("subdomain").(string)
 }

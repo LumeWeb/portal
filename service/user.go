@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	_event "go.lumeweb.com/portal/event"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -45,8 +46,8 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			user.db = ctx.DB()
 			user.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
 
-			ctx.Event().On(core.EVENT_USER_SUBDOMAIN_SET, event.ListenerFunc(func(e event.Event) error {
-				evt, ok := e.(*core.UserSubdomainSetEvent)
+			ctx.Event().On(_event.EVENT_USER_SUBDOMAIN_SET, event.ListenerFunc(func(e event.Event) error {
+				evt, ok := e.(*_event.UserSubdomainSetEvent)
 				if !ok {
 					return errors.New("invalid event type")
 				}

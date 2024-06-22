@@ -7,16 +7,9 @@ import (
 	"io"
 )
 
-const (
-	STORAGE_SERVICE               = "storage"
-	EVENT_STORAGE_OBJECT_UPLOADED = "storage.object.uploaded"
-)
-
-func init() {
-	RegisterEvent(EVENT_STORAGE_OBJECT_UPLOADED, &StorageObjectUploadedEvent{})
-}
-
 type StorageUploadStatus string
+
+const STORAGE_SERVICE = "storage"
 
 const (
 	StorageUploadStatusUnknown    StorageUploadStatus = "unknown"
@@ -44,13 +37,4 @@ type StorageService interface {
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, error)
 
 	Service
-}
-
-type StorageObjectUploadedEvent struct {
-	Event
-	objectMetadata *UploadMetadata
-}
-
-func (e *StorageObjectUploadedEvent) ObjectMetadata() *UploadMetadata {
-	return e.objectMetadata
 }
