@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
-	github.com/aws/aws-sdk-go-v2 v1.28.0
+	github.com/aws/aws-sdk-go-v2 v1.30.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.19
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.19
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.2
