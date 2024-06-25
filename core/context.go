@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"gorm.io/gorm"
@@ -140,6 +141,21 @@ func ContextWithEvents(events ...Eventer) ContextBuilderOption {
 func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.db = db
+		return ctx, nil
+	}
+}
+
+func ContextWithCron(cron Cronable) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.OnStartup(func(ctx Context) error {
+			cronService := ctx.Service(CRON_SERVICE)
+			if cronService == nil {
+				return fmt.Errorf("cron service not found")
+			}
+
+			cronService.(CronService).RegisterEntity(cron)
+			return nil
+		})
 		return ctx, nil
 	}
 }

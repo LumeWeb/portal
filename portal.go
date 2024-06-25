@@ -170,6 +170,22 @@ func (p *PortalImpl) Init() error {
 		}
 	}
 
+	for _, plugin := range plugins {
+		if core.PluginHasCron(plugin) {
+			cron, err := plugin.Cron()
+			if err != nil {
+				ctx.Logger().Error("Error building cron", zap.String("plugin", plugin.ID), zap.Error(err))
+				return err
+			}
+
+			if cron == nil {
+				continue
+			}
+
+			ctxOpts = append(ctxOpts, core.ContextWithCron(cron))
+		}
+	}
+
 	ctxOpts = append(ctxOpts, core.ContextWithEvents(core.GetEvents()...))
 	ctx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 
