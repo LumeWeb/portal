@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"go.lumeweb.com/portal/db/models"
 	"go.sia.tech/renterd/api"
 	"go.sia.tech/renterd/object"
 	"io"
@@ -27,7 +28,7 @@ type RenterService interface {
 	GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error)
 	DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error
 	GetSetting(ctx context.Context, setting string, out any) error
-	UploadExists(ctx context.Context, bucket string, fileName string) (bool, error)
+	UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error)
 	UploadObjectMultipart(ctx context.Context, params *MultiPartUploadParams) error
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
