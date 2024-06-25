@@ -37,3 +37,7 @@ func CronTaskDefinitionOneTimeJob() gocron.JobDefinition {
 func CronTaskNoArgsFactory() any {
 	return &CronTaskNoArgs{}
 }
+
+func PluginHasCron(pi PluginInfo) bool {
+	return pi.Cron != nil
+}

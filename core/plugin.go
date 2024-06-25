@@ -20,6 +20,7 @@ type PluginInfo struct {
 	Models   []any
 	Events   []Eventer
 	Depends  []string
+	Cron     func() (Cronable, error)
 }
 
 type Configurable interface {
