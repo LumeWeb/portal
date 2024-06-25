@@ -150,10 +150,14 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 
 	varArgs := []interface{}{
 		interface{}(struct{}{}),
+		interface{}(c.ctx),
 	}
 
 	if args != nil {
-		varArgs = []interface{}{args}
+		varArgs = []interface{}{
+			args,
+			interface{}(c.ctx),
+		}
 	}
 
 	task := gocron.NewTask(taskFunc, varArgs...)
