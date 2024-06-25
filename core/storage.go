@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"go.lumeweb.com/portal/bao"
 	"io"
+	"time"
 )
 
 type StorageUploadStatus string
@@ -34,7 +35,7 @@ type StorageService interface {
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash []byte) error
 	S3Client(ctx context.Context) (*s3.Client, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
-	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, error)
+	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 
 	Service
 }

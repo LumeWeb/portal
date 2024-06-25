@@ -452,17 +452,18 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	return nil
 }
 
-func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, error) {
-	exists, err := s.renter.UploadExists(ctx, protocol.Name(), objectName)
+func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, *time.Time, error) {
+	exists, upload, err := s.renter.UploadExists(ctx, protocol.Name(), objectName)
 	if err != nil {
-		return core.StorageUploadStatusUnknown, err
+		return core.StorageUploadStatusUnknown, nil, err
 	}
 
 	if exists {
-		return core.StorageUploadStatusActive, nil
+		lastModified := upload.UpdatedAt
+		return core.StorageUploadStatusActive, &lastModified, nil
 	}
 
-	return core.StorageUploadStatusProcessing, nil
+	return core.StorageUploadStatusProcessing, nil, nil
 
 }
 
