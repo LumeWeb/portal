@@ -31,7 +31,7 @@ type CronServiceDefault struct {
 	ctx       core.Context
 	db        *gorm.DB
 	logger    *core.Logger
-	services  []core.Cronable
+	entities  []core.Cronable
 	scheduler gocron.Scheduler
 	tasks     sync.Map
 	taskArgs  sync.Map
@@ -84,7 +84,7 @@ func newScheduler(cm config.Manager) (gocron.Scheduler, error) {
 	return gocron.NewScheduler()
 }
 func (c *CronServiceDefault) Start() error {
-	for _, service := range c.services {
+	for _, service := range c.entities {
 		err := service.RegisterTasks(c)
 		if err != nil {
 			c.logger.Fatal("Failed to register tasks for service", zap.Error(err))
@@ -105,7 +105,7 @@ func (c *CronServiceDefault) Start() error {
 		}
 	}
 
-	for _, service := range c.services {
+	for _, service := range c.entities {
 		err := service.ScheduleJobs(c)
 		if err != nil {
 			c.logger.Error("Failed to schedule jobs for service", zap.Error(err))
@@ -203,7 +203,7 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 }
 
 func (c *CronServiceDefault) RegisterEntity(service core.Cronable) {
-	c.services = append(c.services, service)
+	c.entities = append(c.entities, service)
 }
 
 func (c *CronServiceDefault) RegisterTask(name string, taskFunc core.CronTaskFunction, taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction) {
