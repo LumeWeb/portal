@@ -196,7 +196,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 
 	slabSize := uint64(redundancy.MinShards * rhpv2.SectorSize)
 	parts := uint64(math.Ceil(float64(size) / float64(slabSize)))
-	uploadParts := make([]api.MultipartCompletedPart, parts)
+	uploadParts := make([]api.MultipartCompletedPart, 0)
 
 	var uploadId string
 	start := uint64(0)
@@ -237,10 +237,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 					break
 				}
 				partNumber := part.PartNumber
-				uploadParts[partNumber-1] = api.MultipartCompletedPart{
-					PartNumber: part.PartNumber,
+				uploadParts = append(uploadParts, api.MultipartCompletedPart{
+					PartNumber: partNumber,
 					ETag:       part.ETag,
-				}
+				})
 			}
 
 			if len(uploadParts) > 0 {
@@ -278,10 +278,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 			return err
 		}
 
-		uploadParts[i] = api.MultipartCompletedPart{
+		uploadParts = append(uploadParts, api.MultipartCompletedPart{
 			PartNumber: partNumber,
 			ETag:       ret.ETag,
-		}
+		})
 	}
 
 	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts, api.CompleteMultipartOptions{})
