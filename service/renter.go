@@ -227,7 +227,6 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 			return tx.Error
 		}
 	} else {
-		// TODO: Switch to using https://github.com/SiaFoundation/renterd/pull/974 after renterd is moved to core/coreutils. We cannot update until then due to WIP work.
 		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
 
 		if err != nil {
@@ -269,8 +268,12 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 	for i := start; i < parts; i++ {
 		lr := io.LimitReader(reader, int64(slabSize))
 		partNumber := int(i + 1)
+		offset := int(i * slabSize)
 
-		ret, err := r.workerClient.UploadMultipartUploadPart(ctx, lr, bucket, fileName, uploadId, partNumber, api.UploadMultipartUploadPartOptions{})
+		opts := api.UploadMultipartUploadPartOptions{}
+		opts.EncryptionOffset = &offset
+
+		ret, err := r.workerClient.UploadMultipartUploadPart(ctx, lr, bucket, fileName, uploadId, partNumber, opts)
 		if err != nil {
 			return err
 		}
