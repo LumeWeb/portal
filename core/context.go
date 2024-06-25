@@ -145,8 +145,12 @@ func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	}
 }
 
-func ContextWithCron(cron Cronable) ContextBuilderOption {
+func ContextWithCron(factory CronFactory) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
+		cron, err := factory(ctx)
+		if err != nil {
+			return ctx, err
+		}
 		ctx.OnStartup(func(ctx Context) error {
 			cronService := ctx.Service(CRON_SERVICE)
 			if cronService == nil {

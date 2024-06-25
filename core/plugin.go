@@ -12,6 +12,8 @@ import (
 
 type PluginFactory func() PluginInfo
 
+type CronFactory func(Context) (Cronable, error)
+
 type PluginInfo struct {
 	ID       string
 	API      func() (API, []ContextBuilderOption, error)
@@ -20,7 +22,7 @@ type PluginInfo struct {
 	Models   []any
 	Events   []Eventer
 	Depends  []string
-	Cron     func() (Cronable, error)
+	Cron     func() CronFactory
 }
 
 type Configurable interface {
