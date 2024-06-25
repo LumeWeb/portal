@@ -18,6 +18,7 @@ import (
 	"math"
 	"net/url"
 	"strings"
+	"time"
 )
 
 var _ core.RenterService = (*RenterDefault)(nil)
@@ -282,6 +283,12 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 			PartNumber: partNumber,
 			ETag:       ret.ETag,
 		})
+
+		siaUpload.UpdatedAt = time.Now()
+
+		if tx := r.db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload); tx.Error != nil {
+			return tx.Error
+		}
 	}
 
 	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts, api.CompleteMultipartOptions{})
