@@ -5,7 +5,6 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"go.lumeweb.com/portal/service/internal/mailer"
 	"gorm.io/gorm"
 	"time"
 )
@@ -70,7 +69,7 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 		"PortalDomain": p.config.Config().Core.Domain,
 	}
 
-	return p.mailer.TemplateSend(mailer.TPL_PASSWORD_RESET, vars, vars, user.Email)
+	return p.mailer.TemplateSend(core.MAILER_TPL_PASSWORD_RESET, vars, vars, user.Email)
 }
 
 func (p PasswordResetServiceDefault) ResetPassword(email string, token string, password string) error {

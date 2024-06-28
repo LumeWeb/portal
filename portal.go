@@ -239,6 +239,26 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
+	mailerSvc := ctx.Service(core.MAILER_SERVICE)
+
+	if mailerSvc == nil {
+		ctx.Logger().Error("Mailer service not found")
+		return errors.New("mailer service not found")
+	}
+
+	plugins := core.GetPlugins()
+
+	for _, plugin := range plugins {
+		if plugin.MailerTemplates != nil {
+			for name, tpl := range plugin.MailerTemplates {
+				if err := mailerSvc.(core.MailerService).TemplateRegister(name, tpl); err != nil {
+					ctx.Logger().Error("Error registering mailer template", zap.String("template", name), zap.Error(err))
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

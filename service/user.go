@@ -9,7 +9,6 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	_event "go.lumeweb.com/portal/event"
-	"go.lumeweb.com/portal/service/internal/mailer"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -299,7 +298,7 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 		"PortalName":       u.config.Config().Core.PortalName,
 	}
 
-	return u.mailer.TemplateSend(mailer.TPL_VERIFY_EMAIL, vars, vars, user.Email)
+	return u.mailer.TemplateSend(core.MAILER_TPL_VERIFY_EMAIL, vars, vars, user.Email)
 }
 
 func (u UserServiceDefault) VerifyEmail(email string, token string) error {

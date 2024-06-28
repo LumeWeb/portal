@@ -13,16 +13,18 @@ import (
 type PluginFactory func() PluginInfo
 
 type CronFactory func(Context) (Cronable, error)
+type MailerTemplates map[string]MailerTemplate
 
 type PluginInfo struct {
-	ID       string
-	API      func() (API, []ContextBuilderOption, error)
-	Protocol func() (Protocol, []ContextBuilderOption, error)
-	Services func() ([]ServiceInfo, error)
-	Models   []any
-	Events   []Eventer
-	Depends  []string
-	Cron     func() CronFactory
+	ID              string
+	API             func() (API, []ContextBuilderOption, error)
+	Protocol        func() (Protocol, []ContextBuilderOption, error)
+	Services        func() ([]ServiceInfo, error)
+	Models          []any
+	Events          []Eventer
+	Depends         []string
+	Cron            func() CronFactory
+	MailerTemplates MailerTemplates
 }
 
 type Configurable interface {

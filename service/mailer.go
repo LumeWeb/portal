@@ -1,10 +1,13 @@
 package service
 
 import (
+	"embed"
 	"github.com/wneessen/go-mail"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/service/internal/mailer"
+	"io/fs"
 	"strings"
+	"text/template"
 )
 
 var _ core.MailerService = (*Mailer)(nil)
@@ -24,6 +27,10 @@ type Mailer struct {
 	templateRegistry *mailer.TemplateRegistry
 }
 
+func NewMailerTemplate(subject *template.Template, body *template.Template) *mailer.EmailTemplate {
+	return mailer.NewMailerTemplate(subject, body)
+}
+
 func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateData, bodyVars core.MailerTemplateData, to string) error {
 	email, err := m.templateRegistry.RenderTemplate(template, subjectVars, bodyVars)
 
@@ -40,6 +47,12 @@ func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateDa
 	}
 
 	return m.client.DialAndSend(msg)
+}
+
+func (m *Mailer) TemplateRegister(name string, template core.MailerTemplate) error {
+	m.templateRegistry.RegisterTemplate(name, template)
+
+	return nil
 }
 
 func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []core.ContextBuilderOption, error) {
@@ -95,4 +108,49 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []cor
 }
 func NewMailerTemplateRegistry() *mailer.TemplateRegistry {
 	return mailer.NewTemplateRegistry()
+}
+
+func MailerTemplatesFromEmbed(embed *embed.FS, prefix string) (map[string]core.MailerTemplate, error) {
+	if prefix == "" {
+		prefix = mailer.EMAIL_FS_PREFIX
+	}
+
+	subjectTemplates, err := fs.Glob(embed, prefix+"*_subject*")
+
+	if err != nil {
+		return nil, err
+	}
+
+	templates := make(map[string]core.MailerTemplate)
+
+	for _, subjectTemplate := range subjectTemplates {
+		templateName := strings.TrimPrefix(subjectTemplate, mailer.EMAIL_FS_PREFIX)
+		templateName = strings.TrimSuffix(templateName, "_subject.tpl")
+		bodyTemplate := strings.TrimSuffix(subjectTemplate, "_subject.tpl") + "_body.tpl"
+		bodyTemplate = strings.TrimPrefix(bodyTemplate, mailer.EMAIL_FS_PREFIX)
+
+		subjectContent, err := fs.ReadFile(embed, mailer.EMAIL_FS_PREFIX+templateName+"_subject.tpl")
+		if err != nil {
+			return nil, err
+		}
+
+		subjectTmpl, err := template.New(templateName).Parse(string(subjectContent))
+		if err != nil {
+			return nil, err
+		}
+
+		bodyContent, err := fs.ReadFile(embed, mailer.EMAIL_FS_PREFIX+bodyTemplate)
+		if err != nil {
+			return nil, err
+		}
+
+		bodyTmpl, err := template.New(templateName).Parse(string(bodyContent))
+		if err != nil {
+			return nil, err
+		}
+
+		templates[templateName] = NewMailerTemplate(subjectTmpl, bodyTmpl)
+	}
+
+	return templates, nil
 }
