@@ -1,81 +1,56 @@
 package mailer
 
 import (
-	"embed"
 	"errors"
 	"go.lumeweb.com/portal/core"
-	"io/fs"
 	"strings"
+	"sync"
 	"text/template"
 )
 
 const EMAIL_FS_PREFIX = "templates/"
 
-const TPL_PASSWORD_RESET = "password_reset"
-const TPL_VERIFY_EMAIL = "verify_email"
+var _ core.MailerTemplate = (*EmailTemplate)(nil)
 
 type EmailTemplate struct {
-	Subject *template.Template
-	Body    *template.Template
+	subject *template.Template
+	body    *template.Template
 }
 
-//go:embed templates/*
-var templateFS embed.FS
+func (et *EmailTemplate) Subject() *template.Template {
+	return et.subject
+}
+
+func (et *EmailTemplate) Body() *template.Template {
+	return et.body
+}
+
+func NewMailerTemplate(subject *template.Template, body *template.Template) *EmailTemplate {
+	return &EmailTemplate{
+		subject: subject,
+		body:    body,
+	}
+}
 
 var ErrTemplateNotFound = errors.New("template not found")
 
 type TemplateRegistry struct {
-	templates map[string]EmailTemplate
+	templates   map[string]core.MailerTemplate
+	templatesMu sync.RWMutex
 }
 
 func NewTemplateRegistry() *TemplateRegistry {
 	return &TemplateRegistry{
-		templates: make(map[string]EmailTemplate),
+		templates:   make(map[string]core.MailerTemplate),
+		templatesMu: sync.RWMutex{},
 	}
 }
 
-func (tr *TemplateRegistry) loadTemplates() error {
-	subjectTemplates, err := fs.Glob(templateFS, EMAIL_FS_PREFIX+"*_subject*")
-
-	if err != nil {
-		return err
-	}
-
-	for _, subjectTemplate := range subjectTemplates {
-		templateName := strings.TrimPrefix(subjectTemplate, EMAIL_FS_PREFIX)
-		templateName = strings.TrimSuffix(templateName, "_subject.tpl")
-		bodyTemplate := strings.TrimSuffix(subjectTemplate, "_subject.tpl") + "_body.tpl"
-		bodyTemplate = strings.TrimPrefix(bodyTemplate, EMAIL_FS_PREFIX)
-
-		subjectContent, err := fs.ReadFile(templateFS, EMAIL_FS_PREFIX+templateName+"_subject.tpl")
-		if err != nil {
-			return err
-		}
-
-		subjectTmpl, err := template.New(templateName).Parse(string(subjectContent))
-		if err != nil {
-			return err
-		}
-
-		bodyContent, err := fs.ReadFile(templateFS, EMAIL_FS_PREFIX+bodyTemplate)
-		if err != nil {
-			return err
-		}
-
-		bodyTmpl, err := template.New(templateName).Parse(string(bodyContent))
-		if err != nil {
-			return err
-		}
-
-		tr.templates[templateName] = EmailTemplate{
-			Subject: subjectTmpl,
-			Body:    bodyTmpl,
-		}
-	}
-
-	return nil
+func (tr *TemplateRegistry) RegisterTemplate(name string, template core.MailerTemplate) {
+	tr.templatesMu.Lock()
+	defer tr.templatesMu.Unlock()
+	tr.templates[name] = template
 }
-
 func (tr *TemplateRegistry) RenderTemplate(templateName string, subjectVars core.MailerTemplateData, bodyVars core.MailerTemplateData) (*Email, error) {
 	tmpl, ok := tr.templates[templateName]
 	if !ok {
@@ -83,13 +58,13 @@ func (tr *TemplateRegistry) RenderTemplate(templateName string, subjectVars core
 	}
 
 	var subjectBuilder strings.Builder
-	err := tmpl.Subject.Execute(&subjectBuilder, subjectVars)
+	err := tmpl.Subject().Execute(&subjectBuilder, subjectVars)
 	if err != nil {
 		return nil, err
 	}
 
 	var bodyBuilder strings.Builder
-	err = tmpl.Body.Execute(&bodyBuilder, bodyVars)
+	err = tmpl.Body().Execute(&bodyBuilder, bodyVars)
 	if err != nil {
 		return nil, err
 	}
