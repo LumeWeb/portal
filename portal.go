@@ -175,8 +175,6 @@ func (p *PortalImpl) initServices(ctx *core.Context) (ctxOpts []core.ContextBuil
 				}
 			}
 		}
-
-		return nil, nil
 	}
 
 	return ctxOpts, nil
