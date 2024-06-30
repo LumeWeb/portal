@@ -1,16 +1,21 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -27,6 +32,11 @@ var (
 
 var _ Manager = (*ManagerDefault)(nil)
 
+const CLUSTER_CONFIG_KEY = "config"
+const FLAG_NOSYNC = "nosync"
+
+type fieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
+
 type Config struct {
 	Core   CoreConfig              `mapstructure:"core"`
 	Plugin map[string]PluginEntity `mapstructure:"plugin"`
@@ -37,6 +47,7 @@ type ManagerDefault struct {
 	root    *Config
 	changes bool
 	lock    sync.RWMutex
+	flags   map[string][]string
 }
 
 func NewManager() (*ManagerDefault, error) {
@@ -51,6 +62,7 @@ func NewManager() (*ManagerDefault, error) {
 		config:  k,
 		changes: !exists,
 		lock:    sync.RWMutex{},
+		flags:   make(map[string][]string),
 	}, nil
 }
 
@@ -63,6 +75,9 @@ func (m *ManagerDefault) hooks() []mapstructure.DecodeHookFunc {
 
 func (m *ManagerDefault) Init() error {
 	m.root = &Config{}
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
 
 	err := m.setDefaultsForObject(m.root.Core, "core")
 	if err != nil {
@@ -94,10 +109,27 @@ func (m *ManagerDefault) Init() error {
 		return err
 	}
 
+	err = m.processFlags(m.root, "core")
+	if err != nil {
+		return err
+	}
+
 	err = m.maybeConfigureCluster()
 	if err != nil {
 		return err
 	}
+
+	err = m.loadClusterSpace("core")
+	if err != nil {
+		return err
+	}
+
+	err = m.maybeSave()
+	if err != nil {
+		return err
+	}
+
+	err = m.saveClusterSpace("core", false)
 
 	return nil
 }
@@ -255,107 +287,25 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 		return nil, err
 	}
 
+	err = m.processFlags(m.root, name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.loadClusterSpace(name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.saveClusterSpace(name, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
 }
-
 func (m *ManagerDefault) setDefaultsForObject(obj interface{}, prefix string) error {
-	// Reflect on the object to traverse its fields
-	objValue := reflect.ValueOf(obj)
-	objType := reflect.TypeOf(obj)
-
-	// If the object is a pointer, we need to work with its element
-	if objValue.Kind() == reflect.Ptr {
-		objValue = objValue.Elem()
-		objType = objType.Elem()
-	}
-
-	// Check if the object itself implements Defaults
-	if setter, ok := obj.(Defaults); ok {
-		err := m.applyDefaults(setter, prefix)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Recursively handle struct fields
-	for i := 0; i < objValue.NumField(); i++ {
-		field := objValue.Field(i)
-		fieldType := objType.Field(i)
-
-		// Check if the field is exported and can be interfaced
-		if !field.CanInterface() {
-			continue
-		}
-
-		mapstructureTag := fieldType.Tag.Get("mapstructure")
-
-		// Construct new prefix based on the mapstructure tag, if available
-		newPrefix := prefix
-		if mapstructureTag != "" && mapstructureTag != "-" {
-			if newPrefix != "" {
-				newPrefix += "."
-			}
-			newPrefix += mapstructureTag
-		}
-
-		// If field is a struct or pointer to a struct, recurse
-		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
-			if field.Kind() == reflect.Ptr && field.IsNil() {
-				// Initialize nil pointer to struct
-				field.Set(reflect.New(fieldType.Type.Elem()))
-			}
-			err := m.setDefaultsForObject(field.Interface(), newPrefix)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (m *ManagerDefault) validateObject(obj interface{}) error {
-	// Reflect on the object to traverse its fields
-	objValue := reflect.ValueOf(obj)
-	objType := reflect.TypeOf(obj)
-
-	// If the object is a pointer, we need to work with its element
-	if objValue.Kind() == reflect.Ptr {
-		objValue = objValue.Elem()
-		objType = objType.Elem()
-	}
-
-	// Check if the object itself implements Defaults
-	if validator, ok := obj.(Validator); ok {
-		err := validator.Validate()
-		if err != nil {
-			return err
-		}
-	}
-
-	// Recursively handle struct fields
-	for i := 0; i < objValue.NumField(); i++ {
-		field := objValue.Field(i)
-		fieldType := objType.Field(i)
-
-		if !field.CanInterface() {
-			continue
-		}
-
-		// If field is a struct or pointer to a struct, recurse
-		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
-			if field.Kind() == reflect.Ptr && field.IsNil() {
-				// Initialize nil pointer to struct
-				field.Set(reflect.New(fieldType.Type.Elem()))
-			}
-			err := m.validateObject(field.Interface())
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+	return m.processObject(obj, prefix, m.defaultProcessor)
 }
 
 func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
@@ -370,9 +320,7 @@ func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
 				return err
 			}
 
-			if ret {
-				m.changes = true
-			}
+			m.changes = true
 		}
 	}
 
@@ -389,6 +337,124 @@ func (m *ManagerDefault) setDefault(key string, value interface{}) (bool, error)
 	}
 
 	return false, nil
+}
+
+func (m *ManagerDefault) validateObject(obj interface{}) error {
+	return m.processObject(obj, "", m.validateProcessor)
+}
+
+func (m *ManagerDefault) processFlags(obj interface{}, prefix string) error {
+	return m.processObject(obj, prefix, m.flagsProcessor)
+}
+
+func (m *ManagerDefault) processObject(obj interface{}, prefix string, processors ...fieldProcessor) error {
+	objValue := reflect.ValueOf(obj)
+	objType := reflect.TypeOf(obj)
+
+	if objValue.Kind() == reflect.Ptr {
+		if objValue.IsNil() {
+			return nil // Skip processing if the pointer is nil
+		}
+		objValue = objValue.Elem()
+		objType = objType.Elem()
+	}
+
+	// Process the object itself
+	for _, processor := range processors {
+		if err := processor(reflect.StructField{}, objValue, prefix); err != nil {
+			return err
+		}
+	}
+
+	if objValue.Kind() != reflect.Struct {
+		return nil // If it's not a struct, we're done
+	}
+
+	for i := 0; i < objValue.NumField(); i++ {
+		field := objValue.Field(i)
+		fieldType := objType.Field(i)
+
+		if !field.CanInterface() {
+			continue
+		}
+
+		mapstructureTag := fieldType.Tag.Get("mapstructure")
+		newPrefix := buildPrefix(prefix, mapstructureTag)
+
+		// Apply all processors to this field
+		for _, processor := range processors {
+			if err := processor(fieldType, field, newPrefix); err != nil {
+				return err
+			}
+		}
+
+		// Recurse for struct fields or pointers to structs
+		switch field.Kind() {
+		case reflect.Struct:
+			if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
+				return err
+			}
+		case reflect.Ptr:
+			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
+				if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.Value, _ string) error {
+	// Check if the value is a nil pointer
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return nil // Skip validation for nil pointers
+	}
+
+	// If it's a pointer, get the element it points to
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	// Now check if it implements Validator
+	if validator, ok := value.Interface().(Validator); ok {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) defaultProcessor(_ reflect.StructField, value reflect.Value, prefix string) error {
+	// Check if the value is a nil pointer
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return nil // Skip defaults for nil pointers
+	}
+
+	// If it's a pointer, get the element it points to
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	if setter, ok := value.Interface().(Defaults); ok {
+		if err := m.applyDefaults(setter, prefix); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) flagsProcessor(field reflect.StructField, _ reflect.Value, prefix string) error {
+	if flags, ok := field.Tag.Lookup("flags"); ok {
+		if flags != "" {
+			m.flags[prefix] = strings.Split(flags, ",")
+		}
+	}
+
+	return nil
 }
 
 func (m *ManagerDefault) maybeSave() error {
@@ -417,12 +483,94 @@ func (m *ManagerDefault) maybeSave() error {
 }
 
 func (m *ManagerDefault) maybeConfigureCluster() error {
-	if m.root.Core.Clustered != nil && m.root.Core.Clustered.Enabled {
-		if m.root.Core.DB.Cache == nil {
-			m.root.Core.DB.Cache = &CacheConfig{}
+	if m.root.Core.ClusterEnabled() {
+		if m.root.Core.Clustered.Redis != nil {
+			if m.root.Core.DB.Cache == nil {
+				m.root.Core.DB.Cache = &CacheConfig{}
+			}
+			m.root.Core.DB.Cache.Mode = "redis"
+			m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
 		}
-		m.root.Core.DB.Cache.Mode = "redis"
-		m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) loadClusterSpace(prefix string) error {
+	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+		ctx := context.Background()
+		client, err := m.root.Core.Clustered.Etcd.Client()
+		if err != nil {
+			return err
+		}
+
+		key := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+
+		ret, err := client.Get(ctx, key)
+		if err != nil {
+			return err
+		}
+
+		if ret.Count > 0 {
+			remoteConfig := koanf.New(".")
+			err := remoteConfig.Load(NewEtcdProvider(client, key, time.Duration(m.root.Core.Clustered.Etcd.DialTimeout)*time.Second), nil)
+			if err != nil {
+				return err
+			}
+
+			m.lock.RLock()
+			for k, flags := range m.flags {
+				if lo.Contains(flags, FLAG_NOSYNC) {
+					remoteConfig.Delete(k)
+				}
+			}
+
+			err = m.config.Merge(remoteConfig)
+			if err != nil {
+				return err
+			}
+
+			m.changes = true
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
+	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+		ctx := context.Background()
+		client, err := m.root.Core.Clustered.Etcd.Client()
+		if err != nil {
+			return err
+		}
+
+		etcdKey := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+
+		ret, err := client.Get(ctx, etcdKey, clientv3.WithPrefix())
+		if err != nil {
+			return err
+		}
+
+		if ret.Count > 0 && !overwrite {
+			return nil
+		}
+
+		subConfig := m.config.Cut(prefix)
+
+		for k, v := range subConfig.All() {
+			if lo.Contains(m.flags[prefix+"."+k], FLAG_NOSYNC) {
+				continue
+			}
+
+			key := etcdKey + "/" + k
+			key = strings.ReplaceAll(key, ".", "/")
+
+			_, err = client.Put(ctx, key, fmt.Sprintf("%v", v))
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -480,4 +628,13 @@ func findConfigFile(dirCheck bool, ignoreExist bool) string {
 	}
 
 	return ""
+}
+func buildPrefix(prefix, mapstructureTag string) string {
+	if mapstructureTag != "" && mapstructureTag != "-" {
+		if prefix != "" {
+			return prefix + "." + mapstructureTag
+		}
+		return mapstructureTag
+	}
+	return prefix
 }
