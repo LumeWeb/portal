@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
@@ -26,6 +27,8 @@ var (
 )
 
 var _ Manager = (*ManagerDefault)(nil)
+
+const CLUSTER_CONFIG_KEY = "config"
 
 type Config struct {
 	Core   CoreConfig              `mapstructure:"core"`
@@ -370,9 +373,7 @@ func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
 				return err
 			}
 
-			if ret {
-				m.changes = true
-			}
+			m.changes = true
 		}
 	}
 
@@ -423,6 +424,18 @@ func (m *ManagerDefault) maybeConfigureCluster() error {
 		}
 		m.root.Core.DB.Cache.Mode = "redis"
 		m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
+
+		if m.root.Core.Clustered.Etcd != nil {
+			client, err := m.root.Core.Clustered.Etcd.Client()
+			if err != nil {
+				return err
+			}
+
+			_, err = client.Get(context.Background(), CLUSTER_CONFIG_KEY)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

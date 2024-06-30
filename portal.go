@@ -36,31 +36,32 @@ func (p *PortalImpl) Init() error {
 
 	dbInst, ctxOpts := db.NewDatabase(ctx)
 
-	ctxOpts, err := p.initServices(&ctx)
-
+	opts, err := p.initServices(&ctx)
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
-	ctxOpts, err = p.initModels(&ctx, dbInst, ctxOpts)
-
+	opts, err = p.initModels(&ctx, dbInst)
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
-	ctxOpts, err = p.initProtocols(&ctx)
-
+	opts, err = p.initProtocols(&ctx)
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
-	ctxOpts, err = p.initAPIs(&ctx)
-
+	opts, err = p.initAPIs(&ctx)
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
-	ctxOpts = p.initCron(ctxOpts)
+	opts = p.initCron()
+	ctxOpts = append(ctxOpts, opts...)
 
 	if err := p.initEvents(); err != nil {
 		return err
@@ -180,7 +181,7 @@ func (p *PortalImpl) initServices(ctx *core.Context) (ctxOpts []core.ContextBuil
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initModels(ctx *core.Context, dbInst *gorm.DB, ctxOpts []core.ContextBuilderOption) ([]core.ContextBuilderOption, error) {
+func (p *PortalImpl) initModels(ctx *core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
 	plugins := core.GetPlugins()
 
 	for _, plugin := range plugins {
@@ -281,7 +282,7 @@ func (p *PortalImpl) configureAPIs(ctx *core.Context) error {
 	return nil
 }
 
-func (p *PortalImpl) initCron(ctxOpts []core.ContextBuilderOption) []core.ContextBuilderOption {
+func (p *PortalImpl) initCron() (ctxOpts []core.ContextBuilderOption) {
 	for _, plugin := range core.GetPlugins() {
 		if core.PluginHasCron(plugin) {
 			cronFactory := plugin.Cron()
