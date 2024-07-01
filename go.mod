@@ -28,7 +28,7 @@ require (
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
 	github.com/redis/go-redis/v9 v9.5.3
-	github.com/samber/lo v1.39.0
+	github.com/samber/lo v1.44.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
