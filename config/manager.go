@@ -124,6 +124,11 @@ func (m *ManagerDefault) Init() error {
 		return err
 	}
 
+	err = m.maybeSave()
+	if err != nil {
+		return err
+	}
+
 	err = m.saveClusterSpace("core", false)
 
 	return nil
@@ -524,6 +529,8 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 			if err != nil {
 				return err
 			}
+
+			m.changes = true
 		}
 	}
 
