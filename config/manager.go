@@ -347,10 +347,6 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		objType = objType.Elem()
 	}
 
-	if objValue.IsNil() {
-		return nil
-	}
-
 	for _, processor := range processors {
 		if err := processor(reflect.StructField{}, objValue, prefix); err != nil {
 			return err
@@ -361,11 +357,13 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		field := objValue.Field(i)
 		fieldType := objType.Field(i)
 
+		isStruct := field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct)
+
 		if !field.CanInterface() {
 			continue
 		}
 
-		if field.IsNil() {
+		if !isStruct && field.IsNil() {
 			continue
 		}
 
@@ -380,7 +378,7 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		}
 
 		// Recurse for struct fields
-		if field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct) {
+		if isStruct {
 			if field.Kind() == reflect.Ptr && field.IsNil() {
 				field.Set(reflect.New(fieldType.Type.Elem()))
 			}
