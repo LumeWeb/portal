@@ -22,7 +22,7 @@ type CoreConfig struct {
 	Storage         StorageConfig  `mapstructure:"storage"`
 	Mail            MailConfig     `mapstructure:"mail"`
 	Clustered       *ClusterConfig `mapstructure:"clustered"`
-	NodeID          types.UUID     `mapstructure:"node_id"`
+	NodeID          types.UUID     `mapstructure:"node_id" flags:"nosync"`
 }
 
 func (c CoreConfig) Validate() error {
