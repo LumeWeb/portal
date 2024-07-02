@@ -555,7 +555,7 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 				continue
 			}
 
-			_, err = client.Put(ctx, prefix+"/"+etcdKey, fmt.Sprintf("%v", v))
+			_, err = client.Put(ctx, etcdKey+"/"+k, fmt.Sprintf("%v", v))
 			if err != nil {
 				return err
 			}
