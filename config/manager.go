@@ -9,6 +9,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"os"
 	"path"
 	"reflect"
@@ -119,6 +120,8 @@ func (m *ManagerDefault) Init() error {
 	if err != nil {
 		return err
 	}
+
+	err = m.saveClusterSpace("core", false)
 
 	return nil
 }
@@ -286,7 +289,7 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 		return nil, err
 	}
 
-	err = m.saveClusterSpace(name)
+	err = m.saveClusterSpace(name, false)
 	if err != nil {
 		return nil, err
 	}
@@ -526,7 +529,7 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 	return nil
 }
 
-func (m *ManagerDefault) saveClusterSpace(prefix string) error {
+func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
 		ctx := context.Background()
 		client, err := m.root.Core.Clustered.Etcd.Client()
@@ -535,6 +538,15 @@ func (m *ManagerDefault) saveClusterSpace(prefix string) error {
 		}
 
 		etcdKey := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+
+		ret, err := client.Get(ctx, etcdKey, clientv3.WithPrefix())
+		if err != nil {
+			return err
+		}
+
+		if ret.Count > 0 && !overwrite {
+			return nil
+		}
 
 		subConfig := m.config.Cut(prefix)
 
