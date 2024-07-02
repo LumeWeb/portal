@@ -418,7 +418,17 @@ func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.
 	return nil
 }
 func (m *ManagerDefault) defaultProcessor(_ reflect.StructField, value reflect.Value, prefix string) error {
-	if setter, ok := value.Interface().(Defaults); ok {
+	// Check if the value is a nil pointer
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return nil // Skip validation for nil pointers
+	}
+
+	// If it's a pointer, get the element it points to
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	if setter, ok := value.Interface().(Defaults); ok && !value.IsNil() {
 		if err := m.applyDefaults(setter, prefix); err != nil {
 			return err
 		}
