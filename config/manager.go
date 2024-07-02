@@ -369,6 +369,17 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 			continue
 		}
 
+		switch field.Kind() {
+		case reflect.Struct:
+			if field.IsNil() {
+				continue
+			}
+		case reflect.Ptr:
+			if field.Elem().Kind() == reflect.Struct && field.Elem().IsNil() {
+				continue
+			}
+		}
+
 		mapstructureTag := fieldType.Tag.Get("mapstructure")
 		newPrefix := buildPrefix(prefix, mapstructureTag)
 
