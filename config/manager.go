@@ -347,6 +347,10 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		objType = objType.Elem()
 	}
 
+	if objValue.IsNil() {
+		return nil
+	}
+
 	for _, processor := range processors {
 		if err := processor(reflect.StructField{}, objValue, prefix); err != nil {
 			return err
@@ -358,6 +362,10 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		fieldType := objType.Field(i)
 
 		if !field.CanInterface() {
+			continue
+		}
+
+		if field.IsNil() {
 			continue
 		}
 
@@ -386,9 +394,6 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 }
 
 func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.Value, _ string) error {
-	if value.Interface() == nil {
-		return nil
-	}
 	if validator, ok := value.Interface().(Validator); ok {
 		if err := validator.Validate(); err != nil {
 			return err
