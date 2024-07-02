@@ -418,12 +418,14 @@ func (m *ManagerDefault) maybeSave() error {
 }
 
 func (m *ManagerDefault) maybeConfigureCluster() error {
-	if m.root.Core.Clustered != nil && m.root.Core.Clustered.Enabled {
-		if m.root.Core.DB.Cache == nil {
-			m.root.Core.DB.Cache = &CacheConfig{}
+	if m.root.Core.ClusterEnabled() {
+		if m.root.Core.Clustered.Redis != nil {
+			if m.root.Core.DB.Cache == nil {
+				m.root.Core.DB.Cache = &CacheConfig{}
+			}
+			m.root.Core.DB.Cache.Mode = "redis"
+			m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
 		}
-		m.root.Core.DB.Cache.Mode = "redis"
-		m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
 
 		if m.root.Core.Clustered.Etcd != nil {
 			client, err := m.root.Core.Clustered.Etcd.Client()
@@ -431,10 +433,12 @@ func (m *ManagerDefault) maybeConfigureCluster() error {
 				return err
 			}
 
-			_, err = client.Get(context.Background(), CLUSTER_CONFIG_KEY)
+			ret, err := client.Get(context.Background(), CLUSTER_CONFIG_KEY)
 			if err != nil {
 				return err
 			}
+
+			_ = ret
 		}
 	}
 
