@@ -343,27 +343,29 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 	objType := reflect.TypeOf(obj)
 
 	if objValue.Kind() == reflect.Ptr {
+		if objValue.IsNil() {
+			return nil // Skip processing if the pointer is nil
+		}
 		objValue = objValue.Elem()
 		objType = objType.Elem()
 	}
 
+	// Process the object itself
 	for _, processor := range processors {
 		if err := processor(reflect.StructField{}, objValue, prefix); err != nil {
 			return err
 		}
 	}
 
+	if objValue.Kind() != reflect.Struct {
+		return nil // If it's not a struct, we're done
+	}
+
 	for i := 0; i < objValue.NumField(); i++ {
 		field := objValue.Field(i)
 		fieldType := objType.Field(i)
 
-		isStruct := field.Kind() == reflect.Struct || (field.Kind() == reflect.Ptr && field.Elem().Kind() == reflect.Struct)
-
 		if !field.CanInterface() {
-			continue
-		}
-
-		if !isStruct && field.IsNil() {
 			continue
 		}
 
@@ -377,13 +379,17 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 			}
 		}
 
-		// Recurse for struct fields
-		if isStruct {
-			if field.Kind() == reflect.Ptr && field.IsNil() {
-				field.Set(reflect.New(fieldType.Type.Elem()))
-			}
+		// Recurse for struct fields or pointers to structs
+		switch field.Kind() {
+		case reflect.Struct:
 			if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
 				return err
+			}
+		case reflect.Ptr:
+			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
+				if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
+					return err
+				}
 			}
 		}
 	}
