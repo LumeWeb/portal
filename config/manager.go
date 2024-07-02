@@ -76,6 +76,9 @@ func (m *ManagerDefault) hooks() []mapstructure.DecodeHookFunc {
 func (m *ManagerDefault) Init() error {
 	m.root = &Config{}
 
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	err := m.setDefaultsForObject(m.root.Core, "core")
 	if err != nil {
 		return err
@@ -336,8 +339,6 @@ func (m *ManagerDefault) validateObject(obj interface{}) error {
 }
 
 func (m *ManagerDefault) processFlags(obj interface{}, prefix string) error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
 	return m.processObject(obj, prefix, m.flagsProcessor)
 }
 
