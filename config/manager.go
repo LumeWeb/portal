@@ -386,6 +386,9 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 }
 
 func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.Value, _ string) error {
+	if value.Interface() == nil {
+		return nil
+	}
 	if validator, ok := value.Interface().(Validator); ok {
 		if err := validator.Validate(); err != nil {
 			return err
