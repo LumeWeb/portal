@@ -369,17 +369,6 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 			continue
 		}
 
-		switch field.Kind() {
-		case reflect.Struct:
-			if field.IsNil() {
-				continue
-			}
-		case reflect.Ptr:
-			if field.Elem().Kind() == reflect.Struct && field.Elem().IsNil() {
-				continue
-			}
-		}
-
 		mapstructureTag := fieldType.Tag.Get("mapstructure")
 		newPrefix := buildPrefix(prefix, mapstructureTag)
 
@@ -409,7 +398,18 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 }
 
 func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.Value, _ string) error {
-	if validator, ok := value.Interface().(Validator); ok {
+	// Check if the value is a nil pointer
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		return nil // Skip validation for nil pointers
+	}
+
+	// If it's a pointer, get the element it points to
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	// Now check if it implements Validator
+	if validator, ok := value.Interface().(Validator); ok && !value.IsNil() {
 		if err := validator.Validate(); err != nil {
 			return err
 		}
@@ -417,7 +417,6 @@ func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.
 
 	return nil
 }
-
 func (m *ManagerDefault) defaultProcessor(_ reflect.StructField, value reflect.Value, prefix string) error {
 	if setter, ok := value.Interface().(Defaults); ok {
 		if err := m.applyDefaults(setter, prefix); err != nil {
