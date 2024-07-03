@@ -12,6 +12,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -465,13 +466,16 @@ func (m *ManagerDefault) maybeSave() error {
 		}
 
 		configFile := findConfigFile(true, true)
+		if configFile == "" {
+			return fmt.Errorf("no writable configuration file location found")
+		}
 
-		err = os.MkdirAll(path.Dir(configFile), 0755)
+		err = os.MkdirAll(filepath.Dir(configFile), 0755)
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile(configFile, data, 0644)
 
+		err = os.WriteFile(configFile, data, 0644)
 		if err != nil {
 			return err
 		}
@@ -609,26 +613,75 @@ func newConfig() (*koanf.Koanf, error) {
 	return k, nil
 }
 
+func findHighestWritableDir(path string) (string, error) {
+	dir := path
+	for {
+		// Try to create a temporary file in the directory
+		tempFile, err := os.CreateTemp(dir, ".write_test")
+		if err == nil {
+			tempFile.Close()
+			os.Remove(tempFile.Name())
+			return dir, nil
+		}
+
+		if !os.IsPermission(err) && !os.IsNotExist(err) {
+			return "", err
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// We've reached the root directory
+			return "", fmt.Errorf("no writable directory found")
+		}
+		dir = parent
+	}
+}
+
 func findConfigFile(dirCheck bool, ignoreExist bool) string {
 	for _, _path := range configFilePaths {
 		expandedPath := os.ExpandEnv(_path)
+
+		// First, check if the file exists
 		_, err := os.Stat(expandedPath)
 		if err == nil {
-			return expandedPath
-		} else if os.IsNotExist(err) {
-			if dirCheck {
-				_, err := os.Stat(path.Dir(expandedPath))
-				if err == nil || ignoreExist {
-					return expandedPath
-				}
+			// File exists, check if we can write to it
+			file, err := os.OpenFile(expandedPath, os.O_WRONLY, 0644)
+			if err == nil {
+				file.Close()
+				return expandedPath
+			}
+			// Can't write to existing file, continue to next path
+			continue
+		}
+
+		// File doesn't exist
+		if os.IsNotExist(err) {
+			if !ignoreExist {
+				continue
 			}
 
-			return ""
+			// Check if we can create the file
+			if dirCheck {
+				_, err := findHighestWritableDir(filepath.Dir(expandedPath))
+				if err == nil {
+					// We found a writable directory in the path
+					return expandedPath
+				}
+				continue
+			}
+
+			// If we can't find a writable directory or dirCheck is false,
+			// but ignoreExist is true, we still return the path
+			return expandedPath
 		}
+
+		// Some other error occurred (e.g., permission denied), skip this path
+		continue
 	}
 
 	return ""
 }
+
 func buildPrefix(prefix, mapstructureTag string) string {
 	if mapstructureTag != "" && mapstructureTag != "-" {
 		if prefix != "" {
