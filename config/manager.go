@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/invopop/jsonschema"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
+	"github.com/stoewer/go-strcase"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"os"
 	"path"
@@ -34,6 +36,7 @@ var _ Manager = (*ManagerDefault)(nil)
 
 const CLUSTER_CONFIG_KEY = "config"
 const FLAG_NOSYNC = "nosync"
+const FLAG_LIVE = "live"
 
 type fieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
 
@@ -519,8 +522,8 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 			}
 
 			m.lock.RLock()
-			for k, flags := range m.flags {
-				if lo.Contains(flags, FLAG_NOSYNC) {
+			for k := range m.flags {
+				if m.propertyHasFlag(k, FLAG_NOSYNC) {
 					remoteConfig.Delete(k)
 				}
 			}
@@ -558,6 +561,12 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 
 		subConfig := m.config.Cut(prefix)
 
+		// Create a map of existing etcd keys and values
+		existing := make(map[string]string)
+		for _, kv := range ret.Kvs {
+			existing[string(kv.Key)] = string(kv.Value)
+		}
+
 		for k, v := range subConfig.All() {
 			if lo.Contains(m.flags[prefix+"."+k], FLAG_NOSYNC) {
 				continue
@@ -566,14 +575,49 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 			key := etcdKey + "/" + k
 			key = strings.ReplaceAll(key, ".", "/")
 
-			_, err = client.Put(ctx, key, fmt.Sprintf("%v", v))
-			if err != nil {
-				return err
+			nval := fmt.Sprintf("%v", v)
+
+			// Check if the key exists and the value is different
+			if eval, exists := existing[key]; !exists || eval != nval {
+				_, err = client.Put(ctx, key, nval)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	return nil
+}
+
+func (m *ManagerDefault) findProperty(key string) (reflect.Value, error) {
+	var ret reflect.Value
+
+	err := m.processObject(m.root, "", func(field reflect.StructField, value reflect.Value, prefix string) error {
+		// Check if the value is a nil pointer
+		if value.Kind() == reflect.Ptr && value.IsNil() {
+			return nil // Skip defaults for nil pointers
+		}
+
+		// If it's a pointer, get the element it points to
+		if value.Kind() == reflect.Ptr {
+			value = value.Elem()
+		}
+
+		if prefix == key {
+			ret = value
+		}
+		return nil
+	})
+	if err != nil {
+		return reflect.New(nil), nil
+	}
+
+	if ret.Kind() == reflect.Invalid {
+		return reflect.New(nil), nil
+	}
+
+	return ret, nil
 }
 
 func (m *ManagerDefault) Config() *Config {
@@ -585,12 +629,100 @@ func (m *ManagerDefault) Save() error {
 	return m.maybeSave()
 }
 
+func (m *ManagerDefault) SaveChanged() error {
+	if m.changes {
+		return m.maybeSave()
+	}
+
+	return nil
+}
+
 func (m *ManagerDefault) ConfigFile() string {
 	return findConfigFile(false, false)
 }
 
 func (m *ManagerDefault) ConfigDir() string {
 	return path.Dir(m.ConfigFile())
+}
+
+func (m *ManagerDefault) LiveConfig() *jsonschema.Schema {
+	r := &jsonschema.Reflector{}
+	r.KeyNamer = strcase.SnakeCase
+	return jsonschema.Reflect(m.root)
+}
+
+func (m *ManagerDefault) LiveUpdateProperty(key string, value any) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	// Compute the parent key in dot notation
+	parts := strings.Split(key, ".")
+	if len(parts) == 0 {
+		return fmt.Errorf("invalid key: %s", key)
+	}
+
+	existingValue := m.config.Get(key)
+	if existingValue == nil {
+		return fmt.Errorf("property %s not found", key)
+	}
+
+	existingType := reflect.TypeOf(existingValue)
+	newType := reflect.TypeOf(value)
+
+	if existingType != newType {
+		return fmt.Errorf("type mismatch: expected %s, got %s", existingType, newType)
+	}
+
+	if err := m.config.Set(key, value); err != nil {
+		return err
+	}
+
+	property, err := m.findProperty(key)
+	if err != nil {
+		return err
+	}
+
+	if property.Kind() == reflect.Invalid {
+		return fmt.Errorf("property %s not found or is invalid", key)
+	}
+
+	if unmarshaler, ok := property.Interface().(mapstructure.Unmarshaler); ok {
+		if err := unmarshaler.DecodeMapstructure(value); err != nil {
+			return fmt.Errorf("failed to unmarshal: %w", err)
+		}
+	} else {
+		property.Set(reflect.ValueOf(value))
+	}
+
+	m.changes = true
+
+	parent := strings.Join(parts[:len(parts)-1], ".")
+
+	if err = m.saveClusterSpace(parent, true); err != nil {
+		return fmt.Errorf("failed to save to cluster: %w", err)
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) PropertyLiveEditable(property string) bool {
+	return !m.propertyHasFlag(property, FLAG_NOSYNC) && m.propertyHasFlag(property, FLAG_LIVE)
+}
+
+func (m *ManagerDefault) PropertyLiveReadable(property string) bool {
+	return !m.propertyHasFlag(property, FLAG_NOSYNC)
+}
+
+func (m *ManagerDefault) PropertyLiveExists(property string) bool {
+	return m.config.Exists(property)
+}
+
+func (m *ManagerDefault) propertyHasFlag(key string, flag string) bool {
+	if lo.Contains(m.flags[key], flag) {
+		return true
+	}
+
+	return false
 }
 
 func newConfig() (*koanf.Koanf, error) {

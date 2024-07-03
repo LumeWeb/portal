@@ -23,6 +23,7 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
+	github.com/invopop/jsonschema v0.12.0
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/naucon/casbin-fs-adapter v0.2.0
@@ -30,6 +31,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/samber/lo v1.44.0
 	github.com/shopspring/decimal v1.4.0
+	github.com/stoewer/go-strcase v1.3.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.sia.tech/core v0.2.8
@@ -45,10 +47,13 @@ require (
 )
 
 require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect

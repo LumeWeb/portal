@@ -1,5 +1,7 @@
 package config
 
+import "github.com/invopop/jsonschema"
+
 type Defaults interface {
 	Defaults() map[string]any
 }
@@ -19,6 +21,12 @@ type Manager interface {
 	GetAPI(pluginName string) APIConfig
 	Config() *Config
 	Save() error
+	SaveChanged() error
 	ConfigFile() string
 	ConfigDir() string
+	LiveConfig() *jsonschema.Schema
+	PropertyLiveEditable(property string) bool
+	PropertyLiveReadable(property string) bool
+	PropertyLiveExists(property string) bool
+	LiveUpdateProperty(key string, value any) error
 }
