@@ -9,10 +9,12 @@ func init() {
 type Upload struct {
 	gorm.Model
 	UserID     uint
-	Hash       []byte `gorm:"type:binary(32);uniqueIndex"`
+	HashType   uint
+	Hash       []byte `gorm:"type:binary(64);uniqueIndex:idx_upload_hash_deleted_at"`
 	MimeType   string
 	Protocol   string
 	User       User
 	UploaderIP string
 	Size       uint64
+	DeletedAt  gorm.DeletedAt `gorm:"uniqueIndex:idx_upload_hash_deleted_at"`
 }

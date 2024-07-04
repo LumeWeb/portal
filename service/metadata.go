@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
@@ -94,6 +95,7 @@ func (m *MetadataServiceDefault) createUpload(ctx context.Context, metadata core
 	upload := models.Upload{
 		UserID:     metadata.UserID,
 		Hash:       metadata.Hash,
+		HashType:   metadata.HashType,
 		MimeType:   metadata.MimeType,
 		Protocol:   metadata.Protocol,
 		UploaderIP: metadata.UploaderIP,
@@ -103,10 +105,15 @@ func (m *MetadataServiceDefault) createUpload(ctx context.Context, metadata core
 	return m.db.WithContext(ctx).Create(&upload).Error
 }
 
-func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byte) (core.UploadMetadata, error) {
+func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (core.UploadMetadata, error) {
 	var upload models.Upload
 
-	upload.Hash = objectHash
+	decoded, err := mh.Decode(objectHash.Multihash())
+	if err != nil {
+		return core.UploadMetadata{}, err
+	}
+
+	upload.Hash = decoded.Digest
 
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
@@ -117,10 +124,15 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash []byt
 	return m.uploadToMetadata(upload), nil
 }
 
-func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash []byte) error {
+func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
 	var upload models.Upload
 
-	upload.Hash = objectHash
+	decoded, err := mh.Decode(objectHash.Multihash())
+	if err != nil {
+		return err
+	}
+
+	upload.Hash = decoded.Digest
 
 	ret := m.db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 
@@ -154,6 +166,7 @@ func (m *MetadataServiceDefault) uploadToMetadata(upload models.Upload) core.Upl
 		ID:         upload.ID,
 		UserID:     upload.UserID,
 		Hash:       upload.Hash,
+		HashType:   upload.HashType,
 		MimeType:   upload.MimeType,
 		Protocol:   upload.Protocol,
 		UploaderIP: upload.UploaderIP,
