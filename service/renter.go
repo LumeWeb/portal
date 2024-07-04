@@ -179,13 +179,11 @@ func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileNam
 	return true, &siaUpload, nil
 }
 
-func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.MultiPartUploadParams) error {
+func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.MultipartUploadParams) error {
 	size := params.Size
 	rf := params.ReaderFactory
 	bucket := params.Bucket
 	fileName := params.FileName
-	idHandler := params.UploadIDHandler
-
 	fileName = "/" + strings.TrimLeft(fileName, "/")
 
 	var redundancy api.RedundancySettings
@@ -248,10 +246,6 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 				start = uint64(len(uploadParts)) - 1
 			}
 		}
-	}
-
-	if idHandler != nil {
-		idHandler(uploadId)
 	}
 
 	reader, err := rf(uint(start*slabSize), uint(0))

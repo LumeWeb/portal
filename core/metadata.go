@@ -11,6 +11,7 @@ type UploadMetadata struct {
 	ID         uint      `json:"upload_id"`
 	UserID     uint      `json:"user_id"`
 	Hash       []byte    `json:"hash"`
+	HashType   uint      `json:"hash_type"`
 	MimeType   string    `json:"mime_type"`
 	Protocol   string    `json:"protocol"`
 	UploaderIP string    `json:"uploader_ip"`
@@ -36,8 +37,8 @@ func (u UploadMetadata) IsEmpty() bool {
 
 type MetadataService interface {
 	SaveUpload(ctx context.Context, metadata UploadMetadata, skipExisting bool) error
-	GetUpload(ctx context.Context, objectHash []byte) (UploadMetadata, error)
-	DeleteUpload(ctx context.Context, objectHash []byte) error
+	GetUpload(ctx context.Context, objectHash StorageHash) (UploadMetadata, error)
+	DeleteUpload(ctx context.Context, objectHash StorageHash) error
 	GetAllUploads(ctx context.Context) ([]UploadMetadata, error)
 
 	Service

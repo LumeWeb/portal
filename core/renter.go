@@ -13,12 +13,11 @@ const RENTER_SERVICE = "renter"
 type ReaderFactory func(start uint, end uint) (io.ReadCloser, error)
 type UploadIDHandler func(uploadID string)
 
-type MultiPartUploadParams struct {
-	ReaderFactory   ReaderFactory
-	Bucket          string
-	FileName        string
-	Size            uint64
-	UploadIDHandler UploadIDHandler
+type MultipartUploadParams struct {
+	ReaderFactory ReaderFactory
+	Bucket        string
+	FileName      string
+	Size          uint64
 }
 type RenterService interface {
 	CreateBucketIfNotExists(bucket string) error
@@ -29,7 +28,7 @@ type RenterService interface {
 	DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error
 	GetSetting(ctx context.Context, setting string, out any) error
 	UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error)
-	UploadObjectMultipart(ctx context.Context, params *MultiPartUploadParams) error
+	UploadObjectMultipart(ctx context.Context, params *MultipartUploadParams) error
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
 	GougingSettings(ctx context.Context) (api.GougingSettings, error)

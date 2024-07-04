@@ -25,6 +25,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
+	github.com/multiformats/go-multihash v0.2.3
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
 	github.com/redis/go-redis/v9 v9.5.3
@@ -47,7 +48,11 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/golang/mock v1.6.0 // indirect
+	github.com/minio/sha256-simd v1.0.1 // indirect
+	github.com/mr-tron/base58 v1.2.0 // indirect
+	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
 	google.golang.org/grpc v1.64.0 // indirect

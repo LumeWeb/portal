@@ -19,10 +19,10 @@ type PinService interface {
 	PinByID(uploadId uint, userId uint) error
 
 	// UploadPinnedGlobal checks if the upload with the given hash is pinned globally.
-	UploadPinnedGlobal(hash []byte) (bool, error)
+	UploadPinnedGlobal(hash StorageHash) (bool, error)
 
 	// UploadPinnedByUser checks if the upload with the given hash is pinned by the specified user.
-	UploadPinnedByUser(hash []byte, userId uint) (bool, error)
+	UploadPinnedByUser(hash StorageHash, userId uint) (bool, error)
 
 	Service
 }

@@ -131,11 +131,11 @@ func (p PinServiceDefault) PinByID(uploadId uint, userId uint) error {
 	return nil
 }
 
-func (p PinServiceDefault) UploadPinnedGlobal(hash []byte) (bool, error) {
+func (p PinServiceDefault) UploadPinnedGlobal(hash core.StorageHash) (bool, error) {
 	return p.UploadPinnedByUser(hash, 0)
 }
 
-func (p PinServiceDefault) UploadPinnedByUser(hash []byte, userId uint) (bool, error) {
+func (p PinServiceDefault) UploadPinnedByUser(hash core.StorageHash, userId uint) (bool, error) {
 	upload, err := p.metadata.GetUpload(context.Background(), hash)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

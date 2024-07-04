@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gabriel-vasile/mimetype"
-	"go.lumeweb.com/portal/bao"
+	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -21,10 +21,12 @@ import (
 	"io"
 	"math"
 	"sort"
+	"sync"
 	"time"
 )
 
 var _ core.StorageService = (*StorageServiceDefault)(nil)
+var _ core.StorageHash = (*StorageHashDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -34,6 +36,94 @@ func init() {
 		},
 		Depends: []string{core.RENTER_SERVICE, core.METADATA_SERVICE},
 	})
+}
+
+type StorageHashDefault struct {
+	hash  []byte
+	typ   uint
+	proof []byte
+	mh    mh.Multihash
+}
+
+func (s StorageHashDefault) Proof() []byte {
+	return s.proof
+}
+func (s StorageHashDefault) ProofExists() bool {
+	return len(s.proof) > 0
+}
+
+func (s StorageHashDefault) Multihash() mh.Multihash {
+	if s.mh == nil {
+		_mh, _ := mh.Encode(s.hash, uint64(s.typ))
+		s.mh = _mh
+	}
+
+	return s.mh
+}
+
+func NewStorageHash(hash []byte, typ uint, proof []byte) core.StorageHash {
+	return &StorageHashDefault{
+		hash:  hash,
+		typ:   typ,
+		proof: proof,
+	}
+}
+
+type StorageUploadRequestDefault struct {
+	protocol core.StorageProtocol
+	data     io.ReadSeeker
+	size     uint64
+	muParams *core.MultipartUploadParams
+	hash     core.StorageHash
+}
+
+func (s *StorageUploadRequestDefault) SetProtocol(protocol core.StorageProtocol) {
+	s.protocol = protocol
+}
+
+func (s *StorageUploadRequestDefault) SetData(data io.ReadSeeker) {
+	s.data = data
+}
+
+func (s *StorageUploadRequestDefault) SetSize(size uint64) {
+	s.size = size
+}
+
+func (s *StorageUploadRequestDefault) SetMuParams(muParams *core.MultipartUploadParams) {
+	s.muParams = muParams
+}
+
+func (s *StorageUploadRequestDefault) SetHash(hash core.StorageHash) {
+	s.hash = hash
+}
+
+func (s StorageUploadRequestDefault) Protocol() core.StorageProtocol {
+	return s.protocol
+}
+
+func (s StorageUploadRequestDefault) Data() io.ReadSeeker {
+	return s.data
+}
+
+func (s StorageUploadRequestDefault) Size() uint64 {
+	return s.size
+}
+
+func (s StorageUploadRequestDefault) MuParams() *core.MultipartUploadParams {
+	return s.muParams
+}
+
+func (s StorageUploadRequestDefault) Hash() core.StorageHash {
+	return s.hash
+}
+
+// NewStorageUploadRequest creates a new StorageUploadRequest with the given options
+func NewStorageUploadRequest(options ...core.StorageUploadOption) core.StorageUploadRequest {
+	request := &StorageUploadRequestDefault{}
+	for _, option := range options {
+		option(request)
+	}
+	return request
 }
 
 type StorageServiceDefault struct {
@@ -63,45 +153,86 @@ func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, e
 	return storage, opts, nil
 }
 
-func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol core.StorageProtocol, data io.ReadSeeker, size uint64, muParams *core.MultiPartUploadParams, proof *bao.Result) (*core.UploadMetadata, error) {
-	readers := make([]io.ReadCloser, 0)
-	defer func() {
-		for _, reader := range readers {
-			err := reader.Close()
-			if err != nil {
-				s.logger.Error("error closing reader", zap.Error(err))
-			}
-		}
-	}()
+// readerPool manages a pool of readers for large, potentially non-seekable data streams
+type readerPool struct {
+	readers []io.ReadCloser
+	mu      sync.Mutex
+	logger  *core.Logger
+}
 
-	getReader := func() (io.Reader, error) {
-		if muParams != nil {
-			muReader, err := muParams.ReaderFactory(0, uint(muParams.Size))
-			if err != nil {
-				return nil, err
-			}
+// newReaderPool creates a new readerPool
+func newReaderPool(logger *core.Logger) *readerPool {
+	return &readerPool{
+		readers: make([]io.ReadCloser, 0),
+		logger:  logger,
+	}
+}
 
-			found := false
-			for _, reader := range readers {
-				if reader == muReader {
-					found = true
-					break
-				}
-			}
+// GetReader returns a reader, either by creating a new one or reusing an existing one
+func (rp *readerPool) GetReader(params *core.MultipartUploadParams, data io.ReadSeeker) (io.Reader, error) {
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
 
-			if !found {
-				readers = append(readers, muReader)
-			}
-
-			return muReader, nil
-		}
-
-		_, err := data.Seek(0, io.SeekStart)
+	if params != nil {
+		muReader, err := params.ReaderFactory(0, uint(params.Size))
 		if err != nil {
 			return nil, err
 		}
+		for _, r := range rp.readers {
+			if r == muReader {
+				return muReader, nil
+			}
+		}
+		rp.readers = append(rp.readers, muReader)
+		return muReader, nil
+	}
 
-		return data, nil
+	if _, err := data.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// Close closes all readers in the pool
+func (rp *readerPool) Close() {
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
+
+	for _, reader := range rp.readers {
+		if err := reader.Close(); err != nil {
+			rp.logger.Error("error closing reader", zap.Error(err))
+		}
+	}
+	rp.readers = rp.readers[:0] // Clear the slice
+}
+
+func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*core.UploadMetadata, error) {
+	rp := newReaderPool(s.logger)
+	defer rp.Close()
+
+	getReader := func() (io.Reader, error) {
+		return rp.GetReader(request.MuParams(), request.Data())
+	}
+
+	var hash core.StorageHash
+	var err error
+
+	if request.Hash() != nil {
+		hash = request.Hash()
+	} else {
+		reader, err := getReader()
+		if err != nil {
+			return nil, err
+		}
+		hash, err = s.getObjectProof(request.Protocol(), reader, request.Size())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	meta, err := s.metadata.GetUpload(ctx, hash)
+	if err == nil {
+		return &meta, nil
 	}
 
 	reader, err := getReader()
@@ -109,98 +240,80 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, protocol core.S
 		return nil, err
 	}
 
-	if proof == nil {
-		hashResult, err := s.HashObject(ctx, reader, size)
-		if err != nil {
-			return nil, err
-		}
-		proof = hashResult
-	}
-
-	meta, err := s.metadata.GetUpload(ctx, proof.Hash)
-	if err == nil {
-		return &meta, nil
-	}
-
-	reader, err = getReader()
+	mimeType, err := s.detectMimeType(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	mimeType, err := mimetype.DetectReader(reader)
-	if err != nil {
-		if !errors.Is(err, io.ErrUnexpectedEOF) {
-			return nil, err
-		}
-
-		reader, err = getReader()
-		if err != nil {
-			return nil, err
-		}
-
-		mimeBytes, err := io.ReadAll(reader)
-		if err != nil {
-			return nil, err
-		}
-
-		mimeType = mimetype.Detect(mimeBytes)
-	}
-
-	reader, err = getReader()
-	if err != nil {
+	protocolName := request.Protocol().Name()
+	if err := s.renter.CreateBucketIfNotExists(protocolName); err != nil {
 		return nil, err
 	}
 
-	protocolName := protocol.Name()
+	filename := request.Protocol().EncodeFileName(hash)
 
-	err = s.renter.CreateBucketIfNotExists(protocolName)
-	if err != nil {
-		return nil, err
+	if hash.ProofExists() {
+		if err := s.UploadObjectProof(ctx, request.Protocol(), nil, hash, request.Size()); err != nil {
+			return nil, err
+		}
 	}
 
-	filename := protocol.EncodeFileName(proof.Hash)
-
-	err = s.UploadObjectProof(ctx, protocol, nil, proof, size)
-
+	decoded, err := mh.Decode(hash.Multihash())
 	if err != nil {
 		return nil, err
 	}
 
 	uploadMeta := &core.UploadMetadata{
 		Protocol: protocolName,
-		Hash:     proof.Hash,
+		Hash:     decoded.Digest,
+		HashType: uint(decoded.Code),
 		MimeType: mimeType.String(),
-		Size:     uint64(proof.Length),
+		Size:     request.Size(),
 	}
 
-	if muParams != nil {
-		muParams.FileName = filename
-		muParams.Bucket = protocolName
-
-		err = s.renter.UploadObjectMultipart(ctx, muParams)
-		if err != nil {
-			return nil, err
-		}
-
-		return uploadMeta, nil
+	if params := request.MuParams(); params != nil {
+		params.FileName = filename
+		params.Bucket = protocolName
+		params.Size = request.Size()
+		return uploadMeta, s.renter.UploadObjectMultipart(ctx, params)
 	}
 
-	err = s.renter.UploadObject(ctx, reader, protocolName, filename)
+	reader, err = getReader()
 	if err != nil {
 		return nil, err
 	}
 
-	return uploadMeta, nil
+	return uploadMeta, s.renter.UploadObject(ctx, reader, protocolName, filename)
 }
 
-func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol core.StorageProtocol, data io.ReadSeeker, proof *bao.Result, size uint64) error {
+func (s StorageServiceDefault) detectMimeType(reader io.Reader) (*mimetype.MIME, error) {
+	mimeType, err := mimetype.DetectReader(reader)
+	if err != nil {
+		if !errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil, err
+		}
+		// If we hit EOF, we'll read all available data and detect from that
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		mimeType = mimetype.Detect(data)
+	}
+	return mimeType, nil
+}
+
+func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol core.StorageProtocol, data io.ReadSeeker, proof core.StorageHash, size uint64) error {
 	if proof == nil {
-		hashResult, err := s.HashObject(ctx, data, size)
+		hashResult, err := s.getObjectProof(protocol, data, size)
 		if err != nil {
 			return err
 		}
 
 		proof = hashResult
+	}
+
+	if !proof.ProofExists() {
+		return core.ErrProofNotSupported
 	}
 
 	protocolName := protocol.Name()
@@ -211,21 +324,24 @@ func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol c
 		return err
 	}
 
-	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof), protocolName, s.getProofPath(protocol, proof.Hash))
+	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof()), protocolName, s.getProofPath(protocol, proof))
 }
 
-func (s StorageServiceDefault) HashObject(ctx context.Context, data io.Reader, size uint64) (*bao.Result, error) {
-	result, err := bao.Hash(data, size)
-
+func (s StorageServiceDefault) getObjectProof(protocol core.StorageProtocol, data io.Reader, size uint64) (core.StorageHash, error) {
+	hashResult, err := protocol.Hash(data, size)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	if !hashResult.ProofExists() {
+		return nil, core.ErrProofNotSupported
+	}
+
+	return hashResult, nil
 }
 
-func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash []byte, start int64) (io.ReadCloser, error) {
-	var partialRange api.DownloadRange
+func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, start int64) (io.ReadCloser, error) {
+	var partialRange *api.DownloadRange = nil
 
 	upload, err := s.metadata.GetUpload(ctx, objectHash)
 	if err != nil {
@@ -233,13 +349,13 @@ func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core
 	}
 
 	if start > 0 {
-		partialRange = api.DownloadRange{
+		partialRange = &api.DownloadRange{
 			Offset: start,
 			Length: int64(upload.Size) - start + 1,
 		}
 	}
 
-	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: &partialRange})
+	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: partialRange})
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +363,7 @@ func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core
 	return object.Content, nil
 }
 
-func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash []byte) (io.ReadCloser, error) {
+func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) (io.ReadCloser, error) {
 	object, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), api.DownloadObjectOptions{})
 	if err != nil {
 		return nil, err
@@ -256,7 +372,7 @@ func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol
 	return object.Content, nil
 }
 
-func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash []byte) error {
+func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
 	err := s.renter.DeleteObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash))
 	if err != nil {
 		return err
@@ -265,7 +381,7 @@ func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.S
 	return nil
 }
 
-func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash []byte) error {
+func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
 	err := s.renter.DeleteObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash))
 	if err != nil {
 		return err
@@ -467,6 +583,6 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 }
 
-func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash []byte) string {
+func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {
 	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), core.PROOF_EXTENSION)
 }

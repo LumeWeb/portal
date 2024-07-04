@@ -47,7 +47,7 @@ func NewDNSLinkService() (*DNSLinkServiceDefault, []core.ContextBuilderOption, e
 	return dnslinkService, opts, nil
 }
 
-func (p DNSLinkServiceDefault) DNSLinkExists(hash []byte) (bool, *models.DNSLink, error) {
+func (p DNSLinkServiceDefault) DNSLinkExists(hash core.StorageHash) (bool, *models.DNSLink, error) {
 	upload, err := p.metadata.GetUpload(context.Background(), hash)
 	if err != nil {
 		return false, nil, err
