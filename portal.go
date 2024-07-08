@@ -5,6 +5,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
+	"go.lumeweb.com/portal/event"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"
@@ -113,6 +114,11 @@ func (p *PortalImpl) Start() error {
 	}
 
 	if err := p.startMailer(ctx); err != nil {
+		return err
+	}
+
+	if err := p.fireBootCompleteEvent(ctx); err != nil {
+		ctx.Logger().Error("Error firing boot complete event", zap.Error(err))
 		return err
 	}
 
@@ -436,6 +442,7 @@ func (p *PortalImpl) startMailer(ctx core.Context) error {
 
 	return nil
 }
+
 func (p *PortalImpl) stopProtocols(ctx core.Context) error {
 	for _, proto := range core.GetProtocols() {
 		if stopPlugin, ok := proto.(core.ProtocolStop); ok {
@@ -457,6 +464,10 @@ func (p *PortalImpl) runExitFuncs(ctx core.Context) error {
 	}
 
 	return nil
+}
+
+func (p *PortalImpl) fireBootCompleteEvent(ctx core.Context) error {
+	return event.FireBootCompleteEvent(ctx)
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
