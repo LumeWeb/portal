@@ -42,6 +42,18 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
+	opts, err = p.registerProtocols(&ctx)
+	if err != nil {
+		return err
+	}
+	ctxOpts = append(ctxOpts, opts...)
+
+	opts, err = p.registerAPIs(&ctx)
+	if err != nil {
+		return err
+	}
+	ctxOpts = append(ctxOpts, opts...)
+
 	opts, err = p.initModels(&ctx, dbInst)
 	if err != nil {
 		return err
@@ -175,6 +187,53 @@ func (p *PortalImpl) initServices(ctx *core.Context) (ctxOpts []core.ContextBuil
 					return nil, err
 				}
 			}
+		}
+	}
+
+	return ctxOpts, nil
+}
+
+func (p *PortalImpl) registerProtocols(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+	plugins := core.GetPlugins()
+
+	for _, plugin := range plugins {
+		if core.PluginHasProtocol(plugin) {
+			_proto, opts, err := plugin.Protocol()
+			if err != nil {
+				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
+				return nil, err
+			}
+
+			if _proto == nil {
+				continue
+			}
+
+			ctxOpts = append(ctxOpts, opts...)
+
+			core.RegisterProtocol(plugin.ID, _proto)
+		}
+	}
+
+	return ctxOpts, nil
+}
+
+func (p *PortalImpl) registerAPIs(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+	plugins := core.GetPlugins()
+
+	for _, plugin := range plugins {
+		if core.PluginHasAPI(plugin) {
+			api, opts, err := plugin.API()
+			if err != nil {
+				ctx.Logger().Error("Error building API", zap.String("plugin", plugin.ID), zap.Error(err))
+				return nil, err
+			}
+
+			if api == nil {
+				continue
+			}
+
+			ctxOpts = append(ctxOpts, opts...)
+			core.RegisterAPI(plugin.ID, api)
 		}
 	}
 
