@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 	"time"
@@ -55,8 +56,9 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 	reset.Token = token
 	reset.ExpiresAt = time.Now().Add(time.Hour)
 
-	err := p.db.Create(&reset).Error
-	if err != nil {
+	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.Create(&reset)
+	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
@@ -77,17 +79,18 @@ func (p PasswordResetServiceDefault) ResetPassword(email string, token string, p
 
 	reset.Token = token
 
-	result := p.db.Model(&reset).
-		Preload("User").
-		Where(&reset).
-		First(&reset)
+	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&reset).
+			Preload("User").
+			Where(&reset).
+			First(&reset)
 
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return core.NewAccountError(core.ErrKeyUserNotFound, result.Error)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return core.NewAccountError(core.ErrKeyUserNotFound, err)
 		}
 
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	if reset.ExpiresAt.Before(time.Now()) {
@@ -112,8 +115,10 @@ func (p PasswordResetServiceDefault) ResetPassword(email string, token string, p
 		UserID: reset.UserID,
 	}
 
-	if result := p.db.Where(&reset).Delete(&reset); result.Error != nil {
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+	if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(&reset).Delete(&reset)
+	}); err != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	return nil

@@ -7,6 +7,7 @@ import (
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	_event "go.lumeweb.com/portal/event"
 	"golang.org/x/crypto/bcrypt"
@@ -107,19 +108,20 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 		PasswordHash: passwordHash,
 	}
 
-	result := u.db.Create(&user)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+	if err = db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Create(&user)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 		}
 
-		if err, ok := result.Error.(*mysql.MySQLError); ok {
+		if err, ok := err.(*mysql.MySQLError); ok {
 			if err.Number == 1062 {
 				return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 			}
 		}
 
-		return nil, core.NewAccountError(core.ErrKeyAccountCreationFailed, result.Error)
+		return nil, core.NewAccountError(core.ErrKeyAccountCreationFailed, err)
 	}
 
 	if verifyEmail {
@@ -184,14 +186,21 @@ func (u UserServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 
 	user.ID = id
 
-	result := u.db.Model(&user).Where(&user).First(&user)
+	var rowsAffected int64
 
-	if result.RowsAffected == 0 || result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, result.Error)
+	err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Model(&user).Where(&user).First(&user)
+		rowsAffected = tx.RowsAffected
+
+		return tx
+	})
+
+	if rowsAffected == 0 || err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
 
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	valid := u.ValidLoginByUserObj(&user, password)
@@ -214,10 +223,11 @@ func (u UserServiceDefault) UpdateAccountInfo(userId uint, info models.User) err
 
 	user.ID = userId
 
-	result := u.db.Model(&models.User{}).Where(&user).Updates(info)
+	if err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&models.User{}).Where(&user).Updates(info)
 
-	if result.Error != nil {
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+	}); err != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	return nil
@@ -231,27 +241,34 @@ func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) 
 	model.Key = pubkey
 	model.UserID = user.ID
 
-	result := u.db.Create(&model)
+	if err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Create(&model)
 
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return core.NewAccountError(core.ErrKeyPublicKeyExists, result.Error)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return core.NewAccountError(core.ErrKeyPublicKeyExists, err)
 		}
 
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	return nil
 }
 
 func (u UserServiceDefault) Exists(model any, conditions map[string]any) (bool, any, error) {
+	var rowsAffected int64
 	// Conduct a query with the provided model and conditions
-	result := u.db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
+	err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Preload(clause.Associations).Model(model).Where(conditions).First(model)
+		rowsAffected = tx.RowsAffected
+
+		return tx
+	})
 
 	// Check if any rows were found
-	exists := result.RowsAffected > 0
+	exists := rowsAffected > 0
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return false, nil, nil
 	}
 
@@ -259,7 +276,7 @@ func (u UserServiceDefault) Exists(model any, conditions map[string]any) (bool, 
 		return true, model, nil
 	}
 
-	return false, model, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+	return false, model, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 }
 
 func (u UserServiceDefault) SendEmailVerification(userId uint) error {
@@ -284,8 +301,9 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 	verification.Token = token
 	verification.ExpiresAt = time.Now().Add(time.Hour)
 
-	err = u.db.Create(&verification).Error
-	if err != nil {
+	if err = db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Create(&verification)
+	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
@@ -306,13 +324,13 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 
 	verification.Token = token
 
-	result := u.db.Model(&verification).
-		Preload("User").
-		Where(&verification).
-		First(&verification)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&verification).
+			Preload("User").
+			Where(&verification).
+			First(&verification)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
 		}
 
@@ -354,8 +372,10 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 		UserID: verification.UserID,
 	}
 
-	if result := u.db.Where(&verification).Delete(&verification); result.Error != nil {
-		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+	if err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
+		return db.Where(&verification).Delete(&verification)
+	}); err != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	return nil

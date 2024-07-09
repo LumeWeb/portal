@@ -14,6 +14,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.sia.tech/renterd/api"
 	"go.uber.org/zap"
@@ -443,10 +444,11 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	var totalUploadDuration time.Duration
 	var currentAverageDuration time.Duration
 
-	ret := s.db.Model(&s3Upload).First(&s3Upload)
-	if ret.Error != nil {
-		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
-			return ret.Error
+	if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
+		return db.Model(&s3Upload).First(&s3Upload)
+	}); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
 	} else {
 		uploadId = s3Upload.UploadID
@@ -488,9 +490,10 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		uploadId = *mu.UploadId
 
 		s3Upload.UploadID = uploadId
-		ret = s.db.Save(&s3Upload)
-		if ret.Error != nil {
-			return ret.Error
+		if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
+			return db.Create(&s3Upload)
+		}); err != nil {
+			return err
 		}
 	}
 
@@ -558,8 +561,10 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		return err
 	}
 
-	if tx := s.db.Delete(&s3Upload); tx.Error != nil {
-		return tx.Error
+	if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
+		return db.Delete(&s3Upload)
+	}); err != nil {
+		return err
 	}
 
 	endTime := time.Now()
