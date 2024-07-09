@@ -14,12 +14,12 @@ const CRON_SERVICE = "cron"
 
 type CronService interface {
 	RegisterEntity(entity Cronable)
-	RegisterTask(name string, taskFunc CronTaskFunction, taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction)
-	CreateJob(function string, args any, tags []string) error
-	JobExists(function string, args any, tags []string) (bool, *models.CronJob)
-	CreateJobScheduled(function string, args any, tags []string, jobDef gocron.JobDefinition) error
+	RegisterTask(name string, taskFunc CronTaskFunction, taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction, recurring bool)
+	CreateJob(function string, args any) error
+	JobExists(function string, args any) (bool, *models.CronJob)
+	CreateJobScheduled(function string, args any, jobDef gocron.JobDefinition) error
 	CreateExistingJobScheduled(uuid uuid.UUID, jobDef gocron.JobDefinition) error
-	CreateJobIfNotExists(function string, args any, tags []string) error
+	CreateJobIfNotExists(function string, args any) error
 
 	Start() error
 	Service
