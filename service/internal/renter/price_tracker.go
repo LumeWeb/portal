@@ -278,21 +278,20 @@ func (p PriceTracker) importPrices(_ any, _ core.Context) error {
 	return nil
 }
 
-func (p *PriceTracker) init() error {
+func (p *PriceTracker) Init() error {
 	p.cron.RegisterEntity(p)
 	p.api = siasdk.NewSiaClient()
 
 	return nil
 }
 
-func NewPriceTracker(ctx *core.Context, api *siasdksia.APIClient) *PriceTracker {
+func NewPriceTracker(ctx core.Context) *PriceTracker {
 	return &PriceTracker{
 		config: ctx.Config(),
 		logger: ctx.Logger(),
 		cron:   ctx.Service(core.CRON_SERVICE).(core.CronService),
 		db:     ctx.DB(),
 		renter: ctx.Service(core.RENTER_SERVICE).(core.RenterService),
-		api:    api,
 	}
 
 }

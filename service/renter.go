@@ -6,6 +6,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	renterInternal "go.lumeweb.com/portal/service/internal/renter"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/renterd/api"
 	autoPilotClient "go.sia.tech/renterd/autopilot"
@@ -59,7 +60,14 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 				renter.logger.Error("failed to initialize renter service", zap.Error(err))
 			}
 
-			return err
+			tracker := renterInternal.NewPriceTracker(ctx)
+			err = tracker.Init()
+
+			if err != nil {
+				return err
+			}
+
+			return nil
 		}),
 	)
 
