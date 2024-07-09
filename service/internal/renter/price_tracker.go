@@ -102,26 +102,25 @@ func (p PriceTracker) recordRate(_ any, _ core.Context) error {
 func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 	var averageRate decimal.Decimal
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
-	sql := `
-SELECT AVG(rate) as average_rate FROM (
-  SELECT rate FROM (
-    SELECT rate, ROW_NUMBER() OVER (PARTITION BY DATE(created_at) ORDER BY created_at DESC) as rn
-    FROM sc_price_history
-    WHERE created_at >= NOW() - INTERVAL ? day
-  ) tmp WHERE rn = 1
-) final;
-`
-	err := p.db.Raw(sql, days).Scan(&averageRate).Error
-	if err != nil {
-		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Uint64("days", days))
-		return err
+
+	subQuery := p.db.Table("sc_price_history").
+		Select("rate, DATE(created_at) as date, ROW_NUMBER() OVER (PARTITION BY DATE(created_at) ORDER BY created_at DESC) as rn").
+		Where("created_at >= ?", gorm.Expr("DATE_SUB(NOW(), INTERVAL ? DAY)", days))
+
+	result := p.db.Table("(?) as tmp", subQuery).
+		Select("AVG(rate) as average_rate").
+		Where("rn = ?", 1).
+		Scan(&averageRate)
+
+	if result.Error != nil {
+		p.logger.Error("failed to fetch average rate", zap.Error(result.Error), zap.Uint64("days", days))
+		return result.Error
 	}
 
 	if averageRate.Equal(decimal.Zero) {
 		p.logger.Error("average rate is 0")
 		return errors.New("average rate is 0")
 	}
-
 	ctx := context.Background()
 
 	gouge, err := p.renter.GougingSettings(ctx)
