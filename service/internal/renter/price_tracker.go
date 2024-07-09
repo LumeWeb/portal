@@ -289,9 +289,9 @@ func NewPriceTracker(ctx *core.Context, api *siasdksia.APIClient) *PriceTracker 
 	return &PriceTracker{
 		config: ctx.Config(),
 		logger: ctx.Logger(),
-		cron:   ctx.Services().Cron(),
+		cron:   ctx.Service(core.CRON_SERVICE).(core.CronService),
 		db:     ctx.DB(),
-		renter: ctx.Services().Renter(),
+		renter: ctx.Service(core.RENTER_SERVICE).(core.RenterService),
 		api:    api,
 	}
 
