@@ -7,7 +7,10 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"math"
 	"path"
+	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 
@@ -139,4 +142,33 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	}
 
 	return nil
+}
+func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
+	initialBackoff := 100 * time.Millisecond
+	maxBackoff := 10 * time.Second
+	attempt := 0
+
+	for {
+		result := operation(db)
+		if result.Error == nil {
+			return nil
+		}
+
+		if !isLockError(result.Error) {
+			return result.Error
+		}
+
+		backoff := float64(initialBackoff) * math.Pow(2, float64(attempt))
+		sleepDuration := time.Duration(math.Min(backoff, float64(maxBackoff)))
+		time.Sleep(sleepDuration)
+		attempt++
+	}
+}
+
+// isLockError checks if the given error is a database lock error
+func isLockError(err error) bool {
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "deadlock") ||
+		strings.Contains(errMsg, "lock wait timeout") ||
+		strings.Contains(errMsg, "database is locked")
 }
