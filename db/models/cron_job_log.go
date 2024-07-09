@@ -11,7 +11,7 @@ const (
 )
 
 func init() {
-	registerModel(&CronJob{})
+	registerModel(&CronJobLog{})
 }
 
 type CronJobLog struct {
