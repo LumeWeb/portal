@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/db/types"
 	"gorm.io/gorm"
+	"time"
 )
 
 func init() {
@@ -13,9 +14,10 @@ func init() {
 type CronJob struct {
 	gorm.Model
 	UUID     types.BinaryUUID
-	Tags     []string `gorm:"serializer:json;type:text;"`
-	Function string   `gorm:"type:varchar(255);"`
-	Args     string   `gorm:"type:longtext;"`
+	Function string `gorm:"type:varchar(255);"`
+	Args     string `gorm:"type:longtext;"`
+	LastRun  *time.Time
+	Failures uint
 }
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {

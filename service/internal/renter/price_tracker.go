@@ -39,19 +39,19 @@ type PriceTracker struct {
 }
 
 func (p PriceTracker) RegisterTasks(crn core.CronService) error {
-	crn.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, cronTaskRecordSiaRateDefinition, nopArgsFactory)
-	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory)
-	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory)
+	crn.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, cronTaskRecordSiaRateDefinition, nopArgsFactory, true)
+	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
+	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
 	return nil
 }
 
 func (p PriceTracker) ScheduleJobs(crn core.CronService) error {
 	rateJob := cronTaskRecordSiaRateDefinition()
 
-	exists, rateJobItem := crn.JobExists(cronTaskRecordSiaRateName, nil, nil)
+	exists, rateJobItem := crn.JobExists(cronTaskRecordSiaRateName, nil)
 
 	if !exists {
-		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil, nil, rateJob)
+		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil, rateJob)
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func (p PriceTracker) ScheduleJobs(crn core.CronService) error {
 		}
 	}
 
-	err := crn.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil, nil)
+	err := crn.CreateJobIfNotExists(cronTaskImportSiaPriceHistoryName, nil)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (p PriceTracker) recordRate(_ any, _ core.Context) error {
 		p.logger.Error("failed to save price history", zap.Error(tx.Error))
 	}
 
-	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 		return err
 	}
 
-	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func (p PriceTracker) importPrices(_ any, _ core.Context) error {
 		}
 	}
 
-	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil, nil)
+	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil)
 	if err != nil {
 		return err
 	}
