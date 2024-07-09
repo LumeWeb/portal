@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	renterInternal "go.lumeweb.com/portal/service/internal/renter"
 	rhpv2 "go.sia.tech/core/rhp/v2"
@@ -176,12 +177,13 @@ func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileNam
 	siaUpload.Bucket = bucket
 	siaUpload.Key = fileName
 
-	ret := r.db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
-	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+	if err := db.RetryOnLock(r.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&models.SiaUpload{}).Where(&siaUpload).First(&siaUpload)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil, nil
 		}
-		return false, nil, ret.Error
+		return false, nil, err
 	}
 
 	return true, &siaUpload, nil
@@ -213,10 +215,13 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 	siaUpload.Bucket = bucket
 	siaUpload.Key = fileName
 
-	ret := r.db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
-	if ret.Error != nil {
-		if !errors.Is(ret.Error, gorm.ErrRecordNotFound) {
-			return ret.Error
+	err = db.RetryOnLock(r.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
+
+	})
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
 	} else {
 		uploadId = siaUpload.UploadID
@@ -230,8 +235,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 
 		uploadId = upload.UploadID
 		siaUpload.UploadID = uploadId
-		if tx := r.db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload); tx.Error != nil {
-			return tx.Error
+		if err = db.RetryOnLock(r.db, func(db *gorm.DB) *gorm.DB {
+			return db.WithContext(ctx).Create(&siaUpload)
+		}); err != nil {
+			return err
 		}
 	} else {
 		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
@@ -288,8 +295,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 
 		siaUpload.UpdatedAt = time.Now()
 
-		if tx := r.db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload); tx.Error != nil {
-			return tx.Error
+		if err = db.RetryOnLock(r.db, func(db *gorm.DB) *gorm.DB {
+			return db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload)
+		}); err != nil {
+			return err
 		}
 	}
 
@@ -298,8 +307,10 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 		return err
 	}
 
-	if tx := r.db.WithContext(ctx).Delete(&siaUpload); tx.Error != nil {
-		return tx.Error
+	if err = db.RetryOnLock(r.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Delete(&siaUpload)
+	}); err != nil {
+		return err
 	}
 
 	return nil

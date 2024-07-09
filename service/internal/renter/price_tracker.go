@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"math/big"
 	"time"
 
@@ -87,8 +88,10 @@ func (p PriceTracker) recordRate(_ any, _ core.Context) error {
 
 	history.Rate = siaPrice
 
-	if tx := p.db.Create(&history); tx.Error != nil {
-		p.logger.Error("failed to save price history", zap.Error(tx.Error))
+	if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.Create(&history)
+	}); err != nil {
+		p.logger.Error("failed to save price history", zap.Error(err))
 	}
 
 	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil)
@@ -110,7 +113,10 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
     WHERE created_at >= DATE('now', '-' || ? || ' days')
     `
 
-	err := p.db.Raw(sql, days).Scan(&averageRate).Error
+	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.Raw(sql, days).Scan(&averageRate)
+	})
+
 	if err != nil {
 		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Uint64("days", days))
 		return err
@@ -214,18 +220,20 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 	return nil
 }
 
-func (p PriceTracker) importPrices(_ any, _ core.Context) error {
+func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
 	var existingDates []time.Time
 	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
 	startDate := time.Now().UTC().AddDate(0, 0, -daysOfHistory)
 
 	// Query to find which dates already have records within the last daysOfHistory days
-	err := p.db.Model(&models.SCPriceHistory{}).
-		Where("created_at >= ?", startDate).
-		Select("DATE(created_at) as date").
-		Group("DATE(created_at)").
-		Order("date ASC").
-		Pluck("date", &existingDates).Error
+	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&models.SCPriceHistory{}).
+			Where("created_at >= ?", startDate).
+			Select("DATE(created_at) as date").
+			Group("DATE(created_at)").
+			Order("date ASC").
+			Pluck("date", &existingDates)
+	})
 
 	if err != nil {
 		p.logger.Error("failed to fetch existing historical dates", zap.Error(err))
@@ -261,8 +269,9 @@ func (p PriceTracker) importPrices(_ any, _ core.Context) error {
 				CreatedAt: timestamp,
 			}
 
-			err = p.db.Create(&priceRecord).Error
-			if err != nil {
+			if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+				return db.Create(priceRecord)
+			}); err != nil {
 				p.logger.Error("failed to create historical record for date", zap.String("date", dateKey), zap.Error(err))
 				return err
 			}

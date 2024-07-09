@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -90,15 +91,19 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
 
 func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error) {
 	var model models.PublicKey
+	var rowsAffected int64
 
-	result := a.db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
+	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
+		rowsAffected = tx.RowsAffected
+		return tx
+	})
 
-	if result.RowsAffected == 0 || result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return "", core.NewAccountError(core.ErrKeyInvalidLogin, result.Error)
+	if rowsAffected == 0 || err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-
-		return "", core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return "", core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	user := model.User
@@ -117,15 +122,19 @@ func (a AuthServiceDefault) ValidLoginByUserObj(user *models.User, password stri
 
 func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bool, *models.User, error) {
 	var user models.User
+	var rowsAffected int64
 
-	result := a.db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+		rowsAffected = tx.RowsAffected
+		return tx
+	})
 
-	if result.RowsAffected == 0 || result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, result.Error)
+	if rowsAffected == 0 || err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	valid := a.ValidLoginByUserObj(&user, password)
@@ -139,17 +148,21 @@ func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bo
 
 func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
 	var user models.User
+	var rowsAffected int64
 
 	user.ID = id
 
-	result := a.db.Model(&user).Where(&user).First(&user)
+	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Model(&user).Where(&user).First(&user)
+		rowsAffected = tx.RowsAffected
+		return tx
+	})
 
-	if result.RowsAffected == 0 || result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, result.Error)
+	if rowsAffected == 0 || err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, result.Error)
+		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	valid := a.ValidLoginByUserObj(&user, password)

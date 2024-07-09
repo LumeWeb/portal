@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
 	"go.uber.org/zap"
@@ -196,8 +197,10 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 
 		job.UUID = types.BinaryUUID(jobID)
 		lastRun := time.Now()
-		if tx := c.db.Model(&models.CronJob{}).Where(&job).Updates(&models.CronJob{LastRun: &lastRun}); tx.Error != nil {
-			return tx.Error
+		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return db.Model(&models.CronJob{}).Where(&job).Updates(&models.CronJob{LastRun: &lastRun})
+		}); err != nil {
+			return err
 		}
 		return nil
 	}
@@ -214,12 +217,16 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 			c.logger.Error("Failed to update last run", zap.Error(err))
 		}
 
-		if tx := c.db.Model(&models.CronJob{}).Where(&job).Update("failures", gorm.Expr("failures + ?", 1)); tx.Error != nil {
-			c.logger.Error("Failed to update failures", zap.Error(tx.Error))
+		if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return db.Model(&models.CronJob{}).Where(&job).Update("failures", gorm.Expr("failures + ?", 1))
+		}); err != nil {
+			c.logger.Error("Failed to update failures", zap.Error(err))
 		}
 
 		var updatedJob models.CronJob
-		if err = c.db.Where(&job).First(&updatedJob).Error; err != nil {
+		if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return db.Where(&job).First(&updatedJob)
+		}); err != nil {
 			c.logger.Error("Failed to fetch updated job", zap.Error(err))
 			return
 		}
@@ -230,8 +237,10 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 			Message:   jobErr.Error(),
 		}
 
-		if tx := c.db.Create(cronLog); tx.Error != nil {
-			c.logger.Error("Failed to create cron job log", zap.Error(tx.Error))
+		if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return db.Create(cronLog)
+		}); err != nil {
+			c.logger.Error("Failed to create cron job log", zap.Error(err))
 		}
 
 		err = c.kickOffJob(&updatedJob, jobDef, updatedJob.Failures)
@@ -248,8 +257,10 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 			c.logger.Error("Failed to update last run", zap.Error(err))
 		}
 
-		if tx := c.db.Model(&models.CronJob{}).Where(&job).Update("failures", 0); tx.Error != nil {
-			c.logger.Error("Failed to clear failures", zap.Error(tx.Error))
+		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return db.Model(&models.CronJob{}).Where(&job).Update("failures", 0)
+		}); err != nil {
+			c.logger.Error("Failed to clear failures", zap.Error(err))
 		}
 
 		if isRecurring(&job) {
@@ -264,8 +275,10 @@ func (c *CronServiceDefault) kickOffJob(job *models.CronJob, jobDef gocron.JobDe
 				c.logger.Error("Failed to update job", zap.Error(err))
 			}
 		} else {
-			if tx := c.db.Model(&models.CronJob{}).Where(&job).Delete(&job); tx.Error != nil {
-				c.logger.Error("Failed to delete job", zap.Error(tx.Error))
+			if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+				return db.Model(&models.CronJob{}).Where(&job).Delete(&job)
+			}); err != nil {
+				c.logger.Error("Failed to delete job", zap.Error(err))
 			}
 		}
 	}
@@ -324,10 +337,10 @@ func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID, jobDef g
 
 	job.UUID = types.BinaryUUID(uuid)
 
-	result := c.db.First(&job)
-
-	if result.Error != nil {
-		return result.Error
+	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+		return db.First(&job)
+	}); err != nil {
+		return err
 	}
 
 	return c.kickOffJob(&job, jobDef, job.Failures)

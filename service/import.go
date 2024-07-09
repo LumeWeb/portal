@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
@@ -75,13 +76,13 @@ func (i ImportServiceDefault) SaveImport(ctx context.Context, metadata core.Impo
 
 	__import.Hash = metadata.Hash
 
-	ret := i.db.WithContext(ctx).Model(&models.Import{}).Where(&__import).First(&__import)
-
-	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+	if err := db.RetryOnLock(i.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&models.Import{}).Where(&__import).First(&__import)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return i.createImport(ctx, metadata)
 		}
-		return ret.Error
+		return err
 	}
 
 	if skipExisting {
@@ -143,14 +144,14 @@ func (i ImportServiceDefault) GetImport(ctx context.Context, objectHash []byte) 
 
 	_import.Hash = objectHash
 
-	ret := i.db.WithContext(ctx).Model(&models.Import{}).Where(&_import).First(&_import)
+	if err := db.RetryOnLock(i.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&models.Import{}).Where(&_import).First(&_import)
 
-	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return core.ImportMetadata{}, ErrNotFound
 		}
-		return core.ImportMetadata{}, ret.Error
-
+		return core.ImportMetadata{}, err
 	}
 
 	return core.ImportMetadata{
@@ -170,13 +171,13 @@ func (i ImportServiceDefault) DeleteImport(ctx context.Context, objectHash []byt
 
 	_import.Hash = objectHash
 
-	ret := i.db.WithContext(ctx).Model(&models.Import{}).Where(&_import).Delete(&_import)
-
-	if ret.Error != nil {
-		if errors.Is(ret.Error, gorm.ErrRecordNotFound) {
+	if err := db.RetryOnLock(i.db, func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(ctx).Model(&models.Import{}).Where(&_import).First(&_import)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
 		}
-		return ret.Error
+		return err
 	}
 
 	return nil
