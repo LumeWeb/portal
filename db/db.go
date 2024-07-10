@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"math"
+	"math/rand/v2"
 	"path"
 	"strings"
 	"time"
@@ -159,7 +160,8 @@ func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 		}
 
 		backoff := float64(initialBackoff) * math.Pow(2, float64(attempt))
-		sleepDuration := time.Duration(math.Min(backoff, float64(maxBackoff)))
+		jitter := rand.Float64() * float64(initialBackoff)
+		sleepDuration := time.Duration(math.Min(backoff+jitter, float64(maxBackoff)))
 		time.Sleep(sleepDuration)
 		attempt++
 	}
