@@ -103,7 +103,7 @@ func (p PriceTracker) recordRate(_ any, _ core.Context) error {
 }
 
 func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
-	var averageRate decimal.Decimal
+	var averageRateStr string
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 
 	// Use a simpler query that works for both SQLite and MySQL
@@ -114,11 +114,17 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
     `
 
 	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Raw(sql, days).Scan(&averageRate)
+		return db.Raw(sql, days).Scan(&averageRateStr)
 	})
 
 	if err != nil {
 		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Uint64("days", days))
+		return err
+	}
+
+	averageRate, err := decimal.NewFromString(averageRateStr)
+	if err != nil {
+		p.logger.Error("failed to parse average rate", zap.Error(err), zap.String("averageRateStr", averageRateStr))
 		return err
 	}
 
@@ -221,11 +227,10 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 }
 
 func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
-	var existingDates []time.Time
+	var existingDates []string // Change this to []string
 	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
-	startDate := time.Now().UTC().AddDate(0, 0, -daysOfHistory)
+	startDate := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -daysOfHistory)
 
-	// Query to find which dates already have records within the last daysOfHistory days
 	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
 		return db.WithContext(ctx).Model(&models.SCPriceHistory{}).
 			Where("created_at >= ?", startDate).
@@ -234,27 +239,25 @@ func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
 			Order("date ASC").
 			Pluck("date", &existingDates)
 	})
-
 	if err != nil {
 		p.logger.Error("failed to fetch existing historical dates", zap.Error(err))
 		return err
 	}
 
 	existingDateMap := make(map[string]bool)
-	for _, d := range existingDates {
-		existingDateMap[d.Format("2006-01-02")] = true
+	for _, dateStr := range existingDates {
+		existingDateMap[dateStr] = true
 	}
 
-	for i := 1; i <= daysOfHistory; i++ {
+	for i := 0; i < daysOfHistory; i++ {
 		currentDate := startDate.AddDate(0, 0, i)
 		dateKey := currentDate.Format("2006-01-02")
-		if _, exists := existingDateMap[dateKey]; !exists {
+		if !existingDateMap[dateKey] {
 			// Fetch and store data for currentDate as it's missing
-			timestamp := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-			rates, err := p.api.GetHistoricalExchangeRate(timestamp)
+			rates, err := p.api.GetHistoricalExchangeRate(currentDate)
 			if err != nil {
-				p.logger.Error("failed to fetch historical exchange rate", zap.Error(err))
-				return err
+				p.logger.Error("failed to fetch historical exchange rate", zap.Error(err), zap.Time("date", currentDate))
+				continue // Skip to the next date if there's an error
 			}
 
 			// Assuming USD rates as an example
@@ -266,7 +269,7 @@ func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
 
 			priceRecord := &models.SCPriceHistory{
 				Rate:      rate,
-				CreatedAt: timestamp,
+				CreatedAt: currentDate,
 			}
 
 			if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
