@@ -8,13 +8,29 @@ import (
 	"gorm.io/gorm"
 )
 
-type ContextBuilderFunc func() error
-type ContextBuilderOption func(Context) (Context, error)
+var _ Context = (*defaultContext)(nil)
 
-type StartupFunc func(Context) error
-type ExitFunc func(Context) error
+type LifecycleFunc func(Context) error
 
-type Context struct {
+// Context interface
+type Context interface {
+	context.Context
+	Service(id string) any
+	OnExit(f LifecycleFunc)
+	OnStartup(f LifecycleFunc)
+	StartupFuncs() []func(Context) error
+	ExitFuncs() []func(Context) error
+	DB() *gorm.DB
+	Logger() *Logger
+	Config() config.Manager
+	Cancel()
+	ExitCode() int
+	Event() *event.Manager
+	SetExitCode(code int)
+}
+
+// defaultContext struct implementing the Context interface
+type defaultContext struct {
 	context.Context
 	services     map[string]any
 	cfg          config.Manager
@@ -27,8 +43,9 @@ type Context struct {
 	event        *event.Manager
 }
 
+// NewContext creates a new Context
 func NewContext(config config.Manager, logger *Logger, options ...ContextBuilderOption) (Context, error) {
-	newCtx := Context{
+	newCtx := &defaultContext{
 		Context:  context.Background(),
 		services: make(map[string]any),
 		cfg:      config,
@@ -41,88 +58,102 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 	newCtx.cancel = cancel
 
 	options = append(options, ContextWithExitFunc(func(ctx Context) error {
-		return ctx.event.CloseWait()
+		return ctx.Event().CloseWait()
 	}))
 
 	var err error
+	currentCtx := Context(newCtx)
 
 	for _, opt := range options {
-		newCtx, err = opt(newCtx)
+		currentCtx, err = opt(currentCtx)
 		if err != nil {
-			return newCtx, err
+			return currentCtx, err
+		}
+		// Type assert back to *defaultContext if needed
+		if dc, ok := currentCtx.(*defaultContext); ok {
+			newCtx = dc
+		} else {
+			return currentCtx, fmt.Errorf("context type changed unexpectedly")
 		}
 	}
 
 	return newCtx, nil
 }
 
-func (ctx *Context) Service(id string) any {
+// Implement the Context interface methods for defaultContext
+
+func (ctx *defaultContext) Service(id string) any {
 	if svc, ok := ctx.services[id]; ok {
 		return svc
 	}
-
 	return nil
 }
 
-func (ctx *Context) OnExit(f func(Context) error) {
+func (ctx *defaultContext) OnExit(f LifecycleFunc) {
 	ctx.exitFuncs = append(ctx.exitFuncs, f)
 }
 
-func (ctx *Context) OnStartup(f func(Context) error) {
+func (ctx *defaultContext) OnStartup(f LifecycleFunc) {
 	ctx.startupFuncs = append(ctx.startupFuncs, f)
 }
 
-func (ctx *Context) StartupFuncs() []func(Context) error {
+func (ctx *defaultContext) StartupFuncs() []func(Context) error {
 	return ctx.startupFuncs
 }
 
-func (ctx *Context) ExitFuncs() []func(Context) error {
+func (ctx *defaultContext) ExitFuncs() []func(Context) error {
 	return ctx.exitFuncs
 }
 
-func (ctx *Context) DB() *gorm.DB {
+func (ctx *defaultContext) DB() *gorm.DB {
 	return ctx.db
 }
 
-func (ctx *Context) Logger() *Logger {
+func (ctx *defaultContext) Logger() *Logger {
 	return ctx.logger
 }
 
-func (ctx *Context) Config() config.Manager {
+func (ctx *defaultContext) Config() config.Manager {
 	return ctx.cfg
 }
 
-func (ctx *Context) Cancel() {
+func (ctx *defaultContext) Cancel() {
 	ctx.cancel()
 }
 
-func (ctx *Context) ExitCode() int {
+func (ctx *defaultContext) ExitCode() int {
 	return ctx.exitCode
 }
 
-func (ctx *Context) Event() *event.Manager {
+func (ctx *defaultContext) Event() *event.Manager {
 	return ctx.event
 }
 
-func (ctx *Context) SetExitCode(code int) {
+func (ctx *defaultContext) SetExitCode(code int) {
 	ctx.exitCode = code
 }
 
+// ContextBuilderOption and related functions
+
+type ContextBuilderOption func(Context) (Context, error)
+
 func ContextWithService(id string, svc Service) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
-		ctx.services[id] = svc
+		if defaultCtx, ok := ctx.(*defaultContext); ok {
+			defaultCtx.services[id] = svc
+		}
 		return ctx, nil
 	}
 }
 
-func ContextWithStartupFunc(f StartupFunc) ContextBuilderOption {
+func ContextWithStartupFunc(f LifecycleFunc) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(f)
 		return ctx, nil
 	}
 }
 
-func ContextWithExitFunc(f ExitFunc) ContextBuilderOption {
+func ContextWithExitFunc(f LifecycleFunc) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnExit(f)
 		return ctx, nil
@@ -132,7 +163,7 @@ func ContextWithExitFunc(f ExitFunc) ContextBuilderOption {
 func ContextWithEvents(events ...Eventer) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		for _, e := range events {
-			ctx.event.AddEvent(e)
+			ctx.Event().AddEvent(e)
 		}
 		return ctx, nil
 	}
@@ -140,7 +171,9 @@ func ContextWithEvents(events ...Eventer) ContextBuilderOption {
 
 func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
-		ctx.db = db
+		if defaultCtx, ok := ctx.(*defaultContext); ok {
+			defaultCtx.db = db
+		}
 		return ctx, nil
 	}
 }

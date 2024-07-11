@@ -37,37 +37,37 @@ func (p *PortalImpl) Init() error {
 
 	dbInst, ctxOpts := db.NewDatabase(ctx)
 
-	opts, err := p.initServices(&ctx)
+	opts, err := p.initServices(ctx)
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.registerProtocols(&ctx)
+	opts, err = p.registerProtocols(ctx)
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.registerAPIs(&ctx)
+	opts, err = p.registerAPIs(ctx)
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.initModels(&ctx, dbInst)
+	opts, err = p.initModels(ctx, dbInst)
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.initProtocols(&ctx)
+	opts, err = p.initProtocols(ctx)
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.initAPIs(&ctx)
+	opts, err = p.initAPIs(ctx)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (p *PortalImpl) Serve() error {
 	return httpSvc.(core.HTTPService).Serve()
 }
 
-func (p *PortalImpl) initServices(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	svcs := core.GetServices()
 
 	for _, svcInfo := range svcs {
@@ -199,7 +199,7 @@ func (p *PortalImpl) initServices(ctx *core.Context) (ctxOpts []core.ContextBuil
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) registerProtocols(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) registerProtocols(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	plugins := core.GetPlugins()
 
 	for _, plugin := range plugins {
@@ -223,7 +223,7 @@ func (p *PortalImpl) registerProtocols(ctx *core.Context) (ctxOpts []core.Contex
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) registerAPIs(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) registerAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	plugins := core.GetPlugins()
 
 	for _, plugin := range plugins {
@@ -246,7 +246,7 @@ func (p *PortalImpl) registerAPIs(ctx *core.Context) (ctxOpts []core.ContextBuil
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initModels(ctx *core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initModels(ctx core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
 	plugins := core.GetPlugins()
 
 	for _, plugin := range plugins {
@@ -273,7 +273,7 @@ func (p *PortalImpl) initModels(ctx *core.Context, dbInst *gorm.DB) (ctxOpts []c
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initProtocols(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initProtocols(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	for name, _proto := range core.GetProtocols() {
 		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
 		if err != nil {
@@ -292,7 +292,7 @@ func (p *PortalImpl) initProtocols(ctx *core.Context) (ctxOpts []core.ContextBui
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initAPIs(ctx *core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	for name, api := range core.GetAPIs() {
 		err := ctx.Config().ConfigureAPI(name, api.Config())
 		if err != nil {
@@ -323,7 +323,7 @@ func (p *PortalImpl) initEvents() error {
 	return nil
 }
 
-func (p *PortalImpl) configureProtocols(ctx *core.Context) error {
+func (p *PortalImpl) configureProtocols(ctx core.Context) error {
 	for name, _proto := range core.GetProtocols() {
 		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
 		if err != nil {
@@ -335,7 +335,7 @@ func (p *PortalImpl) configureProtocols(ctx *core.Context) error {
 	return nil
 }
 
-func (p *PortalImpl) configureAPIs(ctx *core.Context) error {
+func (p *PortalImpl) configureAPIs(ctx core.Context) error {
 	for name, api := range core.GetAPIs() {
 		err := ctx.Config().ConfigureAPI(name, api.Config())
 		if err != nil {
