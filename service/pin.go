@@ -37,7 +37,7 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 			pinService.ctx = ctx
 			pinService.config = ctx.Config()
 			pinService.db = ctx.DB()
-			pinService.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			pinService.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
 			return nil
 		}),
 	)

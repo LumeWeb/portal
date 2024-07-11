@@ -44,7 +44,7 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			user.ctx = ctx
 			user.config = ctx.Config()
 			user.db = ctx.DB()
-			user.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+			user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
 
 			ctx.Event().On(_event.EVENT_USER_SUBDOMAIN_SET, event.ListenerFunc(func(e event.Event) error {
 				evt, ok := e.(*_event.UserSubdomainSetEvent)

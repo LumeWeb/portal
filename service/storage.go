@@ -144,8 +144,8 @@ func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, e
 			storage.ctx = ctx
 			storage.config = ctx.Config()
 			storage.db = ctx.DB()
-			storage.renter = ctx.Service(core.RENTER_SERVICE).(core.RenterService)
-			storage.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
+			storage.renter = core.GetService[core.RenterService](ctx, core.RENTER_SERVICE)
+			storage.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
 			storage.logger = ctx.Logger()
 			return nil
 		}),
