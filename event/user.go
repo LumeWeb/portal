@@ -25,12 +25,12 @@ func (e UserSubdomainSetEvent) Subdomain() string {
 }
 
 func FireUserSubdomainSetEvent(ctx core.Context, subdomain string) error {
-	evt, err := getEvent(ctx, EVENT_USER_SUBDOMAIN_SET)
+	evt, err := GetEvent(ctx, EVENT_USER_SUBDOMAIN_SET)
 	if err != nil {
 		return err
 	}
 
-	configEvt, err := assertEventType[*UserSubdomainSetEvent](evt, EVENT_USER_SUBDOMAIN_SET)
+	configEvt, err := AssertEventType[*UserSubdomainSetEvent](evt, EVENT_USER_SUBDOMAIN_SET)
 	if err != nil {
 		return err
 	}
