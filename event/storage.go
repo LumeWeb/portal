@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"go.lumeweb.com/portal/core"
 )
 
@@ -26,15 +25,19 @@ func (e StorageObjectUploadedEvent) ObjectMetadata() *core.UploadMetadata {
 }
 
 func FireStorageObjectUploadedEvent(ctx core.Context, metadata *core.UploadMetadata) error {
-	evt, ok := ctx.Event().GetEvent(EVENT_STORAGE_OBJECT_UPLOADED)
-
-	if !ok {
-		return fmt.Errorf("event %s not found", EVENT_STORAGE_OBJECT_UPLOADED)
+	evt, err := getEvent(ctx, EVENT_STORAGE_OBJECT_UPLOADED)
+	if err != nil {
+		return err
 	}
 
-	evt.(*StorageObjectUploadedEvent).SetObjectMetadata(metadata)
+	configEvt, err := assertEventType[*StorageObjectUploadedEvent](evt, EVENT_CONFIG_PROPERTY_UPDATE)
+	if err != nil {
+		return err
+	}
 
-	err := ctx.Event().FireEvent(evt)
+	configEvt.SetObjectMetadata(metadata)
+
+	err = ctx.Event().FireEvent(configEvt)
 	if err != nil {
 		return err
 	}
