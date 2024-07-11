@@ -18,7 +18,7 @@ type Protocol interface {
 }
 
 type ProtocolInit interface {
-	Init(ctx *Context) error
+	Init(ctx Context) error
 }
 
 type ProtocolStart interface {
