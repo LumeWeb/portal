@@ -25,22 +25,8 @@ func (e StorageObjectUploadedEvent) ObjectMetadata() *core.UploadMetadata {
 }
 
 func FireStorageObjectUploadedEvent(ctx core.Context, metadata *core.UploadMetadata) error {
-	evt, err := GetEvent(ctx, EVENT_STORAGE_OBJECT_UPLOADED)
-	if err != nil {
-		return err
-	}
-
-	configEvt, err := AssertEventType[*StorageObjectUploadedEvent](evt, EVENT_CONFIG_PROPERTY_UPDATE)
-	if err != nil {
-		return err
-	}
-
-	configEvt.SetObjectMetadata(metadata)
-
-	err = ctx.Event().FireEvent(configEvt)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return Fire[*StorageObjectUploadedEvent](ctx, EVENT_STORAGE_OBJECT_UPLOADED, func(evt *StorageObjectUploadedEvent) error {
+		evt.SetObjectMetadata(metadata)
+		return nil
+	})
 }
