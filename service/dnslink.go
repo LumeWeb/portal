@@ -37,9 +37,9 @@ func NewDNSLinkService() (*DNSLinkServiceDefault, []core.ContextBuilderOption, e
 			dnslinkService.ctx = ctx
 			dnslinkService.config = ctx.Config()
 			dnslinkService.db = ctx.DB()
-			dnslinkService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
-			dnslinkService.metadata = ctx.Service(core.METADATA_SERVICE).(core.MetadataService)
-			dnslinkService.pin = ctx.Service(core.PIN_SERVICE).(core.PinService)
+			dnslinkService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
+			dnslinkService.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
+			dnslinkService.pin = core.GetService[core.PinService](ctx, core.PIN_SERVICE)
 			return nil
 		}),
 	)

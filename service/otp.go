@@ -34,7 +34,7 @@ func NewOTPService() (*OTPServiceDefault, []core.ContextBuilderOption, error) {
 			otp.ctx = ctx
 			otp.config = ctx.Config()
 			otp.db = ctx.DB()
-			otp.user = ctx.Service(core.USER_SERVICE).(core.UserService)
+			otp.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
 			return nil
 		}),
 	)

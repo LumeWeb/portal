@@ -300,9 +300,9 @@ func NewPriceTracker(ctx core.Context) *PriceTracker {
 	return &PriceTracker{
 		config: ctx.Config(),
 		logger: ctx.Logger(),
-		cron:   ctx.Service(core.CRON_SERVICE).(core.CronService),
+		cron:   core.GetService[core.CronService](ctx, core.CRON_SERVICE),
 		db:     ctx.DB(),
-		renter: ctx.Service(core.RENTER_SERVICE).(core.RenterService),
+		renter: core.GetService[core.RenterService](ctx, core.RENTER_SERVICE),
 	}
 
 }

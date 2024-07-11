@@ -28,7 +28,7 @@ type AuthServiceDefault struct {
 	config config.Manager
 	db     *gorm.DB
 	user   core.UserService
-	opt    core.OTPService
+	otp    core.OTPService
 }
 
 func NewAuthService() (*AuthServiceDefault, []core.ContextBuilderOption, error) {
@@ -38,8 +38,8 @@ func NewAuthService() (*AuthServiceDefault, []core.ContextBuilderOption, error) 
 			authService.ctx = ctx
 			authService.config = ctx.Config()
 			authService.db = ctx.DB()
-			authService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
-			authService.opt = ctx.Service(core.OTP_SERVICE).(core.OTPService)
+			authService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
+			authService.otp = core.GetService[core.OTPService](ctx, core.OTP_SERVICE)
 			return nil
 		}),
 	)
@@ -68,7 +68,7 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 }
 
 func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
-	valid, err := a.opt.OTPVerify(userId, code)
+	valid, err := a.otp.OTPVerify(userId, code)
 
 	if err != nil {
 		return "", err

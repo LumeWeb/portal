@@ -38,8 +38,8 @@ func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuil
 			passwordService.ctx = ctx
 			passwordService.config = ctx.Config()
 			passwordService.db = ctx.DB()
-			passwordService.user = ctx.Service(core.USER_SERVICE).(core.UserService)
-			passwordService.mailer = ctx.Service(core.MAILER_SERVICE).(core.MailerService)
+			passwordService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
+			passwordService.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
 			return nil
 		}),
 	)
