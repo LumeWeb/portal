@@ -25,22 +25,8 @@ func (e BootCompleteEvent) Context() core.Context {
 }
 
 func FireBootCompleteEvent(ctx core.Context) error {
-	evt, err := GetEvent(ctx, EVENT_BOOT_COMPLETE)
-	if err != nil {
-		return err
-	}
-
-	configEvt, err := AssertEventType[*BootCompleteEvent](evt, EVENT_BOOT_COMPLETE)
-	if err != nil {
-		return err
-	}
-
-	configEvt.SetContext(ctx)
-
-	err = ctx.Event().FireEvent(configEvt)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return Fire[*BootCompleteEvent](ctx, EVENT_BOOT_COMPLETE, func(evt *BootCompleteEvent) error {
+		evt.SetContext(ctx)
+		return nil
+	})
 }

@@ -25,22 +25,8 @@ func (e UserSubdomainSetEvent) Subdomain() string {
 }
 
 func FireUserSubdomainSetEvent(ctx core.Context, subdomain string) error {
-	evt, err := GetEvent(ctx, EVENT_USER_SUBDOMAIN_SET)
-	if err != nil {
-		return err
-	}
-
-	configEvt, err := AssertEventType[*UserSubdomainSetEvent](evt, EVENT_USER_SUBDOMAIN_SET)
-	if err != nil {
-		return err
-	}
-
-	configEvt.SetSubdomain(subdomain)
-
-	err = ctx.Event().FireEvent(configEvt)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return Fire[*UserSubdomainSetEvent](ctx, EVENT_USER_SUBDOMAIN_SET, func(evt *UserSubdomainSetEvent) error {
+		evt.SetSubdomain(subdomain)
+		return nil
+	})
 }
