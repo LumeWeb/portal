@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"go.lumeweb.com/portal/core"
 )
 
@@ -26,19 +25,19 @@ func (e BootCompleteEvent) Context() core.Context {
 }
 
 func FireBootCompleteEvent(ctx core.Context) error {
-	evt, ok := ctx.Event().GetEvent(EVENT_BOOT_COMPLETE)
-	if !ok {
-		return fmt.Errorf("event %s not found", EVENT_BOOT_COMPLETE)
+	evt, err := getEvent(ctx, EVENT_BOOT_COMPLETE)
+	if err != nil {
+		return err
 	}
 
-	bootEvt, ok := evt.(*BootCompleteEvent)
-	if !ok {
-		return fmt.Errorf("event %s is not of type BootCompleteEvent", EVENT_BOOT_COMPLETE)
+	configEvt, err := assertEventType[*BootCompleteEvent](evt, EVENT_BOOT_COMPLETE)
+	if err != nil {
+		return err
 	}
 
-	bootEvt.SetContext(ctx)
+	configEvt.SetContext(ctx)
 
-	err := ctx.Event().FireEvent(bootEvt)
+	err = ctx.Event().FireEvent(configEvt)
 	if err != nil {
 		return err
 	}

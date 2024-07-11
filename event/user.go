@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"go.lumeweb.com/portal/core"
 )
 
@@ -26,15 +25,19 @@ func (e UserSubdomainSetEvent) Subdomain() string {
 }
 
 func FireUserSubdomainSetEvent(ctx core.Context, subdomain string) error {
-	evt, ok := ctx.Event().GetEvent(EVENT_USER_SUBDOMAIN_SET)
-
-	if !ok {
-		return fmt.Errorf("event %s not found", EVENT_USER_SUBDOMAIN_SET)
+	evt, err := getEvent(ctx, EVENT_USER_SUBDOMAIN_SET)
+	if err != nil {
+		return err
 	}
 
-	evt.(*UserSubdomainSetEvent).SetSubdomain(subdomain)
+	configEvt, err := assertEventType[*UserSubdomainSetEvent](evt, EVENT_USER_SUBDOMAIN_SET)
+	if err != nil {
+		return err
+	}
 
-	err := ctx.Event().FireEvent(evt)
+	configEvt.SetSubdomain(subdomain)
+
+	err = ctx.Event().FireEvent(configEvt)
 	if err != nil {
 		return err
 	}
