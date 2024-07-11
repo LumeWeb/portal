@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -199,4 +200,19 @@ func ContextWithCron(factory CronFactory) ContextBuilderOption {
 
 func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
 	return options
+}
+
+func GetService[T Service](ctx Context, id string) T {
+	svc := ctx.Service(id)
+	if svc == nil {
+		ctx.Logger().Fatal("service not found", zap.String("service", id))
+	}
+
+	typedSvc, ok := svc.(T)
+
+	if !ok {
+		ctx.Logger().Fatal("service type mismatch", zap.String("service", id))
+	}
+
+	return typedSvc
 }
