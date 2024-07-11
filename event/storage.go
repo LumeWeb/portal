@@ -30,7 +30,7 @@ func FireStorageObjectUploadedEvent(ctx core.Context, metadata *core.UploadMetad
 		return err
 	}
 
-	configEvt, err := assertEventType[*StorageObjectUploadedEvent](evt, EVENT_CONFIG_PROPERTY_UPDATE)
+	configEvt, err := assertEventType[*StorageObjectUploadedEvent](evt, EVENT_STORAGE_OBJECT_UPLOADED)
 	if err != nil {
 		return err
 	}
