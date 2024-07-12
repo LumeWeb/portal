@@ -591,6 +591,15 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 	return nil
 }
 
+func (m *ManagerDefault) notifyConfigChangeCallbacks(key string, value any) {
+	for _, callback := range m.changeCallbacks {
+		err := callback(key, value)
+		if err != nil {
+			m.logger.Error("failed to notify config change callback", zap.Error(err))
+		}
+	}
+}
+
 func (m *ManagerDefault) Config() *Config {
 	return m.root
 }
