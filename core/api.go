@@ -15,6 +15,7 @@ var (
 )
 
 type API interface {
+	Name() string
 	Subdomain() string
 	Configure(router *gorilla.Router) error
 	AuthTokenName() string

@@ -296,13 +296,13 @@ func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOp
 	for name, api := range core.GetAPIs() {
 		err := ctx.Config().ConfigureAPI(name, api.Config())
 		if err != nil {
-			ctx.Logger().Error("Error configuring api", zap.String("api", api.Subdomain()), zap.Error(err))
+			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
 			return nil, err
 		}
 		if initApi, ok := api.(core.APIInit); ok {
 			opts, err := initApi.Init()
 			if err != nil {
-				ctx.Logger().Error("Error initializing api", zap.String("api", api.Subdomain()), zap.Error(err))
+				ctx.Logger().Error("Error initializing api", zap.String("api", api.Name()), zap.Error(err))
 				return nil, err
 			}
 
@@ -339,7 +339,7 @@ func (p *PortalImpl) configureAPIs(ctx core.Context) error {
 	for name, api := range core.GetAPIs() {
 		err := ctx.Config().ConfigureAPI(name, api.Config())
 		if err != nil {
-			ctx.Logger().Error("Error configuring api", zap.String("api", api.Subdomain()), zap.Error(err))
+			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
 			return err
 		}
 	}
