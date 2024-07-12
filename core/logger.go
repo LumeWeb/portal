@@ -37,6 +37,8 @@ func NewLogger(cm config.Manager) *Logger {
 		cm:     cm,
 	}
 
+	cm.SetLogger(zapLogger)
+
 	return logger
 }
 
