@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
 	"os"
 	"path"
 	"path/filepath"
@@ -44,11 +45,13 @@ type Config struct {
 }
 
 type ManagerDefault struct {
-	config  *koanf.Koanf
-	root    *Config
-	changes bool
-	lock    sync.RWMutex
-	flags   map[string][]string
+	config          *koanf.Koanf
+	root            *Config
+	changes         bool
+	lock            sync.RWMutex
+	flags           map[string][]string
+	changeCallbacks []ConfigChangeCallback
+	logger          *zap.Logger
 }
 
 func NewManager() (*ManagerDefault, error) {
@@ -65,6 +68,10 @@ func NewManager() (*ManagerDefault, error) {
 		lock:    sync.RWMutex{},
 		flags:   make(map[string][]string),
 	}, nil
+}
+
+func (m *ManagerDefault) SetLogger(logger *zap.Logger) {
+	m.logger = logger
 }
 
 func (m *ManagerDefault) hooks() []mapstructure.DecodeHookFunc {
@@ -133,6 +140,10 @@ func (m *ManagerDefault) Init() error {
 	err = m.saveClusterSpace("core", false)
 
 	return nil
+}
+
+func (m *ManagerDefault) RegisterConfigChangeCallback(callback ConfigChangeCallback) {
+	m.changeCallbacks = append(m.changeCallbacks, callback)
 }
 
 func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig) error {
