@@ -31,7 +31,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.3
 	github.com/samber/lo v1.44.0
 	github.com/shopspring/decimal v1.4.0
-	github.com/wneessen/go-mail v0.4.1
+	github.com/wneessen/go-mail v0.4.2
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.sia.tech/core v0.3.0
 	go.sia.tech/coreutils v0.1.0
