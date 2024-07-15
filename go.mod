@@ -34,7 +34,7 @@ require (
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
 	go.sia.tech/core v0.3.0
-	go.sia.tech/coreutils v0.1.0
+	go.sia.tech/coreutils v0.1.2
 	go.sia.tech/renterd v1.0.7
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.25.0
