@@ -88,8 +88,8 @@ func (h *HTTPServiceDefault) Init() error {
 
 	h.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
 
-	rootApi := h.Router().Host(h.ctx.Config().Config().Core.Domain).Subrouter()
-	rootApi.HandleFunc("/api/meta", h.apiMetaHandler).Methods(http.MethodGet)
+	rootApi := h.Router().PathPrefix("/api").Subrouter()
+	rootApi.HandleFunc("/meta", h.apiMetaHandler).Methods(http.MethodGet)
 
 	return nil
 }
