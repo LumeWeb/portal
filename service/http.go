@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/middleware"
 	"go.uber.org/zap"
@@ -87,7 +88,18 @@ func (h *HTTPServiceDefault) Init() error {
 
 	h.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
 
+	rootApi := h.Router().Host(h.ctx.Config().Config().Core.Domain).Subrouter()
+	rootApi.HandleFunc("/api/meta", h.apiMetaHandler).Methods(http.MethodGet)
+
 	return nil
+}
+
+func (h *HTTPServiceDefault) apiMetaHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := httputil.Context(r, w)
+
+	ctx.Encode(core.Meta{
+		Domain: h.ctx.Config().Config().Core.Domain,
+	})
 }
 
 func (h *HTTPServiceDefault) Serve() error {

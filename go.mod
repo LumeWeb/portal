@@ -33,6 +33,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/wneessen/go-mail v0.4.1
 	go.etcd.io/etcd/client/v3 v3.5.14
+	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86
 	go.sia.tech/core v0.3.0
 	go.sia.tech/coreutils v0.1.0
 	go.sia.tech/renterd v1.0.7
