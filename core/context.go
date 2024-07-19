@@ -46,17 +46,17 @@ type defaultContext struct {
 
 // NewContext creates a new Context
 func NewContext(config config.Manager, logger *Logger, options ...ContextBuilderOption) (Context, error) {
+	// Create a new context with cancel
+	baseCtx, cancel := context.WithCancel(context.Background())
+
 	newCtx := &defaultContext{
-		Context:  context.Background(),
+		Context:  baseCtx,
 		services: make(map[string]any),
 		cfg:      config,
 		logger:   logger,
 		event:    event.NewManager(""),
+		cancel:   cancel,
 	}
-	c, cancel := context.WithCancel(newCtx)
-
-	newCtx.Context = c
-	newCtx.cancel = cancel
 
 	options = append(options, ContextWithExitFunc(func(ctx Context) error {
 		return ctx.Event().CloseWait()
