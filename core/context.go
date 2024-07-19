@@ -134,6 +134,10 @@ func (ctx *defaultContext) SetExitCode(code int) {
 	ctx.exitCode = code
 }
 
+func (ctx *defaultContext) Value(key any) any {
+	return ctx.Context.Value(key)
+}
+
 // ContextBuilderOption and related functions
 
 type ContextBuilderOption func(Context) (Context, error)
