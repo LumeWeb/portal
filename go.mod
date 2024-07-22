@@ -14,7 +14,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/getkin/kin-openapi v0.126.0
 	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1
-	github.com/go-co-op/gocron/v2 v2.9.0
+	github.com/go-co-op/gocron/v2 v2.11.0
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-viper/mapstructure/v2 v2.0.0
