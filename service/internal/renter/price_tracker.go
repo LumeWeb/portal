@@ -47,17 +47,15 @@ func (p PriceTracker) RegisterTasks(crn core.CronService) error {
 }
 
 func (p PriceTracker) ScheduleJobs(crn core.CronService) error {
-	rateJob := cronTaskRecordSiaRateDefinition()
-
 	exists, rateJobItem := crn.JobExists(cronTaskRecordSiaRateName, nil)
 
 	if !exists {
-		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil, rateJob)
+		err := crn.CreateJobScheduled(cronTaskRecordSiaRateName, nil)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := crn.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID), rateJob)
+		err := crn.CreateExistingJobScheduled(uuid.UUID(rateJobItem.UUID))
 		if err != nil {
 			return err
 		}
