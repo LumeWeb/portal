@@ -381,9 +381,6 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error
 			case <-wrapCtx.Done():
 				c.logger.Debug("Job done, exiting heartbeat watch", zap.String("jobID", job.UUID.String()))
 				return
-			default:
-				c.logger.Debug("Waiting for lock to expire", zap.String("jobID", job.UUID.String()), zap.String("function", job.Function))
-				time.Sleep(5 * time.Second)
 			}
 		}
 	}()
