@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/AfterShip/email-verifier v1.4.0
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
+	github.com/adjust/rmq/v5 v5.2.0
 	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.24
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.26
@@ -48,6 +49,8 @@ require (
 )
 
 require (
+	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
+	github.com/alicebob/miniredis/v2 v2.30.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -55,7 +58,9 @@ require (
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/yuin/gopher-lua v1.1.0 // indirect
 	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
@@ -142,6 +147,8 @@ require (
 )
 
 replace (
+	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1 => github.com/LumeWeb/gocron-redis-lock/v2 v2.0.0-20240722104549-387206078839
+	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240722160415-5b7bf7125d3a
 	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 => github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053
