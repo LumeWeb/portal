@@ -270,8 +270,10 @@ func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
 				CreatedAt: currentDate,
 			}
 
-			if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-				return db.Create(priceRecord)
+			if err = p.db.Transaction(func(tx *gorm.DB) error {
+				return db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+					return db.FirstOrCreate(priceRecord)
+				})
 			}); err != nil {
 				p.logger.Error("failed to create historical record for date", zap.String("date", dateKey), zap.Error(err))
 				return err
