@@ -9,7 +9,8 @@ func init() {
 
 type TusUpload struct {
 	gorm.Model
-	Hash       []byte `gorm:"type:binary(32);"`
+	HashType   uint64
+	Hash       []byte `gorm:"type:binary(64);"`
 	MimeType   string
 	UploadID   string `gorm:"type:varchar(500);uniqueIndex"`
 	UploaderID uint
