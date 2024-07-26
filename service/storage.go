@@ -267,7 +267,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 	uploadMeta := &core.UploadMetadata{
 		Protocol: protocolName,
 		Hash:     decoded.Digest,
-		HashType: uint(decoded.Code),
+		HashType: decoded.Code,
 		MimeType: mimeType.String(),
 		Size:     request.Size(),
 	}
