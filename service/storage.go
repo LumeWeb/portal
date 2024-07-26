@@ -41,7 +41,7 @@ func init() {
 
 type StorageHashDefault struct {
 	hash  []byte
-	typ   uint
+	typ   uint64
 	proof []byte
 	mh    mh.Multihash
 }
@@ -55,18 +55,32 @@ func (s StorageHashDefault) ProofExists() bool {
 
 func (s StorageHashDefault) Multihash() mh.Multihash {
 	if s.mh == nil {
-		_mh, _ := mh.Encode(s.hash, uint64(s.typ))
+		_mh, _ := mh.Encode(s.hash, s.typ)
 		s.mh = _mh
 	}
 
 	return s.mh
 }
 
-func NewStorageHash(hash []byte, typ uint, proof []byte) core.StorageHash {
+func NewStorageHash(hash []byte, typ uint64, proof []byte) core.StorageHash {
 	return &StorageHashDefault{
 		hash:  hash,
 		typ:   typ,
 		proof: proof,
+	}
+}
+
+func NewStorageHashFromMultihash(hash mh.Multihash, proof []byte) core.StorageHash {
+	decode, _ := mh.Decode(hash)
+	if decode == nil {
+		return nil
+	}
+
+	return &StorageHashDefault{
+		hash:  decode.Digest,
+		typ:   decode.Code,
+		proof: proof,
+		mh:    hash,
 	}
 }
 
