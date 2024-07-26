@@ -347,29 +347,21 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error
 
 		for {
 			until := rlock.Get().Until()
-			timeToWait := until.Sub(time.Now()) + 500*time.Millisecond
+			timeToWait := until.Sub(time.Now()) - 30*time.Second
 
 			select {
 			case <-time.After(timeToWait):
 				c.logger.Debug("Lock expired, attempting to extend", zap.String("jobID", job.UUID.String()))
-				valid, err := rlock.Get().ValidContext(ctx)
-				if err != nil {
-					c.logger.Error("Failed to check lock validity", zap.Error(err))
-					continue
-				}
 
-				if valid {
+				err = rlock.Extend(ctx)
+				if err != nil {
+					c.logger.Debug("Failed to extend lock", zap.Error(err))
 					err = rlock.Get().Lock()
-				} else {
-					err = rlock.Extend(ctx)
+					if err != nil {
+						c.logger.Error("Failed to lock after extending", zap.Error(err))
+						continue
+					}
 				}
-
-				if err != nil {
-					c.logger.Error("Failed to extend lock", zap.Error(err))
-					continue
-				}
-
-				c.logger.Debug("Lock extended", zap.String("jobID", job.UUID.String()))
 
 				// Call the heartbeat
 				if err = c.jobHeartbeat(context.Background(), uuid.UUID(job.UUID)); err != nil {
