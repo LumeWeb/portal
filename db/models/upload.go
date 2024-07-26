@@ -9,7 +9,7 @@ func init() {
 type Upload struct {
 	gorm.Model
 	UserID     uint
-	HashType   uint
+	HashType   uint64
 	Hash       []byte `gorm:"type:binary(64);uniqueIndex:idx_upload_hash_deleted_at"`
 	MimeType   string
 	Protocol   string
