@@ -84,6 +84,17 @@ func NewStorageHashFromMultihash(hash mh.Multihash, proof []byte) core.StorageHa
 	}
 }
 
+func NewStorageHashFromMultihashBytes(hash []byte, proof []byte) core.StorageHash {
+	multihash, err := mh.Cast(hash)
+
+	if err != nil {
+		return nil
+	}
+
+	return NewStorageHashFromMultihash(multihash, proof)
+
+}
+
 type StorageUploadRequestDefault struct {
 	protocol core.StorageProtocol
 	data     io.ReadSeeker
