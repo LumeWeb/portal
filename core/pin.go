@@ -10,10 +10,10 @@ type PinService interface {
 	AccountPins(id uint, createdAfter uint64) ([]models.Pin, error)
 
 	// DeletePinByHash deletes the pin associated with the given hash and user ID.
-	DeletePinByHash(hash []byte, userId uint) error
+	DeletePinByHash(hash StorageHash, userId uint) error
 
 	// PinByHash creates a new pin for the given hash and user ID if it doesn't exist.
-	PinByHash(hash []byte, userId uint) error
+	PinByHash(hash StorageHash, userId uint) error
 
 	// PinByID creates a new pin for the given upload ID and user ID if it doesn't exist.
 	PinByID(uploadId uint, userId uint) error

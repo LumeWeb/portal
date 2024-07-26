@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -61,9 +62,14 @@ func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.P
 	return pins, nil
 }
 
-func (p PinServiceDefault) DeletePinByHash(hash []byte, userId uint) error {
+func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) error {
+	decoded, err := mh.Decode(hash.Multihash())
+	if err != nil {
+		return err
+	}
+
 	// Define a struct for the query condition
-	uploadQuery := models.Upload{Hash: hash}
+	uploadQuery := models.Upload{Hash: decoded.Digest}
 
 	// Retrieve the upload ID for the given hash
 	var uploadID uint
@@ -89,9 +95,14 @@ func (p PinServiceDefault) DeletePinByHash(hash []byte, userId uint) error {
 	return nil
 }
 
-func (p PinServiceDefault) PinByHash(hash []byte, userId uint) error {
+func (p PinServiceDefault) PinByHash(hash core.StorageHash, userId uint) error {
+	decoded, err := mh.Decode(hash.Multihash())
+	if err != nil {
+		return err
+	}
+
 	// Define a struct for the query condition
-	uploadQuery := models.Upload{Hash: hash}
+	uploadQuery := models.Upload{Hash: decoded.Digest}
 
 	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
 		return db.Model(&uploadQuery).Where(&uploadQuery).First(&uploadQuery)
