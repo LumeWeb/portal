@@ -11,7 +11,7 @@ type UploadMetadata struct {
 	ID         uint      `json:"upload_id"`
 	UserID     uint      `json:"user_id"`
 	Hash       []byte    `json:"hash"`
-	HashType   uint      `json:"hash_type"`
+	HashType   uint64    `json:"hash_type"`
 	MimeType   string    `json:"mime_type"`
 	Protocol   string    `json:"protocol"`
 	UploaderIP string    `json:"uploader_ip"`
