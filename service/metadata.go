@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
@@ -111,14 +110,9 @@ func (m *MetadataServiceDefault) createUpload(ctx context.Context, metadata core
 func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (core.UploadMetadata, error) {
 	var upload models.Upload
 
-	decoded, err := mh.Decode(objectHash.Multihash())
-	if err != nil {
-		return core.UploadMetadata{}, err
-	}
+	upload.Hash = objectHash.Multihash()
 
-	upload.Hash = decoded.Digest
-
-	if err = db.RetryOnLock(m.db, func(db *gorm.DB) *gorm.DB {
+	if err := db.RetryOnLock(m.db, func(db *gorm.DB) *gorm.DB {
 		return db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 	}); err != nil {
 		return core.UploadMetadata{}, err
@@ -130,14 +124,9 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash core.
 func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
 	var upload models.Upload
 
-	decoded, err := mh.Decode(objectHash.Multihash())
-	if err != nil {
-		return err
-	}
+	upload.Hash = objectHash.Multihash()
 
-	upload.Hash = decoded.Digest
-
-	if err = db.RetryOnLock(m.db, func(db *gorm.DB) *gorm.DB {
+	if err := db.RetryOnLock(m.db, func(db *gorm.DB) *gorm.DB {
 		return db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
 	}); err != nil {
 		return err
