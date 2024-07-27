@@ -196,14 +196,11 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 	fileName := params.FileName
 	fileName = "/" + strings.TrimLeft(fileName, "/")
 
-	var redundancy api.RedundancySettings
-
-	err := r.GetSetting(ctx, "redundancy", &redundancy)
+	slabSize, err := r.SlabSize(ctx)
 	if err != nil {
 		return err
 	}
 
-	slabSize := uint64(redundancy.MinShards * rhpv2.SectorSize)
 	parts := uint64(math.Ceil(float64(size) / float64(slabSize)))
 	uploadParts := make([]api.MultipartCompletedPart, 0)
 
@@ -344,4 +341,15 @@ func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancyS
 	}
 
 	return settings, nil
+}
+
+func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
+	var settings api.RedundancySettings
+	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(settings.MinShards * rhpv2.SectorSize), nil
 }
