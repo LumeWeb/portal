@@ -62,6 +62,10 @@ func (s StorageHashDefault) Multihash() mh.Multihash {
 	return s.mh
 }
 
+func (s StorageHashDefault) Type() uint64 {
+	return s.typ
+}
+
 func NewStorageHash(hash []byte, typ uint64, proof []byte) core.StorageHash {
 	return &StorageHashDefault{
 		hash:  hash,
@@ -284,15 +288,10 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 		}
 	}
 
-	decoded, err := mh.Decode(hash.Multihash())
-	if err != nil {
-		return nil, err
-	}
-
 	uploadMeta := &core.UploadMetadata{
 		Protocol: protocolName,
-		Hash:     decoded.Digest,
-		HashType: decoded.Code,
+		Hash:     hash.Multihash(),
+		HashType: hash.Type(),
 		MimeType: mimeType.String(),
 		Size:     request.Size(),
 	}

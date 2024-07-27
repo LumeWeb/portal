@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -63,13 +62,8 @@ func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.P
 }
 
 func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) error {
-	decoded, err := mh.Decode(hash.Multihash())
-	if err != nil {
-		return err
-	}
-
 	// Define a struct for the query condition
-	uploadQuery := models.Upload{Hash: decoded.Digest}
+	uploadQuery := models.Upload{Hash: hash.Multihash()}
 
 	// Retrieve the upload ID for the given hash
 	var uploadID uint
@@ -96,13 +90,8 @@ func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) e
 }
 
 func (p PinServiceDefault) PinByHash(hash core.StorageHash, userId uint) error {
-	decoded, err := mh.Decode(hash.Multihash())
-	if err != nil {
-		return err
-	}
-
 	// Define a struct for the query condition
-	uploadQuery := models.Upload{Hash: decoded.Digest}
+	uploadQuery := models.Upload{Hash: hash.Multihash()}
 
 	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
 		return db.Model(&uploadQuery).Where(&uploadQuery).First(&uploadQuery)

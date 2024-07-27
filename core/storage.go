@@ -29,6 +29,7 @@ type StorageHash interface {
 	Proof() []byte
 	Multihash() mh.Multihash
 	ProofExists() bool
+	Type() uint64
 }
 
 type StorageProtocol interface {
