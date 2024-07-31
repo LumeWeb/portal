@@ -1,20 +1,23 @@
 package core
 
 import (
+	"fmt"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/db/models"
 )
 
-type CronTaskFunction func(any, Context) error
+type CronTaskFunction[T CronTaskArgs] func(T, Context) error
 type CronTaskArgsFactoryFunction func() any
 type CronTaskDefArgsFactoryFunction func() gocron.JobDefinition
 
 const CRON_SERVICE = "cron"
 
+type CronTaskArgs interface{}
+
 type CronService interface {
 	RegisterEntity(entity Cronable)
-	RegisterTask(name string, taskFunc CronTaskFunction, taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction, recurring bool)
+	RegisterTask(name string, taskFunc CronTaskFunction[CronTaskArgs], taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction, recurring bool)
 	CreateJob(function string, args any) error
 	JobExists(function string, args any) (bool, *models.CronJob)
 	CreateJobScheduled(function string, args any) error
@@ -40,4 +43,14 @@ func CronTaskNoArgsFactory() any {
 
 func PluginHasCron(pi PluginInfo) bool {
 	return pi.Cron != nil
+}
+
+func CronTaskFuncHandler[T CronTaskArgs](f func(args T, ctx Context) error) CronTaskFunction[CronTaskArgs] {
+	return func(args CronTaskArgs, ctx Context) error {
+		typedArgs, ok := args.(T)
+		if !ok {
+			return fmt.Errorf("invalid argument type: expected %T, got %T", *new(T), args)
+		}
+		return f(typedArgs, ctx)
+	}
 }
