@@ -3,6 +3,7 @@ package tus
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
 	"github.com/tus/tusd-etcd3-locker/pkg/etcd3locker"
@@ -88,7 +89,7 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 			return nil, gorm.ErrRecordNotFound
 		}
 
-		meta, err := t.tusStore.GetUpload(ctx, _upload.UploadID)
+		meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +102,7 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 			return nil, gorm.ErrRecordNotFound
 		}
 
-		meta, err := t.tusStore.GetUpload(ctx, _upload.UploadID)
+		meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
 
 		if err != nil {
 			return nil, err
@@ -133,13 +134,13 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 }
 
 func (t *TusHandler) UploadSize(ctx context.Context, hash core.StorageHash) (uint64, error) {
-	exists, upload := t.tusService.UploadHashExists(ctx, hash)
+	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
 
 	if !exists {
 		return 0, gorm.ErrRecordNotFound
 	}
 
-	meta, err := t.tusStore.GetUpload(ctx, upload.UploadID)
+	meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
 	if err != nil {
 		return 0, err
 	}
@@ -179,6 +180,48 @@ func (t *TusHandler) StorageProtocol() core.StorageProtocol {
 func (t *TusHandler) HandleEventResponseError(message string, httpCode int, hook handler.HookEvent) {
 	resp := handler.HTTPResponse{StatusCode: httpCode, Header: nil, Body: message}
 	hook.Upload.StopUpload(resp)
+}
+
+func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) error {
+	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
+
+	if !exists {
+		return gorm.ErrRecordNotFound
+	}
+
+	err := t.tusService.UploadCompleted(ctx, _upload.TUSUploadID)
+	if err != nil {
+		return err
+	}
+
+	upload, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
+	if err != nil {
+		return err
+	}
+
+	info, err := upload.GetInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+		Key:    aws.String(info.ID),
+	})
+	if err != nil {
+		t.logger.Error("failed to upload object from s3 buffer", zap.Error(err))
+	}
+
+	_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+		Key:    aws.String(info.ID + ".info"),
+	})
+
+	if err != nil {
+		t.logger.Error("failed to upload metadata from s3 buffer", zap.Error(err))
+	}
+
+	return nil
 }
 
 func (t *TusHandler) init(handlerConfig HandlerConfig) error {
