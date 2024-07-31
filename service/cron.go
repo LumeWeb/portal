@@ -560,7 +560,7 @@ func (c *CronServiceDefault) RegisterEntity(service core.Cronable) {
 	c.entities = append(c.entities, service)
 }
 
-func (c *CronServiceDefault) RegisterTask(name string, taskFunc core.CronTaskFunction, taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool) {
+func (c *CronServiceDefault) RegisterTask(name string, taskFunc core.CronTaskFunction[core.CronTaskArgs], taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool) {
 	c.tasks.Store(name, taskFunc)
 	c.taskDefs.Store(name, taskDefFunc)
 	c.taskArgs.Store(name, taskArgFunc)

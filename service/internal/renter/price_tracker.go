@@ -40,9 +40,9 @@ type PriceTracker struct {
 }
 
 func (p PriceTracker) RegisterTasks(crn core.CronService) error {
-	crn.RegisterTask(cronTaskRecordSiaRateName, p.recordRate, cronTaskRecordSiaRateDefinition, nopArgsFactory, true)
-	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, p.importPrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
-	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, p.updatePrices, core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
+	crn.RegisterTask(cronTaskRecordSiaRateName, core.CronTaskFuncHandler(p.recordRate), cronTaskRecordSiaRateDefinition, nopArgsFactory, true)
+	crn.RegisterTask(cronTaskImportSiaPriceHistoryName, core.CronTaskFuncHandler(p.importPrices), core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
+	crn.RegisterTask(cronTaskUpdateSiaRenterPriceName, core.CronTaskFuncHandler(p.updatePrices), core.CronTaskDefinitionOneTimeJob, nopArgsFactory, false)
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (p PriceTracker) ScheduleJobs(crn core.CronService) error {
 	return nil
 }
 
-func (p PriceTracker) recordRate(_ any, _ core.Context) error {
+func (p PriceTracker) recordRate(_ core.CronTaskArgs, _ core.Context) error {
 	rate, _, err := p.api.GetExchangeRate()
 	if err != nil {
 		p.logger.Error("failed to get exchange rate", zap.Error(err))
