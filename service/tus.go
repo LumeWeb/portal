@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service/internal/tus"
 	"go.uber.org/zap"
@@ -29,9 +28,10 @@ func init() {
 }
 
 type TUSServiceDefault struct {
-	ctx    core.Context
-	db     *gorm.DB
-	logger *core.Logger
+	ctx      core.Context
+	db       *gorm.DB
+	logger   *core.Logger
+	requests core.RequestService
 }
 
 func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
@@ -42,6 +42,7 @@ func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
 			storage.ctx = ctx
 			storage.db = ctx.DB()
 			storage.logger = ctx.Logger()
+			storage.requests = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 			return nil
 		}),
 	)
@@ -49,113 +50,169 @@ func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
 	return storage, opts, nil
 }
 
-func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, *models.TusUpload) {
-	var upload models.TusUpload
-	var exists bool
-	err := t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			result := rtx.WithContext(ctx).Where(&models.TusUpload{UploadID: id}).First(&upload)
-			exists = result.RowsAffected > 0
-			return result
-		})
+func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, *models.TUSRequest) {
+	data, err := t.requests.QueryUploadData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
+		Operation: models.RequestOperationTusUpload,
 	})
 	if err != nil {
 		return false, nil
 	}
-	return exists, &upload
-}
 
-func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, hash core.StorageHash) (bool, *models.TusUpload) {
-	var upload models.TusUpload
-	var exists bool
-
-	err := t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			result := rtx.WithContext(ctx).Where(&models.TusUpload{Hash: hash.Multihash()}).First(&upload)
-			exists = result.RowsAffected > 0
-			return result
-		})
-	})
-	if err != nil {
+	if data == nil {
 		return false, nil
 	}
-	return exists, &upload
+
+	return true, data.(*models.TUSRequest)
 }
 
-func (t *TUSServiceDefault) Uploads(ctx context.Context, uploaderID uint) ([]*models.TusUpload, error) {
-	var uploads []*models.TusUpload
-	err := t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			return rtx.WithContext(ctx).Where(&models.TusUpload{UploaderID: uploaderID}).Find(&uploads)
-		})
+func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, hash core.StorageHash) (bool, *models.TUSRequest) {
+	req, err := t.requests.GetRequestByUploadHash(ctx, hash, core.RequestFilter{
+		Operation: models.RequestOperationTusUpload,
 	})
+
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, nil
+	}
+
+	data, err := t.requests.GetUploadData(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, nil
+	}
+
+	return true, data.(*models.TUSRequest)
+}
+
+func (t *TUSServiceDefault) Uploads(ctx context.Context, uploaderID uint) ([]*models.TUSRequest, error) {
+	var uploads []*models.TUSRequest
+
+	data, err := t.requests.ListRequestsByUser(ctx, uploaderID, core.RequestFilter{
+		Operation: models.RequestOperationTusUpload,
+	})
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
 		return nil, err
 	}
+
+	for _, req := range data {
+		uploadData, err := t.requests.GetUploadData(ctx, req.ID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, err
+			}
+			return nil, err
+		}
+		uploads = append(uploads, uploadData.(*models.TUSRequest))
+	}
+
 	return uploads, nil
 }
 
-func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string) (*models.TusUpload, error) {
+func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string) (*models.TUSRequest, error) {
 	var hashBytes []byte
 
 	if hash != nil {
 		hashBytes = hash.Multihash()
 	}
 
-	upload := &models.TusUpload{
-		Hash:       hashBytes,
-		UploadID:   uploadID,
-		UploaderID: uploaderID,
-		UploaderIP: uploaderIP,
-		Uploader:   models.User{},
-		Protocol:   protocol.Name(),
-		MimeType:   mimeType,
+	upload := &models.Request{
+		Hash:      hashBytes,
+		Protocol:  protocol.Name(),
+		Operation: models.RequestOperationTusUpload,
+		Status:    models.RequestStatusPending,
+		UserID:    uploaderID,
+		SourceIP:  uploaderIP,
+		MimeType:  mimeType,
 	}
-	err := t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			return rtx.WithContext(ctx).Create(upload)
-		})
+
+	if hash != nil {
+		upload.HashType = hash.Type()
+	}
+
+	request, err := t.requests.CreateRequest(ctx, upload, &models.TUSRequest{TUSUploadID: uploadID})
+	if err != nil {
+		return nil, err
+	}
+
+	dataReq, err := t.requests.GetUploadData(ctx, request.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dataReq.(*models.TUSRequest), nil
+}
+
+func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string) error {
+	upload, err := t.getUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+
+	upload.UpdatedAt = time.Now()
+
+	err = t.requests.UpdateUploadData(ctx, upload.RequestID, upload)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
+	upload, err := t.getUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+
+	err = t.requests.CompleteRequest(ctx, upload.RequestID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) error {
+	upload, err := t.getUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+
+	err = t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusFailed)
+	if err != nil {
+		return err
+	}
+
+	err = t.requests.DeleteRequest(ctx, upload.RequestID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TUSServiceDefault) getUpload(ctx context.Context, uploadID string) (*models.TUSRequest, error) {
+	data, err := t.requests.QueryUploadData(ctx, &models.TUSRequest{TUSUploadID: uploadID}, core.RequestFilter{
+		Operation: models.RequestOperationTusUpload,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return upload, nil
-}
 
-func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string) error {
-	return t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			result := rtx.WithContext(ctx).Model(&models.TusUpload{}).
-				Where(&models.TusUpload{UploadID: uploadID}).
-				Update("updated_at", time.Now())
-			if result.RowsAffected == 0 {
-				_ = result.AddError(errors.New("upload not found"))
-			}
-			return result
-		})
-	})
-}
+	if data == nil {
+		return nil, errors.New("upload not found")
+	}
 
-func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
-	return t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			result := rtx.WithContext(ctx).Model(&models.TusUpload{}).
-				Where(&models.TusUpload{UploadID: uploadID}).
-				Update("completed", true)
-			if result.RowsAffected == 0 {
-				_ = result.AddError(errors.New("upload not found"))
-			}
-			return result
-		})
-	})
-}
-
-func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) error {
-	return t.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(rtx *gorm.DB) *gorm.DB {
-			return rtx.WithContext(ctx).Where(&models.TusUpload{UploadID: uploadID}).Delete(&models.TusUpload{})
-		})
-	})
+	return data.(*models.TUSRequest), nil
 }
 
 func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandler, error) {
@@ -167,7 +224,6 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 
 	return handler, nil
 }
-
 func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc) TUSUploadCallbackHandler {
 	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc)
 }

@@ -2,21 +2,22 @@ package core
 
 import (
 	"context"
+	mh "github.com/multiformats/go-multihash"
 	"time"
 )
 
 const METADATA_SERVICE = "metadata"
 
 type UploadMetadata struct {
-	ID         uint      `json:"upload_id"`
-	UserID     uint      `json:"user_id"`
-	Hash       []byte    `json:"hash"`
-	HashType   uint64    `json:"hash_type"`
-	MimeType   string    `json:"mime_type"`
-	Protocol   string    `json:"protocol"`
-	UploaderIP string    `json:"uploader_ip"`
-	Size       uint64    `json:"size"`
-	Created    time.Time `json:"created"`
+	ID         uint         `json:"upload_id"`
+	UserID     uint         `json:"user_id"`
+	Hash       mh.Multihash `json:"hash"`
+	HashType   uint64       `json:"hash_type"`
+	MimeType   string       `json:"mime_type"`
+	Protocol   string       `json:"protocol"`
+	UploaderIP string       `json:"uploader_ip"`
+	Size       uint64       `json:"size"`
+	Created    time.Time    `json:"created"`
 }
 
 func (u UploadMetadata) IsEmpty() bool {
