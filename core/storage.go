@@ -11,7 +11,10 @@ import (
 
 type StorageUploadStatus string
 
-const STORAGE_SERVICE = "storage"
+const (
+	STORAGE_SERVICE        = "storage"
+	TEMPORARY_UPLOADS_PATH = "uploads"
+)
 
 const (
 	StorageUploadStatusUnknown    StorageUploadStatus = "unknown"
@@ -98,6 +101,7 @@ type StorageService interface {
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	S3Client(ctx context.Context) (*s3.Client, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
+	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, protocol StorageProtocol) (string, error)
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 
 	Service
