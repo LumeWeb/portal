@@ -41,19 +41,49 @@ func NewMetadataService() (*MetadataServiceDefault, []core.ContextBuilderOption,
 func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata core.UploadMetadata) error {
 	return m.db.Transaction(func(tx *gorm.DB) error {
 		upload := models.Upload{
-			UserID:     metadata.UserID,
-			Hash:       metadata.Hash,
-			HashType:   metadata.HashType,
-			MimeType:   metadata.MimeType,
-			Protocol:   metadata.Protocol,
-			UploaderIP: metadata.UploaderIP,
-			Size:       metadata.Size,
+			Hash:     metadata.Hash,
+			HashType: metadata.HashType,
+			Protocol: metadata.Protocol,
 		}
 
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+		if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).
-				FirstOrCreate(&upload, models.Upload{Hash: metadata.Hash})
-		})
+				FirstOrCreate(&upload, upload)
+		}); err != nil {
+			return err
+		}
+
+		update := false
+
+		if metadata.UserID != 0 && upload.UserID != metadata.UserID {
+			upload.UserID = metadata.UserID
+			update = true
+		}
+
+		if metadata.MimeType != "" && upload.MimeType != metadata.MimeType {
+			upload.MimeType = metadata.MimeType
+			update = true
+		}
+
+		if metadata.UploaderIP != "" && upload.UploaderIP != metadata.UploaderIP {
+			upload.UploaderIP = metadata.UploaderIP
+			update = true
+		}
+
+		if metadata.Size != 0 && upload.Size != metadata.Size {
+			upload.Size = metadata.Size
+			update = true
+		}
+
+		if update {
+			if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+				return db.WithContext(ctx).Save(&upload)
+			}); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 
