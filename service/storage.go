@@ -618,6 +618,13 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	uploadId := uuid.NewString()
 	key := fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
 
+	defer func(data io.ReadCloser) {
+		err := data.Close()
+		if err != nil {
+			s.logger.Error("error closing data", zap.Error(err))
+		}
+	}(data)
+
 	client, err := s.S3Client(ctx)
 	if err != nil {
 		return "", err
