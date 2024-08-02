@@ -616,7 +616,7 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, protocol core.StorageProtocol) (string, error) {
 	bucket := protocol.Name()
 	uploadId := uuid.NewString()
-	key := fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
+	key := s.getTempUploadPath(protocol, uploadId)
 
 	defer func(data io.ReadCloser) {
 		err := data.Close()
@@ -643,6 +643,31 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	return uploadId, nil
 }
 
+func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
+	bucket := protocol.Name()
+	key := s.getTempUploadPath(protocol, uploadId)
+
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return output.Body, nil
+}
+
 func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {
 	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), core.PROOF_EXTENSION)
+}
+
+func (s StorageServiceDefault) getTempUploadPath(protocol core.StorageProtocol, uploadId string) string {
+	return fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
 }
