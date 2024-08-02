@@ -103,6 +103,7 @@ type StorageService interface {
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
 	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, protocol StorageProtocol) (string, error)
 	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadCloser, error)
+	S3DeleteTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) error
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 
 	Service

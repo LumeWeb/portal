@@ -664,6 +664,27 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 	return output.Body, nil
 }
 
+func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
+	bucket := protocol.Name()
+	key := s.getTempUploadPath(protocol, uploadId)
+
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {
 	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), core.PROOF_EXTENSION)
 }
