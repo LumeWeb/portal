@@ -36,7 +36,7 @@ func (u UploadMetadata) IsEmpty() bool {
 }
 
 type MetadataService interface {
-	SaveUpload(ctx context.Context, metadata UploadMetadata, skipExisting bool) error
+	SaveUpload(ctx context.Context, metadata UploadMetadata) error
 	GetUpload(ctx context.Context, objectHash StorageHash) (UploadMetadata, error)
 	DeleteUpload(ctx context.Context, objectHash StorageHash) error
 	GetAllUploads(ctx context.Context) ([]UploadMetadata, error)
