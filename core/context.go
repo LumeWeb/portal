@@ -28,6 +28,7 @@ type Context interface {
 	ExitCode() int
 	Event() *event.Manager
 	SetExitCode(code int)
+	GetContext() context.Context
 }
 
 // defaultContext struct implementing the Context interface
@@ -136,6 +137,10 @@ func (ctx *defaultContext) SetExitCode(code int) {
 
 func (ctx *defaultContext) Value(key any) any {
 	return ctx.Context.Value(key)
+}
+
+func (ctx *defaultContext) GetContext() context.Context {
+	return ctx.Context
 }
 
 // ContextBuilderOption and related functions
