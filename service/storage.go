@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/google/uuid"
 	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -610,6 +611,29 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 	return core.StorageUploadStatusProcessing, nil, nil
 
+}
+
+func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, protocol core.StorageProtocol) (string, error) {
+	bucket := protocol.Name()
+	uploadId := uuid.NewString()
+	key := fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
+
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   data,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return uploadId, nil
 }
 
 func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {
