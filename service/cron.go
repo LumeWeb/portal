@@ -199,6 +199,7 @@ func (c *CronServiceDefault) Start() error {
 	}
 
 	c.scheduler.Start()
+	go c.startDeadJobDetection()
 
 	return nil
 }
@@ -770,17 +771,17 @@ func (c *CronServiceDefault) getJob(id uuid.UUID) (*models.CronJob, error) {
 	return &job, nil
 }
 
-func (c *CronServiceDefault) startDeadJobDetection(ctx context.Context) {
+func (c *CronServiceDefault) startDeadJobDetection() {
 	go func() {
 		ticker := time.NewTicker(deadJobCheckInterval)
 		defer ticker.Stop()
 
 		for {
 			select {
-			case <-ctx.Done():
+			case <-c.ctx.Done():
 				return
 			case <-ticker.C:
-				if err := c.detectAndHandleDeadJobs(ctx); err != nil {
+				if err := c.detectAndHandleDeadJobs(); err != nil {
 					c.logger.Error("Failed to detect and handle dead tasks", zap.Error(err))
 				}
 			}
@@ -788,21 +789,21 @@ func (c *CronServiceDefault) startDeadJobDetection(ctx context.Context) {
 	}()
 }
 
-func (c *CronServiceDefault) detectAndHandleDeadJobs(ctx context.Context) error {
+func (c *CronServiceDefault) detectAndHandleDeadJobs() error {
 	var deadTasks []models.CronJob
 	now := time.Now()
 	heartbeatDeadline := now.Add(-heartbeatTimeout)
 	durationDeadline := now.Add(-maxTaskDuration)
 
 	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.WithContext(ctx).Where("state = ? AND ((last_heartbeat < ? AND last_heartbeat IS NOT NULL) OR (created_at < ? AND last_heartbeat IS NULL))",
+		return db.WithContext(c.ctx).Where("state = ? AND ((last_heartbeat < ? AND last_heartbeat IS NOT NULL) OR (created_at < ? AND last_heartbeat IS NULL))",
 			models.CronJobStateProcessing, heartbeatDeadline, durationDeadline).Find(&deadTasks)
 	}); err != nil {
 		return err
 	}
 
 	for _, task := range deadTasks {
-		if err := c.handleDeadJob(ctx, &task); err != nil {
+		if err := c.handleDeadJob(c.ctx, &task); err != nil {
 			c.logger.Error("Failed to handle dead task", zap.Error(err), zap.String("jobID", task.UUID.String()))
 		}
 	}
@@ -853,9 +854,9 @@ func (c *CronServiceDefault) handleDeadJob(ctx context.Context, job *models.Cron
 			c.logger.Error("Failed to reschedule dead recurring job", zap.Error(err), zap.String("jobID", job.UUID.String()))
 			return err
 		}
-	} else if c.clusterMode() {
-		// For one-time tasks in clustered mode, re-enqueue the job
-		if err = c.enqueueJob(job); err != nil {
+	} else {
+		// For one-time tasks, re-enqueue the job
+		if err = c.kickOffJob(job, job.Failures); err != nil {
 			c.logger.Error("Failed to re-enqueue dead one-time job", zap.Error(err), zap.String("jobID", job.UUID.String()))
 			return err
 		}
