@@ -645,7 +645,6 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 }
 
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
-	bucket := protocol.Name()
 	key := s.getTempUploadPath(protocol, uploadId)
 
 	client, err := s.S3Client(ctx)
@@ -654,7 +653,7 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 	}
 
 	output, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
 		Key:    aws.String(key),
 	})
 
@@ -666,7 +665,6 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 }
 
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
-	bucket := protocol.Name()
 	key := s.getTempUploadPath(protocol, uploadId)
 
 	client, err := s.S3Client(ctx)
@@ -675,7 +673,7 @@ func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, prot
 	}
 
 	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
 		Key:    aws.String(key),
 	})
 
