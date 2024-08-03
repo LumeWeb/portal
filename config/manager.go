@@ -503,8 +503,10 @@ func (m *ManagerDefault) maybeConfigureCluster() error {
 			if m.root.Core.DB.Cache == nil {
 				m.root.Core.DB.Cache = &CacheConfig{}
 			}
-			m.root.Core.DB.Cache.Mode = "redis"
-			m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
+
+			if m.root.Core.DB.Cache.Mode == "redis" {
+				m.root.Core.DB.Cache.Options = m.root.Core.Clustered.Redis
+			}
 		}
 	}
 
