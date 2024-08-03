@@ -562,7 +562,7 @@ func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
 	if err != nil {
 		return err
 	}
-	return c.enqueueJob(job)
+	return c.kickOffJob(job, job.Failures)
 }
 
 func (c *CronServiceDefault) deleteJob(job *models.CronJob) error {
