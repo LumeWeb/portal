@@ -614,7 +614,6 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 }
 
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
-	bucket := protocol.Name()
 	uploadId := uuid.NewString()
 	key := s.getTempUploadPath(protocol, uploadId)
 
@@ -631,7 +630,7 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	}
 
 	_, err = client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(bucket),
+		Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
 		Key:           aws.String(key),
 		Body:          data,
 		ContentLength: aws.Int64(int64(size)),
