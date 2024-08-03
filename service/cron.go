@@ -429,21 +429,35 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
 
+	// Fetch the job
+	if err := c.db.Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.First(&job)
+		})
+	}); err != nil {
+		c.logger.Error("Failed to fetch job",
+			zap.Error(err),
+			zap.String("jobID", jobID.String()),
+		)
+		return
+	}
+
 	// Update last run time and reset failures
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&models.CronJob{}).Where(&job).Updates(&models.CronJob{
-			LastRun:  timeNow(),
-			Failures: 0,
+	if err := c.db.Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			job.LastRun = timeNow()
+			job.Failures = 0
+			return db.Save(&job)
 		})
 	}); err != nil {
 		c.logger.Error("Failed to update job after successful run",
 			zap.Error(err),
 			zap.String("jobID", jobID.String()),
 		)
+		return
 	}
 
 	if c.isRecurring(job.Function) {
-		// For recurring jobs, reschedule
 		if err := c.rescheduleJob(&job); err != nil {
 			c.logger.Error("Failed to reschedule recurring job",
 				zap.Error(err),
