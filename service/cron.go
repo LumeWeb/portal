@@ -491,21 +491,20 @@ func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, er
 		zap.String("jobID", jobID.String()),
 	)
 
-	// Update last run time and increment failures
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&job).Where(&job).Updates(map[string]interface{}{
-			"last_run": time.Now(),
-			"failures": gorm.Expr("failures + ?", 1),
-		})
-	}); err != nil {
-		c.logger.Error("Failed to update job after failure",
-			zap.Error(err),
-			zap.String("jobID", jobID.String()),
-		)
+	err = c.jobStateFailed(context.Background(), jobID)
+	if err != nil {
+		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
+		return
+	}
+
+	err = c.jobStateRequeue(context.Background(), jobID)
+	if err != nil {
+		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
+		return
 	}
 
 	// Fetch the updated job to get the current failure count
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+	if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 		return db.Where(&job).First(&job)
 	}); err != nil {
 		c.logger.Error("Failed to fetch updated job",
@@ -521,7 +520,7 @@ func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, er
 		Type:      models.CronJobLogTypeFailure,
 		Message:   err.Error(),
 	}
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+	if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 		return db.Create(cronLog)
 	}); err != nil {
 		c.logger.Error("Failed to create cron job log",
@@ -703,12 +702,6 @@ func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uint, new
 		job.State = newState
 		job.LastRun = timeNow()
 
-		if newState == models.CronJobStateProcessing {
-			job.Failures = 0 // Reset failures when job starts processing
-		} else if newState == models.CronJobStateFailed {
-			job.Failures++
-		}
-
 		return tx.Save(&job).Error
 	})
 }
@@ -731,11 +724,10 @@ func (c *CronServiceDefault) transitionJobState(ctx context.Context, jobID uuid.
 		job.State = toState
 		job.LastRun = timeNow()
 
-		if toState == models.CronJobStateProcessing {
-			job.Failures = 0
-		} else if toState == models.CronJobStateFailed {
+		if toState == models.CronJobStateFailed {
 			job.Failures++
 		}
+
 		return db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 			return tx.Save(&job)
 		})
