@@ -481,17 +481,17 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string
 	c.logger.Debug("Job completed successfully", zap.String("jobID", jobID.String()), zap.String("function", job.Function))
 }
 
-func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, err error) {
+func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, jobErr error) {
 	c.jobDone(jobID)
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
 
 	c.logger.Error("Job failed",
-		zap.Error(err),
+		zap.Error(jobErr),
 		zap.String("jobID", jobID.String()),
 	)
 
-	err = c.jobStateFailed(context.Background(), jobID)
+	err := c.jobStateFailed(context.Background(), jobID)
 	if err != nil {
 		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
 		return
@@ -518,7 +518,7 @@ func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, er
 	cronLog := &models.CronJobLog{
 		CronJobID: job.ID,
 		Type:      models.CronJobLogTypeFailure,
-		Message:   err.Error(),
+		Message:   jobErr.Error(),
 	}
 	if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 		return db.Create(cronLog)
