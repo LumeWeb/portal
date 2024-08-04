@@ -91,7 +91,7 @@ func getCacheMode(cm config.Manager, logger *core.Logger) string {
 	case "redis":
 		return "redis"
 	default:
-		logger.Fatal("invalid cache mode", zap.String("mode", cm.Config().Core.DB.Cache.Mode))
+		logger.Fatal("invalid cache mode", zap.String("mode", string(cm.Config().Core.DB.Cache.Mode)))
 	}
 
 	return "none"
