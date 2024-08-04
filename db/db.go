@@ -172,5 +172,6 @@ func isLockError(err error) bool {
 	errMsg := strings.ToLower(err.Error())
 	return strings.Contains(errMsg, "deadlock") ||
 		strings.Contains(errMsg, "lock wait timeout") ||
-		strings.Contains(errMsg, "database is locked")
+		strings.Contains(errMsg, "database is locked") ||
+		strings.Contains(errMsg, "too many connections")
 }
