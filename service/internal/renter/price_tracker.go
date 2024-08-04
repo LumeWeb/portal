@@ -104,12 +104,20 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 	var averageRateStr string
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 
-	// Use a simpler query that works for both SQLite and MySQL
-	sql := `
-    SELECT AVG(rate) as average_rate
-    FROM sc_price_history
-    WHERE created_at >= DATE('now', '-' || ? || ' days')
-    `
+	var sql string
+	if p.db.Dialector.Name() == "sqlite" {
+		sql = `
+        SELECT AVG(rate) as average_rate
+        FROM sc_price_history
+        WHERE created_at >= DATE('now', '-' || ? || ' days')
+        `
+	} else {
+		sql = `
+        SELECT AVG(rate) as average_rate
+        FROM sc_price_history
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        `
+	}
 
 	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
 		return db.Raw(sql, days).Scan(&averageRateStr)
