@@ -18,6 +18,7 @@ import (
 	"gorm.io/gorm"
 	"math"
 	"math/rand"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -297,6 +298,7 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error
 		gocron.WithEventListeners(
 			gocron.AfterJobRuns(c.listenerFuncNoError),
 			gocron.AfterJobRunsWithError(c.listenerFuncErr),
+			gocron.AfterJobRunsWithPanic(c.listenerFuncPanic),
 		),
 	}
 
@@ -481,7 +483,16 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string
 	c.logger.Debug("Job completed successfully", zap.String("jobID", jobID.String()), zap.String("function", job.Function))
 }
 
-func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, jobErr error) {
+func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, err error) {
+	c.handleJobFailure(jobID, jobName, err)
+}
+
+func (c *CronServiceDefault) listenerFuncPanic(jobID uuid.UUID, jobName string, recoverData any) {
+	err := fmt.Errorf("panic occurred: %v\n%s", recoverData, debug.Stack())
+	c.handleJobFailure(jobID, jobName, err)
+}
+
+func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr error) {
 	c.jobDone(jobID)
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
@@ -514,7 +525,7 @@ func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, jo
 		return
 	}
 
-	// Log the failure
+	// Log the failure (including panics) in the cron job logs
 	cronLog := &models.CronJobLog{
 		CronJobID: job.ID,
 		Type:      models.CronJobLogTypeFailure,
