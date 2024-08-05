@@ -40,7 +40,7 @@ require (
 	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86
 	go.sia.tech/core v0.4.1
 	go.sia.tech/coreutils v0.2.1
-	go.sia.tech/renterd v1.0.7
+	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.25.0
@@ -70,7 +70,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/yuin/gopher-lua v1.1.0 // indirect
 	go.etcd.io/etcd v3.3.27+incompatible // indirect
-	go.sia.tech/jape v0.11.2-0.20240228204811-29a0f056d231 // indirect
+	go.sia.tech/jape v0.11.2-0.20240306154058-9832414a5385 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
