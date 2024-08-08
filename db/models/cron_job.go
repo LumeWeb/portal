@@ -26,9 +26,10 @@ type CronJob struct {
 	Function      string           `gorm:"type:varchar(255);"`
 	Args          string           `gorm:"type:longtext;"`
 	LastRun       *time.Time
-	Failures      uint
+	Failures      uint64
 	State         CronJobState `gorm:"type:varchar(20);default:'queued'"`
 	LastHeartbeat *time.Time
+	Version       uint64 `gorm:"default:0"`
 }
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {
