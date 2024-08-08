@@ -1002,7 +1002,7 @@ func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
 
 	job, err := jc.cron.getJob(_uuid)
 	if err != nil {
-		jc.cron.logger.Error("Attempted to run job that does not exist", zap.String("jobID", job.UUID.String()), zap.String("function", job.Function), zap.String("args", job.Args))
+		jc.cron.logger.Error("Attempted to run job that does not exist", zap.String("jobID", _uuid.String()))
 		ack(job)
 		return
 	}
