@@ -34,7 +34,6 @@ const redisQueueNamespace = "cron"
 const consumerTag = "cron-consumer"
 const consumerPrefetch = 10
 const deadJobCheckInterval = 1 * time.Minute
-const maxTaskDuration = 1 * time.Hour
 const heartbeatTimeout = 10 * time.Minute
 
 func init() {
@@ -217,7 +216,7 @@ func (c *CronServiceDefault) clusterMode() bool {
 	return c.ctx.Config().Config().Core.ClusterEnabled()
 }
 
-func (c *CronServiceDefault) kickOffJob(job *models.CronJob, errors uint) error {
+func (c *CronServiceDefault) kickOffJob(job *models.CronJob, errors uint64) error {
 	if c.ctx.Config().Config().Core.ClusterEnabled() {
 		return c.enqueueJob(job)
 	}
@@ -286,7 +285,7 @@ func (c *CronServiceDefault) startConsuming(queue rmq.Queue, name string) error 
 	return nil
 }
 
-func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error {
+func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) error {
 	task, err := c.prepareTask(job)
 	if err != nil {
 		return fmt.Errorf("failed to prepare task: %w", err)
@@ -307,9 +306,8 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error
 		return fmt.Errorf("failed to load task definition: %w", err)
 	}
 
-	var backoffDelay time.Duration
+	backoffDelay := c.calculateBackoff(job.Failures)
 	if errors > 0 {
-		backoffDelay = exponentialBackoff(errors, failureBackoffBaseDelay, failureBackoffMaxDelay)
 		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(backoffDelay)))
 	}
 
@@ -343,6 +341,29 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint) error
 				}
 			}
 		}
+
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					if err := c.jobHeartbeat(context.Background(), uuid.UUID(job.UUID)); err != nil {
+						c.logger.Error("Failed to update job heartbeat during pre-startup", zap.Error(err))
+					}
+				case <-ctx.Done():
+					c.logger.Debug("Job canceled, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+					return
+				case <-wrapCtx.Done():
+					c.logger.Debug("Job done, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+					return
+				case <-cronJob.Started():
+					c.logger.Debug("Job started, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+					return
+				}
+			}
+		}()
 
 	waitForStart:
 		<-cronJob.Started()
@@ -467,7 +488,7 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string
 			)
 		}
 	} else {
-		err := c.jobStateComplete(context.Background(), jobID)
+		err := c.updateJobState(c.ctx, jobID, models.CronJobStateCompleted)
 		if err != nil {
 			c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
 		}
@@ -502,13 +523,13 @@ func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr 
 		zap.String("jobID", jobID.String()),
 	)
 
-	err := c.jobStateFailed(context.Background(), jobID)
+	err := c.updateJobState(c.ctx, jobID, models.CronJobStateFailed)
 	if err != nil {
 		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
 		return
 	}
 
-	err = c.jobStateRequeue(context.Background(), jobID)
+	err = c.updateJobState(c.ctx, jobID, models.CronJobStateQueued)
 	if err != nil {
 		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
 		return
@@ -564,11 +585,12 @@ func (c *CronServiceDefault) isRecurring(funcName string) bool {
 }
 
 func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
-	err := c.jobStateComplete(context.Background(), uuid.UUID(job.UUID))
+	err := c.updateJobState(c.ctx, uuid.UUID(job.UUID), models.CronJobStateCompleted)
 	if err != nil {
 		return err
 	}
-	err = c.jobStateReset(context.Background(), uuid.UUID(job.UUID))
+
+	err = c.updateJobState(c.ctx, uuid.UUID(job.UUID), models.CronJobStateQueued)
 	if err != nil {
 		return err
 	}
@@ -686,93 +708,86 @@ func (c *CronServiceDefault) createJobRecord(function string, args any) (*models
 func (c *CronServiceDefault) jobHeartbeat(ctx context.Context, jobID uuid.UUID) error {
 	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var job models.CronJob
-		job.UUID = types.BinaryUUID(jobID)
+		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return tx.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
+		}); err != nil {
+			return fmt.Errorf("failed to fetch job: %w", err)
+		}
+
+		oldHeartbeat := job.LastHeartbeat
+
+		var rowsAffected int64
 
 		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return db.First(&job)
+			ret := tx.Model(&job).
+				Where("uuid = ? AND version = ?", types.BinaryUUID(jobID), job.Version).
+				Updates(models.CronJob{
+					LastHeartbeat: timeNow(),
+					Version:       job.Version + 1,
+				})
+
+			rowsAffected = ret.RowsAffected
+
+			return ret
+		}); err != nil {
+			return fmt.Errorf("failed to update job heartbeat: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			c.logger.Warn("Job heartbeat updated by another process")
+			return nil
+		}
+
+		c.logger.Debug("Job heartbeat updated",
+			zap.String("jobID", jobID.String()),
+			zap.Time("oldHeartbeat", *oldHeartbeat),
+			zap.Time("newHeartbeat", *job.LastHeartbeat))
+
+		return nil
+	})
+}
+
+func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uuid.UUID, newState models.CronJobState) error {
+	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var job models.CronJob
+		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			return tx.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
 		}); err != nil {
 			return err
 		}
 
-		job.LastHeartbeat = timeNow()
+		oldState := job.State
 
-		return db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return tx.Save(&job)
-		})
-	})
-}
+		var rowsAffected int64
 
-// updateJobState updates the state of a job in the database
-func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uint, newState models.CronJobState) error {
-	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var job models.CronJob
-		if err := tx.First(&job, jobID).Error; err != nil {
+		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
+			ret := tx.Model(&job).
+				Where("uuid = ? AND version = ?", types.BinaryUUID(jobID), job.Version).
+				Updates(models.CronJob{
+					State:         newState,
+					LastRun:       timeNow(),
+					Version:       job.Version + 1,
+					LastHeartbeat: timeNow(),
+				})
+
+			rowsAffected = ret.RowsAffected
+
+			return ret
+		}); err != nil {
 			return err
 		}
 
-		job.State = newState
-		job.LastRun = timeNow()
+		if rowsAffected == 0 {
+			return errors.New("job was updated by another process")
+		}
 
-		return tx.Save(&job).Error
+		c.logger.Debug("Job state updated",
+			zap.String("jobID", jobID.String()),
+			zap.String("oldState", string(oldState)),
+			zap.String("newState", string(newState)))
+
+		return nil
 	})
-}
-
-// transitionJobState handles the state transition logic
-func (c *CronServiceDefault) transitionJobState(ctx context.Context, jobID uuid.UUID, fromState, toState models.CronJobState) error {
-	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var job models.CronJob
-		err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return db.Model(&job).Where(&models.CronJob{UUID: types.BinaryUUID(jobID)}).First(&job)
-		})
-		if err != nil {
-			return err
-		}
-
-		if job.State != fromState {
-			return errors.New("invalid state transition")
-		}
-
-		job.State = toState
-		job.LastRun = timeNow()
-
-		if toState == models.CronJobStateFailed {
-			job.Failures++
-		}
-
-		return db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return tx.Save(&job)
-		})
-	})
-}
-
-// StartJob transitions a job from Queued to Processing
-func (c *CronServiceDefault) jobStateReset(ctx context.Context, jobID uuid.UUID) error {
-	return c.transitionJobState(ctx, jobID, models.CronJobStateCompleted, models.CronJobStateQueued)
-}
-
-// StartJob transitions a job from Queued to Processing
-func (c *CronServiceDefault) jobStateProcessing(ctx context.Context, jobID uuid.UUID) error {
-	return c.transitionJobState(ctx, jobID, models.CronJobStateQueued, models.CronJobStateProcessing)
-}
-
-// CompleteJob transitions a job from Processing to Completed
-func (c *CronServiceDefault) jobStateComplete(ctx context.Context, jobID uuid.UUID) error {
-	return c.transitionJobState(ctx, jobID, models.CronJobStateProcessing, models.CronJobStateCompleted)
-}
-
-// FailJob transitions a job from Processing to Failed
-func (c *CronServiceDefault) jobStateFailed(ctx context.Context, jobID uuid.UUID) error {
-	return c.transitionJobState(ctx, jobID, models.CronJobStateProcessing, models.CronJobStateFailed)
-}
-
-// RequeueJob transitions a job from Failed or Completed to Queued
-func (c *CronServiceDefault) jobStateRequeue(ctx context.Context, jobID uuid.UUID) error {
-	err := c.transitionJobState(ctx, jobID, models.CronJobStateFailed, models.CronJobStateQueued)
-	if err != nil {
-		// If the job wasn't in Failed state, try transitioning from Completed
-		err = c.transitionJobState(ctx, jobID, models.CronJobStateCompleted, models.CronJobStateQueued)
-	}
-	return err
 }
 
 func (c *CronServiceDefault) getJob(id uuid.UUID) (*models.CronJob, error) {
@@ -789,97 +804,161 @@ func (c *CronServiceDefault) getJob(id uuid.UUID) (*models.CronJob, error) {
 }
 
 func (c *CronServiceDefault) startDeadJobDetection() {
-	go func() {
-		ticker := time.NewTicker(deadJobCheckInterval)
-		defer ticker.Stop()
+	ticker := time.NewTicker(deadJobCheckInterval)
+	defer ticker.Stop()
 
-		for {
-			select {
-			case <-c.ctx.Done():
-				return
-			case <-ticker.C:
-				if err := c.detectAndHandleDeadJobs(); err != nil {
-					c.logger.Error("Failed to detect and handle dead tasks", zap.Error(err))
+	for {
+		select {
+		case <-c.ctx.Done():
+			c.logger.Info("Stopping dead job detection")
+			return
+		case <-ticker.C:
+			ctx, cancel := context.WithTimeout(c.ctx, 5*time.Minute)
+			err := c.detectAndHandleDeadJobs(ctx)
+			cancel()
+			if err != nil {
+				if !errors.Is(err, context.Canceled) {
+					c.logger.Error("Failed to detect and handle dead jobs", zap.Error(err))
+				} else {
+					c.logger.Info("Dead job detection cancelled")
 				}
 			}
 		}
-	}()
+	}
+}
+func (c *CronServiceDefault) calculateBackoff(failures uint64) time.Duration {
+	if failures == 0 {
+		return 0
+	}
+	backoffDelay := c.calculateMaxBackoffWithJitter(failures)
+	return backoffDelay
 }
 
-func (c *CronServiceDefault) detectAndHandleDeadJobs() error {
-	var deadTasks []models.CronJob
-	now := time.Now()
-	heartbeatDeadline := now.Add(-heartbeatTimeout)
-	durationDeadline := now.Add(-maxTaskDuration)
-
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.WithContext(c.ctx).Where("state = ? AND ((last_heartbeat < ? AND last_heartbeat IS NOT NULL) OR (created_at < ? AND last_heartbeat IS NULL))",
-			models.CronJobStateProcessing, heartbeatDeadline, durationDeadline).Find(&deadTasks)
-	}); err != nil {
-		return err
+func (c *CronServiceDefault) calculateMaxBackoffWithJitter(failures uint64) time.Duration {
+	if failures == 0 {
+		return 0
 	}
 
-	for _, task := range deadTasks {
-		if err := c.handleDeadJob(c.ctx, &task); err != nil {
-			c.logger.Error("Failed to handle dead task", zap.Error(err), zap.String("jobID", task.UUID.String()))
+	// Calculate the maximum possible delay including jitter
+	baseDelay := float64(failureBackoffBaseDelay) * math.Pow(2, float64(failures))
+	maxDelayWithJitter := baseDelay * 1.5 // 1.5 accounts for maximum 50% jitter
+
+	// Cap the delay
+	if maxDelayWithJitter > float64(failureBackoffMaxDelay) {
+		maxDelayWithJitter = float64(failureBackoffMaxDelay)
+	}
+
+	return time.Duration(maxDelayWithJitter)
+}
+
+func (c *CronServiceDefault) detectAndHandleDeadJobs(ctx context.Context) error {
+	now := time.Now()
+	heartbeatDeadline := now.Add(-heartbeatTimeout)
+
+	var potentialDeadJobs []models.CronJob
+
+	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.Where("state IN (?, ?) AND last_heartbeat < ?",
+				models.CronJobStateProcessing, models.CronJobStateQueued, heartbeatDeadline).
+				Find(&potentialDeadJobs)
+		})
+	}); err != nil {
+		return fmt.Errorf("error querying for potential dead jobs: %w", err)
+	}
+
+	for _, job := range potentialDeadJobs {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if c.shouldHandleDeadJob(&job, now) {
+				if err := c.handleDeadJob(ctx, uuid.UUID(job.UUID)); err != nil {
+					c.logger.Error("Failed to handle dead job",
+						zap.Error(err),
+						zap.String("jobID", job.UUID.String()),
+						zap.String("function", job.Function))
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func (c *CronServiceDefault) handleDeadJob(ctx context.Context, job *models.CronJob) error {
-	err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Reload the job to ensure we have the latest state
+func (c *CronServiceDefault) shouldHandleDeadJob(job *models.CronJob, now time.Time) bool {
+	if job.State == models.CronJobStateProcessing {
+		// Always handle processing jobs that missed their heartbeat
+		return true
+	}
+
+	// For queued jobs, check if the backoff period has elapsed
+	backoffDuration := c.calculateBackoff(job.Failures)
+	var backoffEndTime time.Time
+
+	if job.LastRun != nil && !job.LastRun.IsZero() {
+		backoffEndTime = job.LastRun.Add(backoffDuration)
+	} else {
+		backoffEndTime = job.UpdatedAt.Add(backoffDuration)
+	}
+
+	return now.After(backoffEndTime)
+}
+
+func (c *CronServiceDefault) handleDeadJob(ctx context.Context, jobID uuid.UUID) error {
+	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var job models.CronJob
 		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return db.First(job, job.ID)
+			return tx.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
 		}); err != nil {
-			return err
+			return fmt.Errorf("failed to fetch job: %w", err)
 		}
 
-		// Double-check that the job is still in a processing state
+		// Check if the job is still in a processing state
 		if job.State != models.CronJobStateProcessing {
-			return nil // Task has already been handled, nothing to do
+			return nil // Job has already been handled, nothing to do
 		}
 
-		job.State = models.CronJobStateQueued
-		job.Failures++
+		var rowsAffected int64
 
 		if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-			return db.Save(job)
+			ret := tx.Model(&job).
+				Where("uuid = ? AND version = ? AND state = ?", types.BinaryUUID(jobID), job.Version, models.CronJobStateProcessing).
+				Updates(models.CronJob{
+					State:    models.CronJobStateQueued,
+					Failures: job.Failures + 1,
+					Version:  job.Version + 1,
+				})
+			rowsAffected = ret.RowsAffected
+
+			return ret
 		}); err != nil {
-			return err
+			return fmt.Errorf("failed to update job: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return errors.New("job was updated by another process or is no longer in processing state")
+		}
+
+		c.logger.Warn("Detected and requeued dead job",
+			zap.String("jobID", job.UUID.String()),
+			zap.String("function", job.Function),
+			zap.Time("lastHeartbeat", *job.LastHeartbeat),
+			zap.Uint64("failures", job.Failures+1))
+
+		// Determine if it's a recurring job and handle accordingly
+		if c.isRecurring(job.Function) {
+			if err := c.rescheduleJob(&job); err != nil {
+				return fmt.Errorf("failed to reschedule dead recurring job: %w", err)
+			}
+		} else {
+			if err := c.kickOffJob(&job, job.Failures); err != nil {
+				return fmt.Errorf("failed to re-enqueue dead one-time job: %w", err)
+			}
 		}
 
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	// Log the dead job
-	c.logger.Warn("Detected dead job",
-		zap.String("jobID", job.UUID.String()),
-		zap.String("function", job.Function),
-		zap.Time("lastHeartbeat", *job.LastHeartbeat),
-		zap.Uint("failures", job.Failures))
-
-	// If it's a recurring job, reschedule it
-	if c.isRecurring(job.Function) {
-		if err = c.rescheduleJob(job); err != nil {
-			c.logger.Error("Failed to reschedule dead recurring job", zap.Error(err), zap.String("jobID", job.UUID.String()))
-			return err
-		}
-	} else {
-		// For one-time tasks, re-enqueue the job
-		if err = c.kickOffJob(job, job.Failures); err != nil {
-			c.logger.Error("Failed to re-enqueue dead one-time job", zap.Error(err), zap.String("jobID", job.UUID.String()))
-			return err
-		}
-	}
-
-	return nil
 }
 
 type JobConsumer struct {
@@ -923,7 +1002,8 @@ func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
 
 	job, err := jc.cron.getJob(_uuid)
 	if err != nil {
-		sendErr("Failed to get job", err)
+		jc.cron.logger.Error("Attempted to run job that does not exist", zap.String("jobID", job.UUID.String()), zap.String("function", job.Function), zap.String("args", job.Args))
+		ack(job)
 		return
 	}
 
@@ -933,8 +1013,7 @@ func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
 		ack(job)
 		return
 	}
-
-	if err = jc.cron.jobStateProcessing(context.Background(), uuid.UUID(job.UUID)); err != nil {
+	if err = jc.cron.updateJobState(jc.cron.ctx, uuid.UUID(job.UUID), models.CronJobStateProcessing); err != nil {
 		sendErr("Failed to update job state", err)
 		return
 	}
@@ -950,7 +1029,7 @@ func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
 func TaskDefinitionOneTimeJob() gocron.JobDefinition {
 	return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 }
-func exponentialBackoff(attempt uint, baseDelay, maxDelay time.Duration) time.Duration {
+func exponentialBackoff(attempt uint64, baseDelay, maxDelay time.Duration) time.Duration {
 	// Calculate delay
 	delay := float64(baseDelay) * math.Pow(2, float64(attempt))
 
