@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
@@ -39,17 +40,16 @@ func NewMetadataService() (*MetadataServiceDefault, []core.ContextBuilderOption,
 }
 
 func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata core.UploadMetadata) error {
-	return m.db.Transaction(func(tx *gorm.DB) error {
-		upload := models.Upload{
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		upload := &models.Upload{
 			Hash:     metadata.Hash,
 			HashType: metadata.HashType,
 			Protocol: metadata.Protocol,
 		}
 
 		if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).
-				FirstOrCreate(&upload, upload)
-		}); err != nil {
+			return db.Model(upload).Where(&upload).First(&upload)
+		}); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
 
@@ -90,11 +90,11 @@ func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata core.U
 func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (core.UploadMetadata, error) {
 	var upload models.Upload
 
-	err := m.db.Transaction(func(tx *gorm.DB) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		upload.Hash = objectHash.Multihash()
 
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
+			return db.Model(&upload).Where(&upload).First(&upload)
 		})
 	})
 
@@ -106,18 +106,18 @@ func (m *MetadataServiceDefault) GetUpload(ctx context.Context, objectHash core.
 }
 
 func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var upload models.Upload
 		upload.Hash = objectHash.Multihash()
 
 		if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Model(&models.Upload{}).Where(&upload).First(&upload)
+			return db.Model(&models.Upload{}).Where(&upload).First(&upload)
 		}); err != nil {
 			return err
 		}
 
 		if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Delete(&upload)
+			return db.Delete(&upload)
 		}); err != nil {
 			return err
 		}
@@ -129,9 +129,9 @@ func (m *MetadataServiceDefault) DeleteUpload(ctx context.Context, objectHash co
 func (m *MetadataServiceDefault) GetAllUploads(ctx context.Context) ([]core.UploadMetadata, error) {
 	var uploads []models.Upload
 
-	err := m.db.Transaction(func(tx *gorm.DB) error {
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Find(&uploads)
+			return db.Find(&uploads)
 		})
 	})
 

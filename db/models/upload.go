@@ -14,7 +14,7 @@ type Upload struct {
 	gorm.Model
 	UserID     uint
 	HashType   uint64
-	Hash       mh.Multihash `gorm:"type:binary(64);uniqueIndex:idx_upload_hash_deleted_at"`
+	Hash       mh.Multihash `gorm:"type:varbinary(64);uniqueIndex:idx_upload_hash_deleted_at"`
 	MimeType   string
 	Protocol   string
 	User       User
