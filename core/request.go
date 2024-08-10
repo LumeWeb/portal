@@ -13,7 +13,7 @@ type RequestService interface {
 	GetRequest(ctx context.Context, id uint) (*models.Request, error)
 	UpdateRequest(ctx context.Context, req *models.Request) error
 	DeleteRequest(ctx context.Context, id uint) error
-	QueryRequest(ctx context.Context, query interface{}, filter RequestFilter) (*models.Request, error)
+	QueryRequest(ctx context.Context, query any, filter RequestFilter) (*models.Request, error)
 	CompleteRequest(ctx context.Context, id uint) error
 
 	// Query operations

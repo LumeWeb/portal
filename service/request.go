@@ -373,7 +373,7 @@ func (r *RequestServiceDefault) GetProtocolData(ctx context.Context, id uint) (a
 		return nil, nil
 	}
 
-	return core.GetProtocolDataRequestHandler(req.Protocol).GetProtocolData(ctx, id)
+	return core.GetProtocolDataRequestHandler(req.Protocol).GetProtocolData(ctx, r.db.Preload("Request"), id)
 }
 
 func (r *RequestServiceDefault) QueryProtocolData(ctx context.Context, protocol string, query any, filter core.RequestFilter) (interface{}, error) {
@@ -463,7 +463,7 @@ func (r *RequestServiceDefault) GetUploadData(ctx context.Context, id uint) (any
 	}
 
 	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
-		return handler.GetUploadData(ctx, r.db, id)
+		return handler.GetUploadData(ctx, r.db.Preload("Request"), id)
 	}
 
 	r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))

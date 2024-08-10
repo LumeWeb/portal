@@ -33,7 +33,7 @@ type ProtocolStop interface {
 
 type ProtocolRequestDataHandler interface {
 	CreateProtocolData(ctx context.Context, id uint, data any) error
-	GetProtocolData(ctx context.Context, id uint) (any, error)
+	GetProtocolData(ctx context.Context, tx *gorm.DB, id uint) (any, error)
 	UpdateProtocolData(ctx context.Context, id uint, data any) error
 	DeleteProtocolData(ctx context.Context, id uint) error
 	QueryProtocolData(ctx context.Context, tx *gorm.DB, query any) *gorm.DB
@@ -43,7 +43,7 @@ type ProtocolRequestDataHandler interface {
 
 type ProtocolPinHandler interface {
 	CreateProtocolPin(ctx context.Context, id uint, data any) error
-	GetProtocolPin(ctx context.Context, id uint) (any, error)
+	GetProtocolPin(ctx context.Context, tx *gorm.DB, id uint) (any, error)
 	UpdateProtocolPin(ctx context.Context, id uint, data any) error
 	DeleteProtocolPin(ctx context.Context, id uint) error
 	QueryProtocolPin(ctx context.Context, query any) *gorm.DB

@@ -280,7 +280,7 @@ func (p *PinServiceDefault) GetProtocolPin(ctx context.Context, id uint) (any, e
 		p.logger.Panic("protocol does not have a pin handler", zap.String("protocol", pin.Upload.Protocol))
 	}
 
-	return core.GetProtocolPinHandler(pin.Upload.Protocol).GetProtocolPin(ctx, id)
+	return core.GetProtocolPinHandler(pin.Upload.Protocol).GetProtocolPin(ctx, p.db.Preload("Request"), id)
 }
 
 func (p *PinServiceDefault) QueryProtocolPin(ctx context.Context, protocol string, query any, filter core.PinFilter) (any, error) {
