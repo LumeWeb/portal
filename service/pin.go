@@ -78,7 +78,10 @@ func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.P
 
 func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) error {
 	ctx := context.Background()
-	pin, err := p.QueryPin(ctx, &models.Pin{UserID: userId}, core.PinFilter{})
+	pin, err := p.QueryPin(ctx, nil, core.PinFilter{
+		Hash:   hash,
+		UserID: userId,
+	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
