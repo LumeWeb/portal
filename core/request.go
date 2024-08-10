@@ -34,7 +34,7 @@ type RequestService interface {
 	UpdateUploadData(ctx context.Context, id uint, data any) error
 	GetUploadData(ctx context.Context, id uint) (any, error)
 	DeleteUploadData(ctx context.Context, id uint) error
-	QueryUploadData(ctx context.Context, query any, filter RequestFilter) (any, error)
+	QueryUploadData(ctx context.Context, uploadMethod models.RequestOperationType, query any, filter RequestFilter) (any, error)
 	CompleteUploadData(ctx context.Context, id uint) error
 
 	// Utility operations
