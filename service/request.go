@@ -14,6 +14,8 @@ import (
 
 var _ core.RequestService = (*RequestServiceDefault)(nil)
 
+const uploadOperationSuffix = "_upload"
+
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID: core.REQUEST_SERVICE,
@@ -63,20 +65,26 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 		}
 	}
 
-	uploadDataHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+	var uploadDataHandler core.UploadDataHandler
 
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-	}
+	isUpload := isUploadOperation(req.Operation)
 
-	if uploadData == nil {
-		uploadData = uploadDataHandler.GetUploadDataModel()
-	} else {
-		expectedType := reflect.TypeOf(uploadDataHandler.GetUploadDataModel())
-		actualType := reflect.TypeOf(uploadData)
+	if isUpload {
+		var ok bool
+		uploadDataHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+		if !ok {
+			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+		}
 
-		if expectedType != actualType {
-			r.logger.Panic("invalid upload data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
+		if uploadData == nil {
+			uploadData = uploadDataHandler.GetUploadDataModel()
+		} else {
+			expectedType := reflect.TypeOf(uploadDataHandler.GetUploadDataModel())
+			actualType := reflect.TypeOf(uploadData)
+
+			if expectedType != actualType {
+				r.logger.Panic("invalid upload data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
+			}
 		}
 	}
 
@@ -98,8 +106,10 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 		return nil, err
 	}
 
-	if err := uploadDataHandler.CreateUploadData(ctx, r.ctx.DB().WithContext(r.ctx), newReq.ID, uploadData); err != nil {
-		return nil, err
+	if isUpload {
+		if err := uploadDataHandler.CreateUploadData(ctx, r.ctx.DB().WithContext(r.ctx), newReq.ID, uploadData); err != nil {
+			return nil, err
+		}
 	}
 
 	return &newReq, nil
@@ -202,12 +212,19 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return nil
 	}
 
+	var uploadHandler core.UploadDataHandler
+
+	isUpload := isUploadOperation(req.Operation)
+
 	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
 
-	uploadHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-		return nil
+	if isUpload {
+		var ok bool
+		uploadHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+		if !ok {
+			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+			return nil
+		}
 	}
 
 	if req.Status != models.RequestStatusCompleted {
@@ -221,8 +238,10 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return err
 	}
 
-	if err = uploadHandler.CompleteUploadData(ctx, r.db, id); err != nil {
-		return err
+	if isUpload {
+		if err = uploadHandler.CompleteUploadData(ctx, r.db, id); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -401,6 +420,10 @@ func (r *RequestServiceDefault) CreateUploadData(ctx context.Context, id uint, d
 		return err
 	}
 
+	if !isUploadOperation(req.Operation) {
+		return nil
+	}
+
 	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
 		if data == nil {
 			data = handler.GetUploadDataModel()
@@ -424,6 +447,10 @@ func (r *RequestServiceDefault) GetUploadData(ctx context.Context, id uint) (any
 		return nil, err
 	}
 
+	if !isUploadOperation(req.Operation) {
+		return nil, nil
+	}
+
 	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
 		return handler.GetUploadData(ctx, r.db, id)
 	}
@@ -437,6 +464,10 @@ func (r *RequestServiceDefault) UpdateUploadData(ctx context.Context, id uint, d
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if !isUploadOperation(req.Operation) {
+		return nil
 	}
 
 	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
@@ -459,6 +490,10 @@ func (r *RequestServiceDefault) DeleteUploadData(ctx context.Context, id uint) e
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if !isUploadOperation(req.Operation) {
+		return nil
 	}
 
 	handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
@@ -512,6 +547,11 @@ func (r *RequestServiceDefault) CompleteUploadData(ctx context.Context, id uint)
 	if err != nil {
 		return err
 	}
+
+	if !isUploadOperation(req.Operation) {
+		return nil
+	}
+
 	handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
 	if !ok {
 		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
@@ -521,9 +561,13 @@ func (r *RequestServiceDefault) CompleteUploadData(ctx context.Context, id uint)
 	return handler.CompleteUploadData(ctx, r.db, id)
 }
 
+func isUploadOperation[T string | models.RequestOperationType](operation T) bool {
+	return strings.HasSuffix(string(operation), uploadOperationSuffix)
+}
+
 func getDataHandlerName[T string | models.RequestOperationType](operation T) string {
 	handlerName := string(operation)
-	return strings.TrimSuffix(handlerName, "_upload")
+	return strings.TrimSuffix(handlerName, uploadOperationSuffix)
 }
 
 func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
