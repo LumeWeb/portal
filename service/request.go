@@ -506,17 +506,15 @@ func (r *RequestServiceDefault) DeleteUploadData(ctx context.Context, id uint) e
 }
 
 func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMethod models.RequestOperationType, query any, filter core.RequestFilter) (any, error) {
-	req := &models.Request{}
-
 	isUpload := isUploadOperation(uploadMethod)
 
 	if !isUpload {
 		return nil, nil
 	}
 
-	handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+	handler, ok := core.GetUploadDataHandler(getDataHandlerName(uploadMethod))
 	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(uploadMethod)))
 		return nil, nil
 	}
 
