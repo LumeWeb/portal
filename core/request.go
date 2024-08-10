@@ -9,7 +9,7 @@ const REQUEST_SERVICE = "request"
 
 type RequestService interface {
 	// Core CRUD operations
-	CreateRequest(ctx context.Context, req *models.Request, protocolData any) (*models.Request, error)
+	CreateRequest(ctx context.Context, req *models.Request, protocolData any, uploadData any) (*models.Request, error)
 	GetRequest(ctx context.Context, id uint) (*models.Request, error)
 	UpdateRequest(ctx context.Context, req *models.Request) error
 	DeleteRequest(ctx context.Context, id uint) error

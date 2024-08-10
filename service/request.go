@@ -44,22 +44,39 @@ func NewRequestService() (*RequestServiceDefault, []core.ContextBuilderOption, e
 	return req, opts, nil
 }
 
-func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, protocolData any) (*models.Request, error) {
+func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, protocolData any, uploadData any) (*models.Request, error) {
 	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
 		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
 		return nil, nil
 	}
 
-	handler := core.GetProtocolDataRequestHandler(req.Protocol)
+	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
 
 	if protocolData == nil {
-		protocolData = handler.GetProtocolDataModel()
+		protocolData = protocolDataHandler.GetProtocolDataModel()
 	} else {
-		expectedType := reflect.TypeOf(handler.GetProtocolDataModel())
+		expectedType := reflect.TypeOf(protocolDataHandler.GetProtocolDataModel())
 		actualType := reflect.TypeOf(protocolData)
 
 		if expectedType != actualType {
 			r.logger.Panic("invalid protocol data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
+		}
+	}
+
+	uploadDataHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+
+	if !ok {
+		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+	}
+
+	if uploadData == nil {
+		uploadData = uploadDataHandler.GetUploadDataModel()
+	} else {
+		expectedType := reflect.TypeOf(uploadDataHandler.GetUploadDataModel())
+		actualType := reflect.TypeOf(uploadData)
+
+		if expectedType != actualType {
+			r.logger.Panic("invalid upload data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
 		}
 	}
 
@@ -77,7 +94,11 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 		return nil, err
 	}
 
-	if err := handler.CreateProtocolData(ctx, newReq.ID, protocolData); err != nil {
+	if err := protocolDataHandler.CreateProtocolData(ctx, newReq.ID, protocolData); err != nil {
+		return nil, err
+	}
+
+	if err := uploadDataHandler.CreateUploadData(ctx, r.ctx.DB().WithContext(r.ctx), newReq.ID, uploadData); err != nil {
 		return nil, err
 	}
 
@@ -141,6 +162,14 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 		return nil
 	}
 
+	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
+
+	uploadDataHandler, ok := core.GetUploadDataHandler(req.Protocol)
+
+	if !ok {
+		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+	}
+
 	err = r.ctx.DB().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).Delete(&models.Request{}, id)
@@ -151,7 +180,11 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 		return err
 	}
 
-	if err = core.GetProtocolDataRequestHandler(req.Protocol).DeleteProtocolData(ctx, id); err != nil {
+	if err = protocolDataHandler.DeleteProtocolData(ctx, id); err != nil {
+		return err
+	}
+
+	if err = uploadDataHandler.DeleteUploadData(ctx, r.db, id); err != nil {
 		return err
 	}
 
@@ -169,6 +202,8 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return nil
 	}
 
+	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
+
 	uploadHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
 	if !ok {
 		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
@@ -182,7 +217,7 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		}
 	}
 
-	if err = core.GetProtocolDataRequestHandler(req.Protocol).CompleteProtocolData(ctx, id); err != nil {
+	if err = protocolDataHandler.CompleteProtocolData(ctx, id); err != nil {
 		return err
 	}
 
