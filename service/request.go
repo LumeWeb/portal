@@ -3,13 +3,11 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 	"reflect"
 	"strings"
 )
@@ -391,15 +389,7 @@ func (r *RequestServiceDefault) QueryProtocolData(ctx context.Context, protocol 
 	}
 
 	// Create a new instance of the model type
-	modelValue := reflect.New(mt)
 	result := reflect.New(mt).Interface()
-	tableName := ""
-
-	if tabler, ok := modelValue.Interface().(schema.Tabler); ok {
-		tableName = tabler.TableName()
-	} else {
-		tableName = r.db.NamingStrategy.TableName(mt.Name())
-	}
 
 	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
@@ -410,7 +400,7 @@ func (r *RequestServiceDefault) QueryProtocolData(ctx context.Context, protocol 
 				r.logger.Panic("QueryProtocolData returned nil")
 			}
 
-			tx = tx.Joins(fmt.Sprintf("JOIN requests ON requests.id = %s.request_id", tableName))
+			tx = tx.Joins("Request")
 
 			return tx.Scopes(applyFilters(filter)).First(result)
 		})
@@ -537,16 +527,7 @@ func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMetho
 	}
 
 	// Create a new instance of the model type
-	modelValue := reflect.New(mt)
 	result := reflect.New(mt).Interface()
-
-	tableName := ""
-
-	if tabler, ok := modelValue.Interface().(schema.Tabler); ok {
-		tableName = tabler.TableName()
-	} else {
-		tableName = r.db.NamingStrategy.TableName(mt.Name())
-	}
 
 	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
@@ -557,9 +538,9 @@ func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMetho
 				r.logger.Panic("QueryUploadData returned nil")
 			}
 
-			tx = tx.Joins(fmt.Sprintf("JOIN requests ON requests.id = %s.request_id", tableName))
+			tx = tx.Joins("Request")
 
-			return tx.Scopes(applyFilters(filter)).First(result)
+			return tx.Scopes(applyUploadDataFilters(filter)).First(result)
 		})
 	})
 
@@ -608,6 +589,25 @@ func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 		}
 		if filter.Operation != "" {
 			db = db.Where("requests.operation = ?", filter.Operation)
+		}
+		if filter.Limit > 0 {
+			db = db.Limit(filter.Limit)
+		}
+		if filter.Offset > 0 {
+			db = db.Offset(filter.Offset)
+		}
+
+		return db
+	}
+}
+
+func applyUploadDataFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if filter.Protocol != "" {
+			db = db.Where("Request.protocol = ?", filter.Protocol)
+		}
+		if filter.Operation != "" {
+			db = db.Where("Request.operation = ?", filter.Operation)
 		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)
