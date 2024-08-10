@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	"reflect"
 	"strings"
 )
@@ -389,17 +391,26 @@ func (r *RequestServiceDefault) QueryProtocolData(ctx context.Context, protocol 
 	}
 
 	// Create a new instance of the model type
+	modelValue := reflect.New(mt)
 	result := reflect.New(mt).Interface()
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	tableName := ""
+
+	if tabler, ok := modelValue.Interface().(schema.Tabler); ok {
+		tableName = tabler.TableName()
+	} else {
+		tableName = r.db.NamingStrategy.TableName(mt.Name())
+	}
+
+	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx = db.WithContext(ctx).Model(result)
+			tx = db.Model(result)
 			tx = handler.QueryProtocolData(ctx, tx, query)
 
 			if tx == nil {
 				r.logger.Panic("QueryProtocolData returned nil")
 			}
 
-			tx = tx.Joins("JOIN requests ON requests.id = request_id")
+			tx = tx.Joins(fmt.Sprintf("JOIN requests ON requests.id = %s.request_id", tableName))
 
 			return tx.Scopes(applyFilters(filter)).First(result)
 		})
@@ -526,9 +537,18 @@ func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMetho
 	}
 
 	// Create a new instance of the model type
+	modelValue := reflect.New(mt)
 	result := reflect.New(mt).Interface()
 
-	err := r.ctx.DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	tableName := ""
+
+	if tabler, ok := modelValue.Interface().(schema.Tabler); ok {
+		tableName = tabler.TableName()
+	} else {
+		tableName = r.db.NamingStrategy.TableName(mt.Name())
+	}
+
+	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			tx = db.Model(result)
 			tx = handler.QueryUploadData(ctx, tx, query)
@@ -537,7 +557,7 @@ func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMetho
 				r.logger.Panic("QueryUploadData returned nil")
 			}
 
-			tx = tx.Joins("JOIN requests ON request.id = request_id")
+			tx = tx.Joins(fmt.Sprintf("JOIN requests ON requests.id = %s.request_id", tableName))
 
 			return tx.Scopes(applyFilters(filter)).First(result)
 		})
