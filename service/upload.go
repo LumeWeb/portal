@@ -67,9 +67,9 @@ func (T TUSDataHandler) GetUploadData(ctx context.Context, tx *gorm.DB, id uint)
 	uploadData := &models.TUSRequest{
 		RequestID: id,
 	}
-	err := tx.Transaction(func(tx *gorm.DB) error {
+	err := tx.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Where(uploadData).First(uploadData)
+			return db.Where(uploadData).First(uploadData)
 		})
 	})
 	if err != nil {
