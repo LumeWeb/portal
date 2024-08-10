@@ -505,10 +505,10 @@ func (r *RequestServiceDefault) DeleteUploadData(ctx context.Context, id uint) e
 	return handler.DeleteUploadData(ctx, r.db, id)
 }
 
-func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, query any, filter core.RequestFilter) (interface{}, error) {
+func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMethod models.RequestOperationType, query any, filter core.RequestFilter) (any, error) {
 	req := &models.Request{}
 
-	isUpload := isUploadOperation(req.Operation)
+	isUpload := isUploadOperation(uploadMethod)
 
 	if !isUpload {
 		return nil, nil
@@ -530,9 +530,15 @@ func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, query any, 
 	// Create a new instance of the model type
 	result := reflect.New(mt).Interface()
 
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.ctx.DB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx = db.WithContext(ctx).Model(result)
+			tx = db.Model(result)
+			tx = handler.QueryUploadData(ctx, tx, query)
+
+			if tx == nil {
+				r.logger.Panic("QueryUploadData returned nil")
+			}
+
 			tx = tx.Joins("JOIN requests ON request.id = request_id")
 
 			return tx.Scopes(applyFilters(filter)).First(result)

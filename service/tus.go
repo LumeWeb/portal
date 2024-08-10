@@ -51,7 +51,7 @@ func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
 }
 
 func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, *models.TUSRequest) {
-	data, err := t.requests.QueryUploadData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
+	data, err := t.requests.QueryUploadData(ctx, models.RequestOperationTusUpload, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
 		Operation: models.RequestOperationTusUpload,
 	})
 	if err != nil {
@@ -201,7 +201,7 @@ func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) e
 }
 
 func (t *TUSServiceDefault) getUpload(ctx context.Context, uploadID string) (*models.TUSRequest, error) {
-	data, err := t.requests.QueryUploadData(ctx, &models.TUSRequest{TUSUploadID: uploadID}, core.RequestFilter{
+	data, err := t.requests.QueryUploadData(ctx, models.RequestOperationTusUpload, &models.TUSRequest{TUSUploadID: uploadID}, core.RequestFilter{
 		Operation: models.RequestOperationTusUpload,
 	})
 	if err != nil {
