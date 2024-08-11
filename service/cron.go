@@ -34,6 +34,7 @@ const redisQueueNamespace = "cron"
 const consumerTag = "cron-consumer"
 const consumerPrefetch = 10
 const deadJobCheckInterval = 1 * time.Minute
+const heartbeatInterval = 5 * time.Minute
 const heartbeatTimeout = 10 * time.Minute
 
 func init() {
@@ -324,7 +325,7 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 
 	go func() {
 		if backoffDelay > 0 {
-			ticker := time.NewTicker(30 * time.Second)
+			ticker := time.NewTicker(heartbeatInterval)
 			defer ticker.Stop()
 
 			backoffEnd := time.Now().Add(backoffDelay)
@@ -343,7 +344,7 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 		}
 
 		go func() {
-			ticker := time.NewTicker(30 * time.Second)
+			ticker := time.NewTicker(heartbeatInterval)
 			defer ticker.Stop()
 
 			for {
