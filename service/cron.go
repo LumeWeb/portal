@@ -48,6 +48,7 @@ func init() {
 
 type CronServiceDefault struct {
 	ctx            core.Context
+	config         config.Manager
 	db             *gorm.DB
 	logger         *core.Logger
 	entities       []core.Cronable
@@ -75,6 +76,7 @@ func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			cron.ctx = ctx
+			cron.config = ctx.Config()
 			cron.db = ctx.DB()
 			cron.logger = ctx.Logger()
 			return nil
@@ -199,7 +201,15 @@ func (c *CronServiceDefault) Start() error {
 		}
 	}
 
-	c.scheduler.Start()
+	err := c.scheduler.SetLimit(c.config.Config().Core.Cron.MaxQueue, gocron.LimitModeWait)
+	if err != nil {
+		return err
+	}
+
+	if c.config.Config().Core.Cron.Enabled {
+		c.scheduler.Start()
+	}
+
 	go c.startDeadJobDetection()
 
 	return nil
@@ -264,7 +274,7 @@ func (c *CronServiceDefault) getOrCreateQueue(name string) (rmq.Queue, error) {
 	c.queues[name] = queue
 
 	// Start consuming from this queue
-	if err := c.startConsuming(queue, name); err != nil {
+	if err = c.startConsuming(queue, name); err != nil {
 		return nil, fmt.Errorf("failed to start consuming from queue %s: %w", name, err)
 	}
 
@@ -450,6 +460,8 @@ func (c *CronServiceDefault) loadTaskDef(job *models.CronJob) (gocron.JobDefinit
 
 func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string) {
 	c.jobDone(jobID)
+	c.checkConsumption()
+
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
 
@@ -506,6 +518,7 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string
 }
 
 func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, err error) {
+	c.checkConsumption()
 	c.handleJobFailure(jobID, jobName, err)
 }
 
@@ -516,6 +529,7 @@ func (c *CronServiceDefault) listenerFuncPanic(jobID uuid.UUID, jobName string, 
 
 func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr error) {
 	c.jobDone(jobID)
+
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
 
@@ -583,6 +597,23 @@ func (c *CronServiceDefault) isRecurring(funcName string) bool {
 	_, ok := c.taskRecurring.Load(funcName)
 
 	return ok
+}
+
+func (c *CronServiceDefault) checkConsumption() {
+	if !c.ctx.Config().Config().Core.ClusterEnabled() || c.redisQueueConn == nil {
+		return
+	}
+
+	if uint(c.scheduler.JobsWaitingInQueue()) >= c.scheduler.LimitMode().Limit() {
+		c.redisQueueConn.StopAllConsuming()
+	} else {
+		for _, queue := range c.queues {
+			err := queue.StartConsuming(consumerPrefetch, queuePollDuration)
+			if err != nil && !errors.Is(err, rmq.ErrorAlreadyConsuming) {
+				c.logger.Error("Failed to start consuming from queue", zap.Error(err))
+			}
+		}
+	}
 }
 
 func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
