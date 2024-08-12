@@ -585,10 +585,10 @@ func getDataHandlerName[T string | models.RequestOperationType](operation T) str
 func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if filter.Protocol != "" {
-			db = db.Where("requests.protocol = ?", filter.Protocol)
+			db = db.Where("Request.protocol = ?", filter.Protocol)
 		}
 		if filter.Operation != "" {
-			db = db.Where("requests.operation = ?", filter.Operation)
+			db = db.Where("Request.operation = ?", filter.Operation)
 		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)
