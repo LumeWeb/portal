@@ -171,28 +171,6 @@ func (c *CronServiceDefault) Start() error {
 		}
 	}
 
-	var cronJobs []models.CronJob
-	result := c.db.Where(&models.CronJob{State: models.CronJobStateQueued}).Find(&cronJobs)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	for _, cronJob := range cronJobs {
-		if c.clusterMode() {
-			err := c.enqueueJob(&cronJob)
-			if err != nil {
-				c.logger.Error("Failed to enqueue job", zap.Error(err))
-				return err
-			}
-		} else {
-			err := c.kickOffJob(&cronJob, cronJob.Failures)
-			if err != nil {
-				c.logger.Error("Failed to kick off job", zap.Error(err))
-				return err
-			}
-		}
-	}
-
 	for _, service := range c.entities {
 		err := service.ScheduleJobs(c)
 		if err != nil {
@@ -211,6 +189,28 @@ func (c *CronServiceDefault) Start() error {
 	}
 
 	go c.startDeadJobDetection()
+
+	go func() {
+		var cronJobs []models.CronJob
+		result := c.db.Where(&models.CronJob{State: models.CronJobStateQueued}).Find(&cronJobs)
+		if result.Error != nil {
+			c.logger.Error("Failed to fetch queued jobs", zap.Error(result.Error))
+		}
+
+		for _, cronJob := range cronJobs {
+			if c.clusterMode() {
+				err = c.enqueueJob(&cronJob)
+				if err != nil {
+					c.logger.Error("Failed to enqueue job", zap.Error(err))
+				}
+			} else {
+				err = c.kickOffJob(&cronJob, cronJob.Failures)
+				if err != nil {
+					c.logger.Error("Failed to kick off job", zap.Error(err))
+				}
+			}
+		}
+	}()
 
 	return nil
 }
