@@ -6,6 +6,7 @@ import (
 	_ "github.com/gorilla/mux"
 	_ "go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/internal"
+	"gorm.io/gorm"
 	_ "net/http"
 	"sync"
 )
@@ -15,12 +16,15 @@ type PluginFactory func() PluginInfo
 type CronFactory func(Context) (Cronable, error)
 type MailerTemplates map[string]MailerTemplate
 
+type DBMigration func(*gorm.DB) error
+
 type PluginInfo struct {
 	ID              string
 	API             func() (API, []ContextBuilderOption, error)
 	Protocol        func() (Protocol, []ContextBuilderOption, error)
 	Services        func() ([]ServiceInfo, error)
 	Models          []any
+	Migrations      []DBMigration
 	Events          []Eventer
 	Depends         []string
 	Cron            func() CronFactory

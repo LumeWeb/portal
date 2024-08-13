@@ -249,26 +249,43 @@ func (p *PortalImpl) registerAPIs(ctx core.Context) (ctxOpts []core.ContextBuild
 func (p *PortalImpl) initModels(ctx core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
 	plugins := core.GetPlugins()
 
+	models := make([]interface{}, 0)
 	for _, plugin := range plugins {
 		if plugin.Models != nil && len(plugin.Models) > 0 {
-			for _, model := range plugin.Models {
-				typ := reflect.TypeOf(model)
-				if typ.Kind() != reflect.Ptr {
-					ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
-					return nil, core.ErrInvalidModel
-				}
-
-				ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
-					if err := dbInst.AutoMigrate(model); err != nil {
-						ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
-						return err
-					}
-
-					return nil
-				}))
+			typ := reflect.TypeOf(plugin.Models)
+			if typ.Kind() != reflect.Ptr {
+				ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
+				return nil, core.ErrInvalidModel
 			}
+			models = append(models, plugin.Models...)
 		}
 	}
+
+	migrations := make([]core.DBMigration, 0)
+	for _, plugin := range plugins {
+		if plugin.Migrations != nil && len(plugin.Migrations) > 0 {
+			migrations = append(migrations, plugin.Migrations...)
+		}
+	}
+
+	ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
+		for _, model := range models {
+			typ := reflect.TypeOf(model)
+			if err = dbInst.AutoMigrate(model); err != nil {
+				ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
+				return err
+			}
+		}
+
+		for _, migration := range migrations {
+			if err = migration(p.ctx.DB()); err != nil {
+				ctx.Logger().Error("Error running migration", zap.Error(err))
+				return err
+			}
+		}
+
+		return nil
+	}))
 
 	return ctxOpts, nil
 }
