@@ -7,7 +7,9 @@ import (
 
 type ServiceFactory func() (Service, []ContextBuilderOption, error)
 
-type Service interface{}
+type Service interface {
+	ID() string
+}
 
 var (
 	services          = make(map[string]ServiceInfo)

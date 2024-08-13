@@ -63,6 +63,10 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 	return user, opts, nil
 }
 
+func (u UserServiceDefault) ID() string {
+	return core.USER_SERVICE
+}
+
 func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error) {
 	user := &models.User{}
 	exists, model, err := u.Exists(user, map[string]interface{}{"email": email})

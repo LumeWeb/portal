@@ -176,12 +176,16 @@ func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, e
 			storage.db = ctx.DB()
 			storage.renter = core.GetService[core.RenterService](ctx, core.RENTER_SERVICE)
 			storage.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
-			storage.logger = ctx.Logger()
+			storage.logger = ctx.ServiceLogger(storage)
 			return nil
 		}),
 	)
 
 	return storage, opts, nil
+}
+
+func (s StorageServiceDefault) ID() string {
+	return core.STORAGE_SERVICE
 }
 
 // readerPool manages a pool of readers for large, potentially non-seekable data streams

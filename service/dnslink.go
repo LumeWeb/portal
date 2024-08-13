@@ -29,6 +29,10 @@ type DNSLinkServiceDefault struct {
 	pin      core.PinService
 }
 
+func (p DNSLinkServiceDefault) ID() string {
+	return core.DNSLINK_SERVICE
+}
+
 func NewDNSLinkService() (*DNSLinkServiceDefault, []core.ContextBuilderOption, error) {
 	dnslinkService := &DNSLinkServiceDefault{}
 

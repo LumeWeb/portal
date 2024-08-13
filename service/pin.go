@@ -40,7 +40,7 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			pinService.ctx = ctx
-			pinService.logger = ctx.Logger()
+			pinService.logger = ctx.ServiceLogger(pinService)
 			pinService.config = ctx.Config()
 			pinService.db = ctx.DB()
 			pinService.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
@@ -49,6 +49,10 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 	)
 
 	return pinService, opts, nil
+}
+
+func (p PinServiceDefault) ID() string {
+	return core.PIN_SERVICE
 }
 
 func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, error) {

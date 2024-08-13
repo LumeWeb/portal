@@ -41,13 +41,17 @@ func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			storage.ctx = ctx
 			storage.db = ctx.DB()
-			storage.logger = ctx.Logger()
+			storage.logger = ctx.ServiceLogger(storage)
 			storage.requests = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 			return nil
 		}),
 	)
 
 	return storage, opts, nil
+}
+
+func (t *TUSServiceDefault) ID() string {
+	return core.TUS_SERVICE
 }
 
 func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, *models.TUSRequest) {

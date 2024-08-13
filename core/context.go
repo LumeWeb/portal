@@ -23,6 +23,10 @@ type Context interface {
 	ExitFuncs() []func(Context) error
 	DB() *gorm.DB
 	Logger() *Logger
+	ProtocolLogger(protocol Protocol) *Logger
+	APILogger(api API) *Logger
+	ServiceLogger(service Service) *Logger
+	NamedLogger(name string) *Logger
 	Config() config.Manager
 	Cancel()
 	ExitCode() int
@@ -141,6 +145,26 @@ func (ctx *defaultContext) Value(key any) any {
 
 func (ctx *defaultContext) GetContext() context.Context {
 	return ctx.Context
+}
+
+func (ctx *defaultContext) ProtocolLogger(protocol Protocol) *Logger {
+	return ctx.NamedLogger(fmt.Sprintf("protocol-%s", protocol.Name()))
+}
+
+func (ctx *defaultContext) APILogger(api API) *Logger {
+	return ctx.NamedLogger(fmt.Sprintf("api-%s", api.Name()))
+}
+
+func (ctx *defaultContext) ServiceLogger(service Service) *Logger {
+	return ctx.NamedLogger(fmt.Sprintf("service-%s", service.ID()))
+}
+
+func (ctx *defaultContext) NamedLogger(name string) *Logger {
+	return &Logger{
+		Logger: ctx.logger.Logger.Named(name),
+		level:  ctx.logger.level,
+		cm:     ctx.logger.cm,
+	}
 }
 
 // ContextBuilderOption and related functions
