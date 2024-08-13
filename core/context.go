@@ -108,7 +108,7 @@ func (ctx *defaultContext) ExitFuncs() []func(Context) error {
 }
 
 func (ctx *defaultContext) DB() *gorm.DB {
-	return ctx.db
+	return ctx.db.WithContext(ctx)
 }
 
 func (ctx *defaultContext) Logger() *Logger {
