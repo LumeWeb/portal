@@ -27,6 +27,10 @@ type Mailer struct {
 	templateRegistry *mailer.TemplateRegistry
 }
 
+func (m *Mailer) ID() string {
+	return core.MAILER_SERVICE
+}
+
 func NewMailerTemplate(subject *template.Template, body *template.Template) *mailer.EmailTemplate {
 	return mailer.NewMailerTemplate(subject, body)
 }

@@ -47,6 +47,10 @@ func NewAuthService() (*AuthServiceDefault, []core.ContextBuilderOption, error) 
 	return authService, opts, nil
 }
 
+func (a AuthServiceDefault) ID() string {
+	return core.AUTH_SERVICE
+}
+
 func (a AuthServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, error) {
 	valid, user, err := a.ValidLoginByEmail(email, password)
 

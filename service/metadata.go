@@ -39,6 +39,10 @@ func NewMetadataService() (*MetadataServiceDefault, []core.ContextBuilderOption,
 	return meta, opts, nil
 }
 
+func (m *MetadataServiceDefault) ID() string {
+	return core.METADATA_SERVICE
+}
+
 func (m *MetadataServiceDefault) SaveUpload(ctx context.Context, metadata core.UploadMetadata) error {
 	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		upload := &models.Upload{

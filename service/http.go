@@ -29,6 +29,7 @@ func init() {
 
 type HTTPServiceDefault struct {
 	ctx    core.Context
+	logger *core.Logger
 	router *mux.Router
 	srv    *http.Server
 }
@@ -55,6 +56,7 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			_http.ctx = ctx
+			_http.logger = ctx.ServiceLogger(_http)
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
@@ -65,6 +67,10 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 	_http.srv = srv
 
 	return _http, opts, nil
+}
+
+func (h *HTTPServiceDefault) ID() string {
+	return core.HTTP_SERVICE
 }
 
 func (h *HTTPServiceDefault) Router() *mux.Router {
@@ -125,7 +131,7 @@ func (h *HTTPServiceDefault) Serve() error {
 		defer wg.Done()
 		err := h.srv.Serve(ln)
 		if err != nil && err != http.ErrServerClosed {
-			h.ctx.Logger().Fatal("Failed to serve", zap.Error(err))
+			h.logger.Fatal("Failed to serve", zap.Error(err))
 		}
 	}()
 

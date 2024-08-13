@@ -37,13 +37,17 @@ func NewRequestService() (*RequestServiceDefault, []core.ContextBuilderOption, e
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			req.ctx = ctx
-			req.logger = ctx.Logger()
+			req.logger = ctx.ServiceLogger(req)
 			req.db = ctx.DB()
 			return nil
 		}),
 	)
 
 	return req, opts, nil
+}
+
+func (r *RequestServiceDefault) ID() string {
+	return core.REQUEST_SERVICE
 }
 
 func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, protocolData any, uploadData any) (*models.Request, error) {

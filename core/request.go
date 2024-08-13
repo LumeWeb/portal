@@ -39,6 +39,8 @@ type RequestService interface {
 
 	// Utility operations
 	RequestExists(ctx context.Context, id uint) (bool, error)
+
+	Service
 }
 
 type RequestFilter struct {

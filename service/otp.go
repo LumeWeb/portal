@@ -42,6 +42,10 @@ func NewOTPService() (*OTPServiceDefault, []core.ContextBuilderOption, error) {
 	return otp, opts, nil
 }
 
+func (o OTPServiceDefault) ID() string {
+	return core.OTP_SERVICE
+}
+
 func (o OTPServiceDefault) OTPGenerate(userId uint) (string, error) {
 	exists, user, err := o.user.AccountExists(userId)
 

@@ -47,6 +47,10 @@ func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuil
 	return &passwordService, opts, nil
 }
 
+func (p PasswordResetServiceDefault) ID() string {
+	return core.PASSWORD_RESET_SERVICE
+}
+
 func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error {
 	token := core.GenerateSecurityToken()
 

@@ -68,6 +68,10 @@ type cancelStruct struct {
 	cancel context.CancelFunc
 }
 
+func (c *CronServiceDefault) ID() string {
+	return core.CRON_SERVICE
+}
+
 func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) {
 	cron := &CronServiceDefault{
 		queues: make(map[string]rmq.Queue),
@@ -78,7 +82,7 @@ func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) 
 			cron.ctx = ctx
 			cron.config = ctx.Config()
 			cron.db = ctx.DB()
-			cron.logger = ctx.Logger()
+			cron.logger = ctx.ServiceLogger(cron)
 			return nil
 		}),
 		core.ContextWithStartupFunc(func(ctx core.Context) error {

@@ -10,6 +10,7 @@ import (
 )
 
 var _ core.ConfigService = (*ConfigServiceDefault)(nil)
+var _ core.Service = (*ConfigServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -34,6 +35,10 @@ type scope struct {
 	entity   string
 }
 
+func (cs *ConfigServiceDefault) ID() string {
+	return core.CONFIG_SERVICE
+}
+
 func NewConfigService() (*ConfigServiceDefault, []core.ContextBuilderOption, error) {
 	cs := &ConfigServiceDefault{
 		handlers:      make(map[string]core.ConfigPropertyUpdateHandler),
@@ -43,7 +48,7 @@ func NewConfigService() (*ConfigServiceDefault, []core.ContextBuilderOption, err
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			cs.ctx = ctx
-			cs.logger = ctx.Logger()
+			cs.logger = ctx.ServiceLogger(cs)
 			cs.config = ctx.Config()
 			cs.config.RegisterConfigChangeCallback(cs.handleConfigChange)
 

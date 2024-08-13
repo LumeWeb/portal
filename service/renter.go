@@ -52,7 +52,7 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 			renter.ctx = ctx
 			renter.config = ctx.Config()
 			renter.db = ctx.DB()
-			renter.logger = ctx.Logger()
+			renter.logger = ctx.ServiceLogger(renter)
 			return nil
 		}),
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
@@ -73,6 +73,10 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 	)
 
 	return renter, opts, nil
+}
+
+func (r *RenterDefault) ID() string {
+	return core.RENTER_SERVICE
 }
 
 func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
