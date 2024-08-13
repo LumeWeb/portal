@@ -225,3 +225,10 @@ func GetService[T Service](ctx Context, id string) T {
 
 	return typedSvc
 }
+
+func ServiceExists(ctx Context, id string) bool {
+	if ctx.Service(id) == nil {
+		return false
+	}
+	return true
+}
