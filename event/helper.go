@@ -50,11 +50,48 @@ func SetupFire[T event.Event](
 
 	return configEvt, nil
 }
-
 func Fire[T event.Event](
 	ctx core.Context,
 	eventName string,
 	cb func(evt T) error,
+) error {
+	return fire[T](ctx, eventName, cb, false)
+}
+
+func FireAsync[T event.Event](
+	ctx core.Context,
+	eventName string,
+	cb func(evt T) error,
+) error {
+	return fire[T](ctx, eventName, cb, true)
+}
+
+func DoFire(
+	ctx core.Context,
+	event event.Event,
+	async bool,
+) error {
+	if async {
+		ctx.Event().FireAsync(event)
+		return nil
+	}
+
+	return ctx.Event().FireEvent(event)
+}
+
+func Listen[T event.Event](
+	ctx core.Context,
+	eventName string,
+	handler func(T) error,
+) {
+	ctx.Event().On(eventName, EventHandler(eventName, handler))
+}
+
+func fire[T event.Event](
+	ctx core.Context,
+	eventName string,
+	cb func(evt T) error,
+	async bool,
 ) error {
 	evt, err := SetupFire[T](ctx, eventName)
 	if err != nil {
@@ -68,22 +105,7 @@ func Fire[T event.Event](
 		}
 	}
 
-	err = DoFire(ctx, evt)
+	err = DoFire(ctx, evt, async)
 
 	return err
-}
-
-func DoFire(
-	ctx core.Context,
-	event event.Event,
-) error {
-	return ctx.Event().FireEvent(event)
-}
-
-func Listen[T event.Event](
-	ctx core.Context,
-	eventName string,
-	handler func(T) error,
-) {
-	ctx.Event().On(eventName, EventHandler(eventName, handler))
 }
