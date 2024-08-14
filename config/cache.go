@@ -1,17 +1,20 @@
 package config
 
 import (
+	"errors"
 	"github.com/go-viper/mapstructure/v2"
 	"reflect"
 )
 
 var _ Defaults = (*CacheConfig)(nil)
+var _ Validator = (*CacheConfig)(nil)
 
 type CacheMode string
 
 const (
 	CacheModeMemory CacheMode = "memory"
 	CacheModeRedis  CacheMode = "redis"
+	CacheModeNone   CacheMode = "none"
 )
 
 type CacheConfig struct {
@@ -24,6 +27,20 @@ func (c CacheConfig) Defaults() map[string]any {
 		"mode":    "memory",
 		"options": MemoryConfig{},
 	}
+}
+
+func (c CacheConfig) Validate() error {
+	switch c.Mode {
+	case CacheModeRedis:
+	case CacheModeMemory:
+	case CacheModeNone:
+	case CacheMode(""):
+		return nil
+	default:
+		return errors.New("core.db.cache.mode must be one of: memory, redis, none")
+	}
+
+	return nil
 }
 
 type MemoryConfig struct {
@@ -65,6 +82,7 @@ func cacheConfigHook(cm *ManagerDefault) mapstructure.DecodeHookFuncType {
 			cacheConfig.Options = nil
 		default:
 			cacheConfig.Options = nil
+			cacheConfig.Mode = CacheModeNone
 		}
 
 		return cacheConfig, nil
