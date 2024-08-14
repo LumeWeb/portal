@@ -56,7 +56,6 @@ require (
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/alicebob/miniredis/v2 v2.30.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -159,7 +158,7 @@ require (
 
 replace (
 	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1 => github.com/LumeWeb/gocron-redis-lock/v2 v2.0.0-20240722104549-387206078839
-	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240812225203-7e3578a3e3f7
+	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be
 	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 => github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053

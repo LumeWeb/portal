@@ -14,8 +14,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
 github.com/LumeWeb/gocron-redis-lock/v2 v2.0.0-20240722104549-387206078839 h1:zHqmLQsunveLyd9GBokm/yEI1hJhAjg33vg08fk9mt8=
 github.com/LumeWeb/gocron-redis-lock/v2 v2.0.0-20240722104549-387206078839/go.mod h1:T5w/btpGno2+FnYyaXAYTfavO6TTD+RyDSwJ3kPX7aE=
-github.com/LumeWeb/gocron/v2 v2.0.0-20240812225203-7e3578a3e3f7 h1:sidzjS/oLNLkjVYsWuMw35SLiayHSSRDogacGQzc+dM=
-github.com/LumeWeb/gocron/v2 v2.0.0-20240812225203-7e3578a3e3f7/go.mod h1:xY7bJxGazKam1cz04EebrlP4S9q4iWdiAylMGP3jY9w=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be h1:vOslxliDgU73P8ssbgMlPfZN7tV61dQIlNTf8pcyKTs=
+github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be/go.mod h1:xY7bJxGazKam1cz04EebrlP4S9q4iWdiAylMGP3jY9w=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6 h1:2dSiG0CN+bF72J89Zk0/icyDebCpySx9CwZ0Fp+QM8Q=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5 h1:PLu5lde5k11bZcv1gFOHTw3j1JSDg6NE11g8yGml4U4=
@@ -136,9 +136,8 @@ github.com/containerd/containerd v1.7.11/go.mod h1:5UluHxHTX2rdvYuZ5OJTC5m/KJNs0
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
+github.com/coreos/etcd v3.3.10+incompatible h1:jFneRYjIvLMLhDLCzuTuU4rSJUjRplcJQ7pD7MnhC04=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
-github.com/coreos/etcd v3.3.13+incompatible h1:8F3hqu9fGYLBifCmRCJsicFqDx/D68Rt3q1JMazcgBQ=
-github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-semver v0.3.1 h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr4=

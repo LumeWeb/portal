@@ -47,20 +47,21 @@ func init() {
 }
 
 type CronServiceDefault struct {
-	ctx            core.Context
-	config         config.Manager
-	db             *gorm.DB
-	logger         *core.Logger
-	entities       []core.Cronable
-	scheduler      gocron.Scheduler
-	tasks          sync.Map
-	taskArgs       sync.Map
-	taskDefs       sync.Map
-	taskRecurring  sync.Map
-	queueMu        sync.Mutex
-	queues         map[string]rmq.Queue
-	redisQueueConn rmq.Connection
-	cronRunningMap sync.Map
+	ctx             core.Context
+	config          config.Manager
+	db              *gorm.DB
+	logger          *core.Logger
+	entities        []core.Cronable
+	scheduler       gocron.Scheduler
+	tasks           sync.Map
+	taskArgs        sync.Map
+	taskDefs        sync.Map
+	taskRecurring   sync.Map
+	queueMu         sync.Mutex
+	queues          map[string]rmq.Queue
+	redisQueueConn  rmq.Connection
+	cronRunningMap  sync.Map
+	waitForStartMap sync.Map
 }
 
 type cancelStruct struct {
@@ -306,14 +307,22 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 		return fmt.Errorf("failed to prepare task: %w", err)
 	}
 
+	waitForJobCtx := c.getJobStartContext(uuid.UUID(job.UUID))
+
+	listeners := []gocron.EventListener{
+		gocron.AfterJobRuns(c.listenerFuncNoError),
+		gocron.AfterJobRunsWithError(c.listenerFuncErr),
+		gocron.AfterJobRunsWithPanic(c.listenerFuncPanic),
+	}
+
+	if c.clusterMode() {
+		listeners = append(listeners, gocron.BeforeJobRuns(c.listenerJobStarted))
+	}
+
 	options := []gocron.JobOption{
 		gocron.WithName(job.UUID.String()),
 		gocron.WithIdentifier(uuid.UUID(job.UUID)),
-		gocron.WithEventListeners(
-			gocron.AfterJobRuns(c.listenerFuncNoError),
-			gocron.AfterJobRunsWithError(c.listenerFuncErr),
-			gocron.AfterJobRunsWithPanic(c.listenerFuncPanic),
-		),
+		gocron.WithEventListeners(listeners...),
 	}
 
 	jobDef, err := c.loadTaskDef(job)
@@ -331,23 +340,31 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 		return fmt.Errorf("failed to schedule job: %w", err)
 	}
 
-	ctx := cronJob.Context()
+	if c.clusterMode() {
+		c.monitorJob(cronJob, uuid.UUID(job.UUID), waitForJobCtx, backoffDelay)
+	}
+
+	return nil
+}
+
+func (c *CronServiceDefault) monitorJob(job gocron.Job, id uuid.UUID, waitCtx context.Context, backoff time.Duration) {
+	ctx := job.Context()
 
 	wrapCtx, cancel := context.WithCancel(ctx)
 
-	c.cronRunningMap.Store(uuid.UUID(job.UUID), cancelStruct{ctx: wrapCtx, cancel: cancel})
+	c.cronRunningMap.Store(id, cancelStruct{ctx: wrapCtx, cancel: cancel})
 
 	go func() {
-		if backoffDelay > 0 {
+		if backoff > 0 {
 			ticker := time.NewTicker(heartbeatInterval)
 			defer ticker.Stop()
 
-			backoffEnd := time.Now().Add(backoffDelay)
+			backoffEnd := time.Now().Add(backoff)
 
 			for {
 				select {
 				case <-ticker.C:
-					if err := c.jobHeartbeat(context.Background(), uuid.UUID(job.UUID)); err != nil {
+					if err := c.jobHeartbeat(c.ctx, id); err != nil {
 						c.logger.Error("Failed to update job heartbeat during backoff", zap.Error(err))
 					}
 				case <-time.After(time.Until(backoffEnd)):
@@ -364,28 +381,29 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 			for {
 				select {
 				case <-ticker.C:
-					if err := c.jobHeartbeat(context.Background(), uuid.UUID(job.UUID)); err != nil {
+					if err := c.jobHeartbeat(c.ctx, id); err != nil {
 						c.logger.Error("Failed to update job heartbeat during pre-startup", zap.Error(err))
 					}
 				case <-ctx.Done():
-					c.logger.Debug("Job canceled, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+					c.logger.Debug("Job canceled, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
 					return
 				case <-wrapCtx.Done():
-					c.logger.Debug("Job done, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+					c.logger.Debug("Job done, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
 					return
-				case <-cronJob.Started():
-					c.logger.Debug("Job started, exiting pre-heartbeat watch", zap.String("jobID", job.UUID.String()))
+				case <-waitCtx.Done():
+					c.logger.Debug("Job started, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
 					return
 				}
 			}
 		}()
 
 	waitForStart:
-		<-cronJob.Started()
-		lock := cronJob.Lock()
+		<-waitCtx.Done()
+
+		lock := job.Lock()
 
 		if lock == nil {
-			c.logger.Error("Failed to get lock", zap.String("jobID", job.UUID.String()))
+			c.logger.Error("Failed to get lock", zap.String("jobID", id.String()))
 			return
 		}
 
@@ -397,9 +415,9 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 
 			select {
 			case <-time.After(timeToWait):
-				c.logger.Debug("Lock expired, attempting to extend", zap.String("jobID", job.UUID.String()))
+				c.logger.Debug("Lock expired, attempting to extend", zap.String("jobID", id.String()))
 
-				err = rlock.Extend(ctx)
+				err := rlock.Extend(ctx)
 				if err != nil {
 					c.logger.Debug("Failed to extend lock", zap.Error(err))
 					err = rlock.Get().Lock()
@@ -410,20 +428,18 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 				}
 
 				// Call the heartbeat
-				if err = c.jobHeartbeat(context.Background(), uuid.UUID(job.UUID)); err != nil {
+				if err = c.jobHeartbeat(context.Background(), id); err != nil {
 					c.logger.Error("Failed to update job heartbeat", zap.Error(err))
 				}
 			case <-ctx.Done():
-				c.logger.Debug("Job canceled, exiting heartbeat watch", zap.String("jobID", job.UUID.String()))
+				c.logger.Debug("Job canceled, exiting heartbeat watch", zap.String("jobID", id.String()))
 				return
 			case <-wrapCtx.Done():
-				c.logger.Debug("Job done, exiting heartbeat watch", zap.String("jobID", job.UUID.String()))
+				c.logger.Debug("Job done, exiting heartbeat watch", zap.String("jobID", id.String()))
 				return
 			}
 		}
 	}()
-
-	return nil
 }
 
 func (c *CronServiceDefault) prepareTask(job *models.CronJob) (gocron.Task, error) {
@@ -469,7 +485,25 @@ func (c *CronServiceDefault) loadTaskDef(job *models.CronJob) (gocron.JobDefinit
 	return taskDefFunc.(core.CronTaskDefArgsFactoryFunction)(), nil
 }
 
-func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, jobName string) {
+func (c *CronServiceDefault) listenerJobStarted(id uuid.UUID, _ string) {
+	c.logger.Debug("Job started", zap.String("jobID", id.String()))
+
+	if val, ok := c.waitForStartMap.Load(id); ok {
+		cancel := val.(cancelStruct)
+		cancel.cancel()
+		c.waitForStartMap.Delete(id)
+	} else {
+		c.logger.Error("Failed to find job in waitForStartMap", zap.String("jobID", id.String()))
+	}
+}
+
+func (c *CronServiceDefault) getJobStartContext(jobID uuid.UUID) context.Context {
+	ctx, cancel := context.WithCancel(c.ctx)
+	c.waitForStartMap.Store(jobID, cancelStruct{ctx: ctx, cancel: cancel})
+	return ctx
+}
+
+func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 	c.jobDone(jobID)
 	c.checkConsumption()
 
@@ -597,6 +631,9 @@ func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr 
 }
 
 func (c *CronServiceDefault) jobDone(jobID uuid.UUID) {
+	if !c.clusterMode() {
+		return
+	}
 	if val, ok := c.cronRunningMap.Load(jobID); ok {
 		cancel := val.(cancelStruct)
 		cancel.cancel()
@@ -611,7 +648,7 @@ func (c *CronServiceDefault) isRecurring(funcName string) bool {
 }
 
 func (c *CronServiceDefault) checkConsumption() {
-	if !c.ctx.Config().Config().Core.ClusterEnabled() || c.redisQueueConn == nil {
+	if !c.clusterMode() || c.redisQueueConn == nil {
 		return
 	}
 
