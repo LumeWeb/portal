@@ -15,4 +15,6 @@ type TUSService interface {
 	UploadProgress(ctx context.Context, uploadID string) error
 	UploadCompleted(ctx context.Context, uploadID string) error
 	DeleteUpload(ctx context.Context, uploadID string) error
+
+	Service
 }
