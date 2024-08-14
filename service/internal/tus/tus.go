@@ -194,7 +194,43 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) 
 		return err
 	}
 
-	upload, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
+	err = t.deleteUpload(ctx, _upload.TUSUploadID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TusHandler) FailUpload(ctx context.Context, hash core.StorageHash) error {
+	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
+
+	if !exists {
+		return gorm.ErrRecordNotFound
+	}
+
+	err := t.tusService.DeleteUpload(ctx, _upload.TUSUploadID)
+	if err != nil {
+		return err
+	}
+
+	err = t.deleteUpload(ctx, _upload.TUSUploadID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t *TusHandler) deleteUpload(ctx context.Context, id string) error {
+	err := t.tusService.DeleteUpload(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	upload, err := t.tusStore.GetUpload(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -209,7 +245,7 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) 
 		Key:    aws.String(info.ID),
 	})
 	if err != nil {
-		t.logger.Error("failed to upload object from s3 buffer", zap.Error(err))
+		t.logger.Error("failed to delete upload object from s3 buffer", zap.Error(err))
 	}
 
 	_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
@@ -218,7 +254,7 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) 
 	})
 
 	if err != nil {
-		t.logger.Error("failed to upload metadata from s3 buffer", zap.Error(err))
+		t.logger.Error("failed to delete upload metadata from s3 buffer", zap.Error(err))
 	}
 
 	return nil
