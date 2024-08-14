@@ -203,19 +203,13 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) 
 	return nil
 }
 
-func (t *TusHandler) FailUpload(ctx context.Context, hash core.StorageHash) error {
-	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
-
-	if !exists {
-		return gorm.ErrRecordNotFound
-	}
-
-	err := t.tusService.DeleteUpload(ctx, _upload.TUSUploadID)
+func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
+	err := t.tusService.DeleteUpload(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	err = t.deleteUpload(ctx, _upload.TUSUploadID)
+	err = t.deleteUpload(ctx, id)
 
 	if err != nil {
 		return err
