@@ -178,7 +178,7 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 
 	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
 
-	uploadDataHandler, ok := core.GetUploadDataHandler(req.Protocol)
+	uploadDataHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
 
 	if !ok {
 		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
