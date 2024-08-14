@@ -382,7 +382,14 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 
 	waitForStart:
 		<-cronJob.Started()
-		rlock := cronJob.Lock().(*redislock.RedisLock)
+		lock := cronJob.Lock()
+
+		if lock == nil {
+			c.logger.Error("Failed to get lock", zap.String("jobID", job.UUID.String()))
+			return
+		}
+
+		rlock := lock.(*redislock.RedisLock)
 
 		for {
 			until := rlock.Get().Until()
