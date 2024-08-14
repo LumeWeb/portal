@@ -37,7 +37,13 @@ func (p *PortalImpl) Init() error {
 
 	dbInst, ctxOpts := db.NewDatabase(ctx)
 
-	opts, err := p.initServices(ctx)
+	opts, err := p.initModels(ctx, dbInst)
+	if err != nil {
+		return err
+	}
+	ctxOpts = append(ctxOpts, opts...)
+
+	opts, err = p.initServices(ctx)
 	if err != nil {
 		return err
 	}
@@ -50,12 +56,6 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	opts, err = p.registerAPIs(ctx)
-	if err != nil {
-		return err
-	}
-	ctxOpts = append(ctxOpts, opts...)
-
-	opts, err = p.initModels(ctx, dbInst)
 	if err != nil {
 		return err
 	}
