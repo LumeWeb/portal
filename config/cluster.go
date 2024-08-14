@@ -1,15 +1,28 @@
 package config
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/go-viper/mapstructure/v2"
 )
 
+var _ Validator = (*ClusterConfig)(nil)
+
 type ClusterConfig struct {
 	Enabled bool         `mapstructure:"enabled"`
 	Redis   *RedisConfig `mapstructure:"redis"`
 	Etcd    *EtcdConfig  `mapstructure:"etcd"`
+}
+
+func (c ClusterConfig) Validate() error {
+	if c.Enabled {
+		if c.Etcd == nil {
+			return errors.New("etcd configuration is required in cluster configuration")
+		}
+	}
+
+	return nil
 }
 
 func (c ClusterConfig) RedisEnabled() bool {
