@@ -252,10 +252,12 @@ func (p *PortalImpl) initModels(ctx core.Context, dbInst *gorm.DB) (ctxOpts []co
 	models := make([]interface{}, 0)
 	for _, plugin := range plugins {
 		if plugin.Models != nil && len(plugin.Models) > 0 {
-			typ := reflect.TypeOf(plugin.Models)
-			if typ.Kind() != reflect.Ptr {
-				ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
-				return nil, core.ErrInvalidModel
+			for model := range plugin.Models {
+				typ := reflect.TypeOf(model)
+				if typ.Kind() != reflect.Ptr {
+					ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
+					return nil, core.ErrInvalidModel
+				}
 			}
 			models = append(models, plugin.Models...)
 		}
