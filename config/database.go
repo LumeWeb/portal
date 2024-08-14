@@ -19,6 +19,10 @@ type DatabaseConfig struct {
 	Cache    *CacheConfig `mapstructure:"cache"`
 }
 
+func (d DatabaseConfig) CacheEnabled() bool {
+	return d.Cache != nil && d.Cache.Mode != CacheModeNone
+}
+
 func (d DatabaseConfig) Validate() error {
 	if d.Type == "sqlite" {
 		if d.File == "" {
