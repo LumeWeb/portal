@@ -786,90 +786,76 @@ func (c *CronServiceDefault) createJobRecord(function string, args any) (*models
 }
 
 func (c *CronServiceDefault) jobHeartbeat(ctx context.Context, jobID uuid.UUID) error {
-	// Fetch the job
-	var job models.CronJob
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
-		})
-	}); err != nil {
-		return fmt.Errorf("failed to fetch job: %w", err)
-	}
-
-	oldHeartbeat := job.LastHeartbeat
-
-	// Update the job heartbeat
-	var rowsAffected int64
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			ret := db.Model(&job).
-				Where("uuid = ? AND version = ?", types.BinaryUUID(jobID), job.Version).
-				Updates(models.CronJob{
-					LastHeartbeat: timeNow(),
-					Version:       job.Version + 1,
-				})
-
-			rowsAffected = ret.RowsAffected
-			return ret
-		})
-	}); err != nil {
+	updatedJob, err := c.updateJob(ctx, jobID, models.CronJob{LastHeartbeat: timeNow()})
+	if err != nil {
 		return fmt.Errorf("failed to update job heartbeat: %w", err)
 	}
 
-	if rowsAffected == 0 {
-		c.logger.Warn("Job heartbeat updated by another process")
-		return nil
+	lastHeartbeat := time.Unix(0, 0)
+
+	if updatedJob.LastHeartbeat != nil {
+		lastHeartbeat = *updatedJob.LastHeartbeat
 	}
 
 	c.logger.Debug("Job heartbeat updated",
 		zap.String("jobID", jobID.String()),
-		zap.Time("oldHeartbeat", *oldHeartbeat),
-		zap.Time("newHeartbeat", *job.LastHeartbeat))
+		zap.Time("heartbeat", lastHeartbeat))
 
 	return nil
 }
 
-func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uuid.UUID, newState models.CronJobState) error {
-	// Fetch the job
+func (c *CronServiceDefault) updateJob(ctx context.Context, jobID uuid.UUID, updates models.CronJob) (*models.CronJob, error) {
 	var job models.CronJob
+
 	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
-		})
+		// Fetch the job
+		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+				return db.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
+			})
+		}); err != nil {
+			return fmt.Errorf("failed to fetch job: %w", err)
+		}
+
+		// Always increment version and update LastHeartbeat
+		updates.Version = job.Version + 1
+
+		// Update the job
+		var rowsAffected int64
+		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+				ret := db.Model(&job).
+					Where("uuid = ? AND version = ?", types.BinaryUUID(jobID), job.Version).
+					Updates(updates)
+
+				rowsAffected = ret.RowsAffected
+				return ret
+			})
+		}); err != nil {
+			return fmt.Errorf("failed to update job: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return errors.New("job was updated by another process")
+		}
+
+		c.logger.Debug("Job updated", zap.String("jobID", jobID.String()))
+
+		return nil
 	}); err != nil {
-		return fmt.Errorf("failed to fetch job: %w", err)
+		return nil, err
 	}
 
-	oldState := job.State
+	return &job, nil
+}
 
-	// Update the job state
-	var rowsAffected int64
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			ret := db.Model(&job).
-				Where("uuid = ? AND version = ?", types.BinaryUUID(jobID), job.Version).
-				Updates(models.CronJob{
-					State:         newState,
-					LastRun:       timeNow(),
-					Version:       job.Version + 1,
-					LastHeartbeat: timeNow(),
-				})
-
-			rowsAffected = ret.RowsAffected
-			return ret
-		})
-	}); err != nil {
-		return fmt.Errorf("failed to update job state: %w", err)
+func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uuid.UUID, newState models.CronJobState) error {
+	updateJob, err := c.updateJob(ctx, jobID, models.CronJob{State: newState, LastHeartbeat: timeNow()})
+	if err != nil {
+		return err
 	}
 
-	if rowsAffected == 0 {
-		return errors.New("job was updated by another process")
-	}
-
-	c.logger.Debug("Job state updated",
-		zap.String("jobID", jobID.String()),
-		zap.String("oldState", string(oldState)),
-		zap.String("newState", string(newState)))
+	c.logger.Debug("Job state updated", zap.String("jobID", jobID.String()), zap.String("newState", string(updateJob.State)))
 
 	return nil
 }
@@ -1005,33 +991,22 @@ func (c *CronServiceDefault) handleDeadJob(ctx context.Context, jobID uuid.UUID)
 		return nil // Job has already been handled, nothing to do
 	}
 
-	// Update the job state
-	var rowsAffected int64
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			ret := db.Model(&job).
-				Where("uuid = ? AND version = ? AND state = ?", types.BinaryUUID(jobID), job.Version, models.CronJobStateProcessing).
-				Updates(models.CronJob{
-					State:    models.CronJobStateQueued,
-					Failures: job.Failures + 1,
-					Version:  job.Version + 1,
-				})
-			rowsAffected = ret.RowsAffected
-			return ret
-		})
-	}); err != nil {
+	_, err := c.updateJob(ctx, jobID, models.CronJob{State: models.CronJobStateQueued, Failures: job.Failures + 1})
+	if err != nil {
 		return fmt.Errorf("failed to update job: %w", err)
 	}
 
-	if rowsAffected == 0 {
-		return errors.New("job was updated by another process or is no longer in processing state")
+	lastHeartbeat := time.Unix(0, 0)
+
+	if job.LastHeartbeat != nil {
+		lastHeartbeat = *job.LastHeartbeat
 	}
 
 	c.logger.Warn("Detected and requeued dead job",
 		zap.String("jobID", job.UUID.String()),
 		zap.String("function", job.Function),
-		zap.Time("lastHeartbeat", *job.LastHeartbeat),
-		zap.Uint64("failures", job.Failures+1))
+		zap.Time("lastHeartbeat", lastHeartbeat),
+		zap.Uint64("failures", job.Failures))
 
 	// Handle recurring or one-time job
 	if c.isRecurring(job.Function) {
