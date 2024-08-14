@@ -499,7 +499,7 @@ func (m *ManagerDefault) maybeSave() error {
 
 func (m *ManagerDefault) maybeConfigureCluster() error {
 	if m.root.Core.ClusterEnabled() {
-		if m.root.Core.Clustered.Redis != nil {
+		if m.root.Core.Clustered.RedisEnabled() {
 			if m.root.Core.DB.Cache == nil {
 				m.root.Core.DB.Cache = &CacheConfig{}
 			}
