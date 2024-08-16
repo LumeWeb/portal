@@ -204,6 +204,23 @@ func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) e
 	return nil
 }
 
+func (t *TUSServiceDefault) SetHash(ctx context.Context, uploadID string, hash core.StorageHash) error {
+	upload, err := t.getUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+
+	upload.Request.Hash = hash.Multihash()
+	upload.Request.HashType = hash.Type()
+
+	err = t.requests.UpdateRequest(ctx, &upload.Request)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *TUSServiceDefault) getUpload(ctx context.Context, uploadID string) (*models.TUSRequest, error) {
 	data, err := t.requests.QueryUploadData(ctx, models.RequestOperationTusUpload, &models.TUSRequest{TUSUploadID: uploadID}, core.RequestFilter{
 		Operation: models.RequestOperationTusUpload,
