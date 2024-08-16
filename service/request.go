@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
@@ -15,6 +16,8 @@ import (
 var _ core.RequestService = (*RequestServiceDefault)(nil)
 
 const uploadOperationSuffix = "_upload"
+
+var requestTableName string
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -143,9 +146,15 @@ func (r *RequestServiceDefault) UpdateRequest(ctx context.Context, req *models.R
 func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
 
+	if requestTableName == "" {
+		modelType := reflect.ValueOf(req).Type()
+		requestTableName = r.ctx.DB().NamingStrategy.TableName(modelType.Name())
+	}
+
 	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			tx = db.WithContext(ctx)
+			tx = db.Table(fmt.Sprintf("%s as Request", requestTableName))
 			if query != nil {
 				tx = tx.Where(query)
 			}
