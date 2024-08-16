@@ -54,6 +54,10 @@ func (T TUSDataHandler) CreateUploadData(ctx context.Context, tx *gorm.DB, id ui
 	uploadData := data.(*models.TUSRequest)
 	uploadData.RequestID = id
 
+	if uploadData.TUSUploadID == "" {
+		return nil
+	}
+
 	return tx.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).FirstOrCreate(uploadData, &models.TUSRequest{
