@@ -46,6 +46,7 @@ type RequestService interface {
 type RequestFilter struct {
 	Protocol  string
 	Operation models.RequestOperationType
+	UserID    uint
 	Limit     int
 	Offset    int
 }

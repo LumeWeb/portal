@@ -594,6 +594,9 @@ func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 		if filter.Operation != "" {
 			db = db.Where("Request.operation = ?", filter.Operation)
 		}
+		if filter.UserID > 0 {
+			db = db.Where("Request.user_id = ?", filter.UserID)
+		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)
 		}
@@ -612,6 +615,9 @@ func applyUploadDataFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 		}
 		if filter.Operation != "" {
 			db = db.Where("Request.operation = ?", filter.Operation)
+		}
+		if filter.UserID > 0 {
+			db = db.Where("Request.user_id = ?", filter.UserID)
 		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)
