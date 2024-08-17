@@ -15,6 +15,7 @@ type TusHandlerConfig = tus.HandlerConfig
 type TusHandler = tus.TusHandler
 type TUSUploadCallbackHandler = tus.UploadCallbackHandler
 type TUSUploadCreatedVerifyFunc = tus.UploadCreatedVerifyFunc
+type UploadCreatedAfterFunc = tus.UploadCreatedAfterFunc
 
 var _ core.TUSService = (*TUSServiceDefault)(nil)
 
@@ -245,8 +246,8 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 
 	return handler, nil
 }
-func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc) TUSUploadCallbackHandler {
-	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc)
+func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
+	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc, afterFunc)
 }
 
 func TUSDefaultUploadProgressHandler(ctx core.Context) TUSUploadCallbackHandler {
