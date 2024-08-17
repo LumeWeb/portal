@@ -492,7 +492,7 @@ func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 
 func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadCompleted(ctx, hook.Upload.ID)
+		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
