@@ -26,6 +26,7 @@ const CtxRangeKey CtxRangeKeyType = "range"
 
 type preUploadCreateCallback func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error)
 type UploadCreatedVerifyFunc func(hook handler.HookEvent, uploaderId uint) (core.StorageHash, error)
+type UploadCreatedAfterFunc func(requestId uint) error
 
 type UploadCallbackHandler func(*TusHandler, handler.HookEvent)
 
@@ -411,7 +412,7 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 	return nil, nil
 }
 
-func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerifyFunc) UploadCallbackHandler {
+func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		var errMessage string
 
@@ -449,11 +450,20 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 			}
 		}
 
-		_, err = core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, handlr.StorageProtocol(), mimeType)
+		req, err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, handlr.StorageProtocol(), mimeType)
 		if err != nil {
 			errMessage = "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
 			ctx.Logger().Error(errMessage, zap.Error(err))
+		}
+
+		if afterFunc != nil {
+			err = afterFunc(req.RequestID)
+			if err != nil {
+				errMessage = "Failed to process upload"
+				handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
+				ctx.Logger().Error(errMessage, zap.Error(err))
+			}
 		}
 	}
 }
