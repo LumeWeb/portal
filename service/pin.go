@@ -316,9 +316,9 @@ func (p *PinServiceDefault) QueryProtocolPin(ctx context.Context, protocol strin
 				p.logger.Panic("QueryProtocolPin returned nil")
 			}
 
-			tx = tx.Joins("JOIN pins ON pins.id = ipfs_pins.pin_id")
+			tx = tx.Joins("Pin")
 
-			return tx.Scopes(applyPinFilters(filter)).First(result)
+			return tx.Scopes(applyProtocolPinFilters(filter)).First(result)
 		})
 	})
 
@@ -372,5 +372,47 @@ func applyPinFilters(filter core.PinFilter) func(*gorm.DB) *gorm.DB {
 		db = db.Preload("Upload")
 
 		return db.Order("pins.created_at DESC")
+	}
+}
+
+func applyProtocolPinFilters(filter core.PinFilter) func(*gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		// Join with uploads table if we need to filter by upload properties
+		if filter.Hash != nil || filter.Protocol != "" {
+			db = db.Joins("Pin.Upload")
+		}
+
+		if filter.UploadID != 0 {
+			db = db.Where("Pin.upload_id = ?", filter.UploadID)
+		}
+
+		if filter.Hash != nil {
+			db = db.Where("Pin__Upload.hash = ?", filter.Hash.Multihash())
+		}
+
+		if filter.UserID != 0 {
+			db = db.Where("Pin.user_id = ?", filter.UserID)
+		}
+
+		if !filter.CreatedAfter.IsZero() {
+			db = db.Where("Pin.created_at > ?", filter.CreatedAfter)
+		}
+
+		if filter.Protocol != "" {
+			db = db.Where("Pin__Upload.protocol = ?", filter.Protocol)
+		}
+
+		if filter.Limit > 0 {
+			db = db.Limit(filter.Limit)
+		}
+
+		if filter.Offset > 0 {
+			db = db.Offset(filter.Offset)
+		}
+
+		// Always preload Upload data
+		db = db.Preload("Pin.Upload")
+
+		return db.Order("Pin.created_at DESC")
 	}
 }
