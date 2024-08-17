@@ -172,6 +172,20 @@ func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string)
 	return nil
 }
 
+func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, uploadID string) error {
+	upload, err := t.getUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+
+	err = t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
 	upload, err := t.getUpload(ctx, uploadID)
 	if err != nil {

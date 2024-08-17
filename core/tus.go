@@ -13,6 +13,7 @@ type TUSService interface {
 	Uploads(ctx context.Context, uploaderID uint) ([]*models.TUSRequest, error)
 	CreateUpload(ctx context.Context, hash StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol StorageProtocol, mimeType string) (*models.TUSRequest, error)
 	UploadProgress(ctx context.Context, uploadID string) error
+	UploadProcessing(ctx context.Context, uploadID string) error
 	UploadCompleted(ctx context.Context, uploadID string) error
 	DeleteUpload(ctx context.Context, uploadID string) error
 	SetHash(ctx context.Context, uploadID string, hash StorageHash) error
