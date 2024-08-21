@@ -41,6 +41,7 @@ type MetadataService interface {
 	GetUpload(ctx context.Context, objectHash StorageHash) (UploadMetadata, error)
 	DeleteUpload(ctx context.Context, objectHash StorageHash) error
 	GetAllUploads(ctx context.Context) ([]UploadMetadata, error)
+	GetUploadByID(ctx context.Context, uploadID uint) (UploadMetadata, error)
 
 	Service
 }
