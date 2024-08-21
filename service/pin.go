@@ -55,7 +55,7 @@ func (p PinServiceDefault) ID() string {
 	return core.PIN_SERVICE
 }
 
-func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.Pin, error) {
+func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error) {
 	ctx := context.Background()
 	filter := core.PinFilter{
 		UserID:       id,
@@ -63,7 +63,7 @@ func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]models.P
 		Limit:        1000, // Set an appropriate limit
 	}
 
-	var pins []models.Pin
+	var pins []*models.Pin
 	err := p.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).
