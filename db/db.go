@@ -167,6 +167,14 @@ func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 	}
 }
 
+func RetryableTransaction(ctx core.Context, db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return RetryOnLock(tx, func(tx *gorm.DB) *gorm.DB {
+			return operation(tx)
+		})
+	})
+}
+
 // isLockError checks if the given error is a database lock error
 func isLockError(err error) bool {
 	errMsg := strings.ToLower(err.Error())
