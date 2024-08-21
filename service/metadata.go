@@ -151,6 +151,24 @@ func (m *MetadataServiceDefault) GetAllUploads(ctx context.Context) ([]core.Uplo
 	return metadata, nil
 }
 
+func (m *MetadataServiceDefault) GetUploadByID(ctx context.Context, uploadID uint) (core.UploadMetadata, error) {
+	var upload models.Upload
+
+	err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		upload.ID = uploadID
+
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.Model(&models.Upload{}).Where(&upload).First(&upload)
+		})
+	})
+
+	if err != nil {
+		return core.UploadMetadata{}, err
+	}
+
+	return m.uploadToMetadata(upload), nil
+}
+
 func (m *MetadataServiceDefault) uploadToMetadata(upload models.Upload) core.UploadMetadata {
 	return core.UploadMetadata{
 		ID:         upload.ID,
