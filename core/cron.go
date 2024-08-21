@@ -37,6 +37,11 @@ type CronTaskNoArgs struct{}
 func CronTaskDefinitionOneTimeJob() gocron.JobDefinition {
 	return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
 }
+
+func CronTaskDefinitionDaily() gocron.JobDefinition {
+	return gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
+}
+
 func CronTaskNoArgsFactory() any {
 	return &CronTaskNoArgs{}
 }
