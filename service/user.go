@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
-	_event "go.lumeweb.com/portal/event"
+	"go.lumeweb.com/portal/event"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -46,16 +45,10 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			user.db = ctx.DB()
 			user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
 
-			ctx.Event().On(_event.EVENT_USER_SUBDOMAIN_SET, event.ListenerFunc(func(e event.Event) error {
-				evt, ok := e.(*_event.UserSubdomainSetEvent)
-				if !ok {
-					return errors.New("invalid event type")
-				}
-
+			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
 				user.subdomain = evt.Subdomain()
 				return nil
-			}))
-
+			})
 			return nil
 		}),
 	)
@@ -130,6 +123,18 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 
 	if verifyEmail {
 		err = u.SendEmailVerification(user.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = event.FireUserCreatedEvent(u.ctx, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	if !verifyEmail {
+		err = event.FireUserActivatedEvent(u.ctx, &user)
 		if err != nil {
 			return nil, err
 		}
@@ -380,6 +385,11 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 		return db.Where(&verification).Delete(&verification)
 	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	err := event.FireUserActivatedEvent(u.ctx, &verification.User)
+	if err != nil {
+		return err
 	}
 
 	return nil
