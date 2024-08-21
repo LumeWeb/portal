@@ -153,6 +153,21 @@ func (p PinServiceDefault) UploadPinnedByUser(hash core.StorageHash, userId uint
 	return pin != nil, nil
 }
 
+func (p PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error) {
+	var pins []*models.Pin
+	err := p.db.Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.WithContext(ctx).Model(&models.Pin{}).Where(&models.Pin{UploadID: uploadID}).Joins("Upload").Find(&pins)
+		})
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
 func (p *PinServiceDefault) CreatePin(ctx context.Context, pin *models.Pin, protocolData any) (*models.Pin, error) {
 	if err := p.ctx.DB().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {

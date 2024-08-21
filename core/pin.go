@@ -28,6 +28,9 @@ type PinService interface {
 	// UploadPinnedByUser checks if the upload with the given hash is pinned by the specified user.
 	UploadPinnedByUser(hash StorageHash, userId uint) (bool, error)
 
+	// GetPinsByUploadID retrieves the list of pins for the given upload ID.
+	GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error)
+
 	// CreatePin creates a new pin or returns an existing one.
 	CreatePin(ctx context.Context, pin *models.Pin, protocolData any) (*models.Pin, error)
 
