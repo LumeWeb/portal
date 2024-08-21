@@ -11,7 +11,7 @@ const PIN_SERVICE = "pin"
 type PinService interface {
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,
 	// created after the specified timestamp.
-	AccountPins(id uint, createdAfter uint64) ([]models.Pin, error)
+	AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error)
 
 	// DeletePinByHash deletes the pin associated with the given hash and user ID.
 	DeletePinByHash(hash StorageHash, userId uint) error
