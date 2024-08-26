@@ -671,8 +671,8 @@ go.etcd.io/etcd/client/v3 v3.5.15 h1:23M0eY4Fd/inNv1ZfU3AxrbbOdW79r9V9Rl62Nm6ip4
 go.etcd.io/etcd/client/v3 v3.5.15/go.mod h1:CLSJxrYjvLtHsrPKsy7LmZEE+DK2ktfd2bN4RhBMwlU=
 go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86 h1:znILf2sTNf4KHA/Ot+mVxlYXOO59dLQ0IJkDNCj6kRw=
 go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86/go.mod h1:3aHem0Fj7dH1Kj+WgluoF0WlSyXyUCrJk4bvmdq/Fgs=
-go.sia.tech/core v0.4.3 h1:XEX7v6X8eJh4zyOkSHYi6FsyD+N/OEKw/NIigaaWPAU=
-go.sia.tech/core v0.4.3/go.mod h1:cGfGNcyAq1k4oIOsrNpJV/Z/p+20/IMS6vIaofE8nr8=
+go.sia.tech/core v0.4.4 h1:DYb0/DxgACstJUGgsRJIVtrsTC0mk6GfA6pTxQwzKV0=
+go.sia.tech/core v0.4.4/go.mod h1:Zuq0Tn2aIXJyO0bjGu8cMeVWe+vwQnUfZhG1LCmjD5c=
 go.sia.tech/coreutils v0.2.5 h1:oMnBGMBRfxhLzTH1ZDBg0Ep0QLE2GE1lND9yfzOzenA=
 go.sia.tech/coreutils v0.2.5/go.mod h1:Pg9eE3xL25couNL/vYrtCWP5uXkVvC+SUcMVh1/E7+I=
 go.sia.tech/gofakes3 v0.0.4 h1:Kvo8j5cVdJRBXvV1KBJ69bocY23twG8ao/HCdwuPMeI=
@@ -815,8 +815,8 @@ golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.8.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.15.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
-golang.org/x/sys v0.23.0 h1:YfKFowiIMvtgl1UERQoTPPToxltDeZfbj4H7dVUCwmM=
-golang.org/x/sys v0.23.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
+golang.org/x/sys v0.24.0 h1:Twjiwq9dn6R1fQcyiK+wQyHWfaz/BJB+YIpzU/Cv3Xg=
+golang.org/x/sys v0.24.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210421210424-b80969c67360/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/term v0.0.0-20210927222741-03fcf44c2211/go.mod h1:jbD1KX2456YbFQfuXm/mYQcufACuNUgVhRMnK/tPxf8=
