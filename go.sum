@@ -671,8 +671,8 @@ go.etcd.io/etcd/client/v3 v3.5.15 h1:23M0eY4Fd/inNv1ZfU3AxrbbOdW79r9V9Rl62Nm6ip4
 go.etcd.io/etcd/client/v3 v3.5.15/go.mod h1:CLSJxrYjvLtHsrPKsy7LmZEE+DK2ktfd2bN4RhBMwlU=
 go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86 h1:znILf2sTNf4KHA/Ot+mVxlYXOO59dLQ0IJkDNCj6kRw=
 go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86/go.mod h1:3aHem0Fj7dH1Kj+WgluoF0WlSyXyUCrJk4bvmdq/Fgs=
-go.sia.tech/core v0.4.4 h1:DYb0/DxgACstJUGgsRJIVtrsTC0mk6GfA6pTxQwzKV0=
-go.sia.tech/core v0.4.4/go.mod h1:Zuq0Tn2aIXJyO0bjGu8cMeVWe+vwQnUfZhG1LCmjD5c=
+go.sia.tech/core v0.4.6 h1:QLm97a7GWBonfnMEOokqWRAqsWCUPL7kzo6k3Adwx8E=
+go.sia.tech/core v0.4.6/go.mod h1:Zuq0Tn2aIXJyO0bjGu8cMeVWe+vwQnUfZhG1LCmjD5c=
 go.sia.tech/coreutils v0.3.0 h1:TutrhfNe8hq0GxWcibSRIVZQpFpBoKId7pFjxdvDIR8=
 go.sia.tech/coreutils v0.3.0/go.mod h1:8DNsiy6Xon5R9M/FnaSzAi2wcATh98EsDV3N6iGq4yI=
 go.sia.tech/gofakes3 v0.0.4 h1:Kvo8j5cVdJRBXvV1KBJ69bocY23twG8ao/HCdwuPMeI=
