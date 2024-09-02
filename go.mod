@@ -30,7 +30,7 @@ require (
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
 	github.com/redis/go-redis/v9 v9.6.1
-	github.com/rs/cors v1.11.0
+	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256
