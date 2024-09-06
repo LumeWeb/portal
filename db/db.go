@@ -7,9 +7,12 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"log"
 	"math"
 	"math/rand/v2"
 	"path"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -151,6 +154,20 @@ func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 
 	for {
 		result := operation(db)
+
+		if result == nil {
+			// Get caller information
+			pc, file, line, ok := runtime.Caller(1)
+			if !ok {
+				log.Println("Unable to get caller information")
+			} else {
+				fn := runtime.FuncForPC(pc)
+				log.Printf("Error in RetryOnLock called from %s (%s:%d)", fn.Name(), filepath.Base(file), line)
+			}
+
+			panic("operation must return a result")
+		}
+
 		if result.Error == nil {
 			return nil
 		}
