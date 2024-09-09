@@ -43,7 +43,7 @@ require (
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
-	golang.org/x/crypto v0.26.0
+	golang.org/x/crypto v0.27.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.1
 	gorm.io/driver/mysql v1.5.7
@@ -149,8 +149,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
