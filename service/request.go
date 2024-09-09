@@ -185,12 +185,19 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 		return nil
 	}
 
+	var uploadHandler core.UploadDataHandler
+
 	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
 
-	uploadDataHandler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+	isUpload := isUploadOperation(req.Operation)
 
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+	if isUpload {
+		var ok bool
+		uploadHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
+		if !ok {
+			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+			return nil
+		}
 	}
 
 	err = r.ctx.DB().Transaction(func(tx *gorm.DB) error {
@@ -207,8 +214,10 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 		return err
 	}
 
-	if err = uploadDataHandler.DeleteUploadData(ctx, r.db, id); err != nil {
-		return err
+	if isUpload {
+		if err = uploadHandler.DeleteUploadData(ctx, r.db, id); err != nil {
+			return err
+		}
 	}
 
 	return nil
