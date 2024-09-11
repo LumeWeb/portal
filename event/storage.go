@@ -21,7 +21,7 @@ func (e *StorageObjectUploadedEvent) SetPin(metadata *models.Pin) {
 	e.Set("pin", metadata)
 }
 
-func (e StorageObjectUploadedEvent) ObjectMetadata() *models.Pin {
+func (e StorageObjectUploadedEvent) Pin() *models.Pin {
 	return e.Get("pin").(*models.Pin)
 }
 
