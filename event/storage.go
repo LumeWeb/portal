@@ -2,6 +2,7 @@ package event
 
 import (
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 )
 
 const (
@@ -16,17 +17,17 @@ type StorageObjectUploadedEvent struct {
 	core.Event
 }
 
-func (e *StorageObjectUploadedEvent) SetObjectMetadata(metadata *core.UploadMetadata) {
-	e.Set("metadata", metadata)
+func (e *StorageObjectUploadedEvent) SetPin(metadata *models.Pin) {
+	e.Set("pin", metadata)
 }
 
-func (e StorageObjectUploadedEvent) ObjectMetadata() *core.UploadMetadata {
-	return e.Get("metadata").(*core.UploadMetadata)
+func (e StorageObjectUploadedEvent) ObjectMetadata() *models.Pin {
+	return e.Get("pin").(*models.Pin)
 }
 
-func FireStorageObjectUploadedEvent(ctx core.Context, metadata *core.UploadMetadata) error {
+func FireStorageObjectUploadedEvent(ctx core.Context, pin *models.Pin) error {
 	return Fire[*StorageObjectUploadedEvent](ctx, EVENT_STORAGE_OBJECT_UPLOADED, func(evt *StorageObjectUploadedEvent) error {
-		evt.SetObjectMetadata(metadata)
+		evt.SetPin(pin)
 		return nil
 	})
 }
