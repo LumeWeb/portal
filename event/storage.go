@@ -25,9 +25,18 @@ func (e StorageObjectUploadedEvent) Pin() *models.Pin {
 	return e.Get("pin").(*models.Pin)
 }
 
-func FireStorageObjectUploadedEvent(ctx core.Context, pin *models.Pin) error {
+func (e *StorageObjectUploadedEvent) SetIP(ip string) {
+	e.Set("ip", ip)
+}
+
+func (e StorageObjectUploadedEvent) IP() string {
+	return e.Get("ip").(string)
+}
+
+func FireStorageObjectUploadedEvent(ctx core.Context, pin *models.Pin, ip string) error {
 	return Fire[*StorageObjectUploadedEvent](ctx, EVENT_STORAGE_OBJECT_UPLOADED, func(evt *StorageObjectUploadedEvent) error {
 		evt.SetPin(pin)
+		evt.SetIP(ip)
 		return nil
 	})
 }
