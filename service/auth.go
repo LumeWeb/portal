@@ -51,7 +51,7 @@ func (a AuthServiceDefault) ID() string {
 	return core.AUTH_SERVICE
 }
 
-func (a AuthServiceDefault) LoginPassword(email string, password string, ip string) (string, *models.User, error) {
+func (a AuthServiceDefault) LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
 	valid, user, err := a.ValidLoginByEmail(email, password)
 
 	if err != nil {
@@ -62,7 +62,7 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 		return "", nil, nil
 	}
 
-	token, err := a.doLogin(user, ip, false)
+	token, err := a.doLogin(user, ip, false, rememberMe)
 
 	if err != nil {
 		return "", nil, err
@@ -85,7 +85,7 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
 	var user models.User
 	user.ID = userId
 
-	token, tokenErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, core.JWTPurposeLogin)
+	token, tokenErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, core.JWTPurposeLogin, false)
 	if tokenErr != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error
 
 	user := model.User
 
-	token, err := a.doLogin(&user, ip, true)
+	token, err := a.doLogin(&user, ip, true, false)
 
 	if err != nil {
 		return "", err
@@ -177,14 +177,14 @@ func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 
 	return true, &user, nil
 }
-func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity bool) (string, error) {
+func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity bool, rememberMe bool) (string, error) {
 	purpose := core.JWTPurposeLogin
 
 	if user.OTPEnabled && !bypassSecurity {
 		purpose = core.JWTPurpose2FA
 	}
 
-	token, jwtErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, purpose)
+	token, jwtErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, purpose, rememberMe)
 	if jwtErr != nil {
 		return "", core.NewAccountError(core.ErrKeyJWTGenerationFailed, jwtErr)
 	}

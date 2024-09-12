@@ -23,7 +23,7 @@ func GenerateSecurityToken() string {
 type AuthService interface {
 	// LoginPassword authenticates a user with the provided email and password.
 	// It returns the generated JWT token and the authenticated user if successful.
-	LoginPassword(email string, password string, ip string) (string, *models.User, error)
+	LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error)
 
 	// LoginOTP authenticates a user with the provided user ID and OTP code.
 	// It returns the generated JWT token if successful.
