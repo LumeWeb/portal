@@ -33,8 +33,14 @@ const (
 	JWTPurposeNone  JWTPurpose = ""
 )
 
-func JWTGenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose) (string, error) {
-	return JWTGenerateTokenWithDuration(domain, privateKey, userID, time.Hour*24, purpose)
+func JWTGenerateToken(domain string, privateKey ed25519.PrivateKey, userID uint, purpose JWTPurpose, rememberMe bool) (string, error) {
+	dur := time.Hour * 24
+
+	if rememberMe {
+		dur = time.Hour * 24 * 30
+	}
+
+	return JWTGenerateTokenWithDuration(domain, privateKey, userID, dur, purpose)
 }
 
 func JWTGenerateTokenWithDuration(domain string, privateKey ed25519.PrivateKey, userID uint, duration time.Duration, purpose JWTPurpose) (string, error) {
