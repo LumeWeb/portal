@@ -113,9 +113,25 @@ func (h *HTTPServiceDefault) Init() error {
 func (h *HTTPServiceDefault) apiMetaHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := httputil.Context(r, w)
 
-	ctx.Encode(core.Meta{
-		Domain: h.ctx.Config().Config().Core.Domain,
-	})
+	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
+
+	for _, plugin := range core.GetPlugins() {
+		metaBuilder.AddPlugin(plugin.ID)
+	}
+
+	for _, plugin := range core.GetPlugins() {
+		if plugin.Meta != nil {
+			err := plugin.Meta(h.ctx, metaBuilder)
+			if err != nil {
+				http.Error(w, "Failed to build meta", http.StatusInternalServerError)
+				h.logger.Error("Failed to build meta", zap.Error(err))
+
+				return
+			}
+		}
+	}
+
+	ctx.Encode(metaBuilder.Build())
 }
 
 func (h *HTTPServiceDefault) Serve() error {
