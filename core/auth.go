@@ -33,6 +33,10 @@ type AuthService interface {
 	// It returns the generated JWT token if successful.
 	LoginPubkey(pubkey string, ip string) (string, error)
 
+	// LoginID authenticates a user with the provided user ID.
+	// It returns the generated JWT token if successful.
+	LoginID(id uint, ip string) (string, error)
+
 	// ValidLoginByUserObj checks if the provided password is valid for the given user.
 	ValidLoginByUserObj(user *models.User, password string) bool
 

@@ -120,6 +120,35 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error
 
 	return token, nil
 }
+
+func (a AuthServiceDefault) LoginID(id uint, ip string) (string, error) {
+	var user models.User
+	var rowsAffected int64
+
+	user.ID = id
+
+	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
+		tx := db.Model(&user).Where(&user).First(&user)
+		rowsAffected = tx.RowsAffected
+		return tx
+	})
+
+	if rowsAffected == 0 || err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
+		}
+		return "", core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	token, err := a.doLogin(&user, ip, true, false)
+
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
 func (a AuthServiceDefault) ValidLoginByUserObj(user *models.User, password string) bool {
 	return a.validPassword(user, password)
 }
