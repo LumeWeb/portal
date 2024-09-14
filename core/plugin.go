@@ -20,6 +20,7 @@ type DBMigration func(*gorm.DB) error
 
 type PluginInfo struct {
 	ID              string
+	Meta            func(Context, PortalMetaBuilder) error
 	API             func() (API, []ContextBuilderOption, error)
 	Protocol        func() (Protocol, []ContextBuilderOption, error)
 	Services        func() ([]ServiceInfo, error)
