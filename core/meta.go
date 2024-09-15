@@ -7,10 +7,10 @@ type PortalMeta struct {
 }
 
 type PortalMetaPlugins struct {
-	Plugins map[string]MetaPlugin `json:"plugins"`
+	Plugins map[string]PortalMetaPlugin `json:"plugins"`
 }
 
-type MetaPlugin struct {
+type PortalMetaPlugin struct {
 	Meta map[string]any `json:"meta"`
 }
 

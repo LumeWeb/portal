@@ -18,7 +18,7 @@ func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
 			FeatureFlags: make(map[string]bool),
 		},
 		plugins: core.PortalMetaPlugins{
-			Plugins: make(map[string]core.MetaPlugin),
+			Plugins: make(map[string]core.PortalMetaPlugin),
 		},
 	}
 }
@@ -32,7 +32,7 @@ func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.P
 // AddPlugin adds a plugin without meta
 func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder {
 	if _, exists := b.portalMeta.Plugins.Plugins[key]; !exists {
-		b.portalMeta.Plugins.Plugins[key] = core.MetaPlugin{Meta: make(map[string]any)}
+		b.portalMeta.Plugins.Plugins[key] = core.PortalMetaPlugin{Meta: make(map[string]any)}
 	}
 	return b
 }
