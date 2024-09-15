@@ -1,6 +1,9 @@
 package service
 
-import "go.lumeweb.com/portal/core"
+import (
+	"go.lumeweb.com/portal/core"
+	"strings"
+)
 
 var _ core.PortalMetaBuilder = (*PortalMetaBuilderDefault)(nil)
 
@@ -25,6 +28,10 @@ func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
 
 // AddFeatureFlag adds a feature flag
 func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.PortalMetaBuilder {
+	key = strings.ToUpper(key)
+	key = strings.ReplaceAll(key, ".", "_")
+	key = strings.ReplaceAll(key, " ", "_")
+	key = strings.ReplaceAll(key, "-", "_")
 	b.portalMeta.FeatureFlags[key] = value
 	return b
 }
