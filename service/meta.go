@@ -19,9 +19,7 @@ func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
 		portalMeta: core.PortalMeta{
 			Domain:       domain,
 			FeatureFlags: make(map[string]bool),
-		},
-		plugins: core.PortalMetaPlugins{
-			Plugins: make(map[string]core.PortalMetaPlugin),
+			Plugins:      make(map[string]core.PortalMetaPlugin),
 		},
 	}
 }
@@ -38,8 +36,8 @@ func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.P
 
 // AddPlugin adds a plugin without meta
 func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder {
-	if _, exists := b.portalMeta.Plugins.Plugins[key]; !exists {
-		b.portalMeta.Plugins.Plugins[key] = core.PortalMetaPlugin{Meta: make(map[string]any)}
+	if _, exists := b.portalMeta.Plugins[key]; !exists {
+		b.portalMeta.Plugins[key] = core.PortalMetaPlugin{Meta: make(map[string]any)}
 	}
 	return b
 }
@@ -47,7 +45,7 @@ func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder 
 // AddPluginMeta adds or updates meta for a plugin
 func (b *PortalMetaBuilderDefault) AddPluginMeta(pluginKey string, metaKey string, metaValue any) core.PortalMetaBuilder {
 	b.AddPlugin(pluginKey) // Ensure the plugin exists
-	b.portalMeta.Plugins.Plugins[pluginKey].Meta[metaKey] = metaValue
+	b.portalMeta.Plugins[pluginKey].Meta[metaKey] = metaValue
 	return b
 }
 

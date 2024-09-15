@@ -6,9 +6,7 @@ type PortalMeta struct {
 	FeatureFlags map[string]bool   `json:"feature_flags"`
 }
 
-type PortalMetaPlugins struct {
-	Plugins map[string]PortalMetaPlugin `json:"plugins"`
-}
+type PortalMetaPlugins = map[string]PortalMetaPlugin
 
 type PortalMetaPlugin struct {
 	Meta map[string]any `json:"meta"`
