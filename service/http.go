@@ -154,3 +154,19 @@ func (h *HTTPServiceDefault) Serve() error {
 	wg.Wait()
 	return nil
 }
+
+func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
+	formatter := ""
+
+	if proto {
+		formatter += "https://"
+	}
+
+	formatter += "%s.%s"
+
+	if core.GetAPI(id) == nil {
+		return ""
+	}
+
+	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), h.ctx.Config().Config().Core.Domain)
+}
