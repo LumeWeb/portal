@@ -10,6 +10,7 @@ type HTTPService interface {
 	Router() *mux.Router
 	Init() error
 	Serve() error
+	APISubdomain(id string, proto bool) string
 
 	Service
 }
