@@ -3,7 +3,6 @@ package service
 import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
 
@@ -58,7 +57,7 @@ func (o OTPServiceDefault) OTPGenerate(userId uint) (string, error) {
 		return "", core.NewAccountError(core.ErrKeyOTPGenerationFailed, otpErr)
 	}
 
-	err = o.user.UpdateAccountInfo(user.ID, models.User{OTPSecret: otp})
+	err = o.user.UpdateAccountInfo(user.ID, map[string]interface{}{"otp_secret": otp})
 
 	if err != nil {
 		return "", err
@@ -92,9 +91,9 @@ func (o OTPServiceDefault) OTPEnable(userId uint, code string) error {
 		return core.ErrInvalidOTPCode
 	}
 
-	return o.user.UpdateAccountInfo(userId, models.User{OTPEnabled: true})
+	return o.user.UpdateAccountInfo(userId, map[string]interface{}{"otp_enabled": true})
 }
 
 func (o OTPServiceDefault) OTPDisable(userId uint) error {
-	return o.user.UpdateAccountInfo(userId, models.User{OTPEnabled: false, OTPSecret: ""})
+	return o.user.UpdateAccountInfo(userId, map[string]interface{}{"otp_enabled": false, "otp_secret": ""})
 }

@@ -144,8 +144,12 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 }
 
 func (u UserServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {
-	return u.UpdateAccountInfo(userId, models.User{FirstName: firstName, LastName: lastName})
+	return u.UpdateAccountInfo(userId, map[string]any{
+		"first_name": firstName,
+		"last_name":  lastName,
+	})
 }
+
 func (u UserServiceDefault) UpdateAccountEmail(userId uint, email string, password string) error {
 	exists, euser, err := u.EmailExists(email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) || (exists && euser.ID != userId) {
@@ -165,11 +169,9 @@ func (u UserServiceDefault) UpdateAccountEmail(userId uint, email string, passwo
 		return core.NewAccountError(core.ErrKeyUpdatingSameEmail, nil)
 	}
 
-	var update models.User
-
-	update.Email = email
-
-	return u.UpdateAccountInfo(userId, update)
+	return u.UpdateAccountInfo(userId, map[string]any{
+		"email": email,
+	})
 }
 
 func (u UserServiceDefault) UpdateAccountPassword(userId uint, password string, newPassword string) error {
@@ -187,7 +189,9 @@ func (u UserServiceDefault) UpdateAccountPassword(userId uint, password string, 
 		return err
 	}
 
-	return u.UpdateAccountInfo(userId, models.User{PasswordHash: passwordHash})
+	return u.UpdateAccountInfo(userId, map[string]any{
+		"password_hash": passwordHash,
+	})
 }
 
 func (u UserServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
@@ -227,20 +231,19 @@ func (u UserServiceDefault) validPassword(user *models.User, password string) bo
 	return err == nil
 }
 
-func (u UserServiceDefault) UpdateAccountInfo(userId uint, info models.User) error {
+func (u UserServiceDefault) UpdateAccountInfo(userId uint, info map[string]any) error {
 	var user models.User
-
 	user.ID = userId
 
-	if err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&models.User{}).Where(&user).Updates(info)
-
+	if err := db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&user).Where(&user).Updates(info)
 	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
 	return nil
 }
+
 func (u UserServiceDefault) ValidLoginByUserObj(user *models.User, password string) bool {
 	return u.validPassword(user, password)
 }
@@ -356,22 +359,18 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 		return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
 	}
 
-	var update models.User
-
-	doUpdate := false
+	updateFields := make(map[string]interface{})
 
 	if !verification.User.Verified {
-		update.Verified = true
-		doUpdate = true
+		updateFields["verified"] = true
 	}
 
 	if len(verification.NewEmail) > 0 {
-		update.Email = verification.NewEmail
-		doUpdate = true
+		updateFields["email"] = verification.NewEmail
 	}
 
-	if doUpdate {
-		err := u.UpdateAccountInfo(verification.UserID, update)
+	if len(updateFields) > 0 {
+		err := u.UpdateAccountInfo(verification.UserID, updateFields)
 		if err != nil {
 			return err
 		}

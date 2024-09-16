@@ -220,7 +220,7 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 
 	now := time.Now()
 
-	err := a.user.UpdateAccountInfo(user.ID, models.User{LastLoginIP: ip, LastLogin: &now})
+	err := a.user.UpdateAccountInfo(user.ID, map[string]any{"last_login_ip": ip, "last_login": &now})
 	if err != nil {
 		return "", err
 	}

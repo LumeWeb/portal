@@ -34,10 +34,27 @@ type User struct {
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	dest := tx.Statement.Dest.(User)
+	var email string
+	var changed bool
 
-	if tx.Statement.Changed("Email") {
-		verify, err := getEmailVerfier().Verify(dest.Email)
+	switch dest := tx.Statement.Dest.(type) {
+	case *User:
+		email = dest.Email
+		changed = tx.Statement.Changed("Email")
+	case map[string]interface{}:
+		if e, ok := dest["email"]; ok {
+			if emailStr, ok := e.(string); ok {
+				email = emailStr
+				changed = true // Assume changed if present in the map
+			}
+		}
+	default:
+		// Handle other types or return an error if necessary
+		return errors.New("unsupported destination type")
+	}
+
+	if changed && email != "" {
+		verify, err := getEmailVerifier().Verify(email)
 		if err != nil {
 			return err
 		}
@@ -49,7 +66,7 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-func getEmailVerfier() *emailverifier.Verifier {
+func getEmailVerifier() *emailverifier.Verifier {
 	verifier := emailverifier.NewVerifier()
 
 	verifier.DisableSMTPCheck()
