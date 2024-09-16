@@ -110,7 +110,7 @@ func (p PasswordResetServiceDefault) ResetPassword(email string, token string, p
 		return err
 	}
 
-	err = p.user.UpdateAccountInfo(reset.UserID, models.User{PasswordHash: passwordHash})
+	err = p.user.UpdateAccountInfo(reset.UserID, map[string]interface{}{"password_hash": passwordHash})
 	if err != nil {
 		return err
 	}

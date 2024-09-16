@@ -26,7 +26,7 @@ type UserService interface {
 	CreateAccount(email string, password string, verifyEmail bool) (*models.User, error)
 
 	// UpdateAccountInfo updates the account information of the user with the given ID.
-	UpdateAccountInfo(userId uint, info models.User) error
+	UpdateAccountInfo(userId uint, info map[string]any) error
 
 	// UpdateAccountName updates the first and last name of the user with the given ID.
 	UpdateAccountName(userId uint, firstName string, lastName string) error
