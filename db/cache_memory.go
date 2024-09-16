@@ -9,6 +9,7 @@ import (
 
 type memoryCacher struct {
 	store *sync.Map
+	mu    sync.Mutex
 }
 
 func (c *memoryCacher) init() {
@@ -43,6 +44,8 @@ func (c *memoryCacher) Store(ctx context.Context, key string, val *caches.Query[
 }
 
 func (c *memoryCacher) Invalidate(ctx context.Context) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.store = &sync.Map{}
 	return nil
 }
