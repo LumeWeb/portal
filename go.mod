@@ -36,7 +36,7 @@ require (
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256
 	github.com/tus/tusd/v2 v2.4.0
 	github.com/wneessen/go-mail v0.4.4
-	go.etcd.io/etcd/client/v3 v3.5.15
+	go.etcd.io/etcd/client/v3 v3.5.16
 	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86
 	go.sia.tech/core v0.4.6
 	go.sia.tech/coreutils v0.3.2
@@ -142,8 +142,8 @@ require (
 	gitlab.com/NebulousLabs/ratelimit v0.0.0-20200811080431-99b8f0768b2e // indirect
 	gitlab.com/NebulousLabs/siamux v0.0.2-0.20220630142132-142a1443a259 // indirect
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
-	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.16 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.16 // indirect
 	go.sia.tech/mux v1.2.0 // indirect
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
