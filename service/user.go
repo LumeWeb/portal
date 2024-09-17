@@ -474,14 +474,14 @@ func (u *UserServiceDefault) RequestAccountDeletion(userId uint, userIP string) 
 				return tx
 			}
 
-			_ = tx.AddError(core.NewAccountError(core.ErrKeyAccountDeletionRequestAlreadyExists, nil))
-			return tx
+			deletion.UserID = userId
+			deletion.IP = userIP
+
+			return tx.Create(&deletion)
 		}
 
-		deletion.UserID = userId
-		deletion.IP = userIP
-
-		return tx.Create(&deletion)
+		_ = tx.AddError(core.NewAccountError(core.ErrKeyAccountDeletionRequestAlreadyExists, nil))
+		return tx
 	})
 }
 
