@@ -55,6 +55,19 @@ func (p PinServiceDefault) ID() string {
 	return core.PIN_SERVICE
 }
 
+func (p PinServiceDefault) AllAccountPins(id uint) ([]*models.Pin, error) {
+	var pins []*models.Pin
+	if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("user_id = ?", id).
+			Preload("Upload").
+			Find(&pins)
+	}); err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
 func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error) {
 	ctx := context.Background()
 	filter := core.PinFilter{
