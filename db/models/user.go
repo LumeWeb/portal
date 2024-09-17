@@ -20,7 +20,6 @@ type User struct {
 	PasswordHash       string
 	Role               string
 	PublicKeys         []PublicKey
-	APIKeys            []APIKey
 	Uploads            []Upload
 	LastLogin          *time.Time
 	LastLoginIP        string
