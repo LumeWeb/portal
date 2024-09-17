@@ -474,7 +474,7 @@ func (u *UserServiceDefault) RequestAccountDeletion(userId uint, userIP string) 
 				return tx
 			}
 
-			_ = tx.AddError(errors.New("account deletion already requested"))
+			_ = tx.AddError(core.NewAccountError(core.ErrKeyAccountDeletionRequestAlreadyExists, nil))
 			return tx
 		}
 
