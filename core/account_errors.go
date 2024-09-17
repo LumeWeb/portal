@@ -5,58 +5,63 @@ import (
 	"net/http"
 )
 
+type AccountErrorType string
+
 const (
 	// Account creation errors
-	ErrKeyAccountCreationFailed = "ErrAccountCreationFailed"
-	ErrKeyEmailAlreadyExists    = "ErrEmailAlreadyExists"
-	ErrKeyUpdatingSameEmail     = "ErrUpdatingSameEmail"
-	ErrKeyPasswordHashingFailed = "ErrPasswordHashingFailed"
+	ErrKeyAccountCreationFailed AccountErrorType = "ErrAccountCreationFailed"
+	ErrKeyEmailAlreadyExists    AccountErrorType = "ErrEmailAlreadyExists"
+	ErrKeyUpdatingSameEmail     AccountErrorType = "ErrUpdatingSameEmail"
+	ErrKeyPasswordHashingFailed AccountErrorType = "ErrPasswordHashingFailed"
 
 	// Account lookup and existence verification errors
-	ErrKeyUserNotFound      = "ErrUserNotFound"
-	ErrKeyPublicKeyNotFound = "ErrPublicKeyNotFound"
+	ErrKeyUserNotFound      AccountErrorType = "ErrUserNotFound"
+	ErrKeyPublicKeyNotFound AccountErrorType = "ErrPublicKeyNotFound"
+
+	// Account deletion errors
+	ErrKeyAccountDeletionRequestAlreadyExists AccountErrorType = "ErrAccountDeletionRequestAlreadyExists"
 
 	// Authentication and login errors
-	ErrKeyInvalidLogin          = "ErrInvalidLogin"
-	ErrKeyInvalidPassword       = "ErrInvalidPassword"
-	ErrKeyInvalidOTPCode        = "ErrInvalidOTPCode"
-	ErrKeyOTPVerificationFailed = "ErrOTPVerificationFailed"
-	ErrKeyLoginFailed           = "ErrLoginFailed"
-	ErrKeyHashingFailed         = "ErrHashingFailed"
+	ErrKeyInvalidLogin          AccountErrorType = "ErrInvalidLogin"
+	ErrKeyInvalidPassword       AccountErrorType = "ErrInvalidPassword"
+	ErrKeyInvalidOTPCode        AccountErrorType = "ErrInvalidOTPCode"
+	ErrKeyOTPVerificationFailed AccountErrorType = "ErrOTPVerificationFailed"
+	ErrKeyLoginFailed           AccountErrorType = "ErrLoginFailed"
+	ErrKeyHashingFailed         AccountErrorType = "ErrHashingFailed"
 
 	// Account update errors
-	ErrKeyAccountUpdateFailed    = "ErrAccountUpdateFailed"
-	ErrKeyAccountAlreadyVerified = "ErrAccountAlreadyVerified"
+	ErrKeyAccountUpdateFailed    AccountErrorType = "ErrAccountUpdateFailed"
+	ErrKeyAccountAlreadyVerified AccountErrorType = "ErrAccountAlreadyVerified"
 
 	// JWT generation errors
-	ErrKeyJWTGenerationFailed = "ErrJWTGenerationFailed"
+	ErrKeyJWTGenerationFailed AccountErrorType = "ErrJWTGenerationFailed"
 
 	// OTP management errors
-	ErrKeyOTPGenerationFailed = "ErrOTPGenerationFailed"
-	ErrKeyOTPEnableFailed     = "ErrOTPEnableFailed"
-	ErrKeyOTPDisableFailed    = "ErrOTPDisableFailed"
+	ErrKeyOTPGenerationFailed AccountErrorType = "ErrOTPGenerationFailed"
+	ErrKeyOTPEnableFailed     AccountErrorType = "ErrOTPEnableFailed"
+	ErrKeyOTPDisableFailed    AccountErrorType = "ErrOTPDisableFailed"
 
 	// Public key management errors
-	ErrKeyAddPublicKeyFailed = "ErrAddPublicKeyFailed"
-	ErrKeyPublicKeyExists    = "ErrPublicKeyExists"
+	ErrKeyAddPublicKeyFailed AccountErrorType = "ErrAddPublicKeyFailed"
+	ErrKeyPublicKeyExists    AccountErrorType = "ErrPublicKeyExists"
 
 	// Pin management errors
-	ErrKeyPinAddFailed        = "ErrPinAddFailed"
-	ErrKeyPinDeleteFailed     = "ErrPinDeleteFailed"
-	ErrKeyPinsRetrievalFailed = "ErrPinsRetrievalFailed"
+	ErrKeyPinAddFailed        AccountErrorType = "ErrPinAddFailed"
+	ErrKeyPinDeleteFailed     AccountErrorType = "ErrPinDeleteFailed"
+	ErrKeyPinsRetrievalFailed AccountErrorType = "ErrPinsRetrievalFailed"
 
 	// General errors
 	ErrKeyDatabaseOperationFailed = "ErrDatabaseOperationFailed"
 
 	// Security token errors
-	ErrKeySecurityTokenExpired = "ErrSecurityTokenExpired"
-	ErrKeySecurityInvalidToken = "ErrSecurityInvalidToken"
+	ErrKeySecurityTokenExpired AccountErrorType = "ErrSecurityTokenExpired"
+	ErrKeySecurityInvalidToken AccountErrorType = "ErrSecurityInvalidToken"
 
 	// Internal errors
-	ErrKeyAccountSubdomainNotSet = "ErrAccountSubdomainNotSet"
+	ErrKeyAccountSubdomainNotSet AccountErrorType = "ErrAccountSubdomainNotSet"
 )
 
-var defaultErrorMessages = map[string]string{
+var defaultErrorMessages = map[AccountErrorType]string{
 	// Account creation errors
 	ErrKeyAccountCreationFailed: "Account creation failed due to an internal error.",
 	ErrKeyEmailAlreadyExists:    "The email address provided is already in use.",
@@ -67,6 +72,9 @@ var defaultErrorMessages = map[string]string{
 	ErrKeyUserNotFound:      "The requested user was not found.",
 	ErrKeyPublicKeyNotFound: "The specified public key was not found.",
 	ErrKeyHashingFailed:     "Failed to hash the password.",
+
+	// Account deletion errors
+	ErrKeyAccountDeletionRequestAlreadyExists: "An account deletion request already exists for this account.",
 
 	// Authentication and login errors
 	ErrKeyInvalidLogin:          "The login credentials provided are invalid.",
@@ -108,7 +116,7 @@ var defaultErrorMessages = map[string]string{
 }
 
 var (
-	ErrorCodeToHttpStatus = map[string]int{
+	ErrorCodeToHttpStatus = map[AccountErrorType]int{
 		// Account creation errors
 		ErrKeyAccountCreationFailed: http.StatusInternalServerError,
 		ErrKeyEmailAlreadyExists:    http.StatusConflict,
@@ -117,6 +125,9 @@ var (
 		// Account lookup and existence verification errors
 		ErrKeyUserNotFound:      http.StatusNotFound,
 		ErrKeyPublicKeyNotFound: http.StatusNotFound,
+
+		// Account deletion errors
+		ErrKeyAccountDeletionRequestAlreadyExists: http.StatusConflict,
 
 		// Authentication and login errors
 		ErrKeyInvalidLogin:          http.StatusUnauthorized,
@@ -160,9 +171,9 @@ var (
 )
 
 type AccountError struct {
-	Key     string // A unique identifier for the error type
-	Message string // Human-readable error message
-	Err     error  // Underlying error, if any
+	Key     AccountErrorType // A unique identifier for the error type
+	Message string           // Human-readable error message
+	Err     error            // Underlying error, if any
 }
 
 func (e *AccountError) Error() string {
@@ -172,7 +183,11 @@ func (e *AccountError) Error() string {
 	return e.Message
 }
 
-func NewAccountError(key string, err error, customMessage ...string) *AccountError {
+func (e *AccountError) IsErrorType(key AccountErrorType) bool {
+	return e.Key == key
+}
+
+func NewAccountError(key AccountErrorType, err error, customMessage ...string) *AccountError {
 	message, exists := defaultErrorMessages[key]
 	if !exists {
 		message = "An unknown error occurred"
