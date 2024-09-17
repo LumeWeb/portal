@@ -48,5 +48,17 @@ type UserService interface {
 	// It returns an error if any.
 	VerifyEmail(email string, token string) error
 
+	// DeleteAccount deletes the account of the user with the given ID.
+	DeleteAccount(userId uint) error
+
+	// RequestAccountDeletion requests the deletion of the account of the user with the given ID.
+	RequestAccountDeletion(userId uint, userIP string) error
+
+	// IsAccountPendingDeletion checks if the account deletion is pending for the user with the given ID.
+	IsAccountPendingDeletion(userId uint) (bool, error)
+
+	// GetAccountsPendingDeletion returns a list of accounts that are pending deletion.
+	GetAccountsPendingDeletion() ([]*models.User, error)
+
 	Service
 }

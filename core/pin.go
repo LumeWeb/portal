@@ -13,6 +13,9 @@ type PinService interface {
 	// created after the specified timestamp.
 	AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error)
 
+	// AllAccountPins retrieves all pins (uploads) for the given user ID.
+	AllAccountPins(id uint) ([]*models.Pin, error)
+
 	// DeletePinByHash deletes the pin associated with the given hash and user ID.
 	DeletePinByHash(hash StorageHash, userId uint) error
 

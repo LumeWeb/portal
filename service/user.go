@@ -9,6 +9,7 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
+	"go.lumeweb.com/portal/service/internal/user"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -16,6 +17,7 @@ import (
 )
 
 var _ core.UserService = (*UserServiceDefault)(nil)
+var _ core.Cronable = (*UserServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -23,7 +25,7 @@ func init() {
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewUserService()
 		},
-		Depends: []string{core.MAILER_SERVICE},
+		Depends: []string{core.MAILER_SERVICE, core.CRON_SERVICE},
 	})
 }
 
@@ -32,6 +34,7 @@ type UserServiceDefault struct {
 	config    config.Manager
 	db        *gorm.DB
 	mailer    core.MailerService
+	cron      core.CronService
 	subdomain string
 }
 
@@ -44,6 +47,9 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			user.config = ctx.Config()
 			user.db = ctx.DB()
 			user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
+			user.cron = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
+
+			user.cron.RegisterEntity(user)
 
 			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
 				user.subdomain = evt.Subdomain()
@@ -54,6 +60,21 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 	)
 
 	return user, opts, nil
+}
+
+func (u UserServiceDefault) RegisterTasks(crn core.CronService) error {
+	crn.RegisterTask(user.CronTaskProcessAccountDeletionRequestsName, core.CronTaskFuncHandler(user.CronTaskProcessAccountDeletionRequests), core.CronTaskDefinitionDaily, core.CronTaskNoArgsFactory, true)
+
+	return nil
+}
+
+func (u UserServiceDefault) ScheduleJobs(cron core.CronService) error {
+	err := cron.CreateJobIfNotExists(user.CronTaskProcessAccountDeletionRequestsName, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (u UserServiceDefault) ID() string {
@@ -392,4 +413,92 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 	}
 
 	return nil
+}
+
+func (u *UserServiceDefault) DeleteAccount(userId uint) error {
+	return db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		// First, check if the user exists
+		var _user models.User
+		if err := tx.First(&_user, userId).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				_ = tx.AddError(errors.New("user not found"))
+			} else {
+				_ = tx.AddError(err)
+			}
+			return tx
+		}
+
+		// Delete associated AccountDeletion record if it exists
+		if err := tx.Where("user_id = ?", userId).Delete(&models.AccountDeletion{}).Error; err != nil {
+			_ = tx.AddError(err)
+			return tx
+		}
+
+		// Delete the user
+		if err := tx.Delete(&_user).Error; err != nil {
+			_ = tx.AddError(err)
+			return tx
+		}
+
+		return tx
+	})
+}
+
+func (u *UserServiceDefault) IsAccountPendingDeletion(userId uint) (bool, error) {
+	var count int64
+	err := db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.AccountDeletion{}).
+			Where("user_id = ? AND deleted_at IS NULL", userId).
+			Count(&count)
+	})
+	return count > 0, err
+}
+
+func (u *UserServiceDefault) RequestAccountDeletion(userId uint, userIP string) error {
+	return db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		var user models.User
+		if err := tx.First(&user, userId).Error; err != nil {
+			_ = tx.AddError(err)
+			return tx
+		}
+
+		var deletion models.AccountDeletion
+		deletion.UserID = userId
+
+		if err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return tx.Where(&deletion).
+				Where("deleted_at IS NULL").First(&deletion)
+		}); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				_ = tx.AddError(err)
+				return tx
+			}
+
+			_ = tx.AddError(errors.New("account deletion already requested"))
+			return tx
+		}
+
+		deletion.UserID = userId
+		deletion.IP = userIP
+
+		return tx.Create(&deletion)
+	})
+}
+
+func (u *UserServiceDefault) GetAccountsPendingDeletion() ([]*models.User, error) {
+	var users []*models.User
+	gracePeriod := time.Duration(u.config.Config().Core.Account.DeletionGracePeriod) * time.Hour
+	cutoffTime := time.Now().Add(-1 * gracePeriod)
+
+	err := db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Joins("JOIN account_deletions ON users.id = account_deletions.user_id").
+			Where("account_deletions.deleted_at IS NULL AND account_deletions.created_at < ?", cutoffTime).
+			Find(&users)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

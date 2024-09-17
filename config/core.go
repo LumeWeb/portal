@@ -24,6 +24,7 @@ type CoreConfig struct {
 	Clustered       *ClusterConfig `mapstructure:"clustered"`
 	NodeID          types.UUID     `mapstructure:"node_id" flags:"nosync"`
 	Cron            CronConfig     `mapstructure:"cron"`
+	Account         AccountConfig  `mapstructure:"account"`
 }
 
 func (c CoreConfig) Validate() error {
@@ -40,7 +41,7 @@ func (c CoreConfig) Validate() error {
 	return nil
 }
 
-func (c CoreConfig) Defaults() map[string]interface{} {
+func (c CoreConfig) Defaults() map[string]any {
 	return map[string]interface{}{
 		"post_upload_limit": units.MiB * 100,
 		"node_id":           types.NewUUID(),
