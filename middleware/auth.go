@@ -69,6 +69,8 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 
 	domain := config.Config().Core.Domain
 
+	userService := options.Context.Service(core.USER_SERVICE).(core.UserService)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authToken := options.FindToken(r)
@@ -143,10 +145,21 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 				return
 			}
 
-			exists, _, err := options.Context.Service(core.USER_SERVICE).(core.UserService).AccountExists(uint(userId))
+			exists, _, err := userService.AccountExists(uint(userId))
 
 			if !exists || err != nil {
 				http.Error(w, core.ErrJWTInvalid.Error(), http.StatusBadRequest)
+				return
+			}
+
+			pendingDelete, err := userService.IsAccountPendingDeletion(uint(userId))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			if pendingDelete {
+				http.Error(w, "Account pending deletion", http.StatusForbidden)
 				return
 			}
 
