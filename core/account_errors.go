@@ -22,12 +22,13 @@ const (
 	ErrKeyAccountDeletionRequestAlreadyExists AccountErrorType = "ErrAccountDeletionRequestAlreadyExists"
 
 	// Authentication and login errors
-	ErrKeyInvalidLogin          AccountErrorType = "ErrInvalidLogin"
-	ErrKeyInvalidPassword       AccountErrorType = "ErrInvalidPassword"
-	ErrKeyInvalidOTPCode        AccountErrorType = "ErrInvalidOTPCode"
-	ErrKeyOTPVerificationFailed AccountErrorType = "ErrOTPVerificationFailed"
-	ErrKeyLoginFailed           AccountErrorType = "ErrLoginFailed"
-	ErrKeyHashingFailed         AccountErrorType = "ErrHashingFailed"
+	ErrKeyInvalidLogin           AccountErrorType = "ErrInvalidLogin"
+	ErrKeyInvalidPassword        AccountErrorType = "ErrInvalidPassword"
+	ErrKeyInvalidOTPCode         AccountErrorType = "ErrInvalidOTPCode"
+	ErrKeyOTPVerificationFailed  AccountErrorType = "ErrOTPVerificationFailed"
+	ErrKeyLoginFailed            AccountErrorType = "ErrLoginFailed"
+	ErrKeyHashingFailed          AccountErrorType = "ErrHashingFailed"
+	ErrKeyAccountPendingDeletion AccountErrorType = "ErrAccountPendingDeletion"
 
 	// Account update errors
 	ErrKeyAccountUpdateFailed    AccountErrorType = "ErrAccountUpdateFailed"
@@ -77,11 +78,12 @@ var defaultErrorMessages = map[AccountErrorType]string{
 	ErrKeyAccountDeletionRequestAlreadyExists: "An account deletion request already exists for this account.",
 
 	// Authentication and login errors
-	ErrKeyInvalidLogin:          "The login credentials provided are invalid.",
-	ErrKeyInvalidPassword:       "The password provided is incorrect.",
-	ErrKeyInvalidOTPCode:        "The OTP code provided is invalid or expired.",
-	ErrKeyOTPVerificationFailed: "OTP verification failed, please try again.",
-	ErrKeyLoginFailed:           "Login failed due to an internal error.",
+	ErrKeyInvalidLogin:           "The login credentials provided are invalid.",
+	ErrKeyInvalidPassword:        "The password provided is incorrect.",
+	ErrKeyInvalidOTPCode:         "The OTP code provided is invalid or expired.",
+	ErrKeyOTPVerificationFailed:  "OTP verification failed, please try again.",
+	ErrKeyLoginFailed:            "Login failed due to an internal error.",
+	ErrKeyAccountPendingDeletion: "This account is pending deletion.",
 
 	// Account update errors
 	ErrKeyAccountUpdateFailed:    "Failed to update account information.",
@@ -200,4 +202,25 @@ func NewAccountError(key AccountErrorType, err error, customMessage ...string) *
 		Message: message,
 		Err:     err,
 	}
+}
+
+func IsAccountError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if _, ok := err.(*AccountError); ok {
+		return true
+	}
+
+	return false
+}
+
+func AsAccountError(err error) *AccountError {
+	if err == nil {
+		return nil
+	}
+	if e, ok := err.(*AccountError); ok {
+		return e
+	}
+	return nil
 }
