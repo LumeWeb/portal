@@ -317,12 +317,12 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 		return core.NewAccountError(core.ErrKeyAccountSubdomainNotSet, nil)
 	}
 
-	exists, user, err := u.AccountExists(userId)
+	exists, _user, err := u.AccountExists(userId)
 	if !exists || err != nil {
 		return err
 	}
 
-	if user.Verified {
+	if _user.Verified {
 		return core.NewAccountError(core.ErrKeyAccountAlreadyVerified, nil)
 	}
 
@@ -330,7 +330,7 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 
 	var verification models.EmailVerification
 
-	verification.UserID = user.ID
+	verification.UserID = _user.ID
 	verification.Token = token
 	verification.ExpiresAt = time.Now().Add(time.Hour)
 
@@ -342,14 +342,31 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 
 	verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.subdomain, u.config.Config().Core.Domain), token)
 	vars := map[string]interface{}{
-		"FirstName":        user.FirstName,
-		"Email":            user.Email,
+		"FirstName":        _user.FirstName,
+		"Email":            _user.Email,
 		"VerificationLink": verifyUrl,
 		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second * 2),
 		"PortalName":       u.config.Config().Core.PortalName,
 	}
 
-	return u.mailer.TemplateSend(core.MAILER_TPL_VERIFY_EMAIL, vars, vars, user.Email)
+	return u.mailer.TemplateSend(core.MAILER_TPL_VERIFY_EMAIL, vars, vars, _user.Email)
+}
+
+func (u UserServiceDefault) IsAccountVerified(userId uint) (bool, error) {
+	var _user models.User
+	_user.ID = userId
+
+	if err := db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&_user).Where(&_user).First(&_user)
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, err
+		}
+
+		return false, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	return _user.Verified, nil
 }
 
 func (u UserServiceDefault) VerifyEmail(email string, token string) error {

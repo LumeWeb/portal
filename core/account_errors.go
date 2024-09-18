@@ -29,6 +29,7 @@ const (
 	ErrKeyLoginFailed            AccountErrorType = "ErrLoginFailed"
 	ErrKeyHashingFailed          AccountErrorType = "ErrHashingFailed"
 	ErrKeyAccountPendingDeletion AccountErrorType = "ErrAccountPendingDeletion"
+	ErrKeyAccountNotVerified     AccountErrorType = "ErrAccountNotVerified"
 
 	// Account update errors
 	ErrKeyAccountUpdateFailed    AccountErrorType = "ErrAccountUpdateFailed"
@@ -84,6 +85,7 @@ var defaultErrorMessages = map[AccountErrorType]string{
 	ErrKeyOTPVerificationFailed:  "OTP verification failed, please try again.",
 	ErrKeyLoginFailed:            "Login failed due to an internal error.",
 	ErrKeyAccountPendingDeletion: "This account is pending deletion.",
+	ErrKeyAccountNotVerified:     "The account is not verified.",
 
 	// Account update errors
 	ErrKeyAccountUpdateFailed:    "Failed to update account information.",
@@ -138,6 +140,7 @@ var (
 		ErrKeyOTPVerificationFailed:  http.StatusBadRequest,
 		ErrKeyLoginFailed:            http.StatusInternalServerError,
 		ErrKeyAccountPendingDeletion: http.StatusForbidden,
+		ErrKeyAccountNotVerified:     http.StatusForbidden,
 
 		// Account update errors
 		ErrKeyAccountUpdateFailed:    http.StatusInternalServerError,
