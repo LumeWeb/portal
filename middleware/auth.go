@@ -159,7 +159,8 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 			}
 
 			if pendingDelete {
-				http.Error(w, "Account pending deletion", http.StatusForbidden)
+				acctErr := core.NewAccountError(core.ErrKeyAccountPendingDeletion, nil)
+				http.Error(w, acctErr.Error(), acctErr.HttpStatus())
 				return
 			}
 
