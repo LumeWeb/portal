@@ -48,6 +48,9 @@ type UserService interface {
 	// It returns an error if any.
 	VerifyEmail(email string, token string) error
 
+	// IsAccountVerified checks if the email of the user with the given ID is verified.
+	IsAccountVerified(userId uint) (bool, error)
+
 	// DeleteAccount deletes the account of the user with the given ID.
 	DeleteAccount(userId uint) error
 
