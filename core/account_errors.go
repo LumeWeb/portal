@@ -132,11 +132,12 @@ var (
 		ErrKeyAccountDeletionRequestAlreadyExists: http.StatusConflict,
 
 		// Authentication and login errors
-		ErrKeyInvalidLogin:          http.StatusUnauthorized,
-		ErrKeyInvalidPassword:       http.StatusUnauthorized,
-		ErrKeyInvalidOTPCode:        http.StatusBadRequest,
-		ErrKeyOTPVerificationFailed: http.StatusBadRequest,
-		ErrKeyLoginFailed:           http.StatusInternalServerError,
+		ErrKeyInvalidLogin:           http.StatusUnauthorized,
+		ErrKeyInvalidPassword:        http.StatusUnauthorized,
+		ErrKeyInvalidOTPCode:         http.StatusBadRequest,
+		ErrKeyOTPVerificationFailed:  http.StatusBadRequest,
+		ErrKeyLoginFailed:            http.StatusInternalServerError,
+		ErrKeyAccountPendingDeletion: http.StatusForbidden,
 
 		// Account update errors
 		ErrKeyAccountUpdateFailed:    http.StatusInternalServerError,
