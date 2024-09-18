@@ -213,6 +213,15 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 		purpose = core.JWTPurpose2FA
 	}
 
+	deletionPending, err := a.user.IsAccountPendingDeletion(user.ID)
+	if err != nil {
+		return "", err
+	}
+
+	if deletionPending {
+		return "", core.NewAccountError(core.ErrKeyAccountPendingDeletion, nil)
+	}
+
 	token, jwtErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, purpose, rememberMe)
 	if jwtErr != nil {
 		return "", core.NewAccountError(core.ErrKeyJWTGenerationFailed, jwtErr)
@@ -220,7 +229,7 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 
 	now := time.Now()
 
-	err := a.user.UpdateAccountInfo(user.ID, map[string]any{"last_login_ip": ip, "last_login": &now})
+	err = a.user.UpdateAccountInfo(user.ID, map[string]any{"last_login_ip": ip, "last_login": &now})
 	if err != nil {
 		return "", err
 	}
