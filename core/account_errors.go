@@ -190,6 +190,13 @@ func (e *AccountError) IsErrorType(key AccountErrorType) bool {
 	return e.Key == key
 }
 
+func (e *AccountError) HttpStatus() int {
+	if status, exists := ErrorCodeToHttpStatus[e.Key]; exists {
+		return status
+	}
+	return http.StatusInternalServerError
+}
+
 func NewAccountError(key AccountErrorType, err error, customMessage ...string) *AccountError {
 	message, exists := defaultErrorMessages[key]
 	if !exists {
