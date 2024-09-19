@@ -26,7 +26,7 @@ func (e UserActivatedEvent) User() *models.User {
 }
 
 func FireUserActivatedEvent(ctx core.Context, user *models.User) error {
-	return Fire[*UserActivatedEvent](ctx, EVENT_USER_CREATED, func(evt *UserActivatedEvent) error {
+	return Fire[*UserActivatedEvent](ctx, EVENT_USER_ACTIVATED, func(evt *UserActivatedEvent) error {
 		evt.SetUser(user)
 		return nil
 	})
