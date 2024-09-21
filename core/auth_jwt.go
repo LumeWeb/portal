@@ -101,20 +101,29 @@ func JWTVerifyToken(token string, domain string, privateKey ed25519.PrivateKey, 
 }
 
 func SetAuthCookie(w http.ResponseWriter, ctx Context, jwt string) {
+	uniqueCookies := make(map[string]*http.Cookie)
+
 	for _, api := range GetAPIs() {
-		http.SetCookie(w, &http.Cookie{
+		domain := ctx.Config().Config().Core.Domain
+		uniqueCookies[domain] = &http.Cookie{
 			Name:     api.AuthTokenName(),
 			Value:    jwt,
 			MaxAge:   int((24 * time.Hour).Seconds()),
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   ctx.Config().Config().Core.Domain,
-		})
+			Domain:   domain,
+		}
+	}
+
+	for _, cookie := range uniqueCookies {
+		http.SetCookie(w, cookie)
 	}
 }
 
 func EchoAuthCookie(w http.ResponseWriter, r *http.Request, ctx Context) {
+	uniqueCookies := make(map[string]*http.Cookie)
+
 	for _, api := range GetAPIs() {
 		cookies := lo.Filter(r.Cookies(), func(item *http.Cookie, _ int) bool {
 			return item.Name == api.AuthTokenName()
@@ -136,25 +145,29 @@ func EchoAuthCookie(w http.ResponseWriter, r *http.Request, ctx Context) {
 			return
 		}
 
-		http.SetCookie(w, &http.Cookie{
+		domain := ctx.Config().Config().Core.Domain
+		uniqueCookies[domain] = &http.Cookie{
 			Name:     cookies[0].Name,
 			Value:    cookies[0].Value,
 			MaxAge:   int(time.Until(exp.Time).Seconds()),
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   ctx.Config().Config().Core.Domain,
-		})
+			Domain:   domain,
+		}
+	}
+
+	for _, cookie := range uniqueCookies {
+		http.SetCookie(w, cookie)
 	}
 }
 
 func ClearAuthCookie(w http.ResponseWriter, ctx Context) {
-	for _, api := range GetAPIs() {
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
+	uniqueCookies := make(map[string]*http.Cookie)
 
-		http.SetCookie(w, &http.Cookie{
+	for _, api := range GetAPIs() {
+		domain := ctx.Config().Config().Core.Domain
+		uniqueCookies[domain] = &http.Cookie{
 			Name:     api.AuthTokenName(),
 			Value:    "",
 			Expires:  time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -162,10 +175,15 @@ func ClearAuthCookie(w http.ResponseWriter, ctx Context) {
 			Secure:   true,
 			HttpOnly: true,
 			Path:     "/",
-			Domain:   ctx.Config().Config().Core.Domain,
-		})
+			Domain:   domain,
+		}
+	}
+
+	for _, cookie := range uniqueCookies {
+		http.SetCookie(w, cookie)
 	}
 }
+
 func SendJWT(w http.ResponseWriter, jwt string) {
 	w.Header().Set("Authorization", "Bearer "+jwt)
 }
