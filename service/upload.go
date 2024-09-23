@@ -2,132 +2,138 @@ package service
 
 import (
 	"context"
+	"errors"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
 
-var _ core.UploadDataHandler = (*PostDataHandler)(nil)
-var _ core.UploadDataHandler = (*TUSDataHandler)(nil)
+var _ core.UploadService = (*UploadServiceDefault)(nil)
 
 func init() {
-	core.RegisterUploadDataHandler("post", &PostDataHandler{})
-	core.RegisterUploadDataHandler("tus", &TUSDataHandler{})
-}
-
-type PostDataHandler struct {
-}
-
-func (p *PostDataHandler) CreateUploadData(_ context.Context, _ *gorm.DB, _ uint, _ any) error {
-	return nil
-}
-
-func (p *PostDataHandler) GetUploadData(_ context.Context, _ *gorm.DB, _ uint) (any, error) {
-	return nil, nil
-}
-
-func (p *PostDataHandler) UpdateUploadData(_ context.Context, _ *gorm.DB, _ uint, _ any) error {
-	return nil
-}
-
-func (p *PostDataHandler) DeleteUploadData(_ context.Context, _ *gorm.DB, _ uint) error {
-	return nil
-}
-
-func (p *PostDataHandler) QueryUploadData(_ context.Context, tx *gorm.DB, _ any) *gorm.DB {
-	return tx
-}
-
-func (p *PostDataHandler) CompleteUploadData(_ context.Context, _ *gorm.DB, _ uint) error {
-	return nil
-}
-
-func (p *PostDataHandler) GetUploadDataModel() any {
-	return nil
-}
-
-type TUSDataHandler struct {
-}
-
-func (T TUSDataHandler) CreateUploadData(ctx context.Context, tx *gorm.DB, id uint, data any) error {
-	uploadData := data.(*models.TUSRequest)
-	uploadData.RequestID = id
-
-	if uploadData.TUSUploadID == "" {
-		return nil
-	}
-
-	return tx.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).FirstOrCreate(uploadData, &models.TUSRequest{
-				RequestID: id,
-			})
-		})
+	core.RegisterService(core.ServiceInfo{
+		ID: core.UPLOAD_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewMetadataService()
+		},
 	})
 }
 
-func (T TUSDataHandler) GetUploadData(ctx context.Context, tx *gorm.DB, id uint) (any, error) {
-	uploadData := &models.TUSRequest{
-		RequestID: id,
-	}
-	err := tx.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where(uploadData).First(uploadData)
+type UploadServiceDefault struct {
+	ctx core.Context
+	db  *gorm.DB
+}
+
+func NewMetadataService() (*UploadServiceDefault, []core.ContextBuilderOption, error) {
+	meta := &UploadServiceDefault{}
+
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			meta.ctx = ctx
+			meta.db = ctx.DB()
+			return nil
+		}),
+	)
+
+	return meta, opts, nil
+}
+
+func (m *UploadServiceDefault) ID() string {
+	return core.UPLOAD_SERVICE
+}
+
+func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Upload) error {
+	return db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		existingUpload := &models.Upload{
+			Hash:     upload.Hash,
+			HashType: upload.HashType,
+			Protocol: upload.Protocol,
+		}
+
+		err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.Model(existingUpload).Where(existingUpload).First(existingUpload)
 		})
+
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			_ = tx.AddError(err)
+			return tx
+		}
+
+		// If the record doesn't exist, create a new one
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return tx.Create(upload)
+		}
+
+		// Update fields if they are different and not empty
+		if upload.UserID != 0 && upload.UserID != existingUpload.UserID {
+			existingUpload.UserID = upload.UserID
+		}
+		if upload.MimeType != "" && upload.MimeType != existingUpload.MimeType {
+			existingUpload.MimeType = upload.MimeType
+		}
+		if upload.UploaderIP != "" && upload.UploaderIP != existingUpload.UploaderIP {
+			existingUpload.UploaderIP = upload.UploaderIP
+		}
+		if upload.Size != 0 && upload.Size != existingUpload.Size {
+			existingUpload.Size = upload.Size
+		}
+
+		return tx.Save(existingUpload)
 	})
-	if err != nil {
+}
+
+func (m *UploadServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (*models.Upload, error) {
+	var upload models.Upload
+	upload.Hash = objectHash.Multihash()
+
+	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&upload).Where(&upload).First(&upload)
+	}); err != nil {
 		return nil, err
 	}
 
-	return uploadData, nil
+	return &upload, nil
 }
 
-func (T TUSDataHandler) UpdateUploadData(ctx context.Context, tx *gorm.DB, id uint, data any) error {
-	uploadData := data.(*models.TUSRequest)
-	uploadData.RequestID = id
+func (m *UploadServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
+	var upload models.Upload
+	upload.Hash = objectHash.Multihash()
 
-	return tx.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Save(uploadData)
-		})
-	})
-}
-
-func (T TUSDataHandler) DeleteUploadData(ctx context.Context, tx *gorm.DB, id uint) error {
-	uploadData := &models.TUSRequest{}
-	err := tx.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Delete(uploadData, id)
-		})
-	})
-	if err != nil {
+	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&upload).Where(&upload).First(&upload)
+	}); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (T TUSDataHandler) QueryUploadData(ctx context.Context, tx *gorm.DB, query any) *gorm.DB {
-	return tx.Where(query)
-}
-
-func (T TUSDataHandler) CompleteUploadData(ctx context.Context, tx *gorm.DB, id uint) error {
-	uploadData := &models.TUSRequest{
-		RequestID: id,
-	}
-	err := tx.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Where(uploadData).Delete(uploadData)
-		})
+	return db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Delete(&upload)
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (T TUSDataHandler) GetUploadDataModel() any {
-	return &models.TUSRequest{}
+func (m *UploadServiceDefault) GetAllUploads(ctx context.Context) ([]*models.Upload, error) {
+	var uploads []*models.Upload
+
+	if err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.Find(&uploads)
+		})
+	}); err != nil {
+		return nil, err
+	}
+
+	return uploads, nil
+}
+
+func (m *UploadServiceDefault) GetUploadByID(ctx context.Context, uploadID uint) (*models.Upload, error) {
+	var upload models.Upload
+	upload.ID = uploadID
+
+	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.Upload{}).Where(&upload).First(&upload)
+	}); err != nil {
+		return nil, err
+	}
+
+	return &upload, nil
 }

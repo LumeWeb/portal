@@ -16,7 +16,7 @@ func init() {
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewDNSLinkService()
 		},
-		Depends: []string{core.USER_SERVICE, core.METADATA_SERVICE, core.PIN_SERVICE},
+		Depends: []string{core.USER_SERVICE, core.UPLOAD_SERVICE, core.PIN_SERVICE},
 	})
 }
 
@@ -25,7 +25,7 @@ type DNSLinkServiceDefault struct {
 	config   config.Manager
 	db       *gorm.DB
 	user     core.UserService
-	metadata core.MetadataService
+	metadata core.UploadService
 	pin      core.PinService
 }
 
@@ -42,7 +42,7 @@ func NewDNSLinkService() (*DNSLinkServiceDefault, []core.ContextBuilderOption, e
 			dnslinkService.config = ctx.Config()
 			dnslinkService.db = ctx.DB()
 			dnslinkService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
-			dnslinkService.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
+			dnslinkService.metadata = core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
 			dnslinkService.pin = core.GetService[core.PinService](ctx, core.PIN_SERVICE)
 			return nil
 		}),

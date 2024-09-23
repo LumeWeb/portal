@@ -36,15 +36,16 @@ func init() {
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewStorageService()
 		},
-		Depends: []string{core.RENTER_SERVICE, core.METADATA_SERVICE},
+		Depends: []string{core.RENTER_SERVICE, core.UPLOAD_SERVICE},
 	})
 }
 
 type StorageHashDefault struct {
-	hash  []byte
-	typ   uint64
-	proof []byte
-	mh    mh.Multihash
+	hash    []byte
+	typ     uint64
+	cidType uint64
+	proof   []byte
+	mh      mh.Multihash
 }
 
 func (s StorageHashDefault) Proof() []byte {
@@ -63,40 +64,42 @@ func (s StorageHashDefault) Multihash() mh.Multihash {
 	return s.mh
 }
 
-func (s StorageHashDefault) Type() uint64 {
-	return s.typ
+func (s StorageHashDefault) CIDType() uint64 {
+	return s.cidType
 }
 
-func NewStorageHash(hash []byte, typ uint64, proof []byte) core.StorageHash {
+func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) core.StorageHash {
 	return &StorageHashDefault{
-		hash:  hash,
-		typ:   typ,
-		proof: proof,
+		hash:    hash,
+		typ:     typ,
+		cidType: cidType,
+		proof:   proof,
 	}
 }
 
-func NewStorageHashFromMultihash(hash mh.Multihash, proof []byte) core.StorageHash {
+func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte) core.StorageHash {
 	decode, _ := mh.Decode(hash)
 	if decode == nil {
 		return nil
 	}
 
 	return &StorageHashDefault{
-		hash:  decode.Digest,
-		typ:   decode.Code,
-		proof: proof,
-		mh:    hash,
+		hash:    decode.Digest,
+		typ:     decode.Code,
+		proof:   proof,
+		mh:      hash,
+		cidType: cidType,
 	}
 }
 
-func NewStorageHashFromMultihashBytes(hash []byte, proof []byte) core.StorageHash {
+func NewStorageHashFromMultihashBytes(hash []byte, cidType uint64, proof []byte) core.StorageHash {
 	multihash, err := mh.Cast(hash)
 
 	if err != nil {
 		return nil
 	}
 
-	return NewStorageHashFromMultihash(multihash, proof)
+	return NewStorageHashFromMultihash(multihash, cidType, proof)
 
 }
 
@@ -148,6 +151,10 @@ func (s StorageUploadRequestDefault) Hash() core.StorageHash {
 	return s.hash
 }
 
+func (s StorageHashDefault) Type() uint64 {
+	return s.typ
+}
+
 // NewStorageUploadRequest creates a new StorageUploadRequest with the given options
 func NewStorageUploadRequest(options ...core.StorageUploadOption) core.StorageUploadRequest {
 	request := &StorageUploadRequestDefault{}
@@ -162,7 +169,7 @@ type StorageServiceDefault struct {
 	config   config.Manager
 	db       *gorm.DB
 	renter   core.RenterService
-	metadata core.MetadataService
+	metadata core.UploadService
 	logger   *core.Logger
 }
 
@@ -175,7 +182,7 @@ func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, e
 			storage.config = ctx.Config()
 			storage.db = ctx.DB()
 			storage.renter = core.GetService[core.RenterService](ctx, core.RENTER_SERVICE)
-			storage.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
+			storage.metadata = core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
 			storage.logger = ctx.ServiceLogger(storage)
 			return nil
 		}),
@@ -241,7 +248,7 @@ func (rp *readerPool) Close() {
 	rp.readers = rp.readers[:0] // Clear the slice
 }
 
-func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*core.UploadMetadata, error) {
+func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*models.Upload, error) {
 	rp := newReaderPool(s.logger)
 	defer rp.Close()
 
@@ -267,7 +274,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 
 	meta, err := s.metadata.GetUpload(ctx, hash)
 	if err == nil {
-		return &meta, nil
+		return meta, nil
 	}
 
 	reader, err := getReader()
@@ -293,10 +300,11 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 		}
 	}
 
-	uploadMeta := &core.UploadMetadata{
+	uploadMeta := &models.Upload{
 		Protocol: protocolName,
 		Hash:     hash.Multihash(),
 		HashType: hash.Type(),
+		CIDType:  hash.CIDType(),
 		MimeType: mimeType.String(),
 		Size:     request.Size(),
 	}

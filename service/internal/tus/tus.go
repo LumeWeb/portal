@@ -40,7 +40,7 @@ type TusHandler struct {
 	cron            core.CronService
 	storage         core.StorageService
 	users           core.UserService
-	metadata        core.MetadataService
+	metadata        core.UploadService
 	tus             *handler.Handler
 	tusStore        handler.DataStore
 	s3Client        *s3.Client
@@ -68,7 +68,7 @@ func NewTusHandler(
 		cron:          core.GetService[core.CronService](ctx, core.CRON_SERVICE),
 		storage:       core.GetService[core.StorageService](ctx, core.STORAGE_SERVICE),
 		users:         core.GetService[core.UserService](ctx, core.USER_SERVICE),
-		metadata:      core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE),
+		metadata:      core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE),
 	}
 
 	err := th.init(handlerConfig)
