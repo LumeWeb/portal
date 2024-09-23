@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	mh "github.com/multiformats/go-multihash"
+	"go.lumeweb.com/portal/db/models"
 	"io"
 	"time"
 )
@@ -32,6 +33,7 @@ type StorageHash interface {
 	Proof() []byte
 	Multihash() mh.Multihash
 	ProofExists() bool
+	CIDType() uint64
 	Type() uint64
 }
 
@@ -93,7 +95,7 @@ func StorageUploadWithProof(proof StorageHash) StorageUploadOption {
 }
 
 type StorageService interface {
-	UploadObject(ctx context.Context, request StorageUploadRequest) (*UploadMetadata, error)
+	UploadObject(ctx context.Context, request StorageUploadRequest) (*models.Upload, error)
 	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof StorageHash, size uint64) error
 	DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash, start int64) (io.ReadCloser, error)
 	DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) (io.ReadCloser, error)

@@ -139,7 +139,7 @@ func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageH
 	}
 
 	if hash != nil {
-		upload.HashType = hash.Type()
+		upload.HashType = hash.CIDType()
 	}
 
 	request, err := t.requests.CreateRequest(ctx, upload, nil, &models.TUSRequest{TUSUploadID: uploadID})
@@ -226,7 +226,7 @@ func (t *TUSServiceDefault) SetHash(ctx context.Context, uploadID string, hash c
 	}
 
 	upload.Request.Hash = hash.Multihash()
-	upload.Request.HashType = hash.Type()
+	upload.Request.HashType = hash.CIDType()
 
 	err = t.requests.UpdateRequest(ctx, &upload.Request)
 	if err != nil {

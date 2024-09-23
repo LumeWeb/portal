@@ -22,7 +22,7 @@ func init() {
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewPinService()
 		},
-		Depends: []string{core.METADATA_SERVICE},
+		Depends: []string{core.UPLOAD_SERVICE},
 	})
 }
 
@@ -31,7 +31,7 @@ type PinServiceDefault struct {
 	logger   *core.Logger
 	config   config.Manager
 	db       *gorm.DB
-	metadata core.MetadataService
+	metadata core.UploadService
 }
 
 func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
@@ -43,7 +43,7 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 			pinService.logger = ctx.ServiceLogger(pinService)
 			pinService.config = ctx.Config()
 			pinService.db = ctx.DB()
-			pinService.metadata = core.GetService[core.MetadataService](ctx, core.METADATA_SERVICE)
+			pinService.metadata = core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
 			return nil
 		}),
 	)
