@@ -4,6 +4,10 @@ import "go.lumeweb.com/portal/core"
 
 const EVENT_DOWNLOAD_COMPLETED = "download.completed"
 
+func init() {
+	core.RegisterEvent(EVENT_DOWNLOAD_COMPLETED, &DownloadCompletedEvent{})
+}
+
 type DownloadCompletedEvent struct {
 	core.Event
 }
