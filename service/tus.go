@@ -192,6 +192,10 @@ func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string
 		return err
 	}
 
+	if upload.Request.Status == models.RequestStatusDuplicate {
+		return nil
+	}
+
 	err = t.requests.CompleteRequest(ctx, upload.RequestID)
 	if err != nil {
 		return err
