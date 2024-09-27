@@ -15,8 +15,9 @@ const (
 	RequestStatusPending    RequestStatusType = "pending"
 	RequestStatusProcessing RequestStatusType = "processing"
 	RequestStatusCompleted  RequestStatusType = "completed"
+	RequestStatusFailed     RequestStatusType = "failed"
+	RequestStatusDuplicate  RequestStatusType = "duplicate"
 
-	RequestStatusFailed       RequestStatusType    = "failed"
 	RequestOperationUpload    RequestOperationType = "post_upload"
 	RequestOperationTusUpload RequestOperationType = "tus_upload"
 	RequestOperationPin       RequestOperationType = "pin"
