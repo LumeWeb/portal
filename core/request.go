@@ -2,10 +2,15 @@ package core
 
 import (
 	"context"
+	"errors"
 	"go.lumeweb.com/portal/db/models"
 )
 
 const REQUEST_SERVICE = "request"
+
+var (
+	ErrDuplicateRequest = errors.New("duplicate request")
+)
 
 type RequestService interface {
 	// Core CRUD operations
