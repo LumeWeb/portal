@@ -56,6 +56,7 @@ func (e *Email) ToMessage() (*mail.Msg, error) {
 		return nil, err
 	}
 
+	msg.Subject(e.subject)
 	msg.SetBodyString("text/plain", e.body)
 
 	return msg, nil
