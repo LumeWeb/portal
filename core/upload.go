@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 	"sync"
@@ -12,6 +13,10 @@ const UPLOAD_SERVICE = "upload"
 var (
 	uploadDataHandlers   = make(map[string]UploadDataHandler)
 	uploadDataHandlersMu sync.RWMutex
+)
+
+var (
+	ErrUploadNotFound = errors.New("upload not found")
 )
 
 type UploadDataHandler interface {
