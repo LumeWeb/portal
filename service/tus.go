@@ -59,7 +59,8 @@ func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, 
 	data, err := t.requests.QueryUploadData(ctx, models.RequestOperationTusUpload, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
 		Operation: models.RequestOperationTusUpload,
 	})
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.logger.Error("Failed to query upload data", zap.Error(err))
 		return false, nil
 	}
 
@@ -157,65 +158,49 @@ func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageH
 }
 
 func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string) error {
-	upload, err := t.getUpload(ctx, uploadID)
-	if err != nil {
-		return err
+	exists, upload := t.UploadExists(ctx, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
 	}
 
 	upload.UpdatedAt = time.Now()
 
-	err = t.requests.UpdateUploadData(ctx, upload.RequestID, upload)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return t.requests.UpdateUploadData(ctx, upload.RequestID, upload)
 }
 
 func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, uploadID string) error {
-	upload, err := t.getUpload(ctx, uploadID)
-	if err != nil {
-		return err
+	exists, upload := t.UploadExists(ctx, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
 	}
 
-	err = t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing)
 }
 
 func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
-	upload, err := t.getUpload(ctx, uploadID)
-	if err != nil {
-		return err
+	exists, upload := t.UploadExists(ctx, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
 	}
 
 	if upload.Request.Status == models.RequestStatusDuplicate {
 		return nil
 	}
 
-	err = t.requests.CompleteRequest(ctx, upload.RequestID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return t.requests.CompleteRequest(ctx, upload.RequestID)
 }
 
 func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) error {
-	upload, err := t.getUpload(ctx, uploadID)
-	if err != nil {
-		return err
+	exists, upload := t.UploadExists(ctx, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
 	}
 
-	err = t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusFailed)
-	if err != nil {
-		return err
-	}
-
-	err = t.requests.DeleteRequest(ctx, upload.RequestID)
+	err := t.requests.DeleteRequest(ctx, upload.RequestID)
 	if err != nil {
 		return err
 	}
@@ -224,36 +209,22 @@ func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) e
 }
 
 func (t *TUSServiceDefault) SetHash(ctx context.Context, uploadID string, hash core.StorageHash) error {
-	upload, err := t.getUpload(ctx, uploadID)
-	if err != nil {
-		return err
+	exists, upload := t.UploadExists(ctx, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
 	}
 
 	upload.Request.Hash = hash.Multihash()
 	upload.Request.HashType = hash.Type()
 	upload.Request.CIDType = hash.CIDType()
 
-	err = t.requests.UpdateRequest(ctx, &upload.Request)
+	err := t.requests.UpdateRequest(ctx, &upload.Request)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (t *TUSServiceDefault) getUpload(ctx context.Context, uploadID string) (*models.TUSRequest, error) {
-	data, err := t.requests.QueryUploadData(ctx, models.RequestOperationTusUpload, &models.TUSRequest{TUSUploadID: uploadID}, core.RequestFilter{
-		Operation: models.RequestOperationTusUpload,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if data == nil {
-		return nil, errors.New("upload not found")
-	}
-
-	return data.(*models.TUSRequest), nil
 }
 
 func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandler, error) {

@@ -42,6 +42,7 @@ type TusHandler struct {
 	storage         core.StorageService
 	users           core.UserService
 	metadata        core.UploadService
+	requests        core.RequestService
 	tus             *handler.Handler
 	tusStore        handler.DataStore
 	s3Client        *s3.Client
@@ -70,6 +71,7 @@ func NewTusHandler(
 		storage:       core.GetService[core.StorageService](ctx, core.STORAGE_SERVICE),
 		users:         core.GetService[core.UserService](ctx, core.USER_SERVICE),
 		metadata:      core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE),
+		requests:      core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE),
 	}
 
 	err := th.init(handlerConfig)
@@ -226,7 +228,18 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, identifier any) error {
 }
 
 func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
-	err := t.tusService.DeleteUpload(ctx, id)
+	exists, upload := t.tusService.UploadExists(ctx, id)
+
+	if !exists {
+		return core.ErrUploadNotFound
+	}
+
+	err := t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusFailed)
+	if err != nil {
+		return err
+	}
+
+	err = t.tusService.DeleteUpload(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -502,7 +515,7 @@ func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 
 func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).DeleteUpload(ctx, hook.Upload.ID)
+		err := handlr.FailUploadById(ctx, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
