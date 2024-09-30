@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/middleware"
@@ -95,16 +94,10 @@ func (h *HTTPServiceDefault) Init() error {
 
 	h.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
 
-	corsOpts := cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-	}
-	corsHandler := cors.New(corsOpts)
+	corsHandler := middleware.CorsMiddleware(nil)
 
 	rootApi := h.Router().PathPrefix("/api").Subrouter()
-	rootApi.Use(corsHandler.Handler)
+	rootApi.Use(corsHandler)
 	rootApi.HandleFunc("/meta", h.apiMetaHandler).Methods(http.MethodGet)
 
 	return nil
