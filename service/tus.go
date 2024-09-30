@@ -230,7 +230,8 @@ func (t *TUSServiceDefault) SetHash(ctx context.Context, uploadID string, hash c
 	}
 
 	upload.Request.Hash = hash.Multihash()
-	upload.Request.HashType = hash.CIDType()
+	upload.Request.HashType = hash.Type()
+	upload.Request.CIDType = hash.CIDType()
 
 	err = t.requests.UpdateRequest(ctx, &upload.Request)
 	if err != nil {
