@@ -42,7 +42,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.16
 	go.lumeweb.com/httputil v0.0.0-20240616192644-3d270a528d86
 	go.sia.tech/core v0.4.7
-	go.sia.tech/coreutils v0.3.2
+	go.sia.tech/coreutils v0.3.3-0.20240927170025-f45eedc64d6f
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
@@ -77,6 +77,7 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/yuin/gopher-lua v1.1.0 // indirect
+	go.etcd.io/bbolt v1.3.11 // indirect
 	go.etcd.io/etcd v3.3.27+incompatible // indirect
 	go.sia.tech/jape v0.11.2-0.20240306154058-9832414a5385 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
