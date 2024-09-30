@@ -11,6 +11,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/s3store"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/middleware"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
@@ -134,8 +135,18 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 	return reader, nil
 }
 
-func (t *TusHandler) UploadSize(ctx context.Context, hash core.StorageHash) (uint64, error) {
-	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
+func (t *TusHandler) UploadSize(ctx context.Context, identifier any) (uint64, error) {
+	var exists bool
+	var _upload *models.TUSRequest
+
+	switch v := identifier.(type) {
+	case core.StorageHash:
+		exists, _upload = t.tusService.UploadHashExists(ctx, v)
+	case string:
+		exists, _upload = t.tusService.UploadExists(ctx, v)
+	default:
+		return 0, fmt.Errorf("invalid identifier type")
+	}
 
 	if !exists {
 		return 0, gorm.ErrRecordNotFound
