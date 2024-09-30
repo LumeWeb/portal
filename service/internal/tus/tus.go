@@ -194,8 +194,18 @@ func (t *TusHandler) HandleEventResponseError(message string, httpCode int, hook
 	hook.Upload.StopUpload(resp)
 }
 
-func (t *TusHandler) CompleteUpload(ctx context.Context, hash core.StorageHash) error {
-	exists, _upload := t.tusService.UploadHashExists(ctx, hash)
+func (t *TusHandler) CompleteUpload(ctx context.Context, identifier any) error {
+	var exists bool
+	var _upload *models.TUSRequest
+
+	switch v := identifier.(type) {
+	case core.StorageHash:
+		exists, _upload = t.tusService.UploadHashExists(ctx, v)
+	case string:
+		exists, _upload = t.tusService.UploadExists(ctx, v)
+	default:
+		return fmt.Errorf("invalid identifier type")
+	}
 
 	if !exists {
 		return gorm.ErrRecordNotFound
