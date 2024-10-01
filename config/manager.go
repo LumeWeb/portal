@@ -340,7 +340,7 @@ func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
 }
 
 func (m *ManagerDefault) setDefault(key string, value interface{}) (bool, error) {
-	if !m.config.Exists(key) {
+	if !m.config.Exists(key) || (m.config.Get(key) == nil && value != nil) {
 		err := m.config.Set(key, value)
 		if err != nil {
 			return false, err
