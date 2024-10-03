@@ -39,27 +39,27 @@ type UserServiceDefault struct {
 }
 
 func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) {
-	user := &UserServiceDefault{}
+	_user := &UserServiceDefault{}
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			user.ctx = ctx
-			user.config = ctx.Config()
-			user.db = ctx.DB()
-			user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
-			user.cron = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
+			_user.ctx = ctx
+			_user.config = ctx.Config()
+			_user.db = ctx.DB()
+			_user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
+			_user.cron = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 
-			user.cron.RegisterEntity(user)
+			_user.cron.RegisterEntity(_user)
 
 			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
-				user.subdomain = evt.Subdomain()
+				_user.subdomain = evt.Subdomain()
 				return nil
 			})
 			return nil
 		}),
 	)
 
-	return user, opts, nil
+	return _user, opts, nil
 }
 
 func (u UserServiceDefault) RegisterTasks(crn core.CronService) error {

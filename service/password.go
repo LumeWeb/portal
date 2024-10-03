@@ -2,10 +2,12 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/event"
 	"gorm.io/gorm"
 	"time"
 )
@@ -23,11 +25,12 @@ func init() {
 }
 
 type PasswordResetServiceDefault struct {
-	ctx    core.Context
-	config config.Manager
-	db     *gorm.DB
-	user   core.UserService
-	mailer core.MailerService
+	ctx       core.Context
+	config    config.Manager
+	db        *gorm.DB
+	user      core.UserService
+	mailer    core.MailerService
+	subdomain string
 }
 
 func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuilderOption, error) {
@@ -40,6 +43,11 @@ func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuil
 			passwordService.db = ctx.DB()
 			passwordService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
 			passwordService.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
+
+			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
+				passwordService.subdomain = evt.Subdomain()
+				return nil
+			})
 			return nil
 		}),
 	)
@@ -66,13 +74,14 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
+	resetUrl := fmt.Sprintf("%s/reset-confirm?token=%s", fmt.Sprintf("https://%s.%s", p.subdomain, p.config.Config().Core.Domain), token)
+
 	vars := map[string]interface{}{
-		"FirstName":    user.FirstName,
-		"Email":        user.Email,
-		"ResetCode":    token,
-		"ExpireTime":   reset.ExpiresAt,
-		"PortalName":   p.config.Config().Core.PortalName,
-		"PortalDomain": p.config.Config().Core.Domain,
+		"FirstName":  user.FirstName,
+		"Email":      user.Email,
+		"ResetLink":  resetUrl,
+		"ExpireTime": reset.ExpiresAt,
+		"PortalName": p.config.Config().Core.PortalName,
 	}
 
 	return p.mailer.TemplateSend(core.MAILER_TPL_PASSWORD_RESET, vars, vars, user.Email)
