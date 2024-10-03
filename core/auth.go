@@ -8,7 +8,7 @@ import (
 const AUTH_SERVICE = "auth"
 
 func GenerateSecurityToken() string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 6)
 	_, err := rand.Read(b)
 	if err != nil {
