@@ -69,8 +69,8 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 	reset.Token = token
 	reset.ExpiresAt = time.Now().Add(time.Hour)
 
-	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Create(&reset)
+	if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Create(&reset)
 	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
@@ -94,14 +94,23 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 func (p PasswordResetServiceDefault) ResetPassword(email string, token string, password string) error {
 	var reset models.PasswordReset
 
-	reset.Token = token
+	exists, user, err := p.user.EmailExists(email)
+	if err != nil {
+		return err
+	}
 
-	if err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&reset).
+	if !exists {
+		return core.NewAccountError(core.ErrKeyUserNotFound, nil)
+	}
+
+	reset.Token = token
+	reset.UserID = user.ID
+
+	if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&reset).
 			Preload("User").
 			Where(&reset).
 			First(&reset)
-
 	}); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return core.NewAccountError(core.ErrKeyUserNotFound, err)
@@ -112,10 +121,6 @@ func (p PasswordResetServiceDefault) ResetPassword(email string, token string, p
 
 	if reset.ExpiresAt.Before(time.Now()) {
 		return core.NewAccountError(core.ErrKeySecurityTokenExpired, nil)
-	}
-
-	if reset.User.Email != email {
-		return core.NewAccountError(core.ErrKeySecurityInvalidToken, nil)
 	}
 
 	passwordHash, err := p.user.HashPassword(password)
@@ -132,8 +137,8 @@ func (p PasswordResetServiceDefault) ResetPassword(email string, token string, p
 		UserID: reset.UserID,
 	}
 
-	if err = db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Where(&reset).Delete(&reset)
+	if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where(&reset).Delete(&reset)
 	}); err != nil {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
