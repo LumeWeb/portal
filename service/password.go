@@ -74,7 +74,7 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
-	resetUrl := fmt.Sprintf("%s/reset-confirm?token=%s", fmt.Sprintf("https://%s.%s", p.subdomain, p.config.Config().Core.Domain), token)
+	resetUrl := fmt.Sprintf("%s/reset-password/confirm?token=%s", fmt.Sprintf("https://%s.%s", p.subdomain, p.config.Config().Core.Domain), token)
 
 	vars := map[string]interface{}{
 		"FirstName":  user.FirstName,
