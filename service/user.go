@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"net/url"
 	"time"
 )
 
@@ -340,7 +341,11 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
-	verifyUrl := fmt.Sprintf("%s/account/verify?token=%s", fmt.Sprintf("https://%s.%s", u.subdomain, u.config.Config().Core.Domain), token)
+	queryVars := url.Values{}
+	queryVars.Set("token", token)
+	queryVars.Set("email", _user.Email)
+
+	verifyUrl := fmt.Sprintf("%s/account/verify?%s", fmt.Sprintf("https://%s.%s", u.subdomain, u.config.Config().Core.Domain), queryVars.Encode())
 	vars := map[string]interface{}{
 		"FirstName":        _user.FirstName,
 		"Email":            _user.Email,
