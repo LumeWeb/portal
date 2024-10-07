@@ -173,6 +173,7 @@ func (t *TusHandler) SetupRoute(router *mux.Router, authMw mux.MiddlewareFunc, p
 	subrouter.Use(middleware.TusCorsMiddleware())
 	if authMw != nil {
 		subrouter.Use(authMw)
+		subrouter.Use(middleware.AccountVerifiedMiddleware(t.ctx))
 	}
 
 	tusHandler := func(w http.ResponseWriter, r *http.Request) {
