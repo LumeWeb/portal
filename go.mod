@@ -15,7 +15,7 @@ require (
 	github.com/casbin/casbin/v2 v2.100.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.5
-	github.com/getkin/kin-openapi v0.127.0
+	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1
 	github.com/go-co-op/gocron/v2 v2.9.0
 	github.com/go-gorm/caches/v4 v4.0.5
