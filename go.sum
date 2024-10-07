@@ -2,8 +2,6 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.31.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.37.0/go.mod h1:TS1dMSSfndXH133OKGwekG838Om/cQT0BUHV3HcBgoo=
-cloud.google.com/go v0.112.2 h1:ZaGT6LiG7dBzi6zNOvVZwacaXlmf3lRqnC4DQzqyRQw=
-cloud.google.com/go/compute v1.25.1 h1:ZRpHJedLtTpKgr3RV1Fx23NuaAEN1Zfx9hw1u4aJdjU=
 cloud.google.com/go/compute/metadata v0.3.0 h1:Tz+eQXMEqDIKRsmY3cHTL6FVaynIjX2QxYC4trgAKZc=
 cloud.google.com/go/compute/metadata v0.3.0/go.mod h1:zFmK7XCadkQkj6TtorcaGlCW1hT1fIilQDwofLpJ20k=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
@@ -74,8 +72,8 @@ github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:W
 github.com/aws/aws-sdk-go v1.54.6 h1:HEYUib3yTt8E6vxjMWM3yAq5b+qjj/6aKA62mkgux9g=
 github.com/aws/aws-sdk-go v1.54.6/go.mod h1:eRwEWoyTWFMVYVQzKMNHWP5/RV4xIUGMQfXQHfHkpNU=
 github.com/aws/aws-sdk-go-v2 v1.9.2/go.mod h1:cK/D0BBs0b/oWPIcX/Z/obahJK1TT7IPVjy53i/mX/4=
-github.com/aws/aws-sdk-go-v2 v1.31.0 h1:3V05LbxTSItI5kUqNwhJrrrY1BAXxXt0sN0l72QmG5U=
-github.com/aws/aws-sdk-go-v2 v1.31.0/go.mod h1:ztolYtaEUtdpf9Wftr31CJfLVjOnD/CVRkKOOYgF8hA=
+github.com/aws/aws-sdk-go-v2 v1.32.1 h1:8WuZ43ytA+TV6QEPT/R23mr7pWyI7bSSiEHdt9BS2Pw=
+github.com/aws/aws-sdk-go-v2 v1.32.1/go.mod h1:2SK5n0a2karNTv5tbP1SjsX0uhttou00v/HpXKM1ZUo=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.5 h1:xDAuZTn4IMm8o1LnBZvmrL8JA1io4o3YWNXgohbf20g=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.5/go.mod h1:wYSv6iDS621sEFLfKvpPE2ugjTuGlAG7iROg0hLOkfc=
 github.com/aws/aws-sdk-go-v2/config v1.8.3/go.mod h1:4AEiLtAb8kLs7vgw2ZV3p2VZ1+hBavOc84hqxVNpCyw=
@@ -117,8 +115,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.7.2/go.mod h1:8EzeIqfWt2wWT4rJVu3f21
 github.com/aws/aws-sdk-go-v2/service/sts v1.31.3 h1:VzudTFrDCIDakXtemR7l6Qzt2+JYsVqo2MxBPt5k8T8=
 github.com/aws/aws-sdk-go-v2/service/sts v1.31.3/go.mod h1:yMWe0F+XG0DkRZK5ODZhG7BEFYhLXi2dqGsv6tX0cgI=
 github.com/aws/smithy-go v1.8.0/go.mod h1:SObp3lf9smib00L/v3U2eAKG8FyQ7iLrJnQiAmR5n+E=
-github.com/aws/smithy-go v1.21.0 h1:H7L8dtDRk0P1Qm6y0ji7MCYMQObJ5R9CRpyPhRUkLYA=
-github.com/aws/smithy-go v1.21.0/go.mod h1:irrKGvNn1InZwb2d7fkIRNucdfwR8R+Ts3wxYa/cJHg=
+github.com/aws/smithy-go v1.22.0 h1:uunKnWlcoL3zO7q+gG2Pk53joueEOsnNB28QdMsmiMM=
+github.com/aws/smithy-go v1.22.0/go.mod h1:irrKGvNn1InZwb2d7fkIRNucdfwR8R+Ts3wxYa/cJHg=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/benbjohnson/clock v1.3.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/benbjohnson/clock v1.3.5 h1:VvXlSJBzZpA/zum6Sj74hxwYI2DIxRWuNIoXAzHZz5o=
@@ -418,6 +416,8 @@ github.com/gorilla/context v1.1.1 h1:AWwleXJkX/nhcU9bZSnZoi3h/qGYqQAGhq6zZe/aQW8
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/handlers v1.5.2 h1:cLTUSsNkgcwhgRqvCNmdbRWG0A3N4F+M2nWKdScwyEE=
 github.com/gorilla/handlers v1.5.2/go.mod h1:dX+xVpaxdSw+q0Qek8SSsl3dfMk3jNddUkMzo0GtH0w=
+github.com/gorilla/pat v0.0.0-20180118222023-199c85a7f6d1 h1:LqbZZ9sNMWVjeXS4NN5oVvhMjDyLhmA1LG86oSo+IqY=
+github.com/gorilla/pat v0.0.0-20180118222023-199c85a7f6d1/go.mod h1:YeAe0gNeiNT5hoiZRI4yiOky6jVdNvfO2N6Kav/HmxY=
 github.com/gorilla/securecookie v1.1.1 h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyCS8BvQ=
 github.com/gorilla/securecookie v1.1.1/go.mod h1:ra0sb63/xPlUeL+yeDciTfxMRAA+MP+HVt/4epWDjd4=
 github.com/gorilla/sessions v1.1.1 h1:YMDmfaK68mUixINzY/XjscuJ47uXFWSSHzFbBQM0PrE=
@@ -1170,16 +1170,10 @@ go.etcd.io/etcd/client/v3 v3.5.16 h1:sSmVYOAHeC9doqi0gv7v86oY/BTld0SEFGaxsU9eRhE
 go.etcd.io/etcd/client/v3 v3.5.16/go.mod h1:X+rExSGkyqxvu276cr2OwPLBaeqFu1cIl4vmRjAD/50=
 go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab h1:8FHJm1D00GJNV+5PkaJv+Wyvh5FR+s97rTubAdvi9mA=
 go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab/go.mod h1:3aHem0Fj7dH1Kj+WgluoF0WlSyXyUCrJk4bvmdq/Fgs=
-go.lumeweb.com/portal-plugin-billing v0.0.0-20241002053413-f8761175da8c h1:AE+BO9gdNdKX0d8ceo+yAxjuJi7E6aOgeZPqfZ5jg5s=
-go.lumeweb.com/portal-plugin-billing v0.0.0-20241002053413-f8761175da8c/go.mod h1:vcYhTdfCI6GhyR29yq0nMJZM6TlW47pJMCFne8JNeZ4=
 go.lumeweb.com/portal-plugin-billing v0.0.0-20241004013124-f9adb5e6a6dd h1:A3ymHEFYjWY8GLGhTz5acVpQdURrX9pk1F3fgEPcip4=
 go.lumeweb.com/portal-plugin-billing v0.0.0-20241004013124-f9adb5e6a6dd/go.mod h1:u0YMzSFG8E+SJVjZu8Xq47M1X5N1BcAyTl9QIDZwYME=
-go.lumeweb.com/portal-plugin-dashboard v0.1.1 h1:JulrBeOTSiWb5P6anWIZsfWgZbXpxWP/zBXxRnk3sk8=
-go.lumeweb.com/portal-plugin-dashboard v0.1.1/go.mod h1:F4U40IijcIw7UKb3yHqHDct8bP4BWpiNO9z2txGg28M=
 go.lumeweb.com/portal-plugin-dashboard v0.1.2-0.20241001085532-a0e53c014628 h1:97jZy9UEJoVc+9576HAPF2gwIAXCwL7g4SOMtXHhmy0=
 go.lumeweb.com/portal-plugin-dashboard v0.1.2-0.20241001085532-a0e53c014628/go.mod h1:9FJhgygSIhQtV3GsBRVBbIx1/IzGEWyBO2/D1Pe0HwM=
-go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001221804-8af153a61ee7 h1:aUK5Te0PT844EuSuL36TJnLMEtHJzINsFp7jDNqD36w=
-go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001221804-8af153a61ee7/go.mod h1:7Zyuz8sU2yfCLIdALx0dKzZbDzWI8BrMSpZc7K27iIM=
 go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001231617-aa5eae64540a h1:eECjqguEv8WNhBuCEWwPsFaNfglc+tiPW1IzOuwyEXY=
 go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001231617-aa5eae64540a/go.mod h1:uqPocK/bWlt39PXhfSIKDpfB3zk2TaKHVDN5agsxC/E=
 go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240628083440-8b3dfcc3e606 h1:t5F067A1XQ2THCT1XU9/NpzEQuRGRvbVON4TJKgjG4E=
