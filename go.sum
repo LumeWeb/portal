@@ -2,8 +2,6 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.31.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.37.0/go.mod h1:TS1dMSSfndXH133OKGwekG838Om/cQT0BUHV3HcBgoo=
-cloud.google.com/go v0.112.2 h1:ZaGT6LiG7dBzi6zNOvVZwacaXlmf3lRqnC4DQzqyRQw=
-cloud.google.com/go/compute v1.25.1 h1:ZRpHJedLtTpKgr3RV1Fx23NuaAEN1Zfx9hw1u4aJdjU=
 cloud.google.com/go/compute/metadata v0.3.0 h1:Tz+eQXMEqDIKRsmY3cHTL6FVaynIjX2QxYC4trgAKZc=
 cloud.google.com/go/compute/metadata v0.3.0/go.mod h1:zFmK7XCadkQkj6TtorcaGlCW1hT1fIilQDwofLpJ20k=
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
@@ -257,8 +255,8 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/gabriel-vasile/mimetype v1.4.5 h1:J7wGKdGu33ocBOhGy0z653k/lFKLFDPJMG8Gql0kxn4=
 github.com/gabriel-vasile/mimetype v1.4.5/go.mod h1:ibHel+/kbxn9x2407k1izTA1S81ku1z/DlgOW2QE0M4=
-github.com/getkin/kin-openapi v0.127.0 h1:Mghqi3Dhryf3F8vR370nN67pAERW+3a95vomb3MAREY=
-github.com/getkin/kin-openapi v0.127.0/go.mod h1:OZrfXzUfGrNbsKj+xmFBx6E5c6yH3At/tAKSc2UszXM=
+github.com/getkin/kin-openapi v0.128.0 h1:jqq3D9vC9pPq1dGcOCv7yOp1DaEe7c/T1vzcLbITSp4=
+github.com/getkin/kin-openapi v0.128.0/go.mod h1:OZrfXzUfGrNbsKj+xmFBx6E5c6yH3At/tAKSc2UszXM=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gliderlabs/ssh v0.1.1/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
 github.com/go-check/check v0.0.0-20180628173108-788fd7840127/go.mod h1:9ES+weclKsC9YodN5RgxqK/VD9HM9JsCSh7rNhMZE98=
@@ -418,6 +416,8 @@ github.com/gorilla/context v1.1.1 h1:AWwleXJkX/nhcU9bZSnZoi3h/qGYqQAGhq6zZe/aQW8
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/handlers v1.5.2 h1:cLTUSsNkgcwhgRqvCNmdbRWG0A3N4F+M2nWKdScwyEE=
 github.com/gorilla/handlers v1.5.2/go.mod h1:dX+xVpaxdSw+q0Qek8SSsl3dfMk3jNddUkMzo0GtH0w=
+github.com/gorilla/pat v0.0.0-20180118222023-199c85a7f6d1 h1:LqbZZ9sNMWVjeXS4NN5oVvhMjDyLhmA1LG86oSo+IqY=
+github.com/gorilla/pat v0.0.0-20180118222023-199c85a7f6d1/go.mod h1:YeAe0gNeiNT5hoiZRI4yiOky6jVdNvfO2N6Kav/HmxY=
 github.com/gorilla/securecookie v1.1.1 h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyCS8BvQ=
 github.com/gorilla/securecookie v1.1.1/go.mod h1:ra0sb63/xPlUeL+yeDciTfxMRAA+MP+HVt/4epWDjd4=
 github.com/gorilla/sessions v1.1.1 h1:YMDmfaK68mUixINzY/XjscuJ47uXFWSSHzFbBQM0PrE=
@@ -1170,16 +1170,10 @@ go.etcd.io/etcd/client/v3 v3.5.16 h1:sSmVYOAHeC9doqi0gv7v86oY/BTld0SEFGaxsU9eRhE
 go.etcd.io/etcd/client/v3 v3.5.16/go.mod h1:X+rExSGkyqxvu276cr2OwPLBaeqFu1cIl4vmRjAD/50=
 go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab h1:8FHJm1D00GJNV+5PkaJv+Wyvh5FR+s97rTubAdvi9mA=
 go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab/go.mod h1:3aHem0Fj7dH1Kj+WgluoF0WlSyXyUCrJk4bvmdq/Fgs=
-go.lumeweb.com/portal-plugin-billing v0.0.0-20241002053413-f8761175da8c h1:AE+BO9gdNdKX0d8ceo+yAxjuJi7E6aOgeZPqfZ5jg5s=
-go.lumeweb.com/portal-plugin-billing v0.0.0-20241002053413-f8761175da8c/go.mod h1:vcYhTdfCI6GhyR29yq0nMJZM6TlW47pJMCFne8JNeZ4=
 go.lumeweb.com/portal-plugin-billing v0.0.0-20241004013124-f9adb5e6a6dd h1:A3ymHEFYjWY8GLGhTz5acVpQdURrX9pk1F3fgEPcip4=
 go.lumeweb.com/portal-plugin-billing v0.0.0-20241004013124-f9adb5e6a6dd/go.mod h1:u0YMzSFG8E+SJVjZu8Xq47M1X5N1BcAyTl9QIDZwYME=
-go.lumeweb.com/portal-plugin-dashboard v0.1.1 h1:JulrBeOTSiWb5P6anWIZsfWgZbXpxWP/zBXxRnk3sk8=
-go.lumeweb.com/portal-plugin-dashboard v0.1.1/go.mod h1:F4U40IijcIw7UKb3yHqHDct8bP4BWpiNO9z2txGg28M=
 go.lumeweb.com/portal-plugin-dashboard v0.1.2-0.20241001085532-a0e53c014628 h1:97jZy9UEJoVc+9576HAPF2gwIAXCwL7g4SOMtXHhmy0=
 go.lumeweb.com/portal-plugin-dashboard v0.1.2-0.20241001085532-a0e53c014628/go.mod h1:9FJhgygSIhQtV3GsBRVBbIx1/IzGEWyBO2/D1Pe0HwM=
-go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001221804-8af153a61ee7 h1:aUK5Te0PT844EuSuL36TJnLMEtHJzINsFp7jDNqD36w=
-go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001221804-8af153a61ee7/go.mod h1:7Zyuz8sU2yfCLIdALx0dKzZbDzWI8BrMSpZc7K27iIM=
 go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001231617-aa5eae64540a h1:eECjqguEv8WNhBuCEWwPsFaNfglc+tiPW1IzOuwyEXY=
 go.lumeweb.com/portal-plugin-ipfs v0.0.0-20241001231617-aa5eae64540a/go.mod h1:uqPocK/bWlt39PXhfSIKDpfB3zk2TaKHVDN5agsxC/E=
 go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240628083440-8b3dfcc3e606 h1:t5F067A1XQ2THCT1XU9/NpzEQuRGRvbVON4TJKgjG4E=
