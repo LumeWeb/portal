@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -11,31 +10,49 @@ import (
 	"github.com/samber/lo"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
-	"time"
+)
+
+// Constants
+const (
+	CLUSTER_CONFIG_KEY = "config"
+	FLAG_NOSYNC        = "nosync"
+	CONFIG_EXTENSION   = ".yaml"
+
+	CoreConfigFile    = "core" + CONFIG_EXTENSION
+	SectionConfigFile = "default" + CONFIG_EXTENSION
+	PluginsDir        = "plugins.d"
+	ProtoDir          = "proto.d"
+	ServiceDir        = "service.d"
+	APIDir            = "api.d"
+
+	protoSectionSpecifier   = "plugin.%s.protocol"
+	apiSectionSpecifier     = "plugin.%s.api"
+	serviceSectionSpecifier = "plugin.%s.service.%s"
 )
 
 var (
-	configFilePaths = []string{
-		"/etc/lumeweb/portal/config.yaml",
-		"/etc/lumeweb/portal/config.yml",
-		"$HOME/.lumeweb/portal/config.yaml",
-		"$HOME/.lumeweb/portal/config.yml",
+	configDirPaths = []string{
+		"/etc/lumeweb/portal",
+		"$HOME/.lumeweb/portal",
 		"./portal.yaml",
-		"./portal.yml",
+		"./",
 	}
-	errConfigFileNotFound = errors.New("config file not found")
 )
 
-var _ Manager = (*ManagerDefault)(nil)
+type sectionKind int
 
-const CLUSTER_CONFIG_KEY = "config"
-const FLAG_NOSYNC = "nosync"
+const (
+	sectionKindAPI sectionKind = iota
+	sectionKindService
+	sectionKindProtocol
+)
 
 type fieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
 
@@ -48,25 +65,25 @@ type ManagerDefault struct {
 	config          *koanf.Koanf
 	root            *Config
 	changes         bool
+	changedSections []string
 	lock            sync.RWMutex
 	flags           map[string][]string
 	changeCallbacks []ConfigChangeCallback
 	logger          *zap.Logger
+	configFile      string
 }
 
-func NewManager() (*ManagerDefault, error) {
-	k, err := newConfig()
-	if err != nil && err != errConfigFileNotFound {
-		return nil, err
-	}
+var _ Manager = (*ManagerDefault)(nil)
 
-	exists := err == nil
+func NewManager() (*ManagerDefault, error) {
+	k := koanf.New(".")
 
 	return &ManagerDefault{
-		config:  k,
-		changes: !exists,
-		lock:    sync.RWMutex{},
-		flags:   make(map[string][]string),
+		config:          k,
+		changes:         false,
+		lock:            sync.RWMutex{},
+		flags:           make(map[string][]string),
+		changedSections: make([]string, 0),
 	}, nil
 }
 
@@ -83,62 +100,39 @@ func (m *ManagerDefault) hooks() []mapstructure.DecodeHookFunc {
 
 func (m *ManagerDefault) Init() error {
 	m.root = &Config{}
-
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	err := m.setDefaultsForObject(m.root.Core, "core")
+	// Initialize config directory
+	if err := m.initConfigLocation(); err != nil {
+		return fmt.Errorf("failed to initialize config directory: %w", err)
+	}
+
+	coreCfg := koanf.New(".")
+	err := coreCfg.Load(file.Provider(m.configFile), yaml.Parser())
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to load core config: %w", err)
+		}
+
+		if err := m.setDefaultsForObject(&m.root.Core, "core"); err != nil {
+			return fmt.Errorf("failed to set core defaults: %w", err)
+		}
+
+		if err := m.maybeSave(); err != nil {
+			return fmt.Errorf("failed to save config changes: %w", err)
+		}
+	} else {
+		err = m.config.MergeAt(coreCfg, "core")
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = m.configureSection("core", &m.root.Core)
 	if err != nil {
 		return err
 	}
-	err = m.maybeSave()
-	if err != nil {
-		return err
-	}
-
-	hooks := m.hooks()
-	hooks = append(hooks, mapstructure.StringToTimeDurationHookFunc())
-
-	err = m.config.UnmarshalWithConf("core", &m.root.Core, koanf.UnmarshalConf{
-		Tag: "mapstructure",
-		DecoderConfig: &mapstructure.DecoderConfig{
-			DecodeHook:       mapstructure.ComposeDecodeHookFunc(m.hooks()...),
-			Metadata:         nil,
-			Result:           &m.root.Core,
-			WeaklyTypedInput: true,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	err = m.validateObject(m.root)
-	if err != nil {
-		return err
-	}
-
-	err = m.processFlags(m.root, "core")
-	if err != nil {
-		return err
-	}
-
-	err = m.maybeConfigureCluster()
-	if err != nil {
-		return err
-	}
-
-	err = m.loadClusterSpace("core")
-	if err != nil {
-		return err
-	}
-
-	err = m.maybeSave()
-	if err != nil {
-		return err
-	}
-
-	err = m.saveClusterSpace("core", false)
-
 	return nil
 }
 
@@ -151,11 +145,17 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 		return nil
 	}
 
-	m.initPlugin(pluginName)
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	prefix := fmt.Sprintf("plugin.%s.protocol", pluginName)
+	m.initPlugin(pluginName)
+
+	err := m.loadSection(pluginName, "", sectionKindProtocol)
+	if err != nil {
+		return err
+	}
+
+	prefix := getProtoSectionSpecifier(pluginName)
 	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
@@ -174,10 +174,13 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 	}
 
 	m.initPlugin(pluginName)
-	m.lock.Lock()
-	defer m.lock.Unlock()
 
-	prefix := fmt.Sprintf("plugin.%s.api", pluginName)
+	err := m.loadSection(pluginName, "", sectionKindAPI)
+	if err != nil {
+		return err
+	}
+
+	prefix := getAPISectionSpecifier(pluginName)
 	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
@@ -195,36 +198,53 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 		return nil
 	}
 
-	m.initPlugin(pluginName)
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	prefix := fmt.Sprintf("plugin.%s.service.%s", pluginName, serviceName)
-	section, err := m.configureSection(prefix, cfg)
 
+	m.initPlugin(pluginName)
+
+	err := m.loadSection(pluginName, serviceName, sectionKindService)
+	if err != nil {
+		return err
+	}
+
+	prefix := getServiceSectionSpecifier(pluginName, serviceName)
+	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
 	}
 
 	m.root.Plugin[pluginName].Service[serviceName] = section.(ServiceConfig)
+
 	return nil
 }
 
 func (m *ManagerDefault) GetPlugin(pluginName string) *PluginEntity {
+	if m.root.Plugin == nil {
+		return nil
+	}
+
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
-	if plugin, ok := m.root.Plugin[pluginName]; ok {
+	plugin, exists := m.root.Plugin[pluginName]
+
+	if exists {
 		return &plugin
 	}
 
 	return nil
 }
-
 func (m *ManagerDefault) GetService(serviceName string) ServiceConfig {
+	if m.root.Plugin == nil {
+		return nil
+	}
+
 	m.lock.RLock()
 	defer m.lock.RUnlock()
+
 	for _, plugin := range m.root.Plugin {
-		if service, ok := plugin.Service[serviceName]; ok {
+		if service, exists := plugin.Service[serviceName]; exists {
 			return service
 		}
 	}
@@ -235,7 +255,12 @@ func (m *ManagerDefault) GetService(serviceName string) ServiceConfig {
 func (m *ManagerDefault) GetAPI(pluginName string) APIConfig {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	if plugin, ok := m.root.Plugin[pluginName]; ok {
+
+	if m.root.Plugin == nil {
+		return nil
+	}
+
+	if plugin, exists := m.root.Plugin[pluginName]; exists {
 		return plugin.API
 	}
 
@@ -245,16 +270,32 @@ func (m *ManagerDefault) GetAPI(pluginName string) APIConfig {
 func (m *ManagerDefault) GetProtocol(pluginName string) ProtocolConfig {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	if plugin, ok := m.root.Plugin[pluginName]; ok {
+
+	if m.root.Plugin == nil {
+		return nil
+	}
+
+	if plugin, exists := m.root.Plugin[pluginName]; exists {
 		return plugin.Protocol
 	}
 
 	return nil
 }
 
+func (m *ManagerDefault) initConfigLocation() error {
+	if m.configFile != "" {
+		return nil
+	}
+
+	configFile := findConfigFile(true, true)
+	if configFile == "" {
+		return fmt.Errorf("no configuration file found")
+	}
+	m.configFile = configFile
+	return nil
+}
+
 func (m *ManagerDefault) initPlugin(name string) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
 	if m.root.Plugin == nil {
 		m.root.Plugin = make(map[string]PluginEntity)
 	}
@@ -266,6 +307,44 @@ func (m *ManagerDefault) initPlugin(name string) {
 	m.root.Plugin[name] = PluginEntity{
 		Service: make(map[string]ServiceConfig),
 	}
+}
+
+func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectionKind) error {
+	basePath := m.ConfigDir()
+
+	config := koanf.New(".")
+	var err error
+	var configPath string
+	var target string
+
+	switch kind {
+	case sectionKindAPI:
+		configPath = path.Join(basePath, PluginsDir, pluginName, APIDir, SectionConfigFile)
+		target = getAPISectionSpecifier(pluginName)
+	case sectionKindService:
+		configPath = path.Join(basePath, PluginsDir, pluginName, ServiceDir, name+CONFIG_EXTENSION)
+		target = getServiceSectionSpecifier(pluginName, name)
+	case sectionKindProtocol:
+		configPath = path.Join(basePath, PluginsDir, pluginName, ProtoDir, SectionConfigFile)
+		target = getProtoSectionSpecifier(pluginName)
+
+	}
+
+	err = config.Load(file.Provider(configPath), yaml.Parser())
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		return nil
+	}
+
+	err = m.config.MergeAt(config, target)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, error) {
@@ -333,6 +412,7 @@ func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
 			}
 
 			m.changes = true
+			m.changedSections = append(m.changedSections, prefix)
 		}
 	}
 
@@ -470,28 +550,111 @@ func (m *ManagerDefault) flagsProcessor(field reflect.StructField, _ reflect.Val
 }
 
 func (m *ManagerDefault) maybeSave() error {
-	if m.changes {
-		data, err := m.config.Marshal(yaml.Parser())
-		if err != nil {
-			return err
+	if !m.changes {
+		return nil
+	}
+
+	m.changedSections = lo.Uniq(m.changedSections)
+
+	if err := m.saveCoreConfig(); err != nil {
+		return err
+	}
+
+	if err := m.savePluginConfigs(); err != nil {
+		return err
+	}
+
+	m.changes = false
+	m.changedSections = make([]string, 0)
+	return nil
+}
+
+// New function to save core config
+func (m *ManagerDefault) saveCoreConfig() error {
+	if len(m.changedSections) > 0 {
+		if !m.hasPrefixChanged("core") {
+			return nil
+		}
+	}
+
+	coreConfigPath := m.configFile
+	coreConfig := m.config.Cut("core")
+	return m.saveConfigToFile(coreConfig, coreConfigPath)
+}
+
+func (m *ManagerDefault) hasSectionChanged(section string) bool {
+	if len(m.changedSections) == 0 {
+		return true
+	}
+	for _, changed := range m.changedSections {
+		if section == changed {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m *ManagerDefault) hasPrefixChanged(prefix string) bool {
+	if len(m.changedSections) == 0 {
+		return true
+	}
+	for _, changed := range m.changedSections {
+		if strings.HasPrefix(changed, prefix+".") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m *ManagerDefault) saveConfigToFile(config *koanf.Koanf, filePath string) error {
+	data, err := config.Marshal(yaml.Parser())
+	if err != nil {
+		return fmt.Errorf("error marshaling config: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return fmt.Errorf("error creating directory: %w", err)
+	}
+
+	if err := os.WriteFile(filePath, data, 0644); err != nil {
+		return fmt.Errorf("error writing config file: %w", err)
+	}
+
+	return nil
+}
+
+// New function to save plugin configs
+func (m *ManagerDefault) savePluginConfigs() error {
+	pluginsPath := filepath.Join(m.ConfigDir(), PluginsDir)
+	plugins := m.config.Cut("plugin")
+
+	for _, pluginName := range plugins.MapKeys("") {
+		pluginPath := filepath.Join(pluginsPath, pluginName)
+
+		services := plugins.Cut(pluginName).Cut("service")
+		api := plugins.Cut(pluginName).Cut("api")
+		protocol := plugins.Cut(pluginName).Cut("protocol")
+
+		if m.hasSectionChanged(getProtoSectionSpecifier(pluginName)) && len(protocol.Keys()) > 0 {
+			if err := m.saveConfigToFile(protocol, filepath.Join(pluginPath, ProtoDir, SectionConfigFile)); err != nil {
+				return err
+			}
 		}
 
-		configFile := findConfigFile(true, true)
-		if configFile == "" {
-			return fmt.Errorf("no writable configuration file location found")
+		for _, svcName := range services.MapKeys("") {
+			if m.hasSectionChanged(getServiceSectionSpecifier(pluginName, svcName)) && len(services.Keys()) > 0 {
+				if err := m.saveConfigToFile(services.Cut(svcName), filepath.Join(pluginPath, ServiceDir, svcName+CONFIG_EXTENSION)); err != nil {
+					return err
+				}
+			}
 		}
-
-		err = os.MkdirAll(filepath.Dir(configFile), 0755)
-		if err != nil {
-			return err
+		if m.hasSectionChanged(getAPISectionSpecifier(pluginName)) && len(api.Keys()) > 0 {
+			if err := m.saveConfigToFile(api, filepath.Join(pluginPath, APIDir, SectionConfigFile)); err != nil {
+				return err
+			}
 		}
-
-		err = os.WriteFile(configFile, data, 0644)
-		if err != nil {
-			return err
-		}
-
-		m.changes = false
 	}
 
 	return nil
@@ -523,26 +686,27 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 
 		key := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
 
-		ret, err := client.Get(ctx, key)
+		ret, err := client.Get(ctx, key, clientv3.WithPrefix())
 		if err != nil {
 			return err
 		}
 
-		if ret.Count > 0 {
-			remoteConfig := koanf.New(".")
-			err := remoteConfig.Load(NewEtcdProvider(client, key, time.Duration(m.root.Core.Clustered.Etcd.DialTimeout)*time.Second), nil)
+		parser := yaml.Parser()
+
+		for _, kv := range ret.Kvs {
+			configMap, err := parser.Unmarshal(kv.Value)
 			if err != nil {
 				return err
 			}
 
-			m.lock.RLock()
-			for k, flags := range m.flags {
-				if lo.Contains(flags, FLAG_NOSYNC) {
-					remoteConfig.Delete(k)
-				}
+			subKey := strings.TrimPrefix(string(kv.Key), key+"/")
+			fullKey := prefix + "." + subKey
+
+			if lo.Contains(m.flags[fullKey], FLAG_NOSYNC) {
+				continue
 			}
 
-			err = m.config.Merge(remoteConfig)
+			err = m.config.Set(fullKey, configMap)
 			if err != nil {
 				return err
 			}
@@ -564,16 +728,19 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 
 		etcdKey := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
 
-		ret, err := client.Get(ctx, etcdKey, clientv3.WithPrefix())
-		if err != nil {
-			return err
-		}
+		if !overwrite {
+			ret, err := client.Get(ctx, etcdKey, clientv3.WithPrefix())
+			if err != nil {
+				return err
+			}
 
-		if ret.Count > 0 && !overwrite {
-			return nil
+			if ret.Count > 0 {
+				return nil
+			}
 		}
 
 		subConfig := m.config.Cut(prefix)
+		parser := yaml.Parser()
 
 		for k, v := range subConfig.All() {
 			if lo.Contains(m.flags[prefix+"."+k], FLAG_NOSYNC) {
@@ -583,7 +750,12 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 			key := etcdKey + "/" + k
 			key = strings.ReplaceAll(key, ".", "/")
 
-			_, err = client.Put(ctx, key, fmt.Sprintf("%v", v))
+			data, err := parser.Marshal(map[string]interface{}{k: v})
+			if err != nil {
+				return err
+			}
+
+			_, err = client.Put(ctx, key, string(data))
 			if err != nil {
 				return err
 			}
@@ -612,64 +784,27 @@ func (m *ManagerDefault) Save() error {
 }
 
 func (m *ManagerDefault) ConfigFile() string {
-	return findConfigFile(false, false)
+	return m.configFile
 }
 
 func (m *ManagerDefault) ConfigDir() string {
 	return path.Dir(m.ConfigFile())
 }
 
-func newConfig() (*koanf.Koanf, error) {
-	k := koanf.New(".")
-
-	configFile := findConfigFile(false, false)
-
-	if configFile == "" {
-		return k, errConfigFileNotFound
-	}
-
-	if err := k.Load(file.Provider(configFile), yaml.Parser()); err != nil {
-		return nil, err
-	}
-
-	return k, nil
-}
-
-func findHighestWritableDir(path string) (string, error) {
-	dir := path
-	for {
-		// Try to create a temporary file in the directory
-		tempFile, err := os.CreateTemp(dir, ".write_test")
-		if err == nil {
-			tempFile.Close()
-			os.Remove(tempFile.Name())
-			return dir, nil
-		}
-
-		if !os.IsPermission(err) && !os.IsNotExist(err) {
-			return "", err
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// We've reached the root directory
-			return "", fmt.Errorf("no writable directory found")
-		}
-		dir = parent
-	}
-}
-
 func findConfigFile(dirCheck bool, ignoreExist bool) string {
-	for _, _path := range configFilePaths {
-		expandedPath := os.ExpandEnv(_path)
+	for _, _path := range configDirPaths {
+		expandedPath := os.ExpandEnv(path.Join(_path, CoreConfigFile))
 
 		// First, check if the file exists
 		_, err := os.Stat(expandedPath)
 		if err == nil {
 			// File exists, check if we can write to it
-			file, err := os.OpenFile(expandedPath, os.O_WRONLY, 0644)
+			_file, err := os.OpenFile(expandedPath, os.O_WRONLY, 0644)
 			if err == nil {
-				file.Close()
+				err := _file.Close()
+				if err != nil {
+					log.Printf("error closing file: %v", err)
+				}
 				return expandedPath
 			}
 			// Can't write to existing file, continue to next path
@@ -704,6 +839,36 @@ func findConfigFile(dirCheck bool, ignoreExist bool) string {
 	return ""
 }
 
+func findHighestWritableDir(path string) (string, error) {
+	dir := path
+	for {
+		// Try to create a temporary file in the directory
+		tempFile, err := os.CreateTemp(dir, ".write_test")
+		if err == nil {
+			err = tempFile.Close()
+			if err != nil {
+				return "", err
+			}
+			err = os.Remove(tempFile.Name())
+			if err != nil {
+				return "", err
+			}
+			return dir, nil
+		}
+
+		if !os.IsPermission(err) && !os.IsNotExist(err) {
+			return "", err
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// We've reached the root directory
+			return "", fmt.Errorf("no writable directory found")
+		}
+		dir = parent
+	}
+}
+
 func buildPrefix(prefix, mapstructureTag string) string {
 	if mapstructureTag != "" && mapstructureTag != "-" {
 		if prefix != "" {
@@ -712,4 +877,16 @@ func buildPrefix(prefix, mapstructureTag string) string {
 		return mapstructureTag
 	}
 	return prefix
+}
+
+func getProtoSectionSpecifier(pluginName string) string {
+	return fmt.Sprintf(protoSectionSpecifier, pluginName)
+}
+
+func getAPISectionSpecifier(pluginName string) string {
+	return fmt.Sprintf(apiSectionSpecifier, pluginName)
+}
+
+func getServiceSectionSpecifier(pluginName string, serviceName string) string {
+	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
 }
