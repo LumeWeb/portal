@@ -26,7 +26,6 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
-	github.com/ipfs/go-cid v0.4.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/multiformats/go-multihash v0.2.3
@@ -38,7 +37,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256
 	github.com/tus/tusd/v2 v2.4.0
-	github.com/wneessen/go-mail v0.4.4
+	github.com/wneessen/go-mail v0.5.0
 	go.etcd.io/etcd/client/v3 v3.5.16
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
 	go.lumeweb.com/portal-plugin-dashboard v0.1.2-0.20241001085532-a0e53c014628
@@ -48,7 +47,7 @@ require (
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
-	golang.org/x/crypto v0.27.0
+	golang.org/x/crypto v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.2
 	gorm.io/driver/mysql v1.5.7
@@ -102,6 +101,7 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/boxo v0.21.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
+	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
@@ -298,8 +298,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
