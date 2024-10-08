@@ -9,9 +9,9 @@ var _ Validator = (*RedisConfig)(nil)
 var _ Defaults = (*RedisConfig)(nil)
 
 type RedisConfig struct {
-	Address  string `mapstructure:"address"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
+	Address  string `config:"address"`
+	Password string `config:"password"`
+	DB       int    `config:"db"`
 	client   *redis.Client
 }
 

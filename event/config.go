@@ -37,6 +37,14 @@ func (e ConfigPropertyUpdateEvent) Entity() string {
 	return e.Get("entity").(string)
 }
 
+func (e ConfigPropertyUpdateEvent) SetSubEntity(subEntity string) {
+	e.Set("sub_entity", subEntity)
+}
+
+func (e ConfigPropertyUpdateEvent) SubEntity() string {
+	return e.Get("sub_entity").(string)
+}
+
 func (e ConfigPropertyUpdateEvent) Category() ConfigPropertyUpdateCategory {
 	return e.Get("category").(ConfigPropertyUpdateCategory)
 }
@@ -54,11 +62,13 @@ func (e ConfigPropertyUpdateEvent) PropertyValue() interface{} {
 	return e.Get("property_value")
 }
 
-func FireConfigPropertyUpdateEvent(ctx core.Context, key string, value interface{}, category ConfigPropertyUpdateCategory, entity string) error {
+func FireConfigPropertyUpdateEvent(ctx core.Context, key string, value interface{}, category ConfigPropertyUpdateCategory, entity string, subEntity string) error {
 	return Fire[*ConfigPropertyUpdateEvent](ctx, EVENT_CONFIG_PROPERTY_UPDATE, func(evt *ConfigPropertyUpdateEvent) error {
 		evt.SetProperty(key, value)
 		evt.SetCategory(category)
 		evt.SetEntity(entity)
+		evt.SetSubEntity(subEntity)
+
 		return nil
 	})
 }

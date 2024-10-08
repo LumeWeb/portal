@@ -6,7 +6,7 @@ import (
 )
 
 type TusConfig struct {
-	LockerMode string `mapstructure:"locker_mode"`
+	LockerMode string `config:"locker_mode"`
 }
 
 func (t TusConfig) Validate() error {

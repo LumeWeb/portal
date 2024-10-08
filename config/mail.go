@@ -8,13 +8,13 @@ var _ Validator = (*MailConfig)(nil)
 var _ Defaults = (*MailConfig)(nil)
 
 type MailConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	SSL      bool   `mapstructure:"ssl"`
-	AuthType string `mapstructure:"auth_type"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	From     string `mapstructure:"from"`
+	Host     string `config:"host"`
+	Port     int    `config:"port"`
+	SSL      bool   `config:"ssl"`
+	AuthType string `config:"auth_type"`
+	Username string `config:"username"`
+	Password string `config:"password"`
+	From     string `config:"from"`
 }
 
 func (m MailConfig) Validate() error {

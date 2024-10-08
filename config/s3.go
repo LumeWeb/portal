@@ -8,11 +8,11 @@ var _ Validator = (*S3Config)(nil)
 var _ Defaults = (*S3Config)(nil)
 
 type S3Config struct {
-	BufferBucket string `mapstructure:"buffer_bucket"`
-	Endpoint     string `mapstructure:"endpoint"`
-	Region       string `mapstructure:"region"`
-	AccessKey    string `mapstructure:"access_key"`
-	SecretKey    string `mapstructure:"secret_key"`
+	BufferBucket string `config:"buffer_bucket"`
+	Endpoint     string `config:"endpoint"`
+	Region       string `config:"region"`
+	AccessKey    string `config:"access_key"`
+	SecretKey    string `config:"secret_key"`
 }
 
 func (s S3Config) Defaults() map[string]any {

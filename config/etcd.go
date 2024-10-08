@@ -10,8 +10,8 @@ import (
 var _ Defaults = (*EtcdConfig)(nil)
 
 type EtcdConfig struct {
-	Endpoints   []string `mapstructure:"endpoints"`
-	DialTimeout int      `mapstructure:"dial_timeout"`
+	Endpoints   []string `config:"endpoints"`
+	DialTimeout int      `config:"dial_timeout"`
 	client      *clientv3.Client
 }
 
