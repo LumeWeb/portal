@@ -10,8 +10,8 @@ type TusConfig struct {
 }
 
 func (t TusConfig) Validate() error {
-	if t.LockerMode != "" && !lo.Contains([]string{"db", "etcd"}, t.LockerMode) {
-		return errors.New("tus_locker_mode must be one of: db, etcd")
+	if t.LockerMode != "" && !lo.Contains([]string{"db", "redis"}, t.LockerMode) {
+		return errors.New("tus_locker_mode must be one of: db, redis")
 	}
 
 	return nil

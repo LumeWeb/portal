@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
-	"github.com/tus/tusd-etcd3-locker/pkg/etcd3locker"
 	"github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/redislocker"
 	"github.com/tus/tusd/v2/pkg/s3store"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -328,7 +328,7 @@ func (t *TusHandler) init(handlerConfig HandlerConfig) error {
 		NotifyCreatedUploads:    true,
 		RespectForwardedHeaders: true,
 		PreUploadCreateCallback: handlerConfig.PreUpload,
-		Logger:                  slog.New(zapslog.NewHandler(t.logger.Core(), nil)),
+		Logger:                  loggerToSlog(t.logger),
 	})
 
 	if err != nil {
@@ -411,9 +411,9 @@ func getLockerMode(cm config.Manager, logger *core.Logger) string {
 		return "none"
 	case "db":
 		return "db"
-	case "etcd":
+	case "redis":
 		if cm.Config().Core.Clustered.Enabled {
-			return "etcd"
+			return "redis"
 		}
 
 		return "db"
@@ -432,12 +432,12 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 		return nil, nil
 	case "db":
 		return NewDbLocker(db, logger), nil
-	case "etcd":
-		client, err := cm.Config().Core.Clustered.Etcd.Client()
+	case "redis":
+		client, err := cm.Config().Core.Clustered.Redis.Client()
 		if err != nil {
 			return nil, err
 		}
-		locker, err := etcd3locker.NewWithPrefix(client, "s5-tus-locks")
+		locker, err := redislocker.NewWithClient(client, redislocker.WithLogger(loggerToSlog(logger)))
 		if err != nil {
 			return nil, err
 		}
@@ -539,4 +539,7 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallba
 			processHandler(handlr, hook)
 		}
 	}
+}
+func loggerToSlog(logger *core.Logger) *slog.Logger {
+	return slog.New(zapslog.NewHandler(logger.Core(), nil))
 }

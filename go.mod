@@ -26,6 +26,7 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
+	github.com/ipfs/go-cid v0.4.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/multiformats/go-multihash v0.2.3
@@ -35,7 +36,6 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
 	github.com/shopspring/decimal v1.4.0
-	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256
 	github.com/tus/tusd/v2 v2.4.0
 	github.com/wneessen/go-mail v0.5.0
 	go.etcd.io/etcd/client/v3 v3.5.16
@@ -61,7 +61,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Boostport/address v0.11.2 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
-	github.com/alicebob/miniredis/v2 v2.30.4 // indirect
+	github.com/alicebob/miniredis/v2 v2.32.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go v1.54.6 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
@@ -101,7 +101,6 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/boxo v0.21.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
-	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
@@ -203,8 +202,7 @@ require (
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.1.2 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
-	github.com/yuin/gopher-lua v1.1.0 // indirect
-	go.etcd.io/etcd v3.3.27+incompatible // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.lumeweb.com/portal-plugin-billing v0.0.0-20241004013124-f9adb5e6a6dd // indirect
 	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20240628083440-8b3dfcc3e606 // indirect
 	go.mongodb.org/mongo-driver v1.16.1 // indirect
@@ -311,6 +309,5 @@ replace (
 	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be
 	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
-	github.com/tus/tusd-etcd3-locker v0.0.0-20200405122323-74aeca810256 => github.com/LumeWeb/tusd-etcd3-locker v0.0.0-20240510103936-0d66760cf053
-	github.com/tus/tusd/v2 v2.4.0 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20240617010021-713280c42722
+	github.com/tus/tusd/v2 v2.4.0 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20241008001850-1f6974596ff3
 )
