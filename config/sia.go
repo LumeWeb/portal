@@ -9,14 +9,14 @@ var _ Validator = (*SiaConfig)(nil)
 var _ Defaults = (*SiaConfig)(nil)
 
 type SiaConfig struct {
-	Key                string `mapstructure:"key"`
-	URL                string `mapstructure:"url"`
-	PriceHistoryDays   uint64 `mapstructure:"price_history_days"`
-	MaxUploadPrice     string `mapstructure:"max_upload_price"`
-	MaxDownloadPrice   string `mapstructure:"max_download_price"`
-	MaxStoragePrice    string `mapstructure:"max_storage_price"`
-	MaxContractSCPrice string `mapstructure:"max_contract_sc_price"`
-	MaxRPCSCPrice      string `mapstructure:"max_rpc_sc_price"`
+	Key                string `config:"key"`
+	URL                string `config:"url"`
+	PriceHistoryDays   uint64 `config:"price_history_days"`
+	MaxUploadPrice     string `config:"max_upload_price"`
+	MaxDownloadPrice   string `config:"max_download_price"`
+	MaxStoragePrice    string `config:"max_storage_price"`
+	MaxContractSCPrice string `config:"max_contract_sc_price"`
+	MaxRPCSCPrice      string `config:"max_rpc_sc_price"`
 }
 
 func (s SiaConfig) Defaults() map[string]interface{} {

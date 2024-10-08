@@ -11,20 +11,20 @@ var _ Defaults = (*CoreConfig)(nil)
 var _ Validator = (*CoreConfig)(nil)
 
 type CoreConfig struct {
-	DB              DatabaseConfig `mapstructure:"db"`
-	Domain          string         `mapstructure:"domain"`
-	PortalName      string         `mapstructure:"portal_name"`
-	ExternalPort    uint           `mapstructure:"external_port"`
-	Identity        types.Identity `mapstructure:"identity"`
-	Log             LogConfig      `mapstructure:"log"`
-	Port            uint           `mapstructure:"port"`
-	PostUploadLimit uint64         `mapstructure:"post_upload_limit"`
-	Storage         StorageConfig  `mapstructure:"storage"`
-	Mail            MailConfig     `mapstructure:"mail"`
-	Clustered       *ClusterConfig `mapstructure:"clustered"`
-	NodeID          types.UUID     `mapstructure:"node_id" flags:"nosync"`
-	Cron            CronConfig     `mapstructure:"cron"`
-	Account         AccountConfig  `mapstructure:"account"`
+	DB              DatabaseConfig `config:"db"`
+	Domain          string         `config:"domain"`
+	PortalName      string         `config:"portal_name"`
+	ExternalPort    uint           `config:"external_port"`
+	Identity        types.Identity `config:"identity"`
+	Log             LogConfig      `config:"log"`
+	Port            uint           `config:"port"`
+	PostUploadLimit uint64         `config:"post_upload_limit"`
+	Storage         StorageConfig  `config:"storage"`
+	Mail            MailConfig     `config:"mail"`
+	Clustered       *ClusterConfig `config:"clustered"`
+	NodeID          types.UUID     `config:"node_id"`
+	Cron            CronConfig     `config:"cron"`
+	Account         AccountConfig  `config:"account"`
 }
 
 func (c CoreConfig) Validate() error {

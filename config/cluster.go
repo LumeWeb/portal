@@ -10,9 +10,9 @@ import (
 var _ Validator = (*ClusterConfig)(nil)
 
 type ClusterConfig struct {
-	Enabled bool         `mapstructure:"enabled"`
-	Redis   *RedisConfig `mapstructure:"redis"`
-	Etcd    *EtcdConfig  `mapstructure:"etcd"`
+	Enabled bool         `config:"enabled"`
+	Redis   *RedisConfig `config:"redis"`
+	Etcd    *EtcdConfig  `config:"etcd"`
 }
 
 func (c ClusterConfig) Validate() error {

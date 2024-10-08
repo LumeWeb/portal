@@ -8,15 +8,15 @@ var _ Defaults = (*DatabaseConfig)(nil)
 var _ Validator = (*DatabaseConfig)(nil)
 
 type DatabaseConfig struct {
-	Type     string       `mapstructure:"type"`
-	File     string       `mapstructure:"file"`
-	Charset  string       `mapstructure:"charset"`
-	Host     string       `mapstructure:"host"`
-	Name     string       `mapstructure:"name"`
-	Password string       `mapstructure:"password"`
-	Port     int          `mapstructure:"port"`
-	Username string       `mapstructure:"username"`
-	Cache    *CacheConfig `mapstructure:"cache"`
+	Type     string       `config:"type"`
+	File     string       `config:"file"`
+	Charset  string       `config:"charset"`
+	Host     string       `config:"host"`
+	Name     string       `config:"name"`
+	Password string       `config:"password"`
+	Port     int          `config:"port"`
+	Username string       `config:"username"`
+	Cache    *CacheConfig `config:"cache"`
 }
 
 func (d DatabaseConfig) CacheEnabled() bool {

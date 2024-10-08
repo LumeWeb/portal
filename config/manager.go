@@ -15,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -22,7 +23,7 @@ import (
 // Constants
 const (
 	CLUSTER_CONFIG_KEY = "config"
-	FLAG_NOSYNC        = "nosync"
+	FLAG_SYNC          = "sync"
 	CONFIG_EXTENSION   = ".yaml"
 
 	CoreConfigFile    = "core" + CONFIG_EXTENSION
@@ -35,6 +36,8 @@ const (
 	protoSectionSpecifier   = "plugin.%s.protocol"
 	apiSectionSpecifier     = "plugin.%s.api"
 	serviceSectionSpecifier = "plugin.%s.service.%s"
+
+	mapStructureTag = "config"
 )
 
 var (
@@ -54,11 +57,11 @@ const (
 	sectionKindProtocol
 )
 
-type fieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
+type FieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
 
 type Config struct {
-	Core   CoreConfig              `mapstructure:"core"`
-	Plugin map[string]PluginEntity `mapstructure:"plugin"`
+	Core   CoreConfig              `config:"core"`
+	Plugin map[string]PluginEntity `config:"plugin"`
 }
 
 type ManagerDefault struct {
@@ -71,6 +74,11 @@ type ManagerDefault struct {
 	changeCallbacks []ConfigChangeCallback
 	logger          *zap.Logger
 	configFile      string
+	updateChan      chan ConfigUpdate
+}
+type ConfigUpdate struct {
+	Key   string
+	Value any
 }
 
 var _ Manager = (*ManagerDefault)(nil)
@@ -84,6 +92,8 @@ func NewManager() (*ManagerDefault, error) {
 		lock:            sync.RWMutex{},
 		flags:           make(map[string][]string),
 		changedSections: make([]string, 0),
+		changeCallbacks: make([]ConfigChangeCallback, 0),
+		updateChan:      make(chan ConfigUpdate, 100),
 	}, nil
 }
 
@@ -129,11 +139,123 @@ func (m *ManagerDefault) Init() error {
 		}
 	}
 
+	err = m.maybeConfigureCluster()
+	if err != nil {
+		return err
+	}
+
 	_, err = m.configureSection("core", &m.root.Core)
 	if err != nil {
 		return err
 	}
+
+	err = m.initLiveUpdates()
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (m *ManagerDefault) initLiveUpdates() error {
+	go m.handleConfigChanges()
+
+	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+		return m.initClusterWatcher()
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) initClusterWatcher() error {
+	client, err := m.root.Core.Clustered.Etcd.Client()
+	if err != nil {
+		return err
+	}
+
+	watchKey := "/" + CLUSTER_CONFIG_KEY + "/"
+	watchChan := client.Watch(context.Background(), watchKey, clientv3.WithPrefix())
+
+	go func() {
+		for watchResp := range watchChan {
+			for _, event := range watchResp.Events {
+				key := strings.TrimPrefix(string(event.Kv.Key), watchKey)
+				key = strings.ReplaceAll(key, "/", ".")
+				m.updateChan <- ConfigUpdate{Key: key, Value: event.Kv.Value}
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (m *ManagerDefault) handleConfigChanges() {
+	for update := range m.updateChan {
+		if m.shouldSyncKey(update.Key) {
+			m.lock.Lock()
+			err := m.config.Set(update.Key, update.Value)
+			if err != nil {
+				m.logger.Error("Failed to update local config", zap.Error(err))
+				continue
+			}
+
+			if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+				err = m.saveClusterSpace(update.Key, true)
+				if err != nil {
+					m.logger.Error("Failed to save to cluster space", zap.Error(err))
+				}
+			}
+
+			err = m.reconfigureSection(update.Key)
+			if err != nil {
+				return
+			}
+
+			m.lock.Unlock()
+			m.notifyConfigChangeCallbacks(update.Key, update.Value)
+		}
+	}
+}
+
+func (m *ManagerDefault) reconfigureSection(key string) error {
+	switch {
+	case strings.HasPrefix(key, "core"):
+		_, err := m.configureSection("core", &m.root.Core)
+		if err != nil {
+			return err
+		}
+	case strings.HasPrefix(key, "plugin"):
+		parts := strings.Split(key, ".")
+		if len(parts) > 1 {
+			pluginName := parts[1]
+			if len(parts) > 2 {
+				switch parts[2] {
+				case "protocol":
+					_, err := m.configureSection(GetProtoSectionSpecifier(pluginName), m.root.Plugin[pluginName].Protocol)
+					if err != nil {
+						return err
+					}
+				case "api":
+					_, err := m.configureSection(GetAPISectionSpecifier(pluginName), m.root.Plugin[pluginName].API)
+					if err != nil {
+						return err
+					}
+				case "service":
+					serviceName := parts[3]
+					_, err := m.configureSection(GetServiceSectionSpecifier(pluginName, serviceName), m.root.Plugin[pluginName].Service[serviceName])
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m *ManagerDefault) shouldSyncKey(key string) bool {
+	return !lo.Contains(m.flags[key], FLAG_SYNC)
 }
 
 func (m *ManagerDefault) RegisterConfigChangeCallback(callback ConfigChangeCallback) {
@@ -155,7 +277,7 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 		return err
 	}
 
-	prefix := getProtoSectionSpecifier(pluginName)
+	prefix := GetProtoSectionSpecifier(pluginName)
 	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
@@ -180,7 +302,7 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 		return err
 	}
 
-	prefix := getAPISectionSpecifier(pluginName)
+	prefix := GetAPISectionSpecifier(pluginName)
 	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
@@ -208,7 +330,7 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 		return err
 	}
 
-	prefix := getServiceSectionSpecifier(pluginName, serviceName)
+	prefix := GetServiceSectionSpecifier(pluginName, serviceName)
 	section, err := m.configureSection(prefix, cfg)
 	if err != nil {
 		return err
@@ -320,13 +442,13 @@ func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectio
 	switch kind {
 	case sectionKindAPI:
 		configPath = path.Join(basePath, PluginsDir, pluginName, APIDir, SectionConfigFile)
-		target = getAPISectionSpecifier(pluginName)
+		target = GetAPISectionSpecifier(pluginName)
 	case sectionKindService:
 		configPath = path.Join(basePath, PluginsDir, pluginName, ServiceDir, name+CONFIG_EXTENSION)
-		target = getServiceSectionSpecifier(pluginName, name)
+		target = GetServiceSectionSpecifier(pluginName, name)
 	case sectionKindProtocol:
 		configPath = path.Join(basePath, PluginsDir, pluginName, ProtoDir, SectionConfigFile)
-		target = getProtoSectionSpecifier(pluginName)
+		target = GetProtoSectionSpecifier(pluginName)
 
 	}
 
@@ -360,7 +482,7 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 	hooks := append([]mapstructure.DecodeHookFunc{}, mapstructure.StringToTimeDurationHookFunc())
 
 	err = m.config.UnmarshalWithConf(name, cfg, koanf.UnmarshalConf{
-		Tag: "mapstructure",
+		Tag: mapStructureTag,
 		DecoderConfig: &mapstructure.DecoderConfig{
 			DecodeHook:           mapstructure.ComposeDecodeHookFunc(hooks...),
 			Metadata:             nil,
@@ -395,8 +517,8 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 
 	return cfg, nil
 }
-func (m *ManagerDefault) setDefaultsForObject(obj interface{}, prefix string) error {
-	return m.processObject(obj, prefix, m.defaultProcessor)
+func (m *ManagerDefault) setDefaultsForObject(obj any, prefix string) error {
+	return m.FieldProcessor(obj, prefix, m.defaultProcessor)
 }
 
 func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
@@ -419,7 +541,7 @@ func (m *ManagerDefault) applyDefaults(setter Defaults, prefix string) error {
 	return nil
 }
 
-func (m *ManagerDefault) setDefault(key string, value interface{}) (bool, error) {
+func (m *ManagerDefault) setDefault(key string, value any) (bool, error) {
 	if !m.config.Exists(key) || (m.config.Get(key) == nil && value != nil) {
 		err := m.config.Set(key, value)
 		if err != nil {
@@ -431,15 +553,15 @@ func (m *ManagerDefault) setDefault(key string, value interface{}) (bool, error)
 	return false, nil
 }
 
-func (m *ManagerDefault) validateObject(obj interface{}) error {
-	return m.processObject(obj, "", m.validateProcessor)
+func (m *ManagerDefault) validateObject(obj any) error {
+	return m.FieldProcessor(obj, "", m.validateProcessor)
 }
 
-func (m *ManagerDefault) processFlags(obj interface{}, prefix string) error {
-	return m.processObject(obj, prefix, m.flagsProcessor)
+func (m *ManagerDefault) processFlags(obj any, prefix string) error {
+	return m.FieldProcessor(obj, prefix, m.flagsProcessor)
 }
 
-func (m *ManagerDefault) processObject(obj interface{}, prefix string, processors ...fieldProcessor) error {
+func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...FieldProcessor) error {
 	objValue := reflect.ValueOf(obj)
 	objType := reflect.TypeOf(obj)
 
@@ -470,7 +592,7 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 			continue
 		}
 
-		mapstructureTag := fieldType.Tag.Get("mapstructure")
+		mapstructureTag := fieldType.Tag.Get(mapStructureTag)
 		newPrefix := buildPrefix(prefix, mapstructureTag)
 
 		// Apply all processors to this field
@@ -483,12 +605,12 @@ func (m *ManagerDefault) processObject(obj interface{}, prefix string, processor
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
 		case reflect.Struct:
-			if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
+			if err := m.FieldProcessor(field.Interface(), newPrefix, processors...); err != nil {
 				return err
 			}
 		case reflect.Ptr:
 			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
-				if err := m.processObject(field.Interface(), newPrefix, processors...); err != nil {
+				if err := m.FieldProcessor(field.Interface(), newPrefix, processors...); err != nil {
 					return err
 				}
 			}
@@ -637,20 +759,20 @@ func (m *ManagerDefault) savePluginConfigs() error {
 		api := plugins.Cut(pluginName).Cut("api")
 		protocol := plugins.Cut(pluginName).Cut("protocol")
 
-		if m.hasSectionChanged(getProtoSectionSpecifier(pluginName)) && len(protocol.Keys()) > 0 {
+		if m.hasSectionChanged(GetProtoSectionSpecifier(pluginName)) && len(protocol.Keys()) > 0 {
 			if err := m.saveConfigToFile(protocol, filepath.Join(pluginPath, ProtoDir, SectionConfigFile)); err != nil {
 				return err
 			}
 		}
 
 		for _, svcName := range services.MapKeys("") {
-			if m.hasSectionChanged(getServiceSectionSpecifier(pluginName, svcName)) && len(services.Keys()) > 0 {
+			if m.hasSectionChanged(GetServiceSectionSpecifier(pluginName, svcName)) && len(services.Keys()) > 0 {
 				if err := m.saveConfigToFile(services.Cut(svcName), filepath.Join(pluginPath, ServiceDir, svcName+CONFIG_EXTENSION)); err != nil {
 					return err
 				}
 			}
 		}
-		if m.hasSectionChanged(getAPISectionSpecifier(pluginName)) && len(api.Keys()) > 0 {
+		if m.hasSectionChanged(GetAPISectionSpecifier(pluginName)) && len(api.Keys()) > 0 {
 			if err := m.saveConfigToFile(api, filepath.Join(pluginPath, APIDir, SectionConfigFile)); err != nil {
 				return err
 			}
@@ -684,29 +806,32 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 			return err
 		}
 
-		key := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+		etcdPrefix := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
 
-		ret, err := client.Get(ctx, key, clientv3.WithPrefix())
+		ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
 		if err != nil {
 			return err
 		}
 
-		parser := yaml.Parser()
-
 		for _, kv := range ret.Kvs {
-			configMap, err := parser.Unmarshal(kv.Value)
-			if err != nil {
-				return err
-			}
+			key := strings.TrimPrefix(string(kv.Key), etcdPrefix+"/")
+			key = strings.ReplaceAll(key, "/", ".")
+			fullKey := prefix + "." + key
 
-			subKey := strings.TrimPrefix(string(kv.Key), key+"/")
-			fullKey := prefix + "." + subKey
-
-			if lo.Contains(m.flags[fullKey], FLAG_NOSYNC) {
+			if !m.shouldSyncKey(fullKey) {
 				continue
 			}
 
-			err = m.config.Set(fullKey, configMap)
+			value := string(kv.Value)
+
+			// Attempt to parse the value as needed
+			var parsedValue interface{}
+			if err := m.parseValue(value, &parsedValue); err != nil {
+				m.logger.Warn("Failed to parse value, using as string", zap.String("key", fullKey), zap.Error(err))
+				parsedValue = value
+			}
+
+			err = m.config.Set(fullKey, parsedValue)
 			if err != nil {
 				return err
 			}
@@ -718,6 +843,31 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 	return nil
 }
 
+// parseValue attempts to parse a string value into an appropriate type
+func (m *ManagerDefault) parseValue(value string, result interface{}) error {
+	// Try to parse as int
+	if intValue, err := strconv.Atoi(value); err == nil {
+		*result.(*interface{}) = intValue
+		return nil
+	}
+
+	// Try to parse as float
+	if floatValue, err := strconv.ParseFloat(value, 64); err == nil {
+		*result.(*interface{}) = floatValue
+		return nil
+	}
+
+	// Try to parse as bool
+	if boolValue, err := strconv.ParseBool(value); err == nil {
+		*result.(*interface{}) = boolValue
+		return nil
+	}
+
+	// If all else fails, treat it as a string
+	*result.(*interface{}) = value
+	return nil
+}
+
 func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
 		ctx := context.Background()
@@ -726,10 +876,10 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 			return err
 		}
 
-		etcdKey := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+		etcdPrefix := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
 
 		if !overwrite {
-			ret, err := client.Get(ctx, etcdKey, clientv3.WithPrefix())
+			ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
 			if err != nil {
 				return err
 			}
@@ -740,22 +890,16 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 		}
 
 		subConfig := m.config.Cut(prefix)
-		parser := yaml.Parser()
 
 		for k, v := range subConfig.All() {
-			if lo.Contains(m.flags[prefix+"."+k], FLAG_NOSYNC) {
+			if !m.shouldSyncKey(prefix + "." + k) {
 				continue
 			}
 
-			key := etcdKey + "/" + k
-			key = strings.ReplaceAll(key, ".", "/")
+			key := etcdPrefix + "/" + strings.ReplaceAll(k, ".", "/")
+			value := fmt.Sprintf("%v", v)
 
-			data, err := parser.Marshal(map[string]interface{}{k: v})
-			if err != nil {
-				return err
-			}
-
-			_, err = client.Put(ctx, key, string(data))
+			_, err = client.Put(ctx, key, value)
 			if err != nil {
 				return err
 			}
@@ -789,6 +933,48 @@ func (m *ManagerDefault) ConfigFile() string {
 
 func (m *ManagerDefault) ConfigDir() string {
 	return path.Dir(m.ConfigFile())
+}
+
+func (m *ManagerDefault) Update(key string, value any) error {
+	var exists bool
+
+	err := m.FieldProcessor(m.root, key, m.fieldExistsProcessorFactory(key, func() {
+		exists = true
+	}))
+
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("key %s does not exist", key)
+	}
+
+	m.updateChan <- ConfigUpdate{Key: key, Value: value}
+
+	return nil
+}
+
+func (m *ManagerDefault) Exists(key string) bool {
+	return m.config.Exists(key)
+}
+
+func (m *ManagerDefault) Get(key string) any {
+	return m.config.Get(key)
+}
+
+func (m *ManagerDefault) IsEditable(key string) bool {
+	return m.shouldSyncKey(key)
+}
+
+func (m *ManagerDefault) fieldExistsProcessorFactory(key string, cb func()) FieldProcessor {
+	return func(field reflect.StructField, value reflect.Value, prefix string) error {
+		if field.Name == key {
+			cb()
+			return nil
+		}
+		return nil
+	}
 }
 
 func findConfigFile(dirCheck bool, ignoreExist bool) string {
@@ -879,14 +1065,18 @@ func buildPrefix(prefix, mapstructureTag string) string {
 	return prefix
 }
 
-func getProtoSectionSpecifier(pluginName string) string {
+func GetCoreSectionSpecifier(key string) string {
+	return fmt.Sprintf("core.%s", key)
+}
+
+func GetProtoSectionSpecifier(pluginName string) string {
 	return fmt.Sprintf(protoSectionSpecifier, pluginName)
 }
 
-func getAPISectionSpecifier(pluginName string) string {
+func GetAPISectionSpecifier(pluginName string) string {
 	return fmt.Sprintf(apiSectionSpecifier, pluginName)
 }
 
-func getServiceSectionSpecifier(pluginName string, serviceName string) string {
+func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
 }

@@ -18,8 +18,8 @@ const (
 )
 
 type CacheConfig struct {
-	Mode    CacheMode   `mapstructure:"mode"`
-	Options interface{} `mapstructure:"options"`
+	Mode    CacheMode   `config:"mode"`
+	Options interface{} `config:"options"`
 }
 
 func (c CacheConfig) Defaults() map[string]any {

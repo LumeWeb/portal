@@ -89,6 +89,15 @@ func GetProtocol(id string) Protocol {
 	return protocol
 }
 
+func ProtocolExists(id string) bool {
+	protocolsMu.RLock()
+	defer protocolsMu.RUnlock()
+
+	_, ok := protocols[id]
+
+	return ok
+}
+
 func GetPlugin(name string) PluginInfo {
 	pluginsMu.RLock()
 	defer pluginsMu.RUnlock()

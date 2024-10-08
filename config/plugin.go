@@ -1,9 +1,9 @@
 package config
 
 type PluginEntity struct {
-	Protocol ProtocolConfig           `mapstructure:"protocol"`
-	API      APIConfig                `mapstructure:"api"`
-	Service  map[string]ServiceConfig `mapstructure:"service"`
+	Protocol ProtocolConfig           `config:"protocol"`
+	API      APIConfig                `config:"api"`
+	Service  map[string]ServiceConfig `config:"service"`
 }
 
 type ProtocolConfig interface {

@@ -55,6 +55,15 @@ func GetAPI(id string) API {
 	return api
 }
 
+func APIExists(id string) bool {
+	apisMu.RLock()
+	defer apisMu.RUnlock()
+
+	_, ok := apis[id]
+
+	return ok
+}
+
 func GetAPIs() map[string]API {
 	apisMu.RLock()
 	defer apisMu.RUnlock()
