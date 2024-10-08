@@ -30,7 +30,7 @@ type ConfigServiceDefault struct {
 }
 
 type scope struct {
-	category event.ConfigPropertyUpdateCategory
+	category core.ConfigPropertyUpdateCategory
 	entity   string
 }
 
@@ -93,24 +93,24 @@ func (cs *ConfigServiceDefault) handleConfigChange(key string, value any) error 
 	}
 
 	switch category {
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_CORE:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_CORE:
 		err := cs.config.FieldProcessor(cs.config.Config(), "", cs.configUpdatesProcessor)
 		if err != nil {
 			return err
 		}
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_SERVICE:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_SERVICE:
 		err := cs.config.FieldProcessor(cs.config.GetService(entity), config.GetServiceSectionSpecifier(entity, subEntity), cs.configUpdatesProcessor)
 		if err != nil {
 			return err
 		}
 
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_PROTOCOL:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_PROTOCOL:
 		err := cs.config.FieldProcessor(cs.config.GetProtocol(entity), config.GetProtoSectionSpecifier(entity), cs.configUpdatesProcessor)
 		if err != nil {
 			return err
 		}
 
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_API:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_API:
 		err := cs.config.FieldProcessor(cs.config.GetAPI(entity), config.GetAPISectionSpecifier(entity), cs.configUpdatesProcessor)
 		if err != nil {
 			return err
@@ -127,7 +127,7 @@ func (m *ConfigServiceDefault) configUpdatesProcessor(_ reflect.StructField, val
 	subEntity := _scope.SubEntity()
 
 	switch category {
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_SERVICE:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_SERVICE:
 		if core.ServiceExists(m.ctx, subEntity) {
 			svc := core.GetService[core.Service](m.ctx, subEntity)
 			if reconfig, ok := svc.(config.Reconfigurable); ok {
@@ -136,7 +136,7 @@ func (m *ConfigServiceDefault) configUpdatesProcessor(_ reflect.StructField, val
 				}
 			}
 		}
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_PROTOCOL:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_PROTOCOL:
 		if core.ProtocolExists(subEntity) {
 			proto := core.GetProtocol(subEntity)
 			if reconfig, ok := proto.(config.Reconfigurable); ok {
@@ -146,7 +146,7 @@ func (m *ConfigServiceDefault) configUpdatesProcessor(_ reflect.StructField, val
 			}
 		}
 
-	case event.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_API:
+	case core.CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_API:
 		if core.APIExists(subEntity) {
 			api := core.GetAPI(subEntity)
 			if reconfig, ok := api.(config.Reconfigurable); ok {

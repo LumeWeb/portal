@@ -4,15 +4,6 @@ import (
 	"go.lumeweb.com/portal/core"
 )
 
-type ConfigPropertyUpdateCategory string
-
-const (
-	CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_CORE     ConfigPropertyUpdateCategory = "core"
-	CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_PROTOCOL ConfigPropertyUpdateCategory = "protocol"
-	CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_API      ConfigPropertyUpdateCategory = "api"
-	CONFIG_PROPERTY_UPDATE_EVENT_CATEGORY_SERVICE  ConfigPropertyUpdateCategory = "service"
-)
-
 const (
 	EVENT_CONFIG_PROPERTY_UPDATE = "config.property.update"
 )
@@ -25,7 +16,7 @@ type ConfigPropertyUpdateEvent struct {
 	core.Event
 }
 
-func (e *ConfigPropertyUpdateEvent) SetCategory(category ConfigPropertyUpdateCategory) {
+func (e *ConfigPropertyUpdateEvent) SetCategory(category core.ConfigPropertyUpdateCategory) {
 	e.Set("category", category)
 }
 
@@ -45,8 +36,8 @@ func (e ConfigPropertyUpdateEvent) SubEntity() string {
 	return e.Get("sub_entity").(string)
 }
 
-func (e ConfigPropertyUpdateEvent) Category() ConfigPropertyUpdateCategory {
-	return e.Get("category").(ConfigPropertyUpdateCategory)
+func (e ConfigPropertyUpdateEvent) Category() core.ConfigPropertyUpdateCategory {
+	return e.Get("category").(core.ConfigPropertyUpdateCategory)
 }
 
 func (e *ConfigPropertyUpdateEvent) SetProperty(key string, value interface{}) {
@@ -62,7 +53,7 @@ func (e ConfigPropertyUpdateEvent) PropertyValue() interface{} {
 	return e.Get("property_value")
 }
 
-func FireConfigPropertyUpdateEvent(ctx core.Context, key string, value interface{}, category ConfigPropertyUpdateCategory, entity string, subEntity string) error {
+func FireConfigPropertyUpdateEvent(ctx core.Context, key string, value interface{}, category core.ConfigPropertyUpdateCategory, entity string, subEntity string) error {
 	return Fire[*ConfigPropertyUpdateEvent](ctx, EVENT_CONFIG_PROPERTY_UPDATE, func(evt *ConfigPropertyUpdateEvent) error {
 		evt.SetProperty(key, value)
 		evt.SetCategory(category)
