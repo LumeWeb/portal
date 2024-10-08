@@ -25,6 +25,7 @@ type Mailer struct {
 	ctx              core.Context
 	client           *mail.Client
 	templateRegistry *mailer.TemplateRegistry
+	connDialed       bool
 }
 
 func (m *Mailer) ID() string {
@@ -50,7 +51,13 @@ func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateDa
 		return err
 	}
 
-	return m.client.DialAndSend(msg)
+	err = m.client.DialAndSend(msg)
+	if err != nil {
+		return err
+	}
+
+	m.connDialed = true
+	return nil
 }
 
 func (m *Mailer) TemplateRegister(name string, template core.MailerTemplate) error {
@@ -99,6 +106,9 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []cor
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
+			if !m.connDialed {
+				return nil
+			}
 			err := m.client.Close()
 			if err != nil && err != mail.ErrNoActiveConnection {
 				return err
