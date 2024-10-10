@@ -614,6 +614,14 @@ func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...Fi
 					return err
 				}
 			}
+		case reflect.Slice:
+			if field.Len() > 0 {
+				for i := 0; i < field.Len(); i++ {
+					if err := m.FieldProcessor(field.Index(i).Interface(), newPrefix, processors...); err != nil {
+						return err
+					}
+				}
+			}
 		}
 	}
 
