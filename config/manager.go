@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+	yamlCore "gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"path"
@@ -57,12 +58,7 @@ const (
 	sectionKindProtocol
 )
 
-type FieldProcessor func(field *reflect.StructField, value reflect.Value, prefix string) error
-
-type Config struct {
-	Core   CoreConfig              `config:"core"`
-	Plugin map[string]PluginEntity `config:"plugin"`
-}
+type FieldProcessor func(parent *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error
 
 type ManagerDefault struct {
 	config          *koanf.Koanf
@@ -150,6 +146,11 @@ func (m *ManagerDefault) Init() error {
 	}
 
 	err = m.initLiveUpdates()
+	if err != nil {
+		return err
+	}
+
+	err = m.saveCoreConfig()
 	if err != nil {
 		return err
 	}
@@ -254,6 +255,49 @@ func (m *ManagerDefault) reconfigureSection(key string) error {
 	return nil
 }
 
+func (m *ManagerDefault) pruneConfig(prefix string, cfg Defaults) error {
+	validKeys := make(map[string]bool)
+	err := m.FieldProcessor(cfg, prefix, func(_ *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error {
+		if field.Type == nil {
+			return nil
+		}
+
+		if field.Type.Kind() == reflect.Struct {
+			if _, ok := value.Interface().(yamlCore.Marshaler); !ok {
+				return nil
+			}
+		}
+
+		if field.Type.Kind() == reflect.Map || field.Type.Kind() == reflect.Slice {
+			return nil
+		}
+
+		tag := field.Tag.Get(mapStructureTag)
+		if tag != "" {
+			prefix = buildPrefix(prefix, field.Tag)
+			validKeys[prefix] = true
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error processing fields: %w", err)
+	}
+
+	// Only get keys under the specified prefix
+	keysToCheck := m.config.Cut(prefix).Keys()
+
+	for _, key := range keysToCheck {
+		fullKey := prefix + "." + key
+		if !validKeys[fullKey] {
+			m.config.Delete(fullKey)
+			m.changes = true
+			m.changedSections = append(m.changedSections, fullKey)
+			m.logger.Debug("Pruned invalid config key", zap.String("key", fullKey))
+		}
+	}
+
+	return nil
+}
 func (m *ManagerDefault) shouldSyncKey(key string) bool {
 	return !lo.Contains(m.flags[key], FLAG_SYNC)
 }
@@ -474,10 +518,6 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 	if err != nil {
 		return nil, err
 	}
-	err = m.maybeSave()
-	if err != nil {
-		return nil, err
-	}
 
 	hooks := append([]mapstructure.DecodeHookFunc{}, mapstructure.StringToTimeDurationHookFunc())
 
@@ -506,6 +546,16 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 	}
 
 	err = m.loadClusterSpace(name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.pruneConfig(name, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = m.maybeSave()
 	if err != nil {
 		return nil, err
 	}
@@ -577,34 +627,54 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		objType = objType.Elem()
 	}
 
-	// Process the object itself
-	for _, processor := range processors {
-		if err := processor(parentField, objValue, prefix); err != nil {
-			return err
+	canYaml := false
+	canDefault := false
+	canValidate := false
+	isStruct := objType.Kind() == reflect.Struct
+	if isStruct {
+		if _, ok := obj.(yamlCore.Marshaler); ok {
+			canYaml = true
+		}
+
+		if _, ok := obj.(Defaults); ok {
+			canDefault = true
+		}
+
+		if _, ok := obj.(Validator); ok {
+			canValidate = true
 		}
 	}
 
-	if objValue.Kind() != reflect.Struct {
-		return nil // If it's not a struct, we're done
+	if !isStruct || canYaml || canDefault || canValidate {
+		// Process the field
+		for _, processor := range processors {
+			if err := processor(parentField, createStructField(objType), objValue, prefix); err != nil {
+				return err
+			}
+		}
+
+		if !isStruct {
+			return nil
+		}
+
 	}
 
 	for i := 0; i < objValue.NumField(); i++ {
 		field := objValue.Field(i)
 		fieldType := objType.Field(i)
 
-		if !field.CanInterface() {
+		if !field.CanInterface() || !fieldType.IsExported() {
 			continue
 		}
 
-		mapstructureTag := fieldType.Tag.Get(mapStructureTag)
-		newPrefix := buildPrefix(prefix, mapstructureTag)
-
 		// Apply all processors to this field
 		for _, processor := range processors {
-			if err := processor(parentField, field, newPrefix); err != nil {
+			if err := processor(parentField, fieldType, field, prefix); err != nil {
 				return err
 			}
 		}
+
+		newPrefix := buildPrefix(prefix, fieldType.Tag)
 
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
@@ -627,13 +697,21 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 					}
 				}
 			}
+
+		case reflect.Map:
+			for _, key := range field.MapKeys() {
+				fieldPrefix := fmt.Sprintf("%s.%s", newPrefix, key.String())
+				if err := m.fieldProcessorRecursive(field.MapIndex(key).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func (m *ManagerDefault) validateProcessor(_ *reflect.StructField, value reflect.Value, _ string) error {
+func (m *ManagerDefault) validateProcessor(_ *reflect.StructField, _ reflect.StructField, value reflect.Value, _ string) error {
 	// Check if the value is a nil pointer
 	if value.Kind() == reflect.Ptr && value.IsNil() {
 		return nil // Skip validation for nil pointers
@@ -654,7 +732,7 @@ func (m *ManagerDefault) validateProcessor(_ *reflect.StructField, value reflect
 	return nil
 }
 
-func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, value reflect.Value, prefix string) error {
+func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error {
 	// Check if the value is a nil pointer
 	if value.Kind() == reflect.Ptr && value.IsNil() {
 		return nil // Skip defaults for nil pointers
@@ -666,7 +744,7 @@ func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, value reflect.
 	}
 
 	if setter, ok := value.Interface().(Defaults); ok {
-		if err := m.applyDefaults(setter, prefix); err != nil {
+		if err := m.applyDefaults(setter, buildPrefix(prefix, field.Tag)); err != nil {
 			return err
 		}
 	}
@@ -674,10 +752,7 @@ func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, value reflect.
 	return nil
 }
 
-func (m *ManagerDefault) flagsProcessor(field *reflect.StructField, _ reflect.Value, prefix string) error {
-	if field == nil {
-		return nil
-	}
+func (m *ManagerDefault) flagsProcessor(_ *reflect.StructField, field reflect.StructField, _ reflect.Value, prefix string) error {
 	if flags, ok := field.Tag.Lookup("flags"); ok {
 		if flags != "" {
 			m.flags[prefix] = strings.Split(flags, ",")
@@ -979,15 +1054,16 @@ func (m *ManagerDefault) Get(key string) any {
 	return m.config.Get(key)
 }
 
+func (m *ManagerDefault) All() map[string]any {
+	return m.config.All()
+}
+
 func (m *ManagerDefault) IsEditable(key string) bool {
 	return m.shouldSyncKey(key)
 }
 
 func (m *ManagerDefault) fieldExistsProcessorFactory(key string, cb func()) FieldProcessor {
-	return func(field *reflect.StructField, value reflect.Value, prefix string) error {
-		if field == nil {
-			return nil
-		}
+	return func(_ *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error {
 		if field.Name == key {
 			cb()
 			return nil
@@ -1074,12 +1150,14 @@ func findHighestWritableDir(path string) (string, error) {
 	}
 }
 
-func buildPrefix(prefix, mapstructureTag string) string {
-	if mapstructureTag != "" && mapstructureTag != "-" {
+func buildPrefix(prefix string, tag reflect.StructTag) string {
+	configTag := tag.Get(mapStructureTag)
+
+	if configTag != "" && configTag != "-" {
 		if prefix != "" {
-			return prefix + "." + mapstructureTag
+			return prefix + "." + configTag
 		}
-		return mapstructureTag
+		return configTag
 	}
 	return prefix
 }
@@ -1098,4 +1176,36 @@ func GetAPISectionSpecifier(pluginName string) string {
 
 func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
+}
+
+func createStructField(t reflect.Type) reflect.StructField {
+	// Create a new StructField
+	f := reflect.StructField{}
+
+	// Set the Type
+	f.Type = t
+
+	// Set the Name (assuming the struct type name is the field name)
+	f.Name = t.Name()
+
+	// Anonymous is false as this is the root
+	f.Anonymous = false
+
+	// PkgPath is empty for exported fields
+	if t.Name() != "" && t.Name()[0] >= 'A' && t.Name()[0] <= 'Z' {
+		f.PkgPath = ""
+	} else {
+		f.PkgPath = t.PkgPath()
+	}
+
+	// Tag is empty as we don't have tag information at this level
+	f.Tag = ""
+
+	// Offset is 0 as this is the root
+	f.Offset = 0
+
+	// Index is empty as this is the root
+	f.Index = []int{}
+
+	return f
 }

@@ -37,5 +37,11 @@ type Manager interface {
 	Update(key string, value any) error
 	Exists(key string) bool
 	Get(key string) any
+	All() map[string]any
 	IsEditable(key string) bool
+}
+
+type Config struct {
+	Core   CoreConfig              `config:"core"`
+	Plugin map[string]PluginEntity `config:"plugin"`
 }
