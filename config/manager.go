@@ -562,6 +562,10 @@ func (m *ManagerDefault) processFlags(obj any, prefix string) error {
 }
 
 func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...FieldProcessor) error {
+	return m.fieldProcessorRecursive(obj, prefix, nil, processors...)
+}
+
+func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentField *reflect.StructField, processors ...FieldProcessor) error {
 	objValue := reflect.ValueOf(obj)
 	objType := reflect.TypeOf(obj)
 
@@ -575,7 +579,7 @@ func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...Fi
 
 	// Process the object itself
 	for _, processor := range processors {
-		if err := processor(reflect.StructField{}, objValue, prefix); err != nil {
+		if err := processor(*parentField, objValue, prefix); err != nil {
 			return err
 		}
 	}
@@ -605,19 +609,20 @@ func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...Fi
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
 		case reflect.Struct:
-			if err := m.FieldProcessor(field.Interface(), newPrefix, processors...); err != nil {
+			if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, processors...); err != nil {
 				return err
 			}
 		case reflect.Ptr:
 			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
-				if err := m.FieldProcessor(field.Interface(), newPrefix, processors...); err != nil {
+				if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, processors...); err != nil {
 					return err
 				}
 			}
 		case reflect.Slice:
 			if field.Len() > 0 {
 				for i := 0; i < field.Len(); i++ {
-					if err := m.FieldProcessor(field.Index(i).Interface(), newPrefix, processors...); err != nil {
+					fieldPrefix := fmt.Sprintf("%s.%d", newPrefix, i)
+					if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
 						return err
 					}
 				}
