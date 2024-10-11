@@ -120,7 +120,7 @@ func (cs *ConfigServiceDefault) handleConfigChange(key string, value any) error 
 	return event.FireConfigPropertyUpdateEvent(cs.ctx, property, value, category, entity, subEntity)
 }
 
-func (m *ConfigServiceDefault) configUpdatesProcessor(_ *reflect.StructField, value reflect.Value, prefix string) error {
+func (m *ConfigServiceDefault) configUpdatesProcessor(_ *reflect.StructField, _ reflect.StructField, value reflect.Value, prefix string) error {
 	_scope := config.NewScopeFromKey(prefix)
 
 	category := _scope.Category()
