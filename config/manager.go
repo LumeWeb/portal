@@ -57,7 +57,7 @@ const (
 	sectionKindProtocol
 )
 
-type FieldProcessor func(field reflect.StructField, value reflect.Value, prefix string) error
+type FieldProcessor func(field *reflect.StructField, value reflect.Value, prefix string) error
 
 type Config struct {
 	Core   CoreConfig              `config:"core"`
@@ -579,7 +579,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 
 	// Process the object itself
 	for _, processor := range processors {
-		if err := processor(*parentField, objValue, prefix); err != nil {
+		if err := processor(parentField, objValue, prefix); err != nil {
 			return err
 		}
 	}
@@ -601,7 +601,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 
 		// Apply all processors to this field
 		for _, processor := range processors {
-			if err := processor(fieldType, field, newPrefix); err != nil {
+			if err := processor(parentField, field, newPrefix); err != nil {
 				return err
 			}
 		}
@@ -633,7 +633,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 	return nil
 }
 
-func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.Value, _ string) error {
+func (m *ManagerDefault) validateProcessor(_ *reflect.StructField, value reflect.Value, _ string) error {
 	// Check if the value is a nil pointer
 	if value.Kind() == reflect.Ptr && value.IsNil() {
 		return nil // Skip validation for nil pointers
@@ -654,7 +654,7 @@ func (m *ManagerDefault) validateProcessor(_ reflect.StructField, value reflect.
 	return nil
 }
 
-func (m *ManagerDefault) defaultProcessor(_ reflect.StructField, value reflect.Value, prefix string) error {
+func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, value reflect.Value, prefix string) error {
 	// Check if the value is a nil pointer
 	if value.Kind() == reflect.Ptr && value.IsNil() {
 		return nil // Skip defaults for nil pointers
@@ -674,7 +674,10 @@ func (m *ManagerDefault) defaultProcessor(_ reflect.StructField, value reflect.V
 	return nil
 }
 
-func (m *ManagerDefault) flagsProcessor(field reflect.StructField, _ reflect.Value, prefix string) error {
+func (m *ManagerDefault) flagsProcessor(field *reflect.StructField, _ reflect.Value, prefix string) error {
+	if field == nil {
+		return nil
+	}
 	if flags, ok := field.Tag.Lookup("flags"); ok {
 		if flags != "" {
 			m.flags[prefix] = strings.Split(flags, ",")
@@ -981,7 +984,10 @@ func (m *ManagerDefault) IsEditable(key string) bool {
 }
 
 func (m *ManagerDefault) fieldExistsProcessorFactory(key string, cb func()) FieldProcessor {
-	return func(field reflect.StructField, value reflect.Value, prefix string) error {
+	return func(field *reflect.StructField, value reflect.Value, prefix string) error {
+		if field == nil {
+			return nil
+		}
 		if field.Name == key {
 			cb()
 			return nil
