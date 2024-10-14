@@ -8,9 +8,9 @@ require (
 	github.com/AfterShip/email-verifier v1.4.1
 	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/adjust/rmq/v5 v5.2.0
-	github.com/aws/aws-sdk-go-v2 v1.32.1
+	github.com/aws/aws-sdk-go-v2 v1.32.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.39
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.37
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.41
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.1
 	github.com/casbin/casbin/v2 v2.100.0
 	github.com/docker/go-units v0.5.0
@@ -26,7 +26,6 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
-	github.com/ipfs/go-cid v0.4.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/multiformats/go-multihash v0.2.3
@@ -101,6 +100,7 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/boxo v0.21.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
+	github.com/ipfs/go-cid v0.4.1 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-ds-leveldb v0.5.0 // indirect
@@ -229,18 +229,18 @@ require (
 	// indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.14 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.20 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.20 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.21 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.21 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.20 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.23.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.27.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.31.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.32.2 // indirect
 	github.com/aws/smithy-go v1.22.0 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/casbin/govaluate v1.2.0 // indirect
