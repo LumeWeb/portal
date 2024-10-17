@@ -627,36 +627,8 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		objType = objType.Elem()
 	}
 
-	canYaml := false
-	canDefault := false
-	canValidate := false
-	isStruct := objType.Kind() == reflect.Struct
-	if isStruct {
-		if _, ok := obj.(yamlCore.Marshaler); ok {
-			canYaml = true
-		}
-
-		if _, ok := obj.(Defaults); ok {
-			canDefault = true
-		}
-
-		if _, ok := obj.(Validator); ok {
-			canValidate = true
-		}
-	}
-
-	if !isStruct || canYaml || canDefault || canValidate {
-		// Process the field
-		for _, processor := range processors {
-			if err := processor(parentField, createStructField(objType), objValue, prefix); err != nil {
-				return err
-			}
-		}
-
-		if !isStruct {
-			return nil
-		}
-
+	if objType.Kind() != reflect.Struct {
+		return nil
 	}
 
 	for i := 0; i < objValue.NumField(); i++ {
@@ -667,18 +639,33 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 			continue
 		}
 
-		// Apply all processors to this field
-		for _, processor := range processors {
-			if err := processor(parentField, fieldType, field, prefix); err != nil {
-				return err
-			}
-		}
-
 		newPrefix := buildPrefix(prefix, fieldType.Tag)
 
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
 		case reflect.Struct:
+			processStruct := false
+
+			if _, ok := obj.(yamlCore.Marshaler); ok {
+				processStruct = true
+			}
+
+			if _, ok := obj.(Defaults); ok {
+				processStruct = true
+			}
+
+			if _, ok := obj.(Validator); ok {
+				processStruct = true
+			}
+
+			if processStruct {
+				for _, processor := range processors {
+					if err := processor(parentField, fieldType, field, prefix); err != nil {
+						return err
+					}
+				}
+			}
+
 			if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, processors...); err != nil {
 				return err
 			}
@@ -702,6 +689,20 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 			for _, key := range field.MapKeys() {
 				fieldPrefix := fmt.Sprintf("%s.%s", newPrefix, key.String())
 				if err := m.fieldProcessorRecursive(field.MapIndex(key).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+					return err
+				}
+			}
+		case reflect.Array:
+			for i := 0; i < field.Len(); i++ {
+				fieldPrefix := fmt.Sprintf("%s.%d", newPrefix, i)
+				if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+					return err
+				}
+			}
+		default:
+			// Apply all processors to this field
+			for _, processor := range processors {
+				if err := processor(parentField, fieldType, field, prefix); err != nil {
 					return err
 				}
 			}
@@ -1176,36 +1177,4 @@ func GetAPISectionSpecifier(pluginName string) string {
 
 func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
-}
-
-func createStructField(t reflect.Type) reflect.StructField {
-	// Create a new StructField
-	f := reflect.StructField{}
-
-	// Set the Type
-	f.Type = t
-
-	// Set the Name (assuming the struct type name is the field name)
-	f.Name = t.Name()
-
-	// Anonymous is false as this is the root
-	f.Anonymous = false
-
-	// PkgPath is empty for exported fields
-	if t.Name() != "" && t.Name()[0] >= 'A' && t.Name()[0] <= 'Z' {
-		f.PkgPath = ""
-	} else {
-		f.PkgPath = t.PkgPath()
-	}
-
-	// Tag is empty as we don't have tag information at this level
-	f.Tag = ""
-
-	// Offset is 0 as this is the root
-	f.Offset = 0
-
-	// Index is empty as this is the root
-	f.Index = []int{}
-
-	return f
 }
