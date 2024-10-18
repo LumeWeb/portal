@@ -39,6 +39,7 @@ type Manager interface {
 	Get(key string) any
 	All() map[string]any
 	IsEditable(key string) bool
+	Flags(key string) []string
 }
 
 type Config struct {

@@ -299,7 +299,7 @@ func (m *ManagerDefault) pruneConfig(prefix string, cfg Defaults) error {
 	return nil
 }
 func (m *ManagerDefault) shouldSyncKey(key string) bool {
-	return !lo.Contains(m.flags[key], FLAG_SYNC)
+	return lo.Contains(m.flags[key], FLAG_SYNC)
 }
 
 func (m *ManagerDefault) RegisterConfigChangeCallback(callback ConfigChangeCallback) {
@@ -1061,6 +1061,14 @@ func (m *ManagerDefault) All() map[string]any {
 
 func (m *ManagerDefault) IsEditable(key string) bool {
 	return m.shouldSyncKey(key)
+}
+
+func (m *ManagerDefault) Flags(key string) []string {
+	if _, ok := m.flags[key]; !ok {
+		return nil
+	}
+
+	return m.flags[key]
 }
 
 func (m *ManagerDefault) fieldExistsProcessorFactory(key string, cb func()) FieldProcessor {
