@@ -17,7 +17,7 @@ var (
 type API interface {
 	Name() string
 	Subdomain() string
-	Configure(router *gorilla.Router) error
+	Configure(router *gorilla.Router, accessSvc AccessService) error
 	AuthTokenName() string
 	Config() config.APIConfig
 }

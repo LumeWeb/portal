@@ -31,6 +31,7 @@ type HTTPServiceDefault struct {
 	logger *core.Logger
 	router *mux.Router
 	srv    *http.Server
+	access core.AccessService
 }
 
 var _ handlers.RecoveryHandlerLogger = (*recoverLogger)(nil)
@@ -56,6 +57,7 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			_http.ctx = ctx
 			_http.logger = ctx.ServiceLogger(_http)
+			_http.access = ctx.Service(core.ACCESS_SERVICE).(core.AccessService)
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
@@ -81,7 +83,7 @@ func (h *HTTPServiceDefault) Init() error {
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
 		domain := fmt.Sprintf("%s.%s", api.Subdomain(), h.ctx.Config().Config().Core.Domain)
-		err := api.Configure(h.Router().Host(domain).Subrouter())
+		err := api.Configure(h.Router().Host(domain).Subrouter(), h.access)
 		if err != nil {
 			return err
 		}

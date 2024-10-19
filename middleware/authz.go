@@ -1,38 +1,36 @@
 package middleware
 
 import (
-	"github.com/casbin/casbin/v2"
 	"go.lumeweb.com/portal/core"
 	"net/http"
 )
 
-type AuthzOptions struct {
-	Context core.Context
-	Casbin  *casbin.Enforcer
-	Role    string
-}
+func AccessMiddleware(ctx core.Context) func(http.Handler) http.Handler {
+	userService := ctx.Service(core.USER_SERVICE).(core.UserService)
+	accessService := ctx.Service(core.ACCESS_SERVICE).(core.AccessService)
 
-func AuthzMiddleware(options AuthzOptions) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user := r.Context().Value(DEFAULT_USER_ID_CONTEXT_KEY)
-
 			deny := func() {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			}
 
-			exists, m, err := options.Context.Service(core.USER_SERVICE).(core.UserService).AccountExists(user.(uint))
+			user, err := GetUserFromContext(r.Context())
+			if err != nil {
+				deny()
+				return
+			}
+
+			exists, m, err := userService.AccountExists(user)
 			if err != nil || !exists {
 				deny()
 				return
 			}
 
-			if options.Role != m.Role {
-				deny()
+			ok, err := accessService.CheckAccess(m.ID, r.URL.Hostname(), r.URL.Path, r.Method)
+			if err != nil {
 				return
 			}
-
-			ok, err := options.Casbin.Enforce(m.Role, r.URL.Path, r.Method)
 			if err != nil || !ok {
 				deny()
 				return
