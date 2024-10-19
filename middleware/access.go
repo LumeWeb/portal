@@ -27,8 +27,9 @@ func AccessMiddleware(ctx core.Context) func(http.Handler) http.Handler {
 				return
 			}
 
-			ok, err := accessService.CheckAccess(m.ID, r.URL.Hostname(), r.URL.Path, r.Method)
+			ok, err := accessService.CheckAccess(m.ID, r.URL.Hostname(), r.Host, r.Method)
 			if err != nil {
+				deny()
 				return
 			}
 			if err != nil || !ok {
