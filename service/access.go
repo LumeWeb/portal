@@ -59,7 +59,7 @@ func (a *AccessServiceDefault) AssignRoleToUser(userId uint, role string) error 
 }
 
 func (a *AccessServiceDefault) CheckAccess(userId uint, fqdn, path, method string) (bool, error) {
-	return a.enforcer.Enforce(userId, fqdn, path, method)
+	return a.enforcer.Enforce(strconv.FormatUint(uint64(userId), 10), fqdn, path, method)
 }
 
 func (a *AccessServiceDefault) ExportUserPolicy(userId uint) ([]*core.AccessPolicy, error) {
