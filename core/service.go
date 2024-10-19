@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core/internal"
 	"sync"
 )
@@ -12,12 +13,13 @@ type Service interface {
 }
 
 var (
-	services          = make(map[string]ServiceInfo)
-	servicesOrdered   []ServiceInfo
-	servicesMu        sync.RWMutex
-	servicesOrderedMu sync.RWMutex
-	pluginServices    = make(map[string][]string)
-	pluginServicesMu  sync.RWMutex
+	services                 = make(map[string]ServiceInfo)
+	servicesOrdered          []ServiceInfo
+	servicesMu               sync.RWMutex
+	servicesOrderedMu        sync.RWMutex
+	pluginServices           = make(map[string][]string)
+	pluginServicesMu         sync.RWMutex
+	globallyRequiredServices = []string{ACCESS_SERVICE, HTTP_SERVICE}
 )
 
 type ServiceInfo struct {
@@ -138,7 +140,14 @@ func GetServices() []ServiceInfo {
 	graph := internal.NewDependsGraph()
 
 	for _, k := range services {
-		graph.AddNode(k.ID, k.Depends...)
+		finalDepends := append([]string(nil), k.Depends...)
+
+		if !lo.Contains(globallyRequiredServices, k.ID) {
+			finalDepends = append(finalDepends, globallyRequiredServices...)
+			finalDepends = lo.Uniq(finalDepends)
+		}
+
+		graph.AddNode(k.ID, finalDepends...)
 	}
 
 	list, err := graph.Build()

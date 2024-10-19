@@ -37,6 +37,7 @@ type UserServiceDefault struct {
 	mailer    core.MailerService
 	cron      core.CronService
 	subdomain string
+	access    core.AccessService
 }
 
 func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) {
@@ -49,6 +50,7 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 			_user.db = ctx.DB()
 			_user.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
 			_user.cron = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
+			_user.access = core.GetService[core.AccessService](ctx, core.ACCESS_SERVICE)
 
 			_user.cron.RegisterEntity(_user)
 
@@ -122,47 +124,64 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 		return nil, err
 	}
 
-	user := models.User{
+	_user := models.User{
 		Email:        email,
 		PasswordHash: passwordHash,
 	}
 
-	if err = db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
-		return db.Create(&user)
-	}); err != nil {
+	isFirstUser := false
+	err = db.RetryableTransaction(u.ctx, u.db, func(tx *gorm.DB) *gorm.DB {
+		var count int64
+		if err := tx.Model(&models.User{}).Count(&count).Error; err != nil {
+			_ = tx.AddError(err)
+			return tx
+		}
+		isFirstUser = count == 0
+		return tx.Create(&_user)
+	})
+
+	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 		}
 
-		if err, ok := err.(*mysql.MySQLError); ok {
-			if err.Number == 1062 {
-				return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
-			}
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 		}
 
 		return nil, core.NewAccountError(core.ErrKeyAccountCreationFailed, err)
 	}
 
-	if verifyEmail {
-		err = u.SendEmailVerification(user.ID)
-		if err != nil {
+	if isFirstUser {
+		_user.Verified = true
+		if err := u.UpdateAccountInfo(_user.ID, map[string]interface{}{"verified": true}); err != nil {
+			return nil, err
+		}
+
+		if err := u.access.AssignRoleToUser(_user.ID, core.ACCESS_ADMIN_ROLE); err != nil {
+			return nil, core.NewAccountError(core.ErrKeyAssigningAdminRoleFailed, err)
+		}
+	} else if verifyEmail {
+		if err := u.SendEmailVerification(_user.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	err = event.FireUserCreatedEvent(u.ctx, &user)
-	if err != nil {
+	if err := u.access.AssignRoleToUser(_user.ID, core.ACCESS_USER_ROLE); err != nil {
+		return nil, core.NewAccountError(core.ErrorAssigningUserRoleFailed, err)
+	}
+
+	if err := event.FireUserCreatedEvent(u.ctx, &_user); err != nil {
 		return nil, err
 	}
 
-	if !verifyEmail {
-		err = event.FireUserActivatedEvent(u.ctx, &user)
-		if err != nil {
+	if isFirstUser || !verifyEmail {
+		if err := event.FireUserActivatedEvent(u.ctx, &_user); err != nil {
 			return nil, err
 		}
 	}
 
-	return &user, nil
+	return &_user, nil
 }
 
 func (u UserServiceDefault) UpdateAccountName(userId uint, firstName string, lastName string) error {

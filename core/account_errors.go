@@ -14,6 +14,10 @@ const (
 	ErrKeyUpdatingSameEmail     AccountErrorType = "ErrUpdatingSameEmail"
 	ErrKeyPasswordHashingFailed AccountErrorType = "ErrPasswordHashingFailed"
 
+	// Account role errors
+	ErrKeyAssigningAdminRoleFailed AccountErrorType = "ErrAssigningAdminRoleFailed"
+	ErrorAssigningUserRoleFailed   AccountErrorType = "ErrorAssigningUserRoleFailed"
+
 	// Account lookup and existence verification errors
 	ErrKeyUserNotFound      AccountErrorType = "ErrUserNotFound"
 	ErrKeyPublicKeyNotFound AccountErrorType = "ErrPublicKeyNotFound"
@@ -70,6 +74,10 @@ var defaultErrorMessages = map[AccountErrorType]string{
 	ErrKeyPasswordHashingFailed: "Failed to secure the password, please try again later.",
 	ErrKeyUpdatingSameEmail:     "The email address provided is the same as your current one.",
 
+	// Account role errors
+	ErrKeyAssigningAdminRoleFailed: "Failed to assign the admin role to the account.",
+	ErrorAssigningUserRoleFailed:   "Failed to assign the user role to the account.",
+
 	// Account lookup and existence verification errors
 	ErrKeyUserNotFound:      "The requested user was not found.",
 	ErrKeyPublicKeyNotFound: "The specified public key was not found.",
@@ -125,6 +133,10 @@ var (
 		ErrKeyAccountCreationFailed: http.StatusInternalServerError,
 		ErrKeyEmailAlreadyExists:    http.StatusConflict,
 		ErrKeyPasswordHashingFailed: http.StatusInternalServerError,
+
+		// Account role errors
+		ErrKeyAssigningAdminRoleFailed: http.StatusInternalServerError,
+		ErrorAssigningUserRoleFailed:   http.StatusInternalServerError,
 
 		// Account lookup and existence verification errors
 		ErrKeyUserNotFound:      http.StatusNotFound,
