@@ -124,6 +124,8 @@ func (a *AccessServiceDefault) init() error {
 		return err
 	}
 
+	enforcer.EnableAutoSave(true)
+
 	a.enforcer = enforcer
 
 	db := a.ctx.DB()
