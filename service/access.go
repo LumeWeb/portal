@@ -110,13 +110,13 @@ func (a *AccessServiceDefault) init() error {
 	m.AddDef("p", "p", "sub, dom, obj, act")
 
 	// Role definition
-	m.AddDef("g", "g", "_, _, _")
+	m.AddDef("g", "g", "_, _")
 
 	// Policy effect
 	m.AddDef("e", "e", "some(where (p.eft == allow))")
 
 	// Matchers
-	m.AddDef("m", "m", "g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch5(r.obj, p.obj) && r.act == p.act")
+	m.AddDef("m", "m", "g(r.sub, p.sub) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) && r.act == p.act")
 
 	// Load the model
 	enforcer, err := casbin.NewEnforcer(m)
