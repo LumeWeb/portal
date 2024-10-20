@@ -27,7 +27,6 @@ require (
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
-	github.com/ipfs/go-cid v0.4.1
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/multiformats/go-multihash v0.2.3
@@ -70,19 +69,16 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microsoft/go-mssqldb v1.6.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
-	github.com/multiformats/go-base32 v0.1.0 // indirect
-	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.19.1 // indirect
+	github.com/prometheus/client_golang v1.20.4 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.54.0 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230126093431-47fa9a501578 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -91,7 +87,7 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.sia.tech/jape v0.11.2-0.20240306154058-9832414a5385 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	google.golang.org/grpc v1.64.1 // indirect
+	google.golang.org/grpc v1.67.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gorm.io/driver/postgres v1.5.7 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
@@ -177,8 +173,8 @@ require (
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 )
 
@@ -187,5 +183,6 @@ replace (
 	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be
 	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
-	github.com/tus/tusd/v2 v2.4.0 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20241008001850-1f6974596ff3
+	github.com/tus/tusd/v2 v2.4.0 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20241020013555-e29b4c6c01b7
+	gorm.io/plugin/dbresolver v1.3.0 => gorm.io/plugin/dbresolver v1.5.3
 )
