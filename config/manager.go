@@ -617,10 +617,10 @@ func (m *ManagerDefault) processFlags(obj any, prefix string) error {
 }
 
 func (m *ManagerDefault) FieldProcessor(obj any, prefix string, processors ...FieldProcessor) error {
-	return m.fieldProcessorRecursive(obj, prefix, nil, processors...)
+	return m.fieldProcessorRecursive(obj, prefix, nil, 0, processors...)
 }
 
-func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentField *reflect.StructField, processors ...FieldProcessor) error {
+func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentField *reflect.StructField, depth int, processors ...FieldProcessor) error {
 	objValue := reflect.ValueOf(obj)
 	objType := reflect.TypeOf(obj)
 
@@ -649,21 +649,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
 		case reflect.Struct:
-			processStruct := false
-
-			if _, ok := obj.(yamlCore.Marshaler); ok {
-				processStruct = true
-			}
-
-			if _, ok := obj.(Defaults); ok {
-				processStruct = true
-			}
-
-			if _, ok := obj.(Validator); ok {
-				processStruct = true
-			}
-
-			if processStruct {
+			if processStruct(obj) {
 				for _, processor := range processors {
 					if err := processor(parentField, fieldType, field, prefix); err != nil {
 						return err
@@ -671,12 +657,12 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 				}
 			}
 
-			if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, processors...); err != nil {
+			if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, depth+1, processors...); err != nil {
 				return err
 			}
 		case reflect.Ptr:
 			if !field.IsNil() && field.Elem().Kind() == reflect.Struct {
-				if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, processors...); err != nil {
+				if err := m.fieldProcessorRecursive(field.Interface(), newPrefix, &fieldType, depth+1, processors...); err != nil {
 					return err
 				}
 			}
@@ -684,7 +670,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 			if field.Len() > 0 {
 				for i := 0; i < field.Len(); i++ {
 					fieldPrefix := fmt.Sprintf("%s.%d", newPrefix, i)
-					if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+					if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, depth+1, processors...); err != nil {
 						return err
 					}
 				}
@@ -693,14 +679,14 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		case reflect.Map:
 			for _, key := range field.MapKeys() {
 				fieldPrefix := fmt.Sprintf("%s.%s", newPrefix, key.String())
-				if err := m.fieldProcessorRecursive(field.MapIndex(key).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+				if err := m.fieldProcessorRecursive(field.MapIndex(key).Interface(), fieldPrefix, &fieldType, depth+1, processors...); err != nil {
 					return err
 				}
 			}
 		case reflect.Array:
 			for i := 0; i < field.Len(); i++ {
 				fieldPrefix := fmt.Sprintf("%s.%d", newPrefix, i)
-				if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, processors...); err != nil {
+				if err := m.fieldProcessorRecursive(field.Index(i).Interface(), fieldPrefix, &fieldType, depth+1, processors...); err != nil {
 					return err
 				}
 			}
@@ -710,6 +696,20 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 				if err := processor(parentField, fieldType, field, prefix); err != nil {
 					return err
 				}
+			}
+		}
+	}
+
+	if processStruct(obj) && depth == 0 {
+		for _, processor := range processors {
+			if err := processor(nil, reflect.StructField{
+				Type:    objType,
+				Name:    objType.Name(),
+				PkgPath: objType.PkgPath(),
+				Tag:     reflect.StructTag(fmt.Sprintf(`config:"%s"`, prefix)),
+				Index:   []int{},
+			}, objValue, prefix); err != nil {
+				return err
 			}
 		}
 	}
@@ -1190,4 +1190,20 @@ func GetAPISectionSpecifier(pluginName string) string {
 
 func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
+}
+
+func processStruct(obj any) bool {
+	if _, ok := obj.(yamlCore.Marshaler); ok {
+		return true
+	}
+
+	if _, ok := obj.(Defaults); ok {
+		return true
+	}
+
+	if _, ok := obj.(Validator); ok {
+		return true
+	}
+
+	return false
 }
