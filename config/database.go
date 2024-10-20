@@ -56,6 +56,9 @@ func (d DatabaseConfig) Defaults() map[string]any {
 
 	if d.Type == "sqlite" || d.Type == "" {
 		def["file"] = "portal.db"
+		if d.Type == "" {
+			def["type"] = "sqlite"
+		}
 	}
 
 	if d.Type == "mysql" {
