@@ -714,6 +714,20 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		}
 	}
 
+	if processStruct(obj) && depth == 0 {
+		for _, processor := range processors {
+			if err := processor(nil, reflect.StructField{
+				Type:    objType,
+				Name:    objType.Name(),
+				PkgPath: objType.PkgPath(),
+				Tag:     reflect.StructTag(fmt.Sprintf(`config:"%s"`, prefix)),
+				Index:   []int{},
+			}, objValue, ""); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -791,7 +805,7 @@ func (m *ManagerDefault) maybeSave() error {
 // New function to save core config
 func (m *ManagerDefault) saveCoreConfig() error {
 	if len(m.changedSections) > 0 {
-		if !m.hasPrefixChanged("core") {
+		if !m.hasSectionChanged("core") {
 			return nil
 		}
 	}
@@ -807,19 +821,6 @@ func (m *ManagerDefault) hasSectionChanged(section string) bool {
 	}
 	for _, changed := range m.changedSections {
 		if section == changed {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (m *ManagerDefault) hasPrefixChanged(prefix string) bool {
-	if len(m.changedSections) == 0 {
-		return true
-	}
-	for _, changed := range m.changedSections {
-		if strings.HasPrefix(changed, prefix+".") {
 			return true
 		}
 	}
