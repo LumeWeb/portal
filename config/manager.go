@@ -519,6 +519,11 @@ func (m *ManagerDefault) configureSection(name string, cfg Defaults) (Defaults, 
 		return nil, err
 	}
 
+	err = m.maybeSave()
+	if err != nil {
+		return nil, err
+	}
+
 	hooks := append([]mapstructure.DecodeHookFunc{}, mapstructure.StringToTimeDurationHookFunc())
 
 	err = m.config.UnmarshalWithConf(name, cfg, koanf.UnmarshalConf{
