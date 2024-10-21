@@ -2,6 +2,7 @@ package renter
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -101,26 +102,26 @@ func (p PriceTracker) recordRate(_ core.CronTaskArgs, _ core.Context) error {
 }
 
 func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
-	var averageRateStr string
+	var averageRateStr sql.NullString
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
 
-	var sql string
+	var _sql string
 	if p.db.Dialector.Name() == "sqlite" {
-		sql = `
-        SELECT AVG(rate) as average_rate
+		_sql = `
+        SELECT COALESCE(AVG(rate), '0') as average_rate
         FROM sc_price_history
         WHERE created_at >= DATE('now', '-' || ? || ' days')
         `
 	} else {
-		sql = `
-        SELECT AVG(rate) as average_rate
+		_sql = `
+        SELECT COALESCE(AVG(rate), '0') as average_rate
         FROM sc_price_history
         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
         `
 	}
 
 	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Raw(sql, days).Scan(&averageRateStr)
+		return db.Raw(_sql, days).Scan(&averageRateStr)
 	})
 
 	if err != nil {
@@ -128,9 +129,14 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 		return err
 	}
 
-	averageRate, err := decimal.NewFromString(averageRateStr)
+	if !averageRateStr.Valid || averageRateStr.String == "" {
+		p.logger.Error("average rate is NULL or empty")
+		return errors.New("average rate is NULL or empty")
+	}
+
+	averageRate, err := decimal.NewFromString(averageRateStr.String)
 	if err != nil {
-		p.logger.Error("failed to parse average rate", zap.Error(err), zap.String("averageRateStr", averageRateStr))
+		p.logger.Error("failed to parse average rate", zap.Error(err), zap.String("averageRateStr", averageRateStr.String))
 		return err
 	}
 
@@ -142,14 +148,12 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 	ctx := context.Background()
 
 	gouge, err := p.renter.GougingSettings(ctx)
-
 	if err != nil {
 		p.logger.Error("failed to fetch gouging settings", zap.Error(err))
 		return err
 	}
 
 	redundancy, err := p.renter.RedundancySettings(ctx)
-
 	if err != nil {
 		p.logger.Error("failed to fetch redundancy settings", zap.Error(err))
 		return err
