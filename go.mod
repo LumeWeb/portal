@@ -48,7 +48,7 @@ require (
 	go.uber.org/zap/exp v0.2.0
 	golang.org/x/crypto v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
-	gorm.io/datatypes v1.2.2
+	gorm.io/datatypes v1.2.4
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
