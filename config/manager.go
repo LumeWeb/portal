@@ -649,7 +649,7 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
 		case reflect.Struct:
-			if processStruct(obj) {
+			if processStruct(field.Interface()) {
 				for _, processor := range processors {
 					if err := processor(parentField, fieldType, field, prefix); err != nil {
 						return err
