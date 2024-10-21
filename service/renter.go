@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -58,7 +59,7 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			err := renter.init()
 			if err != nil {
-				renter.logger.Error("failed to initialize renter service", zap.Error(err))
+				return fmt.Errorf("failed to initialize renter service: %w", err)
 			}
 
 			tracker := renterInternal.NewPriceTracker(ctx)
@@ -142,6 +143,11 @@ func (r *RenterDefault) init() error {
 	addrURL.Path = "/api/autopilot"
 
 	r.autoPilotClient = autoPilotClient.NewClient(addrURL.String(), passwd)
+
+	_, stateErr := r.busClient.State()
+	if stateErr != nil {
+		return fmt.Errorf("renter status check: failed to get renter state: %w", stateErr)
+	}
 
 	return nil
 }
