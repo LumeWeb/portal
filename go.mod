@@ -23,6 +23,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-viper/mapstructure/v2 v2.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-queue/queue v0.1.4-0.20240914022627-ee5b6a2bee11
 	github.com/google/uuid v1.6.0
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
@@ -51,7 +52,6 @@ require (
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.12
-	lukechampine.com/blake3 v1.3.0
 )
 
 require (
@@ -69,6 +69,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microsoft/go-mssqldb v1.6.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
@@ -92,6 +93,7 @@ require (
 	gorm.io/driver/postgres v1.5.7 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
 	gorm.io/plugin/dbresolver v1.3.0 // indirect
+	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.22.2 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
