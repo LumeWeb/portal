@@ -42,7 +42,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.16
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
 	go.sia.tech/core v0.4.7
-	go.sia.tech/coreutils v0.3.3-0.20240927170025-f45eedc64d6f
+	go.sia.tech/coreutils v0.4.1
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.2.0
