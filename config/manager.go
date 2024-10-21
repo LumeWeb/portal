@@ -708,20 +708,6 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 				PkgPath: objType.PkgPath(),
 				Tag:     reflect.StructTag(fmt.Sprintf(`config:"%s"`, prefix)),
 				Index:   []int{},
-			}, objValue, prefix); err != nil {
-				return err
-			}
-		}
-	}
-
-	if processStruct(obj) && depth == 0 {
-		for _, processor := range processors {
-			if err := processor(nil, reflect.StructField{
-				Type:    objType,
-				Name:    objType.Name(),
-				PkgPath: objType.PkgPath(),
-				Tag:     reflect.StructTag(fmt.Sprintf(`config:"%s"`, prefix)),
-				Index:   []int{},
 			}, objValue, ""); err != nil {
 				return err
 			}
