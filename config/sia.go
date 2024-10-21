@@ -12,6 +12,7 @@ type SiaConfig struct {
 	Key                string `config:"key"`
 	URL                string `config:"url"`
 	PriceHistoryDays   uint64 `config:"price_history_days"`
+	PriceFetchWorkers  int    `config:"price_fetch_workers"`
 	MaxUploadPrice     string `config:"max_upload_price"`
 	MaxDownloadPrice   string `config:"max_download_price"`
 	MaxStoragePrice    string `config:"max_storage_price"`
@@ -29,6 +30,7 @@ func (s SiaConfig) Defaults() map[string]interface{} {
 		"max_rpc_sc_price":      0.1,
 		"max_contract_sc_price": 1,
 		"price_history_days":    90,
+		"price_fetch_workers":   10,
 	}
 }
 

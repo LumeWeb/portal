@@ -3,11 +3,18 @@ package renter
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/golang-queue/queue"
+	core2 "github.com/golang-queue/queue/core"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
+	"gorm.io/gorm/clause"
 	"math/big"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +39,7 @@ const blocksPerMonth = 30 * 144
 const decimalsInSiacoin = 28
 
 type PriceTracker struct {
+	ctx    core.Context
 	config config.Manager
 	logger *core.Logger
 	cron   core.CronService
@@ -237,19 +245,18 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 }
 
 func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
-	var existingDates []string // Change this to []string
+	var existingDates []string
 	daysOfHistory := int(p.config.Config().Core.Storage.Sia.PriceHistoryDays)
 	startDate := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -daysOfHistory)
 
-	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
+	if err := db.RetryableTransaction(p.ctx, p.db, func(db *gorm.DB) *gorm.DB {
 		return db.WithContext(ctx).Model(&models.SCPriceHistory{}).
 			Where("created_at >= ?", startDate).
 			Select("DATE(created_at) as date").
 			Group("DATE(created_at)").
 			Order("date ASC").
 			Pluck("date", &existingDates)
-	})
-	if err != nil {
+	}); err != nil {
 		p.logger.Error("failed to fetch existing historical dates", zap.Error(err))
 		return err
 	}
@@ -259,38 +266,96 @@ func (p PriceTracker) importPrices(_ any, ctx core.Context) error {
 		existingDateMap[dateStr] = true
 	}
 
+	var wg sync.WaitGroup
+	var errorOccurred atomic.Bool
+
+	var q *queue.Queue
+	queueOptions := []queue.Option{
+		queue.WithWorker(queue.NewRing(
+			queue.WithFn(func(ctx context.Context, msg core2.QueuedMessage) error {
+				var job message
+				if err := json.Unmarshal(msg.Bytes(), &job); err != nil {
+					return err
+				}
+
+				dateKey := job.Date.Format("2006-01-02")
+				currentDate := job.Date
+
+				rates, err := p.api.GetHistoricalExchangeRate(currentDate)
+				if err != nil {
+					p.logger.Error("failed to fetch historical exchange rate", zap.Error(err), zap.Time("date", currentDate))
+					return nil
+				}
+
+				rate, exists := rates[usdSymbol]
+				if !exists {
+					p.logger.Error("USD rate not found for date", zap.String("date", dateKey))
+					return nil
+				}
+
+				priceRecord := &models.SCPriceHistory{
+					Rate:      rate,
+					CreatedAt: currentDate,
+				}
+
+				if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
+					return tx.Clauses(clause.OnConflict{
+						Columns:   []clause.Column{{Name: "created_at"}},
+						DoUpdates: clause.AssignmentColumns([]string{"rate"}),
+					}).Create(&priceRecord)
+				}); err != nil {
+					p.logger.Error("failed to upsert historical records", zap.Error(err))
+					errorOccurred.Store(true)
+				}
+
+				return nil
+			}),
+			queue.WithWorkerCount(p.config.Config().Core.Storage.Sia.PriceFetchWorkers),
+			queue.WithLogger(newZapLogAdapter(p.logger)),
+		)),
+	}
+
+	// Create a closure that captures the queue variable
+	var afterFn func()
+	afterFn = func() {
+		wg.Done()
+		if q.BusyWorkers() == 0 {
+			q.Release()
+		}
+	}
+
+	// Add the afterFn option
+	queueOptions = append(queueOptions, queue.WithAfterFn(afterFn))
+
+	// Create the queue
+	q, err := queue.NewQueue(queueOptions...)
+	if err != nil {
+		p.logger.Error("Failed to create queue", zap.Error(err))
+		return err
+	}
+
 	for i := 0; i < daysOfHistory; i++ {
 		currentDate := startDate.AddDate(0, 0, i)
 		dateKey := currentDate.Format("2006-01-02")
 		if !existingDateMap[dateKey] {
-			// Fetch and store data for currentDate as it's missing
-			rates, err := p.api.GetHistoricalExchangeRate(currentDate)
+			wg.Add(1)
+			err := q.Queue(message{Date: currentDate})
 			if err != nil {
-				p.logger.Error("failed to fetch historical exchange rate", zap.Error(err), zap.Time("date", currentDate))
-				continue // Skip to the next date if there's an error
-			}
-
-			// Assuming USD rates as an example
-			rate, exists := rates[usdSymbol]
-			if !exists {
-				p.logger.Error("USD rate not found for date", zap.String("date", dateKey))
-				continue // Skip to the next date
-			}
-
-			priceRecord := &models.SCPriceHistory{
-				Rate:      rate,
-				CreatedAt: currentDate,
-			}
-
-			if err = p.db.Transaction(func(tx *gorm.DB) error {
-				return db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-					return db.FirstOrCreate(priceRecord)
-				})
-			}); err != nil {
-				p.logger.Error("failed to create historical record for date", zap.String("date", dateKey), zap.Error(err))
-				return err
+				p.logger.Error("Failed to queue job", zap.Error(err))
+				errorOccurred.Store(true)
+				wg.Done()
 			}
 		}
+	}
+
+	// Start the queue
+	q.Start()
+
+	// Wait for all jobs to be processed
+	wg.Wait()
+
+	if errorOccurred.Load() {
+		p.logger.Error("errors occurred during price import")
 	}
 
 	err = p.cron.CreateJobIfNotExists(cronTaskUpdateSiaRenterPriceName, nil)
@@ -310,6 +375,7 @@ func (p *PriceTracker) Init() error {
 
 func NewPriceTracker(ctx core.Context) *PriceTracker {
 	return &PriceTracker{
+		ctx:    ctx,
 		config: ctx.Config(),
 		logger: ctx.Logger(),
 		cron:   core.GetService[core.CronService](ctx, core.CRON_SERVICE),
@@ -356,4 +422,47 @@ func ratDivide(a *big.Rat, b uint64) *big.Rat {
 }
 func ratDivideFloat(a *big.Rat, b float64) *big.Rat {
 	return new(big.Rat).Quo(a, new(big.Rat).SetFloat64(b))
+}
+
+type zapAdapter struct {
+	logger *core.Logger
+}
+
+func newZapLogAdapter(logger *core.Logger) *zapAdapter {
+	return &zapAdapter{logger: logger}
+}
+
+func (za *zapAdapter) Infof(format string, args ...interface{}) {
+	za.logger.Info(fmt.Sprintf(format, args...))
+}
+
+func (za *zapAdapter) Errorf(format string, args ...interface{}) {
+	za.logger.Error(fmt.Sprintf(format, args...))
+}
+
+func (za *zapAdapter) Fatalf(format string, args ...interface{}) {
+	za.logger.Fatal(fmt.Sprintf(format, args...))
+}
+
+func (za *zapAdapter) Info(args ...interface{}) {
+	za.logger.Info(fmt.Sprint(args...))
+}
+
+func (za *zapAdapter) Error(args ...interface{}) {
+	za.logger.Error(fmt.Sprint(args...))
+}
+
+func (za *zapAdapter) Fatal(args ...interface{}) {
+	za.logger.Fatal(fmt.Sprint(args...))
+}
+
+var _ core2.QueuedMessage = (*message)(nil)
+
+type message struct {
+	Date time.Time
+}
+
+func (m message) Bytes() []byte {
+	bytes, _ := json.Marshal(m)
+	return bytes
 }

@@ -17,7 +17,7 @@ func init() {
 
 type SCPriceHistory struct {
 	gorm.Model
-	CreatedAt time.Time       `gorm:"index:idx_rate"`
+	CreatedAt time.Time       `gorm:"uniqueIndex:idx_time"`
 	Rate      decimal.Decimal `gorm:"type:DECIMAL(30,20);index:idx_rate"`
 }
 
