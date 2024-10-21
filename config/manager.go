@@ -9,6 +9,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.lumeweb.com/portal/config/types"
 	"go.uber.org/zap"
 	yamlCore "gopkg.in/yaml.v3"
 	"log"
@@ -646,14 +647,29 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 
 		newPrefix := buildPrefix(prefix, fieldType.Tag)
 
+		runProcessors := func() error {
+			for _, processor := range processors {
+				if err := processor(parentField, fieldType, field, prefix); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}
+
 		// Recurse for struct fields or pointers to structs
 		switch field.Kind() {
+		case reflect.TypeOf(types.UUID{}).Kind():
+			// Apply all processors to this field
+			err := runProcessors()
+			if err != nil {
+				return err
+			}
 		case reflect.Struct:
 			if processStruct(field.Interface()) {
-				for _, processor := range processors {
-					if err := processor(parentField, fieldType, field, prefix); err != nil {
-						return err
-					}
+				err := runProcessors()
+				if err != nil {
+					return err
 				}
 			}
 
@@ -690,12 +706,12 @@ func (m *ManagerDefault) fieldProcessorRecursive(obj any, prefix string, parentF
 					return err
 				}
 			}
+
 		default:
 			// Apply all processors to this field
-			for _, processor := range processors {
-				if err := processor(parentField, fieldType, field, prefix); err != nil {
-					return err
-				}
+			err := runProcessors()
+			if err != nil {
+				return err
 			}
 		}
 	}
