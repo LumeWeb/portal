@@ -3,9 +3,11 @@ name: Release
 on:
   push:
     branches:
-      - "develop"
+      - "**"
     paths:
       - '.changeset/**'
+      - '.changeset-release/**'
+      - 'package.json'
     tags:
       - '**'
   pull_request:
@@ -15,8 +17,12 @@ on:
       - '**'
     paths:
       - '.changeset/**'
+      - '.changeset-release/**'
+      - 'package.json'
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   publish:
