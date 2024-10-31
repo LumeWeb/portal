@@ -273,6 +273,10 @@ func (p *PortalImpl) initModels(ctx core.Context, dbInst *gorm.DB) (ctxOpts []co
 	ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
 		for _, model := range models {
 			typ := reflect.TypeOf(model)
+			// Get the underlying type if it's a pointer
+			if typ.Kind() == reflect.Ptr {
+				typ = typ.Elem()
+			}
 			if err = dbInst.AutoMigrate(model); err != nil {
 				ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
 				return err
