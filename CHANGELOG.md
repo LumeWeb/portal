@@ -1,5 +1,14 @@
 # [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
 
+## 0.2.1
+
+### Patch Changes
+
+- 3f63e61: ---
+  - Update release workflow concurrency and triggers
+  - Fix pointer dereferencing issue
+  - Fix incorrect index name in TUS implementation
+
 ## 0.2.0
 
 ### Minor Changes
