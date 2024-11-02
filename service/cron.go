@@ -38,6 +38,7 @@ const consumerPrefetch = 10
 const deadJobCheckInterval = 1 * time.Minute
 const heartbeatInterval = 5 * time.Minute
 const heartbeatTimeout = 10 * time.Minute
+const oneOffSuffix = "_oneoff_"
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -49,28 +50,34 @@ func init() {
 }
 
 type CronServiceDefault struct {
-	ctx             core.Context
-	config          config.Manager
-	db              *gorm.DB
-	logger          *core.Logger
-	entities        []core.Cronable
-	scheduler       gocron.Scheduler
-	tasks           sync.Map
-	taskArgs        sync.Map
-	taskDefs        sync.Map
-	taskRecurring   sync.Map
-	queueMu         sync.Mutex
-	queues          map[string]rmq.Queue
-	redisQueueConn  rmq.Connection
-	cronRunningMap  sync.Map
-	waitForStartMap sync.Map
-	booting         bool
-	jobsAddedBoot   []uuid.UUID
+	ctx              core.Context
+	config           config.Manager
+	db               *gorm.DB
+	logger           *core.Logger
+	entities         []core.Cronable
+	scheduler        gocron.Scheduler
+	tasks            sync.Map
+	taskArgs         sync.Map
+	taskDefs         sync.Map
+	taskRecurring    sync.Map
+	taskDefsOriginal sync.Map
+	queueMu          sync.Mutex
+	queues           map[string]rmq.Queue
+	redisQueueConn   rmq.Connection
+	cronRunningMap   sync.Map
+	waitForStartMap  sync.Map
+	booting          bool
+	jobsAddedBoot    []uuid.UUID
 }
 
 type cancelStruct struct {
 	ctx    context.Context
 	cancel context.CancelFunc
+}
+
+type taskDefWrapper struct {
+	originalDef core.CronTaskDefArgsFactoryFunction
+	isOneOff    bool
 }
 
 func (c *CronServiceDefault) ID() string {
@@ -465,14 +472,19 @@ func (c *CronServiceDefault) monitorJob(job gocron.Job, id uuid.UUID, waitCtx co
 }
 
 func (c *CronServiceDefault) prepareTask(job *models.CronJob) (gocron.Task, error) {
-	taskFunc, ok := c.tasks.Load(job.Function)
-	if !ok {
-		return nil, fmt.Errorf("function %s not found", job.Function)
+	funcName := job.Function
+	if strings.Contains(job.Function, oneOffSuffix) {
+		funcName = strings.Split(job.Function, oneOffSuffix)[0]
 	}
 
-	argsFunc, ok := c.taskArgs.Load(job.Function)
+	taskFunc, ok := c.tasks.Load(funcName)
 	if !ok {
-		return nil, fmt.Errorf("arguments factory for function %s not found", job.Function)
+		return nil, fmt.Errorf("function %s not found", funcName)
+	}
+
+	argsFunc, ok := c.taskArgs.Load(funcName)
+	if !ok {
+		return nil, fmt.Errorf("arguments factory for function %s not found", funcName)
 	}
 
 	args := argsFunc.(core.CronTaskArgsFactoryFunction)()
@@ -499,6 +511,12 @@ func (c *CronServiceDefault) prepareTask(job *models.CronJob) (gocron.Task, erro
 }
 
 func (c *CronServiceDefault) loadTaskDef(job *models.CronJob) (gocron.JobDefinition, error) {
+	// If this is a one-off job, we want to return an immediate execution definition
+	if strings.Contains(job.Function, oneOffSuffix) {
+		return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()), nil
+	}
+
+	// For regular jobs, proceed with normal task definition loading
 	taskDefFunc, ok := c.taskDefs.Load(job.Function)
 	if !ok {
 		return nil, fmt.Errorf("task definition for function %s not found", job.Function)
@@ -532,7 +550,6 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 	var job models.CronJob
 	job.UUID = types.BinaryUUID(jobID)
 
-	// Fetch the job
 	if err := c.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.Where(&job).First(&job)
@@ -545,13 +562,30 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 		return
 	}
 
-	_, err := c.updateJob(c.ctx, jobID, models.CronJob{LastRun: timeNow(), Failures: 0})
-	if err != nil {
-		c.logger.Error("Failed to update job after successful run", zap.Error(err), zap.String("jobID", jobID.String()))
+	// Always handle one-off jobs first
+	if strings.Contains(job.Function, oneOffSuffix) {
+		// Clean up resources
+		c.taskDefs.Delete(job.Function)
+		c.taskDefsOriginal.Delete(job.Function)
+		c.taskRecurring.Delete(job.Function)
+		c.tasks.Delete(job.Function)
+		c.taskArgs.Delete(job.Function)
+
+		err := c.updateJobState(c.ctx, jobID, models.CronJobStateCompleted)
+		if err != nil {
+			c.logger.Error("Failed to update one-off job state", zap.Error(err))
+		}
+
+		if err = c.deleteJob(&job); err != nil {
+			c.logger.Error("Failed to delete one-off job", zap.Error(err))
+		}
+		return
 	}
 
-	// Clean up one-off flag if it exists
-	c.taskRecurring.Delete(job.Function + "_oneoff_" + job.UUID.String())
+	_, err := c.updateJob(c.ctx, jobID, models.CronJob{LastRun: timeNow(), Failures: 0})
+	if err != nil {
+		c.logger.Error("Failed to update job after successful run", zap.Error(err))
+	}
 
 	if c.isRecurring(job.Function) {
 		if err := c.rescheduleJob(&job); err != nil {
@@ -563,9 +597,8 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 	} else {
 		err := c.updateJobState(c.ctx, jobID, models.CronJobStateCompleted)
 		if err != nil {
-			c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
+			c.logger.Error("Failed to update job state", zap.Error(err))
 		}
-		// For one-time jobs, delete from the database
 		if err = c.deleteJob(&job); err != nil {
 			c.logger.Error("Failed to delete one-time job after completion",
 				zap.Error(err),
@@ -574,7 +607,9 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 		}
 	}
 
-	c.logger.Debug("Job completed successfully", zap.String("jobID", jobID.String()), zap.String("function", job.Function))
+	c.logger.Debug("Job completed successfully",
+		zap.String("jobID", jobID.String()),
+		zap.String("function", job.Function))
 }
 
 func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, err error) {
@@ -657,22 +692,16 @@ func (c *CronServiceDefault) jobDone(jobID uuid.UUID) {
 }
 
 func (c *CronServiceDefault) isRecurring(funcName string) bool {
-	// Check if this is a one-off execution
-	if strings.Contains(funcName, "_oneoff_") {
-		baseFunc := strings.Split(funcName, "_oneoff_")[0]
-		_, ok := c.taskRecurring.Load(funcName)
-		if ok {
-			// Clean up the temporary non-recurring flag
-			c.taskRecurring.Delete(funcName)
-			return false
-		}
-		// If not found in temporary store, check the base function
-		_, ok = c.taskRecurring.Load(baseFunc)
-		return ok
+	// Always treat one-off jobs as non-recurring
+	if strings.Contains(funcName, oneOffSuffix) {
+		return false
 	}
 
-	_, ok := c.taskRecurring.Load(funcName)
-	return ok
+	recurring, ok := c.taskRecurring.Load(funcName)
+	if !ok {
+		return false
+	}
+	return recurring.(bool)
 }
 
 func (c *CronServiceDefault) checkConsumption() {
@@ -693,6 +722,11 @@ func (c *CronServiceDefault) checkConsumption() {
 }
 
 func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
+	// Additional safety check for one-off jobs
+	if strings.Contains(job.Function, oneOffSuffix) {
+		return nil // Don't reschedule one-off jobs
+	}
+
 	return c.db.Transaction(func(tx *gorm.DB) error {
 		err := c.updateJobState(c.ctx, uuid.UUID(job.UUID), models.CronJobStateCompleted)
 		if err != nil {
@@ -770,14 +804,15 @@ func (c *CronServiceDefault) CreateJobIfNotExists(function string, args any) err
 }
 
 func (c *CronServiceDefault) CreateRecurringOneOffJob(function string, args any) error {
-	// Check if the function exists
-	_, ok := c.tasks.Load(function)
+	taskFunc, ok := c.tasks.Load(function)
 	if !ok {
 		return fmt.Errorf("function %s not found", function)
 	}
 
-	if !c.isRecurring(function) {
-		return fmt.Errorf("function %s is not a recurring task", function)
+	// Check if task args exist
+	taskArgs, ok := c.taskArgs.Load(function)
+	if !ok {
+		return fmt.Errorf("task args for function %s not found", function)
 	}
 
 	// Create a one-time job record
@@ -786,12 +821,28 @@ func (c *CronServiceDefault) CreateRecurringOneOffJob(function string, args any)
 		return fmt.Errorf("failed to create job record: %w", err)
 	}
 
-	// Force the job to be non-recurring for this execution
-	c.taskRecurring.Store(function+"_oneoff_"+job.UUID.String(), false)
+	// Create the one-off function name
+	oneOffKey := function + oneOffSuffix + job.UUID.String()
+
+	// Store the job with the one-off function name
+	job.Function = oneOffKey
+
+	if err = db.RetryableTransaction(c.ctx, c.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Save(job)
+	}); err != nil {
+		return fmt.Errorf("failed to update job function: %w", err)
+	}
+
+	// Store the base function tasks for the one-off job
+	c.tasks.Store(oneOffKey, taskFunc)
+	c.taskArgs.Store(oneOffKey, taskArgs)
 
 	// Schedule the job
 	err = c.kickOffJob(job, 0)
 	if err != nil {
+		// Clean up if scheduling fails
+		c.tasks.Delete(oneOffKey)
+		c.taskArgs.Delete(oneOffKey)
 		return fmt.Errorf("failed to kick off one-off job: %w", err)
 	}
 
@@ -836,10 +887,10 @@ func (c *CronServiceDefault) createJobRecord(function string, args any) (*models
 		job.Args = string(bytes)
 	}
 
-	result := c.db.Create(&job)
-
-	if result.Error != nil {
-		return nil, result.Error
+	if err := db.RetryableTransaction(c.ctx, c.db, func(tx *gorm.DB) *gorm.DB {
+		return c.db.Create(&job)
+	}); err != nil {
+		return nil, err
 	}
 
 	return &job, nil
