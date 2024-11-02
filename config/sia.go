@@ -11,12 +11,7 @@ var _ Defaults = (*SiaConfig)(nil)
 type SiaConfig struct {
 	Key                string `config:"key"`
 	URL                string `config:"url"`
-	PriceHistoryDays   uint64 `config:"price_history_days"`
-	PriceHistoryDecay  uint64 `config:"price_history_decay"`
-	PriceFetchWorkers  int    `config:"price_fetch_workers"`
-	MaxUploadPrice     string `config:"max_upload_price"`
-	MaxDownloadPrice   string `config:"max_download_price"`
-	MaxStoragePrice    string `config:"max_storage_price"`
+	HostScoreAPIURL    string `config:"host_score_api_url"`
 	MaxContractSCPrice string `config:"max_contract_sc_price"`
 	MaxRPCSCPrice      string `config:"max_rpc_sc_price"`
 }
@@ -25,14 +20,9 @@ func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
 		"key":                   "",
 		"url":                   "",
-		"max_upload_price":      0,
-		"max_download_price":    0,
-		"max_storage_price":     0,
-		"max_rpc_sc_price":      0.1,
+		"host_score_api_url":    "https://api.hostscore.info",
+		"max_rpc_sc_price":      1000,
 		"max_contract_sc_price": 1,
-		"price_history_days":    90,
-		"price_history_decay":   7,
-		"price_fetch_workers":   10,
 	}
 }
 
@@ -42,22 +32,6 @@ func (s SiaConfig) Validate() error {
 	}
 	if s.URL == "" {
 		return errors.New("core.storage.sia.url is required")
-	}
-
-	if s.PriceHistoryDecay > s.PriceHistoryDays {
-		return errors.New("core.storage.sia.price_history_decay must be less than or equal to core.storage.sia.price_history_days")
-	}
-
-	if err := validateStringNumber(s.MaxUploadPrice, "core.storage.sia.max_upload_price"); err != nil {
-		return err
-	}
-
-	if err := validateStringNumber(s.MaxDownloadPrice, "core.storage.sia.max_download_price"); err != nil {
-		return err
-	}
-
-	if err := validateStringNumber(s.MaxStoragePrice, "core.storage.sia.max_storage_price"); err != nil {
-		return err
 	}
 
 	if err := validateStringNumber(s.MaxContractSCPrice, "core.storage.sia.max_contract_sc_price"); err != nil {
