@@ -2,7 +2,6 @@ package renter
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +11,9 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"gorm.io/gorm/clause"
+	"math"
 	"math/big"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -110,48 +111,91 @@ func (p PriceTracker) recordRate(_ core.CronTaskArgs, _ core.Context) error {
 }
 
 func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
-	var averageRateStr sql.NullString
 	days := p.config.Config().Core.Storage.Sia.PriceHistoryDays
+	decay := float64(p.config.Config().Core.Storage.Sia.PriceHistoryDecay)
 
-	var _sql string
-	if p.db.Dialector.Name() == "sqlite" {
-		_sql = `
-        SELECT COALESCE(AVG(rate), '0') as average_rate
-        FROM sc_price_history
-        WHERE created_at >= DATE('now', '-' || ? || ' days')
-        `
-	} else {
-		_sql = `
-        SELECT COALESCE(AVG(rate), '0') as average_rate
-        FROM sc_price_history
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-        `
+	var prices []struct {
+		Rate      string    `gorm:"column:rate"`
+		CreatedAt time.Time `gorm:"column:created_at"`
 	}
 
 	err := db.RetryOnLock(p.db, func(db *gorm.DB) *gorm.DB {
-		return db.Raw(_sql, days).Scan(&averageRateStr)
+		return db.Table("sc_price_history").
+			Select("rate, created_at").
+			Where("created_at >= ?", time.Now().AddDate(0, 0, -int(days))).
+			Order("created_at DESC").
+			Find(&prices)
 	})
 
 	if err != nil {
-		p.logger.Error("failed to fetch average rate", zap.Error(err), zap.Uint64("days", days))
+		p.logger.Error("failed to fetch price history", zap.Error(err))
 		return err
 	}
 
-	if !averageRateStr.Valid || averageRateStr.String == "" {
-		p.logger.Error("average rate is NULL or empty")
-		return errors.New("average rate is NULL or empty")
+	if len(prices) == 0 {
+		p.logger.Error("no price history found")
+		return errors.New("no price history found")
 	}
 
-	averageRate, err := decimal.NewFromString(averageRateStr.String)
-	if err != nil {
-		p.logger.Error("failed to parse average rate", zap.Error(err), zap.String("averageRateStr", averageRateStr.String))
-		return err
+	// First pass: Calculate median and standard deviation
+	var rateValues []float64
+	for _, price := range prices {
+		rate, err := decimal.NewFromString(price.Rate)
+		if err != nil {
+			continue
+		}
+		rateFloat, _ := rate.Float64()
+		rateValues = append(rateValues, rateFloat)
 	}
 
-	if averageRate.Equal(decimal.Zero) {
-		p.logger.Error("average rate is 0")
-		return errors.New("average rate is 0")
+	median := calculateMedian(rateValues)
+	stdDev := calculateStdDev(rateValues, median)
+
+	// Second pass: Calculate weighted average with outlier protection
+	var weightedSum decimal.Decimal
+	var weightSum decimal.Decimal
+	now := time.Now()
+
+	for _, price := range prices {
+		rate, err := decimal.NewFromString(price.Rate)
+		if err != nil {
+			continue
+		}
+
+		rateFloat, _ := rate.Float64()
+
+		// Calculate distance from median in terms of standard deviations
+		zScore := math.Abs(rateFloat-median) / stdDev
+
+		// Exponential decay based on time
+		daysAgo := now.Sub(price.CreatedAt).Hours() / 24
+		timeWeight := math.Exp(-daysAgo / decay)
+
+		// Volatility weight: reduce weight for outliers
+		volatilityWeight := 1.0
+		if zScore > 2 { // More than 2 standard deviations away
+			volatilityWeight = math.Exp(-zScore + 2) // Soft cutoff
+		}
+
+		// Combined weight
+		weight := decimal.NewFromFloat(timeWeight * volatilityWeight)
+
+		weightedSum = weightedSum.Add(rate.Mul(weight))
+		weightSum = weightSum.Add(weight)
 	}
+
+	if weightSum.IsZero() {
+		p.logger.Error("total weight is 0")
+		return errors.New("total weight is 0")
+	}
+
+	weightedRate := weightedSum.Div(weightSum)
+
+	p.logger.Debug("calculated weighted average rate",
+		zap.String("weightedRate", weightedRate.String()),
+		zap.Float64("median", median),
+		zap.Float64("stdDev", stdDev),
+		zap.Int("priceCount", len(prices)))
 
 	ctx := context.Background()
 
@@ -167,7 +211,7 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 		return err
 	}
 
-	maxDownloadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxDownloadPrice, averageRate, "max download price")
+	maxDownloadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxDownloadPrice, weightedRate, "max download price")
 	if err != nil {
 		return err
 	}
@@ -177,7 +221,7 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 		return err
 	}
 
-	maxUploadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxUploadPrice, averageRate, "max upload price")
+	maxUploadPrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxUploadPrice, weightedRate, "max upload price")
 	if err != nil {
 		return err
 	}
@@ -215,7 +259,7 @@ func (p PriceTracker) updatePrices(_ any, _ core.Context) error {
 		return err
 	}
 
-	maxStoragePrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxStoragePrice, averageRate, "max storage price")
+	maxStoragePrice, err := computeByRate(p.config.Config().Core.Storage.Sia.MaxStoragePrice, weightedRate, "max storage price")
 	if err != nil {
 		return err
 	}
@@ -465,4 +509,33 @@ type message struct {
 func (m message) Bytes() []byte {
 	bytes, _ := json.Marshal(m)
 	return bytes
+}
+func calculateMedian(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+
+	sorted := make([]float64, len(values))
+	copy(sorted, values)
+	sort.Float64s(sorted)
+
+	mid := len(sorted) / 2
+	if len(sorted)%2 == 0 {
+		return (sorted[mid-1] + sorted[mid]) / 2
+	}
+	return sorted[mid]
+}
+
+func calculateStdDev(values []float64, mean float64) float64 {
+	if len(values) < 2 {
+		return 0
+	}
+
+	var sumSquares float64
+	for _, v := range values {
+		diff := v - mean
+		sumSquares += diff * diff
+	}
+
+	return math.Sqrt(sumSquares / float64(len(values)-1))
 }
