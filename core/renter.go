@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"go.lumeweb.com/portal/db/models"
+	"go.sia.tech/core/types"
 	"go.sia.tech/renterd/api"
 	"go.sia.tech/renterd/object"
 	"io"
@@ -33,7 +34,14 @@ type RenterService interface {
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
 	GougingSettings(ctx context.Context) (api.GougingSettings, error)
 	RedundancySettings(ctx context.Context) (api.RedundancySettings, error)
+	AutopilotConfig(_ context.Context) (api.AutopilotConfig, error)
+	AutopilotState(_ context.Context) (api.AutopilotStateResponse, error)
+	TestAutoPilotConfig(ctx context.Context, cfg api.AutopilotConfig) (api.ConfigEvaluationResponse, error)
+	TriggerAutoPilot(_ context.Context) (bool, error)
+	AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error
+	GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error)
 	SlabSize(ctx context.Context) (uint64, error)
+	ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error)
 
 	Service
 }

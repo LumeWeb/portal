@@ -10,6 +10,7 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	renterInternal "go.lumeweb.com/portal/service/internal/renter"
 	rhpv2 "go.sia.tech/core/rhp/v2"
+	"go.sia.tech/core/types"
 	"go.sia.tech/renterd/api"
 	autoPilotClient "go.sia.tech/renterd/autopilot"
 	busClient "go.sia.tech/renterd/bus/client"
@@ -62,8 +63,8 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 				return fmt.Errorf("failed to initialize renter service: %w", err)
 			}
 
-			tracker := renterInternal.NewPriceTracker(ctx)
-			err = tracker.Init()
+			manager := renterInternal.NewHostManager(ctx)
+			err = manager.Init()
 
 			if err != nil {
 				return err
@@ -351,6 +352,50 @@ func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancyS
 	}
 
 	return settings, nil
+}
+
+func (r *RenterDefault) AutopilotConfig(_ context.Context) (api.AutopilotConfig, error) {
+	cfg, err := r.autoPilotClient.Config()
+
+	if err != nil {
+		return api.AutopilotConfig{}, err
+	}
+
+	return cfg, nil
+}
+
+func (r *RenterDefault) AutopilotState(_ context.Context) (api.AutopilotStateResponse, error) {
+	return r.autoPilotClient.State()
+}
+
+func (r *RenterDefault) TestAutoPilotConfig(ctx context.Context, cfg api.AutopilotConfig) (api.ConfigEvaluationResponse, error) {
+	gs, err := r.GougingSettings(ctx)
+	if err != nil {
+		return api.ConfigEvaluationResponse{}, err
+	}
+
+	rs, err := r.RedundancySettings(ctx)
+	if err != nil {
+		return api.ConfigEvaluationResponse{}, err
+	}
+
+	return r.autoPilotClient.EvaluateConfig(ctx, cfg, gs, rs)
+}
+
+func (r *RenterDefault) TriggerAutoPilot(_ context.Context) (bool, error) {
+	return r.autoPilotClient.Trigger(true)
+}
+
+func (r *RenterDefault) AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error {
+	return r.busClient.UpdateHostAllowlist(ctx, hosts, nil, false)
+}
+
+func (r *RenterDefault) GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error) {
+	return r.busClient.HostAllowlist(ctx)
+}
+
+func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error) {
+	return r.workerClient.RHPScan(ctx, host, hostIP, 30*time.Second)
 }
 
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {

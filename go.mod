@@ -6,7 +6,6 @@ toolchain go1.23.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.1
-	github.com/LumeWeb/siacentral-api v0.0.0-20240311114304-4ff40c07bce5
 	github.com/adjust/rmq/v5 v5.2.0
 	github.com/aws/aws-sdk-go-v2 v1.32.3
 	github.com/aws/aws-sdk-go-v2/config v1.28.1
@@ -23,7 +22,6 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-viper/mapstructure/v2 v2.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/golang-queue/queue v0.1.4-0.20240914022627-ee5b6a2bee11
 	github.com/google/uuid v1.6.0
 	github.com/gookit/event v1.1.2
 	github.com/gorilla/handlers v1.5.2
@@ -36,7 +34,6 @@ require (
 	github.com/redis/go-redis/v9 v9.6.2
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
-	github.com/shopspring/decimal v1.4.0
 	github.com/tus/tusd/v2 v2.4.0
 	github.com/wneessen/go-mail v0.5.1
 	go.etcd.io/etcd/client/v3 v3.5.16
@@ -69,7 +66,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microsoft/go-mssqldb v1.6.0 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
