@@ -20,6 +20,7 @@ import (
 	"math/rand"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 )
@@ -549,6 +550,9 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 		c.logger.Error("Failed to update job after successful run", zap.Error(err), zap.String("jobID", jobID.String()))
 	}
 
+	// Clean up one-off flag if it exists
+	c.taskRecurring.Delete(job.Function + "_oneoff_" + job.UUID.String())
+
 	if c.isRecurring(job.Function) {
 		if err := c.rescheduleJob(&job); err != nil {
 			c.logger.Error("Failed to reschedule recurring job",
@@ -653,8 +657,21 @@ func (c *CronServiceDefault) jobDone(jobID uuid.UUID) {
 }
 
 func (c *CronServiceDefault) isRecurring(funcName string) bool {
-	_, ok := c.taskRecurring.Load(funcName)
+	// Check if this is a one-off execution
+	if strings.Contains(funcName, "_oneoff_") {
+		baseFunc := strings.Split(funcName, "_oneoff_")[0]
+		_, ok := c.taskRecurring.Load(funcName)
+		if ok {
+			// Clean up the temporary non-recurring flag
+			c.taskRecurring.Delete(funcName)
+			return false
+		}
+		// If not found in temporary store, check the base function
+		_, ok = c.taskRecurring.Load(baseFunc)
+		return ok
+	}
 
+	_, ok := c.taskRecurring.Load(funcName)
 	return ok
 }
 
@@ -747,6 +764,35 @@ func (c *CronServiceDefault) CreateJobIfNotExists(function string, args any) err
 
 	if !exists {
 		return c.CreateJob(function, args)
+	}
+
+	return nil
+}
+
+func (c *CronServiceDefault) CreateRecurringOneOffJob(function string, args any) error {
+	// Check if the function exists
+	_, ok := c.tasks.Load(function)
+	if !ok {
+		return fmt.Errorf("function %s not found", function)
+	}
+
+	if !c.isRecurring(function) {
+		return fmt.Errorf("function %s is not a recurring task", function)
+	}
+
+	// Create a one-time job record
+	job, err := c.createJobRecord(function, args)
+	if err != nil {
+		return fmt.Errorf("failed to create job record: %w", err)
+	}
+
+	// Force the job to be non-recurring for this execution
+	c.taskRecurring.Store(function+"_oneoff_"+job.UUID.String(), false)
+
+	// Schedule the job
+	err = c.kickOffJob(job, 0)
+	if err != nil {
+		return fmt.Errorf("failed to kick off one-off job: %w", err)
 	}
 
 	return nil

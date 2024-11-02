@@ -23,6 +23,7 @@ type CronService interface {
 	CreateJobScheduled(function string, args any) error
 	CreateExistingJobScheduled(uuid uuid.UUID) error
 	CreateJobIfNotExists(function string, args any) error
+	CreateRecurringOneOffJob(function string, args any) error
 
 	Start() error
 	Service
