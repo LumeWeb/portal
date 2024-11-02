@@ -12,6 +12,7 @@ type SiaConfig struct {
 	Key                string `config:"key"`
 	URL                string `config:"url"`
 	PriceHistoryDays   uint64 `config:"price_history_days"`
+	PriceHistoryDecay  uint64 `config:"price_history_decay"`
 	PriceFetchWorkers  int    `config:"price_fetch_workers"`
 	MaxUploadPrice     string `config:"max_upload_price"`
 	MaxDownloadPrice   string `config:"max_download_price"`
@@ -30,6 +31,7 @@ func (s SiaConfig) Defaults() map[string]interface{} {
 		"max_rpc_sc_price":      0.1,
 		"max_contract_sc_price": 1,
 		"price_history_days":    90,
+		"price_history_decay":   7,
 		"price_fetch_workers":   10,
 	}
 }
@@ -40,6 +42,10 @@ func (s SiaConfig) Validate() error {
 	}
 	if s.URL == "" {
 		return errors.New("core.storage.sia.url is required")
+	}
+
+	if s.PriceHistoryDecay > s.PriceHistoryDays {
+		return errors.New("core.storage.sia.price_history_decay must be less than or equal to core.storage.sia.price_history_days")
 	}
 
 	if err := validateStringNumber(s.MaxUploadPrice, "core.storage.sia.max_upload_price"); err != nil {
