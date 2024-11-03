@@ -1,6 +1,7 @@
 package renter
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,8 +30,10 @@ const (
 	hostsPerBatch             = 50 // Number of hosts to scan at once
 	blocksPerMonth            = 30 * 144
 	decimalsInSiacoin         = 28
-	maxRetries                = 3               // Maximum number of retry attempts
-	retryDelay                = 5 * time.Second // Delay between retry attempts
+	maxRetries                = 3                // Maximum number of retry attempts
+	retryDelay                = 5 * time.Second  // Delay between retry attempts
+	scanTimeout               = 30 * time.Minute // Maximum time to wait for scan completion
+	scanCheckInterval         = 15 * time.Second // How often to check scan status
 )
 
 // Host represents a Sia host with its settings and metadata
@@ -81,7 +84,7 @@ func (s *HostScanner) ScanForHosts(ctx core.Context) error {
 		return fmt.Errorf("failed to get autopilot config: %w", err)
 	}
 
-	requiredHosts := int(float64(cfg.Contracts.Amount) * recommendedHostMultiplier)
+	requiredHosts := uint64(float64(cfg.Contracts.Amount) * recommendedHostMultiplier)
 	if requiredHosts == 0 {
 		logger.Info("No hosts required based on current configuration")
 		return nil
@@ -93,7 +96,25 @@ func (s *HostScanner) ScanForHosts(ctx core.Context) error {
 	}
 
 	// Process hosts in batches until we have enough
-	return s.processHostBatches(ctx, cfg, requiredHosts)
+	canidates, err := s.processHostBatches(ctx, requiredHosts)
+	if err != nil {
+		return err
+	}
+
+	// Wait for any existing scan to complete and trigger a new one
+	if err := s.manageScan(ctx); err != nil {
+		return fmt.Errorf("failed to manage autopilot scan: %w", err)
+	}
+
+	// Log the final price settings
+	gougingSettings, err := s.renter.GougingSettings(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fetch final gouging settings: %w", err)
+	}
+
+	s.logPriceSettings(logger, gougingSettings, canidates)
+
+	return nil
 }
 
 // scanSingleHost attempts to scan a single host
@@ -170,14 +191,15 @@ func (s *HostScanner) scanHostsBatch(ctx core.Context, hosts []Host) []ScanResul
 	wg.Wait()
 	return results
 }
-func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConfig, requiredHosts int) error {
+
+func (s *HostScanner) processHostBatches(ctx core.Context, requiredHosts uint64) (uint64, error) {
 	logger := ctx.Logger()
 	page := 1
 
 	// Get initial gouging settings to use as base
 	baseSettings, err := s.renter.GougingSettings(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch base gouging settings: %w", err)
+		return 0, fmt.Errorf("failed to fetch base gouging settings: %w", err)
 	}
 
 	priceTracking := NewPriceTracking(baseSettings)
@@ -185,7 +207,7 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 	// Get initial allowlisted hosts
 	allowlistedHosts, err := s.renter.GetAllowlistedHosts(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get allowlisted hosts: %w", err)
+		return 0, fmt.Errorf("failed to get allowlisted hosts: %w", err)
 	}
 
 	// Track existing and scanned hosts
@@ -199,11 +221,11 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 		// Fetch one batch of hosts
 		hosts, err := s.fetchHostsPage(ctx, page)
 		if err != nil {
-			return fmt.Errorf("failed to fetch hosts page %d: %w", page, err)
+			return 0, fmt.Errorf("failed to fetch hosts page %d: %w", page, err)
 		}
 
 		if len(hosts) == 0 {
-			return fmt.Errorf("ran out of hosts to scan, only found %d usable hosts", priceTracking.validHostsCount)
+			return 0, fmt.Errorf("ran out of hosts to scan, only found %d usable hosts", priceTracking.validHostsCount)
 		}
 
 		// Filter for non-blocked hosts
@@ -227,7 +249,7 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 			})
 
 			if err := s.renter.AddHostsToAllowlist(ctx, newHostKeys); err != nil {
-				return fmt.Errorf("failed to update host allowlist: %w", err)
+				return 0, fmt.Errorf("failed to update host allowlist: %w", err)
 			}
 
 			// Update tracking
@@ -265,56 +287,57 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 				zap.Int("scannedSuccessfully", successfulScans))
 		}
 
-		// Compute current prices for logging only
-		currentSettings := priceTracking.ComputeFinalPrices()
-		s.logPriceSettings(logger, currentSettings, priceTracking.validHostsCount)
+		// Update gouging settings for this batch
+		newGougingCfg := priceTracking.ComputeFinalPrices()
 
-		// Test if we have enough hosts
-		usableHosts, err := s.renter.Hosts(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to test autopilot config: %w", err)
+		// Wait for any existing AP scan and trigger a new one
+		if err := s.manageScan(ctx); err != nil {
+			return 0, fmt.Errorf("failed to manage autopilot scan: %w", err)
 		}
 
-		if (len(usableHosts)) >= requiredHosts {
-			logger.Info("Found enough usable hosts, updating final gouging settings",
-				zap.Int("usable", len(usableHosts)),
-				zap.Int("required", requiredHosts))
+		// Log current price settings
+		s.logPriceSettings(logger, newGougingCfg, priceTracking.validHostsCount)
 
-			// Now that we have enough hosts, update the gouging settings
-			finalSettings := priceTracking.ComputeFinalPrices()
-			if err := s.renter.UpdateGougingSettings(ctx, finalSettings); err != nil {
-				return fmt.Errorf("failed to update final gouging settings: %w", err)
-			}
+		evalResp, err := s.renter.TestAutoPilotConfig(ctx, newGougingCfg)
+		if err != nil {
+			return 0, fmt.Errorf("failed to test autopilot config: %w", err)
+		}
 
-			// Trigger final autopilot scan
-			if _, err = s.renter.TriggerAutoPilot(ctx); err != nil {
-				return fmt.Errorf("failed to trigger autopilot scan: %w", err)
-			}
+		usableHostCount := evalResp.Usable
 
-			return nil
+		if usableHostCount >= requiredHosts {
+			logger.Info("Found enough usable hosts",
+				zap.Uint64("usable", usableHostCount),
+				zap.Uint64("required", requiredHosts))
+			return usableHostCount, nil
 		}
 
 		logger.Info("Need more hosts, continuing search",
-			zap.Int("usableHosts", len(usableHosts)),
-			zap.Int("required", requiredHosts))
+			zap.Uint64("usableHosts", usableHostCount),
+			zap.Uint64("required", requiredHosts))
 
 		page++
 	}
 }
 
-func (s *HostScanner) logPriceSettings(logger *core.Logger, settings api.GougingSettings, totalHosts int) {
+func (s *HostScanner) logPriceSettings(logger *core.Logger, settings api.GougingSettings, totalHosts uint64) {
+	// Calculate storage price in SC/TB/Month
 	storagePrice := siacoinsToRat(settings.MaxStoragePrice)
 	storagePrice = ratMultiply(storagePrice, blocksPerMonth)
 	storagePrice = ratMultiply(storagePrice, units.TB)
 
+	// Calculate bandwidth prices in SC/TB
 	downloadPrice := siacoinsToRat(settings.MaxDownloadPrice)
+	downloadPrice = ratMultiply(downloadPrice, units.TB)
+
 	uploadPrice := siacoinsToRat(settings.MaxUploadPrice)
+	uploadPrice = ratMultiply(uploadPrice, units.TB)
 
 	logger.Info("Current price settings",
-		zap.Int("totalHostsConsidered", totalHosts),
-		zap.String("storagePrice_SC_TB_Month", storagePrice.FloatString(decimalsInSiacoin)),
-		zap.String("downloadPrice_SC_TB", downloadPrice.FloatString(decimalsInSiacoin)),
-		zap.String("uploadPrice_SC_TB", uploadPrice.FloatString(decimalsInSiacoin)))
+		zap.Uint64("hosts.total", totalHosts),
+		zap.String("price.storage.sctbmonth", storagePrice.FloatString(decimalsInSiacoin)),
+		zap.String("price.download.sctb", downloadPrice.FloatString(decimalsInSiacoin)),
+		zap.String("price.upload.sctb", uploadPrice.FloatString(decimalsInSiacoin)))
 }
 
 func (s *HostScanner) setupGougingSettings(ctx core.Context) error {
@@ -448,6 +471,66 @@ func (s *HostScanner) fetchHostsPage(ctx core.Context, page int) ([]Host, error)
 	}
 
 	return hostResponse.Hosts, nil
+}
+
+func (s *HostScanner) manageScan(ctx core.Context) error {
+	logger := ctx.Logger()
+
+	// First check if a scan is already running
+	state, err := s.renter.AutopilotState(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get autopilot state: %w", err)
+	}
+
+	// If already scanning, wait for completion
+	if state.Scanning {
+		logger.Info("Existing autopilot scan in progress, waiting for completion")
+		if err := s.waitForScanCompletion(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Trigger new scan
+	logger.Info("Triggering new autopilot scan")
+	if _, err := s.renter.TriggerAutoPilot(ctx); err != nil {
+		return fmt.Errorf("failed to trigger autopilot scan: %w", err)
+	}
+
+	// Wait for the new scan to complete
+	logger.Info("Waiting for new scan to complete")
+	if err := s.waitForScanCompletion(ctx); err != nil {
+		return err
+	}
+
+	logger.Info("Autopilot scan completed successfully")
+	return nil
+}
+
+func (s *HostScanner) waitForScanCompletion(ctx core.Context) error {
+	logger := ctx.Logger()
+	timeoutCtx, cancel := context.WithTimeout(ctx, scanTimeout)
+	defer cancel()
+
+	ticker := time.NewTicker(scanCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeoutCtx.Done():
+			return fmt.Errorf("timeout waiting for scan completion: %w", timeoutCtx.Err())
+		case <-ticker.C:
+			state, err := s.renter.AutopilotState(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get autopilot state: %w", err)
+			}
+
+			if !state.Scanning {
+				return nil
+			}
+
+			logger.Debug("Waiting for scan completion")
+		}
+	}
 }
 
 func newRat(num string, name string) (*big.Rat, error) {

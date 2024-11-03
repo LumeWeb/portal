@@ -36,7 +36,7 @@ type RenterService interface {
 	RedundancySettings(ctx context.Context) (api.RedundancySettings, error)
 	AutopilotConfig(_ context.Context) (api.AutopilotConfig, error)
 	AutopilotState(_ context.Context) (api.AutopilotStateResponse, error)
-	TestAutoPilotConfig(ctx context.Context, cfg api.AutopilotConfig) (api.ConfigEvaluationResponse, error)
+	TestAutoPilotConfig(ctx context.Context, gs api.GougingSettings) (api.ConfigEvaluationResponse, error)
 	TriggerAutoPilot(_ context.Context) (bool, error)
 	AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error
 	GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error)
