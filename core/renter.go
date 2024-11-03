@@ -42,6 +42,7 @@ type RenterService interface {
 	GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error)
 	SlabSize(ctx context.Context) (uint64, error)
 	ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error)
+	Hosts(ctx context.Context) ([]api.Host, error)
 
 	Service
 }
