@@ -270,14 +270,14 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 		s.logPriceSettings(logger, currentSettings, priceTracking.validHostsCount)
 
 		// Test if we have enough hosts
-		evalResp, err := s.renter.TestAutoPilotConfig(ctx, cfg)
+		usableHosts, err := s.renter.Hosts(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to test autopilot config: %w", err)
 		}
 
-		if evalResp.Usable >= uint64(requiredHosts) {
+		if (len(usableHosts)) >= requiredHosts {
 			logger.Info("Found enough usable hosts, updating final gouging settings",
-				zap.Uint64("usable", evalResp.Usable),
+				zap.Int("usable", len(usableHosts)),
 				zap.Int("required", requiredHosts))
 
 			// Now that we have enough hosts, update the gouging settings
@@ -295,7 +295,7 @@ func (s *HostScanner) processHostBatches(ctx core.Context, cfg api.AutopilotConf
 		}
 
 		logger.Info("Need more hosts, continuing search",
-			zap.Uint64("usableHosts", evalResp.Usable),
+			zap.Int("usableHosts", len(usableHosts)),
 			zap.Int("required", requiredHosts))
 
 		page++

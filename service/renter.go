@@ -398,6 +398,14 @@ func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, host
 	return r.workerClient.RHPScan(ctx, host, hostIP, 30*time.Second)
 }
 
+func (r *RenterDefault) Hosts(ctx context.Context) ([]api.Host, error) {
+	return r.busClient.SearchHosts(ctx, api.SearchHostOptions{
+		Limit:         -1,
+		FilterMode:    "allowed",
+		UsabilityMode: "usable",
+	})
+}
+
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 	var settings api.RedundancySettings
 	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
