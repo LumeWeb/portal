@@ -26,11 +26,11 @@ import (
 
 const (
 	recommendedHostMultiplier = 1.5
-	scanCheckInterval         = 10 * time.Second
-	scanTimeout               = 30 * time.Minute
 	hostsPerBatch             = 50 // Number of hosts to scan at once
 	blocksPerMonth            = 30 * 144
 	decimalsInSiacoin         = 28
+	maxRetries                = 3               // Maximum number of retry attempts
+	retryDelay                = 5 * time.Second // Delay between retry attempts
 )
 
 // Host represents a Sia host with its settings and metadata
@@ -59,6 +59,7 @@ type ScanResult struct {
 	PublicKey types.PublicKey
 	Success   bool
 	Error     error
+	Attempts  int
 }
 
 func NewHostScanner(ctx core.Context) *HostScanner {
@@ -100,16 +101,36 @@ func (s *HostScanner) scanSingleHost(ctx core.Context, hostKey types.PublicKey, 
 	result := ScanResult{
 		PublicKey: hostKey,
 		Success:   false,
+		Attempts:  0,
 	}
 
-	// Try to scan the host
-	_, err := s.renter.ScanHost(ctx, hostKey, hostIP)
-	if err != nil {
-		result.Error = fmt.Errorf("failed to scan host %v: %w", hostKey, err)
-		return result
+	// Implement retry logic
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		result.Attempts = attempt
+
+		// Try to scan the host
+		_, err := s.renter.ScanHost(ctx, hostKey, hostIP)
+		if err == nil {
+			result.Success = true
+			return result
+		}
+
+		// Log the retry attempt
+		if attempt < maxRetries {
+			s.logger.Debug("Host scan failed, retrying",
+				zap.String("hostKey", hostKey.String()),
+				zap.Int("attempt", attempt),
+				zap.Error(err))
+
+			// Wait before retrying
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		// Final attempt failed
+		result.Error = fmt.Errorf("failed to scan host after %d attempts: %w", maxRetries, err)
 	}
 
-	result.Success = true
 	return result
 }
 
@@ -134,12 +155,14 @@ func (s *HostScanner) scanHostsBatch(ctx core.Context, hosts []Host) []ScanResul
 			mutex.Unlock()
 
 			if result.Error != nil {
-				s.logger.Debug("Host scan failed",
+				s.logger.Debug("Host scan failed after all retries",
 					zap.String("hostKey", h.PublicKey.String()),
+					zap.Int("attempts", result.Attempts),
 					zap.Error(result.Error))
 			} else {
 				s.logger.Debug("Host scan completed",
-					zap.String("hostKey", h.PublicKey.String()))
+					zap.String("hostKey", h.PublicKey.String()),
+					zap.Int("attempts", result.Attempts))
 			}
 		}(host)
 	}
