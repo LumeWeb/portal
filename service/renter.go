@@ -394,18 +394,6 @@ func (r *RenterDefault) GetAllowlistedHosts(ctx context.Context) ([]types.Public
 	return r.busClient.HostAllowlist(ctx)
 }
 
-func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error) {
-	return r.workerClient.RHPScan(ctx, host, hostIP, 30*time.Second)
-}
-
-func (r *RenterDefault) Hosts(ctx context.Context) ([]api.Host, error) {
-	return r.busClient.SearchHosts(ctx, api.SearchHostOptions{
-		Limit:         -1,
-		FilterMode:    "allowed",
-		UsabilityMode: "usable",
-	})
-}
-
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 	var settings api.RedundancySettings
 	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
@@ -415,4 +403,32 @@ func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 	}
 
 	return uint64(settings.MinShards * rhpv2.SectorSize), nil
+}
+
+func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error) {
+	return r.workerClient.RHPScan(ctx, host, hostIP, 30*time.Second)
+}
+
+func (r *RenterDefault) Hosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.Host, error) {
+	return r.busClient.SearchHosts(ctx, api.SearchHostOptions{
+		Limit:         -1,
+		FilterMode:    string(filterMode),
+		UsabilityMode: string(usabilityMode),
+	})
+}
+
+func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {
+	return r.busClient.Host(ctx, host)
+}
+
+func (r *RenterDefault) AutopilotHosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.HostResponse, error) {
+	return r.autoPilotClient.HostInfos(ctx, string(filterMode), string(usabilityMode), "", nil, 0, -1)
+}
+
+func (r *RenterDefault) ConsensusState(ctx context.Context) (api.ConsensusState, error) {
+	return r.busClient.ConsensusState(ctx)
+}
+
+func (r *RenterDefault) RecommendedFee(ctx context.Context) (types.Currency, error) {
+	return r.busClient.RecommendedFee(ctx)
 }
