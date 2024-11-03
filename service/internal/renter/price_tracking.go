@@ -11,7 +11,7 @@ type PriceTracking struct {
 	maxStoragePrice types.Currency
 	maxUploadPrice  types.Currency
 	downloadPrices  []types.Currency
-	validHostsCount int
+	validHostsCount uint64
 	baseSettings    api.GougingSettings // Store the base settings
 }
 
@@ -47,7 +47,7 @@ func (pt *PriceTracking) UpdatePrices(hosts []Host) {
 		pt.downloadPrices = append(pt.downloadPrices, downloadTotal)
 	}
 
-	pt.validHostsCount += len(hosts)
+	pt.validHostsCount += uint64(len(hosts))
 }
 
 func (pt *PriceTracking) ComputeFinalPrices() api.GougingSettings {

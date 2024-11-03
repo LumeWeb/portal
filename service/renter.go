@@ -368,8 +368,8 @@ func (r *RenterDefault) AutopilotState(_ context.Context) (api.AutopilotStateRes
 	return r.autoPilotClient.State()
 }
 
-func (r *RenterDefault) TestAutoPilotConfig(ctx context.Context, cfg api.AutopilotConfig) (api.ConfigEvaluationResponse, error) {
-	gs, err := r.GougingSettings(ctx)
+func (r *RenterDefault) TestAutoPilotConfig(ctx context.Context, gs api.GougingSettings) (api.ConfigEvaluationResponse, error) {
+	ap, err := r.AutopilotConfig(ctx)
 	if err != nil {
 		return api.ConfigEvaluationResponse{}, err
 	}
@@ -379,7 +379,7 @@ func (r *RenterDefault) TestAutoPilotConfig(ctx context.Context, cfg api.Autopil
 		return api.ConfigEvaluationResponse{}, err
 	}
 
-	return r.autoPilotClient.EvaluateConfig(ctx, cfg, gs, rs)
+	return r.autoPilotClient.EvaluateConfig(ctx, ap, gs, rs)
 }
 
 func (r *RenterDefault) TriggerAutoPilot(_ context.Context) (bool, error) {
