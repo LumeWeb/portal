@@ -20,6 +20,23 @@ type MultipartUploadParams struct {
 	FileName      string
 	Size          uint64
 }
+
+type RenterHostFilterMode string
+
+const (
+	RenterHostFilterModeAll     RenterHostFilterMode = "all"
+	RenterHostFilterModeAllowed RenterHostFilterMode = "allowed"
+	RenterHostFilterModeBlocked RenterHostFilterMode = "blocked"
+)
+
+type RenterHostUsabilityMode string
+
+const (
+	RenterHostUsabilityModeAll      RenterHostUsabilityMode = "all"
+	RenterHostUsabilityModeUsable   RenterHostUsabilityMode = "usable"
+	RenterHostUsabilityModeUnusable RenterHostUsabilityMode = "unusable"
+)
+
 type RenterService interface {
 	CreateBucketIfNotExists(bucket string) error
 	UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error
@@ -42,7 +59,11 @@ type RenterService interface {
 	GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error)
 	SlabSize(ctx context.Context) (uint64, error)
 	ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error)
-	Hosts(ctx context.Context) ([]api.Host, error)
+	Hosts(ctx context.Context, usabilityMode RenterHostUsabilityMode, filterMode RenterHostFilterMode) ([]api.Host, error)
+	Host(ctx context.Context, host types.PublicKey) (api.Host, error)
+	AutopilotHosts(ctx context.Context, usabilityMode RenterHostUsabilityMode, filterMode RenterHostFilterMode) ([]api.HostResponse, error)
+	ConsensusState(ctx context.Context) (api.ConsensusState, error)
+	RecommendedFee(ctx context.Context) (types.Currency, error)
 
 	Service
 }

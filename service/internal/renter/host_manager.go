@@ -65,5 +65,6 @@ func (t *HostManager) ScheduleJobs(crn core.CronService) error {
 
 // updateHosts is the cron task handler that delegates to the scanner
 func (t *HostManager) updateHosts(_ core.CronTaskArgs, ctx core.Context) error {
+	t.ctx.Logger().Info("Starting host scan job")
 	return t.scanner.ScanForHosts(ctx)
 }
