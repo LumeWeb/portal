@@ -321,23 +321,19 @@ func (s *HostScanner) processHostBatches(ctx core.Context, requiredHosts uint64)
 }
 
 func (s *HostScanner) logPriceSettings(logger *core.Logger, settings api.GougingSettings, totalHosts uint64) {
-	// Calculate storage price in SC/TB/Month
 	storagePrice := siacoinsToRat(settings.MaxStoragePrice)
 	storagePrice = ratMultiply(storagePrice, blocksPerMonth)
 	storagePrice = ratMultiply(storagePrice, units.TB)
 
-	// Calculate bandwidth prices in SC/TB
 	downloadPrice := siacoinsToRat(settings.MaxDownloadPrice)
-	downloadPrice = ratMultiply(downloadPrice, units.TB)
-
 	uploadPrice := siacoinsToRat(settings.MaxUploadPrice)
-	uploadPrice = ratMultiply(uploadPrice, units.TB)
+
 
 	logger.Info("Current price settings",
 		zap.Uint64("hosts.total", totalHosts),
-		zap.String("price.storage.sctbmonth", storagePrice.FloatString(decimalsInSiacoin)),
-		zap.String("price.download.sctb", downloadPrice.FloatString(decimalsInSiacoin)),
-		zap.String("price.upload.sctb", uploadPrice.FloatString(decimalsInSiacoin)))
+		zap.String("price.storage", storagePrice.FloatString(decimalsInSiacoin)),
+		zap.String("price.download", downloadPrice.FloatString(decimalsInSiacoin)),
+		zap.String("price.upload", uploadPrice.FloatString(decimalsInSiacoin)))
 }
 
 func (s *HostScanner) setupGougingSettings(ctx core.Context) error {
