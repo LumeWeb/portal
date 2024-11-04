@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.42
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.66.2
 	github.com/casbin/casbin/v2 v2.100.0
-	github.com/casbin/gorm-adapter/v3 v3.28.0
+	github.com/casbin/gorm-adapter/v3 v3.29.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.6
 	github.com/getkin/kin-openapi v0.128.0
@@ -89,7 +89,7 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	google.golang.org/grpc v1.67.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
-	gorm.io/driver/postgres v1.5.7 // indirect
+	gorm.io/driver/postgres v1.5.9 // indirect
 	gorm.io/driver/sqlserver v1.5.3 // indirect
 	gorm.io/plugin/dbresolver v1.3.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
