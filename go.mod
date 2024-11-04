@@ -43,7 +43,7 @@ require (
 	go.sia.tech/coreutils v0.3.3-0.20240927170025-f45eedc64d6f
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
-	go.uber.org/zap/exp v0.2.0
+	go.uber.org/zap/exp v0.3.0
 	golang.org/x/crypto v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.4
