@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"crypto/ed25519"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"go.lumeweb.com/portal/core"
@@ -15,22 +16,63 @@ type UserIdContextKeyType string
 
 type FindAuthTokenFunc func(r *http.Request) string
 
-func FindAuthToken(r *http.Request, cookieName string, queryParam string) string {
-	authHeader := ParseAuthTokenHeader(r.Header)
-
-	if authHeader != "" {
-		return authHeader
+func FindAuthToken(r *http.Request, secretKey ed25519.PrivateKey, cookieName string, queryParam string) string {
+	// Check Authorization header first
+	if token := ParseAuthTokenHeader(r.Header); token != "" {
+		if isValidJWT(token, secretKey) {
+			return token
+		}
 	}
 
-	if cookie, err := r.Cookie(cookieName); cookie != nil && err == nil {
+	// Check primary cookie
+	if cookie, err := r.Cookie(cookieName); err == nil && cookie != nil {
+		if isValidJWT(cookie.Value, secretKey) {
+			return cookie.Value
+		}
+	}
+
+	// Check fallback cookie
+	if cookie, err := r.Cookie(core.AUTH_COOKIE_NAME); err == nil && cookie != nil {
+		if isValidJWT(cookie.Value, secretKey) {
+			return cookie.Value
+		}
+	}
+
+	// Check query param last
+	if token := r.FormValue(queryParam); token != "" {
+		if isValidJWT(token, secretKey) {
+			return token
+		}
+	}
+
+	// If no valid token found, return the first non-empty token we find
+	if token := ParseAuthTokenHeader(r.Header); token != "" {
+		return token
+	}
+	if cookie, err := r.Cookie(cookieName); err == nil && cookie != nil {
 		return cookie.Value
 	}
-
-	if cookie, err := r.Cookie(core.AUTH_COOKIE_NAME); cookie != nil && err == nil {
+	if cookie, err := r.Cookie(core.AUTH_COOKIE_NAME); err == nil && cookie != nil {
 		return cookie.Value
 	}
+	if token := r.FormValue(queryParam); token != "" {
+		return token
+	}
 
-	return r.FormValue(queryParam)
+	return ""
+}
+
+func isValidJWT(tokenString string, secretKey ed25519.PrivateKey) bool {
+	var claims jwt.RegisteredClaims
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		return secretKey.Public(), nil
+	}, jwt.WithValidMethods([]string{"EdDSA"}))
+
+	if err != nil {
+		return false
+	}
+
+	return token.Valid
 }
 
 func ParseAuthTokenHeader(headers http.Header) string {
@@ -63,7 +105,7 @@ func AuthMiddleware(options AuthMiddlewareOptions) func(http.Handler) http.Handl
 
 	if options.FindToken == nil {
 		options.FindToken = func(r *http.Request) string {
-			return FindAuthToken(r, core.AUTH_COOKIE_NAME, core.AUTH_TOKEN_NAME)
+			return FindAuthToken(r, config.Config().Core.Identity.PrivateKey(), core.AUTH_COOKIE_NAME, core.AUTH_TOKEN_NAME)
 		}
 	}
 
