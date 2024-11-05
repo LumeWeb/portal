@@ -3,7 +3,6 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"time"
 )
 
@@ -36,7 +35,7 @@ type Info struct {
 	Architecture string    `json:"architecture"`
 }
 
-var Default BuildInfo = New(Version, GitCommit, GitBranch, BuildTime)
+var Default BuildInfo = New(Version, GitCommit, GitBranch, BuildTime, GoVersion, Platform, Architecture)
 
 func (i *Info) GetCommit() string {
 	if GitCommit == "" {
@@ -64,15 +63,15 @@ func (i *Info) GetVersion() string {
 }
 
 func (i *Info) GetGoVersion() string {
-	return runtime.Version()
+	return i.GoVersion
 }
 
 func (i *Info) GetPlatform() string {
-	return runtime.GOOS
+	return i.Platform
 }
 
 func (i *Info) GetArchitecture() string {
-	return runtime.GOARCH
+	return i.Architecture
 }
 
 func (i *Info) IsRelease() bool {
@@ -99,15 +98,7 @@ func (i *Info) JSON() (string, error) {
 }
 
 func (i *Info) Info() Info {
-	return Info{
-		Version:      i.GetVersion(),
-		GitCommit:    i.GetCommit(),
-		GitBranch:    i.GetBranch(),
-		BuildTime:    i.GetBuildTime(),
-		GoVersion:    i.GetGoVersion(),
-		Platform:     i.GetPlatform(),
-		Architecture: i.GetArchitecture(),
-	}
+	return *i
 }
 
 // Convenience package-level functions
@@ -131,16 +122,19 @@ func IsRelease() bool {
 	return Default.IsRelease()
 }
 
-func New(version, commit, branch, buildTime string) BuildInfo {
+func New(version, commit, branch, buildTime, goVersion, platform, architecture string) BuildInfo {
 	var bTime time.Time
 	if buildTime != "" {
 		bTime, _ = time.Parse(time.RFC3339, buildTime)
 	}
 
 	return &Info{
-		Version:   version,
-		GitCommit: commit,
-		GitBranch: branch,
-		BuildTime: bTime,
+		Version:      version,
+		GitCommit:    commit,
+		GitBranch:    branch,
+		BuildTime:    bTime,
+		GoVersion:    goVersion,
+		Platform:     platform,
+		Architecture: architecture,
 	}
 }
