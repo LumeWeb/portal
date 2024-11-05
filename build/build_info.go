@@ -13,7 +13,6 @@ type BuildInfo interface {
 	GetCommit() string
 	GetBranch() string
 	GetBuildTime() time.Time
-	GetBuildHost() string
 	GetGoVersion() string
 	GetPlatform() string
 	GetArchitecture() string
@@ -30,7 +29,6 @@ type Info struct {
 	GitCommit    string    `json:"gitCommit"`
 	GitBranch    string    `json:"gitBranch"`
 	BuildTime    time.Time `json:"buildTime"`
-	BuildHost    string    `json:"buildHost"`
 	GoVersion    string    `json:"goVersion"`
 	Platform     string    `json:"platform"`
 	Architecture string    `json:"architecture"`
@@ -67,13 +65,6 @@ func (b *build) GetBuildTime() time.Time {
 	}
 	t, _ := time.Parse(time.RFC3339, BuildTime)
 	return t
-}
-
-func (b *build) GetBuildHost() string {
-	if BuildHost == "" {
-		return "unknown"
-	}
-	return BuildHost
 }
 
 func (b *build) GetGoVersion() string {
@@ -117,7 +108,6 @@ func (b *build) Info() Info {
 		GitCommit:    b.GetCommit(),
 		GitBranch:    b.GetBranch(),
 		BuildTime:    b.GetBuildTime(),
-		BuildHost:    b.GetBuildHost(),
 		GoVersion:    b.GetGoVersion(),
 		Platform:     b.GetPlatform(),
 		Architecture: b.GetArchitecture(),
