@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var _ BuildInfo = &Info{}
+
 // BuildInfo defines the interface for build information
 type BuildInfo interface {
 	GetVersion() string
@@ -34,83 +36,77 @@ type Info struct {
 	Architecture string    `json:"architecture"`
 }
 
-type build struct{}
+var Default BuildInfo = New(Version, GitCommit, GitBranch, BuildTime)
 
-var Default BuildInfo = &build{}
-
-func (b *build) GetVersion() string {
-	if Version == "" {
-		return "develop"
-	}
-	return Version
-}
-
-func (b *build) GetCommit() string {
+func (i *Info) GetCommit() string {
 	if GitCommit == "" {
 		return "unknown"
 	}
 	return GitCommit
 }
 
-func (b *build) GetBranch() string {
+func (i *Info) GetBranch() string {
 	if GitBranch == "" {
 		return "unknown"
 	}
 	return GitBranch
 }
 
-func (b *build) GetBuildTime() time.Time {
-	if BuildTime == "" {
-		return time.Time{}
-	}
-	t, _ := time.Parse(time.RFC3339, BuildTime)
-	return t
+func (i *Info) GetBuildTime() time.Time {
+	return i.BuildTime
 }
 
-func (b *build) GetGoVersion() string {
+func (i *Info) GetVersion() string {
+	if Version == "" {
+		return "develop"
+	}
+	return Version
+}
+
+func (i *Info) GetGoVersion() string {
 	return runtime.Version()
 }
 
-func (b *build) GetPlatform() string {
+func (i *Info) GetPlatform() string {
 	return runtime.GOOS
 }
 
-func (b *build) GetArchitecture() string {
+func (i *Info) GetArchitecture() string {
 	return runtime.GOARCH
 }
 
-func (b *build) IsRelease() bool {
-	return b.GetVersion() != "develop" && b.GetCommit() != "unknown"
+func (i *Info) IsRelease() bool {
+	return i.GetVersion() != "develop" && i.GetCommit() != "unknown"
 }
 
-func (b *build) String() string {
+func (i *Info) String() string {
 	return fmt.Sprintf("%s-%s (%s)",
-		b.GetVersion(),
-		b.GetCommit()[:8],
-		b.GetBuildTime().Format(time.RFC3339))
+		i.GetVersion(),
+		i.GetCommit()[:8],
+		i.GetBuildTime().Format(time.RFC3339))
 }
 
-func (b *build) Short() string {
-	return fmt.Sprintf("%s-%s", b.GetVersion(), b.GetCommit()[:8])
+func (i *Info) Short() string {
+	return fmt.Sprintf("%s-%s", i.GetVersion(), i.GetCommit()[:8])
 }
 
-func (b *build) JSON() (string, error) {
-	data, err := json.MarshalIndent(b.Info(), "", "  ")
+func (i *Info) JSON() (string, error) {
+	data, err := json.MarshalIndent(i.Info(), "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal build info: %w", err)
 	}
 	return string(data), nil
 }
 
-func (b *build) Info() Info {
+func (i *Info) Info() Info {
 	return Info{
-		Version:      b.GetVersion(),
-		GitCommit:    b.GetCommit(),
-		GitBranch:    b.GetBranch(),
-		BuildTime:    b.GetBuildTime(),
-		GoVersion:    b.GetGoVersion(),
-		Platform:     b.GetPlatform(),
-		Architecture: b.GetArchitecture(),
+		Version:      i.GetVersion(),
+		GitCommit:    i.GetCommit(),
+		GitBranch:    i.GetBranch(),
+		BuildTime:    i.GetBuildTime(),
+		GoVersion:    i.GetGoVersion(),
+		Platform:     i.GetPlatform(),
+		Architecture: i.GetArchitecture(),
 	}
 }
 
@@ -133,4 +129,18 @@ func JSON() (string, error) {
 
 func IsRelease() bool {
 	return Default.IsRelease()
+}
+
+func New(version, commit, branch, buildTime string) BuildInfo {
+	var bTime time.Time
+	if buildTime != "" {
+		bTime, _ = time.Parse(time.RFC3339, buildTime)
+	}
+
+	return &Info{
+		Version:   version,
+		GitCommit: commit,
+		GitBranch: branch,
+		BuildTime: bTime,
+	}
 }
