@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/gorilla/mux"
+	"go.lumeweb.com/portal/build"
 	_ "go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/internal"
 	"gorm.io/gorm"
@@ -20,6 +21,7 @@ type DBMigration func(*gorm.DB) error
 
 type PluginInfo struct {
 	ID              string
+	Version         build.BuildInfo
 	Meta            func(Context, PortalMetaBuilder) error
 	API             func() (API, []ContextBuilderOption, error)
 	Protocol        func() (Protocol, []ContextBuilderOption, error)

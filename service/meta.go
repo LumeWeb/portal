@@ -1,25 +1,27 @@
+// File: service/meta.go
 package service
 
 import (
+	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/core"
 	"strings"
 )
 
 var _ core.PortalMetaBuilder = (*PortalMetaBuilderDefault)(nil)
 
-// PortalMetaBuilderDefault is a builder for PortalMeta
+// PortalMetaBuilderDefault implements core.PortalMetaBuilder
 type PortalMetaBuilderDefault struct {
-	portalMeta core.PortalMeta
-	plugins    core.PortalMetaPlugins
+	meta *core.PortalMeta
 }
 
 // NewPortalMetaBuilder creates a new PortalMetaBuilderDefault
 func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
 	return &PortalMetaBuilderDefault{
-		portalMeta: core.PortalMeta{
+		meta: &core.PortalMeta{
 			Domain:       domain,
+			Plugins:      make(core.PortalMetaPlugins),
 			FeatureFlags: make(map[string]bool),
-			Plugins:      make(map[string]core.PortalMetaPlugin),
+			Build:        build.GetInfo(),
 		},
 	}
 }
@@ -30,26 +32,41 @@ func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.P
 	key = strings.ReplaceAll(key, ".", "_")
 	key = strings.ReplaceAll(key, " ", "_")
 	key = strings.ReplaceAll(key, "-", "_")
-	b.portalMeta.FeatureFlags[key] = value
+	b.meta.FeatureFlags[key] = value
 	return b
 }
 
-// AddPlugin adds a plugin without meta
+// AddPlugin adds a plugin without build info
 func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder {
-	if _, exists := b.portalMeta.Plugins[key]; !exists {
-		b.portalMeta.Plugins[key] = core.PortalMetaPlugin{Meta: make(map[string]any)}
+	if _, exists := b.meta.Plugins[key]; !exists {
+		b.meta.Plugins[key] = core.PortalMetaPlugin{
+			Meta: make(map[string]any),
+		}
+	}
+	return b
+}
+
+// AddPluginWithBuild adds a plugin with build info
+func (b *PortalMetaBuilderDefault) AddPluginWithBuild(key string, buildInfo build.Info) core.PortalMetaBuilder {
+	if _, exists := b.meta.Plugins[key]; !exists {
+		b.meta.Plugins[key] = core.PortalMetaPlugin{
+			Meta:  make(map[string]any),
+			Build: buildInfo,
+		}
 	}
 	return b
 }
 
 // AddPluginMeta adds or updates meta for a plugin
 func (b *PortalMetaBuilderDefault) AddPluginMeta(pluginKey string, metaKey string, metaValue any) core.PortalMetaBuilder {
-	b.AddPlugin(pluginKey) // Ensure the plugin exists
-	b.portalMeta.Plugins[pluginKey].Meta[metaKey] = metaValue
+	if plugin, exists := b.meta.Plugins[pluginKey]; exists {
+		plugin.Meta[metaKey] = metaValue
+		b.meta.Plugins[pluginKey] = plugin
+	}
 	return b
 }
 
-// Build returns the built PortalMeta and PortalMetaPlugins
+// Build returns the built PortalMeta
 func (b *PortalMetaBuilderDefault) Build() *core.PortalMeta {
-	return &b.portalMeta
+	return b.meta
 }
