@@ -1,5 +1,11 @@
 # [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
 
+## 0.3.2
+
+### Patch Changes
+
+- fd503f1: dont pass nil as a second argument
+
 ## 0.3.1
 
 ### Patch Changes
