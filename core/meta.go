@@ -16,8 +16,8 @@ type PortalMeta struct {
 type PortalMetaPlugins = map[string]PortalMetaPlugin
 
 type PortalMetaPlugin struct {
-	Meta  map[string]any `json:"meta"`
 	Build build.Info     `json:"build,omitempty"` // Plugin build info
+	Meta  map[string]any `json:"meta"`
 }
 
 // PortalMetaBuilder interface for building portal metadata
