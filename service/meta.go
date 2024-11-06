@@ -19,9 +19,9 @@ func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
 	return &PortalMetaBuilderDefault{
 		meta: &core.PortalMeta{
 			Domain:       domain,
+			Build:        build.GetInfo(),
 			Plugins:      make(core.PortalMetaPlugins),
 			FeatureFlags: make(map[string]bool),
-			Build:        build.GetInfo(),
 		},
 	}
 }
