@@ -1,7 +1,7 @@
 {
     "name": "@lumeweb/portal",
     "private": true,
-    "version": "0.3.0",
+    "version": "0.3.1",
     "devDependencies": {
         "@changesets/cli": "^2.27.1"
     },
