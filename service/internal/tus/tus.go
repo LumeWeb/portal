@@ -541,5 +541,5 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallba
 	}
 }
 func loggerToSlog(logger *core.Logger) *slog.Logger {
-	return slog.New(zapslog.NewHandler(logger.Core(), nil))
+	return slog.New(zapslog.NewHandler(logger.Core()))
 }
