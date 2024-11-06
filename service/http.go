@@ -111,7 +111,11 @@ func (h *HTTPServiceDefault) apiMetaHandler(w http.ResponseWriter, r *http.Reque
 	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
 
 	for _, plugin := range core.GetPlugins() {
-		metaBuilder.AddPlugin(plugin.ID)
+		if plugin.Version != nil {
+			metaBuilder.AddPluginWithBuild(plugin.ID, plugin.Version.Info())
+		} else {
+			metaBuilder.AddPlugin(plugin.ID)
+		}
 	}
 
 	for _, plugin := range core.GetPlugins() {
