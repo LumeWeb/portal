@@ -1,5 +1,50 @@
 # [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
 
+## 0.3.0
+
+### Minor Changes
+
+- 1347612: ---
+
+  # Release Notes
+
+  ## Major Features
+
+  - **Host Scanner Integration** 🔍
+    - Implemented host scanner with hostscore.info API integration
+    - Added advanced host scanning and price optimization capabilities
+    - Introduced retry support on host scanning operations
+
+  ## Renter System Improvements
+
+  - **Host Management**
+    - Added new Hosts method for direct usable host querying
+    - Improved host scanning and autopilot testing
+
+  ## System Enhancements
+
+  - **Authentication**
+
+    - Enhanced JWT token validation with ED25519
+
+  - **Build System**
+
+    - Added build information system
+    - Restructured build info implementation
+    - Externalized platform detection
+    - Removed build host
+
+  - **Cron Jobs**
+    - Added support for one-off jobs without interfering with primary jobs
+    - Improved one-off job handling and cleanup mechanism
+
+  ## Dependencies Updates
+
+  - Upgraded various dependencies:
+    - github.com/gabriel-vasile/mimetype to 1.4.6
+    - github.com/casbin/gorm-adapter/v3 to 3.29.0
+    - go.uber.org/zap/exp to 0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
