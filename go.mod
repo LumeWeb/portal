@@ -20,7 +20,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.9.0
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/go-viper/mapstructure/v2 v2.0.0
+	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/event v1.1.2
@@ -28,7 +28,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/jamestrandung/go-concurrency/v2 v2.0.3
 	github.com/knadh/koanf v1.5.0
-	github.com/knadh/koanf/v2 v2.1.1
+	github.com/knadh/koanf/v2 v2.1.2
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.4.0
