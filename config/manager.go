@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
@@ -40,6 +41,8 @@ const (
 	serviceSectionSpecifier = "plugin.%s.service.%s"
 
 	mapStructureTag = "config"
+
+	ENV_PREFIX = "PORTAL_"
 )
 
 var (
@@ -130,6 +133,17 @@ func (m *ManagerDefault) Init() error {
 			return fmt.Errorf("failed to save config changes: %w", err)
 		}
 	} else {
+		envConfig := koanf.New(".")
+		err = envConfig.Load(m.getEnvProvider("core"), nil)
+		if err != nil {
+			return err
+		}
+
+		err = m.config.Merge(coreCfg)
+		if err != nil {
+			return err
+		}
+
 		err = m.config.MergeAt(coreCfg, "core")
 		if err != nil {
 			return err
@@ -157,6 +171,18 @@ func (m *ManagerDefault) Init() error {
 	}
 
 	return nil
+}
+
+func (m *ManagerDefault) getEnvProvider(prefix string) *env.Env {
+	prefix = strings.ToUpper(prefix)
+	prefix = strings.Replace(prefix, ".", "_", -1)
+	prefix = strings.Replace(prefix, "-", "_", -1)
+	prefix = ENV_PREFIX + prefix + "_"
+
+	return env.Provider(prefix, ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, prefix)), "_", ".", -1)
+	})
 }
 
 func (m *ManagerDefault) initLiveUpdates() error {
@@ -494,7 +520,6 @@ func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectio
 	case sectionKindProtocol:
 		configPath = path.Join(basePath, PluginsDir, pluginName, ProtoDir, SectionConfigFile)
 		target = GetProtoSectionSpecifier(pluginName)
-
 	}
 
 	err = config.Load(file.Provider(configPath), yaml.Parser())
@@ -504,6 +529,17 @@ func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectio
 		}
 
 		return nil
+	}
+
+	envConfig := koanf.New(".")
+	err = envConfig.Load(m.getEnvProvider(target), nil)
+	if err != nil {
+		return err
+	}
+
+	err = config.Merge(envConfig)
+	if err != nil {
+		return err
 	}
 
 	err = m.config.MergeAt(config, target)
