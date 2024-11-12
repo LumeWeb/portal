@@ -44,6 +44,7 @@ type RenterDefault struct {
 	config          config.Manager
 	db              *gorm.DB
 	logger          *core.Logger
+	clientManager   *renterInternal.ClientManager
 }
 
 func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
@@ -82,8 +83,12 @@ func (r *RenterDefault) ID() string {
 }
 
 func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
-	_, err := r.busClient.Bucket(context.Background(), bucket)
+	client, err := r.getBusClient()
+	if err != nil {
+		return err
+	}
 
+	_, err = client.Bucket(context.Background(), bucket)
 	if err == nil {
 		return nil
 	}
@@ -92,7 +97,7 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 		return err
 	}
 
-	err = r.busClient.CreateBucket(context.Background(), bucket, api.CreateBucketOptions{
+	err = client.CreateBucket(context.Background(), bucket, api.CreateBucketOptions{
 		Policy: api.BucketPolicy{
 			PublicReadAccess: false,
 		},
@@ -105,8 +110,13 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 }
 
 func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
+	client, err := r.getWorkerClient()
+	if err != nil {
+		return err
+	}
+
 	fileName = "/" + strings.TrimLeft(fileName, "/")
-	_, err := r.workerClient.UploadObject(ctx, file, bucket, fileName, api.UploadObjectOptions{})
+	_, err = client.UploadObject(ctx, file, bucket, fileName, api.UploadObjectOptions{})
 
 	if err != nil {
 		return err
@@ -124,42 +134,91 @@ func (r *RenterDefault) ImportObjectMetadata(ctx context.Context, bucket string,
 }
 
 func (r *RenterDefault) init() error {
-	addr := r.config.Config().Core.Storage.Sia.URL
-	passwd := r.config.Config().Core.Storage.Sia.Key
-
-	addrURL, err := url.Parse(addr)
-
-	if err != nil {
-		return err
+	r.clientManager = renterInternal.NewClientManager(r.ctx)
+	if err := r.clientManager.Start(); err != nil {
+		return fmt.Errorf("failed to start client manager: %w", err)
 	}
 
-	addrURL.Path = "/api/worker"
+	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+		addr := r.config.Config().Core.Storage.Sia.URL
+		passwd := r.config.Config().Core.Storage.Sia.Key
 
-	r.workerClient = workerClient.New(addrURL.String(), passwd)
+		if passwd == "" {
+			return errors.New("core.storage.sia.key is required")
+		}
 
-	addrURL.Path = "/api/bus"
+		addrURL, err := url.Parse(addr)
+		if err != nil {
+			return err
+		}
 
-	r.busClient = busClient.New(addrURL.String(), passwd)
+		addrURL.Path = "/api/worker"
+		r.workerClient = workerClient.New(addrURL.String(), passwd)
 
-	addrURL.Path = "/api/autopilot"
+		addrURL.Path = "/api/bus"
+		r.busClient = busClient.New(addrURL.String(), passwd)
 
-	r.autoPilotClient = autoPilotClient.NewClient(addrURL.String(), passwd)
+		addrURL.Path = "/api/autopilot"
+		r.autoPilotClient = autoPilotClient.NewClient(addrURL.String(), passwd)
 
-	_, stateErr := r.busClient.State()
-	if stateErr != nil {
-		return fmt.Errorf("renter status check: failed to get renter state: %w", stateErr)
+		_, stateErr := r.busClient.State()
+		if stateErr != nil {
+			return fmt.Errorf("renter status check: failed to get renter state: %w", stateErr)
+		}
 	}
 
 	return nil
 }
 
+func (r *RenterDefault) getBusClient() (*busClient.Client, error) {
+	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+		if r.busClient == nil {
+			return nil, fmt.Errorf("bus client not initialized")
+		}
+		return r.busClient, nil
+	}
+
+	node, err := r.clientManager.GetNextNode(renterInternal.ClientTypeBus)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bus node: %w", err)
+	}
+
+	client := busClient.New(node.URL, r.config.Config().Core.Storage.Sia.Key)
+	return client, nil
+}
+
+func (r *RenterDefault) getWorkerClient() (*workerClient.Client, error) {
+	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+		if r.workerClient == nil {
+			return nil, fmt.Errorf("worker client not initialized")
+		}
+		return r.workerClient, nil
+	}
+
+	node, err := r.clientManager.GetNextNode(renterInternal.ClientTypeWorker)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker node: %w", err)
+	}
+
+	client := workerClient.New(node.URL, r.config.Config().Core.Storage.Sia.Key)
+	return client, nil
+}
+
 func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+	client, err := r.getWorkerClient()
+	if err != nil {
+		return nil, err
+	}
 	fileName = "/" + strings.TrimLeft(fileName, "/")
-	return r.workerClient.GetObject(ctx, bucket, fileName, options)
+	return client.GetObject(ctx, bucket, fileName, options)
 }
 
 func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error) {
-	ret, err := r.busClient.Object(ctx, bucket, fileName, api.GetObjectOptions{})
+	client, err := r.getBusClient()
+	if err != nil {
+		return nil, err
+	}
+	ret, err := client.Object(ctx, bucket, fileName, api.GetObjectOptions{})
 
 	if err != nil {
 		return nil, err
@@ -169,11 +228,19 @@ func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fi
 }
 
 func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error {
-	return r.busClient.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
+	client, err := r.getBusClient()
+	if err != nil {
+		return err
+	}
+	return client.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
 }
 
 func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any) error {
-	err := r.busClient.Setting(ctx, setting, out)
+	client, err := r.getBusClient()
+	if err != nil {
+		return err
+	}
+	err = client.Setting(ctx, setting, out)
 
 	if err != nil {
 		return err
@@ -236,7 +303,11 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 	}
 
 	if len(uploadId) == 0 {
-		upload, err := r.busClient.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{GenerateKey: true})
+		client, err := r.getBusClient()
+		if err != nil {
+			return err
+		}
+		upload, err := client.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{GenerateKey: true})
 		if err != nil {
 			return err
 		}
@@ -249,7 +320,11 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 			return err
 		}
 	} else {
-		existing, err := r.busClient.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
+		client, err := r.getBusClient()
+		if err != nil {
+			return err
+		}
+		existing, err := client.MultipartUploadParts(ctx, bucket, fileName, uploadId, 0, 0)
 
 		if err != nil {
 			uploadId = ""
@@ -291,7 +366,11 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 		opts := api.UploadMultipartUploadPartOptions{}
 		opts.EncryptionOffset = &offset
 
-		ret, err := r.workerClient.UploadMultipartUploadPart(ctx, lr, bucket, fileName, uploadId, partNumber, opts)
+		client, err := r.getWorkerClient()
+		if err != nil {
+			return err
+		}
+		ret, err := client.UploadMultipartUploadPart(ctx, lr, bucket, fileName, uploadId, partNumber, opts)
 		if err != nil {
 			return err
 		}
@@ -310,7 +389,11 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 		}
 	}
 
-	_, err = r.busClient.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts, api.CompleteMultipartOptions{})
+	client, err := r.getBusClient()
+	if err != nil {
+		return err
+	}
+	_, err = client.CompleteMultipartUpload(ctx, bucket, fileName, uploadId, uploadParts, api.CompleteMultipartOptions{})
 	if err != nil {
 		return err
 	}
@@ -387,11 +470,19 @@ func (r *RenterDefault) TriggerAutoPilot(_ context.Context) (bool, error) {
 }
 
 func (r *RenterDefault) AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error {
-	return r.busClient.UpdateHostAllowlist(ctx, hosts, nil, false)
+	client, err := r.getBusClient()
+	if err != nil {
+		return err
+	}
+	return client.UpdateHostAllowlist(ctx, hosts, nil, false)
 }
 
 func (r *RenterDefault) GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error) {
-	return r.busClient.HostAllowlist(ctx)
+	client, err := r.getBusClient()
+	if err != nil {
+		return nil, err
+	}
+	return client.HostAllowlist(ctx)
 }
 
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
@@ -406,11 +497,19 @@ func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 }
 
 func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error) {
-	return r.workerClient.RHPScan(ctx, host, hostIP, 30*time.Second)
+	client, err := r.getWorkerClient()
+	if err != nil {
+		return api.RHPScanResponse{}, err
+	}
+	return client.RHPScan(ctx, host, hostIP, 30*time.Second)
 }
 
 func (r *RenterDefault) Hosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.Host, error) {
-	return r.busClient.SearchHosts(ctx, api.SearchHostOptions{
+	client, err := r.getBusClient()
+	if err != nil {
+		return nil, err
+	}
+	return client.SearchHosts(ctx, api.SearchHostOptions{
 		Limit:         -1,
 		FilterMode:    string(filterMode),
 		UsabilityMode: string(usabilityMode),
@@ -418,7 +517,11 @@ func (r *RenterDefault) Hosts(ctx context.Context, usabilityMode core.RenterHost
 }
 
 func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {
-	return r.busClient.Host(ctx, host)
+	client, err := r.getBusClient()
+	if err != nil {
+		return api.Host{}, err
+	}
+	return client.Host(ctx, host)
 }
 
 func (r *RenterDefault) AutopilotHosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.HostResponse, error) {
@@ -426,9 +529,17 @@ func (r *RenterDefault) AutopilotHosts(ctx context.Context, usabilityMode core.R
 }
 
 func (r *RenterDefault) ConsensusState(ctx context.Context) (api.ConsensusState, error) {
-	return r.busClient.ConsensusState(ctx)
+	client, err := r.getBusClient()
+	if err != nil {
+		return api.ConsensusState{}, err
+	}
+	return client.ConsensusState(ctx)
 }
 
 func (r *RenterDefault) RecommendedFee(ctx context.Context) (types.Currency, error) {
-	return r.busClient.RecommendedFee(ctx)
+	client, err := r.getBusClient()
+	if err != nil {
+		return types.Currency{}, err
+	}
+	return client.RecommendedFee(ctx)
 }

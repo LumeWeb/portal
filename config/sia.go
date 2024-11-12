@@ -27,9 +27,7 @@ func (s SiaConfig) Defaults() map[string]interface{} {
 }
 
 func (s SiaConfig) Validate() error {
-	if s.Key == "" {
-		return errors.New("core.storage.sia.key is required")
-	}
+
 	if s.URL == "" {
 		return errors.New("core.storage.sia.url is required")
 	}
