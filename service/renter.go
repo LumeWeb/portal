@@ -139,14 +139,11 @@ func (r *RenterDefault) init() error {
 		return fmt.Errorf("failed to start client manager: %w", err)
 	}
 
-	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+	clusterEnabled := r.ctx.Config().Config().Core.ClusterEnabled() && r.ctx.Config().Config().Core.Storage.Sia.Cluster
+
+	if !clusterEnabled {
 		addr := r.config.Config().Core.Storage.Sia.URL
 		passwd := r.config.Config().Core.Storage.Sia.Key
-
-		if passwd == "" {
-			return errors.New("core.storage.sia.key is required")
-		}
-
 		addrURL, err := url.Parse(addr)
 		if err != nil {
 			return err

@@ -11,6 +11,7 @@ var _ Defaults = (*SiaConfig)(nil)
 type SiaConfig struct {
 	Key                string `config:"key"`
 	URL                string `config:"url"`
+	Cluster            bool   `config:"cluster"`
 	HostScoreAPIURL    string `config:"host_score_api_url"`
 	MaxContractSCPrice string `config:"max_contract_sc_price"`
 	MaxRPCSCPrice      string `config:"max_rpc_sc_price"`
@@ -19,6 +20,7 @@ type SiaConfig struct {
 func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
 		"key":                   "",
+		"cluster":               false,
 		"url":                   "",
 		"host_score_api_url":    "https://api.hostscore.info",
 		"max_rpc_sc_price":      1000,
@@ -27,8 +29,11 @@ func (s SiaConfig) Defaults() map[string]interface{} {
 }
 
 func (s SiaConfig) Validate() error {
+	if s.Key == "" {
+		return errors.New("core.storage.sia.key is required")
+	}
 
-	if s.URL == "" {
+	if s.Cluster && s.URL == "" {
 		return errors.New("core.storage.sia.url is required")
 	}
 
