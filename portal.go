@@ -2,6 +2,7 @@ package portal
 
 import (
 	"errors"
+	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -9,7 +10,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"
-	"reflect"
 	"sync"
 )
 
@@ -246,48 +246,15 @@ func (p *PortalImpl) registerAPIs(ctx core.Context) (ctxOpts []core.ContextBuild
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initModels(ctx core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
-	plugins := core.GetPlugins()
-
-	models := make([]interface{}, 0)
-	for _, plugin := range plugins {
-		if plugin.Models != nil && len(plugin.Models) > 0 {
-			for _, model := range plugin.Models {
-				typ := reflect.TypeOf(model)
-				if typ.Kind() != reflect.Ptr {
-					ctx.Logger().Error("Model must be a pointer", zap.String("model", typ.Name()))
-					return nil, core.ErrInvalidModel
-				}
-			}
-			models = append(models, plugin.Models...)
-		}
-	}
-
-	migrations := make([]core.DBMigration, 0)
-	for _, plugin := range plugins {
-		if plugin.Migrations != nil && len(plugin.Migrations) > 0 {
-			migrations = append(migrations, plugin.Migrations...)
-		}
-	}
-
+func (p *PortalImpl) initModels(_ core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
 	ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
-		for _, model := range models {
-			typ := reflect.TypeOf(model)
-			// Get the underlying type if it's a pointer
-			if typ.Kind() == reflect.Ptr {
-				typ = typ.Elem()
-			}
-			if err = dbInst.AutoMigrate(model); err != nil {
-				ctx.Logger().Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
-				return err
-			}
+		migrationManager, err := NewMigrationManager(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create migration manager: %w", err)
 		}
 
-		for _, migration := range migrations {
-			if err = migration(p.ctx.DB()); err != nil {
-				ctx.Logger().Error("Error running migration", zap.Error(err))
-				return err
-			}
+		if err = migrationManager.RunMigrations(dbInst); err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
 		}
 
 		return nil
