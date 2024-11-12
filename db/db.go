@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"log"
@@ -65,9 +64,6 @@ func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 	}
 
 	ctxOpts := []core.ContextBuilderOption{
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			return db.AutoMigrate(models.GetModels()...)
-		}),
 		core.ContextWithDB(db),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
 			sqlDB, err := db.DB()
