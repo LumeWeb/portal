@@ -36,7 +36,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
 	github.com/tus/tusd/v2 v2.4.0
-	github.com/wneessen/go-mail v0.5.1
+	github.com/wneessen/go-mail v0.5.2
 	go.etcd.io/etcd/client/v3 v3.5.16
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
 	go.sia.tech/core v0.4.7
