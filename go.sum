@@ -128,8 +128,8 @@ github.com/bsm/gomega v1.27.10/go.mod h1:JyEr/xRbxbtgWNi8tIEVPUYZ5Dzef52k01W3YH0
 github.com/casbin/casbin/v2 v2.57.0/go.mod h1:vByNa/Fchek0KZUgG5wEsl7iFsiviAYKRtgrQfcJqHg=
 github.com/casbin/casbin/v2 v2.100.0 h1:aeugSNjjHfCrgA22nHkVvw2xsscboHv5r0a13ljQKGQ=
 github.com/casbin/casbin/v2 v2.100.0/go.mod h1:LO7YPez4dX3LgoTCqSQAleQDo0S0BeZBDxYnPUl95Ng=
-github.com/casbin/gorm-adapter/v3 v3.29.0 h1:MpbF5JVFYOwVGaTkvwDNUV4k+5CYwAu6v83ofZHRfvM=
-github.com/casbin/gorm-adapter/v3 v3.29.0/go.mod h1:C0Ew2tNYtdvDK1f+yEiKZt8XL0fcaurQhOHgxMSBM54=
+github.com/casbin/gorm-adapter/v3 v3.32.0 h1:Au+IOILBIE9clox5BJhI2nA3p9t7Ep1ePlupdGbGfus=
+github.com/casbin/gorm-adapter/v3 v3.32.0/go.mod h1:Zre/H8p17mpv5U3EaWgPoxLILLdXO3gHW5aoQQpUDZI=
 github.com/casbin/govaluate v1.2.0 h1:wXCXFmqyY+1RwiKfYo3jMKyrtZmOL3kHwaqDyCPOYak=
 github.com/casbin/govaluate v1.2.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
