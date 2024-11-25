@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.28.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.44
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.67.0
-	github.com/casbin/casbin/v2 v2.100.0
+	github.com/casbin/casbin/v2 v2.101.0
 	github.com/casbin/gorm-adapter/v3 v3.32.0
 	github.com/docker/go-units v0.5.0
 	github.com/gabriel-vasile/mimetype v1.4.6
