@@ -27,6 +27,7 @@ import (
 const (
 	CLUSTER_CONFIG_KEY = "config"
 	FLAG_SYNC          = "sync"
+	FLAG_VOLATILE     = "volatile"
 	CONFIG_EXTENSION   = ".yaml"
 
 	CoreConfigFile    = "core" + CONFIG_EXTENSION
@@ -219,29 +220,37 @@ func (m *ManagerDefault) initClusterWatcher() error {
 
 func (m *ManagerDefault) handleConfigChanges() {
 	for update := range m.updateChan {
-		if m.shouldSyncKey(update.Key) {
-			m.lock.Lock()
-			err := m.config.Set(update.Key, update.Value)
-			if err != nil {
-				m.logger.Error("Failed to update local config", zap.Error(err))
-				continue
-			}
-
-			if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
-				err = m.saveClusterSpace(update.Key, true)
-				if err != nil {
-					m.logger.Error("Failed to save to cluster space", zap.Error(err))
-				}
-			}
-
-			err = m.reconfigureSection(update.Key)
-			if err != nil {
-				return
-			}
-
-			m.lock.Unlock()
-			m.notifyConfigChangeCallbacks(update.Key, update.Value)
+		// Skip updates to volatile configs from cluster sync
+		if m.isVolatile(update.Key) {
+			continue
 		}
+
+		if !m.shouldSyncKey(update.Key) {
+			continue
+		}
+
+		m.lock.Lock()
+		err := m.config.Set(update.Key, update.Value)
+		if err != nil {
+			m.logger.Error("Failed to update local config", zap.Error(err))
+			continue
+		}
+
+		// Only save to cluster space if not volatile
+		if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil && !m.isVolatile(update.Key) {
+			err = m.saveClusterSpace(update.Key, true)
+			if err != nil {
+				m.logger.Error("Failed to save to cluster space", zap.Error(err))
+			}
+		}
+
+		err = m.reconfigureSection(update.Key)
+		if err != nil {
+			return
+		}
+
+		m.lock.Unlock()
+		m.notifyConfigChangeCallbacks(update.Key, update.Value)
 	}
 }
 
@@ -825,7 +834,21 @@ func (m *ManagerDefault) maybeSave() error {
 		return nil
 	}
 
-	m.changedSections = lo.Uniq(m.changedSections)
+	// Filter out volatile sections
+	persistentSections := make([]string, 0)
+	for _, section := range m.changedSections {
+		if !m.isVolatile(section) {
+			persistentSections = append(persistentSections, section)
+		}
+	}
+
+	m.changedSections = lo.Uniq(persistentSections)
+
+	// If no persistent sections changed, skip saving
+	if len(m.changedSections) == 0 {
+		m.changes = false
+		return nil
+	}
 
 	if err := m.saveCoreConfig(); err != nil {
 		return err
@@ -954,13 +977,17 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 			key = strings.ReplaceAll(key, "/", ".")
 			fullKey := prefix + "." + key
 
+			// Skip volatile configs when loading from etcd
+			if m.isVolatile(fullKey) {
+				continue
+			}
+
 			if !m.shouldSyncKey(fullKey) {
 				continue
 			}
 
 			value := string(kv.Value)
 
-			// Attempt to parse the value as needed
 			var parsedValue interface{}
 			if err := m.parseValue(value, &parsedValue); err != nil {
 				m.logger.Warn("Failed to parse value, using as string", zap.String("key", fullKey), zap.Error(err))
@@ -1028,7 +1055,13 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 		subConfig := m.config.Cut(prefix)
 
 		for k, v := range subConfig.All() {
-			if !m.shouldSyncKey(prefix + "." + k) {
+			fullKey := prefix + "." + k
+			// Skip volatile configs
+			if m.isVolatile(fullKey) {
+				continue
+			}
+
+			if !m.shouldSyncKey(fullKey) {
 				continue
 			}
 
@@ -1245,4 +1278,8 @@ func processStruct(obj any) bool {
 	}
 
 	return false
+}
+
+func (m *ManagerDefault) isVolatile(key string) bool {
+	return lo.Contains(m.flags[key], FLAG_VOLATILE)
 }
