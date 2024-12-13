@@ -23,38 +23,6 @@ import (
 	"sync"
 )
 
-// Constants
-const (
-	CLUSTER_CONFIG_KEY = "config"
-	FLAG_SYNC          = "sync"
-	FLAG_VOLATILE     = "volatile"
-	CONFIG_EXTENSION   = ".yaml"
-
-	CoreConfigFile    = "core" + CONFIG_EXTENSION
-	SectionConfigFile = "default" + CONFIG_EXTENSION
-	PluginsDir        = "plugins.d"
-	ProtoDir          = "proto.d"
-	ServiceDir        = "service.d"
-	APIDir            = "api.d"
-
-	protoSectionSpecifier   = "plugin.%s.protocol"
-	apiSectionSpecifier     = "plugin.%s.api"
-	serviceSectionSpecifier = "plugin.%s.service.%s"
-
-	mapStructureTag = "config"
-
-	ENV_PREFIX = "PORTAL_"
-)
-
-var (
-	configDirPaths = []string{
-		"/etc/lumeweb/portal",
-		"$HOME/.lumeweb/portal",
-		"./portal.yaml",
-		"./",
-	}
-)
-
 type sectionKind int
 
 const (
@@ -62,6 +30,11 @@ const (
 	sectionKindService
 	sectionKindProtocol
 )
+
+type ConfigUpdate struct {
+	Key   string
+	Value any
+}
 
 type FieldProcessor func(parent *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error
 
@@ -76,10 +49,6 @@ type ManagerDefault struct {
 	logger          *zap.Logger
 	configFile      string
 	updateChan      chan ConfigUpdate
-}
-type ConfigUpdate struct {
-	Key   string
-	Value any
 }
 
 var _ Manager = (*ManagerDefault)(nil)
