@@ -64,9 +64,6 @@ func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {
 				return fmt.Errorf("failed to initialize renter service: %w", err)
 			}
 
-			manager := renterInternal.NewHostManager(ctx)
-			err = manager.Init()
-
 			if err != nil {
 				return err
 			}
