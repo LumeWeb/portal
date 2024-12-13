@@ -86,7 +86,11 @@ func (i *Info) String() string {
 }
 
 func (i *Info) Short() string {
-	return fmt.Sprintf("%s-%s", i.GetVersion(), i.GetCommit()[:8])
+	commit := i.GetCommit()
+	if len(commit) > 8 {
+		commit = commit[:8]
+	}
+	return fmt.Sprintf("%s-%s", i.GetVersion(), commit)
 }
 
 func (i *Info) JSON() (string, error) {
