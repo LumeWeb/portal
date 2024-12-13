@@ -109,7 +109,7 @@ func (m *ManagerDefault) Init() error {
 			return err
 		}
 
-		err = m.config.Merge(coreCfg)
+		err = coreCfg.Merge(envConfig)
 		if err != nil {
 			return err
 		}
