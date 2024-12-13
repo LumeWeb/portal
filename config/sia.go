@@ -9,22 +9,16 @@ var _ Validator = (*SiaConfig)(nil)
 var _ Defaults = (*SiaConfig)(nil)
 
 type SiaConfig struct {
-	Key                string `config:"key"`
-	URL                string `config:"url"`
-	Cluster            bool   `config:"cluster"`
-	HostScoreAPIURL    string `config:"host_score_api_url"`
-	MaxContractSCPrice string `config:"max_contract_sc_price"`
-	MaxRPCSCPrice      string `config:"max_rpc_sc_price"`
+	Key     string `config:"key"`
+	URL     string `config:"url"`
+	Cluster bool   `config:"cluster"`
 }
 
 func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
-		"key":                   "",
-		"cluster":               false,
-		"url":                   "",
-		"host_score_api_url":    "https://api.hostscore.info",
-		"max_rpc_sc_price":      1000,
-		"max_contract_sc_price": 1,
+		"key":     "",
+		"cluster": false,
+		"url":     "",
 	}
 }
 
@@ -37,13 +31,6 @@ func (s SiaConfig) Validate() error {
 		return errors.New("core.storage.sia.url is required")
 	}
 
-	if err := validateStringNumber(s.MaxContractSCPrice, "core.storage.sia.max_contract_sc_price"); err != nil {
-		return err
-	}
-
-	if err := validateStringNumber(s.MaxRPCSCPrice, "core.storage.sia.max_rpc_sc_price"); err != nil {
-		return err
-	}
 	return nil
 }
 
