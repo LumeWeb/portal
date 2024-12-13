@@ -182,7 +182,7 @@ require (
 replace (
 	github.com/go-co-op/gocron-redis-lock/v2 v2.0.1 => github.com/LumeWeb/gocron-redis-lock/v2 v2.0.0-20240722104549-387206078839
 	github.com/go-co-op/gocron/v2 v2.9.0 => github.com/LumeWeb/gocron/v2 v2.0.0-20240814201336-2d361739e9be
-	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20240603224933-c63fee0297e6
+	github.com/go-viper/mapstructure/v2 v2.0.0 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20241213212524-92525f5828be
 	github.com/gorilla/mux v1.8.1 => github.com/cornejong/gormux v0.0.0-20240526072501-ce1c97b033ec
 	github.com/tus/tusd/v2 v2.4.0 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20241020013555-e29b4c6c01b7
 	gorm.io/plugin/dbresolver v1.3.0 => gorm.io/plugin/dbresolver v1.5.3
