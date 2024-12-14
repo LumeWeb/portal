@@ -1,4 +1,4 @@
-package main
+package portal_embed
 
 import (
 	"context"
