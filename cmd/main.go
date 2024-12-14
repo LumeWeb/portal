@@ -1,7 +1,9 @@
 package portalcmd
 
 import (
+	"context"
 	"go.lumeweb.com/portal"
+	"go.lumeweb.com/portal/cmd/internal/cli"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -9,7 +11,17 @@ import (
 )
 
 func Main() {
+	// Initialize CLI first
+	command := cli.NewPortalCLI()
+	if len(os.Args) > 1 {
+		ctx := context.Background()
+		if err := command.Run(ctx, os.Args); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
 
+	// Continue with normal portal initialization
 	cfg, err := config.NewManager()
 	logger := core.NewLogger(cfg)
 	if err != nil {
