@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/urfave/cli/v3"
 	"go.lumeweb.com/portal/build"
-	portalcmd "go.lumeweb.com/portal/cmd"
+	"go.lumeweb.com/portal/cmd/internal/portal"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -36,8 +36,7 @@ func NewPortalCLI() *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			portalcmd.Main()
-			return nil
+			return portal.StartServer()
 		},
 	}
 }

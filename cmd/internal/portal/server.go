@@ -1,4 +1,4 @@
-package portalcmd
+package portal
 
 import (
 	"go.lumeweb.com/portal"
@@ -8,18 +8,19 @@ import (
 	"os"
 )
 
-func Main() {
+func StartServer() error {
 	// Continue with normal portal initialization
 	cfg, err := config.NewManager()
 	logger := core.NewLogger(cfg)
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))
+		return err
 	}
 
 	ctx, err := core.NewContext(cfg, logger)
-
 	if err != nil {
 		logger.Fatal("Failed to create context", zap.Error(err))
+		return err
 	}
 
 	core.RegisterServicesFromPlugins()
@@ -27,6 +28,7 @@ func Main() {
 	err = cfg.Init()
 	if err != nil {
 		logger.Fatal("Failed to initialize config", zap.Error(err))
+		return err
 	}
 
 	logger.SetLevelFromConfig()
@@ -34,14 +36,12 @@ func Main() {
 	portal.NewActivePortal(ctx)
 
 	err = portal.Init()
-
 	if err != nil {
 		logger.Fatal("Failed to initialize portal", zap.Error(err))
 		os.Exit(core.ExitCodeFailedStartup)
 	}
 
 	err = portal.Start()
-
 	if err != nil {
 		logger.Error("Failed to start portal", zap.Error(err))
 		os.Exit(core.ExitCodeFailedStartup)
@@ -54,4 +54,6 @@ func Main() {
 		logger.Error("Failed to serve portal", zap.Error(err))
 		os.Exit(core.ExitCodeFailedStartup)
 	}
+
+	return nil
 }

@@ -1,4 +1,4 @@
-package portalcmd
+package portal
 
 import (
 	"go.lumeweb.com/portal"
@@ -30,7 +30,7 @@ func trapSignals() {
 		for sig := range sigchan {
 			switch sig {
 			case syscall.SIGQUIT:
-				logger.Info("Wuitting process immediately", zap.String("signal", "SIGQUIT"))
+				logger.Info("Quitting process immediately", zap.String("signal", "SIGQUIT"))
 				os.Exit(core.ExitCodeForceQuit)
 
 			case syscall.SIGTERM:
@@ -51,6 +51,5 @@ func trapSignals() {
 				exitProcessFromSignal("SIGINT")
 			}
 		}
-
 	}()
 }
