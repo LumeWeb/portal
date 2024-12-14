@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func main() {
+func Main() {
 	command := cli.NewPortalCLI()
 	ctx := context.Background()
 	if err := command.Run(ctx, os.Args); err != nil {
