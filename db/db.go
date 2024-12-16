@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"math/rand/v2"
+	"net/url"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -97,14 +98,39 @@ func getCacheMode(cm config.Manager, logger *core.Logger) string {
 }
 
 func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, error) {
-	username := cfg.Config().Core.DB.Username
-	password := cfg.Config().Core.DB.Password
-	host := cfg.Config().Core.DB.Host
-	port := cfg.Config().Core.DB.Port
-	dbname := cfg.Config().Core.DB.Name
-	charset := cfg.Config().Core.DB.Charset
+	dbConfig := cfg.Config().Core.DB
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local", username, password, host, port, dbname, charset)
+	// Build query parameters
+	query := url.Values{}
+	query.Set("charset", dbConfig.Charset)
+	query.Set("parseTime", "True")
+	query.Set("loc", "Local")
+
+	if dbConfig.TLSEnabled {
+		if dbConfig.TLSSkipVerify {
+			query.Set("tls", "skip-verify")
+		} else {
+			query.Set("tls", "true")
+		}
+	}
+
+	// Construct the DSN using url.URL
+	u := &url.URL{
+		Scheme:   "tcp",
+		User:     url.UserPassword(dbConfig.Username, dbConfig.Password),
+		Host:     fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port),
+		Path:     dbConfig.Name,
+		RawQuery: query.Encode(),
+	}
+
+	// Format as MySQL DSN: username:password@tcp(host:port)/dbname?params
+	dsn := fmt.Sprintf("%s@%s(%s)/%s?%s",
+		u.User.String(),
+		u.Scheme,
+		u.Host,
+		strings.TrimPrefix(u.Path, "/"),
+		u.RawQuery,
+	)
 
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),

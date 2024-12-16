@@ -8,15 +8,17 @@ var _ Defaults = (*DatabaseConfig)(nil)
 var _ Validator = (*DatabaseConfig)(nil)
 
 type DatabaseConfig struct {
-	Type     string       `config:"type"`
-	File     string       `config:"file"`
-	Charset  string       `config:"charset"`
-	Host     string       `config:"host"`
-	Name     string       `config:"name"`
-	Password string       `config:"password"`
-	Port     int          `config:"port"`
-	Username string       `config:"username"`
-	Cache    *CacheConfig `config:"cache"`
+	Type          string       `config:"type"`
+	File          string       `config:"file"`
+	Charset       string       `config:"charset"`
+	Host          string       `config:"host"`
+	Name          string       `config:"name"`
+	Password      string       `config:"password"`
+	Port          int          `config:"port"`
+	Username      string       `config:"username"`
+	Cache         *CacheConfig `config:"cache"`
+	TLSEnabled    bool         `config:"tls_enabled"`
+	TLSSkipVerify bool         `config:"tls_skip_verify"`
 }
 
 func (d DatabaseConfig) CacheEnabled() bool {
