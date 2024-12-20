@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -68,4 +69,8 @@ func (r *EtcdConfig) Client() (*clientv3.Client, error) {
 	}
 
 	return r.client, nil
+}
+
+func (r *EtcdConfig) ComputePrefix(key string) string {
+	return r.Prefix + "/" + strings.TrimSuffix(strings.TrimPrefix(key, "/"), "/")
 }
