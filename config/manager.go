@@ -171,7 +171,7 @@ func (m *ManagerDefault) initClusterWatcher() error {
 		return err
 	}
 
-	watchKey := "/" + CLUSTER_CONFIG_KEY + "/"
+	watchKey := m.root.Core.Clustered.Etcd.ComputePrefix(CLUSTER_CONFIG_KEY)
 	watchChan := client.Watch(context.Background(), watchKey, clientv3.WithPrefix())
 
 	go func() {
@@ -934,7 +934,7 @@ func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 			return err
 		}
 
-		etcdPrefix := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+		etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
 
 		ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
 		if err != nil {
@@ -1008,7 +1008,7 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 			return err
 		}
 
-		etcdPrefix := "/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/")
+		etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
 
 		if !overwrite {
 			ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
