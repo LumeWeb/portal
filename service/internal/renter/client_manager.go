@@ -42,7 +42,7 @@ type ClientManager struct {
 func NewClientManager(ctx core.Context) *ClientManager {
 	return &ClientManager{
 		ctx:     ctx,
-		etcdKey: ClusterKey,
+		etcdKey: ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey),
 		nodes:   make(map[ClientType][]NodeInfo),
 		logger:  ctx.Logger(),
 	}
