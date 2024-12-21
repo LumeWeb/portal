@@ -123,9 +123,15 @@ func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, e
 		RawQuery: query.Encode(),
 	}
 
-	// Format as MySQL DSN: username:password@tcp(host:port)/dbname?params
+	// Decode the user info portion since MySQL doesn't expect it to be URL encoded
+	userStr, err := url.QueryUnescape(u.User.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to unescape user string: %v", err)
+	}
+
+	// Format as MySQL DSN with the decoded user string
 	dsn := fmt.Sprintf("%s@%s(%s)/%s?%s",
-		u.User.String(),
+		userStr,
 		u.Scheme,
 		u.Host,
 		strings.TrimPrefix(u.Path, "/"),
