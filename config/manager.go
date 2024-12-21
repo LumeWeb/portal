@@ -164,13 +164,12 @@ func (m *ManagerDefault) getEnvProvider(prefix string) *env.Env {
 	}
 
 	prefix = strings.ToUpper(prefix)
-	prefix = strings.Replace(prefix, ".", "_", -1)
-	prefix = strings.Replace(prefix, "-", "_", -1)
-	prefix = ENV_PREFIX + prefix + "_"
+	prefix = strings.Replace(prefix, ".", "__", -1)
+	prefix = ENV_PREFIX + prefix + "__"
 
 	return env.Provider(prefix, ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, prefix)), "_", ".", -1)
+			strings.TrimPrefix(s, prefix)), "__", ".", -1)
 	})
 }
 
