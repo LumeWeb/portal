@@ -31,7 +31,7 @@ func NewPortalCLI() *cli.Command {
 			},
 			{
 				Name:   "config-env",
-				Usage:  "Print all available environment variables for configuration",
+				Usage:  "Print all available environment variables for configuration, including active values, and the source config setting",
 				Action: configEnvAction,
 			},
 		},
@@ -153,9 +153,9 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 	allConfigs := manager.All()
 
 	// Convert config keys to environment variables and print them
-	for key := range allConfigs {
+	for key, val := range allConfigs {
 		envVar := config.ENV_PREFIX + strings.ToUpper(strings.ReplaceAll(key, ".", config.ENV_SEPARATOR))
-		fmt.Println(envVar)
+		fmt.Printf("%s=%s=%v\n", key, envVar, val)
 	}
 
 	return nil
