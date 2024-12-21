@@ -9,6 +9,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
+	"github.com/urfave/cli/v3"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/config/types"
 	"go.uber.org/zap"
@@ -49,11 +50,12 @@ type ManagerDefault struct {
 	logger          *zap.Logger
 	configFile      string
 	updateChan      chan ConfigUpdate
+	cmd             *cli.Command
 }
 
 var _ Manager = (*ManagerDefault)(nil)
 
-func NewManager() (*ManagerDefault, error) {
+func NewManager(cmd *cli.Command) (*ManagerDefault, error) {
 	k := koanf.New(".")
 
 	return &ManagerDefault{
@@ -64,6 +66,7 @@ func NewManager() (*ManagerDefault, error) {
 		changedSections: make([]string, 0),
 		changeCallbacks: make([]ConfigChangeCallback, 0),
 		updateChan:      make(chan ConfigUpdate, 100),
+		cmd:             cmd,
 	}, nil
 }
 
@@ -102,9 +105,12 @@ func (m *ManagerDefault) Init() error {
 		if err := m.maybeSave(); err != nil {
 			return fmt.Errorf("failed to save config changes: %w", err)
 		}
-	} else {
-		envConfig := koanf.New(".")
-		err = envConfig.Load(m.getEnvProvider("core"), nil)
+	}
+
+	envConfig := koanf.New(".")
+	envProvider := m.getEnvProvider("core")
+	if envProvider != nil {
+		err = envConfig.Load(envProvider, nil)
 		if err != nil {
 			return err
 		}
@@ -113,11 +119,11 @@ func (m *ManagerDefault) Init() error {
 		if err != nil {
 			return err
 		}
+	}
 
-		err = m.config.MergeAt(coreCfg, "core")
-		if err != nil {
-			return err
-		}
+	err = m.config.MergeAt(coreCfg, "core")
+	if err != nil {
+		return err
 	}
 
 	err = m.maybeConfigureCluster()
@@ -143,7 +149,20 @@ func (m *ManagerDefault) Init() error {
 	return nil
 }
 
+func (m *ManagerDefault) shouldMergeEnv() bool {
+	if m.cmd == nil {
+		log.Println("flags not loaded")
+		return false
+	}
+
+	return m.cmd.Bool("env")
+}
+
 func (m *ManagerDefault) getEnvProvider(prefix string) *env.Env {
+	if !m.shouldMergeEnv() {
+		return nil
+	}
+
 	prefix = strings.ToUpper(prefix)
 	prefix = strings.Replace(prefix, ".", "_", -1)
 	prefix = strings.Replace(prefix, "-", "_", -1)
@@ -510,19 +529,22 @@ func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectio
 	}
 
 	envConfig := koanf.New(".")
-	err = envConfig.Load(m.getEnvProvider(target), nil)
-	if err != nil {
-		return err
-	}
+	envProvider := m.getEnvProvider(target)
+	if envProvider != nil {
+		err = envConfig.Load(envProvider, nil)
+		if err != nil {
+			return err
+		}
 
-	err = config.Merge(envConfig)
-	if err != nil {
-		return err
-	}
+		err = config.Merge(envConfig)
+		if err != nil {
+			return err
+		}
 
-	err = m.config.MergeAt(config, target)
-	if err != nil {
-		return err
+		err = m.config.MergeAt(config, target)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
