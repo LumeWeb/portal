@@ -154,7 +154,7 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 
 	// Convert config keys to environment variables and print them
 	for key := range allConfigs {
-		envVar := config.ENV_PREFIX + strings.ToUpper(strings.ReplaceAll(key, ".", "__"))
+		envVar := config.ENV_PREFIX + strings.ToUpper(strings.ReplaceAll(key, ".", config.ENV_SEPARATOR))
 		fmt.Println(envVar)
 	}
 
