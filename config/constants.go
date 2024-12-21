@@ -2,7 +2,7 @@ package config
 
 const (
 	//
-	ENV_PREFIX = "PORTAL_"
+	ENV_PREFIX = "PORTAL__"
 
 	// Configuration keys and flags
 	CLUSTER_CONFIG_KEY = "config"
