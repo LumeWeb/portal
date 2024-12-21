@@ -36,7 +36,13 @@ func NewPortalCLI() *cli.Command {
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return portal.StartServer()
+			return portal.StartServer(cmd)
+		},
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "env",
+				Usage: "Use environment variables for configuration",
+			},
 		},
 	}
 }
@@ -72,7 +78,7 @@ var versionAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command) e
 // configEnvAction handles the config-env command
 var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command) error {
 	// Create a new config manager instance
-	manager, err := config.NewManager()
+	manager, err := config.NewManager(nil)
 	if err != nil {
 		return fmt.Errorf("failed to create config manager: %w", err)
 	}

@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"github.com/urfave/cli/v3"
 	"go.lumeweb.com/portal"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -8,9 +9,9 @@ import (
 	"os"
 )
 
-func StartServer() error {
+func StartServer(cmd *cli.Command) error {
 	// Continue with normal portal initialization
-	cfg, err := config.NewManager()
+	cfg, err := config.NewManager(cmd)
 	logger := core.NewLogger(cfg)
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))
