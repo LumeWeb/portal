@@ -102,7 +102,6 @@ func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, e
 
 	// Build query parameters
 	query := url.Values{}
-	query.Set("charset", dbConfig.Charset)
 	query.Set("parseTime", "True")
 	query.Set("loc", "Local")
 
@@ -112,6 +111,13 @@ func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, e
 		} else {
 			query.Set("tls", "true")
 		}
+	}
+
+	if dbConfig.Charset != "" {
+		query.Set("charset", dbConfig.Charset)
+		rootLogger.Debug("Setting charset", zap.String("charset", dbConfig.Charset))
+	} else {
+		rootLogger.Debug("Charset is empty, skipping parameter")
 	}
 
 	// Construct the DSN using url.URL
