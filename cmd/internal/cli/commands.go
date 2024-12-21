@@ -78,7 +78,7 @@ var versionAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command) e
 // configEnvAction handles the config-env command
 var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command) error {
 	// Create a new config manager instance
-	manager, err := config.NewManager(nil)
+	manager, err := config.NewManager(cmd)
 	if err != nil {
 		return fmt.Errorf("failed to create config manager: %w", err)
 	}
