@@ -106,7 +106,9 @@ func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, e
 	query.Set("loc", "Local")
 
 	if dbConfig.TLSEnabled {
+		rootLogger.Debug("TLS enabled")
 		if dbConfig.TLSSkipVerify {
+			rootLogger.Debug("Skipping TLS verification")
 			query.Set("tls", "skip-verify")
 		} else {
 			query.Set("tls", "true")
@@ -143,6 +145,8 @@ func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, e
 		strings.TrimPrefix(u.Path, "/"),
 		u.RawQuery,
 	)
+
+	rootLogger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
 
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),
