@@ -6,6 +6,7 @@ import (
 	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/core"
+	dbModels "go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"reflect"
@@ -108,6 +109,8 @@ func (m *MigrationManager) executeMigrations(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
+
+	models = append(models, dbModels.GetModels()...)
 
 	for _, model := range models {
 		typ := reflect.TypeOf(model)
