@@ -1,9 +1,6 @@
 module go.lumeweb.com/portal
 
 go 1.23.0
-
-toolchain go1.23.1
-
 require (
 	github.com/AfterShip/email-verifier v1.4.1
 	github.com/adjust/rmq/v5 v5.2.0
@@ -39,7 +36,7 @@ require (
 	github.com/wneessen/go-mail v0.5.2
 	go.etcd.io/etcd/client/v3 v3.5.17
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
-	go.sia.tech/core v0.4.7
+	go.sia.tech/core v0.9.0
 	go.sia.tech/coreutils v0.3.3-0.20240927170025-f45eedc64d6f
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
@@ -174,7 +171,7 @@ require (
 	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
-	lukechampine.com/frand v1.4.2 // indirect
+	lukechampine.com/frand v1.5.1 // indirect
 )
 
 replace (
