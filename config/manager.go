@@ -98,7 +98,7 @@ func (m *ManagerDefault) Init() error {
 
 	// Initialize etcd manager if cluster is enabled
 	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
-		err := m.root.Core.Clustered.Etcd.InitManager(m.logger)
+		_, err := m.root.Core.Clustered.Etcd.GetManager(m.logger)
 		if err != nil {
 			return fmt.Errorf("failed to initialize etcd manager: %w", err)
 		}
@@ -197,10 +197,11 @@ func (m *ManagerDefault) initLiveUpdates() error {
 }
 
 func (m *ManagerDefault) initClusterWatcher() error {
-	client, err := m.root.Core.Clustered.Etcd.Client()
+	etcdManager, err := m.root.Core.Clustered.Etcd.GetManager(m.logger)
 	if err != nil {
 		return err
 	}
+	client := etcdManager.Client()
 
 	// Create cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1083,10 +1084,11 @@ func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
 	}
 
 	ctx := context.Background()
-	client, err := m.root.Core.Clustered.Etcd.Client()
+	etcdManager, err := m.root.Core.Clustered.Etcd.GetManager(m.logger)
 	if err != nil {
 		return err
 	}
+	client := etcdManager.Client()
 
 	etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
 
