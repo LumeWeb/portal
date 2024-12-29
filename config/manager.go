@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v3"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/config/types"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type sectionKind int
@@ -33,8 +35,9 @@ const (
 )
 
 type ConfigUpdate struct {
-	Key   string
-	Value any
+	Key    string
+	Value  any
+	Source string
 }
 
 type FieldProcessor func(parent *reflect.StructField, field reflect.StructField, value reflect.Value, prefix string) error
@@ -51,6 +54,8 @@ type ManagerDefault struct {
 	configFile      string
 	updateChan      chan ConfigUpdate
 	cmd             *cli.Command
+	watchCancel     context.CancelFunc
+	updateSources   sync.Map
 }
 
 var _ Manager = (*ManagerDefault)(nil)
@@ -189,15 +194,58 @@ func (m *ManagerDefault) initClusterWatcher() error {
 		return err
 	}
 
+	// Create cancellable context
+	ctx, cancel := context.WithCancel(context.Background())
+	m.watchCancel = cancel
+
 	watchKey := m.root.Core.Clustered.Etcd.ComputePrefix(CLUSTER_CONFIG_KEY)
-	watchChan := client.Watch(context.Background(), watchKey, clientv3.WithPrefix())
+	watchChan := client.Watch(ctx, watchKey, clientv3.WithPrefix())
 
 	go func() {
-		for watchResp := range watchChan {
-			for _, event := range watchResp.Events {
-				key := strings.TrimPrefix(string(event.Kv.Key), watchKey)
-				key = strings.ReplaceAll(key, "/", ".")
-				m.updateChan <- ConfigUpdate{Key: key, Value: event.Kv.Value}
+		defer m.logger.Debug("cluster watcher stopped")
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case resp, ok := <-watchChan:
+				if !ok {
+					m.logger.Warn("etcd watch channel closed, attempting to reconnect")
+					if err := m.reconnectWatcher(ctx, watchKey); err != nil {
+						m.logger.Error("failed to reconnect watcher", zap.Error(err))
+						return
+					}
+					continue
+				}
+
+				if err := resp.Err(); err != nil {
+					m.logger.Error("watch error", zap.Error(err))
+					continue
+				}
+
+				updateID := m.root.Core.NodeID.String()
+
+				for _, event := range resp.Events {
+					if m.isOwnUpdate(event.Kv) {
+						continue
+					}
+
+					key := strings.TrimPrefix(string(event.Kv.Key), watchKey)
+					key = strings.ReplaceAll(key, "/", ".")
+
+					select {
+					case m.updateChan <- ConfigUpdate{
+						Key:    key,
+						Value:  event.Kv.Value,
+						Source: updateID,
+					}:
+					case <-ctx.Done():
+						return
+					default:
+						m.logger.Warn("update channel full, dropping update",
+							zap.String("key", key))
+					}
+				}
 			}
 		}
 	}()
@@ -1022,46 +1070,49 @@ func (m *ManagerDefault) parseValue(value string, result interface{}) error {
 }
 
 func (m *ManagerDefault) saveClusterSpace(prefix string, overwrite bool) error {
-	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
-		ctx := context.Background()
-		client, err := m.root.Core.Clustered.Etcd.Client()
+	if !m.root.Core.ClusterEnabled() || m.root.Core.Clustered.Etcd == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+	client, err := m.root.Core.Clustered.Etcd.Client()
+	if err != nil {
+		return err
+	}
+
+	etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
+
+	if !overwrite {
+		ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
 		if err != nil {
 			return err
 		}
 
-		etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
+		if ret.Count > 0 {
+			return nil
+		}
+	}
 
-		if !overwrite {
-			ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
-			if err != nil {
-				return err
-			}
+	subConfig := m.config.Cut(prefix)
+	nodeID := m.root.Core.NodeID.String()
 
-			if ret.Count > 0 {
-				return nil
-			}
+	for k, v := range subConfig.All() {
+		fullKey := prefix + "." + k
+		// Skip volatile configs
+		if m.isVolatile(fullKey) {
+			continue
 		}
 
-		subConfig := m.config.Cut(prefix)
+		if !m.shouldSyncKey(fullKey) {
+			continue
+		}
 
-		for k, v := range subConfig.All() {
-			fullKey := prefix + "." + k
-			// Skip volatile configs
-			if m.isVolatile(fullKey) {
-				continue
-			}
+		key := etcdPrefix + "/" + strings.ReplaceAll(k, ".", "/")
+		value := fmt.Sprintf("%v|source=%s", v, nodeID)
 
-			if !m.shouldSyncKey(fullKey) {
-				continue
-			}
-
-			key := etcdPrefix + "/" + strings.ReplaceAll(k, ".", "/")
-			value := fmt.Sprintf("%v", v)
-
-			_, err = client.Put(ctx, key, value)
-			if err != nil {
-				return err
-			}
+		_, err = client.Put(ctx, key, value)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1272,4 +1323,52 @@ func processStruct(obj any) bool {
 
 func (m *ManagerDefault) isVolatile(key string) bool {
 	return lo.Contains(m.flags[key], FLAG_VOLATILE)
+}
+func (m *ManagerDefault) isOwnUpdate(kv *mvccpb.KeyValue) bool {
+	parts := strings.Split(string(kv.Value), "|source=")
+	if len(parts) != 2 {
+		return false
+	}
+
+	sourceID := parts[1]
+	return sourceID == m.root.Core.NodeID.String()
+}
+
+func (m *ManagerDefault) reconnectWatcher(ctx context.Context, watchKey string) error {
+	backoff := time.Second
+	maxBackoff := time.Minute
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(backoff):
+			client, err := m.root.Core.Clustered.Etcd.Client()
+			if err != nil {
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+				continue
+			}
+
+			watchChan := client.Watch(ctx, watchKey, clientv3.WithPrefix())
+			if watchChan != nil {
+				return nil
+			}
+		}
+	}
+}
+
+func (m *ManagerDefault) Shutdown() error {
+	if m.watchCancel != nil {
+		m.watchCancel()
+	}
+
+	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+		if m.root.Core.Clustered.Etcd.client != nil {
+			return m.root.Core.Clustered.Etcd.client.Close()
+		}
+	}
+	return nil
 }
