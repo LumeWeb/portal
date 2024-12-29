@@ -96,6 +96,14 @@ func (m *ManagerDefault) Init() error {
 		return fmt.Errorf("failed to initialize config directory: %w", err)
 	}
 
+	// Initialize etcd manager if cluster is enabled
+	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
+		err := m.root.Core.Clustered.Etcd.InitManager(m.logger)
+		if err != nil {
+			return fmt.Errorf("failed to initialize etcd manager: %w", err)
+		}
+	}
+
 	coreCfg := koanf.New(".")
 	err := coreCfg.Load(file.Provider(m.configFile), yaml.Parser())
 	if err != nil {
@@ -1366,9 +1374,7 @@ func (m *ManagerDefault) Shutdown() error {
 	}
 
 	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
-		if m.root.Core.Clustered.Etcd.client != nil {
-			return m.root.Core.Clustered.Etcd.client.Close()
-		}
+		return m.root.Core.Clustered.Etcd.Close()
 	}
 	return nil
 }

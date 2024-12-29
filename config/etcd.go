@@ -16,7 +16,7 @@ type EtcdConfig struct {
 	Password    string   `config:"password"`
 	Prefix      string   `config:"prefix"`
 	DialTimeout int      `config:"dial_timeout"`
-	client      *clientv3.Client
+	manager     *EtcdManager
 }
 
 func (r *EtcdConfig) Validate() error {
@@ -54,21 +54,31 @@ func (r *EtcdConfig) Defaults() map[string]interface{} {
 }
 
 func (r *EtcdConfig) Client() (*clientv3.Client, error) {
-	if r.client == nil {
-		client, err := clientv3.New(clientv3.Config{
-			Endpoints:   r.Endpoints,
-			DialTimeout: time.Duration(r.DialTimeout) * time.Second,
-			Username:    r.Username,
-			Password:    r.Password,
-		})
-		if err != nil {
-			return nil, err
-		}
+    if r.manager == nil {
+        return nil, errors.New("etcd manager not initialized")
+    }
+    return r.manager.Client(), nil
+}
 
-		r.client = client
-	}
+func (r *EtcdConfig) InitManager(logger *zap.Logger) error {
+    if r.manager != nil {
+        return nil
+    }
+    
+    manager, err := NewEtcdManager(r, logger)
+    if err != nil {
+        return err
+    }
+    
+    r.manager = manager
+    return nil
+}
 
-	return r.client, nil
+func (r *EtcdConfig) Close() error {
+    if r.manager != nil {
+        return r.manager.Close()
+    }
+    return nil
 }
 
 func (r *EtcdConfig) ComputePrefix(key string) string {
