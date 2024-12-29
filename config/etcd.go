@@ -2,10 +2,10 @@ package config
 
 import (
 	"errors"
-	"strings"
-	"time"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+	"strings"
+	"sync"
 )
 
 var _ Defaults = (*EtcdConfig)(nil)
@@ -17,6 +17,7 @@ type EtcdConfig struct {
 	Prefix      string   `config:"prefix"`
 	DialTimeout int      `config:"dial_timeout"`
 	manager     *EtcdManager
+	managerMu   sync.RWMutex
 }
 
 func (r *EtcdConfig) Validate() error {
@@ -53,32 +54,45 @@ func (r *EtcdConfig) Defaults() map[string]interface{} {
 	}
 }
 
-func (r *EtcdConfig) Client() (*clientv3.Client, error) {
-    if r.manager == nil {
-        return nil, errors.New("etcd manager not initialized")
-    }
-    return r.manager.Client(), nil
+// GetManager returns the EtcdManager, initializing it if necessary
+func (r *EtcdConfig) GetManager(logger *zap.Logger) (*EtcdManager, error) {
+	r.managerMu.RLock()
+	if r.manager != nil {
+		defer r.managerMu.RUnlock()
+		return r.manager, nil
+	}
+	r.managerMu.RUnlock()
+
+	r.managerMu.Lock()
+	defer r.managerMu.Unlock()
+
+	// Double-check after acquiring write lock
+	if r.manager != nil {
+		return r.manager, nil
+	}
+
+	manager, err := NewEtcdManager(r, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	r.manager = manager
+	return r.manager, nil
 }
 
-func (r *EtcdConfig) InitManager(logger *zap.Logger) error {
-    if r.manager != nil {
-        return nil
-    }
-    
-    manager, err := NewEtcdManager(r, logger)
-    if err != nil {
-        return err
-    }
-    
-    r.manager = manager
-    return nil
+func (r *EtcdConfig) Client() (*clientv3.Client, error) {
+	// This method is deprecated - use GetManager().Client() instead
+	return nil, errors.New("deprecated: use GetManager().Client() instead")
 }
 
 func (r *EtcdConfig) Close() error {
-    if r.manager != nil {
-        return r.manager.Close()
-    }
-    return nil
+	r.managerMu.Lock()
+	defer r.managerMu.Unlock()
+
+	if r.manager != nil {
+		return r.manager.Close()
+	}
+	return nil
 }
 
 func (r *EtcdConfig) ComputePrefix(key string) string {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	dbModels "go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
@@ -19,9 +20,9 @@ const (
 )
 
 type MigrationManager struct {
-	ctx        core.Context
-	etcdClient *clientv3.Client
-	logger     *core.Logger
+	ctx     core.Context
+	etcdMgr *config.EtcdManager
+	logger  *core.Logger
 }
 
 func NewMigrationManager(ctx core.Context) (*MigrationManager, error) {
@@ -32,15 +33,15 @@ func NewMigrationManager(ctx core.Context) (*MigrationManager, error) {
 		}, nil
 	}
 
-	client, err := ctx.Config().Config().Core.Clustered.Etcd.Client()
+	etcdManager, err := ctx.Config().Config().Core.Clustered.Etcd.GetManager(ctx.Logger().Logger)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create etcd client: %w", err)
+		return nil, fmt.Errorf("failed to get etcd manager: %w", err)
 	}
 
 	return &MigrationManager{
-		ctx:        ctx,
-		etcdClient: client,
-		logger:     ctx.Logger(),
+		ctx:     ctx,
+		etcdMgr: etcdManager,
+		logger:  ctx.Logger(),
 	}, nil
 }
 
@@ -66,13 +67,14 @@ func (m *MigrationManager) RunMigrations(db *gorm.DB) error {
 
 func (m *MigrationManager) acquireMigrationLock() (*etcdLease, error) {
 	// Create lease
-	resp, err := m.etcdClient.Grant(context.Background(), int64(migrationLockTTL.Seconds()))
+	client := m.etcdMgr.Client()
+	resp, err := client.Grant(context.Background(), int64(migrationLockTTL.Seconds()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lease: %w", err)
 	}
 
 	// Try to acquire lock using lease
-	txn := m.etcdClient.Txn(context.Background())
+	txn := m.etcdMgr.Client().Txn(context.Background())
 	txn = txn.If(clientv3.Compare(clientv3.CreateRevision(migrationLockKey), "=", 0))
 	txn = txn.Then(clientv3.OpPut(migrationLockKey, "", clientv3.WithLease(resp.ID)))
 	txn = txn.Else(clientv3.OpGet(migrationLockKey))
@@ -88,7 +90,7 @@ func (m *MigrationManager) acquireMigrationLock() (*etcdLease, error) {
 
 	// Create lease keeper
 	lease := &etcdLease{
-		client: m.etcdClient,
+		client: m.etcdMgr.Client(),
 		id:     resp.ID,
 		logger: m.logger,
 		done:   make(chan struct{}),
