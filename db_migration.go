@@ -150,17 +150,20 @@ type etcdLease struct {
 }
 
 func (l *etcdLease) keepalive() {
-	ticker := time.NewTicker(migrationLockTTL / 3)
-	defer ticker.Stop()
+	// Get the keep alive channel
+	ch, err := l.client.KeepAlive(context.Background(), l.id)
+	if err != nil {
+		l.logger.Error("Failed to setup lease keepalive", zap.Error(err))
+		return
+	}
 
 	for {
 		select {
 		case <-l.done:
 			return
-		case <-ticker.C:
-			_, err := l.client.KeepAliveOnce(context.Background(), l.id)
-			if err != nil {
-				l.logger.Error("Failed to keep lease alive", zap.Error(err))
+		case resp := <-ch:
+			if resp == nil {
+				l.logger.Error("Lease keepalive channel closed")
 				return
 			}
 		}
