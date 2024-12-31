@@ -125,46 +125,6 @@ func (cm *ClientManager) updateNode(node NodeInfo) {
 	}
 	cm.nodes[node.Type] = append(cm.nodes[node.Type], node)
 }
-func (cm *ClientManager) updateNodeLastUsed(node *NodeInfo) {
-	if !cm.ctx.Config().Config().Core.ClusterEnabled() {
-		return
-	}
-
-	etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
-	if err != nil {
-		cm.logger.Error("failed to get etcd manager for updating node last used time", zap.Error(err))
-		return
-	}
-
-	client := etcdMgr.Client()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	nodeKey := fmt.Sprintf("%s/%s", cm.etcdKey, node.URL)
-	data, err := json.Marshal(node)
-	if err != nil {
-		cm.logger.Error("failed to marshal node info", zap.Error(err))
-		return
-	}
-
-	// Just use a short lease - we only need it for the update
-	lease, err := client.Grant(ctx, 1) // 1 second lease
-	if err != nil {
-		cm.logger.Error("failed to create lease", zap.Error(err))
-		return
-	}
-
-	_, err = client.Put(ctx, nodeKey, string(data), clientv3.WithLease(lease.ID))
-	if err != nil {
-		cm.logger.Error("failed to update node last used time in etcd", zap.Error(err))
-		// Revoke the lease to clean up
-		if _, revokeErr := client.Revoke(ctx, lease.ID); revokeErr != nil {
-			cm.logger.Error("failed to revoke lease after PUT failure", zap.Error(revokeErr))
-		}
-		return
-	}
-}
 
 func (cm *ClientManager) removeNode(node NodeInfo) {
 	nodes := cm.nodes[node.Type]
