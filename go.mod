@@ -8,7 +8,7 @@ require (
 	github.com/AfterShip/email-verifier v1.4.1
 	github.com/adjust/rmq/v5 v5.2.0
 	github.com/aws/aws-sdk-go-v2 v1.32.7
-	github.com/aws/aws-sdk-go-v2/config v1.28.6
+	github.com/aws/aws-sdk-go-v2/config v1.28.7
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.48
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.71.0
 	github.com/casbin/casbin/v2 v2.102.0
