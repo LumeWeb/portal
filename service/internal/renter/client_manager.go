@@ -53,10 +53,12 @@ func (cm *ClientManager) Start() error {
 		return nil
 	}
 
-	client, err := cm.ctx.Config().Config().Core.Clustered.Etcd.Client()
+	etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
 	if err != nil {
-		return fmt.Errorf("failed to create etcd client: %w", err)
+		return fmt.Errorf("failed to create etcd manager: %w", err)
 	}
+
+	client := etcdMgr.Client()
 
 	// Initial load of nodes
 	if err := cm.loadNodes(client); err != nil {
@@ -128,11 +130,13 @@ func (cm *ClientManager) updateNodeLastUsed(node *NodeInfo) {
 		return
 	}
 
-	client, err := cm.ctx.Config().Config().Core.Clustered.Etcd.Client()
+	etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
 	if err != nil {
-		cm.logger.Error("failed to get etcd client for updating node last used time", zap.Error(err))
+		cm.logger.Error("failed to get etcd manager for updating node last used time", zap.Error(err))
 		return
 	}
+
+	client := etcdMgr.Client()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
