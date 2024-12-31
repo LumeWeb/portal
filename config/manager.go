@@ -1007,11 +1007,12 @@ func (m *ManagerDefault) maybeConfigureCluster() error {
 func (m *ManagerDefault) loadClusterSpace(prefix string) error {
 	if m.root.Core.ClusterEnabled() && m.root.Core.Clustered.Etcd != nil {
 		ctx := context.Background()
-		client, err := m.root.Core.Clustered.Etcd.Client()
+		etcdMgr, err := m.root.Core.Clustered.Etcd.GetManager(m.logger)
 		if err != nil {
 			return err
 		}
 
+		client := etcdMgr.Client()
 		etcdPrefix := m.root.Core.Clustered.Etcd.ComputePrefix("/" + CLUSTER_CONFIG_KEY + "/" + strings.ReplaceAll(prefix, ".", "/"))
 
 		ret, err := client.Get(ctx, etcdPrefix, clientv3.WithPrefix())
@@ -1353,7 +1354,7 @@ func (m *ManagerDefault) reconnectWatcher(ctx context.Context, watchKey string) 
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(backoff):
-			client, err := m.root.Core.Clustered.Etcd.Client()
+			etcdMgr, err := m.root.Core.Clustered.Etcd.GetManager(m.logger)
 			if err != nil {
 				backoff *= 2
 				if backoff > maxBackoff {
@@ -1361,6 +1362,8 @@ func (m *ManagerDefault) reconnectWatcher(ctx context.Context, watchKey string) 
 				}
 				continue
 			}
+
+			client := etcdMgr.Client()
 
 			watchChan := client.Watch(ctx, watchKey, clientv3.WithPrefix())
 			if watchChan != nil {
