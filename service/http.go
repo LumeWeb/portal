@@ -82,7 +82,13 @@ func (h *HTTPServiceDefault) Init() error {
 	h.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{h.ctx})))
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
+		subdomain := api.Subdomain()
 		domain := fmt.Sprintf("%s.%s", api.Subdomain(), h.ctx.Config().Config().Core.Domain)
+
+		if subdomain == "" {
+			domain = h.ctx.Config().Config().Core.Domain
+		}
+
 		err := api.Configure(h.Router().Host(domain).Subrouter(), h.access)
 		if err != nil {
 			return err
