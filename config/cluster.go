@@ -29,6 +29,10 @@ func (c ClusterConfig) RedisEnabled() bool {
 	return c.Redis != nil
 }
 
+func (c ClusterConfig) EtcdEnabled() bool {
+	return c.Etcd != nil
+}
+
 func clusterConfigHook() mapstructure.DecodeHookFuncType {
 	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
 		if f.Kind() != reflect.Map || t != reflect.TypeOf(&ClusterConfig{}) {
