@@ -40,9 +40,15 @@ type ClientManager struct {
 }
 
 func NewClientManager(ctx core.Context) *ClientManager {
+	etcdKey := ""
+
+	if ctx.Config().Config().Core.ClusterEnabled() && ctx.Config().Config().Core.Clustered.EtcdEnabled() {
+		etcdKey = ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey)
+	}
+
 	return &ClientManager{
 		ctx:     ctx,
-		etcdKey: ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey),
+		etcdKey: etcdKey,
 		nodes:   make(map[ClientType][]NodeInfo),
 		logger:  ctx.Logger(),
 	}
