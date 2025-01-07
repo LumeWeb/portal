@@ -23,6 +23,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -442,7 +443,7 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 	}
 
 	return s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(s.config.Config().Core.Storage.S3.Endpoint)
+		o.BaseEndpoint = aws.String(ensureHttpPrefix(s.config.Config().Core.Storage.S3.Endpoint))
 		o.UsePathStyle = true
 	}), nil
 }
@@ -694,4 +695,10 @@ func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objec
 
 func (s StorageServiceDefault) getTempUploadPath(protocol core.StorageProtocol, uploadId string) string {
 	return fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
+}
+func ensureHttpPrefix(url string) string {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		return "http://" + url
+	}
+	return url
 }
