@@ -429,29 +429,22 @@ func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol c
 }
 
 func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				URL:           s.config.Config().Core.Storage.S3.Endpoint,
-				SigningRegion: s.config.Config().Core.Storage.S3.Region,
-			}, nil
-		}
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
 	cfg, err := awsConfig.LoadDefaultConfig(ctx,
-		awsConfig.WithRegion("us-east-1"),
+		awsConfig.WithRegion(s.config.Config().Core.Storage.S3.Region),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			s.config.Config().Core.Storage.S3.AccessKey,
 			s.config.Config().Core.Storage.S3.SecretKey,
 			"",
 		)),
-		awsConfig.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return s3.NewFromConfig(cfg), nil
+	return s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(s.config.Config().Core.Storage.S3.Endpoint)
+		o.UsePathStyle = true
+	}), nil
 }
 
 func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error {
