@@ -159,6 +159,8 @@ func (m *ManagerDefault) Init() error {
 		return err
 	}
 
+	m.logger.Info("Core config loaded", zap.String("config", m.configFile), zap.Stringer("node_id", m.root.Core.NodeID))
+
 	return nil
 }
 
@@ -411,6 +413,8 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 	pluginEntity.Protocol = section.(ProtocolConfig)
 	m.root.Plugin[pluginName] = pluginEntity
 
+	m.logger.Info("Configured protocol for plugin", zap.String("plugin", pluginName))
+
 	return nil
 }
 
@@ -435,6 +439,8 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 	pluginEntity := m.root.Plugin[pluginName]
 	pluginEntity.API = section.(APIConfig)
 	m.root.Plugin[pluginName] = pluginEntity
+
+	m.logger.Info("Configured api for plugin", zap.String("plugin", pluginName))
 
 	return nil
 }
@@ -461,6 +467,8 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	}
 
 	m.root.Plugin[pluginName].Service[serviceName] = section.(ServiceConfig)
+
+	m.logger.Info("Configured service for plugin", zap.String("plugin", pluginName), zap.String("service", serviceName))
 
 	return nil
 }
