@@ -38,17 +38,17 @@ type Info struct {
 var Default BuildInfo = New(Version, GitCommit, GitBranch, BuildTime, GoVersion, Platform, Architecture)
 
 func (i *Info) GetCommit() string {
-	if GitCommit == "" {
+	if i.GitCommit == "" {
 		return "unknown"
 	}
-	return GitCommit
+	return i.GitCommit
 }
 
 func (i *Info) GetBranch() string {
-	if GitBranch == "" {
+	if i.GitBranch == "" {
 		return "unknown"
 	}
-	return GitBranch
+	return i.GitBranch
 }
 
 func (i *Info) GetBuildTime() time.Time {
@@ -56,10 +56,10 @@ func (i *Info) GetBuildTime() time.Time {
 }
 
 func (i *Info) GetVersion() string {
-	if Version == "" {
+	if i.Version == "" {
 		return "develop"
 	}
-	return Version
+	return i.Version
 }
 
 func (i *Info) GetGoVersion() string {
