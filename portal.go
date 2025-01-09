@@ -3,6 +3,7 @@ package portal
 import (
 	"errors"
 	"fmt"
+	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -142,7 +143,10 @@ func (p *PortalImpl) Stop() error {
 
 func (p *PortalImpl) Serve() error {
 	ctx := p.Context()
-	ctx.Logger().Info("Serving portal")
+	ctx.Logger().Info("Serving portal", zap.Stringer("version", build.GetInfo()))
+	for _, plugin := range core.GetPlugins() {
+		ctx.Logger().Info("Loaded plugin", zap.String("plugin", plugin.ID), zap.Stringer("version", plugin.Version.Info()))
+	}
 
 	httpSvc := ctx.Service(core.HTTP_SERVICE)
 
