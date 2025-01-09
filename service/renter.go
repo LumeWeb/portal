@@ -165,7 +165,7 @@ func (r *RenterDefault) init() error {
 }
 
 func (r *RenterDefault) getBusClient() (*busClient.Client, error) {
-	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+	if !r.ctx.Config().Config().Core.ClusterEnabled() || !r.ctx.Config().Config().Core.Storage.Sia.Cluster {
 		if r.busClient == nil {
 			return nil, fmt.Errorf("bus client not initialized")
 		}
@@ -182,7 +182,7 @@ func (r *RenterDefault) getBusClient() (*busClient.Client, error) {
 }
 
 func (r *RenterDefault) getWorkerClient() (*workerClient.Client, error) {
-	if !r.ctx.Config().Config().Core.ClusterEnabled() {
+	if !r.ctx.Config().Config().Core.ClusterEnabled() || !r.ctx.Config().Config().Core.Storage.Sia.Cluster {
 		if r.workerClient == nil {
 			return nil, fmt.Errorf("worker client not initialized")
 		}
