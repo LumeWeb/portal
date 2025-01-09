@@ -19,6 +19,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 type CtxRangeKeyType string
@@ -263,37 +264,45 @@ func (t *TusHandler) SetHashById(ctx context.Context, id string, hash core.Stora
 	return nil
 
 }
+
 func (t *TusHandler) deleteUpload(ctx context.Context, id string) error {
-	err := t.tusService.DeleteUpload(ctx, id)
-	if err != nil {
-		return err
-	}
+	objectId, _ := splitIds(id)
 
-	upload, err := t.tusStore.GetUpload(ctx, id)
-	if err != nil {
-		return err
-	}
+	// Try both IDs for each file type
+	for _, deleteId := range []string{id, objectId} {
+		if deleteId == "" {
+			continue
+		}
 
-	info, err := upload.GetInfo(ctx)
-	if err != nil {
-		return err
-	}
+		// Check main file
+		_, err := t.s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+			Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+			Key:    aws.String(deleteId),
+		})
+		if err == nil {
+			_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+				Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+				Key:    aws.String(deleteId),
+			})
+			if err != nil {
+				t.logger.Error("failed to delete upload object", zap.Error(err))
+			}
+		}
 
-	_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-		Key:    aws.String(info.ID),
-	})
-	if err != nil {
-		t.logger.Error("failed to delete upload object from s3 buffer", zap.Error(err))
-	}
-
-	_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-		Key:    aws.String(info.ID + ".info"),
-	})
-
-	if err != nil {
-		t.logger.Error("failed to delete upload metadata from s3 buffer", zap.Error(err))
+		// Check info file
+		_, err = t.s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+			Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+			Key:    aws.String(deleteId + ".info"),
+		})
+		if err == nil {
+			_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+				Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
+				Key:    aws.String(deleteId + ".info"),
+			})
+			if err != nil {
+				t.logger.Error("failed to delete upload metadata", zap.Error(err))
+			}
+		}
 	}
 
 	return nil
@@ -542,4 +551,16 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallba
 }
 func loggerToSlog(logger *core.Logger) *slog.Logger {
 	return slog.New(zapslog.NewHandler(logger.Core()))
+}
+func splitIds(id string) (objectId, multipartId string) {
+	// We use LastIndex to allow plus signs in the object ID and assume that S3 will never
+	// returns multipart ID that incldues a plus sign.
+	index := strings.LastIndex(id, "+")
+	if index == -1 {
+		return
+	}
+
+	objectId = id[:index]
+	multipartId = id[index+1:]
+	return
 }
