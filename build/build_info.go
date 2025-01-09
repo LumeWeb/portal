@@ -78,7 +78,7 @@ func (i *Info) IsRelease() bool {
 	return i.GetVersion() != "develop" && i.GetCommit() != "unknown"
 }
 
-func (i *Info) String() string {
+func (i Info) String() string {
 	return fmt.Sprintf("%s-%s (%s)",
 		i.GetVersion(),
 		i.GetCommit()[:8],
