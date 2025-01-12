@@ -604,11 +604,11 @@ func (m *ManagerDefault) loadSection(pluginName string, name string, kind sectio
 		if err != nil {
 			return err
 		}
+	}
 
-		err = m.config.MergeAt(config, target)
-		if err != nil {
-			return err
-		}
+	err = m.config.MergeAt(config, target)
+	if err != nil {
+		return err
 	}
 
 	return nil
