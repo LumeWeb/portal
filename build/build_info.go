@@ -79,18 +79,25 @@ func (i *Info) IsRelease() bool {
 }
 
 func (i Info) String() string {
+	commit := i.GetCommit()
+	shortCommit := commit
+	if len(commit) > 8 {
+		shortCommit = commit[:8]
+	}
+
 	return fmt.Sprintf("%s-%s (%s)",
 		i.GetVersion(),
-		i.GetCommit()[:8],
+		shortCommit,
 		i.GetBuildTime().Format(time.RFC3339))
 }
 
 func (i *Info) Short() string {
 	commit := i.GetCommit()
+	shortCommit := commit
 	if len(commit) > 8 {
-		commit = commit[:8]
+		shortCommit = commit[:8]
 	}
-	return fmt.Sprintf("%s-%s", i.GetVersion(), commit)
+	return fmt.Sprintf("%s-%s", i.GetVersion(), shortCommit)
 }
 
 func (i *Info) JSON() (string, error) {
@@ -129,7 +136,24 @@ func IsRelease() bool {
 func New(version, commit, branch, buildTime, goVersion, platform, architecture string) BuildInfo {
 	var bTime time.Time
 	if buildTime != "" {
-		bTime, _ = time.Parse(time.RFC3339, buildTime)
+		parsed, err := time.Parse(time.RFC3339, buildTime)
+		if err == nil {
+			bTime = parsed
+		} else {
+			bTime = time.Now()
+		}
+	} else {
+		bTime = time.Now()
+	}
+
+	if commit == "" {
+		commit = "unknown"
+	}
+	if branch == "" {
+		branch = "unknown"
+	}
+	if version == "" {
+		version = "develop"
 	}
 
 	return &Info{
