@@ -145,7 +145,11 @@ func (p *PortalImpl) Serve() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Serving portal", zap.Stringer("version", build.GetInfo()))
 	for _, plugin := range core.GetPlugins() {
-		ctx.Logger().Info("Loaded plugin", zap.String("plugin", plugin.ID), zap.Stringer("version", plugin.Version.Info()))
+		version := "unknown"
+		if plugin.Version != nil {
+			version = plugin.Version.Info().String()
+		}
+		ctx.Logger().Info("Loaded plugin", zap.String("plugin", plugin.ID), zap.String("version", version))
 	}
 
 	httpSvc := ctx.Service(core.HTTP_SERVICE)
