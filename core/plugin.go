@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	_ "github.com/gorilla/mux"
 	"go.lumeweb.com/portal/build"
 	_ "go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/internal"
@@ -30,6 +29,8 @@ type PluginInfo struct {
 	Depends         []string
 	Cron            func() CronFactory
 	MailerTemplates MailerTemplates
+	WebBundles      []*WebBundle
+	TargetApps      []string
 }
 
 type Configurable interface {
@@ -56,8 +57,8 @@ func RegisterPlugin(info PluginInfo) {
 		panic("plugin ID must not be empty")
 	}
 
-	if info.API == nil && info.Protocol == nil && info.Services == nil {
-		panic("plugin must have at least one of GetAPI, GetProtocol, or GetServices")
+	if info.API == nil && info.Protocol == nil && info.Services == nil && info.APIExtensions == nil && (info.WebBundles == nil || len(info.WebBundles) == 0) {
+		panic("plugin must have at least one of API, Protocol, Service, APIExtension, or WebBundle")
 	}
 
 	pluginsMu.Lock()

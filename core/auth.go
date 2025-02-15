@@ -5,6 +5,9 @@ import (
 	"go.lumeweb.com/portal/db/models"
 )
 
+const AUTH_COOKIE_NAME = "auth_token"
+const AUTH_TOKEN_NAME = "auth_token"
+
 const AUTH_SERVICE = "auth"
 
 func GenerateSecurityToken() string {

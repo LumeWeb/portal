@@ -1,4 +1,3 @@
-// File: service/meta.go
 package service
 
 import (
@@ -38,32 +37,46 @@ func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.P
 
 // AddPlugin adds a plugin without build info
 func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder {
+	return b.maybeAddPlugin(key, core.PortalMetaPlugin{
+		Meta: make(map[string]any),
+	})
+}
+
+// AddPluginWithBuild adds a plugin with build info
+func (b *PortalMetaBuilderDefault) AddPluginBuildInfo(key string, buildInfo build.Info) core.PortalMetaBuilder {
+	return b.maybeUpdatePlugin(key, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
+		pluginData.Meta[key] = buildInfo
+		return pluginData
+	})
+}
+
+func (b *PortalMetaBuilderDefault) maybeAddPlugin(key string, pluginData core.PortalMetaPlugin) core.PortalMetaBuilder {
 	if _, exists := b.meta.Plugins[key]; !exists {
-		b.meta.Plugins[key] = core.PortalMetaPlugin{
-			Meta: make(map[string]any),
-		}
+		b.meta.Plugins[key] = pluginData
 	}
 	return b
 }
 
-// AddPluginWithBuild adds a plugin with build info
-func (b *PortalMetaBuilderDefault) AddPluginWithBuild(key string, buildInfo build.Info) core.PortalMetaBuilder {
-	if _, exists := b.meta.Plugins[key]; !exists {
-		b.meta.Plugins[key] = core.PortalMetaPlugin{
-			Meta:  make(map[string]any),
-			Build: buildInfo,
-		}
+func (b *PortalMetaBuilderDefault) maybeUpdatePlugin(key string, cb func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin) core.PortalMetaBuilder {
+	if _, exists := b.meta.Plugins[key]; exists {
+		b.meta.Plugins[key] = cb(b.meta.Plugins[key])
 	}
 	return b
 }
 
 // AddPluginMeta adds or updates meta for a plugin
 func (b *PortalMetaBuilderDefault) AddPluginMeta(pluginKey string, metaKey string, metaValue any) core.PortalMetaBuilder {
-	if plugin, exists := b.meta.Plugins[pluginKey]; exists {
-		plugin.Meta[metaKey] = metaValue
-		b.meta.Plugins[pluginKey] = plugin
-	}
-	return b
+	return b.maybeUpdatePlugin(pluginKey, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
+		pluginData.Meta[metaKey] = metaValue
+		return pluginData
+	})
+}
+
+func (b *PortalMetaBuilderDefault) AddPluginWebBundle(pluginKey string, bundleUri string) core.PortalMetaBuilder {
+	return b.maybeUpdatePlugin(pluginKey, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
+		pluginData.WebBundles = append(pluginData.WebBundles, bundleUri)
+		return pluginData
+	})
 }
 
 // Build returns the built PortalMeta

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/gorilla/mux"
+	"go.lumeweb.com/httputil"
 	"sync"
 )
 
@@ -13,7 +13,7 @@ type APIExtension interface {
 	TargetAPI() string
 
 	// Configure is called after the main API routes are registered
-	Configure(router *mux.Router, accessSvc AccessService) error
+	Configure(router httputil.Router, accessSvc AccessService) error
 }
 
 var (

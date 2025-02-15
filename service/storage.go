@@ -41,13 +41,13 @@ func init() {
 }
 
 type StorageUploadRequestDefault struct {
-	protocol   core.StorageProtocol
-	data       io.ReadSeeker
-	size       uint64
-	muParams   *core.MultipartUploadParams
-	hash       core.StorageHash
-	hashTypes  []uint64
-	hashes     []core.StorageHash
+	protocol  core.StorageProtocol
+	data      io.ReadSeeker
+	size      uint64
+	muParams  *core.MultipartUploadParams
+	hash      core.StorageHash
+	hashTypes []uint64
+	hashes    []core.StorageHash
 }
 
 func (s *StorageUploadRequestDefault) SetProtocol(protocol core.StorageProtocol) {
@@ -419,6 +419,11 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 	s3Upload.Bucket = bucket
 	s3Upload.Key = key
+
+	err = s.renter.CreateBucketIfNotExists(bucket)
+	if err != nil {
+		return err
+	}
 
 	startTime := time.Now()
 	var totalUploadDuration time.Duration
