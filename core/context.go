@@ -70,8 +70,13 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 		return ctx.Event().CloseWait()
 	}))
 
+	return ProcessCtxOptions(newCtx, options...)
+}
+
+func ProcessCtxOptions(ctx Context, options ...ContextBuilderOption) (Context, error) {
 	var err error
-	currentCtx := Context(newCtx)
+	currentCtx := ctx
+	newCtx := currentCtx
 
 	for _, opt := range options {
 		currentCtx, err = opt(currentCtx)

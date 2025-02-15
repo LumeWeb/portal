@@ -289,16 +289,21 @@ func (p *PortalImpl) registerAPIExtensions(ctx core.Context) (ctxOpts []core.Con
 			}
 
 			for _, extFactory := range extensions {
-				ext, ctxOptions, err := extFactory()
-				if err != nil {
-					ctx.Logger().Error("Error building API extensions", zap.String("plugin", plugin.ID), zap.Error(err))
-					return nil, err
-				}
-				ctx.Logger().Info("Registering API extension",
-					zap.String("plugin", plugin.ID),
-					zap.String("target", ext.TargetAPI()))
-				core.RegisterAPIExtension(ext)
-				ctxOpts = append(ctxOpts, ctxOptions...)
+				factory := extFactory
+				apiExtStartup := core.ContextBuilderOption(func(ctx core.Context) (core.Context, error) {
+					ext, ctxOptions, err := factory()
+					if err != nil {
+						ctx.Logger().Error("Error building API extensions", zap.String("plugin", plugin.ID), zap.Error(err))
+						return nil, err
+					}
+					ctx.Logger().Info("Registering API extension",
+						zap.String("plugin", plugin.ID),
+						zap.String("target", ext.TargetAPI()))
+					core.RegisterAPIExtension(ext)
+
+					return core.ProcessCtxOptions(ctx, ctxOptions...)
+				})
+				ctxOpts = append(ctxOpts, apiExtStartup)
 			}
 		}
 	}

@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	gorilla "github.com/gorilla/mux"
+	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal/config"
 	"net/http"
 	"sort"
@@ -17,9 +17,10 @@ var (
 type API interface {
 	Name() string
 	Subdomain() string
-	Configure(router *gorilla.Router, accessSvc AccessService) error
+	Configure(router httputil.Router, accessSvc AccessService) error
 	AuthTokenName() string
 	Config() config.APIConfig
+	OpenAPIInfo() httputil.APIInfoDefinition
 }
 
 type APIInit interface {

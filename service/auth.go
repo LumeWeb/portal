@@ -2,12 +2,14 @@ package service
 
 import (
 	"errors"
+	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"strconv"
 	"time"
 )
 
@@ -85,7 +87,7 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
 	var user models.User
 	user.ID = userId
 
-	token, tokenErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, core.JWTPurposeLogin, false)
+	token, tokenErr := jwt.CreateToken(a.ctx.Config().Config().Core.Identity.PrivateKey(), a.config.Config().Core.Domain, strconv.Itoa(int(user.ID)), jwt.PurposeLogin, 0)
 	if tokenErr != nil {
 		return "", err
 	}
@@ -207,10 +209,10 @@ func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 	return true, &user, nil
 }
 func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity bool, rememberMe bool) (string, error) {
-	purpose := core.JWTPurposeLogin
+	purpose := jwt.PurposeLogin
 
 	if user.OTPEnabled && !bypassSecurity {
-		purpose = core.JWTPurpose2FA
+		purpose = jwt.Purpose2FA
 	}
 
 	deletionPending, err := a.user.IsAccountPendingDeletion(user.ID)
@@ -222,7 +224,13 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 		return "", core.NewAccountError(core.ErrKeyAccountPendingDeletion, nil)
 	}
 
-	token, jwtErr := core.JWTGenerateToken(a.config.Config().Core.Domain, a.ctx.Config().Config().Core.Identity.PrivateKey(), user.ID, purpose, rememberMe)
+	dur := time.Hour * 24
+
+	if rememberMe {
+		dur = time.Hour * 24 * 30
+	}
+
+	token, jwtErr := jwt.CreateToken(a.ctx.Config().Config().Core.Identity.PrivateKey(), a.config.Config().Core.Domain, strconv.Itoa(int(user.ID)), purpose, dur)
 	if jwtErr != nil {
 		return "", core.NewAccountError(core.ErrKeyJWTGenerationFailed, jwtErr)
 	}

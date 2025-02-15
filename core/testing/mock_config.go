@@ -1,23 +1,29 @@
 package testing
 
 import (
+	"github.com/go-viper/mapstructure/v2"
 	"sync"
 	"testing"
 
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.uber.org/zap"
 )
 
+const mapStructureTag = "config"
+
 // MockConfigManager implements config.Manager for testing
 // It builds on top of the mockery-generated mock and adds state tracking
 type MockConfigManager struct {
 	*mocks.MockManager
-	mu     sync.RWMutex
-	values map[string]interface{}
-	cfg    *config.Config
-	logger *zap.Logger
+	mu              sync.RWMutex
+	values          map[string]interface{}
+	cfg             *config.Config
+	logger          *zap.Logger
+	changeCallbacks []config.ConfigChangeCallback
 }
 
 // NewMockConfigManager creates a new mock config manager with state tracking
@@ -26,8 +32,11 @@ func NewMockConfigManager(t *testing.T) *MockConfigManager {
 	manager := &MockConfigManager{
 		MockManager: mockManager,
 		values:      make(map[string]interface{}),
-		cfg:         &config.Config{},
+		cfg:         &config.Config{Plugin: make(map[string]config.PluginEntity)},
 	}
+
+	// Initial sync
+	_ = manager.syncConfig()
 
 	// Setup the basic methods to use our state tracking instead of requiring explicit expectations
 	mockManager.On("Get", mock.AnythingOfType("string")).
@@ -83,7 +92,22 @@ func (m *MockConfigManager) GetValue(key string) interface{} {
 func (m *MockConfigManager) SetValue(key string, value interface{}) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	// Update flat values map
 	m.values[key] = value
+
+	// Keep config struct in sync
+	_ = m.syncConfig()
+}
+
+// syncConfig updates the config struct from the flat values map
+func (m *MockConfigManager) syncConfig() error {
+	k := koanf.New(".")
+	if err := k.Load(confmap.Provider(m.values, "."), nil); err != nil {
+		return err
+	}
+
+	return k.Unmarshal("", m.cfg)
 }
 
 // ExistsValue checks if a key exists in the internal state
@@ -244,8 +268,34 @@ func (m *MockConfigManager) Update(key string, value any) error {
 	if m.MockManager != nil {
 		return m.MockManager.Update(key, value)
 	}
+
+	// Existing mock update logic
 	m.SetValue(key, value)
-	return nil
+
+	// Reuse real config loading logic
+	k := koanf.New(".")
+	if err := k.Load(confmap.Provider(m.values, "."), nil); err != nil {
+		return err
+	}
+
+	// Reuse the actual unmarshal logic from ManagerDefault
+	err := k.UnmarshalWithConf("", m.cfg, koanf.UnmarshalConf{
+		Tag: mapStructureTag,
+		DecoderConfig: &mapstructure.DecoderConfig{
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+			),
+			Result:           m.cfg,
+			WeaklyTypedInput: true,
+		},
+	})
+
+	// Trigger callbacks like real implementation
+	for _, cb := range m.changeCallbacks {
+		_ = cb(key, value)
+	}
+
+	return err
 }
 
 // IsEditable implements config.Manager

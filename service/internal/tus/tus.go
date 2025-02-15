@@ -9,10 +9,12 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/redislocker"
 	"github.com/tus/tusd/v2/pkg/s3store"
+	"go.lumeweb.com/portal-middleware/cors"
+	"go.lumeweb.com/portal-middleware/middleware"
+	"go.lumeweb.com/portal-middleware/tus"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"go.lumeweb.com/portal/middleware"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 	"gorm.io/gorm"
@@ -170,8 +172,8 @@ func (t *TusHandler) UploadSize(ctx context.Context, identifier any) (uint64, er
 
 func (t *TusHandler) SetupRoute(router *mux.Router, authMw mux.MiddlewareFunc, path string) {
 	subrouter := router.PathPrefix(path).Subrouter()
-	subrouter.Use(middleware.TusPathMiddleware(path))
-	subrouter.Use(middleware.TusCorsMiddleware())
+	subrouter.Use(tus.PathMiddleware(path, tus.NewJWTLocModifier(path)))
+	subrouter.Use(cors.New(cors.Config{}))
 	if authMw != nil {
 		subrouter.Use(authMw)
 		subrouter.Use(middleware.AccountVerifiedMiddleware(t.ctx))
