@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var _ StorageHash = (*StorageHashDefault)(nil)
+
 type StorageUploadStatus string
 
 const (
@@ -54,6 +56,10 @@ type StorageUploadRequest interface {
 	SetMuParams(*MultipartUploadParams)
 	Hash() StorageHash
 	SetHash(StorageHash)
+	SetHashTypes(types []uint64)
+	HashTypes() []uint64
+	SetHashes(hashes []StorageHash)
+	Hashes() []StorageHash
 }
 
 // StorageUploadOption defines a function to configure StorageUploadRequest
@@ -109,4 +115,81 @@ type StorageService interface {
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 
 	Service
+}
+
+func NewStorageHashFromMultihashBytes(hash []byte, cidType uint64, proof []byte) StorageHash {
+	multihash, err := mh.Cast(hash)
+
+	if err != nil {
+		return nil
+	}
+
+	decode, _ := mh.Decode(multihash)
+	if decode == nil {
+		return nil
+	}
+
+	return &StorageHashDefault{
+		hash:    decode.Digest,
+		typ:     decode.Code,
+		proof:   proof,
+		mh:      multihash,
+		cidType: cidType,
+	}
+}
+
+type StorageHashDefault struct {
+	hash    []byte
+	typ     uint64
+	cidType uint64
+	proof   []byte
+	mh      mh.Multihash
+}
+
+func (s StorageHashDefault) Proof() []byte {
+	return s.proof
+}
+func (s StorageHashDefault) ProofExists() bool {
+	return len(s.proof) > 0
+}
+
+func (s StorageHashDefault) Multihash() mh.Multihash {
+	if s.mh == nil {
+		_mh, _ := mh.Encode(s.hash, s.typ)
+		s.mh = _mh
+	}
+
+	return s.mh
+}
+
+func (s StorageHashDefault) CIDType() uint64 {
+	return s.cidType
+}
+
+func (s StorageHashDefault) Type() uint64 {
+	return s.typ
+}
+
+func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {
+	return &StorageHashDefault{
+		hash:    hash,
+		typ:     typ,
+		cidType: cidType,
+		proof:   proof,
+	}
+}
+
+func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte) StorageHash {
+	decode, _ := mh.Decode(hash)
+	if decode == nil {
+		return nil
+	}
+
+	return &StorageHashDefault{
+		hash:    decode.Digest,
+		typ:     decode.Code,
+		proof:   proof,
+		mh:      hash,
+		cidType: cidType,
+	}
 }

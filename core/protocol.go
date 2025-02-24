@@ -17,6 +17,7 @@ var (
 type Protocol interface {
 	Name() string
 	Config() config.ProtocolConfig
+	Operations() []Operation
 }
 
 type ProtocolInit interface {

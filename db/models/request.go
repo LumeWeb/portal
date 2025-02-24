@@ -7,8 +7,7 @@ import (
 )
 
 type (
-	RequestStatusType    string
-	RequestOperationType string
+	RequestStatusType string
 )
 
 const (
@@ -18,14 +17,13 @@ const (
 	RequestStatusFailed     RequestStatusType = "failed"
 	RequestStatusDuplicate  RequestStatusType = "duplicate"
 
-	RequestOperationUpload    RequestOperationType = "post_upload"
-	RequestOperationTusUpload RequestOperationType = "tus_upload"
-	RequestOperationPin       RequestOperationType = "pin"
+	// Operation types
+	RequestOperationTusUpload = "tus.upload"
 )
 
 type Request struct {
 	gorm.Model
-	Operation         RequestOperationType `gorm:"index:idx_request_operation_system"`
+	Operation         string `gorm:"index:idx_request_operation_system"`
 	Protocol          string
 	Status            RequestStatusType
 	StatusMessage     string

@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
-	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -29,7 +28,7 @@ import (
 )
 
 var _ core.StorageService = (*StorageServiceDefault)(nil)
-var _ core.StorageHash = (*StorageHashDefault)(nil)
+var _ core.StorageUploadRequest = (*StorageUploadRequestDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -41,75 +40,14 @@ func init() {
 	})
 }
 
-type StorageHashDefault struct {
-	hash    []byte
-	typ     uint64
-	cidType uint64
-	proof   []byte
-	mh      mh.Multihash
-}
-
-func (s StorageHashDefault) Proof() []byte {
-	return s.proof
-}
-func (s StorageHashDefault) ProofExists() bool {
-	return len(s.proof) > 0
-}
-
-func (s StorageHashDefault) Multihash() mh.Multihash {
-	if s.mh == nil {
-		_mh, _ := mh.Encode(s.hash, s.typ)
-		s.mh = _mh
-	}
-
-	return s.mh
-}
-
-func (s StorageHashDefault) CIDType() uint64 {
-	return s.cidType
-}
-
-func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) core.StorageHash {
-	return &StorageHashDefault{
-		hash:    hash,
-		typ:     typ,
-		cidType: cidType,
-		proof:   proof,
-	}
-}
-
-func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte) core.StorageHash {
-	decode, _ := mh.Decode(hash)
-	if decode == nil {
-		return nil
-	}
-
-	return &StorageHashDefault{
-		hash:    decode.Digest,
-		typ:     decode.Code,
-		proof:   proof,
-		mh:      hash,
-		cidType: cidType,
-	}
-}
-
-func NewStorageHashFromMultihashBytes(hash []byte, cidType uint64, proof []byte) core.StorageHash {
-	multihash, err := mh.Cast(hash)
-
-	if err != nil {
-		return nil
-	}
-
-	return NewStorageHashFromMultihash(multihash, cidType, proof)
-
-}
-
 type StorageUploadRequestDefault struct {
-	protocol core.StorageProtocol
-	data     io.ReadSeeker
-	size     uint64
-	muParams *core.MultipartUploadParams
-	hash     core.StorageHash
+	protocol   core.StorageProtocol
+	data       io.ReadSeeker
+	size       uint64
+	muParams   *core.MultipartUploadParams
+	hash       core.StorageHash
+	hashTypes  []uint64
+	hashes     []core.StorageHash
 }
 
 func (s *StorageUploadRequestDefault) SetProtocol(protocol core.StorageProtocol) {
@@ -152,8 +90,20 @@ func (s StorageUploadRequestDefault) Hash() core.StorageHash {
 	return s.hash
 }
 
-func (s StorageHashDefault) Type() uint64 {
-	return s.typ
+func (s *StorageUploadRequestDefault) SetHashTypes(types []uint64) {
+	s.hashTypes = types
+}
+
+func (s StorageUploadRequestDefault) HashTypes() []uint64 {
+	return s.hashTypes
+}
+
+func (s *StorageUploadRequestDefault) SetHashes(hashes []core.StorageHash) {
+	s.hashes = hashes
+}
+
+func (s StorageUploadRequestDefault) Hashes() []core.StorageHash {
+	return s.hashes
 }
 
 // NewStorageUploadRequest creates a new StorageUploadRequest with the given options
@@ -304,7 +254,6 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 	uploadMeta := &models.Upload{
 		Protocol: protocolName,
 		Hash:     hash.Multihash(),
-		HashType: hash.Type(),
 		CIDType:  hash.CIDType(),
 		MimeType: mimeType.String(),
 		Size:     request.Size(),
