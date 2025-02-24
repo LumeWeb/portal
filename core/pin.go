@@ -9,6 +9,14 @@ import (
 const PIN_SERVICE = "pin"
 
 type PinService interface {
+	// Model registration methods
+	// RegisterPinModel registers a protocol-specific pin data model for a protocol
+	RegisterPinModel(protocol string, model PinDataModel) 
+	// GetPinModel retrieves the registered model for a protocol
+	GetPinModel(protocol string) (PinDataModel, bool)
+	// CreatePinModel creates a new instance of the registered model for a protocol
+	CreatePinModel(protocol string) (PinDataModel, error)
+
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,
 	// created after the specified timestamp.
 	AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error)
@@ -43,11 +51,17 @@ type PinService interface {
 	// GetPin retrieves a pin by ID.
 	GetPin(ctx context.Context, id uint) (*models.Pin, error)
 
-	// DeletePin deletes a pin by ID.
+	// GetPinData retrieves the protocol-specific data for a pin
+	GetPinData(ctx context.Context, pin *models.Pin) (interface{}, error)
+
+	// DeletePin deletes a pin and its associated protocol data by ID
 	DeletePin(ctx context.Context, id uint) error
 
-	// QueryPin queries for a pin based on the provided query and filter.
+	// QueryPin queries for a pin based on the provided query and filter
 	QueryPin(ctx context.Context, query interface{}, filter PinFilter) (*models.Pin, error)
+
+	// UpdatePinData updates the protocol-specific data for a pin
+	UpdatePinData(ctx context.Context, pin *models.Pin, data interface{}) error
 
 	// UpdateProtocolPin updates the protocol-specific data for a pin.
 	UpdateProtocolPin(ctx context.Context, id uint, protocolData any) error

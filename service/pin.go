@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go.lumeweb.com/portal/config"
@@ -11,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -32,6 +34,30 @@ type PinServiceDefault struct {
 	config   config.Manager
 	db       *gorm.DB
 	metadata core.UploadService
+	models   map[string]core.PinDataModel
+	mutex    sync.RWMutex
+}
+
+func (p *PinServiceDefault) RegisterPinModel(protocol string, model core.PinDataModel) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.models[protocol] = model
+	p.logger.Debug("Registered pin model", zap.String("protocol", protocol))
+}
+
+func (p *PinServiceDefault) GetPinModel(protocol string) (core.PinDataModel, bool) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+	model, ok := p.models[protocol]
+	return model, ok
+}
+
+func (p *PinServiceDefault) CreatePinModel(protocol string) (core.PinDataModel, error) {
+	model, ok := p.GetPinModel(protocol)
+	if !ok {
+		return nil, fmt.Errorf("no model registered for protocol: %s", protocol)
+	}
+	return model.NewInstance().(core.PinDataModel), nil
 }
 
 func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
@@ -358,6 +384,53 @@ func (p *PinServiceDefault) QueryProtocolPin(ctx context.Context, protocol strin
 	}
 
 	return result, nil
+}
+
+func (p *PinServiceDefault) GetPinData(ctx context.Context, pin *models.Pin) (interface{}, error) {
+	// Get model for this protocol
+	model, err := p.CreatePinModel(pin.Upload.Protocol)
+	if err != nil {
+		return nil, err
+	}
+
+	// Query the database
+	if err := p.db.Where("pin_id = ?", pin.ID).First(model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // No data found, but not an error
+		}
+		return nil, err
+	}
+
+	return model, nil
+}
+
+func (p *PinServiceDefault) UpdatePinData(ctx context.Context, pin *models.Pin, data interface{}) error {
+	// Get model for this protocol
+	model, err := p.CreatePinModel(pin.Upload.Protocol)
+	if err != nil {
+		return err
+	}
+
+	// Copy data from provided struct to model
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal  %w", err)
+	}
+
+	if err := json.Unmarshal(dataBytes, model); err != nil {
+		return fmt.Errorf("failed to unmarshal data into model: %w", err)
+	}
+
+	// Set pin ID
+	model.SetPinID(pin.ID)
+
+	// Validate
+	if err := model.Validate(); err != nil {
+		return fmt.Errorf("data validation failed: %w", err)
+	}
+
+	// Store in database
+	return p.db.Where("pin_id = ?", pin.ID).Save(model).Error
 }
 
 // Helper function to apply pin filters

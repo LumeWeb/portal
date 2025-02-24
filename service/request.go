@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go.lumeweb.com/portal/core"
@@ -9,15 +10,11 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"reflect"
 	"strings"
+	"sync"
 )
 
 var _ core.RequestService = (*RequestServiceDefault)(nil)
-
-const uploadOperationSuffix = "_upload"
-
-var requestTableName string
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -32,10 +29,36 @@ type RequestServiceDefault struct {
 	ctx    core.Context
 	logger *core.Logger
 	db     *gorm.DB
+	models map[string]core.RequestDataModel
+	mutex  sync.RWMutex
+}
+
+func (r *RequestServiceDefault) RegisterRequestModel(operation string, model core.RequestDataModel) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.models[operation] = model
+	r.logger.Debug("Registered request model", zap.String("operation", operation))
+}
+
+func (r *RequestServiceDefault) GetRequestModel(operation string) (core.RequestDataModel, bool) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	model, ok := r.models[operation]
+	return model, ok
+}
+
+func (r *RequestServiceDefault) CreateRequestModel(operation string) (core.RequestDataModel, error) {
+	model, ok := r.GetRequestModel(operation)
+	if !ok {
+		return nil, fmt.Errorf("no model registered for operation: %s", operation)
+	}
+	return model.NewInstance().(core.RequestDataModel), nil
 }
 
 func NewRequestService() (*RequestServiceDefault, []core.ContextBuilderOption, error) {
-	req := &RequestServiceDefault{}
+	req := &RequestServiceDefault{
+		models: make(map[string]core.RequestDataModel),
+	}
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
@@ -53,70 +76,92 @@ func (r *RequestServiceDefault) ID() string {
 	return core.REQUEST_SERVICE
 }
 
-func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, protocolData any, uploadData any) (*models.Request, error) {
-	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
-		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
-		return nil, nil
+func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
+	// Find the operation handler
+	_, handler, err := r.findOperationHandler(req.Operation)
+	if err != nil {
+		return nil, err
 	}
 
-	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
-
-	if protocolData == nil {
-		protocolData = protocolDataHandler.GetProtocolDataModel()
-	} else {
-		expectedType := reflect.TypeOf(protocolDataHandler.GetProtocolDataModel())
-		actualType := reflect.TypeOf(protocolData)
-
-		if expectedType != actualType {
-			r.logger.Panic("invalid protocol data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
+	// Validate the request if handler available
+	if handler != nil {
+		if err := handler.ValidateRequest(ctx, req); err != nil {
+			return nil, fmt.Errorf("request validation failed: %w", err)
 		}
 	}
 
-	var uploadDataHandler core.UploadDataHandler
-
-	isUpload := isUploadOperation(req.Operation)
-
-	if isUpload {
-		var ok bool
-		uploadDataHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-		if !ok {
-			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-		}
-
-		if uploadData == nil {
-			uploadData = uploadDataHandler.GetUploadDataModel()
-		} else {
-			expectedType := reflect.TypeOf(uploadDataHandler.GetUploadDataModel())
-			actualType := reflect.TypeOf(uploadData)
-
-			if expectedType != actualType {
-				r.logger.Panic("invalid upload data type", zap.String("expected", expectedType.String()), zap.String("actual", actualType.String()))
-			}
-		}
-	}
-
-	var newReq models.Request
-
+	// Set default values if not specified
 	if req.Status == "" {
 		req.Status = models.RequestStatusPending
 	}
 
-	if err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).FirstOrCreate(&newReq, req)
-		})
+	// Create the request
+	var newReq models.Request
+	if err := db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.WithContext(ctx).Create(req).Scan(&newReq)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if err := protocolDataHandler.CreateProtocolData(ctx, newReq.ID, protocolData); err != nil {
-		return nil, err
-	}
+	// If custom data provided, store it in the protocol-specific table
+	if data != nil {
+		// Get model for this operation
+		model, err := r.CreateRequestModel(req.Operation)
+		if err != nil {
+			r.logger.Warn("No model registered for operation",
+				zap.String("operation", req.Operation))
+		} else {
+			// Copy data from provided struct to model
+			dataBytes, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
 
-	if isUpload {
-		if err := uploadDataHandler.CreateUploadData(ctx, r.ctx.DB().WithContext(r.ctx), newReq.ID, uploadData); err != nil {
-			return nil, err
+			err = json.Unmarshal(dataBytes, model)
+			if err != nil {
+				return nil, err
+			}
+
+			// Set request ID
+			model.SetRequestID(newReq.ID)
+
+			// Validate
+			if err := model.Validate(); err != nil {
+				return &newReq, fmt.Errorf("data validation failed: %w", err)
+			}
+
+			// Store in database
+			if err := r.db.Create(model).Error; err != nil {
+				return &newReq, fmt.Errorf("failed to store protocol  %w", err)
+			}
 		}
+	}
+
+	// Start async execution if handler provided
+	if handler != nil {
+		go func() {
+			execCtx := context.Background()
+
+			// Update status to processing
+			if err := r.UpdateRequestStatus(execCtx, newReq.ID, models.RequestStatusProcessing); err != nil {
+				r.logger.Error("Failed to update request status",
+					zap.Error(err), zap.Uint("requestID", newReq.ID))
+				return
+			}
+
+			// Execute the operation
+			if err := handler.Execute(execCtx, &newReq); err != nil {
+				r.logger.Error("Request execution failed",
+					zap.Error(err), zap.Uint("requestID", newReq.ID))
+
+				failErr := r.FailRequest(execCtx, newReq.ID, err.Error())
+				if failErr != nil {
+					r.logger.Error("Failed to mark request as failed",
+						zap.Error(failErr), zap.Uint("requestID", newReq.ID))
+				}
+				return
+			}
+		}()
 	}
 
 	return &newReq, nil
@@ -124,37 +169,56 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
 	var req models.Request
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Unscoped().First(&req, id)
+			return db.WithContext(ctx).First(&req, id)
 		})
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
 	return &req, nil
 }
 
 func (r *RequestServiceDefault) UpdateRequest(ctx context.Context, req *models.Request) error {
-	return r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Unscoped().Save(req)
+			return db.WithContext(ctx).Save(req)
 		})
+	})
+}
+
+func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) error {
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	_, handler, err := r.findOperationHandler(req.Operation)
+	if err != nil {
+		r.logger.Warn("Could not find operation handler for cleanup",
+			zap.Error(err), zap.String("operation", req.Operation))
+	} else if handler != nil {
+		if err := handler.Cleanup(ctx, req); err != nil {
+			r.logger.Warn("Cleanup failed but continuing with deletion",
+				zap.Error(err), zap.Uint("requestID", req.ID))
+		}
+	}
+
+	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.WithContext(ctx).Delete(&models.Request{}, id)
 	})
 }
 
 func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
 
-	if requestTableName == "" {
-		modelType := reflect.ValueOf(req).Type()
-		requestTableName = r.ctx.DB().NamingStrategy.TableName(modelType.Name())
-	}
-
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx = db.WithContext(ctx)
-			tx = db.Table(fmt.Sprintf("%s as Request", requestTableName))
+			tx := db.WithContext(ctx)
 			if query != nil {
 				tx = tx.Where(query)
 			}
@@ -165,116 +229,19 @@ func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interfac
 		})
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request not found: %w", err)
+		}
+		return nil, fmt.Errorf("query failed: %w", err)
 	}
 	return &req, nil
 }
 
-func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if req.DeletedAt.Valid {
-		return nil
-	}
-
-	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
-		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
-		return nil
-	}
-
-	var uploadHandler core.UploadDataHandler
-
-	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
-
-	isUpload := isUploadOperation(req.Operation)
-
-	if isUpload {
-		var ok bool
-		uploadHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-		if !ok {
-			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-			return nil
-		}
-	}
-
-	err = r.ctx.DB().Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Delete(&models.Request{}, id)
-		})
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if err = protocolDataHandler.DeleteProtocolData(ctx, id); err != nil {
-		return err
-	}
-
-	if isUpload {
-		if err = uploadHandler.DeleteUploadData(ctx, r.db, id); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
-		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
-		return nil
-	}
-
-	var uploadHandler core.UploadDataHandler
-
-	isUpload := isUploadOperation(req.Operation)
-
-	protocolDataHandler := core.GetProtocolDataRequestHandler(req.Protocol)
-
-	if isUpload {
-		var ok bool
-		uploadHandler, ok = core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-		if !ok {
-			r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-			return nil
-		}
-	}
-
-	if req.Status != models.RequestStatusCompleted {
-		err = r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted)
-		if err != nil {
-			return err
-		}
-	}
-
-	if err = protocolDataHandler.CompleteProtocolData(ctx, id); err != nil {
-		return err
-	}
-
-	if isUpload {
-		if err = uploadHandler.CompleteUploadData(ctx, r.db, id); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
-
 	req.Hash = hash.Multihash()
 
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).
 				Scopes(
@@ -284,17 +251,19 @@ func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.
 		})
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request with hash not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
 	return &req, nil
 }
 
 func (r *RequestServiceDefault) GetRequestByUploadHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
-
 	req.UploadHash = hash.Multihash()
 
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).
 				Scopes(
@@ -304,7 +273,10 @@ func (r *RequestServiceDefault) GetRequestByUploadHash(ctx context.Context, hash
 		})
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request with upload hash not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
 	return &req, nil
 }
@@ -313,9 +285,8 @@ func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID u
 	var requests []*models.Request
 
 	var req models.Request
-
 	req.UserID = userID
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).Where(&req).Scopes(
 				applyFilters(filter),
@@ -323,14 +294,14 @@ func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID u
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list requests: %w", err)
 	}
 	return requests, nil
 }
 
 func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status string, filter core.RequestFilter) ([]*models.Request, error) {
 	var requests []*models.Request
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).Where("status = ?", status).
 				Scopes(
@@ -339,303 +310,202 @@ func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status
 		})
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list requests: %w", err)
 	}
 	return requests, nil
 }
 
 func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType) error {
-	return r.ctx.DB().Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Model(&models.Request{}).Where("id = ?", id).Update("status", status)
-		})
+	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.Request{}).
+			Where("id = ?", id).
+			Update("status", status)
 	})
+}
+
+func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) error {
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Don't complete if already completed or failed
+	if req.Status == models.RequestStatusCompleted || req.Status == models.RequestStatusFailed {
+		return nil
+	}
+
+	return r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted)
+}
+
+func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason string) error {
+	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.Request{}).
+			Where("id = ?", id).
+			Updates(map[string]interface{}{
+				"status":         models.RequestStatusFailed,
+				"status_message": reason,
+			})
+	})
+}
+
+func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find operation handler
+	_, handler, err := r.findOperationHandler(req.Operation)
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic status from request model
+	status := &core.RequestStatus{
+		State:     string(req.Status),
+		UpdatedAt: req.UpdatedAt,
+	}
+
+	// If we have a handler, get detailed status
+	if handler != nil {
+		detailedStatus, err := handler.GetStatus(ctx, req)
+		if err != nil {
+			r.logger.Warn("Failed to get detailed status from handler",
+				zap.Error(err), zap.Uint("requestID", req.ID))
+		} else {
+			status = &detailedStatus
+		}
+	}
+
+	// Set default message based on status if not provided
+	if status.Message == "" {
+		switch req.Status {
+		case models.RequestStatusPending:
+			status.Message = "Request is pending processing"
+		case models.RequestStatusProcessing:
+			status.Message = "Request is being processed"
+		case models.RequestStatusCompleted:
+			status.Message = "Request completed successfully"
+		case models.RequestStatusFailed:
+			status.Message = req.StatusMessage
+			if status.Message == "" {
+				status.Message = "Request failed"
+			}
+		}
+	}
+
+	return status, nil
 }
 
 func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (bool, error) {
 	var exists bool
-	err := r.ctx.DB().Transaction(func(tx *gorm.DB) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Model(&models.Request{}).Select("count(*) > 0").Where("id = ?", id).Find(&exists)
+			return db.WithContext(ctx).
+				Model(&models.Request{}).
+				Select("count(*) > 0").
+				Where("id = ?", id).
+				Find(&exists)
 		})
 	})
 	return exists, err
 }
 
-func (r *RequestServiceDefault) UpdateProtocolData(ctx context.Context, id uint, data any) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
-		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
-		return nil
-	}
-
-	handler := core.GetProtocolDataRequestHandler(req.Protocol)
-
-	if data == nil {
-		data = handler.GetProtocolDataModel()
-	}
-
-	return handler.UpdateProtocolData(ctx, id, data)
-}
-
-func (r *RequestServiceDefault) GetProtocolData(ctx context.Context, id uint) (any, error) {
-	req, err := r.GetRequest(ctx, id)
+func (r *RequestServiceDefault) GetRequestData(ctx context.Context, req *models.Request) (interface{}, error) {
+	// Get model for this operation
+	model, err := r.CreateRequestModel(req.Operation)
 	if err != nil {
 		return nil, err
 	}
 
-	if !core.ProtocolHasDataRequestHandler(req.Protocol) {
-		r.logger.Panic("protocol %s does not have a data request handler", zap.String("protocol", req.Protocol))
-		return nil, nil
-	}
-
-	return core.GetProtocolDataRequestHandler(req.Protocol).GetProtocolData(ctx, r.db.Preload("Request"), id)
-}
-
-func (r *RequestServiceDefault) QueryProtocolData(ctx context.Context, protocol string, query any, filter core.RequestFilter) (interface{}, error) {
-	if !core.ProtocolHasDataRequestHandler(protocol) {
-		r.ctx.Logger().Panic("protocol %s does not have a data request handler", zap.String("protocol", protocol))
-	}
-
-	handler := core.GetProtocolDataRequestHandler(protocol)
-
-	model := handler.GetProtocolDataModel()
-	mt := reflect.TypeOf(model)
-
-	if mt.Kind() == reflect.Ptr {
-		mt = mt.Elem()
-	}
-
-	// Create a new instance of the model type
-	result := reflect.New(mt).Interface()
-
-	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx = db.Model(result)
-			tx = handler.QueryProtocolData(ctx, tx, query)
-
-			if tx == nil {
-				r.logger.Panic("QueryProtocolData returned nil")
-			}
-
-			tx = tx.Joins("Request")
-
-			return tx.Scopes(applyFilters(filter)).First(result)
-		})
-	})
-	if err != nil {
+	// Query the database
+	if err := r.db.Where("request_id = ?", req.ID).First(model).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, nil // No data found, but not an error
 		}
 		return nil, err
 	}
 
-	return result, nil
+	return model, nil
 }
 
-func (r *RequestServiceDefault) CreateUploadData(ctx context.Context, id uint, data any) error {
-	req, err := r.GetRequest(ctx, id)
+func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *models.Request, data interface{}) error {
+	// Get model for this operation
+	model, err := r.CreateRequestModel(req.Operation)
 	if err != nil {
 		return err
 	}
 
-	if !isUploadOperation(req.Operation) {
-		return nil
-	}
-
-	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
-		if data == nil {
-			data = handler.GetUploadDataModel()
-		}
-
-		if data == nil {
-			return nil
-		}
-
-		return handler.CreateUploadData(ctx, r.db, id, data)
-	}
-
-	r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-
-	return nil
-}
-
-func (r *RequestServiceDefault) GetUploadData(ctx context.Context, id uint) (any, error) {
-	req, err := r.GetRequest(ctx, id)
+	// Copy data from provided struct to model
+	dataBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to marshal  %w", err)
 	}
 
-	if !isUploadOperation(req.Operation) {
-		return nil, nil
+	if err = json.Unmarshal(dataBytes, model); err != nil {
+		return fmt.Errorf("failed to unmarshal data into model: %w", err)
 	}
 
-	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
-		return handler.GetUploadData(ctx, r.db.Preload("Request"), id)
+	// Set request ID
+	model.SetRequestID(req.ID)
+
+	// Validate
+	if err := model.Validate(); err != nil {
+		return fmt.Errorf("data validation failed: %w", err)
 	}
 
-	r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-
-	return nil, nil
+	// Store in database
+	return r.db.Where("request_id = ?", req.ID).Save(model).Error
 }
 
-func (r *RequestServiceDefault) UpdateUploadData(ctx context.Context, id uint, data any) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
+// findOperationHandler locates the operation and handler for a given operation type
+func (r *RequestServiceDefault) findOperationHandler(operationType string) (core.Operation, core.OperationHandler, error) {
+	// Parse operation type to find protocol
+	parts := strings.Split(operationType, ".")
+	if len(parts) < 2 {
+		return nil, nil, fmt.Errorf("invalid operation type format: %s", operationType)
 	}
 
-	if !isUploadOperation(req.Operation) {
-		return nil
+	protocolName := parts[0]
+
+	// Find protocol
+	protocol := core.GetProtocol(protocolName)
+	if protocol == nil {
+		return nil, nil, fmt.Errorf("protocol not found: %s", protocolName)
 	}
 
-	if handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation)); ok {
-		if data == nil {
-			data = handler.GetUploadDataModel()
+	// Get operations from protocol
+	operations := protocol.Operations()
+
+	// Find matching operation
+	for _, op := range operations {
+		if op.Type() == operationType {
+			return op, op.Handler(), nil
 		}
-		if data == nil {
-			return nil
-		}
-
-		return handler.UpdateUploadData(ctx, r.db, id, data)
 	}
 
-	r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
+	// Check for content scan operation
+	if operationType == "content.scan" {
+		// Return no-op scanner if no scanner registered
+		scanner := core.NewNoContentScanner()
+		scanOp := core.NewOperation("content.scan", core.OpTypeScan, scanner.(core.OperationHandler))
+		return scanOp, scanner.(core.OperationHandler), nil
+	}
 
-	return nil
+	return nil, nil, fmt.Errorf("operation not found: %s", operationType)
 }
 
-func (r *RequestServiceDefault) DeleteUploadData(ctx context.Context, id uint) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if !isUploadOperation(req.Operation) {
-		return nil
-	}
-
-	handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-		return nil
-	}
-
-	return handler.DeleteUploadData(ctx, r.db, id)
-}
-
-func (r *RequestServiceDefault) QueryUploadData(ctx context.Context, uploadMethod models.RequestOperationType, query any, filter core.RequestFilter) (any, error) {
-	isUpload := isUploadOperation(uploadMethod)
-
-	if !isUpload {
-		return nil, nil
-	}
-
-	handler, ok := core.GetUploadDataHandler(getDataHandlerName(uploadMethod))
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(uploadMethod)))
-		return nil, nil
-	}
-
-	model := handler.GetUploadDataModel()
-	mt := reflect.TypeOf(model)
-
-	if mt.Kind() == reflect.Ptr {
-		mt = mt.Elem()
-	}
-
-	// Create a new instance of the model type
-	result := reflect.New(mt).Interface()
-
-	err := r.ctx.DB().WithContext(ctx).Unscoped().Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx = db.Model(result)
-			tx = handler.QueryUploadData(ctx, tx, query)
-
-			if tx == nil {
-				r.logger.Panic("QueryUploadData returned nil")
-			}
-
-			tx = tx.Joins("Request")
-
-			return tx.Scopes(applyUploadDataFilters(filter)).First(result)
-		})
-	})
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (r *RequestServiceDefault) CompleteUploadData(ctx context.Context, id uint) error {
-	req, err := r.GetRequest(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if !isUploadOperation(req.Operation) {
-		return nil
-	}
-
-	handler, ok := core.GetUploadDataHandler(getDataHandlerName(req.Operation))
-	if !ok {
-		r.ctx.Logger().Panic("no upload data handler found for operation: %s", zap.String("operation", string(req.Operation)))
-		return nil
-	}
-
-	return handler.CompleteUploadData(ctx, r.db, id)
-}
-
-func isUploadOperation[T string | models.RequestOperationType](operation T) bool {
-	return strings.HasSuffix(string(operation), uploadOperationSuffix)
-}
-
-func getDataHandlerName[T string | models.RequestOperationType](operation T) string {
-	handlerName := string(operation)
-	return strings.TrimSuffix(handlerName, uploadOperationSuffix)
-}
-
+// Helper functions
 func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if filter.Protocol != "" {
-			db = db.Where("Request.protocol = ?", filter.Protocol)
+			db = db.Where("protocol = ?", filter.Protocol)
 		}
 		if filter.Operation != "" {
-			db = db.Where("Request.operation = ?", filter.Operation)
+			db = db.Where("operation = ?", filter.Operation)
 		}
 		if filter.UserID > 0 {
-			db = db.Where("Request.user_id = ?", filter.UserID)
-		}
-		if filter.Limit > 0 {
-			db = db.Limit(filter.Limit)
-		}
-		if filter.Offset > 0 {
-			db = db.Offset(filter.Offset)
-		}
-
-		return db
-	}
-}
-
-func applyUploadDataFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		if filter.Protocol != "" {
-			db = db.Where("Request.protocol = ?", filter.Protocol)
-		}
-		if filter.Operation != "" {
-			db = db.Where("Request.operation = ?", filter.Operation)
-		}
-		if filter.UserID > 0 {
-			db = db.Where("Request.user_id = ?", filter.UserID)
+			db = db.Where("user_id = ?", filter.UserID)
 		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)

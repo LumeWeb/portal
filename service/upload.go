@@ -47,7 +47,6 @@ func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Up
 	return db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
 		existingUpload := &models.Upload{
 			Hash:     upload.Hash,
-			HashType: upload.HashType,
 			Protocol: upload.Protocol,
 		}
 
