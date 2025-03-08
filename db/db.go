@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/migrations"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
+	"io/fs"
 	"log"
 	"math"
 	"math/rand/v2"
@@ -36,15 +38,7 @@ func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 	case "mysql":
 		db, err = openMySQLDatabase(cfg, rootLogger)
 	case "sqlite":
-		var dbFile string
-
-		if path.IsAbs(cfg.Config().Core.DB.File) {
-			dbFile = cfg.Config().Core.DB.File
-		} else {
-			dbFile = path.Join(cfg.ConfigDir(), cfg.Config().Core.DB.File)
-		}
-
-		db, err = openSQLiteDatabase(dbFile, rootLogger)
+		db, err = openSQLiteDatabase(GetSQLiteDBFile(cfg), rootLogger)
 	default:
 		panic(fmt.Sprintf("unsupported database type: %s", dbType))
 	}
@@ -237,4 +231,24 @@ func isLockError(err error) bool {
 		strings.Contains(errMsg, "lock wait timeout") ||
 		strings.Contains(errMsg, "database is locked") ||
 		strings.Contains(errMsg, "too many connections")
+}
+
+func GetCoreMigrations() core.DBMigration {
+	return map[core.DBType]fs.FS{
+		core.DB_TYPE_MYSQL:  migrations.GetMySQL(),
+		core.DB_TYPE_SQLITE: migrations.GetSQLite(),
+	}
+}
+
+func GetSQLiteDBFile(config config.Manager) string {
+	dbCfg := config.Config().Core.DB
+	if dbCfg.Type != "sqlite" {
+		return ""
+	}
+
+	if path.IsAbs(dbCfg.File) {
+		return dbCfg.File
+	}
+
+	return path.Join(config.ConfigDir(), dbCfg.File)
 }

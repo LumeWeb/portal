@@ -9,6 +9,6 @@ func init() {
 type PublicKey struct {
 	gorm.Model
 	UserID uint
-	Key    string `gorm:"unique;not null"`
+	Key    string `gorm:"unique"`
 	User   User
 }

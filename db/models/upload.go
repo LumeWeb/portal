@@ -13,13 +13,13 @@ func init() {
 type Upload struct {
 	gorm.Model
 	UserID     uint
-	Hash       mh.Multihash `gorm:"type:varbinary(64);uniqueIndex:idx_upload_hash_deleted_at"`
-	CIDType    uint64       `gorm:"column:cid_type"`
+	Hash       mh.Multihash
+	CIDType    uint64 `gorm:"column:cid_type"` // Keep column name mapping
 	MimeType   string
 	Protocol   string
 	User       User
 	UploaderIP string
 	Size       uint64
 	Metadata   datatypes.JSON
-	DeletedAt  gorm.DeletedAt `gorm:"uniqueIndex:idx_upload_hash_deleted_at"`
+	DeletedAt  gorm.DeletedAt
 }

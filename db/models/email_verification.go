@@ -16,6 +16,6 @@ type EmailVerification struct {
 	UserID    uint
 	User      User
 	NewEmail  string
-	Token     string
+	Token     string `gorm:"unique"`
 	ExpiresAt time.Time
 }

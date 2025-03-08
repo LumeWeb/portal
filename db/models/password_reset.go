@@ -15,6 +15,6 @@ type PasswordReset struct {
 
 	UserID    uint
 	User      User
-	Token     string
+	Token     string `gorm:"unique"`
 	ExpiresAt time.Time
 }

@@ -16,18 +16,18 @@ type User struct {
 	gorm.Model
 	FirstName          string
 	LastName           string
-	Email              string `gorm:"unique"`
+	Email              string `gorm:"unique"` // Keep unique for runtime validation
 	PasswordHash       string
 	Role               string
 	PublicKeys         []PublicKey
 	Uploads            []Upload
 	LastLogin          *time.Time
 	LastLoginIP        string
-	OTPEnabled         bool `gorm:"default:false;"`
-	OTPVerified        bool `gorm:"default:false;"`
+	OTPEnabled         bool
+	OTPVerified        bool
 	OTPSecret          string
 	OTPAuthUrl         string
-	Verified           bool `gorm:"default:false;"`
+	Verified           bool
 	EmailVerifications []EmailVerification
 	PasswordResets     []PasswordReset
 }

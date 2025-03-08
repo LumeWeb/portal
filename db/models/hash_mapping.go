@@ -8,9 +8,9 @@ import (
 
 type HashMapping struct {
 	gorm.Model
-	SourceHash mh.Multihash `gorm:"type:varbinary(64);index:idx_hash_mapping_source"`
-	TargetHash mh.Multihash `gorm:"type:varbinary(64);index:idx_hash_mapping_target"`
-	Protocol   string       `gorm:"type:varchar(255);index:idx_hash_mapping_protocol"`
+	SourceHash mh.Multihash
+	TargetHash mh.Multihash
+	Protocol   string
 	Metadata   datatypes.JSON
 }
 

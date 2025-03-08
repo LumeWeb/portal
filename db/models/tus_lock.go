@@ -20,12 +20,12 @@ var (
 
 type TusLock struct {
 	gorm.Model
-	LockId           string `gorm:"index:idx_lock_id,unique"`
-	HolderPID        int    `gorm:"index"`
+	LockId           string
+	HolderPID        int
 	AcquiredAt       time.Time
 	ExpiresAt        time.Time
 	ReleaseRequested bool
-	DeletedAt        gorm.DeletedAt `gorm:"index:idx_lock_id,unique"`
+	DeletedAt        gorm.DeletedAt
 }
 
 func (t *TusLock) TryLock(db *gorm.DB, ctx context.Context) error {

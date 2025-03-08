@@ -12,9 +12,9 @@ func init() {
 
 type TUSRequest struct {
 	gorm.Model
-	RequestID   uint `gorm:"uniqueIndex:idx_tus_requests_request_id"`
+	RequestID   uint `gorm:"uniqueIndex"`
 	Request     Request
-	TUSUploadID string `gorm:"type:varchar(500);uniqueIndex"`
+	TUSUploadID string `gorm:"uniqueIndex"`
 	Completed   bool
 }
 
