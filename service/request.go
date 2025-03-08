@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"strings"
@@ -29,35 +30,35 @@ type RequestServiceDefault struct {
 	ctx    core.Context
 	logger *core.Logger
 	db     *gorm.DB
-	models map[string]core.RequestDataModel
+	models map[string]data_models.RequestDataModel
 	mutex  sync.RWMutex
 }
 
-func (r *RequestServiceDefault) RegisterRequestModel(operation string, model core.RequestDataModel) {
+func (r *RequestServiceDefault) RegisterRequestModel(operation string, model data_models.RequestDataModel) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.models[operation] = model
 	r.logger.Debug("Registered request model", zap.String("operation", operation))
 }
 
-func (r *RequestServiceDefault) GetRequestModel(operation string) (core.RequestDataModel, bool) {
+func (r *RequestServiceDefault) GetRequestModel(operation string) (data_models.RequestDataModel, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 	model, ok := r.models[operation]
 	return model, ok
 }
 
-func (r *RequestServiceDefault) CreateRequestModel(operation string) (core.RequestDataModel, error) {
+func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_models.RequestDataModel, error) {
 	model, ok := r.GetRequestModel(operation)
 	if !ok {
 		return nil, fmt.Errorf("no model registered for operation: %s", operation)
 	}
-	return model.NewInstance().(core.RequestDataModel), nil
+	return model.NewInstance().(data_models.RequestDataModel), nil
 }
 
 func NewRequestService() (*RequestServiceDefault, []core.ContextBuilderOption, error) {
 	req := &RequestServiceDefault{
-		models: make(map[string]core.RequestDataModel),
+		models: make(map[string]data_models.RequestDataModel),
 	}
 
 	opts := core.ContextOptions(

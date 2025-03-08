@@ -9,6 +9,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"reflect"
@@ -34,30 +35,30 @@ type PinServiceDefault struct {
 	config   config.Manager
 	db       *gorm.DB
 	metadata core.UploadService
-	models   map[string]core.PinDataModel
+	models   map[string]data_models.PinDataModel
 	mutex    sync.RWMutex
 }
 
-func (p *PinServiceDefault) RegisterPinModel(protocol string, model core.PinDataModel) {
+func (p *PinServiceDefault) RegisterPinModel(protocol string, model data_models.PinDataModel) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.models[protocol] = model
 	p.logger.Debug("Registered pin model", zap.String("protocol", protocol))
 }
 
-func (p *PinServiceDefault) GetPinModel(protocol string) (core.PinDataModel, bool) {
+func (p *PinServiceDefault) GetPinModel(protocol string) (data_models.PinDataModel, bool) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 	model, ok := p.models[protocol]
 	return model, ok
 }
 
-func (p *PinServiceDefault) CreatePinModel(protocol string) (core.PinDataModel, error) {
+func (p *PinServiceDefault) CreatePinModel(protocol string) (data_models.PinDataModel, error) {
 	model, ok := p.GetPinModel(protocol)
 	if !ok {
 		return nil, fmt.Errorf("no model registered for protocol: %s", protocol)
 	}
-	return model.NewInstance().(core.PinDataModel), nil
+	return model.NewInstance().(data_models.PinDataModel), nil
 }
 
 func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
