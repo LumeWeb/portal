@@ -41,7 +41,7 @@ require (
 	github.com/wneessen/go-mail v0.5.2
 	go.etcd.io/etcd/client/v3 v3.5.17
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
-	go.sia.tech/core v0.9.0
+	go.sia.tech/core v0.10.3
 	go.sia.tech/coreutils v0.9.0
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
@@ -172,7 +172,7 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.17
 	go.etcd.io/etcd/client/pkg/v3 v3.5.17 // indirect
-	go.sia.tech/mux v1.3.0 // indirect
+	go.sia.tech/mux v1.4.0 // indirect
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
