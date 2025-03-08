@@ -22,14 +22,14 @@ func init() {
 
 type CronJob struct {
 	gorm.Model
-	UUID          types.BinaryUUID `gorm:"type:binary(16);uniqueIndex"`
-	Function      string           `gorm:"type:varchar(255);"`
-	Args          string           `gorm:"type:longtext;"`
+	UUID          types.BinaryUUID `gorm:"uniqueIndex"`
+	Function      string
+	Args          string
 	LastRun       *time.Time
 	Failures      uint64
-	State         CronJobState `gorm:"type:varchar(20);default:'queued'"`
+	State         CronJobState
 	LastHeartbeat *time.Time
-	Version       uint64 `gorm:"default:0"`
+	Version       uint64
 }
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {

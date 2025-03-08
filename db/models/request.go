@@ -23,19 +23,19 @@ const (
 
 type Request struct {
 	gorm.Model
-	Operation         string `gorm:"index:idx_request_operation_system"`
+	Operation         string
 	Protocol          string
 	Status            RequestStatusType
 	StatusMessage     string
-	System            bool `gorm:"default:false;index:idx_request_operation_system"`
+	System            bool
 	UserID            uint
 	User              User
 	SourceIP          string
 	HashType          uint64
-	Hash              mh.Multihash `gorm:"type:varbinary(64);index"`
-	CIDType           uint64       `gorm:"null;column:cid_type"`
-	UploadHash        mh.Multihash `gorm:"type:varbinary(64);index"`
-	UploadHashCIDType uint64       `gorm:"null;column:upload_hash_cid_type"`
+	Hash              mh.Multihash
+	CIDType           uint64 `gorm:"column:cid_type"`
+	UploadHash        mh.Multihash
+	UploadHashCIDType uint64 `gorm:"column:upload_hash_cid_type"`
 	Size              uint64
 	MimeType          string
 	Metadata          datatypes.JSON

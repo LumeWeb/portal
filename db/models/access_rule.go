@@ -10,11 +10,11 @@ func init() {
 
 type AccessRule struct {
 	gorm.Model
-	Ptype string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V0    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V1    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V2    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V3    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V4    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
-	V5    string `gorm:"size:512;index:idx_access_rule,unique,length:100"`
+	Ptype string
+	V0    string
+	V1    string
+	V2    string
+	V3    string
+	V4    string
+	V5    string
 }

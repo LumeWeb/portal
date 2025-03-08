@@ -8,7 +8,7 @@ func init() {
 
 type S3Upload struct {
 	gorm.Model
-	UploadID string `gorm:"unique;not null"`
-	Bucket   string `gorm:"not null;index:idx_s3_bucket_key"`
-	Key      string `gorm:"not null;index:idx_s3_bucket_key"`
+	UploadID string `gorm:"unique"`
+	Bucket   string
+	Key      string
 }

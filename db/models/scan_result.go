@@ -12,8 +12,8 @@ func init() {
 
 type ScanResult struct {
 	gorm.Model
-	Hash      mh.Multihash `gorm:"type:varbinary(64);index"`
-	ScannerID string       `gorm:"index"`
+	Hash      mh.Multihash
+	ScannerID string
 	Passed    bool
 	Reason    string
 	Metadata  datatypes.JSON

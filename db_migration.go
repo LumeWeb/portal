@@ -4,13 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/amacneil/dbmate/v2/pkg/dbmate"
+	_ "github.com/amacneil/dbmate/v2/pkg/dbmate"
+	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
+	_ "github.com/amacneil/dbmate/v2/pkg/driver/sqlite"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	dbModels "go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/db"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"io/fs"
+	"net/url"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -102,40 +109,43 @@ func (m *MigrationManager) acquireMigrationLock() (*etcdLease, error) {
 	return lease, nil
 }
 
-func (m *MigrationManager) executeMigrations(db *gorm.DB) error {
+func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
 	m.logger.Info("Starting database migrations")
 
-	m.logger.Debug("Running GORM auto-migrations")
+	m.logger.Debug("Running dbmate migrations")
 
-	models, err := getModels(m.ctx)
+	cfg := m.ctx.Config()
+	dbConfig := cfg.Config().Core.DB
+	dbType := dbConfig.Type
+
+	compositFs := newCompositeFS()
+	compositFs.Mount("0_core", getMigrationsByType(dbType, db.GetCoreMigrations()))
+
+	pluginMigrations, migrationOrder, err := getMigrations()
 	if err != nil {
 		return err
 	}
 
-	models = append(models, dbModels.GetModels()...)
-
-	for _, model := range models {
-		typ := reflect.TypeOf(model)
-		// Get the underlying type if it's a pointer
-		if typ.Kind() == reflect.Ptr {
-			typ = typ.Elem()
+	for idx, plugin := range migrationOrder {
+		migrations := getMigrationsByType(dbType, pluginMigrations[plugin])
+		if migrations == nil {
+			continue
 		}
-		if err = db.AutoMigrate(model); err != nil {
-			m.logger.Error("Error migrating model", zap.String("model", typ.Name()), zap.Error(err))
-			return err
-		}
+		compositFs.Mount(fmt.Sprintf("%d_%s", idx+1, plugin), migrations)
 	}
 
-	migrations, err := getMigrations()
+	dbUrl, err := getDbMateUrl(cfg)
 	if err != nil {
 		return err
 	}
 
-	for _, migration := range migrations {
-		if err = migration(db); err != nil {
-			m.logger.Error("Error running migration", zap.Error(err))
-			return err
-		}
+	dbMateMigration := dbmate.New(dbUrl)
+	dbMateMigration.FS = compositFs
+	dbMateMigration.MigrationsDir = compositFs.Mounts()
+
+	err = dbMateMigration.CreateAndMigrate()
+	if err != nil {
+		return err
 	}
 
 	m.logger.Info("Database migrations completed successfully")
@@ -210,17 +220,107 @@ func getModels(ctx core.Context) ([]interface{}, error) {
 	return models, nil
 }
 
-func getMigrations() ([]core.DBMigration, error) {
+func getMigrations() (map[string]core.DBMigration, []string, error) {
 	plugins := core.GetPlugins()
 
-	migrations := make([]core.DBMigration, 0)
+	migrations := make(map[string]core.DBMigration)
+	order := make([]string, 0)
 	for _, plugin := range plugins {
 		if plugin.Migrations != nil && len(plugin.Migrations) > 0 {
-			migrations = append(migrations, plugin.Migrations...)
+			migrations[plugin.ID] = plugin.Migrations
+			order = append(order, plugin.ID)
 		}
 	}
 
-	return migrations, nil
+	return migrations, order, nil
+}
+
+func getMigrationsByType(typ string, migrations core.DBMigration) fs.FS {
+	switch typ {
+	case "sqlite":
+		return migrations["sqlite"]
+	case "mysql":
+		return migrations["mysql"]
+	default:
+		return nil
+	}
+}
+
+// getDbMateUrl generates a database connection URL for dbmate based on the provided configuration.
+// Returns a *url.URL object and any error that occurred during URL generation.
+func getDbMateUrl(cfg config.Manager) (*url.URL, error) {
+	databaseConfig := cfg.Config().Core.DB
+	if databaseConfig.Type == "" {
+		return nil, errors.New("database type is required")
+	}
+
+	var urlStr string
+
+	switch strings.ToLower(databaseConfig.Type) {
+	case "sqlite":
+		if databaseConfig.File == "" {
+			return nil, errors.New("sqlite database requires a file path")
+		}
+		urlStr = "sqlite://" + db.GetSQLiteDBFile(cfg)
+
+	case "mysql":
+		if databaseConfig.Host == "" {
+			return nil, errors.New("mysql database requires a host")
+		}
+		if databaseConfig.Name == "" {
+			return nil, errors.New("mysql database requires a database name")
+		}
+
+		// For MySQL, dbmate expects the format:
+		// mysql://username:password@host:port/dbname?param1=value1
+		// NOT using the tcp() wrapper that's used in Go's sql.Open
+
+		// Handle default port if not specified
+		port := databaseConfig.Port
+		if port == 0 {
+			port = 3306 // Default MySQL port
+		}
+
+		// Build query parameters
+		params := make(url.Values)
+
+		// Add charset if specified
+		if databaseConfig.Charset != "" {
+			params.Add("charset", databaseConfig.Charset)
+		}
+
+		// Add TLS parameters if enabled
+		if databaseConfig.TLSEnabled {
+			if databaseConfig.TLSSkipVerify {
+				params.Add("tls", "skip-verify")
+			} else {
+				params.Add("tls", "true")
+			}
+		}
+
+		// Create a standard URL that url.Parse can handle
+		// Format: mysql://username:password@host:port/dbname?params
+		u := &url.URL{
+			Scheme:   "mysql",
+			User:     url.UserPassword(databaseConfig.Username, databaseConfig.Password),
+			Host:     fmt.Sprintf("%s:%d", databaseConfig.Host, port),
+			Path:     "/" + databaseConfig.Name,
+			RawQuery: params.Encode(),
+		}
+
+		return u, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported database type: %s", databaseConfig.Type)
+	}
+
+	// For SQLite, we need to parse the URL string
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+
+	return parsedURL, nil
 }
 
 var ErrLockAcquireFailed = errors.New("failed to acquire migration lock")
