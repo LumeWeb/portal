@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"time"
 )
 
@@ -11,11 +12,11 @@ const PIN_SERVICE = "pin"
 type PinService interface {
 	// Model registration methods
 	// RegisterPinModel registers a protocol-specific pin data model for a protocol
-	RegisterPinModel(protocol string, model PinDataModel) 
+	RegisterPinModel(protocol string, model data_models.PinDataModel)
 	// GetPinModel retrieves the registered model for a protocol
-	GetPinModel(protocol string) (PinDataModel, bool)
+	GetPinModel(protocol string) (data_models.PinDataModel, bool)
 	// CreatePinModel creates a new instance of the registered model for a protocol
-	CreatePinModel(protocol string) (PinDataModel, error)
+	CreatePinModel(protocol string) (data_models.PinDataModel, error)
 
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,
 	// created after the specified timestamp.

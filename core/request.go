@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"time"
 )
 
@@ -16,11 +17,11 @@ var (
 type RequestService interface {
 	// Model registration methods
 	// RegisterRequestModel registers a protocol-specific request data model for an operation
-	RegisterRequestModel(operation string, model RequestDataModel)
+	RegisterRequestModel(operation string, model data_models.RequestDataModel)
 	// GetRequestModel retrieves the registered model for an operation
-	GetRequestModel(operation string) (RequestDataModel, bool) 
+	GetRequestModel(operation string) (data_models.RequestDataModel, bool)
 	// CreateRequestModel creates a new instance of the registered model for an operation
-	CreateRequestModel(operation string) (RequestDataModel, error)
+	CreateRequestModel(operation string) (data_models.RequestDataModel, error)
 
 	// Core CRUD operations
 	CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error)
