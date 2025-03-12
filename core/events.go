@@ -46,8 +46,11 @@ func (e *Event) Fill(target any, data event.M) *Event {
 }
 
 // AttachTo add current event to the event manager.
-func (e *Event) AttachTo(em event.ManagerFace) {
-	em.AddEvent(e)
+func (e *Event) AttachTo(em event.ManagerFace) *Event {
+	if em != nil {
+		em.AddEvent(e)
+	}
+	return e
 }
 
 // Get data by index
