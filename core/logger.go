@@ -37,7 +37,10 @@ func NewLogger(cm config.Manager) *Logger {
 		cm:     cm,
 	}
 
-	cm.SetLogger(zapLogger)
+	// Only set the logger on the config manager if it's not nil
+	if cm != nil {
+		cm.SetLogger(zapLogger)
+	}
 
 	return logger
 }
