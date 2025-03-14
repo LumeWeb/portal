@@ -89,9 +89,23 @@ func (h *HTTPServiceDefault) Init() error {
 			domain = h.ctx.Config().Config().Core.Domain
 		}
 
-		err := api.Configure(h.Router().Host(domain).Subrouter(), h.access)
+		router := h.Router().Host(domain).Subrouter()
+		
+		// Configure the main API
+		err := api.Configure(router, h.access)
 		if err != nil {
 			return err
+		}
+		
+		// Apply any registered extensions
+		for _, ext := range core.GetAPIExtensions(api.Name()) {
+			h.logger.Info("Applying API extension", 
+				zap.String("api", api.Name()),
+				zap.String("extension", fmt.Sprintf("%T", ext)))
+				
+			if err := ext.Configure(router, h.access); err != nil {
+				return fmt.Errorf("failed to configure API extension: %w", err)
+			}
 		}
 	}
 
