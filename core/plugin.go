@@ -23,6 +23,7 @@ type PluginInfo struct {
 	API             func() (API, []ContextBuilderOption, error)
 	Protocol        func() (Protocol, []ContextBuilderOption, error)
 	Services        func() ([]ServiceInfo, error)
+	APIExtensions   func() ([]APIExtension, error)
 	Models          []any
 	Migrations      DBMigration
 	Events          []Eventer
@@ -142,4 +143,8 @@ func GetPlugins() []PluginInfo {
 	pluginsOrdered = pluginList
 
 	return pluginList
+}
+
+func PluginHasAPIExtensions(plugin PluginInfo) bool {
+	return plugin.APIExtensions != nil
 }
