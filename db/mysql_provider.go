@@ -14,8 +14,8 @@ import (
 
 // MySQLProvider implements the db.Provider interface for MySQL databases.
 type MySQLProvider struct {
-	cfg    config.Manager // Configuration manager
-	sqlDB  *gorm.DB       // GORM database instance
+	cfg   config.Manager // Configuration manager
+	sqlDB *gorm.DB       // GORM database instance
 }
 
 // NewMySQLProvider creates a new MySQL provider with the specified configuration.
@@ -29,7 +29,7 @@ func NewMySQLProvider(cfg config.Manager) *MySQLProvider {
 // It configures the connection with the provided logger and returns a GORM DB instance.
 func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	dbConfig := p.cfg.Config().Core.DB
-	
+
 	// Build query parameters
 	query := url.Values{}
 	query.Set("parseTime", "True")
@@ -79,13 +79,13 @@ func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	logger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: newLogger(logger.Logger, logger.Level()),
+		Logger: NewLogger(logger.Logger, logger.Level()),
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	p.sqlDB = db
 	return db, nil
 }
@@ -94,7 +94,7 @@ func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 // This is used when the dialector is needed without establishing a connection.
 func (p *MySQLProvider) GetDialector() gorm.Dialector {
 	dbConfig := p.cfg.Config().Core.DB
-	
+
 	// Build DSN (simplified for dialector)
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		dbConfig.Username,
@@ -102,7 +102,7 @@ func (p *MySQLProvider) GetDialector() gorm.Dialector {
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.Name)
-		
+
 	return mysql.Open(dsn)
 }
 
