@@ -1,3 +1,5 @@
+// Package db provides database functionality for the portal application,
+// including connection management, caching, and transaction handling.
 package db
 
 import (
@@ -26,27 +28,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// NewDatabase creates a new database connection and returns it along with context options.
+// It configures the database based on the application configuration and sets up caching if enabled.
 func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 	cfg := ctx.Config()
 	rootLogger := ctx.Logger()
 
-	dbType := cfg.Config().Core.DB.Type
-	var db *gorm.DB
-	var err error
-
-	switch dbType {
-	case "mysql":
-		db, err = openMySQLDatabase(cfg, rootLogger)
-	case "sqlite":
-		db, err = openSQLiteDatabase(GetSQLiteDBFile(cfg), rootLogger)
-	default:
-		panic(fmt.Sprintf("unsupported database type: %s", dbType))
-	}
-
+	// Create a provider based on configuration
+	provider := NewProvider(cfg)
+	
+	// Connect to the database
+	db, err := provider.Connect(rootLogger)
 	if err != nil {
 		panic(err)
 	}
 
+	// Configure caching if needed
 	cacher := getCacher(cfg, rootLogger)
 	if cacher != nil {
 		cache := &caches.Caches{Conf: &caches.Config{
@@ -54,24 +51,23 @@ func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 		}}
 		err := db.Use(cache)
 		if err != nil {
-			return nil, nil
+			rootLogger.Error("Failed to configure DB cache", zap.Error(err))
 		}
 	}
 
+	// Create context options
 	ctxOpts := []core.ContextBuilderOption{
 		core.ContextWithDB(db),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
-			sqlDB, err := db.DB()
-			if err != nil {
-				return err
-			}
-			return sqlDB.Close()
+			return provider.Close()
 		}),
 	}
 
 	return db, ctxOpts
 }
 
+// getCacheMode returns the cache mode from configuration.
+// It handles default values and validates the mode.
 func getCacheMode(cm config.Manager, logger *core.Logger) string {
 	if cm.Config().Core.DB.Cache == nil {
 		return "none"
@@ -91,68 +87,10 @@ func getCacheMode(cm config.Manager, logger *core.Logger) string {
 	return "none"
 }
 
-func openMySQLDatabase(cfg config.Manager, rootLogger *core.Logger) (*gorm.DB, error) {
-	dbConfig := cfg.Config().Core.DB
+// These functions are now handled by the provider implementations
 
-	// Build query parameters
-	query := url.Values{}
-	query.Set("parseTime", "True")
-	query.Set("loc", "Local")
-
-	if dbConfig.TLSEnabled {
-		rootLogger.Debug("TLS enabled")
-		if dbConfig.TLSSkipVerify {
-			rootLogger.Debug("Skipping TLS verification")
-			query.Set("tls", "skip-verify")
-		} else {
-			query.Set("tls", "true")
-		}
-	}
-
-	if dbConfig.Charset != "" {
-		query.Set("charset", dbConfig.Charset)
-		rootLogger.Debug("Setting charset", zap.String("charset", dbConfig.Charset))
-	} else {
-		rootLogger.Debug("Charset is empty, skipping parameter")
-	}
-
-	// Construct the DSN using url.URL
-	u := &url.URL{
-		Scheme:   "tcp",
-		User:     url.UserPassword(dbConfig.Username, dbConfig.Password),
-		Host:     fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port),
-		Path:     dbConfig.Name,
-		RawQuery: query.Encode(),
-	}
-
-	// Decode the user info portion since MySQL doesn't expect it to be URL encoded
-	userStr, err := url.QueryUnescape(u.User.String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to unescape user string: %v", err)
-	}
-
-	// Format as MySQL DSN with the decoded user string
-	dsn := fmt.Sprintf("%s@%s(%s)/%s?%s",
-		userStr,
-		u.Scheme,
-		u.Host,
-		strings.TrimPrefix(u.Path, "/"),
-		u.RawQuery,
-	)
-
-	rootLogger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
-
-	return gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),
-	})
-}
-
-func openSQLiteDatabase(file string, rootLogger *core.Logger) (*gorm.DB, error) {
-	return gorm.Open(sqlite.Open(file), &gorm.Config{
-		Logger: newLogger(rootLogger.Logger, rootLogger.Level()),
-	})
-}
-
+// getCacher returns a caches.Cacher implementation based on the configured cache mode.
+// It returns nil if caching is disabled.
 func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	mode := getCacheMode(cm, logger)
 
@@ -179,6 +117,8 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 
 	return nil
 }
+// RetryOnLock executes a database operation with exponential backoff retry logic
+// when database lock errors are encountered.
 func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 	initialBackoff := 100 * time.Millisecond
 	maxBackoff := 10 * time.Second
@@ -216,6 +156,8 @@ func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 	}
 }
 
+// RetryableTransaction executes a database transaction with retry logic for lock errors.
+// It combines the transaction with the RetryOnLock functionality.
 func RetryableTransaction(ctx core.Context, db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return RetryOnLock(tx, func(tx *gorm.DB) *gorm.DB {
@@ -224,7 +166,8 @@ func RetryableTransaction(ctx core.Context, db *gorm.DB, operation func(*gorm.DB
 	})
 }
 
-// isLockError checks if the given error is a database lock error
+// isLockError checks if the given error is a database lock error.
+// It examines the error message for common lock-related patterns.
 func isLockError(err error) bool {
 	errMsg := strings.ToLower(err.Error())
 	return strings.Contains(errMsg, "deadlock") ||
@@ -233,6 +176,7 @@ func isLockError(err error) bool {
 		strings.Contains(errMsg, "too many connections")
 }
 
+// GetCoreMigrations returns the core database migrations for different database types.
 func GetCoreMigrations() core.DBMigration {
 	return map[core.DBType]fs.FS{
 		core.DB_TYPE_MYSQL:  migrations.GetMySQL(),
@@ -240,6 +184,8 @@ func GetCoreMigrations() core.DBMigration {
 	}
 }
 
+// GetSQLiteDBFile returns the full path to the SQLite database file.
+// It handles both absolute and relative paths.
 func GetSQLiteDBFile(config config.Manager) string {
 	dbCfg := config.Config().Core.DB
 	if dbCfg.Type != "sqlite" {

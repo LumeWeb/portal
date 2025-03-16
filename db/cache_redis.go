@@ -1,3 +1,4 @@
+// Package db provides database functionality for the portal application.
 package db
 
 import (
@@ -10,10 +11,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// redisCacher implements the caches.Cacher interface using Redis.
+// It provides a distributed caching mechanism for database queries.
 type redisCacher struct {
 	rdb *redis.Client
 }
 
+// Get retrieves a cached query by key from Redis.
+// It returns nil if the key doesn't exist or if there's an error unmarshaling the data.
 func (c *redisCacher) Get(ctx context.Context, key string, q *caches.Query[any]) (*caches.Query[any], error) {
 	res, err := c.rdb.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
@@ -31,6 +36,8 @@ func (c *redisCacher) Get(ctx context.Context, key string, q *caches.Query[any])
 	return q, nil
 }
 
+// Store stores a query in Redis with the given key.
+// It marshals the query data before storing it with a 5-minute expiration.
 func (c *redisCacher) Store(ctx context.Context, key string, val *caches.Query[any]) error {
 	res, err := val.Marshal()
 	if err != nil {
@@ -41,6 +48,8 @@ func (c *redisCacher) Store(ctx context.Context, key string, val *caches.Query[a
 	return nil
 }
 
+// Invalidate clears all cache keys from Redis that match the cache identifier prefix.
+// It scans for matching keys and deletes them in batches.
 func (c *redisCacher) Invalidate(ctx context.Context) error {
 	var (
 		cursor uint64
