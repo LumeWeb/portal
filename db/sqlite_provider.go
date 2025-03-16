@@ -25,15 +25,15 @@ func NewSQLiteProvider(cfg config.Manager) *SQLiteProvider {
 // It configures the connection with the provided logger and returns a GORM DB instance.
 func (p *SQLiteProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	dbFile := GetSQLiteDBFile(p.cfg)
-	
+
 	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{
-		Logger: newLogger(logger.Logger, logger.Level()),
+		Logger: NewLogger(logger.Logger, logger.Level()),
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	p.sqlDB = db
 	return db, nil
 }
