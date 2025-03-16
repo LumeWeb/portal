@@ -1,3 +1,4 @@
+// Package db provides database functionality for the portal application.
 package db
 
 import (
@@ -12,9 +13,18 @@ import (
 	dbLogger "gorm.io/gorm/logger"
 )
 
-var _ dbLogger.Interface = (*logger)(nil)
+// DBLogger is a GORM logger implementation using zap.
+// It implements the gorm.logger.Interface to provide structured logging
+// for database operations.
+type DBLogger struct {
+	logger *zap.Logger
+	level  *zap.AtomicLevel
+}
+
+var _ dbLogger.Interface = (*DBLogger)(nil)
 
 var (
+	// levels maps GORM log levels to zap atomic levels
 	levels = map[dbLogger.LogLevel]zap.AtomicLevel{
 		dbLogger.Silent: zap.NewAtomicLevelAt(zap.InfoLevel),
 		dbLogger.Error:  zap.NewAtomicLevelAt(zap.ErrorLevel),
@@ -23,12 +33,9 @@ var (
 	}
 )
 
-type logger struct {
-	logger *zap.Logger
-	level  *zap.AtomicLevel
-}
-
-func (l logger) LogMode(level dbLogger.LogLevel) dbLogger.Interface {
+// LogMode sets the log level for the logger.
+// It returns a new logger instance with the updated log level.
+func (l DBLogger) LogMode(level dbLogger.LogLevel) dbLogger.Interface {
 	if atomicLevel, ok := levels[level]; ok {
 		l.level.SetLevel(atomicLevel.Level())
 		return l
@@ -38,19 +45,27 @@ func (l logger) LogMode(level dbLogger.LogLevel) dbLogger.Interface {
 	return nil
 }
 
-func (l logger) Info(ctx context.Context, s string, i ...interface{}) {
+// Info logs info level messages.
+// It converts variadic arguments to zap fields for structured logging.
+func (l DBLogger) Info(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Info(s, interfacesToFields(i...)...)
 }
 
-func (l logger) Warn(ctx context.Context, s string, i ...interface{}) {
+// Warn logs warning level messages.
+// It converts variadic arguments to zap fields for structured logging.
+func (l DBLogger) Warn(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Warn(s, interfacesToFields(i...)...)
 }
 
-func (l logger) Error(ctx context.Context, s string, i ...interface{}) {
+// Error logs error level messages.
+// It converts variadic arguments to zap fields for structured logging.
+func (l DBLogger) Error(ctx context.Context, s string, i ...interface{}) {
 	l.logger.Error(s, interfacesToFields(i...)...)
 }
 
-func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+// Trace logs SQL queries with execution time and affected rows.
+// It only logs at debug level and ignores ErrRecordNotFound errors.
+func (l DBLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	if l.level.Level() <= zap.DebugLevel {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return
@@ -69,10 +84,13 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 	}
 }
 
-func newLogger(zlog *zap.Logger, zlogLevel *zap.AtomicLevel) *logger {
-	return &logger{logger: zlog, level: zlogLevel}
+// NewLogger creates a new DBLogger instance with the provided zap logger and level.
+func NewLogger(zlog *zap.Logger, zlogLevel *zap.AtomicLevel) *DBLogger {
+	return &DBLogger{logger: zlog, level: zlogLevel}
 }
 
+// interfacesToFields converts interface values to zap fields for structured logging.
+// It uses the index as the field key for each value.
 func interfacesToFields(i ...interface{}) []zap.Field {
 	fields := make([]zap.Field, 0)
 	for idx, v := range i {

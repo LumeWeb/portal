@@ -6,6 +6,7 @@ toolchain go1.23.2
 
 require (
 	github.com/AfterShip/email-verifier v1.4.1
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/adjust/rmq/v5 v5.2.0
 	github.com/amacneil/dbmate/v2 v2.26.0
 	github.com/aws/aws-sdk-go-v2 v1.32.8

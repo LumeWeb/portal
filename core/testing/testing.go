@@ -12,6 +12,15 @@ import (
 	"time"
 )
 
+// TestContext extends core.Context with testing-specific methods
+type TestContext interface {
+	core.Context
+	T() *testing.T                                // Access to the testing.T instance
+	RegisterService(id string, service interface{}) // Register a mock service
+	Teardown()                                    // Clean up resources
+	RegisterCleanup(fn func())                    // Register custom cleanup functions
+}
+
 // ResetAllState resets all global state in the core package
 func ResetAllState() {
 	core.ResetState()
@@ -37,11 +46,15 @@ type defaultContext struct {
 // testContext extends the default context for testing
 type testContext struct {
 	*defaultContext
-	t *testing.T
+	t            *testing.T
+	cleanupFuncs []func()
 }
 
+// Ensure testContext implements TestContext
+var _ TestContext = (*testContext)(nil)
+
 // NewTestContext creates a new Context suitable for testing
-func NewTestContext(t *testing.T, opts ...TestContextOption) core.Context {
+func NewTestContext(t *testing.T, opts ...TestContextOption) TestContext {
 	t.Helper()
 
 	// Create a mock config manager
@@ -71,7 +84,8 @@ func NewTestContext(t *testing.T, opts ...TestContextOption) core.Context {
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
 		},
-		t: t,
+		t:            t,
+		cleanupFuncs: []func(){},
 	}
 
 	// Apply options
@@ -80,6 +94,38 @@ func NewTestContext(t *testing.T, opts ...TestContextOption) core.Context {
 	}
 
 	return testCtx
+}
+
+// RegisterService adds a service to the context after creation
+func (c *testContext) RegisterService(id string, service interface{}) {
+	c.services[id] = service
+}
+
+// RegisterCleanup adds a function to be called during Teardown
+func (c *testContext) RegisterCleanup(fn func()) {
+	c.cleanupFuncs = append(c.cleanupFuncs, fn)
+	c.t.Cleanup(fn) // Also register with testing.T for safety
+}
+
+// Teardown cleans up resources
+func (c *testContext) Teardown() {
+	// Close DB connections
+	if c.db != nil {
+		sqlDB, err := c.db.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	}
+
+	// Cancel context
+	if c.cancel != nil {
+		c.cancel()
+	}
+
+	// Run any registered cleanup functions
+	for _, fn := range c.cleanupFuncs {
+		fn()
+	}
 }
 
 // WithMockService adds a mock service to the test context
@@ -93,6 +139,12 @@ func WithMockService(id string, service core.Service) TestContextOption {
 func WithMockDB(db *gorm.DB) TestContextOption {
 	return func(ctx *testContext) {
 		ctx.db = db
+		ctx.RegisterCleanup(func() {
+			sqlDB, err := db.DB()
+			if err == nil {
+				_ = sqlDB.Close()
+			}
+		})
 	}
 }
 
