@@ -3,17 +3,13 @@
 package db
 
 import (
-	"fmt"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/migrations"
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/sqlite"
 	"io/fs"
 	"log"
 	"math"
 	"math/rand/v2"
-	"net/url"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -36,7 +32,7 @@ func NewDatabase(ctx core.Context) (*gorm.DB, []core.ContextBuilderOption) {
 
 	// Create a provider based on configuration
 	provider := NewProvider(cfg)
-	
+
 	// Connect to the database
 	db, err := provider.Connect(rootLogger)
 	if err != nil {
@@ -117,6 +113,7 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 
 	return nil
 }
+
 // RetryOnLock executes a database operation with exponential backoff retry logic
 // when database lock errors are encountered.
 func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
