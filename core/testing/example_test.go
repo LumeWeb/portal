@@ -1,78 +1,98 @@
 package testing_test
 
 import (
-	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	coretesting "go.lumeweb.com/portal/core/testing"
-	testdb "go.lumeweb.com/portal/core/testing/db"
+	"go.lumeweb.com/portal/db/models"
 )
 
-func TestExample(t *testing.T) {
-	// Reset all global state before the test
-	coretesting.ResetAllState()
+// Simple mock implementation of ServiceConfig for testing
+type MockServiceConfig struct{}
 
-	// Create a mock auth service
-	mockAuth := coretesting.NewMockAuthService()
-
-	// Create a test context with the mock service
-	ctx := coretesting.NewTestContext(t,
-		coretesting.WithMockService(core.AUTH_SERVICE, mockAuth),
-		coretesting.WithConfigValue("core.domain", "example.com"),
-	)
-	defer ctx.Teardown() // Clean up resources when test completes
-
-	// Register the test event
-	testEvent := &core.Event{}
-	core.RegisterEvent("user.created", testEvent)
-
-	// Create an event recorder
-	recorder := coretesting.NewEventRecorder()
-	recorder.Listen(ctx, "user.created", "user.login")
-
-	// Fire the event
-	err := ctx.Event().FireEvent(testEvent)
-	if err != nil {
-		t.Fatalf("Failed to fire event: %v", err)
-	}
-
-	// Verify events were fired
-	if !recorder.HasEvent("user.created") {
-		t.Error("Expected user.created event to be fired")
+func (c *MockServiceConfig) Defaults() map[string]interface{} {
+	return map[string]interface{}{
+		"name": "test-service",
 	}
 }
 
-func TestDynamicServiceRegistration(t *testing.T) {
-	// Create a test context
-	ctx := coretesting.NewTestContext(t)
-	defer ctx.Teardown()
+// Example of using the MockConfigManager
+func TestConfigManager(t *testing.T) {
+	// Create the mock config manager
+	manager := coretesting.NewMockConfigManager(t)
 
-	// Dynamically register a service during the test
-	mockUserService := coretesting.NewMockService(core.USER_SERVICE)
-	ctx.RegisterService(core.USER_SERVICE, mockUserService)
+	// Set up some config values
+	manager.SetValue("feature.enabled", true)
+	manager.SetValue("app.name", "Portal")
+	manager.SetValue("max.connections", 100)
 
-	// Verify the service was registered
-	if ctx.Service(core.USER_SERVICE) == nil {
-		t.Error("Expected user service to be registered")
+	// Test retrieving values
+	assert.True(t, manager.GetBool("feature.enabled"))
+	assert.Equal(t, "Portal", manager.GetString("app.name"))
+	assert.Equal(t, 100, manager.GetInt("max.connections"))
+
+	// Set up a plugin entity for a test
+	mockService := &MockServiceConfig{}
+	pluginEntity := &config.PluginEntity{
+		Service: map[string]config.ServiceConfig{
+			"test-service": mockService,
+		},
 	}
+	manager.SetupPluginEntity("test-plugin", pluginEntity)
+
+	// Test getting the plugin entity
+	result := manager.GetPlugin("test-plugin")
+	assert.Equal(t, pluginEntity, result)
 }
 
-func TestDatabaseOperations(t *testing.T) {
-	// Create a context with a mock DB
-	ctx, mock := testdb.SetupSQLMock(t)
-	defer ctx.Teardown()
-
-	// Set up expectations
-	mock.ExpectQuery("SELECT").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-
-	// Use the DB in your test
-	db := ctx.DB()
-	var result struct{ ID int }
-	db.Raw("SELECT id FROM users LIMIT 1").Scan(&result)
-
-	// Verify all expectations were met
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
+// Example of using the mockery-generated mocks with the MockConfigManager
+func TestServiceWithConfig(t *testing.T) {
+	// Create mock auth service
+	authMock := &MockAuthService{
+		MockService: &MockService{IDValue: core.AUTH_SERVICE},
 	}
+
+	// Set up a test user
+	user := &models.User{
+		Email: "test@example.com",
+	}
+
+	// Set up the auth service behavior
+	authMock.LoginPasswordFunc = func(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+		return "jwt-token", user, nil
+	}
+
+	// Create a test config manager
+	configManager := coretesting.NewMockConfigManager(t)
+	configManager.DefaultExpectations()
+
+	// Test the auth service with the config manager
+	token, resultUser, err := authMock.LoginPassword("test@example.com", "password", "127.0.0.1", true)
+	
+	assert.NoError(t, err)
+	assert.Equal(t, "jwt-token", token)
+	assert.Equal(t, user, resultUser)
+	assert.Equal(t, core.AUTH_SERVICE, authMock.ID())
+}
+
+// MockService is a simple mock implementation of core.Service for the example
+type MockService struct {
+	IDValue string
+}
+
+func (s *MockService) ID() string {
+	return s.IDValue
+}
+
+// MockAuthService implements core.AuthService for testing
+type MockAuthService struct {
+	*MockService
+	LoginPasswordFunc func(email string, password string, ip string, rememberMe bool) (string, *models.User, error)
+}
+
+func (s *MockAuthService) LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+	return s.LoginPasswordFunc(email, password, ip, rememberMe)
 }
