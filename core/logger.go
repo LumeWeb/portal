@@ -13,7 +13,7 @@ type Logger struct {
 	cm    config.Manager
 }
 
-func NewLogger(cm config.Manager) *Logger {
+func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()
 
@@ -35,6 +35,19 @@ func NewLogger(cm config.Manager) *Logger {
 		Logger: zapLogger,
 		level:  &atomicLevel,
 		cm:     cm,
+	}
+
+	// If an existing logger is provided, use it instead
+	if len(existingLogger) > 0 {
+		switch v := existingLogger[0].(type) {
+		case *Logger:
+			logger.Logger = v.Logger
+			logger.level = v.Level()
+			logger.cm = cm
+		case *zap.Logger:
+			logger.Logger = v
+			atomicLevel.SetLevel(v.Level())
+		}
 	}
 
 	// Only set the logger on the config manager if it's not nil
