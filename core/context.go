@@ -27,6 +27,9 @@ type Context interface {
 	APILogger(api API) *Logger
 	ServiceLogger(service Service) *Logger
 	NamedLogger(name string) *Logger
+	WithLoggerOptions(opts ...zap.Option) *Logger
+	WithLoggerLazy(opts ...zap.Field) *Logger
+	WithLogger(opts ...zap.Field) *Logger
 	Config() config.Manager
 	Cancel()
 	ExitCode() int
@@ -162,6 +165,30 @@ func (ctx *defaultContext) ServiceLogger(service Service) *Logger {
 func (ctx *defaultContext) NamedLogger(name string) *Logger {
 	return &Logger{
 		Logger: ctx.logger.Logger.Named(name),
+		level:  ctx.logger.level,
+		cm:     ctx.logger.cm,
+	}
+}
+
+func (ctx *defaultContext) WithLoggerOptions(opts ...zap.Option) *Logger {
+	return &Logger{
+		Logger: ctx.logger.Logger.WithOptions(opts...),
+		level:  ctx.logger.level,
+		cm:     ctx.logger.cm,
+	}
+}
+
+func (ctx *defaultContext) WithLoggerLazy(opts ...zap.Field) *Logger {
+	return &Logger{
+		Logger: ctx.logger.Logger.WithLazy(opts...),
+		level:  ctx.logger.level,
+		cm:     ctx.logger.cm,
+	}
+}
+
+func (ctx *defaultContext) WithLogger(opts ...zap.Field) *Logger {
+	return &Logger{
+		Logger: ctx.logger.Logger.With(opts...),
 		level:  ctx.logger.level,
 		cm:     ctx.logger.cm,
 	}

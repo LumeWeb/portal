@@ -6,6 +6,7 @@ import (
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"testing"
@@ -15,10 +16,10 @@ import (
 // TestContext extends core.Context with testing-specific methods
 type TestContext interface {
 	core.Context
-	T() *testing.T                                // Access to the testing.T instance
+	T() *testing.T                                  // Access to the testing.T instance
 	RegisterService(id string, service interface{}) // Register a mock service
-	Teardown()                                    // Clean up resources
-	RegisterCleanup(fn func())                    // Register custom cleanup functions
+	Teardown()                                      // Clean up resources
+	RegisterCleanup(fn func())                      // Register custom cleanup functions
 }
 
 // ResetAllState resets all global state in the core package
@@ -211,8 +212,20 @@ func (ctx *testContext) ServiceLogger(service core.Service) *core.Logger {
 	return ctx.NamedLogger("service-" + service.ID())
 }
 
+func (ctx *testContext) WithLoggerOptions(opts ...zap.Option) *core.Logger {
+	return core.NewLogger(ctx.Config(), ctx.logger.Logger.WithOptions(opts...))
+}
+
+func (ctx *testContext) WithLoggerLazy(opts ...zap.Field) *core.Logger {
+	return core.NewLogger(ctx.Config(), ctx.logger.Logger.WithLazy(opts...))
+}
+
+func (ctx *testContext) WithLogger(opts ...zap.Field) *core.Logger {
+	return core.NewLogger(ctx.Config(), ctx.logger.Logger.With(opts...))
+}
+
 func (ctx *testContext) NamedLogger(name string) *core.Logger {
-	return ctx.logger
+	return core.NewLogger(ctx.Config(), ctx.logger.Logger.Named(name))
 }
 
 func (ctx *testContext) Config() config.Manager {
