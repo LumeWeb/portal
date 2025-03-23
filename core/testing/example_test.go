@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	coretesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.uber.org/zap"
 )
 
 // Simple mock implementation of ServiceConfig for testing
@@ -95,4 +96,36 @@ type MockAuthService struct {
 
 func (s *MockAuthService) LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
 	return s.LoginPasswordFunc(email, password, ip, rememberMe)
+}
+
+// Example of using NewTestContext with benchmarks
+func BenchmarkWithTestContext(b *testing.B) {
+	// Create a test context with a benchmark
+	ctx := coretesting.NewTestContext(b)
+	defer ctx.Teardown()
+
+	// Configure test context
+	mockAuth := &MockAuthService{
+		MockService: &MockService{IDValue: core.AUTH_SERVICE},
+	}
+	mockAuth.LoginPasswordFunc = func(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+		return "token", &models.User{Email: email}, nil
+	}
+
+	// Register the service
+	ctx.RegisterService(core.AUTH_SERVICE, mockAuth)
+
+	// Get a logger with context
+	logger := ctx.WithLogger(zap.String("benchmark", "example"))
+
+	// Run the benchmark
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		svc := ctx.Service(core.AUTH_SERVICE).(*MockAuthService)
+		token, user, err := svc.LoginPassword("test@example.com", "password", "127.0.0.1", false)
+		if err != nil || token == "" || user == nil {
+			b.Fatalf("Login failed: %v", err)
+		}
+		logger.Info("Login successful", zap.String("token", token))
+	}
 }

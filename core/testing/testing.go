@@ -13,10 +13,99 @@ import (
 	"time"
 )
 
+// TB is an interface that both *testing.T and *testing.B satisfy
+type TB interface {
+	Helper()
+	Cleanup(func())
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	Fail()
+	FailNow()
+	Failed() bool
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	Log(args ...any)
+	Logf(format string, args ...any)
+	Name() string
+	Skip(args ...any)
+	SkipNow()
+	Skipf(format string, args ...any)
+	Skipped() bool
+}
+
+// mockTB adapts a TB to satisfy testify's TestingT interface
+type mockTB struct {
+	tb TB
+}
+
+func (m *mockTB) Cleanup(f func()) {
+	m.tb.Cleanup(f)
+}
+
+func (m *mockTB) Error(args ...any) {
+	m.tb.Error(args...)
+}
+
+func (m *mockTB) Errorf(format string, args ...any) {
+	m.tb.Errorf(format, args...)
+}
+
+func (m *mockTB) Fail() {
+	m.tb.Fail()
+}
+
+func (m *mockTB) FailNow() {
+	m.tb.FailNow()
+}
+
+func (m *mockTB) Failed() bool {
+	return m.tb.Failed()
+}
+
+func (m *mockTB) Fatal(args ...any) {
+	m.tb.Fatal(args...)
+}
+
+func (m *mockTB) Fatalf(format string, args ...any) {
+	m.tb.Fatalf(format, args...)
+}
+
+func (m *mockTB) Helper() {
+	m.tb.Helper()
+}
+
+func (m *mockTB) Log(args ...any) {
+	m.tb.Log(args...)
+}
+
+func (m *mockTB) Logf(format string, args ...any) {
+	m.tb.Logf(format, args...)
+}
+
+func (m *mockTB) Name() string {
+	return m.tb.Name()
+}
+
+func (m *mockTB) Skip(args ...any) {
+	m.tb.Skip(args...)
+}
+
+func (m *mockTB) SkipNow() {
+	m.tb.SkipNow()
+}
+
+func (m *mockTB) Skipf(format string, args ...any) {
+	m.tb.Skipf(format, args...)
+}
+
+func (m *mockTB) Skipped() bool {
+	return m.tb.Skipped()
+}
+
 // TestContext extends core.Context with testing-specific methods
 type TestContext interface {
 	core.Context
-	T() *testing.T                                  // Access to the testing.T instance
+	T() TB                                        // Access to the testing.TB instance (works with both *testing.T and *testing.B)
 	RegisterService(id string, service interface{}) // Register a mock service
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
@@ -47,22 +136,44 @@ type defaultContext struct {
 // testContext extends the default context for testing
 type testContext struct {
 	*defaultContext
-	t            *testing.T
+	tb           TB
 	cleanupFuncs []func()
 }
 
 // Ensure testContext implements TestContext
 var _ TestContext = (*testContext)(nil)
 
-// NewTestContext creates a new Context suitable for testing
-func NewTestContext(t *testing.T, opts ...TestContextOption) TestContext {
-	t.Helper()
+// NewTestContext creates a new Context suitable for testing with either *testing.T or *testing.B
+func NewTestContext(tb TB, opts ...TestContextOption) TestContext {
+	tb.Helper()
 
 	// Create a mock config manager
-	mockConfig := NewMockConfigManager(t)
+	var mockConfig *MockConfigManager
+	
+	// Handle different types of test runners
+	if t, ok := tb.(*testing.T); ok {
+		// If it's a *testing.T, use it directly
+		mockConfig = NewMockConfigManager(t)
+	} else {
+		// For benchmarks or other test types, create a simple wrapper around the MockConfigManager 
+		// that doesn't depend on expectations being verified
+		mockConfig = &MockConfigManager{
+			values: make(map[string]interface{}),
+			cfg:    &config.Config{},
+		}
+	}
 
-	// Create a test logger with the mock config
-	zapLogger := zaptest.NewLogger(t)
+	// Create a test logger based on the test type
+	var zapLogger *zap.Logger
+	if t, ok := tb.(*testing.T); ok {
+		zapLogger = zaptest.NewLogger(t)
+	} else if b, ok := tb.(*testing.B); ok {
+		zapLogger = zaptest.NewLogger(b)
+	} else {
+		// Fallback for other TB implementations
+		zapLogger = zap.NewNop()
+	}
+	
 	logger := core.NewLogger(mockConfig)
 	// Replace the underlying zap logger
 	logger.Logger = zapLogger
@@ -85,7 +196,7 @@ func NewTestContext(t *testing.T, opts ...TestContextOption) TestContext {
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
 		},
-		t:            t,
+		tb:           tb,
 		cleanupFuncs: []func(){},
 	}
 
@@ -105,7 +216,7 @@ func (c *testContext) RegisterService(id string, service interface{}) {
 // RegisterCleanup adds a function to be called during Teardown
 func (c *testContext) RegisterCleanup(fn func()) {
 	c.cleanupFuncs = append(c.cleanupFuncs, fn)
-	c.t.Cleanup(fn) // Also register with testing.T for safety
+	c.tb.Cleanup(fn) // Also register with testing.TB for safety
 }
 
 // Teardown cleans up resources
@@ -159,9 +270,10 @@ func WithConfigValue(key string, value interface{}) TestContextOption {
 	}
 }
 
-// T returns the testing.T instance
-func (c *testContext) T() *testing.T {
-	return c.t
+// T returns the testing.TB instance for backward compatibility
+// This will work with both *testing.T and *testing.B
+func (c *testContext) T() TB {
+	return c.tb
 }
 
 // Implement the Context interface methods for testContext

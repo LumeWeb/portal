@@ -119,10 +119,157 @@ func (m *MockConfigManager) Exists(key string) bool {
 	return m.ExistsValue(key)
 }
 
+// Init implements config.Manager
+func (m *MockConfigManager) Init() error {
+	if m.MockManager != nil {
+		return m.MockManager.Init()
+	}
+	return nil
+}
+
+// SetLogger implements config.Manager
+func (m *MockConfigManager) SetLogger(logger *zap.Logger) {
+	if m.MockManager != nil {
+		m.MockManager.SetLogger(logger)
+	}
+	m.logger = logger
+}
+
+// RegisterConfigChangeCallback implements config.Manager
+func (m *MockConfigManager) RegisterConfigChangeCallback(callback config.ConfigChangeCallback) {
+	if m.MockManager != nil {
+		m.MockManager.RegisterConfigChangeCallback(callback)
+	}
+	// No-op for the simple implementation
+}
+
+// Config returns the configuration
+func (m *MockConfigManager) Config() *config.Config {
+	if m.MockManager != nil {
+		return m.MockManager.Config()
+	}
+	return m.cfg
+}
+
+// Save implements config.Manager
+func (m *MockConfigManager) Save() error {
+	if m.MockManager != nil {
+		return m.MockManager.Save()
+	}
+	return nil
+}
+
+// ConfigFile implements config.Manager
+func (m *MockConfigManager) ConfigFile() string {
+	if m.MockManager != nil {
+		return m.MockManager.ConfigFile()
+	}
+	return "/mock/config.yaml"
+}
+
+// ConfigDir implements config.Manager
+func (m *MockConfigManager) ConfigDir() string {
+	if m.MockManager != nil {
+		return m.MockManager.ConfigDir()
+	}
+	return "/mock"
+}
+
+// FieldProcessor implements config.Manager
+func (m *MockConfigManager) FieldProcessor(obj any, prefix string, processors ...config.FieldProcessor) error {
+	if m.MockManager != nil {
+		return m.MockManager.FieldProcessor(obj, prefix, processors...)
+	}
+	return nil
+}
+
+// ConfigureProtocol implements config.Manager
+func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.ProtocolConfig) error {
+	if m.MockManager != nil {
+		return m.MockManager.ConfigureProtocol(pluginName, cfg)
+	}
+	return nil
+}
+
+// ConfigureAPI implements config.Manager
+func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig) error {
+	if m.MockManager != nil {
+		return m.MockManager.ConfigureAPI(pluginName, cfg)
+	}
+	return nil
+}
+
+// ConfigureService implements config.Manager
+func (m *MockConfigManager) ConfigureService(pluginName string, serviceName string, cfg config.ServiceConfig) error {
+	if m.MockManager != nil {
+		return m.MockManager.ConfigureService(pluginName, serviceName, cfg)
+	}
+	return nil
+}
+
+// GetPlugin implements config.Manager
+func (m *MockConfigManager) GetPlugin(pluginName string) *config.PluginEntity {
+	if m.MockManager != nil {
+		return m.MockManager.GetPlugin(pluginName)
+	}
+	return nil
+}
+
+// GetService implements config.Manager
+func (m *MockConfigManager) GetService(serviceName string) config.ServiceConfig {
+	if m.MockManager != nil {
+		return m.MockManager.GetService(serviceName)
+	}
+	return nil
+}
+
+// GetProtocol implements config.Manager
+func (m *MockConfigManager) GetProtocol(pluginName string) config.ProtocolConfig {
+	if m.MockManager != nil {
+		return m.MockManager.GetProtocol(pluginName)
+	}
+	return nil
+}
+
+// GetAPI implements config.Manager
+func (m *MockConfigManager) GetAPI(pluginName string) config.APIConfig {
+	if m.MockManager != nil {
+		return m.MockManager.GetAPI(pluginName)
+	}
+	return nil
+}
+
+// Update implements config.Manager
+func (m *MockConfigManager) Update(key string, value any) error {
+	if m.MockManager != nil {
+		return m.MockManager.Update(key, value)
+	}
+	m.SetValue(key, value)
+	return nil
+}
+
+// IsEditable implements config.Manager
+func (m *MockConfigManager) IsEditable(key string) bool {
+	if m.MockManager != nil {
+		return m.MockManager.IsEditable(key)
+	}
+	return true
+}
+
+// Flags implements config.Manager
+func (m *MockConfigManager) Flags(key string) []string {
+	if m.MockManager != nil {
+		return m.MockManager.Flags(key)
+	}
+	return []string{}
+}
+
 // GetString gets a string configuration value
 func (m *MockConfigManager) GetString(key string) string {
-	// Set up an expectation for this call
-	m.MockManager.On("GetString", key).Return("").Maybe()
+	// Set up an expectation for this call if MockManager is initialized
+	if m.MockManager != nil {
+		m.MockManager.On("GetString", key).Return("").Maybe()
+	}
 
 	val := m.GetValue(key)
 	if val == nil {
@@ -136,8 +283,10 @@ func (m *MockConfigManager) GetString(key string) string {
 
 // GetInt gets an int configuration value
 func (m *MockConfigManager) GetInt(key string) int {
-	// Set up an expectation for this call
-	m.MockManager.On("GetInt", key).Return(0).Maybe()
+	// Set up an expectation for this call if MockManager is initialized
+	if m.MockManager != nil {
+		m.MockManager.On("GetInt", key).Return(0).Maybe()
+	}
 
 	val := m.GetValue(key)
 	if val == nil {
@@ -151,8 +300,10 @@ func (m *MockConfigManager) GetInt(key string) int {
 
 // GetBool gets a bool configuration value
 func (m *MockConfigManager) GetBool(key string) bool {
-	// Set up an expectation for this call
-	m.MockManager.On("GetBool", key).Return(false).Maybe()
+	// Set up an expectation for this call if MockManager is initialized
+	if m.MockManager != nil {
+		m.MockManager.On("GetBool", key).Return(false).Maybe()
+	}
 
 	val := m.GetValue(key)
 	if val == nil {
@@ -166,30 +317,40 @@ func (m *MockConfigManager) GetBool(key string) bool {
 
 // SetupPluginEntity is a convenience method to set up a plugin entity
 func (m *MockConfigManager) SetupPluginEntity(pluginName string, entity *config.PluginEntity) {
-	m.MockManager.On("GetPlugin", pluginName).Return(entity)
+	if m.MockManager != nil {
+		m.MockManager.On("GetPlugin", pluginName).Return(entity)
+	}
 }
 
 // WithService is a convenience method to set up a service config expectation
 func (m *MockConfigManager) WithService(serviceName string, serviceConfig config.ServiceConfig) {
-	m.MockManager.On("GetService", serviceName).Return(serviceConfig)
+	if m.MockManager != nil {
+		m.MockManager.On("GetService", serviceName).Return(serviceConfig)
+	}
 }
 
 // WithProtocol is a convenience method to set up a protocol config expectation
 func (m *MockConfigManager) WithProtocol(pluginName string, protocolConfig config.ProtocolConfig) {
-	m.MockManager.On("GetProtocol", pluginName).Return(protocolConfig)
+	if m.MockManager != nil {
+		m.MockManager.On("GetProtocol", pluginName).Return(protocolConfig)
+	}
 }
 
 // WithAPI is a convenience method to set up an API config expectation
 func (m *MockConfigManager) WithAPI(pluginName string, apiConfig config.APIConfig) {
-	m.MockManager.On("GetAPI", pluginName).Return(apiConfig)
+	if m.MockManager != nil {
+		m.MockManager.On("GetAPI", pluginName).Return(apiConfig)
+	}
 }
 
 // DefaultExpectations sets up default expectations for common methods
 func (m *MockConfigManager) DefaultExpectations() {
-	m.MockManager.On("Init").Return(nil).Maybe()
-	m.MockManager.On("Save").Return(nil).Maybe()
-	m.MockManager.On("ConfigFile").Return("/mock/config.yaml").Maybe()
-	m.MockManager.On("ConfigDir").Return("/mock").Maybe()
+	if m.MockManager != nil {
+		m.MockManager.On("Init").Return(nil).Maybe()
+		m.MockManager.On("Save").Return(nil).Maybe()
+		m.MockManager.On("ConfigFile").Return("/mock/config.yaml").Maybe()
+		m.MockManager.On("ConfigDir").Return("/mock").Maybe()
+	}
 }
 
 // Ensure the type implements the config.Manager interface
