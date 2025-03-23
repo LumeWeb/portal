@@ -37,6 +37,7 @@ require (
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tus/tusd/v2 v2.4.0
 	github.com/urfave/cli/v3 v3.0.0-beta1
 	github.com/wneessen/go-mail v0.5.2
@@ -88,7 +89,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230126093431-47fa9a501578 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.sia.tech/gofakes3 v0.0.5 // indirect

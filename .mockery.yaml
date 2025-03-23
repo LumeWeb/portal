@@ -1,0 +1,32 @@
+with-expecter: true
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+
+packages:
+  go.lumeweb.com/portal/core:
+    config:
+      dir: "./core/testing/mocks"
+      outpkg: "mocks"
+      filename: "{{.InterfaceName}}.go"
+    interfaces:
+      StorageService:
+      AuthService:
+      UserService:
+      OTPService:
+      MailerService:
+      HTTPService:
+      PinService:
+      HashMappingService:
+      RenterService:
+      RequestService:
+      UploadService:
+      CronService:
+      AccessService:
+  go.lumeweb.com/portal/config:
+    config:
+      dir: "./core/testing/mocks"
+      outpkg: "mocks"
+      filename: "{{.InterfaceName}}.go"
+    interfaces:
+      Manager:

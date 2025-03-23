@@ -58,7 +58,7 @@ func NewTestContext(t *testing.T, opts ...TestContextOption) TestContext {
 	t.Helper()
 
 	// Create a mock config manager
-	mockConfig := NewMockConfigManager()
+	mockConfig := NewMockConfigManager(t)
 
 	// Create a test logger with the mock config
 	zapLogger := zaptest.NewLogger(t)
