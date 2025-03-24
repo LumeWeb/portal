@@ -2,7 +2,9 @@ package core
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/db/models"
@@ -27,6 +29,7 @@ const (
 
 var (
 	ErrProofNotSupported = errors.New("protocol does not support proofs")
+	ErrInvalidHashFormat = errors.New("could not parse hash string: not a valid multihash format")
 )
 
 type FileNameEncoderFunc func([]byte) string
@@ -192,4 +195,76 @@ func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte
 		mh:      hash,
 		cidType: cidType,
 	}
+}
+
+func ParseStorageHash(s string) (StorageHash, error) {
+	var hash mh.Multihash
+	var err error
+
+	// Try Base58 format first (most common for content-addressed systems)
+	hash, err = mh.FromB58String(s)
+	if err == nil {
+		// Get information from the decoded multihash
+		decoded, err := mh.Decode(hash)
+		if err != nil {
+			return nil, fmt.Errorf("invalid multihash structure: %w", err)
+		}
+
+		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+		return NewStorageHashFromMultihash(hash, cidType, nil), nil
+	}
+
+	// Try hex format
+	hash, err = mh.FromHexString(s)
+	if err == nil {
+		decoded, err := mh.Decode(hash)
+		if err != nil {
+			return nil, fmt.Errorf("invalid multihash structure: %w", err)
+		}
+
+		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+		return NewStorageHashFromMultihash(hash, cidType, nil), nil
+	}
+
+	// Try base64 format as a last resort
+	decodedBytes, err := base64.StdEncoding.DecodeString(s)
+	if err == nil {
+		// Try to interpret the decoded bytes as a multihash
+		hash, err = mh.Cast(decodedBytes)
+		if err == nil {
+			decoded, err := mh.Decode(hash)
+			if err != nil {
+				return nil, fmt.Errorf("invalid multihash structure: %w", err)
+			}
+
+			cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+			return NewStorageHashFromMultihash(hash, cidType, nil), nil
+		}
+	}
+
+	// If we get here, we couldn't parse the hash in any supported format
+	return nil, ErrInvalidHashFormat
+}
+
+// inferCIDTypeFromHashCode maps hash algorithm codes to appropriate CID types
+// Considers both hash type and length in determining the appropriate CID type
+func inferCIDTypeFromHashCode(code uint64, digestLength int) uint64 {
+	// Special case for SHA2-256 with 32-byte digest (IPFS compatibility)
+	if code == mh.SHA2_256 && digestLength == 32 {
+		// Check if this is likely an IPFS CIDv0 hash
+		return 0x00 // CIDv0 for legacy IPFS content
+	}
+
+	// For identity hashes (direct content)
+	if code == mh.IDENTITY {
+		return 0x55 // Raw CID for identity hashes
+	}
+
+	// For raw binary data
+	if code == mh.SHA2_256 && digestLength <= 16 {
+		return 0x55 // Raw CID for small binary blobs
+	}
+
+	// Default to CIDv1 for most other hash types
+	return 0x01
 }
