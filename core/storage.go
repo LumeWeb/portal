@@ -40,6 +40,7 @@ type StorageHash interface {
 	ProofExists() bool
 	CIDType() uint64
 	Type() uint64
+	String() string
 }
 
 type StorageProtocol interface {
@@ -171,6 +172,10 @@ func (s StorageHashDefault) CIDType() uint64 {
 
 func (s StorageHashDefault) Type() uint64 {
 	return s.typ
+}
+
+func (s StorageHashDefault) String() string {
+	return s.Multihash().String()
 }
 
 func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {
