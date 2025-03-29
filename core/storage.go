@@ -202,6 +202,10 @@ func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte
 	}
 }
 
+func NewStorageHashFromRawMultihash(hash mh.Multihash) StorageHash {
+	return NewStorageHashFromMultihash(hash, 0, nil)
+}
+
 func ParseStorageHash(s string) (StorageHash, error) {
 	var hash mh.Multihash
 	var err error
