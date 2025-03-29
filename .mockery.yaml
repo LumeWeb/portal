@@ -10,19 +10,53 @@ packages:
       outpkg: "mocks"
       filename: "{{.InterfaceName}}.go"
     interfaces:
-      StorageService:
+      AccessService:
+      APIExtension:
+      API:
+      APIInit:
+      RoutableAPI:
       AuthService:
-      UserService:
-      OTPService:
-      MailerService:
-      HTTPService:
-      PinService:
+      ConfigService:
+      ContentScanner:
+      ContentScannerService:
+      Context:
+      CronService:
+      Cronable:
+      Eventer:
       HashMappingService:
+      HashRegistry:
+      HTTPService:
+      MailerTemplate:
+      MailerService:
+      PortalMetaBuilder:
+      HashProofGenerator:
+      HashProofProvider:
+      HashProofVerifier:
+      Operation:
+      OperationHandler:
+      OTPService:
+      PasswordResetService:
+      PinService:
+      Configurable:
+      Protocol:
+      ProtocolInit:
+      ProtocolStart:
+      ProtocolStop:
+      ProtocolRequestDataHandler:
+      ProtocolPinHandler:
       RenterService:
       RequestService:
+      Service:
+      StorageHash:
+      StorageProtocol:
+      StorageUploadRequest:
+      StorageService:
+      TUSService:
+      UploadDataHandler:
       UploadService:
-      CronService:
-      AccessService:
+      UserService:
+      WorkflowCoordinator:
+
   go.lumeweb.com/portal/config:
     config:
       dir: "./core/testing/mocks"
