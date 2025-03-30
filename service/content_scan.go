@@ -14,8 +14,6 @@ import (
 	"sort"
 )
 
-const CONTENT_SCANNER_SERVICE = "content_scanner"
-
 // Default implementation
 type ContentScannerServiceDefault struct {
 	ctx      core.Context
@@ -42,7 +40,7 @@ func NewContentScannerService() (*ContentScannerServiceDefault, []core.ContextBu
 }
 
 func (s *ContentScannerServiceDefault) ID() string {
-	return CONTENT_SCANNER_SERVICE
+	return core.CONTENT_SCANNER_SERVICE
 }
 
 func (s *ContentScannerServiceDefault) RegisterScanner(scanner core.ContentScanner) error {
