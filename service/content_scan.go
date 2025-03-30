@@ -14,6 +14,17 @@ import (
 	"sort"
 )
 
+var _ core.ContentScannerService = (*ContentScannerServiceDefault)(nil)
+
+func init() {
+	core.RegisterService(core.ServiceInfo{
+		ID: core.CONTENT_SCANNER_SERVICE,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return NewContentScannerService()
+		},
+	})
+}
+
 // Default implementation
 type ContentScannerServiceDefault struct {
 	ctx      core.Context
