@@ -176,3 +176,7 @@ func (s *ContentScannerServiceDefault) storeScanResult(ctx context.Context, hash
 		})
 	})
 }
+
+func (s *ContentScannerServiceDefault) RegisteredScanners() []core.ContentScanner {
+	return s.scanners
+}
