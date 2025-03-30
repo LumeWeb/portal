@@ -78,7 +78,7 @@ func NewWorkflowCoordinator() (*WorkflowCoordinatorDefault, []core.ContextBuilde
 
 // ID returns the service ID
 func (w *WorkflowCoordinatorDefault) ID() string {
-	return WORKFLOW_SERVICE
+	return core.WORKFLOW_SERVICE
 }
 
 // RegisterWorkflow registers a new workflow
