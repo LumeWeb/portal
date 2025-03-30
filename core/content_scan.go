@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const CONTENT_SCANNER_SERVICE = "content_scanner"
+
 // ScanResult represents the outcome of a content scan
 type ScanResult struct {
 	Passed    bool           `json:"passed"`
