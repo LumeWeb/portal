@@ -32,6 +32,11 @@ type WorkflowCoordinator interface {
 	GetWorkflowStatus(ctx context.Context, requestID uint) (*WorkflowStatus, error)
 }
 
+type WorkflowService interface {
+	Service
+	WorkflowCoordinator
+}
+
 // OperationStep defines a single step in a workflow
 type OperationStep struct {
 	// The operation identifier (e.g., "ipfs.upload" or "content.scan")

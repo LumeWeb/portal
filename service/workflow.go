@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ core.WorkflowCoordinator = (*WorkflowCoordinatorDefault)(nil)
+var _ core.WorkflowService = (*WorkflowCoordinatorDefault)(nil)
 
 // Register service
 func init() {
