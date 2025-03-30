@@ -55,6 +55,9 @@ type ContentScannerService interface {
 	// GetScanResults retrieves previous scan results
 	GetScanResults(ctx context.Context, hash StorageHash) ([]*ScanResult, error)
 
+	// GetScanResultById retrieves a specific scan result by its unique identifier.
+	GetScanResultById(ctx context.Context, id uint) (*ScanResult, error)
+
 	Service
 }
 

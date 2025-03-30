@@ -124,6 +124,24 @@ func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash 
 	return results, nil
 }
 
+func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id uint) (*core.ScanResult, error) {
+	var result *core.ScanResult
+
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			return db.WithContext(ctx).
+				Model(&models.ScanResult{}).
+				First(result, id)
+		})
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scan results: %w", err)
+	}
+
+	return result, nil
+}
+
 func (s *ContentScannerServiceDefault) storeScanResult(ctx context.Context, hash core.StorageHash, result *core.ScanResult) error {
 	metadataJSON, err := json.Marshal(result.Metadata)
 	if err != nil {
