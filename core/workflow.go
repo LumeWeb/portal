@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const WORKFLOW_SERVICE = "workflow"
+
 // WorkflowCoordinator orchestrates multi-step operations across protocols
 type WorkflowCoordinator interface {
 	// Register a new workflow with specified steps

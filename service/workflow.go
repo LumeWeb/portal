@@ -18,12 +18,10 @@ import (
 
 var _ core.WorkflowCoordinator = (*WorkflowCoordinatorDefault)(nil)
 
-const WORKFLOW_SERVICE = "workflow"
-
 // Register service
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: WORKFLOW_SERVICE,
+		ID: core.WORKFLOW_SERVICE,
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewWorkflowCoordinator()
 		},

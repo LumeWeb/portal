@@ -397,7 +397,7 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 		// If request has workflow metadata, advance the workflow
 		if len(request.Metadata) > 0 {
 			// Try to get workflow service - it might not be available in all contexts
-			if workflowSvc, ok := ctx.Service(WORKFLOW_SERVICE).(core.WorkflowCoordinator); ok {
+			if workflowSvc, ok := ctx.Service(core.WORKFLOW_SERVICE).(core.WorkflowCoordinator); ok {
 				if err := workflowSvc.CompleteWorkflowStep(ctx, tusReq.RequestID); err != nil {
 					ctx.Logger().Error("Failed to complete workflow step", zap.Error(err))
 					// Don't return error here - the upload itself succeeded
