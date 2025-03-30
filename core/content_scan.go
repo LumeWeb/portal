@@ -70,6 +70,8 @@ type ContentScannerService interface {
 	// RegisterScanner adds a new scanner
 	RegisterScanner(scanner ContentScanner) error
 
+	RegisteredScanners() []ContentScanner
+
 	// ScanContent runs content through all registered scanners
 	ScanContent(ctx context.Context, hash StorageHash) ([]*ScanResult, error)
 
