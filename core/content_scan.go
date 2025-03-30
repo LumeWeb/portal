@@ -11,6 +11,9 @@ const CONTENT_SCANNER_SERVICE = "content_scanner"
 
 // ScanResult represents the outcome of a content scan
 type ScanResult struct {
+	ID        uint64         `json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
 	Passed    bool           `json:"passed"`
 	Reason    string         `json:"reason,omitempty"`
 	Timestamp time.Time      `json:"timestamp"`
@@ -27,6 +30,24 @@ func (s *ScanResult) ToModel(hash StorageHash) *models.ScanResult {
 		Reason:    s.Reason,
 		Metadata:  metaJSON,
 	}
+}
+
+func (s *ScanResult) FromModel(model *models.ScanResult) error {
+	var meta map[string]any
+
+	err := json.Unmarshal(model.Metadata, &meta)
+	if err != nil {
+		return err
+	}
+
+	s.ScannerID = model.ScannerID
+	s.Passed = model.Passed
+	s.Reason = model.Reason
+	s.Metadata = meta
+	s.CreatedAt = model.CreatedAt
+	s.UpdatedAt = model.UpdatedAt
+
+	return nil
 }
 
 // ContentScanner interface defines how scanners should behave
@@ -53,10 +74,10 @@ type ContentScannerService interface {
 	ScanContent(ctx context.Context, hash StorageHash) ([]*ScanResult, error)
 
 	// GetScanResults retrieves previous scan results
-	GetScanResults(ctx context.Context, hash StorageHash) ([]*models.ScanResult, error)
+	GetScanResults(ctx context.Context, hash StorageHash) ([]*ScanResult, error)
 
 	// GetScanResultById retrieves a specific scan result by its unique identifier.
-	GetScanResultById(ctx context.Context, id uint) (*models.ScanResult, error)
+	GetScanResultById(ctx context.Context, id uint) (*ScanResult, error)
 
 	Service
 }
