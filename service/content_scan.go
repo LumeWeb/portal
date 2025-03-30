@@ -115,8 +115,8 @@ func (s *ContentScannerServiceDefault) ScanContent(ctx context.Context, hash cor
 	return results, nil
 }
 
-func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash core.StorageHash) ([]*models.ScanResult, error) {
-	var results []*models.ScanResult
+func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error) {
+	var results []*core.ScanResult
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
@@ -135,8 +135,8 @@ func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash 
 	return results, nil
 }
 
-func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id uint) (*models.ScanResult, error) {
-	var result *models.ScanResult
+func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id uint) (*core.ScanResult, error) {
+	var result *core.ScanResult
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
