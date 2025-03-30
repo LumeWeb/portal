@@ -6,13 +6,15 @@ import (
 	"io"
 )
 
+var _ core.StorageHash = (*MockStorageHash)(nil)
+
 // MockStorageHash implements core.StorageHash for testing
 type MockStorageHash struct {
-	ProofValue      []byte
-	MultihashValue  mh.Multihash
+	ProofValue       []byte
+	MultihashValue   mh.Multihash
 	ProofExistsValue bool
-	CIDTypeValue    uint64
-	TypeValue       uint64
+	CIDTypeValue     uint64
+	TypeValue        uint64
 }
 
 func (s *MockStorageHash) Proof() []byte {
@@ -33,6 +35,10 @@ func (s *MockStorageHash) CIDType() uint64 {
 
 func (s *MockStorageHash) Type() uint64 {
 	return s.TypeValue
+}
+
+func (s *MockStorageHash) String() string {
+	return s.MultihashValue.String()
 }
 
 // NewMockStorageHash creates a new mock storage hash
@@ -69,9 +75,9 @@ func (s *MockStorageHash) WithType(typ uint64) *MockStorageHash {
 
 // MockStorageProtocol implements core.StorageProtocol for testing
 type MockStorageProtocol struct {
-	NameValue           string
-	EncodeFileNameFunc  func(core.StorageHash) string
-	HashFunc            func(r io.Reader, size uint64) (core.StorageHash, error)
+	NameValue          string
+	EncodeFileNameFunc func(core.StorageHash) string
+	HashFunc           func(r io.Reader, size uint64) (core.StorageHash, error)
 }
 
 func (p *MockStorageProtocol) Name() string {
@@ -101,13 +107,13 @@ func NewMockStorageProtocol(name string) *MockStorageProtocol {
 
 // MockStorageUploadRequest implements core.StorageUploadRequest for testing
 type MockStorageUploadRequest struct {
-	ProtocolValue     core.StorageProtocol
-	DataValue         io.ReadSeeker
-	SizeValue         uint64
-	MuParamsValue     *core.MultipartUploadParams
-	HashValue         core.StorageHash
-	HashTypesValue    []uint64
-	HashesValue       []core.StorageHash
+	ProtocolValue  core.StorageProtocol
+	DataValue      io.ReadSeeker
+	SizeValue      uint64
+	MuParamsValue  *core.MultipartUploadParams
+	HashValue      core.StorageHash
+	HashTypesValue []uint64
+	HashesValue    []core.StorageHash
 }
 
 func (r *MockStorageUploadRequest) Protocol() core.StorageProtocol {
