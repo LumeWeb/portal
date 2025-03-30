@@ -45,6 +45,7 @@ type WorkflowMetadata struct {
 	NextRequestID uint   `json:"next_request_id,omitempty"`
 	PrevRequestID uint   `json:"prev_request_id,omitempty"`
 	StartedAt     int64  `json:"started_at"`
+	InitialData   any    `json:"initial_data"`
 }
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
@@ -129,7 +130,7 @@ func (w *WorkflowCoordinatorDefault) ListWorkflows() []string {
 }
 
 // StartWorkflow starts a new workflow instance
-func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, initialData interface{}) (*models.Request, error) {
+func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error) {
 	// Get workflow
 	workflow, err := w.GetWorkflow(name)
 	if err != nil {
@@ -143,12 +144,24 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	// First step
 	firstStep := workflow.Steps[0]
 
+	dataIsRequest := false
+	var modelRequest *models.Request
+
+	if _, ok := initialData.(*models.Request); ok {
+		dataIsRequest = true
+		modelRequest = initialData.(*models.Request)
+	}
+
 	// Create metadata for first step
 	metadata := WorkflowMetadata{
 		WorkflowName: workflow.Name,
 		CurrentStep:  0,
 		TotalSteps:   len(workflow.Steps),
 		StartedAt:    time.Now().Unix(),
+	}
+
+	if !dataIsRequest {
+		metadata.InitialData = initialData
 	}
 
 	// Serialize metadata
@@ -165,16 +178,16 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	}
 
 	// If initialData is a Request, copy its fields
-	if initReq, ok := initialData.(*models.Request); ok {
-		req.Protocol = initReq.Protocol
-		req.UserID = initReq.UserID
-		req.SourceIP = initReq.SourceIP
-		req.Hash = initReq.Hash
-		req.CIDType = initReq.CIDType
-		req.UploadHash = initReq.UploadHash
-		req.UploadHashCIDType = initReq.UploadHashCIDType
-		req.Size = initReq.Size
-		req.MimeType = initReq.MimeType
+	if dataIsRequest {
+		req.Protocol = modelRequest.Protocol
+		req.UserID = modelRequest.UserID
+		req.SourceIP = modelRequest.SourceIP
+		req.Hash = modelRequest.Hash
+		req.CIDType = modelRequest.CIDType
+		req.UploadHash = modelRequest.UploadHash
+		req.UploadHashCIDType = modelRequest.UploadHashCIDType
+		req.Size = modelRequest.Size
+		req.MimeType = modelRequest.MimeType
 	}
 
 	// Validate the request
