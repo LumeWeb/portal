@@ -20,7 +20,7 @@ type WorkflowCoordinator interface {
 	ListWorkflows() []string
 
 	// Start a new workflow instance
-	StartWorkflow(ctx context.Context, name string, initialData interface{}) (*models.Request, error)
+	StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error)
 
 	// Advance workflow to next step
 	CompleteWorkflowStep(ctx context.Context, requestID uint) error
