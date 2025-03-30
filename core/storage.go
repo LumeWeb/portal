@@ -175,7 +175,7 @@ func (s StorageHashDefault) Type() uint64 {
 }
 
 func (s StorageHashDefault) String() string {
-	return s.Multihash().String()
+	return s.Multihash().B58String()
 }
 
 func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {
