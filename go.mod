@@ -2,7 +2,7 @@ module go.lumeweb.com/portal
 
 go 1.23.1
 
-toolchain go1.23.2
+toolchain go1.24.1
 
 require (
 	github.com/AfterShip/email-verifier v1.4.1
@@ -43,12 +43,12 @@ require (
 	github.com/wneessen/go-mail v0.5.2
 	go.etcd.io/etcd/client/v3 v3.5.17
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
-	go.sia.tech/core v0.9.0
+	go.sia.tech/core v0.10.5
 	go.sia.tech/coreutils v0.9.0
 	go.sia.tech/renterd v1.0.8
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.3.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.5
 	gorm.io/driver/mysql v1.5.7
@@ -94,7 +94,7 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.sia.tech/gofakes3 v0.0.5 // indirect
 	go.sia.tech/jape v0.12.1 // indirect
-	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
@@ -174,14 +174,14 @@ require (
 	gitlab.com/NebulousLabs/threadgroup v0.0.0-20200608151952-38921fbef213 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.17
 	go.etcd.io/etcd/client/pkg/v3 v3.5.17 // indirect
-	go.sia.tech/mux v1.3.0 // indirect
+	go.sia.tech/mux v1.4.0 // indirect
 	go.sia.tech/siad v1.5.10-0.20230228235644-3059c0b930ca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
-	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/tools v0.30.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	lukechampine.com/frand v1.5.1 // indirect
