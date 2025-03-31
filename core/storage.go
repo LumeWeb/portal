@@ -2,11 +2,8 @@ package core
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/db/models"
 	"io"
 	"time"
@@ -33,15 +30,6 @@ var (
 )
 
 type FileNameEncoderFunc func([]byte) string
-
-type StorageHash interface {
-	Proof() []byte
-	Multihash() mh.Multihash
-	ProofExists() bool
-	CIDType() uint64
-	Type() uint64
-	String() string
-}
 
 type StorageProtocol interface {
 	Name() string
@@ -119,161 +107,4 @@ type StorageService interface {
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 
 	Service
-}
-
-func NewStorageHashFromMultihashBytes(hash []byte, cidType uint64, proof []byte) StorageHash {
-	multihash, err := mh.Cast(hash)
-
-	if err != nil {
-		return nil
-	}
-
-	decode, _ := mh.Decode(multihash)
-	if decode == nil {
-		return nil
-	}
-
-	return &StorageHashDefault{
-		hash:    decode.Digest,
-		typ:     decode.Code,
-		proof:   proof,
-		mh:      multihash,
-		cidType: cidType,
-	}
-}
-
-type StorageHashDefault struct {
-	hash    []byte
-	typ     uint64
-	cidType uint64
-	proof   []byte
-	mh      mh.Multihash
-}
-
-func (s StorageHashDefault) Proof() []byte {
-	return s.proof
-}
-func (s StorageHashDefault) ProofExists() bool {
-	return len(s.proof) > 0
-}
-
-func (s StorageHashDefault) Multihash() mh.Multihash {
-	if s.mh == nil {
-		_mh, _ := mh.Encode(s.hash, s.typ)
-		s.mh = _mh
-	}
-
-	return s.mh
-}
-
-func (s StorageHashDefault) CIDType() uint64 {
-	return s.cidType
-}
-
-func (s StorageHashDefault) Type() uint64 {
-	return s.typ
-}
-
-func (s StorageHashDefault) String() string {
-	return s.Multihash().B58String()
-}
-
-func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {
-	return &StorageHashDefault{
-		hash:    hash,
-		typ:     typ,
-		cidType: cidType,
-		proof:   proof,
-	}
-}
-
-func NewStorageHashFromMultihash(hash mh.Multihash, cidType uint64, proof []byte) StorageHash {
-	decode, _ := mh.Decode(hash)
-	if decode == nil {
-		return nil
-	}
-
-	return &StorageHashDefault{
-		hash:    decode.Digest,
-		typ:     decode.Code,
-		proof:   proof,
-		mh:      hash,
-		cidType: cidType,
-	}
-}
-
-func NewStorageHashFromRawMultihash(hash mh.Multihash) StorageHash {
-	return NewStorageHashFromMultihash(hash, 0, nil)
-}
-
-func ParseStorageHash(s string) (StorageHash, error) {
-	var hash mh.Multihash
-	var err error
-
-	// Try Base58 format first (most common for content-addressed systems)
-	hash, err = mh.FromB58String(s)
-	if err == nil {
-		// Get information from the decoded multihash
-		decoded, err := mh.Decode(hash)
-		if err != nil {
-			return nil, fmt.Errorf("invalid multihash structure: %w", err)
-		}
-
-		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-		return NewStorageHashFromMultihash(hash, cidType, nil), nil
-	}
-
-	// Try hex format
-	hash, err = mh.FromHexString(s)
-	if err == nil {
-		decoded, err := mh.Decode(hash)
-		if err != nil {
-			return nil, fmt.Errorf("invalid multihash structure: %w", err)
-		}
-
-		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-		return NewStorageHashFromMultihash(hash, cidType, nil), nil
-	}
-
-	// Try base64 format as a last resort
-	decodedBytes, err := base64.StdEncoding.DecodeString(s)
-	if err == nil {
-		// Try to interpret the decoded bytes as a multihash
-		hash, err = mh.Cast(decodedBytes)
-		if err == nil {
-			decoded, err := mh.Decode(hash)
-			if err != nil {
-				return nil, fmt.Errorf("invalid multihash structure: %w", err)
-			}
-
-			cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-			return NewStorageHashFromMultihash(hash, cidType, nil), nil
-		}
-	}
-
-	// If we get here, we couldn't parse the hash in any supported format
-	return nil, ErrInvalidHashFormat
-}
-
-// inferCIDTypeFromHashCode maps hash algorithm codes to appropriate CID types
-// Considers both hash type and length in determining the appropriate CID type
-func inferCIDTypeFromHashCode(code uint64, digestLength int) uint64 {
-	// Special case for SHA2-256 with 32-byte digest (IPFS compatibility)
-	if code == mh.SHA2_256 && digestLength == 32 {
-		// Check if this is likely an IPFS CIDv0 hash
-		return 0x00 // CIDv0 for legacy IPFS content
-	}
-
-	// For identity hashes (direct content)
-	if code == mh.IDENTITY {
-		return 0x55 // Raw CID for identity hashes
-	}
-
-	// For raw binary data
-	if code == mh.SHA2_256 && digestLength <= 16 {
-		return 0x55 // Raw CID for small binary blobs
-	}
-
-	// Default to CIDv1 for most other hash types
-	return 0x01
 }
