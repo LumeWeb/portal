@@ -61,7 +61,7 @@ func (p *PortalImpl) Init() error {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
-	
+
 	opts, err = p.registerAPIExtensions(ctx)
 	if err != nil {
 		return err
@@ -265,22 +265,28 @@ func (p *PortalImpl) registerAPIExtensions(ctx core.Context) (ctxOpts []core.Con
 
 	for _, plugin := range plugins {
 		if core.PluginHasAPIExtensions(plugin) {
-			extensions, err := plugin.APIExtensions()
+			extensions, err := plugin.APIExtensions(ctx)
 			if err != nil {
 				ctx.Logger().Error("Error building API extensions", zap.String("plugin", plugin.ID), zap.Error(err))
 				return nil, err
 			}
 
-			for _, ext := range extensions {
-				ctx.Logger().Info("Registering API extension", 
-					zap.String("plugin", plugin.ID), 
+			for _, extFactory := range extensions {
+				ext, ctxOptions, err := extFactory()
+				if err != nil {
+					ctx.Logger().Error("Error building API extensions", zap.String("plugin", plugin.ID), zap.Error(err))
+					return nil, err
+				}
+				ctx.Logger().Info("Registering API extension",
+					zap.String("plugin", plugin.ID),
 					zap.String("target", ext.TargetAPI()))
 				core.RegisterAPIExtension(ext)
+				ctxOpts = append(ctxOpts, ctxOptions...)
 			}
 		}
 	}
 
-	return nil, nil
+	return ctxOpts, nil
 }
 
 func (p *PortalImpl) initModels(_ core.Context, dbInst *gorm.DB) (ctxOpts []core.ContextBuilderOption, err error) {
