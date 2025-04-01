@@ -277,6 +277,51 @@ func GetService[T Service](ctx Context, id string) T {
 	return typedSvc
 }
 
+func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
+	cfg := ctx.Config().GetService(id)
+	if cfg == nil {
+		ctx.Logger().Fatal("service not found", zap.String("service", id))
+	}
+
+	typedSvc, ok := cfg.(T)
+
+	if !ok {
+		ctx.Logger().Fatal("service type mismatch", zap.String("service", id))
+	}
+
+	return typedSvc
+}
+
+func GetAPIConfig[T config.APIConfig](ctx Context, id string) T {
+	cfg := ctx.Config().GetAPI(id)
+	if cfg == nil {
+		ctx.Logger().Fatal("api not found", zap.String("api", id))
+	}
+
+	typedSvc, ok := cfg.(T)
+
+	if !ok {
+		ctx.Logger().Fatal("api type mismatch", zap.String("api", id))
+	}
+
+	return typedSvc
+}
+
+func GetProtocolConfig[T config.ProtocolConfig](ctx Context, id string) T {
+	cfg := ctx.Config().GetProtocol(id)
+	if cfg == nil {
+		ctx.Logger().Fatal("protocol not found", zap.String("protocol", id))
+	}
+
+	typedSvc, ok := cfg.(T)
+
+	if !ok {
+		ctx.Logger().Fatal("protocol type mismatch", zap.String("protocol", id))
+	}
+
+	return typedSvc
+}
+
 func ServiceExists(ctx Context, id string) bool {
 	if ctx.Service(id) == nil {
 		return false
