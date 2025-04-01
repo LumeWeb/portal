@@ -5,11 +5,13 @@ import (
 	"sync"
 )
 
+type APIExtensionFactory func() (APIExtension, []ContextBuilderOption, error)
+
 // APIExtension defines how plugins can extend existing APIs
 type APIExtension interface {
 	// TargetAPI returns the name of the API this extension targets
 	TargetAPI() string
-	
+
 	// Configure is called after the main API routes are registered
 	Configure(router *mux.Router, accessSvc AccessService) error
 }
