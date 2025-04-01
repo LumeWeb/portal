@@ -23,7 +23,7 @@ type PluginInfo struct {
 	API             func() (API, []ContextBuilderOption, error)
 	Protocol        func() (Protocol, []ContextBuilderOption, error)
 	Services        func() ([]ServiceInfo, error)
-	APIExtensions   func() ([]APIExtension, error)
+	APIExtensions   func() ([]APIExtensionFactory, error)
 	Models          []any
 	Migrations      DBMigration
 	Events          []Eventer
