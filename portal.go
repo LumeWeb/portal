@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"
+	"reflect"
 	"sync"
 )
 
@@ -190,6 +191,14 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 				if err != nil {
 					ctx.Logger().Error("Error getting service config", zap.String("service", svcInfo.ID), zap.Error(err))
 					return nil, err
+				}
+
+				refType := reflect.TypeOf(cfg)
+
+				if refType.Kind() != reflect.Ptr {
+					ptr := reflect.New(refType)
+					ptr.Elem().Set(reflect.ValueOf(cfg))
+					cfg = ptr.Elem().Interface()
 				}
 
 				svcConfig, ok := cfg.(config.ServiceConfig)
