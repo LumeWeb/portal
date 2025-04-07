@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/event"
+	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"
@@ -16,7 +17,8 @@ import (
 )
 
 var (
-	activePortal Portal
+	activePortal      Portal
+	serviceConfigType = pkgReflect.GetInterfaceType((*config.ServiceConfig)(nil))
 )
 
 type Portal interface {
@@ -174,43 +176,51 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 
 	for _, svcInfo := range svcs {
 		svc, opts, err := svcInfo.Factory()
+		// ... (error handling, context options setup) ...
 		if err != nil {
-			ctx.Logger().Error("Error creating service", zap.String("service", svcInfo.ID), zap.Error(err))
 			return nil, err
-		}
-
+		} // Simplified error handling
 		if opts != nil {
 			ctxOpts = append(ctxOpts, opts...)
 		}
-
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
 
 		if !core.IsCoreService(svcInfo.ID) {
 			if configurableSvc, ok := svc.(core.Configurable); ok {
-				cfg, err := configurableSvc.Config()
+				cfgResult, err := configurableSvc.Config()
 				if err != nil {
-					ctx.Logger().Error("Error getting service config", zap.String("service", svcInfo.ID), zap.Error(err))
 					return nil, err
 				}
-
-				v := reflect.ValueOf(cfg)
-
-				if v.IsValid() && v.Kind() != reflect.Ptr && v.CanAddr() {
-					cfg = v.Addr().Elem().Interface()
-				}
-
-				svcConfig, ok := cfg.(config.ServiceConfig)
-				if !ok {
-					ctx.Logger().Error(config.ErrInvalidServiceConfig.Error(), zap.String("service", svcInfo.ID))
+				if cfgResult == nil {
+					ctx.Logger().Error("Configurable service returned nil config", zap.String("service", svcInfo.ID))
 					return nil, config.ErrInvalidServiceConfig
 				}
+
+				// --- Use the new helper to get a compliant object ---
+				compliantCfg, isCompliant := pkgReflect.EnsureCompliantType(cfgResult, serviceConfigType)
+
+				if !isCompliant {
+					ctx.Logger().Error(config.ErrInvalidServiceConfig.Error()+" (type does not implement interface)", zap.String("service", svcInfo.ID), zap.Any("config_type", reflect.TypeOf(cfgResult)))
+					return nil, config.ErrInvalidServiceConfig
+				}
+
+				if reflect.ValueOf(cfgResult).Kind() != reflect.Pointer && reflect.ValueOf(compliantCfg).Kind() == reflect.Pointer && !reflect.ValueOf(cfgResult).CanAddr() {
+					ctx.Logger().Warn("Config value was not addressable; using pointer to a copy for configuration.", zap.String("service", svcInfo.ID))
+				}
+
+				svcConfig, ok := compliantCfg.(config.ServiceConfig)
+				if !ok {
+					// Should be impossible if EnsureCompliantType returned true, but check defensively.
+					ctx.Logger().Error("Internal error: compliant config object could not be cast to ServiceConfig", zap.String("service", svcInfo.ID), zap.Any("config_type", reflect.TypeOf(compliantCfg)))
+					return nil, config.ErrInvalidServiceConfig
+				}
+
 				plugin := core.GetPluginForService(svcInfo.ID)
 				if plugin == "" {
-					ctx.Logger().Error("Error getting plugin for service", zap.String("service", svcInfo.ID))
-					continue
+					return nil, config.ErrInvalidServiceConfig
 				}
+
 				if err := ctx.Config().ConfigureService(plugin, svcInfo.ID, svcConfig); err != nil {
-					ctx.Logger().Error("Error configuring service", zap.String("service", svcInfo.ID), zap.Error(err))
 					return nil, err
 				}
 			}
