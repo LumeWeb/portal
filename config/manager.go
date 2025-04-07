@@ -13,6 +13,7 @@ import (
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/config/types"
+	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.uber.org/zap"
 	yamlCore "gopkg.in/yaml.v3"
 	"log"
@@ -24,6 +25,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	yamlMarshalerType = pkgReflect.GetInterfaceType((*yamlCore.Marshaler)(nil))
+	defaultsType      = pkgReflect.GetInterfaceType((*Defaults)(nil))
+	validatorType     = pkgReflect.GetInterfaceType((*Validator)(nil)) // Assuming Validator exists
 )
 
 type sectionKind int
@@ -1330,25 +1337,15 @@ func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 }
 
 func processStruct(obj any) bool {
-	v := reflect.ValueOf(obj)
-	if v.IsValid() && v.Kind() != reflect.Pointer && v.CanAddr() {
-		// If it's a valid value, not already a pointer, and we can get its address...
-		// Replace obj with a pointer to the original value.
-		// We get the address, then convert it back to an interface{} (any).
-		obj = v.Addr().Interface()
-	}
-	if _, ok := obj.(yamlCore.Marshaler); ok {
+	if pkgReflect.CheckInterface(obj, yamlMarshalerType) {
 		return true
 	}
-
-	if _, ok := obj.(Defaults); ok {
+	if pkgReflect.CheckInterface(obj, defaultsType) {
 		return true
 	}
-
-	if _, ok := obj.(Validator); ok {
+	if pkgReflect.CheckInterface(obj, validatorType) {
 		return true
 	}
-
 	return false
 }
 
