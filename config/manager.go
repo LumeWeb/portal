@@ -455,6 +455,8 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 
 	m.initPlugin(pluginName)
 
+	serviceName = stripPluginEntityNamespace(serviceName)
+
 	err := m.loadSection(pluginName, serviceName, sectionKindService)
 	if err != nil {
 		return err
@@ -496,6 +498,8 @@ func (m *ManagerDefault) GetService(serviceName string) ServiceConfig {
 
 	m.lock.RLock()
 	defer m.lock.RUnlock()
+
+	serviceName = stripPluginEntityNamespace(serviceName)
 
 	for _, plugin := range m.root.Plugin {
 		if service, exists := plugin.Service[serviceName]; exists {
@@ -1321,6 +1325,7 @@ func GetAPISectionSpecifier(pluginName string) string {
 }
 
 func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
+	serviceName = stripPluginEntityNamespace(serviceName)
 	return fmt.Sprintf(serviceSectionSpecifier, pluginName, serviceName)
 }
 
@@ -1390,4 +1395,14 @@ func (m *ManagerDefault) Shutdown() error {
 		return m.root.Core.Clustered.Etcd.Close()
 	}
 	return nil
+}
+
+func stripPluginEntityNamespace(fqdn string) string {
+	parts := strings.Split(fqdn, ".")
+
+	if len(parts) > 1 {
+		return strings.Join(parts[1:], ".")
+	}
+
+	return fqdn
 }
