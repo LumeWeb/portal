@@ -1330,6 +1330,13 @@ func GetServiceSectionSpecifier(pluginName string, serviceName string) string {
 }
 
 func processStruct(obj any) bool {
+	v := reflect.ValueOf(obj)
+	if v.IsValid() && v.Kind() != reflect.Pointer && v.CanAddr() {
+		// If it's a valid value, not already a pointer, and we can get its address...
+		// Replace obj with a pointer to the original value.
+		// We get the address, then convert it back to an interface{} (any).
+		obj = v.Addr().Interface()
+	}
 	if _, ok := obj.(yamlCore.Marshaler); ok {
 		return true
 	}
