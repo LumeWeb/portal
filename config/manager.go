@@ -871,14 +871,15 @@ func (m *ManagerDefault) defaultProcessor(_ *reflect.StructField, field reflect.
 		return nil // Skip defaults for nil pointers
 	}
 
-	// If it's a pointer, get the element it points to
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
-	}
-
-	if setter, ok := value.Interface().(Defaults); ok {
-		if err := m.applyDefaults(setter, buildPrefix(prefix, field.Tag)); err != nil {
-			return err
+	if pkgReflect.CheckInterface(value.Interface(), defaultsType) {
+		setterObj, ok := pkgReflect.EnsureCompliantType(value.Interface(), defaultsType)
+		if !ok {
+			return nil
+		}
+		if setter, ok := setterObj.(Defaults); ok {
+			if err := m.applyDefaults(setter, buildPrefix(prefix, field.Tag)); err != nil {
+				return err
+			}
 		}
 	}
 
