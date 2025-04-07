@@ -193,12 +193,10 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 					return nil, err
 				}
 
-				refType := reflect.TypeOf(cfg)
+				v := reflect.ValueOf(cfg)
 
-				if refType.Kind() != reflect.Ptr {
-					ptr := reflect.New(refType)
-					ptr.Elem().Set(reflect.ValueOf(cfg))
-					cfg = ptr.Elem().Interface()
+				if v.IsValid() && v.Kind() != reflect.Ptr && v.CanAddr() {
+					cfg = v.Addr().Elem().Interface()
 				}
 
 				svcConfig, ok := cfg.(config.ServiceConfig)
