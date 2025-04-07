@@ -142,6 +142,7 @@ func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
 	dbMateMigration := dbmate.New(dbUrl)
 	dbMateMigration.FS = compositFs
 	dbMateMigration.MigrationsDir = compositFs.Mounts()
+	dbMateMigration.AutoDumpSchema = false
 
 	err = dbMateMigration.CreateAndMigrate()
 	if err != nil {
