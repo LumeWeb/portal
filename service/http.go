@@ -257,7 +257,7 @@ func (h *HTTPServiceDefault) storeCachedFilesystem(key string, fs *ihttp.BundleF
 func (h *HTTPServiceDefault) getWebBundleManifestName(pluginID string, bundleIndex int) string {
 	plugin := core.GetPlugin(pluginID)
 
-	if len(plugin.WebBundles) <= bundleIndex {
+	if bundleIndex < len(plugin.WebBundles) {
 		bundle := plugin.WebBundles[bundleIndex]
 		if bundle != nil {
 			if bundle.ManifestPath != "" {
