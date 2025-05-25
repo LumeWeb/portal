@@ -39,8 +39,8 @@ require (
 	github.com/urfave/cli/v3 v3.0.0-beta1
 	github.com/wneessen/go-mail v0.6.2
 	go.etcd.io/etcd/client/v3 v3.5.19
-	go.lumeweb.com/httputil v0.3.5-0.20250525060712-6cc33c4529df
-	go.lumeweb.com/portal-middleware v0.0.0-20250521113541-65cbec90e2a1
+	go.lumeweb.com/httputil v0.4.0
+	go.lumeweb.com/portal-middleware v0.1.0
 	go.lumeweb.com/portal-plugin-abuse v0.0.0-20250513022843-b1ec61425b80
 	go.lumeweb.com/portal-plugin-admin v0.0.0-20250427125607-2bd90b3ff203
 	go.sia.tech/core v0.10.4
@@ -125,7 +125,7 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.lumeweb.com/gswagger v0.0.0-20250525010010-2480f51b33ba // indirect
+	go.lumeweb.com/gswagger v0.11.0 // indirect
 	go.lumeweb.com/portal-plugin-dashboard v0.2.5-0.20250521112317-2602a03d1374 // indirect
 	go.lumeweb.com/queryutil v0.2.2-0.20250513022632-7e69ca09f51f // indirect
 	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20241101172040-fe0c28b983c2 // indirect
