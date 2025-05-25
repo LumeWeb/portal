@@ -47,13 +47,13 @@ type WebBundle struct {
 type webBundleOption func(*WebBundle) *WebBundle
 
 func NewWebBundle(fs fs.FS, options ...webBundleOption) *WebBundle {
-	bundle := &WebBundle{}
+	bundle := &WebBundle{
+		Files: fs,
+	}
 
 	for _, option := range options {
 		bundle = option(bundle)
 	}
-
-	bundle.Files = fs
 
 	return bundle
 }
