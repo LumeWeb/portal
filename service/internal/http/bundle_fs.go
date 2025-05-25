@@ -33,9 +33,19 @@ func NewBundleFileSystem(bundle *core.WebBundle, prefix string) *BundleFileSyste
 
 // Open implements http.FileSystem
 func (fs *BundleFileSystem) Open(name string) (http.File, error) {
-	// Clean the path and join with prefix
-	name = path.Clean("/" + name)
+	// Normalize path separators and clean the path
+	name = path.Clean("/" + path.ToSlash(name))
+	
+	// Reject paths containing directory traversal
+	if path.IsAbs(name) || name == ".." || path.HasPrefix(name, "../") {
+		return nil, os.ErrNotExist
+	}
+
+	// Join with prefix and ensure we stay within the intended directory
 	fullPath := path.Join(fs.prefix, name)
+	if !path.IsAbs(fullPath) {
+		fullPath = path.Clean("/" + fullPath)
+	}
 
 	file, err := fs.bundle.Files.Open(fullPath)
 
