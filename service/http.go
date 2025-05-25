@@ -287,6 +287,7 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	if err != nil {
 		return nil, fmt.Errorf("failed to read manifest: %w", err)
 	}
+	defer file.Close()
 
 	manifestData, err := io.ReadAll(file)
 
