@@ -388,6 +388,9 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 	}
 
 	bundle := plugin.WebBundles[bundleIndex]
+	if bundle == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Bundle not found")
+	}
 
 	// Get or create cached filesystem
 	cacheKey := fmt.Sprintf("%s-%d", pluginId, bundleIndex)
