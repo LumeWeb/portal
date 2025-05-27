@@ -8,8 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path"
-	"time"
+	"path/filepath"
 )
 
 type BundleFileSystem struct {
@@ -20,7 +19,7 @@ type BundleFileSystem struct {
 // BundleFile implements http.File for a file in the bundle
 type BundleFile struct {
 	name   string
-	file   fs.File
+	file   io.ReadSeeker
 	size   int64
 	offset int64
 }
@@ -35,10 +34,10 @@ func NewBundleFileSystem(bundle *core.WebBundle, prefix string) *BundleFileSyste
 // Open implements http.FileSystem
 func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 	// Normalize path separators and clean the path
-	name = path.Clean("/" + path.ToSlash(name))
+	name = filepath.Clean("/" + filepath.ToSlash(name))
 	
 	// Reject paths containing directory traversal
-	if path.IsAbs(name) || name == ".." || path.HasPrefix(name, "../") {
+	if filepath.IsAbs(name) || name == ".." || filepath.HasPrefix(name, "../") {
 		return nil, os.ErrNotExist
 	}
 
@@ -59,9 +58,15 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 		return nil, os.ErrNotExist
 	}
 	
+	seeker, ok := file.(io.ReadSeeker)
+	if !ok {
+		file.Close()
+		return nil, fmt.Errorf("%s: not seekable", name)
+	}
+	
 	return &BundleFile{
 		name:   name,
-		file:   file,
+		file:   seeker,
 		size:   info.Size(),
 		offset: 0,
 	}, nil
@@ -74,10 +79,12 @@ func (f *BundleFile) Close() error {
 
 // Read implements http.File
 func (f *BundleFile) Read(p []byte) (n int, err error) {
-	// Seek to current offset first
-	_, err = f.file.Seek(f.offset, io.SeekStart)
-	if err != nil {
-		return 0, err
+	// Only seek if we're not at the expected position
+	if currentPos, err := f.file.Seek(0, io.SeekCurrent); err == nil && currentPos != f.offset {
+		_, err = f.file.Seek(f.offset, io.SeekStart)
+		if err != nil {
+			return 0, err
+		}
 	}
 	
 	n, err = f.file.Read(p)
