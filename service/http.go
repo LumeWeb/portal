@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
@@ -11,6 +10,8 @@ import (
 	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/middleware"
+	"go.lumeweb.com/portal/build"
+	"regexp"
 
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
@@ -242,12 +243,10 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 	// Get app type from query param (empty string means no filter)
 	appType := ctx.QueryParam("app")
 
-	metaBuilder := core.NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
+	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
 
-	// Add core build info if available
-	if buildInfo := h.ctx.BuildInfo(); buildInfo != nil {
-		metaBuilder.AddCoreBuildInfo(buildInfo)
-	}
+	// Add core build info from build.Default
+	metaBuilder.AddCoreBuildInfo(build.Default.Info())
 
 	// Process all plugins
 	for _, plugin := range core.GetPlugins() {
@@ -259,7 +258,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 		// Get plugin meta builder
 		pluginBuilder, err := metaBuilder.AddPlugin(plugin.ID)
 		if err != nil {
-			h.logger.Error("Failed to add plugin to meta builder", 
+			h.logger.Error("Failed to add plugin to meta builder",
 				zap.String("plugin", plugin.ID),
 				zap.Error(err))
 			continue
@@ -267,7 +266,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 
 		// Add plugin build info if available
 		if plugin.Version != nil {
-			pluginBuilder.AddBuildInfo(plugin.Version)
+			pluginBuilder.AddBuildInfo(plugin.Version.Info())
 		}
 
 		// Add web bundles

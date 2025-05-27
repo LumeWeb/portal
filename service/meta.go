@@ -1,32 +1,36 @@
 package service
 
 import (
+	"fmt"
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/core"
 	"strings"
 )
 
-var _ core.PortalMetaBuilder = (*PortalMetaBuilderDefault)(nil)
+var _ core.PortalMetaBuilder = (*portalMetaBuilder)(nil)
+var _ core.PluginMetaBuilder = (*pluginMetaBuilder)(nil)
 
-// PortalMetaBuilderDefault implements core.PortalMetaBuilder
-type PortalMetaBuilderDefault struct {
+type portalMetaBuilder struct {
 	meta *core.PortalMeta
 }
 
-// NewPortalMetaBuilder creates a new PortalMetaBuilderDefault
-func NewPortalMetaBuilder(domain string) *PortalMetaBuilderDefault {
-	return &PortalMetaBuilderDefault{
+type pluginMetaBuilder struct {
+	meta       *core.PortalMeta
+	pluginID   string
+	pluginMeta core.PortalMetaPlugin
+}
+
+func NewPortalMetaBuilder(domain string) core.PortalMetaBuilder {
+	return &portalMetaBuilder{
 		meta: &core.PortalMeta{
 			Domain:       domain,
-			Build:        build.GetInfo(),
 			Plugins:      make(core.PortalMetaPlugins),
 			FeatureFlags: make(map[string]bool),
 		},
 	}
 }
 
-// AddFeatureFlag adds a feature flag
-func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.PortalMetaBuilder {
+func (b *portalMetaBuilder) AddFeatureFlag(key string, value bool) core.PortalMetaBuilder {
 	key = strings.ToUpper(key)
 	key = strings.ReplaceAll(key, ".", "_")
 	key = strings.ReplaceAll(key, " ", "_")
@@ -35,51 +39,47 @@ func (b *PortalMetaBuilderDefault) AddFeatureFlag(key string, value bool) core.P
 	return b
 }
 
-// AddPlugin adds a plugin without build info
-func (b *PortalMetaBuilderDefault) AddPlugin(key string) core.PortalMetaBuilder {
-	return b.maybeAddPlugin(key, core.PortalMetaPlugin{
-		Meta: make(map[string]any),
-	})
-}
-
-// AddPluginWithBuild adds a plugin with build info
-func (b *PortalMetaBuilderDefault) AddPluginBuildInfo(key string, buildInfo build.Info) core.PortalMetaBuilder {
-	return b.maybeUpdatePlugin(key, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
-		pluginData.Meta[key] = buildInfo
-		return pluginData
-	})
-}
-
-func (b *PortalMetaBuilderDefault) maybeAddPlugin(key string, pluginData core.PortalMetaPlugin) core.PortalMetaBuilder {
-	if _, exists := b.meta.Plugins[key]; !exists {
-		b.meta.Plugins[key] = pluginData
-	}
+func (b *portalMetaBuilder) AddCoreBuildInfo(buildInfo build.Info) core.PortalMetaBuilder {
+	b.meta.Build = buildInfo
 	return b
 }
 
-func (b *PortalMetaBuilderDefault) maybeUpdatePlugin(key string, cb func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin) core.PortalMetaBuilder {
-	if _, exists := b.meta.Plugins[key]; exists {
-		b.meta.Plugins[key] = cb(b.meta.Plugins[key])
+func (b *portalMetaBuilder) AddPlugin(pluginID string) (core.PluginMetaBuilder, error) {
+	if _, exists := b.meta.Plugins[pluginID]; exists {
+		return nil, fmt.Errorf("plugin %s already exists in meta", pluginID)
 	}
-	return b
+
+	pluginMeta := core.PortalMetaPlugin{
+		Meta:       make(map[string]any),
+		WebBundles: make([]string, 0),
+	}
+	b.meta.Plugins[pluginID] = pluginMeta
+
+	return &pluginMetaBuilder{
+		meta:       b.meta,
+		pluginID:   pluginID,
+		pluginMeta: pluginMeta,
+	}, nil
 }
 
-// AddPluginMeta adds or updates meta for a plugin
-func (b *PortalMetaBuilderDefault) AddPluginMeta(pluginKey string, metaKey string, metaValue any) core.PortalMetaBuilder {
-	return b.maybeUpdatePlugin(pluginKey, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
-		pluginData.Meta[metaKey] = metaValue
-		return pluginData
-	})
-}
-
-func (b *PortalMetaBuilderDefault) AddPluginWebBundle(pluginKey string, bundleUri string) core.PortalMetaBuilder {
-	return b.maybeUpdatePlugin(pluginKey, func(pluginData core.PortalMetaPlugin) core.PortalMetaPlugin {
-		pluginData.WebBundles = append(pluginData.WebBundles, bundleUri)
-		return pluginData
-	})
-}
-
-// Build returns the built PortalMeta
-func (b *PortalMetaBuilderDefault) Build() *core.PortalMeta {
+func (b *portalMetaBuilder) Build() *core.PortalMeta {
 	return b.meta
+}
+
+func (p *pluginMetaBuilder) AddBuildInfo(buildInfo build.Info) core.PluginMetaBuilder {
+	p.pluginMeta.Build = buildInfo
+	p.meta.Plugins[p.pluginID] = p.pluginMeta
+	return p
+}
+
+func (p *pluginMetaBuilder) AddMeta(key string, value any) core.PluginMetaBuilder {
+	p.pluginMeta.Meta[key] = value
+	p.meta.Plugins[p.pluginID] = p.pluginMeta
+	return p
+}
+
+func (p *pluginMetaBuilder) AddWebBundle(bundleURI string) core.PluginMetaBuilder {
+	p.pluginMeta.WebBundles = append(p.pluginMeta.WebBundles, bundleURI)
+	p.meta.Plugins[p.pluginID] = p.pluginMeta
+	return p
 }

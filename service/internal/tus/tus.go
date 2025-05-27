@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo/v4"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/redislocker"
 	"github.com/tus/tusd/v2/pkg/s3store"
-	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/middleware"
 	"go.lumeweb.com/portal-middleware/tus"
+	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -170,21 +170,17 @@ func (t *TusHandler) UploadSize(ctx context.Context, identifier any) (uint64, er
 	return uint64(info.Size), nil
 }
 
-func (t *TusHandler) SetupRoute(router *mux.Router, authMw mux.MiddlewareFunc, path string) {
-	subrouter := router.PathPrefix(path).Subrouter()
-	subrouter.Use(tus.PathMiddleware(path, tus.NewJWTLocModifier(path)))
-	subrouter.Use(cors.New(cors.Config{}))
-	if authMw != nil {
-		subrouter.Use(authMw)
-		subrouter.Use(middleware.AccountVerifiedMiddleware(t.ctx))
-	}
-
-	tusHandler := func(w http.ResponseWriter, r *http.Request) {
-		t.tus.ServeHTTP(w, r)
-	}
-
-	subrouter.HandleFunc("", tusHandler).Methods(http.MethodPost, http.MethodOptions)
-	subrouter.HandleFunc("/{id}", tusHandler).Methods(http.MethodPatch, http.MethodHead, http.MethodOptions)
+func (t *TusHandler) SetupRoute(router router.Router, subdomain string, authRequired bool, twoFARequired bool, path string) error {
+	return tus.RegisterTusRoutes(
+		t.ctx,
+		router,
+		core.GetService[core.AccessService](t.ctx, core.ACCESS_SERVICE),
+		subdomain,
+		path,
+		echo.WrapHandler(t.tus),
+		authRequired,
+		twoFARequired,
+	)
 }
 
 func (t *TusHandler) SetStorageProtocol(storageProtocol core.StorageProtocol) {
