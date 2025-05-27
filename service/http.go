@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
@@ -28,6 +29,10 @@ const (
 	defaultManifestPath    = "mf-manifest.json"
 	webBundleBasePath      = "/api/meta/plugin/%s/bundle/%d/"
 	webBundleManifestRoute = webBundleBasePath + defaultManifestPath
+)
+
+var (
+	pluginIDRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 )
 
 var _ core.HTTPService = (*HTTPServiceDefault)(nil)
@@ -372,8 +377,13 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context) error {
 	ctx := httputil.Context(e)
 
-	pluginId := ctx.QueryParam("plugin_id")
-	bundleId := ctx.QueryParam("bundle_id")
+	pluginId := ctx.Param("plugin_id")
+	bundleId := ctx.Param("bundle_id")
+
+	// Validate plugin ID (alphanumeric and hyphens only)
+	if !pluginIDRegex.MatchString(pluginId) {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid plugin ID format")
+	}
 
 	// Get plugin
 	plugin := core.GetPlugin(pluginId)
