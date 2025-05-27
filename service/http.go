@@ -3,13 +3,15 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"github.com/labstack/echo/v4"
+	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/middleware"
+
+	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/web_manifest"
 	ihttp "go.lumeweb.com/portal/service/internal/http"
@@ -17,7 +19,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"path"
 	"strconv"
 	"sync"
@@ -43,26 +44,31 @@ func init() {
 type HTTPServiceDefault struct {
 	ctx         core.Context
 	logger      *core.Logger
-	router      *mux.Router
+	router      router.Router
 	srv         *http.Server
 	access      core.AccessService
 	bundleCache sync.Map
 	fsCache     sync.Map // Cache for bundle filesystems
 }
 
-var _ handlers.RecoveryHandlerLogger = (*recoverLogger)(nil)
-
+//var _ handlers.RecoveryHandlerLogger = (*recoverLogger)(nil)
+/*
 type recoverLogger struct {
 	ctx core.Context
 }
 
 func (r *recoverLogger) Println(v ...interface{}) {
 	r.ctx.Logger().Error("Recovered from panic", zap.Any("panic", v))
-}
+}*/
 
 func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) {
+	_router, err := router.NewRouter(router.APIInfo())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	_http := &HTTPServiceDefault{
-		router: mux.NewRouter(),
+		router: _router,
 	}
 
 	srv := &http.Server{
@@ -90,12 +96,18 @@ func (h *HTTPServiceDefault) ID() string {
 	return core.HTTP_SERVICE
 }
 
-func (h *HTTPServiceDefault) Router() *mux.Router {
+func (h *HTTPServiceDefault) Router() router.Router {
 	return h.router
 }
 
 func (h *HTTPServiceDefault) Init() error {
-	h.router.Use(handlers.RecoveryHandler(handlers.RecoveryLogger(&recoverLogger{h.ctx})))
+
+	h.router.Use(echoMiddleware.RecoverWithConfig(echoMiddleware.RecoverConfig{
+		StackSize: 1 << 10,
+		LogErrorFunc: func(c echo.Context, err error, stack []byte) error {
+			return err
+		},
+	}))
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
 		subdomain := api.Subdomain()
@@ -104,9 +116,6 @@ func (h *HTTPServiceDefault) Init() error {
 		if subdomain == "" {
 			domain = h.ctx.Config().Config().Core.Domain
 		}
-
-		// Create a mux subrouter for this API's domain
-		muxRouter := h.Router().Host(domain).Subrouter()
 
 		// Create a gswagger router wrapping the mux subrouter
 		apiInfo := api.OpenAPIInfo() // Get info from the API
@@ -126,14 +135,15 @@ func (h *HTTPServiceDefault) Init() error {
 				apiInfo.Version("unknown")
 			}
 		}
-		router, err := httputil.NewSwaggerRouter(muxRouter, apiInfo)
+
+		// Create a subrouter for this API's domain
+		hostRouter, err := h.Router().Host(domain)
 		if err != nil {
-			return fmt.Errorf("failed to create swagger router for API %s: %w", api.Name(), err)
+			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
 		}
 
 		// Configure the main API using the gswagger router
-		// The API.Configure method signature needs to change
-		err = api.Configure(router, h.access)
+		err = api.Configure(hostRouter, h.access)
 		if err != nil {
 			return err
 		}
@@ -145,39 +155,87 @@ func (h *HTTPServiceDefault) Init() error {
 				zap.String("extension", fmt.Sprintf("%T", ext)))
 
 			// The APIExtension.Configure method signature needs to change
-			if err := ext.Configure(router, h.access); err != nil {
+			if err = ext.Configure(hostRouter, h.access); err != nil {
 				return fmt.Errorf("failed to configure API extension: %w", err)
 			}
 		}
 
 		// Generate and expose the OpenAPI spec for this API's router
-		if err := router.GenerateAndExposeOpenapi(); err != nil {
+		if err = hostRouter.GenerateAndExposeOpenapi(); err != nil {
 			return fmt.Errorf("failed to generate openapi for API %s: %w", api.Name(), err)
 		}
 	}
 
-	authMw := middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin)
+	rootApi, err := h.Router().Group("/api")
+	if err != nil {
+		return fmt.Errorf("failed to generate default api group: %w", err)
+	}
 
-	h.Router().PathPrefix("/debug/").Handler(http.DefaultServeMux).Use(authMw)
+	err = router.RegisterRoutes(rootApi, h.access, "", router.DefineRoutes(
+		router.NewRoute(http.MethodGet, "/meta", h.apiMetaHandler,
+			router.WithSwagger(
+				router.WithSummary("Get Portal Metadata"),
+				router.WithDescription("Returns metadata about installed plugins and their web bundles"),
+				router.WithTags("Public"),
+				router.WithQueryParam("app", "Filter metadata by application type", ""),
+			),
+			router.WithCustomErrorResponses(
+				router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Internal server error"),
+			),
+		),
+	), middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
+	if err != nil {
+		return err
+	}
 
-	corsHandler := cors.New(cors.Config{})
+	pluginApi, err := h.Router().Group("/meta/plugin")
 
-	rootApi := h.Router().PathPrefix("/api").Subrouter()
-	rootApi.Use(corsHandler)
-	rootApi.HandleFunc("/meta", h.apiMetaHandler).Methods(http.MethodGet)
-	pluginRouter := rootApi.PathPrefix("/meta/plugin").Subrouter()
-
-	pluginRouter.HandleFunc(fmt.Sprintf(webBundleManifestRoute, "{plugin_id}", "{bundle_id}"), h.apiPluginWebBundleFileServerHandler).Methods(http.MethodGet)
-	pluginRouter.PathPrefix("/{plugin_id}/bundle/{bundle_id}/").HandlerFunc(h.apiPluginWebBundleFileServerHandler)
+	err = router.RegisterRoutes(pluginApi, h.access, "", router.DefineRoutes(
+		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleManifestRoute, "{plugin_id}", "{bundle_id}"), h.apiMetaHandler,
+			router.WithSwagger(
+				router.WithSummary("Get Plugin Web Bundle Manifest"),
+				router.WithDescription("Returns the processed web manifest for a plugin's web bundle"),
+				router.WithTags("Public"),
+				router.WithPathParam("plugin_id", "Plugin identifier", "string"),
+				router.WithPathParam("bundle_id", "Bundle index number", "integer"),
+			),
+			router.WithCustomErrorResponses(
+				router.DefineSwaggerErrorResponses(
+					router.DefineSwaggerErrorResponse(http.StatusNotFound, "Plugin or bundle not found"),
+					router.DefineSwaggerErrorResponse(http.StatusBadRequest, "Invalid bundle ID"),
+					router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Failed to process manifest"),
+				),
+			),
+		),
+		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, "{plugin_id}", "{bundle_id}")+"*", h.apiPluginWebBundleFileServerHandler,
+			router.WithSwagger(
+				router.WithSummary("Get Plugin Web Bundle File"),
+				router.WithDescription("Serves static files from a plugin's web bundle"),
+				router.WithTags("Public"),
+				router.WithPathParam("plugin_id", "Plugin identifier", "string"),
+				router.WithPathParam("bundle_id", "Bundle index number", "integer"),
+			),
+			router.WithCustomErrorResponses(
+				router.DefineSwaggerErrorResponses(
+					router.DefineSwaggerErrorResponse(http.StatusNotFound, "Plugin, bundle or file not found"),
+					router.DefineSwaggerErrorResponse(http.StatusBadRequest, "Invalid bundle ID"),
+					router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Failed to serve file"),
+				),
+			),
+		),
+	), middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (h *HTTPServiceDefault) apiMetaHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := httputil.Context(r, w)
+func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
+	ctx := httputil.Context(e)
 
 	// Get app type from query param (empty string means no filter)
-	appType := r.URL.Query().Get("app")
+	appType := ctx.QueryParam("app")
 
 	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
 
@@ -212,14 +270,15 @@ func (h *HTTPServiceDefault) apiMetaHandler(w http.ResponseWriter, r *http.Reque
 		// Process plugin-specific meta
 		if plugin.Meta != nil {
 			if err := plugin.Meta(h.ctx, metaBuilder); err != nil {
-				http.Error(w, "Failed to build meta", http.StatusInternalServerError)
 				h.logger.Error("Failed to build meta", zap.Error(err))
-				return
+				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to build meta")
 			}
 		}
 	}
 
 	ctx.Encode(metaBuilder.Build())
+
+	return nil
 }
 
 func (h *HTTPServiceDefault) generateWebBundleURI(pluginID string, bundleIndex int) string {
@@ -310,23 +369,22 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	return &manifest, nil
 }
 
-func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	pluginId := vars["plugin_id"]
-	bundleId := vars["bundle_id"]
+func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context) error {
+	ctx := httputil.Context(e)
+
+	pluginId := ctx.QueryParam("plugin_id")
+	bundleId := ctx.QueryParam("bundle_id")
 
 	// Get plugin
 	plugin := core.GetPlugin(pluginId)
 	if plugin.ID == "" {
-		http.Error(w, "Plugin not found", http.StatusNotFound)
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Plugin not found")
 	}
 
 	// Parse and validate bundle ID
 	bundleIndex, err := strconv.Atoi(bundleId)
 	if err != nil || bundleIndex >= len(plugin.WebBundles) {
-		http.Error(w, "Invalid bundle ID", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid bundle ID")
 	}
 
 	bundle := plugin.WebBundles[bundleIndex]
@@ -366,11 +424,12 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(w http.Response
 		baseFileServer.ServeHTTP(w, r)
 	}))
 
-	// Add cache headers
-	w.Header().Set("Cache-Control", "public, max-age=31536000")
+	e.Response().Header().Set("Cache-Control", "public, max-age=31536000")
 
 	// Serve the file
-	fileServer.ServeHTTP(w, r)
+	fileServer.ServeHTTP(e.Response(), e.Request())
+
+	return nil
 }
 
 func (h *HTTPServiceDefault) Serve() error {
