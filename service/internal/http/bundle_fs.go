@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 type BundleFileSystem struct {
@@ -39,7 +40,7 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 	name = filepath.Clean("/" + filepath.ToSlash(name))
 
 	// Reject paths containing directory traversal
-	if filepath.IsAbs(name) || name == ".." || filepath.HasPrefix(name, "../") {
+	if filepath.IsAbs(name) || name == ".." || strings.HasPrefix(name, "../") {
 		return nil, os.ErrNotExist
 	}
 
