@@ -19,9 +19,10 @@ type BundleFileSystem struct {
 
 // BundleFile implements http.File for a file in the bundle
 type BundleFile struct {
-	name    string
-	content []byte
-	offset  int64
+	name   string
+	file   fs.File
+	size   int64
+	offset int64
 }
 
 func NewBundleFileSystem(bundle *core.WebBundle, prefix string) *BundleFileSystem {
@@ -48,36 +49,40 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 	}
 
 	file, err := fs.bundle.Files.Open(fullPath)
-
 	if err != nil {
 		return nil, os.ErrNotExist
 	}
-	content, err := io.ReadAll(file)
-
+	
+	info, err := file.Stat()
 	if err != nil {
+		file.Close()
 		return nil, os.ErrNotExist
 	}
-
+	
 	return &BundleFile{
-		name:    name,
-		content: content,
-		offset:  0,
+		name:   name,
+		file:   file,
+		size:   info.Size(),
+		offset: 0,
 	}, nil
 }
 
 // Close implements http.File
 func (f *BundleFile) Close() error {
-	return nil
+	return f.file.Close()
 }
 
 // Read implements http.File
 func (f *BundleFile) Read(p []byte) (n int, err error) {
-	if f.offset >= int64(len(f.content)) {
-		return 0, io.EOF
+	// Seek to current offset first
+	_, err = f.file.Seek(f.offset, io.SeekStart)
+	if err != nil {
+		return 0, err
 	}
-	n = copy(p, f.content[f.offset:])
+	
+	n, err = f.file.Read(p)
 	f.offset += int64(n)
-	return
+	return n, err
 }
 
 // Seek implements http.File
@@ -102,12 +107,7 @@ func (f *BundleFile) Seek(offset int64, whence int) (int64, error) {
 
 // Stat implements http.File
 func (f *BundleFile) Stat() (os.FileInfo, error) {
-	return &bundleFileInfo{
-		name:    path.Base(f.name),
-		size:    int64(len(f.content)),
-		mode:    0444, // read-only
-		modTime: time.Now(),
-	}, nil
+	return f.file.Stat()
 }
 
 // Readdir implements http.File
@@ -115,17 +115,3 @@ func (f *BundleFile) Readdir(count int) ([]fs.FileInfo, error) {
 	return nil, fmt.Errorf("not a directory")
 }
 
-// bundleFileInfo implements os.FileInfo
-type bundleFileInfo struct {
-	name    string
-	size    int64
-	mode    os.FileMode
-	modTime time.Time
-}
-
-func (fi *bundleFileInfo) Name() string       { return fi.name }
-func (fi *bundleFileInfo) Size() int64        { return fi.size }
-func (fi *bundleFileInfo) Mode() os.FileMode  { return fi.mode }
-func (fi *bundleFileInfo) ModTime() time.Time { return fi.modTime }
-func (fi *bundleFileInfo) IsDir() bool        { return false }
-func (fi *bundleFileInfo) Sys() interface{}   { return nil }

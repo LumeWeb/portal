@@ -424,7 +424,13 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 		baseFileServer.ServeHTTP(w, r)
 	}))
 
-	e.Response().Header().Set("Cache-Control", "public, max-age=31536000")
+	// Add cache headers based on file type
+	// Manifests might need shorter cache times for updates
+	if path.Ext(e.Request().URL.Path) == ".json" {
+		e.Response().Header().Set("Cache-Control", "public, max-age=3600") // 1 hour for JSON files
+	} else {
+		e.Response().Header().Set("Cache-Control", "public, max-age=31536000") // 1 year for static assets
+	}
 
 	// Serve the file
 	fileServer.ServeHTTP(e.Response(), e.Request())
