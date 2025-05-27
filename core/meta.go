@@ -191,12 +191,14 @@ func (f *webBundleLiveFs) Open(name string) (fs.File, error) {
 
 func NewWebBundleLiveFS(path string) fs.FS {
 	// Validate that path exists and is a directory
-	if info, err := os.Stat(path); err != nil || !info.IsDir() {
-		// Return an fs.FS that always returns errors
-		return &webBundleLiveFs{httpFS: http.Dir("")}
+	if info, err := os.Stat(path); err != nil {
+		// Return a filesystem that will provide the actual error message
+		return &webBundleLiveFs{httpFS: http.Dir(path)}
+	} else if !info.IsDir() {
+		// Return a filesystem that will provide a "not a directory" error
+		return &webBundleLiveFs{httpFS: http.Dir(path)}
 	}
 
-	_fs := http.Dir(path)
-
-	return &webBundleLiveFs{httpFS: _fs}
+	// Path is valid directory - return normal filesystem
+	return &webBundleLiveFs{httpFS: http.Dir(path)}
 }
