@@ -1,10 +1,9 @@
 package service
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
 	"go.lumeweb.com/portal/build"
-	"go.lumeweb.com/portal/core"
+	"testing"
 )
 
 func TestPortalMetaBuilder(t *testing.T) {
