@@ -41,7 +41,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.19
 	go.lumeweb.com/httputil v0.4.2
 	go.lumeweb.com/portal-middleware v0.2.3
-	go.lumeweb.com/portal-router v0.2.0
+	go.lumeweb.com/portal-router v0.2.1
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
