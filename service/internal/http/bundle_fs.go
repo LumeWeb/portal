@@ -55,12 +55,6 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 		return nil, os.ErrNotExist
 	}
 
-	seeker, ok := file.(io.Seeker)
-	if !ok {
-		file.Close()
-		return nil, fmt.Errorf("%s: not seekable", name)
-	}
-
 	info, err := file.Stat()
 	if err != nil {
 		file.Close()
@@ -70,7 +64,7 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 	return &BundleFile{
 		name:   name,
 		file:   file,
-		seeker: seeker,
+		seeker: file.(io.Seeker),
 		size:   info.Size(),
 		offset: 0,
 	}, nil
