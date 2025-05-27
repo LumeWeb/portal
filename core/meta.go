@@ -5,6 +5,8 @@ import (
 	"go.lumeweb.com/portal/build"
 	"io/fs"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // PortalMeta represents the portal metadata
@@ -89,6 +91,11 @@ type webBundleLiveFs struct {
 
 // Open implements fs.FS.
 func (f *webBundleLiveFs) Open(name string) (fs.File, error) {
+	// Validate path to prevent directory traversal
+	if strings.Contains(name, "..") || strings.HasPrefix(name, "/") {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
+	}
+
 	// http.FileSystem expects slash-separated paths, just like fs.FS.
 	// No path cleaning needed here usually, as fs.FS callers should provide valid paths.
 
@@ -106,6 +113,12 @@ func (f *webBundleLiveFs) Open(name string) (fs.File, error) {
 }
 
 func NewWebBundleLiveFS(path string) fs.FS {
+	// Validate that path exists and is a directory
+	if info, err := os.Stat(path); err != nil || !info.IsDir() {
+		// Return an fs.FS that always returns errors
+		return &webBundleLiveFs{httpFS: http.Dir("")}
+	}
+
 	_fs := http.Dir(path)
 
 	return &webBundleLiveFs{httpFS: _fs}
