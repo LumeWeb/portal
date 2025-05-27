@@ -197,22 +197,6 @@ func (h *HTTPServiceDefault) Init() error {
 	pluginApi, err := h.Router().Group("/meta/plugin")
 
 	err = router.RegisterRoutes(pluginApi, h.access, "", router.DefineRoutes(
-		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleManifestRoute, "{plugin_id}", "{bundle_id}"), h.apiMetaHandler,
-			router.WithSwagger(
-				router.WithSummary("Get Plugin Web Bundle Manifest"),
-				router.WithDescription("Returns the processed web manifest for a plugin's web bundle"),
-				router.WithTags("Public"),
-				router.WithPathParam("plugin_id", "Plugin identifier", "string"),
-				router.WithPathParam("bundle_id", "Bundle index number", "integer"),
-			),
-			router.WithCustomErrorResponses(
-				router.DefineSwaggerErrorResponses(
-					router.DefineSwaggerErrorResponse(http.StatusNotFound, "Plugin or bundle not found"),
-					router.DefineSwaggerErrorResponse(http.StatusBadRequest, "Invalid bundle ID"),
-					router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Failed to process manifest"),
-				),
-			),
-		),
 		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, "{plugin_id}", "{bundle_id}")+"*", h.apiPluginWebBundleFileServerHandler,
 			router.WithSwagger(
 				router.WithSummary("Get Plugin Web Bundle File"),
