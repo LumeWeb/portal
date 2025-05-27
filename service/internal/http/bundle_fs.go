@@ -94,7 +94,7 @@ func (f *BundleFile) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		abs = f.offset + offset
 	case io.SeekEnd:
-		abs = int64(len(f.content)) + offset
+		abs = f.size + offset
 	default:
 		return 0, errors.New("invalid whence")
 	}
