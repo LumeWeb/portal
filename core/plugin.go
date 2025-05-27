@@ -57,7 +57,9 @@ func RegisterPlugin(info PluginInfo) {
 		panic("plugin ID must not be empty")
 	}
 
-	if info.API == nil && info.Protocol == nil && info.Services == nil && info.APIExtensions == nil && (info.WebBundles == nil || len(info.WebBundles) == 0) {
+	hasComponent := info.API != nil || info.Protocol != nil || info.Services != nil || 
+		info.APIExtensions != nil || len(info.WebBundles) > 0
+	if !hasComponent {
 		panic("plugin must have at least one of API, Protocol, Service, APIExtension, or WebBundle")
 	}
 

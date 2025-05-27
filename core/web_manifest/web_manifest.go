@@ -25,6 +25,12 @@ type EntryInfo struct {
 	Type string `json:"type"`
 }
 
+// TypesInfo represents type information
+type TypesInfo struct {
+	Path string `json:"path"`
+	Name string `json:"name"`
+}
+
 // MetaData represents metadata information
 type MetaData struct {
 	Name           string    `json:"name"`
@@ -32,10 +38,7 @@ type MetaData struct {
 	BuildInfo      BuildInfo `json:"buildInfo"`
 	RemoteEntry    EntryInfo `json:"remoteEntry"`
 	SSRRemoteEntry EntryInfo `json:"ssrRemoteEntry"`
-	Types          struct {
-		Path string `json:"path"`
-		Name string `json:"name"`
-	} `json:"types"`
+	Types          TypesInfo `json:"types"`
 	GlobalName    string `json:"globalName"`
 	PluginVersion string `json:"pluginVersion"`
 	PublicPath    string `json:"publicPath"`
