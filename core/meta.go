@@ -2,6 +2,7 @@
 package core
 
 import (
+	"fmt"
 	"go.lumeweb.com/portal/build"
 	"io/fs"
 	"net/http"
@@ -21,22 +22,98 @@ type PortalMetaPlugins = map[string]PortalMetaPlugin
 
 type PortalMetaPlugin struct {
 	Build      build.Info     `json:"build,omitempty"` // Plugin build info
-	Meta       map[string]any `json:"meta"`
-	WebBundles []string       `json:"web_bundles"`
+	Meta       map[string]any `json:"meta"`            // Arbitrary plugin metadata
+	WebBundles []string       `json:"web_bundles"`     // List of web bundle URIs
 }
 
 // PortalMetaBuilder interface for building portal metadata
 type PortalMetaBuilder interface {
 	// Core functionality
 	AddFeatureFlag(key string, value bool) PortalMetaBuilder
+	AddCoreBuildInfo(buildInfo build.Info) PortalMetaBuilder
 
 	// Plugin management
-	AddPlugin(key string) PortalMetaBuilder
-	AddPluginBuildInfo(key string, buildInfo build.Info) PortalMetaBuilder
-	AddPluginMeta(pluginKey string, metaKey string, metaValue any) PortalMetaBuilder
-	AddPluginWebBundle(pluginKey string, bundleUri string) PortalMetaBuilder
-
+	AddPlugin(pluginID string) (PluginMetaBuilder, error)
 	Build() *PortalMeta
+}
+
+// PluginMetaBuilder interface for building metadata for a specific plugin
+type PluginMetaBuilder interface {
+	AddBuildInfo(buildInfo build.Info) PluginMetaBuilder
+	AddMeta(key string, value any) PluginMetaBuilder
+	AddWebBundle(bundleURI string) PluginMetaBuilder
+}
+
+// portalMetaBuilder implements PortalMetaBuilder
+type portalMetaBuilder struct {
+	meta *PortalMeta
+}
+
+// pluginMetaBuilder implements PluginMetaBuilder
+type pluginMetaBuilder struct {
+	meta       *PortalMeta
+	pluginID   string
+	pluginMeta PortalMetaPlugin
+}
+
+// NewPortalMetaBuilder creates a new PortalMetaBuilder instance
+func NewPortalMetaBuilder(domain string) PortalMetaBuilder {
+	return &portalMetaBuilder{
+		meta: &PortalMeta{
+			Domain:       domain,
+			Plugins:      make(PortalMetaPlugins),
+			FeatureFlags: make(map[string]bool),
+		},
+	}
+}
+
+func (b *portalMetaBuilder) AddFeatureFlag(key string, value bool) PortalMetaBuilder {
+	b.meta.FeatureFlags[key] = value
+	return b
+}
+
+func (b *portalMetaBuilder) AddCoreBuildInfo(buildInfo build.Info) PortalMetaBuilder {
+	b.meta.Build = buildInfo
+	return b
+}
+
+func (b *portalMetaBuilder) AddPlugin(pluginID string) (PluginMetaBuilder, error) {
+	if _, exists := b.meta.Plugins[pluginID]; exists {
+		return nil, fmt.Errorf("plugin %s already exists in meta", pluginID)
+	}
+
+	pluginMeta := PortalMetaPlugin{
+		Meta:       make(map[string]any),
+		WebBundles: make([]string, 0),
+	}
+	b.meta.Plugins[pluginID] = pluginMeta
+
+	return &pluginMetaBuilder{
+		meta:       b.meta,
+		pluginID:   pluginID,
+		pluginMeta: pluginMeta,
+	}, nil
+}
+
+func (b *portalMetaBuilder) Build() *PortalMeta {
+	return b.meta
+}
+
+func (p *pluginMetaBuilder) AddBuildInfo(buildInfo build.Info) PluginMetaBuilder {
+	p.pluginMeta.Build = buildInfo
+	p.meta.Plugins[p.pluginID] = p.pluginMeta
+	return p
+}
+
+func (p *pluginMetaBuilder) AddMeta(key string, value any) PluginMetaBuilder {
+	p.pluginMeta.Meta[key] = value
+	return p
+}
+
+func (p *pluginMetaBuilder) AddWebBundle(bundleURI string) PluginMetaBuilder {
+	p.pluginMeta.WebBundles = append(p.pluginMeta.WebBundles, bundleURI)
+	p.meta.Plugins[p.pluginID] = p.pluginMeta
+	return p
 }
 
 type WebBundle struct {

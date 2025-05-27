@@ -29,6 +29,7 @@ packages:
       MailerTemplate:
       MailerService:
       PortalMetaBuilder:
+      PluginMetaBuilder:
       HashProofGenerator:
       HashProofProvider:
       HashProofVerifier:

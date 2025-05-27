@@ -22,6 +22,54 @@ func (_m *MockPortalMetaBuilder) EXPECT() *MockPortalMetaBuilder_Expecter {
 	return &MockPortalMetaBuilder_Expecter{mock: &_m.Mock}
 }
 
+// AddCoreBuildInfo provides a mock function with given fields: buildInfo
+func (_m *MockPortalMetaBuilder) AddCoreBuildInfo(buildInfo build.Info) core.PortalMetaBuilder {
+	ret := _m.Called(buildInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddCoreBuildInfo")
+	}
+
+	var r0 core.PortalMetaBuilder
+	if rf, ok := ret.Get(0).(func(build.Info) core.PortalMetaBuilder); ok {
+		r0 = rf(buildInfo)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.PortalMetaBuilder)
+		}
+	}
+
+	return r0
+}
+
+// MockPortalMetaBuilder_AddCoreBuildInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddCoreBuildInfo'
+type MockPortalMetaBuilder_AddCoreBuildInfo_Call struct {
+	*mock.Call
+}
+
+// AddCoreBuildInfo is a helper method to define mock.On call
+//   - buildInfo build.Info
+func (_e *MockPortalMetaBuilder_Expecter) AddCoreBuildInfo(buildInfo interface{}) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
+	return &MockPortalMetaBuilder_AddCoreBuildInfo_Call{Call: _e.mock.On("AddCoreBuildInfo", buildInfo)}
+}
+
+func (_c *MockPortalMetaBuilder_AddCoreBuildInfo_Call) Run(run func(buildInfo build.Info)) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(build.Info))
+	})
+	return _c
+}
+
+func (_c *MockPortalMetaBuilder_AddCoreBuildInfo_Call) Return(_a0 core.PortalMetaBuilder) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockPortalMetaBuilder_AddCoreBuildInfo_Call) RunAndReturn(run func(build.Info) core.PortalMetaBuilder) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddFeatureFlag provides a mock function with given fields: key, value
 func (_m *MockPortalMetaBuilder) AddFeatureFlag(key string, value bool) core.PortalMetaBuilder {
 	ret := _m.Called(key, value)
@@ -71,24 +119,34 @@ func (_c *MockPortalMetaBuilder_AddFeatureFlag_Call) RunAndReturn(run func(strin
 	return _c
 }
 
-// AddPlugin provides a mock function with given fields: key
-func (_m *MockPortalMetaBuilder) AddPlugin(key string) core.PortalMetaBuilder {
-	ret := _m.Called(key)
+// AddPlugin provides a mock function with given fields: pluginID
+func (_m *MockPortalMetaBuilder) AddPlugin(pluginID string) (core.PluginMetaBuilder, error) {
+	ret := _m.Called(pluginID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddPlugin")
 	}
 
-	var r0 core.PortalMetaBuilder
-	if rf, ok := ret.Get(0).(func(string) core.PortalMetaBuilder); ok {
-		r0 = rf(key)
+	var r0 core.PluginMetaBuilder
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (core.PluginMetaBuilder, error)); ok {
+		return rf(pluginID)
+	}
+	if rf, ok := ret.Get(0).(func(string) core.PluginMetaBuilder); ok {
+		r0 = rf(pluginID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(core.PortalMetaBuilder)
+			r0 = ret.Get(0).(core.PluginMetaBuilder)
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(pluginID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockPortalMetaBuilder_AddPlugin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddPlugin'
@@ -97,172 +155,24 @@ type MockPortalMetaBuilder_AddPlugin_Call struct {
 }
 
 // AddPlugin is a helper method to define mock.On call
-//   - key string
-func (_e *MockPortalMetaBuilder_Expecter) AddPlugin(key interface{}) *MockPortalMetaBuilder_AddPlugin_Call {
-	return &MockPortalMetaBuilder_AddPlugin_Call{Call: _e.mock.On("AddPlugin", key)}
+//   - pluginID string
+func (_e *MockPortalMetaBuilder_Expecter) AddPlugin(pluginID interface{}) *MockPortalMetaBuilder_AddPlugin_Call {
+	return &MockPortalMetaBuilder_AddPlugin_Call{Call: _e.mock.On("AddPlugin", pluginID)}
 }
 
-func (_c *MockPortalMetaBuilder_AddPlugin_Call) Run(run func(key string)) *MockPortalMetaBuilder_AddPlugin_Call {
+func (_c *MockPortalMetaBuilder_AddPlugin_Call) Run(run func(pluginID string)) *MockPortalMetaBuilder_AddPlugin_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string))
 	})
 	return _c
 }
 
-func (_c *MockPortalMetaBuilder_AddPlugin_Call) Return(_a0 core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPlugin_Call {
-	_c.Call.Return(_a0)
+func (_c *MockPortalMetaBuilder_AddPlugin_Call) Return(_a0 core.PluginMetaBuilder, _a1 error) *MockPortalMetaBuilder_AddPlugin_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockPortalMetaBuilder_AddPlugin_Call) RunAndReturn(run func(string) core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPlugin_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// AddPluginBuildInfo provides a mock function with given fields: key, buildInfo
-func (_m *MockPortalMetaBuilder) AddPluginBuildInfo(key string, buildInfo build.Info) core.PortalMetaBuilder {
-	ret := _m.Called(key, buildInfo)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AddPluginBuildInfo")
-	}
-
-	var r0 core.PortalMetaBuilder
-	if rf, ok := ret.Get(0).(func(string, build.Info) core.PortalMetaBuilder); ok {
-		r0 = rf(key, buildInfo)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(core.PortalMetaBuilder)
-		}
-	}
-
-	return r0
-}
-
-// MockPortalMetaBuilder_AddPluginBuildInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddPluginBuildInfo'
-type MockPortalMetaBuilder_AddPluginBuildInfo_Call struct {
-	*mock.Call
-}
-
-// AddPluginBuildInfo is a helper method to define mock.On call
-//   - key string
-//   - buildInfo build.Info
-func (_e *MockPortalMetaBuilder_Expecter) AddPluginBuildInfo(key interface{}, buildInfo interface{}) *MockPortalMetaBuilder_AddPluginBuildInfo_Call {
-	return &MockPortalMetaBuilder_AddPluginBuildInfo_Call{Call: _e.mock.On("AddPluginBuildInfo", key, buildInfo)}
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginBuildInfo_Call) Run(run func(key string, buildInfo build.Info)) *MockPortalMetaBuilder_AddPluginBuildInfo_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(build.Info))
-	})
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginBuildInfo_Call) Return(_a0 core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginBuildInfo_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginBuildInfo_Call) RunAndReturn(run func(string, build.Info) core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginBuildInfo_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// AddPluginMeta provides a mock function with given fields: pluginKey, metaKey, metaValue
-func (_m *MockPortalMetaBuilder) AddPluginMeta(pluginKey string, metaKey string, metaValue any) core.PortalMetaBuilder {
-	ret := _m.Called(pluginKey, metaKey, metaValue)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AddPluginMeta")
-	}
-
-	var r0 core.PortalMetaBuilder
-	if rf, ok := ret.Get(0).(func(string, string, any) core.PortalMetaBuilder); ok {
-		r0 = rf(pluginKey, metaKey, metaValue)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(core.PortalMetaBuilder)
-		}
-	}
-
-	return r0
-}
-
-// MockPortalMetaBuilder_AddPluginMeta_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddPluginMeta'
-type MockPortalMetaBuilder_AddPluginMeta_Call struct {
-	*mock.Call
-}
-
-// AddPluginMeta is a helper method to define mock.On call
-//   - pluginKey string
-//   - metaKey string
-//   - metaValue any
-func (_e *MockPortalMetaBuilder_Expecter) AddPluginMeta(pluginKey interface{}, metaKey interface{}, metaValue interface{}) *MockPortalMetaBuilder_AddPluginMeta_Call {
-	return &MockPortalMetaBuilder_AddPluginMeta_Call{Call: _e.mock.On("AddPluginMeta", pluginKey, metaKey, metaValue)}
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginMeta_Call) Run(run func(pluginKey string, metaKey string, metaValue any)) *MockPortalMetaBuilder_AddPluginMeta_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string), args[2].(any))
-	})
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginMeta_Call) Return(_a0 core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginMeta_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginMeta_Call) RunAndReturn(run func(string, string, any) core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginMeta_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// AddPluginWebBundle provides a mock function with given fields: pluginKey, bundleUri
-func (_m *MockPortalMetaBuilder) AddPluginWebBundle(pluginKey string, bundleUri string) core.PortalMetaBuilder {
-	ret := _m.Called(pluginKey, bundleUri)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AddPluginWebBundle")
-	}
-
-	var r0 core.PortalMetaBuilder
-	if rf, ok := ret.Get(0).(func(string, string) core.PortalMetaBuilder); ok {
-		r0 = rf(pluginKey, bundleUri)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(core.PortalMetaBuilder)
-		}
-	}
-
-	return r0
-}
-
-// MockPortalMetaBuilder_AddPluginWebBundle_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddPluginWebBundle'
-type MockPortalMetaBuilder_AddPluginWebBundle_Call struct {
-	*mock.Call
-}
-
-// AddPluginWebBundle is a helper method to define mock.On call
-//   - pluginKey string
-//   - bundleUri string
-func (_e *MockPortalMetaBuilder_Expecter) AddPluginWebBundle(pluginKey interface{}, bundleUri interface{}) *MockPortalMetaBuilder_AddPluginWebBundle_Call {
-	return &MockPortalMetaBuilder_AddPluginWebBundle_Call{Call: _e.mock.On("AddPluginWebBundle", pluginKey, bundleUri)}
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginWebBundle_Call) Run(run func(pluginKey string, bundleUri string)) *MockPortalMetaBuilder_AddPluginWebBundle_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginWebBundle_Call) Return(_a0 core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginWebBundle_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockPortalMetaBuilder_AddPluginWebBundle_Call) RunAndReturn(run func(string, string) core.PortalMetaBuilder) *MockPortalMetaBuilder_AddPluginWebBundle_Call {
+func (_c *MockPortalMetaBuilder_AddPlugin_Call) RunAndReturn(run func(string) (core.PluginMetaBuilder, error)) *MockPortalMetaBuilder_AddPlugin_Call {
 	_c.Call.Return(run)
 	return _c
 }
