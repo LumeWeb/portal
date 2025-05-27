@@ -242,41 +242,48 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 	// Get app type from query param (empty string means no filter)
 	appType := ctx.QueryParam("app")
 
-	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
+	metaBuilder := core.NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
 
-	// First pass: Add plugin IDs with version info
-	for _, plugin := range core.GetPlugins() {
-		// Skip plugins only if we're filtering by app AND plugin doesn't target this app
-		if appType != "" && !pluginTargetsApp(&plugin, appType) {
-			continue
-		}
-
-		metaBuilder.AddPlugin(plugin.ID)
-		if plugin.Version != nil {
-			metaBuilder.AddPluginBuildInfo(plugin.ID, plugin.Version.Info())
-		}
+	// Add core build info if available
+	if buildInfo := h.ctx.BuildInfo(); buildInfo != nil {
+		metaBuilder.AddCoreBuildInfo(buildInfo)
 	}
 
-	// Second pass: Process plugin meta and web bundles
+	// Process all plugins
 	for _, plugin := range core.GetPlugins() {
-		// Same filtering logic as above
+		// Skip plugins that don't target the requested app type
 		if appType != "" && !pluginTargetsApp(&plugin, appType) {
 			continue
 		}
 
-		// Add web bundle URLs using processed manifests
+		// Get plugin meta builder
+		pluginBuilder, err := metaBuilder.AddPlugin(plugin.ID)
+		if err != nil {
+			h.logger.Error("Failed to add plugin to meta builder", 
+				zap.String("plugin", plugin.ID),
+				zap.Error(err))
+			continue
+		}
+
+		// Add plugin build info if available
+		if plugin.Version != nil {
+			pluginBuilder.AddBuildInfo(plugin.Version)
+		}
+
+		// Add web bundles
 		for i, bundle := range plugin.WebBundles {
-			bundleURI := fmt.Sprintf(webBundleManifestRoute, plugin.ID, i)
 			if bundleTargetsApp(bundle, appType) {
-				metaBuilder.AddPluginWebBundle(plugin.ID, bundleURI)
+				bundleURI := fmt.Sprintf(webBundleManifestRoute, plugin.ID, i)
+				pluginBuilder.AddWebBundle(bundleURI)
 			}
 		}
 
-		// Process plugin-specific meta
+		// Let plugin add its own metadata
 		if plugin.Meta != nil {
 			if err := plugin.Meta(h.ctx, metaBuilder); err != nil {
-				h.logger.Error("Failed to build meta", zap.Error(err))
-				return echo.NewHTTPError(http.StatusInternalServerError, "Failed to build meta")
+				h.logger.Error("Failed to process plugin meta",
+					zap.String("plugin", plugin.ID),
+					zap.Error(err))
 			}
 		}
 	}
