@@ -1,7 +1,7 @@
 package core
 
 import (
-	"go.lumeweb.com/httputil"
+	"go.lumeweb.com/portal-router"
 	"sync"
 )
 
@@ -13,7 +13,7 @@ type APIExtension interface {
 	TargetAPI() string
 
 	// Configure is called after the main API routes are registered
-	Configure(router httputil.Router, accessSvc AccessService) error
+	Configure(router router.Router, accessSvc AccessService) error
 }
 
 var (

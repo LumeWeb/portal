@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"go.lumeweb.com/httputil"
+	"go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"net/http"
 	"sort"
@@ -17,10 +17,10 @@ var (
 type API interface {
 	Name() string
 	Subdomain() string
-	Configure(router httputil.Router, accessSvc AccessService) error
+	Configure(router router.Router, accessSvc AccessService) error
 	AuthTokenName() string
 	Config() config.APIConfig
-	OpenAPIInfo() httputil.APIInfoDefinition
+	OpenAPIInfo() router.APIInfoDefinition
 }
 
 type APIInit interface {
