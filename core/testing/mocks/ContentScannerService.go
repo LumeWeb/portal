@@ -231,6 +231,53 @@ func (_c *MockContentScannerService_RegisterScanner_Call) RunAndReturn(run func(
 	return _c
 }
 
+// RegisteredScanners provides a mock function with no fields
+func (_m *MockContentScannerService) RegisteredScanners() []core.ContentScanner {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisteredScanners")
+	}
+
+	var r0 []core.ContentScanner
+	if rf, ok := ret.Get(0).(func() []core.ContentScanner); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]core.ContentScanner)
+		}
+	}
+
+	return r0
+}
+
+// MockContentScannerService_RegisteredScanners_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisteredScanners'
+type MockContentScannerService_RegisteredScanners_Call struct {
+	*mock.Call
+}
+
+// RegisteredScanners is a helper method to define mock.On call
+func (_e *MockContentScannerService_Expecter) RegisteredScanners() *MockContentScannerService_RegisteredScanners_Call {
+	return &MockContentScannerService_RegisteredScanners_Call{Call: _e.mock.On("RegisteredScanners")}
+}
+
+func (_c *MockContentScannerService_RegisteredScanners_Call) Run(run func()) *MockContentScannerService_RegisteredScanners_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_RegisteredScanners_Call) Return(_a0 []core.ContentScanner) *MockContentScannerService_RegisteredScanners_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockContentScannerService_RegisteredScanners_Call) RunAndReturn(run func() []core.ContentScanner) *MockContentScannerService_RegisteredScanners_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ScanContent provides a mock function with given fields: ctx, hash
 func (_m *MockContentScannerService) ScanContent(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error) {
 	ret := _m.Called(ctx, hash)

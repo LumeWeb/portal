@@ -331,7 +331,7 @@ func (_c *MockWorkflowCoordinator_RegisterWorkflow_Call) RunAndReturn(run func(s
 }
 
 // StartWorkflow provides a mock function with given fields: ctx, name, initialData
-func (_m *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name string, initialData interface{}) (*models.Request, error) {
+func (_m *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error) {
 	ret := _m.Called(ctx, name, initialData)
 
 	if len(ret) == 0 {
@@ -340,10 +340,10 @@ func (_m *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name strin
 
 	var r0 *models.Request
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, interface{}) (*models.Request, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, any) (*models.Request, error)); ok {
 		return rf(ctx, name, initialData)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, interface{}) *models.Request); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, any) *models.Request); ok {
 		r0 = rf(ctx, name, initialData)
 	} else {
 		if ret.Get(0) != nil {
@@ -351,7 +351,7 @@ func (_m *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name strin
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, interface{}) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, any) error); ok {
 		r1 = rf(ctx, name, initialData)
 	} else {
 		r1 = ret.Error(1)
@@ -368,14 +368,14 @@ type MockWorkflowCoordinator_StartWorkflow_Call struct {
 // StartWorkflow is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - initialData interface{}
+//   - initialData any
 func (_e *MockWorkflowCoordinator_Expecter) StartWorkflow(ctx interface{}, name interface{}, initialData interface{}) *MockWorkflowCoordinator_StartWorkflow_Call {
 	return &MockWorkflowCoordinator_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow", ctx, name, initialData)}
 }
 
-func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.Context, name string, initialData interface{})) *MockWorkflowCoordinator_StartWorkflow_Call {
+func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.Context, name string, initialData any)) *MockWorkflowCoordinator_StartWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(interface{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(any))
 	})
 	return _c
 }
@@ -385,7 +385,7 @@ func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Return(_a0 *models.Request
 	return _c
 }
 
-func (_c *MockWorkflowCoordinator_StartWorkflow_Call) RunAndReturn(run func(context.Context, string, interface{}) (*models.Request, error)) *MockWorkflowCoordinator_StartWorkflow_Call {
+func (_c *MockWorkflowCoordinator_StartWorkflow_Call) RunAndReturn(run func(context.Context, string, any) (*models.Request, error)) *MockWorkflowCoordinator_StartWorkflow_Call {
 	_c.Call.Return(run)
 	return _c
 }

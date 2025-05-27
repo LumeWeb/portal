@@ -669,6 +669,8 @@ go.lumeweb.com/portal-router v0.1.12 h1:B93VSGcidiorT7jwP/f1pW44IZAK7riAlCOdQusd
 go.lumeweb.com/portal-router v0.1.12/go.mod h1:uCR/MI5I7jeyOoaGVmo8DyJrGdOyjQilN9tcir2RyBM=
 go.lumeweb.com/portal-router v0.2.0 h1:oljnD+YK1xmTQLuMaTVwn5kkd+NI4qArXS1YD7Q5VhA=
 go.lumeweb.com/portal-router v0.2.0/go.mod h1:uCR/MI5I7jeyOoaGVmo8DyJrGdOyjQilN9tcir2RyBM=
+go.lumeweb.com/portal-router v0.2.1 h1:e1stKdlFfowmIFEC3F/7WxMpBIhXEWBJJqwCN/3G53g=
+go.lumeweb.com/portal-router v0.2.1/go.mod h1:uCR/MI5I7jeyOoaGVmo8DyJrGdOyjQilN9tcir2RyBM=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.34.0 h1:zRLXxLCgL1WyKsPVrgbSdMN4c0FMkDAskSTQP+0hdUY=
