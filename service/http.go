@@ -184,9 +184,11 @@ func (h *HTTPServiceDefault) Init() error {
 				router.WithDescription("Returns metadata about installed plugins and their web bundles"),
 				router.WithTags("Public"),
 				router.WithQueryParam("app", "Filter metadata by application type", ""),
-			),
-			router.WithCustomErrorResponses(
-				router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Internal server error"),
+				router.WithErrorResponses(
+					router.DefineSwaggerErrorResponses(
+						router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Internal server error"),
+					),
+				),
 			),
 		),
 	), middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
@@ -204,12 +206,12 @@ func (h *HTTPServiceDefault) Init() error {
 				router.WithTags("Public"),
 				router.WithPathParam("plugin_id", "Plugin identifier", "string"),
 				router.WithPathParam("bundle_id", "Bundle index number", "integer"),
-			),
-			router.WithCustomErrorResponses(
-				router.DefineSwaggerErrorResponses(
-					router.DefineSwaggerErrorResponse(http.StatusNotFound, "Plugin, bundle or file not found"),
-					router.DefineSwaggerErrorResponse(http.StatusBadRequest, "Invalid bundle ID"),
-					router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Failed to serve file"),
+				router.WithErrorResponses(
+					router.DefineSwaggerErrorResponses(
+						router.DefineSwaggerErrorResponse(http.StatusNotFound, "Plugin, bundle or file not found"),
+						router.DefineSwaggerErrorResponse(http.StatusBadRequest, "Invalid bundle ID"),
+						router.DefineSwaggerErrorResponse(http.StatusInternalServerError, "Failed to serve file"),
+					),
 				),
 			),
 		),
