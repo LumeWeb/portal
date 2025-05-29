@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/labstack/echo/v4"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -266,12 +267,12 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 
 	return handler, nil
 }
-func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
-	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc, afterFunc)
+func TUSDefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
+	return tus.DefaultUploadCreatedHandler(e, ctx, verifyFunc, afterFunc)
 }
 
-func TUSDefaultUploadProgressHandler(ctx core.Context) TUSUploadCallbackHandler {
-	return tus.DefaultUploadProgressHandler(ctx)
+func TUSDefaultUploadProgressHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
+	return tus.DefaultUploadProgressHandler(e, ctx)
 }
 
 // TUSOperationHandler implements core.OperationHandler for TUS uploads
@@ -409,6 +410,6 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 	}
 }
 
-func TUSDefaultUploadTerminatedHandler(ctx core.Context) TUSUploadCallbackHandler {
-	return tus.DefaultUploadTerminatedHandler(ctx)
+func TUSDefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
+	return tus.DefaultUploadTerminatedHandler(e, ctx)
 }
