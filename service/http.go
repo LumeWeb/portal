@@ -7,9 +7,7 @@ import (
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
-	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal-middleware/cors"
-	"go.lumeweb.com/portal-middleware/middleware"
 	"go.lumeweb.com/portal/build"
 	"regexp"
 
@@ -118,12 +116,8 @@ func (h *HTTPServiceDefault) Init() error {
 
 		// If the API didn't explicitly set a version, use the plugin's build version
 		if apiInfo.GetVersion() == "" {
-			// Assuming you can get the plugin info associated with this API
-			// You might need to adjust how plugins and APIs are linked or pass plugin info
-			// to the API.Configure method or the OpenAPIInfo method.
-			// For now, let's assume you can get the plugin ID.
-			pluginID := api.Name()                 // Or some other way to get the plugin ID
-			pluginInfo := core.GetPlugin(pluginID) // Assuming GetPlugin exists and works by API name or similar
+			pluginID := api.Name()
+			pluginInfo := core.GetPlugin(pluginID)
 			if pluginInfo.Version != nil {
 				apiInfo.Version(pluginInfo.Version.GetVersion())
 			} else {
@@ -183,12 +177,12 @@ func (h *HTTPServiceDefault) Init() error {
 				),
 			),
 		),
-	), middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
+	), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
 	if err != nil {
 		return err
 	}
 
-	pluginApi, err := h.Router().Group("/meta/plugin")
+	pluginApi, err := rootApi.Group("/meta/plugin")
 
 	err = router.RegisterRoutes(pluginApi, h.access, "", router.DefineRoutes(
 		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, "{plugin_id}", "{bundle_id}")+"*", h.apiPluginWebBundleFileServerHandler,
@@ -207,7 +201,7 @@ func (h *HTTPServiceDefault) Init() error {
 				),
 			),
 		),
-	), middleware.AuthMiddleware(h.ctx, jwt.PurposeLogin), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
+	))
 	if err != nil {
 		return err
 	}
