@@ -25,7 +25,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/event v1.1.2
-	github.com/gorilla/mux v1.8.2-0.20240619235004-db9d1d0073d2
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/labstack/echo/v4 v4.13.4

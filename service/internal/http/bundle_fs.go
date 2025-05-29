@@ -40,15 +40,12 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 	name = filepath.Clean("/" + filepath.ToSlash(name))
 
 	// Reject paths containing directory traversal
-	if filepath.IsAbs(name) || name == ".." || strings.HasPrefix(name, "../") {
+	if strings.Contains(name, "../") || name == ".." {
 		return nil, os.ErrNotExist
 	}
 
-	// Join with prefix and ensure we stay within the intended directory
+	// Join with prefix
 	fullPath := path.Join(fs.prefix, name)
-	if !path.IsAbs(fullPath) {
-		fullPath = path.Clean("/" + fullPath)
-	}
 
 	file, err := fs.bundle.Files.Open(fullPath)
 	if err != nil {
