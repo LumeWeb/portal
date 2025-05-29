@@ -691,6 +691,8 @@ go.lumeweb.com/portal-router v0.3.4 h1:AwM8hRLDdhK02hrW7bS5bg76E3gb9abWXzXEy3EME
 go.lumeweb.com/portal-router v0.3.4/go.mod h1:iRt/bm7HMyrgrjmWlA/y+8ou5VZvzJCl57WjFiY5+PA=
 go.lumeweb.com/portal-router v0.3.5 h1:2rXd995XIZsAkCMJJYxLrRCEOTyDm9sE/hfPpaGyb4o=
 go.lumeweb.com/portal-router v0.3.5/go.mod h1:iRt/bm7HMyrgrjmWlA/y+8ou5VZvzJCl57WjFiY5+PA=
+go.lumeweb.com/portal-router v0.3.6 h1:fdEzVZ6nr6oLCszzDUyf+/d1TFZbYOGgicCLdjYloNY=
+go.lumeweb.com/portal-router v0.3.6/go.mod h1:iRt/bm7HMyrgrjmWlA/y+8ou5VZvzJCl57WjFiY5+PA=
 go.lumeweb.com/queryutil v0.3.2 h1:toTfreL3JJjPeul7NOUxXfG8lNhGyxodPUMR41uWp4A=
 go.lumeweb.com/queryutil v0.3.2/go.mod h1:tcD4meQIXQYNjJ8i0dahCa8kpzQyks+d7PiC+qCXdNg=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
