@@ -57,35 +57,25 @@ type HTTPServiceDefault struct {
 	fsCache     sync.Map // Cache for bundle filesystems
 }
 
-//var _ handlers.RecoveryHandlerLogger = (*recoverLogger)(nil)
-/*
-type recoverLogger struct {
-	ctx core.Context
-}
-
-func (r *recoverLogger) Println(v ...interface{}) {
-	r.ctx.Logger().Error("Recovered from panic", zap.Any("panic", v))
-}*/
-
 func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) {
-	_router, err := router.NewRouter(router.APIInfo())
-	if err != nil {
-		return nil, nil, err
-	}
+	_http := &HTTPServiceDefault{}
 
-	_http := &HTTPServiceDefault{
-		router: _router,
-	}
-
-	srv := &http.Server{
-		Handler: _http.router,
-	}
+	srv := &http.Server{}
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			_http.ctx = ctx
 			_http.logger = ctx.ServiceLogger(_http)
 			_http.access = ctx.Service(core.ACCESS_SERVICE).(core.AccessService)
+
+			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version))
+			if err != nil {
+				return err
+			}
+
+			_http.router = _router
+			srv.Handler = _http.router
+
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
@@ -147,6 +137,8 @@ func (h *HTTPServiceDefault) Init() error {
 		if err != nil {
 			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
 		}
+
+		router.UpdateRouterInfo(hostRouter, apiInfo)
 
 		// Configure the main API using the gswagger router
 		err = api.Configure(hostRouter, h.access)
