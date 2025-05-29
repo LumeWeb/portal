@@ -663,6 +663,8 @@ go.lumeweb.com/gswagger v0.17.0 h1:eVtmSO5G3PVUkgp6FQCHxQN/OVT4xGC0ZSvIhKSV0yU=
 go.lumeweb.com/gswagger v0.17.0/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
 go.lumeweb.com/gswagger v0.17.2 h1:V4aF2665sKcxLzmVMGMO1h1X64MTJqhxA6wY3k3mQcw=
 go.lumeweb.com/gswagger v0.17.2/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
+go.lumeweb.com/gswagger v0.17.3 h1:eCWyQPls4MB4t+ksdXCNwcsqR7d5DtFsfNGQnEIVr+Q=
+go.lumeweb.com/gswagger v0.17.3/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
 go.lumeweb.com/httputil v0.4.2 h1:lNs97zejaFtj68u+tSL//O4z5cI4E/HCN5tDy3HwNvU=
 go.lumeweb.com/httputil v0.4.2/go.mod h1:zO42Pj9Wwz0BVs1kPytfMlpQ39vqtd61N8US+4OG5qs=
 go.lumeweb.com/portal-middleware v0.2.3 h1:ac23kBVgOtnlR5nyMEdaMZtBf1QngkFEDWHvwbGblSk=
@@ -693,6 +695,8 @@ go.lumeweb.com/portal-router v0.3.5 h1:2rXd995XIZsAkCMJJYxLrRCEOTyDm9sE/hfPpaGyb
 go.lumeweb.com/portal-router v0.3.5/go.mod h1:iRt/bm7HMyrgrjmWlA/y+8ou5VZvzJCl57WjFiY5+PA=
 go.lumeweb.com/portal-router v0.3.6 h1:fdEzVZ6nr6oLCszzDUyf+/d1TFZbYOGgicCLdjYloNY=
 go.lumeweb.com/portal-router v0.3.6/go.mod h1:iRt/bm7HMyrgrjmWlA/y+8ou5VZvzJCl57WjFiY5+PA=
+go.lumeweb.com/portal-router v0.3.7 h1:/uHQnQDsP3z/sGKk+87eB6jiXJtkSRbASE+5zTzKh7E=
+go.lumeweb.com/portal-router v0.3.7/go.mod h1:c4TGX6NJTyk3OXyA/IWhRvbS3GW7L/nGa2mHmo17e9g=
 go.lumeweb.com/queryutil v0.3.2 h1:toTfreL3JJjPeul7NOUxXfG8lNhGyxodPUMR41uWp4A=
 go.lumeweb.com/queryutil v0.3.2/go.mod h1:tcD4meQIXQYNjJ8i0dahCa8kpzQyks+d7PiC+qCXdNg=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
