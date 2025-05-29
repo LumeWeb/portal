@@ -185,7 +185,7 @@ func (h *HTTPServiceDefault) Init() error {
 	pluginApi, err := rootApi.Group("/meta/plugin")
 
 	err = router.RegisterRoutes(pluginApi, h.access, "", router.DefineRoutes(
-		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, "{plugin_id}", "{bundle_id}")+"*", h.apiPluginWebBundleFileServerHandler,
+		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, ":plugin_id", ":bundle_id")+"*", h.apiPluginWebBundleFileServerHandler,
 			router.WithSwagger(
 				router.WithSummary("Get Plugin Web Bundle File"),
 				router.WithDescription("Serves static files from a plugin's web bundle"),
