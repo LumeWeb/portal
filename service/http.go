@@ -26,7 +26,9 @@ import (
 
 const (
 	defaultManifestPath    = "mf-manifest.json"
-	webBundleBasePath      = "/api/meta/plugin/%s/bundle/%d/"
+	webBundleApiBasePath   = "/api/meta/plugin"
+	webBundleSubPath       = "/%s/bundle/%d/"
+	webBundleBasePath      = webBundleApiBasePath + webBundleSubPath
 	webBundleManifestRoute = webBundleBasePath + defaultManifestPath
 )
 
@@ -185,7 +187,7 @@ func (h *HTTPServiceDefault) Init() error {
 	pluginApi, err := rootApi.Group("/meta/plugin")
 
 	err = router.RegisterRoutes(pluginApi, h.access, "", router.DefineRoutes(
-		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleBasePath, ":plugin_id", ":bundle_id")+"*", h.apiPluginWebBundleFileServerHandler,
+		router.NewRoute(http.MethodGet, fmt.Sprintf(webBundleSubPath, ":plugin_id", ":bundle_id")+"*", h.apiPluginWebBundleFileServerHandler,
 			router.WithSwagger(
 				router.WithSummary("Get Plugin Web Bundle File"),
 				router.WithDescription("Serves static files from a plugin's web bundle"),
