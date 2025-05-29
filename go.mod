@@ -40,7 +40,7 @@ require (
 	github.com/wneessen/go-mail v0.6.2
 	go.etcd.io/etcd/client/v3 v3.5.19
 	go.lumeweb.com/httputil v0.4.2
-	go.lumeweb.com/portal-middleware v0.2.5
+	go.lumeweb.com/portal-middleware v0.2.7
 	go.lumeweb.com/portal-router v0.3.2
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
