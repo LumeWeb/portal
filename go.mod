@@ -41,7 +41,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.19
 	go.lumeweb.com/httputil v0.4.2
 	go.lumeweb.com/portal-middleware v0.2.5
-	go.lumeweb.com/portal-router v0.2.1
+	go.lumeweb.com/portal-router v0.3.2
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
@@ -77,7 +77,7 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/pprof v0.0.0-20241017200806-017d972448fc // indirect
-	github.com/invopop/jsonschema v0.12.0 // indirect
+	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.2 // indirect
@@ -111,7 +111,8 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.lumeweb.com/gswagger v0.16.1 // indirect
+	go.lumeweb.com/gswagger v0.17.0 // indirect
+	go.lumeweb.com/queryutil v0.3.2 // indirect
 	go.sia.tech/jape v0.12.1 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
