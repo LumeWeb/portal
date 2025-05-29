@@ -9,7 +9,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/redislocker"
 	"github.com/tus/tusd/v2/pkg/s3store"
-	"go.lumeweb.com/portal-middleware/middleware"
+	mcontext "go.lumeweb.com/portal-middleware/context"
 	"go.lumeweb.com/portal-middleware/tus"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
@@ -454,11 +454,11 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 	return nil, nil
 }
 
-func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
+func DefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		var errMessage string
 
-		uploaderID, err := middleware.GetUserFromContext(hook.Context)
+		uploaderID, err := mcontext.GetUserID(e)
 
 		if err != nil {
 			errMessage = "Failed to get user from context"
@@ -510,7 +510,7 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 	}
 }
 
-func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
+func DefaultUploadProgressHandler(e echo.Context, ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, hook.Upload.ID)
 		if err != nil {
@@ -521,7 +521,7 @@ func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 	}
 }
 
-func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
+func DefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := handlr.FailUploadById(ctx, hook.Upload.ID)
 		if err != nil {
@@ -532,7 +532,7 @@ func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 	}
 }
 
-func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
+func DefaultUploadCompletedHandler(e echo.Context, ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, hook.Upload.ID)
 		if err != nil {
