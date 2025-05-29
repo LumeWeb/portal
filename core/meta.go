@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -94,11 +95,13 @@ type webBundleLiveFs struct {
 }
 
 func (f *webBundleLiveFs) Open(name string) (fs.File, error) {
-	if strings.Contains(name, "..") || strings.HasPrefix(name, "/") {
+	// Clean the path and remove any leading/trailing slashes
+	name = path.Clean(name)
+	if strings.Contains(name, "..") {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
 	}
 
-	file, err := f.httpFS.Open(name)
+	file, err := f.httpFS.Open(strings.TrimPrefix(name, "/"))
 	if err != nil {
 		return nil, err
 	}

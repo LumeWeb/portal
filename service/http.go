@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal-middleware/cors"
+	"go.lumeweb.com/portal-middleware/swagger"
 	"go.lumeweb.com/portal/build"
 	"regexp"
 
@@ -27,7 +28,7 @@ import (
 const (
 	defaultManifestPath    = "mf-manifest.json"
 	webBundleApiBasePath   = "/api/meta/plugin"
-	webBundleSubPath       = "/%s/bundle/%d/"
+	webBundleSubPath       = "/%s/bundle/%s/"
 	webBundleBasePath      = webBundleApiBasePath + webBundleSubPath
 	webBundleManifestRoute = webBundleBasePath + defaultManifestPath
 )
@@ -208,6 +209,16 @@ func (h *HTTPServiceDefault) Init() error {
 		return err
 	}
 
+	err = swagger.WireRouter(h.router, "/swagger.json", "/swagger")
+	if err != nil {
+		return err
+	}
+
+	err = h.router.GenerateAndExposeOpenapi()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -267,7 +278,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 }
 
 func (h *HTTPServiceDefault) generateWebBundleURI(pluginID string, bundleIndex int) string {
-	return fmt.Sprintf(webBundleBasePath, pluginID, bundleIndex)
+	return fmt.Sprintf(webBundleBasePath, pluginID, strconv.Itoa(bundleIndex))
 }
 
 // getCachedManifest retrieves a cached manifest if it exists
