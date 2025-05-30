@@ -669,8 +669,14 @@ go.etcd.io/etcd/client/v3 v3.5.19 h1:+4byIz6ti3QC28W0zB0cEZWwhpVHXdrKovyycJh1KNo
 go.etcd.io/etcd/client/v3 v3.5.19/go.mod h1:FNzyinmMIl0oVsty1zA3hFeUrxXI/JpEnz4sG+POzjU=
 go.lumeweb.com/gswagger v0.18.0 h1:+DoxC0e7KOFg0HEXOKwHyfsCeFNjm8D2pslyhMm57ac=
 go.lumeweb.com/gswagger v0.18.0/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
+go.lumeweb.com/gswagger v0.18.1-0.20250530135901-2ae55c0cedae h1:gP4PVjEO5ENmtJtSjzwraAo5wIqq0Qr7pu4GcL+URSs=
+go.lumeweb.com/gswagger v0.18.1-0.20250530135901-2ae55c0cedae/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
 go.lumeweb.com/gswagger v0.18.1 h1:QRPEZM15YCnGOlv46yy/RDCv0MZoDOlbqB7rucUFzec=
 go.lumeweb.com/gswagger v0.18.1/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
+go.lumeweb.com/gswagger v0.19.0 h1:WEFKNyK9BCDZLOKKpERrQl+Rrf4GSMOHLlrcv3S0JuE=
+go.lumeweb.com/gswagger v0.19.0/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
+go.lumeweb.com/gswagger v0.20.0 h1:lH0lbqUxJUD7eNjWzTiXe2a1UDhCBcI16vELp2cDdys=
+go.lumeweb.com/gswagger v0.20.0/go.mod h1:ihCqZdOheP96os/K3QlVv4LT7oS+fEc0f+TAyJd7CaA=
 go.lumeweb.com/httputil v0.5.1 h1:nsFQTGDO1Kup9R18/m2CZAnN1JoLlwLIou/eh0TlXg0=
 go.lumeweb.com/httputil v0.5.1/go.mod h1:sJkltGvWfbeuxYF3cvQ5+EM6kUGwjbjl1hekOu526a8=
 go.lumeweb.com/portal-middleware v0.2.7 h1:2dImx++MVQaFzIEPEu9cPD1+HOgO9vvBiZGzgEMcdpw=
@@ -679,6 +685,10 @@ go.lumeweb.com/portal-router v0.3.8 h1:u9fsmG2YoBY24mWZNnhVKlky0N8QrrnRjKEWgl2BK
 go.lumeweb.com/portal-router v0.3.8/go.mod h1:xg+GiFLKbWKt8DF29EWhGxFm8bA7XtCASfyE2r+d7i0=
 go.lumeweb.com/portal-router v0.3.9 h1:B1tQBQf8lUmNaxmA+6WMdGwYRACooOwRY/6qSO6r+8k=
 go.lumeweb.com/portal-router v0.3.9/go.mod h1:J+M2daqrXYMuFaIpZ9o3nc4DVvrmOIsY9Xsc9Uzd5ug=
+go.lumeweb.com/portal-router v0.3.10 h1:6JAZryCykHU/rBtAwy0V3nxgM1IDRw+EWkyPKLfhsuI=
+go.lumeweb.com/portal-router v0.3.10/go.mod h1:jdAayN23atwyWlDTzngwsVzl8FFrl0ADfyMAGOZMaNs=
+go.lumeweb.com/portal-router v0.4.0 h1:QbQGwd3p5/qFAmDEBncrvJJyeQ5Xuum6ZcjRDVcW1jI=
+go.lumeweb.com/portal-router v0.4.0/go.mod h1:ZG0SjJxaaZaGJkxHOMZN2azyFMcgWTvpYMMfKANfIGI=
 go.lumeweb.com/queryutil v0.3.2 h1:toTfreL3JJjPeul7NOUxXfG8lNhGyxodPUMR41uWp4A=
 go.lumeweb.com/queryutil v0.3.2/go.mod h1:tcD4meQIXQYNjJ8i0dahCa8kpzQyks+d7PiC+qCXdNg=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=

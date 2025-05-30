@@ -11,6 +11,7 @@ import (
 	"go.lumeweb.com/portal-middleware/swagger"
 	"go.lumeweb.com/portal/build"
 	"regexp"
+	"strings"
 
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
@@ -34,7 +35,8 @@ const (
 )
 
 var (
-	pluginIDRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	pluginIDRegex   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	httpGlobalPaths = []string{"/api/meta", "/swagger"}
 )
 
 var _ core.HTTPService = (*HTTPServiceDefault)(nil)
@@ -69,7 +71,9 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 			_http.logger = ctx.ServiceLogger(_http)
 			_http.access = ctx.Service(core.ACCESS_SERVICE).(core.AccessService)
 
-			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version))
+			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version), func(c *router.RouterConfig) {
+				c.Options.CustomServeHTTPHandler = _http
+			})
 			if err != nil {
 				return err
 			}
@@ -257,7 +261,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 		// Add web bundles
 		for i, bundle := range plugin.WebBundles {
 			if bundleTargetsApp(bundle, appType) {
-				bundleURI := fmt.Sprintf(webBundleManifestRoute, plugin.ID, i)
+				bundleURI := fmt.Sprintf(webBundleManifestRoute, plugin.ID, strconv.Itoa(i))
 				pluginBuilder.AddWebBundle(bundleURI)
 			}
 		}
@@ -356,7 +360,7 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	}
 
 	// Update public path
-	baseURL := fmt.Sprintf(webBundleBasePath, plugin.ID, index)
+	baseURL := fmt.Sprintf(webBundleBasePath, plugin.ID, strconv.Itoa(index))
 	manifest.MetaData.PublicPath = baseURL
 
 	// Cache the processed manifest
@@ -461,6 +465,57 @@ func (h *HTTPServiceDefault) Serve() error {
 
 	wg.Wait()
 	return nil
+}
+
+func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// This method is set as the CustomServeHTTPHandler on the root gswagger.Router.
+	// It is called after gswagger's standard documentation path checks.
+
+	// Prioritize global routes, which are always served by the root router
+	isGlobalPath := false
+	for _, globalPath := range httpGlobalPaths {
+		if strings.HasPrefix(r.URL.Path, globalPath) {
+			isGlobalPath = true
+			break
+		}
+	}
+	if isGlobalPath {
+		// Attempt to cast the Root gswagger Router's underlying framework router to an http.Handler
+		if handler, ok := h.router.Router().Router(true).(http.Handler); ok {
+			handler.ServeHTTP(w, r)
+			return // Request handled by the root framework router
+		}
+		// This should not happen if the router is properly configured
+		h.logger.Error("Root router does not implement http.Handler")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// If not /api/meta, determine the target gswagger Router based on the Host header
+	var targetRouter router.Router
+	host := r.Host
+
+	// Use GetHostRouter to find a host-specific router
+	hostRouter := h.router.GetHostRouter(host)
+
+	if hostRouter != nil {
+		// If a Host Router is found, the target is the found Host Router.
+		targetRouter = hostRouter
+	} else {
+		// If no Host Router is found, the target is the Root gswagger Router
+		targetRouter = h.router.GetRootRouter()
+	}
+
+	// Attempt to cast the Target gswagger Router's underlying framework router to an http.Handler
+	if handler, ok := targetRouter.Router().Router(true).(http.Handler); ok {
+		handler.ServeHTTP(w, r)
+		return
+	}
+
+	
+	// This should not happen if the router is properly configured
+	h.logger.Error("Target router does not implement http.Handler", zap.String("host", host))
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
 
 func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
