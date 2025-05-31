@@ -40,7 +40,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.19
 	go.lumeweb.com/httputil v0.5.1
 	go.lumeweb.com/portal-middleware v0.2.7
-	go.lumeweb.com/portal-router v0.4.0
+	go.lumeweb.com/portal-router v0.4.1
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
@@ -110,7 +110,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.lumeweb.com/gswagger v0.20.0 // indirect
+	go.lumeweb.com/gswagger v0.20.2 // indirect
 	go.lumeweb.com/queryutil v0.3.2 // indirect
 	go.sia.tech/jape v0.12.1 // indirect
 	golang.org/x/sync v0.14.0 // indirect
