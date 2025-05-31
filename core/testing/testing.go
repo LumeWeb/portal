@@ -141,6 +141,7 @@ type TestContext interface {
 	RegisterService(id string, service interface{}) // Register a mock service
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
+	Router() router.Router
 }
 
 // ResetAllState resets all global state in the core package and testing package
@@ -882,11 +883,13 @@ func ConfigureAPIs(ctx TestContext) error {
 	return nil
 }
 
-func ConfigureAPIRoutes(ctx TestContext, gRouter router.Router) error {
+func ConfigureAPIRoutes(ctx TestContext) error {
 	accessSvc := core.GetService[core.AccessService](ctx, core.ACCESS_SERVICE)
 	if accessSvc == nil {
 		return fmt.Errorf("AccessService not found in context, cannot configure API routes")
 	}
+
+	gRouter := ctx.Router()
 
 	for _, api := range core.GetAPIs() {
 		subdomain := api.Subdomain()
@@ -928,7 +931,7 @@ func ConfigureAPIRoutes(ctx TestContext, gRouter router.Router) error {
 	return nil
 }
 
-func BootEnvironment(ctx TestContext, gRouter router.Router) error {
+func BootEnvironment(ctx TestContext) error {
 	// InitContext now includes processing default and provided options, and running startup funcs
 	err := InitContext(ctx)
 	if err != nil {
@@ -952,7 +955,7 @@ func BootEnvironment(ctx TestContext, gRouter router.Router) error {
 		return err
 	}
 
-	err = ConfigureAPIRoutes(ctx, gRouter)
+	err = ConfigureAPIRoutes(ctx)
 	if err != nil {
 		return err
 	}
