@@ -334,6 +334,16 @@ func ServiceExists(ctx Context, id string) bool {
 	return true
 }
 
+// GetMockConfig returns the mock config manager from the context for testing
+// Panics if the config manager is not a mock
+func GetMockConfig(ctx Context) *coreTesting.MockConfigManager {
+	mockConfig, ok := ctx.Config().(*coreTesting.MockConfigManager)
+	if !ok {
+		panic("config manager is not a mock - use coreTesting.NewMockContext() for testing")
+	}
+	return mockConfig
+}
+
 // ResetState resets all global state in the core package for testing purposes
 func ResetState() {
 	// Reset protocols
