@@ -232,8 +232,8 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 		cleanupFuncs: []func(){},
 	}
 
-	// Apply options
-	finalCtx, err := ProcessCtxOptions(testCtx, opts...)
+	// Apply default options first, then any custom options
+	finalCtx, err := ProcessCtxOptions(testCtx, append(DefaultTestContextOptions(tb), opts...)...)
 	if err != nil {
 		return nil
 	}
@@ -535,6 +535,22 @@ func WrapCoreOptions(opts []core.ContextBuilderOption) []TestContextBuilderOptio
 	return wrapped
 }
 
+// WithMockAccessService adds a mock access service to the test context
+func WithMockAccessService(tb TB) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		mockAccessService := NewMockAccessService(tb)
+		ctx.RegisterService(core.ACCESS_SERVICE, mockAccessService)
+		return ctx, nil
+	}
+}
+
+// DefaultTestContextOptions returns the default options used for new test contexts
+func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
+	return []TestContextBuilderOption{
+		WithMockAccessService(tb),
+	}
+}
+
 // GetMockConfig returns the mock config manager from the context for testing
 // Panics if the config manager is not a mock
 func GetMockConfig(ctx core.Context) *MockConfigManager {
@@ -543,6 +559,20 @@ func GetMockConfig(ctx core.Context) *MockConfigManager {
 		panic("config manager is not a mock - use NewMockContext() for testing")
 	}
 	return mockConfig
+}
+
+// GetMockAccessService returns the mock access service from the context for testing
+// Panics if the access service is not a mock
+func GetMockAccessService(ctx core.Context) *MockAccessService {
+	accessSvc := ctx.Service(core.ACCESS_SERVICE)
+	if accessSvc == nil {
+		panic("access service not found in context")
+	}
+	mockAccess, ok := accessSvc.(*MockAccessService)
+	if !ok {
+		panic("access service is not a mock - use NewTestContext() for testing")
+	}
+	return mockAccess
 }
 
 // RegisterAPI registers an API and wraps any returned context options for test context
