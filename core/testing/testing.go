@@ -479,14 +479,14 @@ func ProcessExitFuncs(ctx TestContext) error {
 
 // InitContext fully initializes a TestContext by:
 // 1. Processing all ContextBuilderOptions (both from parameters and global test options)
-// 2. Running all startup functions  
+// 2. Running all startup functions
 // 3. Registering all exit functions
 // Returns the first error encountered at any step.
 // This provides a complete initialization sequence for testing scenarios.
 func InitContext(ctx TestContext, opts ...TestContextBuilderOption) error {
 	// Combine provided options with any globally registered test options
 	allOpts := append(opts, GetTestContextOptions()...)
-	
+
 	// Process all context options
 	var err error
 	ctx, err = ProcessCtxOptions(ctx, allOpts...)
@@ -501,7 +501,7 @@ func InitContext(ctx TestContext, opts ...TestContextBuilderOption) error {
 	}
 
 	// Process exit functions
-	err = ProcessExitFuncs(ctx) 
+	err = ProcessExitFuncs(ctx)
 	if err != nil {
 		return err
 	}
@@ -560,16 +560,16 @@ func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts [
 }
 
 // RegisterEvents is a testing helper that registers events and stores them in the context
-func RegisterEvents(ctx TestContext, events ...core.Event) []TestContextBuilderOption {
+func RegisterEvents(ctx TestContext, events ...core.Eventer) []TestContextBuilderOption {
 	// Register each event
 	for _, e := range events {
 		core.RegisterEvent(e.Name(), e)
 	}
 
-	// Wrap the events in context options
-	return WrapCoreOptions(
+	// Wrap the events in context options using testing package's WrapCoreOptions
+	return WrapCoreOptions([]core.ContextBuilderOption{
 		core.ContextWithEvents(events...),
-	)
+	})
 }
 
 func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (ctxOpts []TestContextBuilderOption, err error) {
