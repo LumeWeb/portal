@@ -224,6 +224,64 @@ func (_c *MockPortalMetaBuilder_Build_Call) RunAndReturn(run func() *core.Portal
 	return _c
 }
 
+// Plugin provides a mock function with given fields: pluginID
+func (_m *MockPortalMetaBuilder) Plugin(pluginID string) (core.PluginMetaBuilder, error) {
+	ret := _m.Called(pluginID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Plugin")
+	}
+
+	var r0 core.PluginMetaBuilder
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (core.PluginMetaBuilder, error)); ok {
+		return rf(pluginID)
+	}
+	if rf, ok := ret.Get(0).(func(string) core.PluginMetaBuilder); ok {
+		r0 = rf(pluginID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.PluginMetaBuilder)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(pluginID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockPortalMetaBuilder_Plugin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Plugin'
+type MockPortalMetaBuilder_Plugin_Call struct {
+	*mock.Call
+}
+
+// Plugin is a helper method to define mock.On call
+//   - pluginID string
+func (_e *MockPortalMetaBuilder_Expecter) Plugin(pluginID interface{}) *MockPortalMetaBuilder_Plugin_Call {
+	return &MockPortalMetaBuilder_Plugin_Call{Call: _e.mock.On("Plugin", pluginID)}
+}
+
+func (_c *MockPortalMetaBuilder_Plugin_Call) Run(run func(pluginID string)) *MockPortalMetaBuilder_Plugin_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockPortalMetaBuilder_Plugin_Call) Return(_a0 core.PluginMetaBuilder, _a1 error) *MockPortalMetaBuilder_Plugin_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockPortalMetaBuilder_Plugin_Call) RunAndReturn(run func(string) (core.PluginMetaBuilder, error)) *MockPortalMetaBuilder_Plugin_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockPortalMetaBuilder creates a new instance of MockPortalMetaBuilder. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockPortalMetaBuilder(t interface {
