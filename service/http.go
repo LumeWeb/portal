@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/invopop/jsonschema"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
@@ -10,6 +11,7 @@ import (
 	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/swagger"
 	"go.lumeweb.com/portal/build"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -38,6 +40,19 @@ var (
 	pluginIDRegex   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
 	httpGlobalPaths = []string{"/api/meta", "/swagger"}
 )
+
+func jsonSchemaMapper(_ reflect.Type) *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Type:                 "object",
+		Title:                "JSON Data",
+		Description:          "Arbitrary JSON data",
+		AdditionalProperties: &jsonschema.Schema{},
+	}
+}
+
+var defaultSchemaMappers = map[string]func(reflect.Type) *jsonschema.Schema{
+	"JSON": jsonSchemaMapper,
+}
 
 var _ core.HTTPService = (*HTTPServiceDefault)(nil)
 
@@ -73,7 +88,9 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 
 			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version), func(c *router.RouterConfig) {
 				c.Options.CustomServeHTTPHandler = _http
-			})
+			}, router.WithReflectorOptions(&jsonschema.Reflector{
+				Mapper: _http.mapSchemaType,
+			}))
 			if err != nil {
 				return err
 			}
@@ -512,7 +529,6 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
 	// This should not happen if the router is properly configured
 	h.logger.Error("Target router does not implement http.Handler", zap.String("host", host))
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -532,6 +548,27 @@ func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
 	}
 
 	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), h.ctx.Config().Config().Core.Domain)
+}
+
+func (h *HTTPServiceDefault) mapSchemaType(typ reflect.Type) *jsonschema.Schema {
+	// First try our default mappers
+	if mapper, exists := defaultSchemaMappers[typ.Name()]; exists {
+		return mapper(typ)
+	}
+
+	// Then check APIs that implement APISchemer
+	for _, api := range core.GetAPIs() {
+		if schemer, ok := api.(core.APISchemer); ok {
+			if schema := schemer.GetSchemaType()(typ); schema != nil {
+				return schema
+			}
+		}
+	}
+
+	h.logger.Error("No schema mapper found for type",
+		zap.String("type", typ.Name()))
+
+	return nil
 }
 
 // Helper function to check if plugin targets specified app (or is universal)

@@ -2,9 +2,11 @@ package core
 
 import (
 	"fmt"
+	"github.com/invopop/jsonschema"
 	"go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"net/http"
+	"reflect"
 	"sort"
 	"sync"
 )
@@ -13,6 +15,7 @@ var (
 	apis   = make(map[string]API)
 	apisMu sync.RWMutex
 )
+
 
 type API interface {
 	Name() string
@@ -25,6 +28,10 @@ type API interface {
 
 type APIInit interface {
 	Init() ([]ContextBuilderOption, error)
+}
+
+type APISchemer interface {
+	GetSchemaType() func(reflect.Type) *jsonschema.Schema
 }
 
 type RoutableAPI interface {
