@@ -78,6 +78,19 @@ func NewMockConfigManager(t *testing.T) *MockConfigManager {
 		Maybe().
 		Return([]string{})
 
+	// Setup default expectations for configuration methods
+	mockManager.On("ConfigureAPI", mock.AnythingOfType("string"), mock.Anything).
+		Maybe().
+		Return(nil)
+
+	mockManager.On("ConfigureProtocol", mock.AnythingOfType("string"), mock.Anything).
+		Maybe().
+		Return(nil)
+
+	mockManager.On("ConfigureService", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.Anything).
+		Maybe().
+		Return(nil)
+
 	return manager
 }
 
@@ -210,24 +223,65 @@ func (m *MockConfigManager) FieldProcessor(obj any, prefix string, processors ..
 // ConfigureProtocol implements config.Manager
 func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.ProtocolConfig) error {
 	if m.MockManager != nil {
-		return m.MockManager.ConfigureProtocol(pluginName, cfg)
+		m.MockManager.ConfigureProtocol(pluginName, cfg)
 	}
+	
+	// Update the config struct
+	if m.cfg.Plugin == nil {
+		m.cfg.Plugin = make(map[string]config.PluginEntity)
+	}
+	if _, exists := m.cfg.Plugin[pluginName]; !exists {
+		m.cfg.Plugin[pluginName] = config.PluginEntity{}
+	}
+	entity := m.cfg.Plugin[pluginName]
+	entity.Protocol = cfg
+	m.cfg.Plugin[pluginName] = entity
+	
 	return nil
 }
 
 // ConfigureAPI implements config.Manager
 func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig) error {
 	if m.MockManager != nil {
-		return m.MockManager.ConfigureAPI(pluginName, cfg)
+		m.MockManager.ConfigureAPI(pluginName, cfg)
 	}
+	
+	// Update the config struct
+	if m.cfg.Plugin == nil {
+		m.cfg.Plugin = make(map[string]config.PluginEntity)
+	}
+	if _, exists := m.cfg.Plugin[pluginName]; !exists {
+		m.cfg.Plugin[pluginName] = config.PluginEntity{}
+	}
+	entity := m.cfg.Plugin[pluginName]
+	entity.API = cfg
+	m.cfg.Plugin[pluginName] = entity
+	
 	return nil
 }
 
 // ConfigureService implements config.Manager
 func (m *MockConfigManager) ConfigureService(pluginName string, serviceName string, cfg config.ServiceConfig) error {
 	if m.MockManager != nil {
-		return m.MockManager.ConfigureService(pluginName, serviceName, cfg)
+		m.MockManager.ConfigureService(pluginName, serviceName, cfg)
 	}
+	
+	// Update the config struct
+	if m.cfg.Plugin == nil {
+		m.cfg.Plugin = make(map[string]config.PluginEntity)
+	}
+	if _, exists := m.cfg.Plugin[pluginName]; !exists {
+		m.cfg.Plugin[pluginName] = config.PluginEntity{
+			Service: make(map[string]config.ServiceConfig),
+		}
+	}
+	entity := m.cfg.Plugin[pluginName]
+	if entity.Service == nil {
+		entity.Service = make(map[string]config.ServiceConfig)
+	}
+	entity.Service[serviceName] = cfg
+	m.cfg.Plugin[pluginName] = entity
+	
 	return nil
 }
 
