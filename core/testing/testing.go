@@ -568,7 +568,7 @@ func RegisterEvents(ctx TestContext, events ...core.Eventer) []TestContextBuilde
 
 	// Wrap the events in context options using testing package's WrapCoreOptions
 	return WrapCoreOptions([]core.ContextBuilderOption{
-		core.ContextWithEvents(events...),
+		core.ContextWithEvents(core.GetEvents()...),
 	})
 }
 
