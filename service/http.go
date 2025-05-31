@@ -565,9 +565,6 @@ func (h *HTTPServiceDefault) mapSchemaType(typ reflect.Type) *jsonschema.Schema 
 		}
 	}
 
-	h.logger.Error("No schema mapper found for type",
-		zap.String("type", typ.Name()))
-
 	return nil
 }
 
