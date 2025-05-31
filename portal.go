@@ -378,18 +378,6 @@ func (p *PortalImpl) initEvents() error {
 	return nil
 }
 
-// RegisterEvents is a testing helper that registers events and stores them in the context
-func RegisterEvents(ctx core.Context, events ...core.Event) []core.ContextBuilderOption {
-	// Register each event
-	for _, e := range events {
-		core.RegisterEvent(e.Name(), e)
-	}
-
-	// Wrap the events in context options
-	return core.WrapCoreOptions(
-		core.ContextWithEvents(events...),
-	)
-}
 
 func (p *PortalImpl) configureProtocols(ctx core.Context) error {
 	for name, _proto := range core.GetProtocols() {
