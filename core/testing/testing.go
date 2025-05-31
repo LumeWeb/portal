@@ -559,6 +559,19 @@ func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts [
 	return WrapCoreOptions(opts), nil
 }
 
+// RegisterEvents is a testing helper that registers events and stores them in the context
+func RegisterEvents(ctx TestContext, events ...core.Event) []TestContextBuilderOption {
+	// Register each event
+	for _, e := range events {
+		core.RegisterEvent(e.Name(), e)
+	}
+
+	// Wrap the events in context options
+	return WrapCoreOptions(
+		core.ContextWithEvents(events...),
+	)
+}
+
 func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (ctxOpts []TestContextBuilderOption, err error) {
 	extensions, err := factory(ctx)
 	if err != nil {
