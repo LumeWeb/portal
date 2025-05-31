@@ -189,9 +189,9 @@ var (
 )
 
 type AccountError struct {
-	Key     AccountErrorType // A unique identifier for the error type
-	Message string           // Human-readable error message
-	Err     error            // Underlying error, if any
+	Key     AccountErrorType `json:"error"`   // A unique identifier for the error type
+	Message string           `json:"message"` // Human-readable error message
+	Err     error            `json:"-"`       // Underlying error, if any
 }
 
 func (e *AccountError) Error() string {
