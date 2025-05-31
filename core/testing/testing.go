@@ -3,6 +3,7 @@ package testing
 
 import (
 	"context"
+	"fmt"
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -105,7 +106,7 @@ func (m *mockTB) Skipped() bool {
 // TestContext extends core.Context with testing-specific methods
 type TestContext interface {
 	core.Context
-	T() TB                                        // Access to the testing.TB instance (works with both *testing.T and *testing.B)
+	T() TB                                          // Access to the testing.TB instance (works with both *testing.T and *testing.B)
 	RegisterService(id string, service interface{}) // Register a mock service
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
@@ -149,13 +150,13 @@ func NewTestContext(tb TB, opts ...TestContextOption) TestContext {
 
 	// Create a mock config manager
 	var mockConfig *MockConfigManager
-	
+
 	// Handle different types of test runners
 	if t, ok := tb.(*testing.T); ok {
 		// If it's a *testing.T, use it directly
 		mockConfig = NewMockConfigManager(t)
 	} else {
-		// For benchmarks or other test types, create a simple wrapper around the MockConfigManager 
+		// For benchmarks or other test types, create a simple wrapper around the MockConfigManager
 		// that doesn't depend on expectations being verified
 		mockConfig = &MockConfigManager{
 			values: make(map[string]interface{}),
@@ -173,7 +174,7 @@ func NewTestContext(tb TB, opts ...TestContextOption) TestContext {
 		// Fallback for other TB implementations
 		zapLogger = zap.NewNop()
 	}
-	
+
 	logger := core.NewLogger(mockConfig)
 	// Replace the underlying zap logger
 	logger.Logger = zapLogger
@@ -382,4 +383,87 @@ func (c *testContext) Err() error {
 // Value implements the Context interface
 func (c *testContext) Value(key interface{}) interface{} {
 	return c.Context.Value(key)
+}
+
+// ProcessCtxOptions applies a series of ContextBuilderOptions to a TestContext.
+// It returns the modified context and any error encountered during processing.
+// Each option is applied in sequence, with the result of one becoming the input to the next.
+func ProcessCtxOptions(ctx TestContext, options ...core.ContextBuilderOption) (TestContext, error) {
+	newCtx := ctx
+
+	for _, opt := range options {
+		returnCtx, err := opt(newCtx)
+		if err != nil {
+			return newCtx, err
+		}
+		// Type assert back to *defaultContext if needed
+		if dc, ok := returnCtx.(TestContext); ok {
+			newCtx = dc
+		} else {
+			return newCtx, fmt.Errorf("context type changed unexpectedly")
+		}
+	}
+
+	return newCtx, nil
+}
+
+// ProcessStartupFuncs executes all registered startup functions in the TestContext.
+// Returns the first error encountered, if any. Functions are executed in the order they were registered.
+// This is typically called during test initialization to simulate the portal's startup sequence.
+func ProcessStartupFuncs(ctx TestContext) error {
+	newCtx := ctx
+
+	var err error
+
+	for _, fn := range ctx.StartupFuncs() {
+		err = fn(newCtx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ProcessExitFuncs executes all registered exit functions in the TestContext.
+// Unlike ProcessStartupFuncs, it continues executing remaining functions even if one fails.
+// Errors are logged but don't stop execution. This is typically called during test cleanup.
+func ProcessExitFuncs(ctx TestContext) error {
+	newCtx := ctx
+
+	var err error
+
+	for _, fn := range ctx.ExitFuncs() {
+		err = fn(newCtx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// InitContext fully initializes a TestContext by:
+// 1. Processing all ContextBuilderOptions
+// 2. Running all startup functions
+// 3. Registering all exit functions
+// Returns the first error encountered at any step.
+// This provides a complete initialization sequence for testing scenarios.
+func InitContext(ctx TestContext) error {
+	ctx, err := ProcessCtxOptions(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = ProcessStartupFuncs(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = ProcessExitFuncs(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
