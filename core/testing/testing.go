@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gookit/event"
+	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -657,7 +658,46 @@ func ConfigureAPIs(ctx TestContext) error {
 	return nil
 }
 
-func BootEnvironment(ctx TestContext) error {
+func ConfigureAPIRoutes(ctx TestContext, gRouter router.Router) error {
+	accessSvc := core.GetService[core.AccessService](ctx, core.ACCESS_SERVICE)
+
+	for _, api := range core.GetAPIs() {
+		subdomain := api.Subdomain()
+		domain := fmt.Sprintf("%s.%s", api.Subdomain(), ctx.Config().Config().Core.Domain)
+
+		if subdomain == "" {
+			domain = ctx.Config().Config().Core.Domain
+		}
+
+		// Create a subrouter for this API's domain
+		hostRouter, err := gRouter.Host(domain)
+		if err != nil {
+			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
+		}
+
+		// Configure the main API using the gswagger router
+		err = api.Configure(hostRouter, accessSvc)
+		if err != nil {
+			return err
+		}
+
+		// Apply any registered extensions using the *same* gswagger router
+		for _, ext := range core.GetAPIExtensions(api.Name()) {
+			ctx.Logger().Info("Applying API extension",
+				zap.String("api", api.Name()),
+				zap.String("extension", fmt.Sprintf("%T", ext)))
+
+			// The APIExtension.Configure method signature needs to change
+			if err = ext.Configure(hostRouter, accessSvc); err != nil {
+				return fmt.Errorf("failed to configure API extension: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func BootEnvironment(ctx TestContext, gRouter router.Router) error {
 	err := InitContext(ctx)
 	if err != nil {
 		return err
@@ -669,6 +709,11 @@ func BootEnvironment(ctx TestContext) error {
 	}
 
 	err = ConfigureAPIs(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = ConfigureAPIRoutes(ctx, gRouter)
 	if err != nil {
 		return err
 	}
