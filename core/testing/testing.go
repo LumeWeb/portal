@@ -605,7 +605,7 @@ func WithMockCronService(tb TB) TestContextBuilderOption {
 // WithMockHTTPService adds a mock HTTPService to the test context.
 func WithMockHTTPService(tb TB) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		mockHTTPService := NewMockHTTPService(tb)
+		mockHTTPService := NewMockHTTPService(tb).WithRouter(ctx.Router())
 		ctx.RegisterService(core.HTTP_SERVICE, mockHTTPService)
 		return ctx, nil
 	}
