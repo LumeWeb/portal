@@ -533,6 +533,16 @@ func WrapCoreOptions(opts []core.ContextBuilderOption) []TestContextBuilderOptio
 	return wrapped
 }
 
+// GetMockConfig returns the mock config manager from the context for testing
+// Panics if the config manager is not a mock
+func GetMockConfig(ctx core.Context) *MockConfigManager {
+	mockConfig, ok := ctx.Config().(*MockConfigManager)
+	if !ok {
+		panic("config manager is not a mock - use NewMockContext() for testing")
+	}
+	return mockConfig
+}
+
 // RegisterAPI registers an API and wraps any returned context options for test context
 func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts []TestContextBuilderOption, err error) {
 	api, opts, err := factory()
