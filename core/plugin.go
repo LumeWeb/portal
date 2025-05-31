@@ -12,22 +12,29 @@ import (
 
 type PluginFactory func() PluginInfo
 
-type CronFactory func(Context) (Cronable, error)
 type MailerTemplates map[string]MailerTemplate
+
+type CronFactory func(Context) (Cronable, error)
+type MetaFactory func(Context, PortalMetaBuilder) error
+type APIFactory func() (API, []ContextBuilderOption, error)
+type ProtocolFactory func() (Protocol, []ContextBuilderOption, error)
+type ServicesFactory func() ([]ServiceInfo, error)
+type APIExtensionsFactory func(Context) ([]APIExtensionFactory, error)
+type CronFactoryFactory func() CronFactory
 
 type PluginInfo struct {
 	ID              string
 	Version         build.BuildInfo
-	Meta            func(Context, PortalMetaBuilder) error
-	API             func() (API, []ContextBuilderOption, error)
-	Protocol        func() (Protocol, []ContextBuilderOption, error)
-	Services        func() ([]ServiceInfo, error)
-	APIExtensions   func(Context) ([]APIExtensionFactory, error)
+	Meta            MetaFactory
+	API             APIFactory
+	Protocol        ProtocolFactory
+	Services        ServicesFactory
+	APIExtensions   APIExtensionsFactory
 	Models          []any
 	Migrations      DBMigration
 	Events          []Eventer
 	Depends         []string
-	Cron            func() CronFactory
+	Cron            CronFactoryFactory
 	MailerTemplates MailerTemplates
 	WebBundles      []*WebBundle
 	TargetApps      []string
@@ -57,7 +64,7 @@ func RegisterPlugin(info PluginInfo) {
 		panic("plugin ID must not be empty")
 	}
 
-	hasComponent := info.API != nil || info.Protocol != nil || info.Services != nil || 
+	hasComponent := info.API != nil || info.Protocol != nil || info.Services != nil ||
 		info.APIExtensions != nil || len(info.WebBundles) > 0
 	if !hasComponent {
 		panic("plugin must have at least one of API, Protocol, Service, APIExtension, or WebBundle")

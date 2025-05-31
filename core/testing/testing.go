@@ -10,9 +10,38 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
+	"sync"
 	"testing"
 	"time"
 )
+
+var (
+	testCtxOpts   []TestContextBuilderOption
+	testCtxOptsMu sync.RWMutex
+)
+
+// AddTestContextOptions adds one or more TestContextOptions to the global testing options collection
+func AddTestContextOptions(opts ...TestContextBuilderOption) {
+	testCtxOptsMu.Lock()
+	defer testCtxOptsMu.Unlock()
+	testCtxOpts = append(testCtxOpts, opts...)
+}
+
+// GetTestContextOptions returns a copy of all registered TestContextOptions
+func GetTestContextOptions() []TestContextBuilderOption {
+	testCtxOptsMu.RLock()
+	defer testCtxOptsMu.RUnlock()
+	opts := make([]TestContextBuilderOption, len(testCtxOpts))
+	copy(opts, testCtxOpts)
+	return opts
+}
+
+// ClearTestContextOptions resets the test context options collection
+func ClearTestContextOptions() {
+	testCtxOptsMu.Lock()
+	defer testCtxOptsMu.Unlock()
+	testCtxOpts = nil
+}
 
 // TB is an interface that both *testing.T and *testing.B satisfy
 type TB interface {
@@ -112,13 +141,14 @@ type TestContext interface {
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
 }
 
-// ResetAllState resets all global state in the core package
+// ResetAllState resets all global state in the core package and testing package
 func ResetAllState() {
 	core.ResetState()
+	ClearTestContextOptions()
 }
 
-// TestContextOption configures a test context
-type TestContextOption func(*testContext)
+// TestContextBuilderOption configures a test context
+type TestContextBuilderOption func(context TestContext) (TestContext, error)
 
 // defaultContext is a copy of core.defaultContext for testing
 type defaultContext struct {
@@ -145,7 +175,7 @@ type testContext struct {
 var _ TestContext = (*testContext)(nil)
 
 // NewTestContext creates a new Context suitable for testing with either *testing.T or *testing.B
-func NewTestContext(tb TB, opts ...TestContextOption) TestContext {
+func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 	tb.Helper()
 
 	// Create a mock config manager
@@ -242,32 +272,36 @@ func (c *testContext) Teardown() {
 }
 
 // WithMockService adds a mock service to the test context
-func WithMockService(id string, service core.Service) TestContextOption {
-	return func(ctx *testContext) {
-		ctx.services[id] = service
+func WithMockService(id string, service core.Service) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		ctx.(*testContext).services[id] = service
+		return ctx, nil
 	}
 }
 
 // WithMockDB adds a mock database to the test context
-func WithMockDB(db *gorm.DB) TestContextOption {
-	return func(ctx *testContext) {
-		ctx.db = db
+func WithMockDB(db *gorm.DB) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		ctx.(*testContext).db = db
 		ctx.RegisterCleanup(func() {
 			sqlDB, err := db.DB()
 			if err == nil {
 				_ = sqlDB.Close()
 			}
 		})
+
+		return ctx, nil
 	}
 }
 
 // WithConfigValue sets a configuration value
-func WithConfigValue(key string, value interface{}) TestContextOption {
-	return func(ctx *testContext) {
-		if ctx.cfg != nil {
+func WithConfigValue(key string, value interface{}) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		if ctx.(*testContext).cfg != nil {
 			// Use Update method from config.Manager interface
-			_ = ctx.cfg.Update(key, value)
+			_ = ctx.(*testContext).cfg.Update(key, value)
 		}
+		return ctx, nil
 	}
 }
 
@@ -388,7 +422,7 @@ func (c *testContext) Value(key interface{}) interface{} {
 // ProcessCtxOptions applies a series of ContextBuilderOptions to a TestContext.
 // It returns the modified context and any error encountered during processing.
 // Each option is applied in sequence, with the result of one becoming the input to the next.
-func ProcessCtxOptions(ctx TestContext, options ...core.ContextBuilderOption) (TestContext, error) {
+func ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption) (TestContext, error) {
 	newCtx := ctx
 
 	for _, opt := range options {
@@ -444,26 +478,116 @@ func ProcessExitFuncs(ctx TestContext) error {
 }
 
 // InitContext fully initializes a TestContext by:
-// 1. Processing all ContextBuilderOptions
-// 2. Running all startup functions
+// 1. Processing all ContextBuilderOptions (both from parameters and global test options)
+// 2. Running all startup functions  
 // 3. Registering all exit functions
 // Returns the first error encountered at any step.
 // This provides a complete initialization sequence for testing scenarios.
-func InitContext(ctx TestContext) error {
-	ctx, err := ProcessCtxOptions(ctx)
+func InitContext(ctx TestContext, opts ...TestContextBuilderOption) error {
+	// Combine provided options with any globally registered test options
+	allOpts := append(opts, GetTestContextOptions()...)
+	
+	// Process all context options
+	var err error
+	ctx, err = ProcessCtxOptions(ctx, allOpts...)
 	if err != nil {
 		return err
 	}
 
+	// Process startup functions
 	err = ProcessStartupFuncs(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = ProcessExitFuncs(ctx)
+	// Process exit functions
+	err = ProcessExitFuncs(ctx) 
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// WrapCoreOption converts a core.ContextBuilderOption to a TestContextBuilderOption
+func WrapCoreOption(opt core.ContextBuilderOption) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		newCtx, err := opt(tctx)
+		if err != nil {
+			return nil, err
+		}
+		// Ensure we maintain TestContext type
+		if tc, ok := newCtx.(TestContext); ok {
+			return tc, nil
+		}
+		return nil, fmt.Errorf("expected TestContext, got %T", newCtx)
+	}
+}
+
+// WrapCoreOptions converts a slice of core.ContextBuilderOptions to TestContextBuilderOptions
+func WrapCoreOptions(opts []core.ContextBuilderOption) []TestContextBuilderOption {
+	var wrapped []TestContextBuilderOption
+	for _, opt := range opts {
+		wrapped = append(wrapped, WrapCoreOption(opt))
+	}
+	return wrapped
+}
+
+// RegisterAPI registers an API and wraps any returned context options for test context
+func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	api, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building API", zap.String("plugin", id), zap.Error(err))
+		return nil, err
+	}
+
+	if api == nil {
+		ctx.Logger().Error("Error building API", zap.Error(err))
+	}
+
+	core.RegisterAPI(id, api)
+	return WrapCoreOptions(opts), nil
+}
+
+func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	extensions, err := factory(ctx)
+	if err != nil {
+		ctx.Logger().Error("Error building API extensions", zap.Error(err))
+		return nil, err
+	}
+
+	for _, extFactory := range extensions {
+		factory := extFactory
+		apiExtStartup := TestContextBuilderOption(func(tctx TestContext) (TestContext, error) {
+			ext, ctxOptions, err := factory()
+			if err != nil {
+				tctx.Logger().Error("Error building API extensions", zap.String("target", ext.TargetAPI()), zap.Error(err))
+				return nil, err
+			}
+			tctx.Logger().Info("Registering API extension",
+				zap.String("target", ext.TargetAPI()))
+			core.RegisterAPIExtension(ext)
+
+			wrappedOpts := WrapCoreOptions(ctxOptions)
+			return ProcessCtxOptions(tctx, wrappedOpts...)
+		})
+		ctxOpts = append(ctxOpts, apiExtStartup)
+	}
+
+	return ctxOpts, nil
+}
+
+func RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	proto, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building Protocol", zap.String("plugin", id), zap.Error(err))
+		return nil, err
+	}
+
+	if proto == nil {
+		ctx.Logger().Error("Error building Protocol", zap.String("plugin", id), zap.Error(err))
+	}
+
+	core.RegisterProtocol(id, proto)
+	return WrapCoreOptions(opts), nil
 }
