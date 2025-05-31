@@ -696,15 +696,6 @@ func WithMockWorkflowService(tb TB) TestContextBuilderOption {
 	}
 }
 
-// WithService adds a custom service implementation to the test context.
-// This allows registering any service type with a specific ID.
-func WithService(id string, service any) TestContextBuilderOption {
-	return func(ctx TestContext) (TestContext, error) {
-		ctx.RegisterService(id, service)
-		return ctx, nil
-	}
-}
-
 // --- Default Test Context Options ---
 
 // DefaultTestContextOptions returns the default options used for new test contexts.
@@ -804,7 +795,7 @@ func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (c
 			tctx.Logger().Info("Registering API extension",
 				zap.String("api", ext.TargetAPI()),
 				zap.String("extension", fmt.Sprintf("%T", ext)))
-			
+
 			core.RegisterAPIExtension(ext)
 
 			wrappedOpts := WrapCoreOptions(ctxOptions)
