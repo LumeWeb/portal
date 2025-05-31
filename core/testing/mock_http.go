@@ -1,11 +1,9 @@
 package testing
 
 import (
-	"github.com/stretchr/testify/mock"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
-	"testing"
 )
 
 // MockHTTPService implements core.HTTPService for testing with default Router expectations
@@ -15,7 +13,7 @@ type MockHTTPService struct {
 }
 
 // NewMockHTTPService creates a new mock HTTP service with default Router expectations
-func NewMockHTTPService(t mock.TestingT) *MockHTTPService {
+func NewMockHTTPService(t TB) *MockHTTPService {
 	mockHTTPService := mocks.NewMockHTTPService(t)
 	httpService := &MockHTTPService{
 		MockHTTPService: mockHTTPService,
