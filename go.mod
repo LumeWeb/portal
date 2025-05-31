@@ -25,6 +25,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.2.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/event v1.1.2
+	github.com/invopop/jsonschema v0.13.0
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/labstack/echo/v4 v4.13.4
@@ -40,7 +41,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.19
 	go.lumeweb.com/httputil v0.5.1
 	go.lumeweb.com/portal-middleware v0.2.7
-	go.lumeweb.com/portal-router v0.4.5
+	go.lumeweb.com/portal-router v0.5.0
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
@@ -76,7 +77,6 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/pprof v0.0.0-20241017200806-017d972448fc // indirect
-	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.2 // indirect
