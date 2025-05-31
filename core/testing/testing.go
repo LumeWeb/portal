@@ -232,11 +232,12 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 	}
 
 	// Apply options
-	for _, opt := range opts {
-		opt(testCtx)
+	finalCtx, err := ProcessCtxOptions(testCtx, opts...)
+	if err != nil {
+		return nil
 	}
 
-	return testCtx
+	return finalCtx
 }
 
 // RegisterService adds a service to the context after creation
@@ -613,4 +614,64 @@ func RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory) 
 
 	core.RegisterProtocol(id, proto)
 	return WrapCoreOptions(opts), nil
+}
+
+func ConfigureProtocols(ctx TestContext) error {
+	for name, _proto := range core.GetProtocols() {
+		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
+			return err
+		}
+
+		if initProto, ok := _proto.(core.ProtocolInit); ok {
+			if err := initProto.Init(ctx); err != nil {
+				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func ConfigureAPIs(ctx TestContext) error {
+	for name, api := range core.GetAPIs() {
+		err := ctx.Config().ConfigureAPI(name, api.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
+			return err
+		}
+
+		if initApi, ok := api.(core.APIInit); ok {
+			opts, err := initApi.Init()
+			if err != nil {
+				ctx.Logger().Error("Error initializing api", zap.String("api", api.Name()), zap.Error(err))
+				return err
+			}
+
+			AddTestContextOptions(WrapCoreOptions(opts)...)
+		}
+	}
+
+	return nil
+}
+
+func BootEnvironment(ctx TestContext) error {
+	err := InitContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = ConfigureProtocols(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = ConfigureAPIs(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
