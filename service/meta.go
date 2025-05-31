@@ -62,6 +62,20 @@ func (b *portalMetaBuilder) AddPlugin(pluginID string) (core.PluginMetaBuilder, 
 	}, nil
 }
 
+// Plugin returns the PluginMetaBuilder for a registered plugin.
+func (b *portalMetaBuilder) Plugin(pluginID string) (core.PluginMetaBuilder, error) {
+	pluginMeta, exists := b.meta.Plugins[pluginID]
+	if !exists {
+		return nil, fmt.Errorf("plugin %s not found in meta", pluginID)
+	}
+	
+	return &pluginMetaBuilder{
+		meta:       b.meta,
+		pluginID:   pluginID,
+		pluginMeta: pluginMeta,
+	}, nil
+}
+
 func (b *portalMetaBuilder) Build() *core.PortalMeta {
 	return b.meta
 }
