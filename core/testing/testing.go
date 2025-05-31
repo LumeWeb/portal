@@ -164,6 +164,7 @@ type defaultContext struct {
 	db           *gorm.DB
 	cancel       context.CancelFunc
 	event        *event.Manager
+	router       router.Router
 }
 
 // testContext extends the default context for testing
@@ -282,6 +283,14 @@ func (c *testContext) Teardown() {
 func WithMockService(id string, service core.Service) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		ctx.RegisterService(id, service)
+		return ctx, nil
+	}
+}
+
+// WithRouter adds a router to the test context
+func WithRouter(r router.Router) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		ctx.(*testContext).router = r
 		return ctx, nil
 	}
 }
@@ -424,6 +433,10 @@ func (c *testContext) Err() error {
 // Value implements the Context interface
 func (c *testContext) Value(key interface{}) interface{} {
 	return c.Context.Value(key)
+}
+
+func (c *testContext) Router() router.Router {
+	return c.router
 }
 
 // ProcessCtxOptions applies a series of ContextBuilderOptions to a TestContext.
@@ -591,7 +604,7 @@ func WithMockCronService(tb TB) TestContextBuilderOption {
 // WithMockHTTPService adds a mock HTTPService to the test context.
 func WithMockHTTPService(tb TB) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		mockHTTPService := mocks.NewMockHTTPService(tb)
+		mockHTTPService := NewMockHTTPService(tb)
 		ctx.RegisterService(core.HTTP_SERVICE, mockHTTPService)
 		return ctx, nil
 	}
@@ -701,8 +714,14 @@ func WithMockWorkflowService(tb TB) TestContextBuilderOption {
 // DefaultTestContextOptions returns the default options used for new test contexts.
 // These options include mock implementations of common core services.
 func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
+	_router, err := router.NewRouter(router.APIInfo().Title("Test API").Version("1.0.0"))
+	if err != nil {
+		panic(fmt.Sprintf("failed to create test router: %v", err))
+	}
+
 	return []TestContextBuilderOption{
 		WithMockAccessService(tb),
+		WithRouter(_router),
 		WithMockAuthService(tb),
 		WithMockConfigService(tb),
 		WithMockContentScannerService(tb),
