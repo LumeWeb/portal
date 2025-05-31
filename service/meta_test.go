@@ -49,6 +49,28 @@ func TestPortalMetaBuilder(t *testing.T) {
 		_, err = builder.AddPlugin("test_plugin")
 		assert.Error(t, err)
 	})
+
+	t.Run("GetExistingPlugin", func(t *testing.T) {
+		builder := NewPortalMetaBuilder("example.com")
+		_, err := builder.AddPlugin("test_plugin")
+		assert.NoError(t, err)
+
+		pluginBuilder, err := builder.Plugin("test_plugin")
+		assert.NoError(t, err)
+		assert.NotNil(t, pluginBuilder)
+
+		// Verify we can add meta to the retrieved builder
+		pluginBuilder.AddMeta("key", "value")
+		meta := builder.Build()
+		assert.Equal(t, "value", meta.Plugins["test_plugin"].Meta["key"])
+	})
+
+	t.Run("GetNonExistentPlugin", func(t *testing.T) {
+		builder := NewPortalMetaBuilder("example.com")
+		_, err := builder.Plugin("nonexistent")
+		assert.Error(t, err)
+		assert.Equal(t, "plugin nonexistent not found in meta", err.Error())
+	})
 }
 
 func TestPluginMetaBuilder(t *testing.T) {

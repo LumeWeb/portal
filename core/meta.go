@@ -34,6 +34,11 @@ type PortalMetaBuilder interface {
 
 	// Plugin management
 	AddPlugin(pluginID string) (PluginMetaBuilder, error)
+
+	// Plugin returns the PluginMetaBuilder for a registered plugin.
+	// It should be used by plugins to add their specific metadata.
+	Plugin(pluginID string) (PluginMetaBuilder, error)
+
 	Build() *PortalMeta
 }
 
