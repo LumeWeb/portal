@@ -5,16 +5,20 @@ import (
 	"context"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/gookit/event"
+	gevent "github.com/gookit/event"
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/core/testing/db"
+	testingDb "go.lumeweb.com/portal/core/testing/db"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	"go.lumeweb.com/portal/event"
+	"go.sia.tech/coreutils/wallet"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -27,6 +31,7 @@ var (
 	runDBMigrationsMu sync.RWMutex
 	setupMockDB       = false
 	setupMockDBMu     sync.RWMutex
+	testContexts      sync.Map // map[*testing.T]TestContext
 )
 
 // TestMainOpts configures test main behavior
@@ -42,11 +47,9 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 	ResetAllState()
 
 	if opts.WithDB {
-		EnableDBMigrations()
+		EnableMockDB()
 		if opts.DBMigrations {
-			runDBMigrationsMu.Lock()
-			runDBMigrations = true
-			runDBMigrationsMu.Unlock()
+			EnableDBMigrations()
 		}
 	}
 
@@ -62,7 +65,10 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 
 	if opts.WithDB {
 		DisableDBMigrations()
+		DisableMockDB()
 	}
+
+	ResetAllState()
 
 	return code
 }
@@ -130,11 +136,18 @@ func AddTestContextOptions(opts ...TestContextBuilderOption) {
 }
 
 // GetTestContextOptions returns a copy of all registered TestContextOptions
-func GetTestContextOptions() []TestContextBuilderOption {
+func GetTestContextOptions(tb TB) []TestContextBuilderOption {
 	testCtxOptsMu.RLock()
 	defer testCtxOptsMu.RUnlock()
-	opts := make([]TestContextBuilderOption, len(testCtxOpts))
-	copy(opts, testCtxOpts)
+
+	// Get defaults first
+	defaultOpts := DefaultTestContextOptions(tb)
+
+	// Combine with user opts, putting user opts last so they take precedence
+	opts := make([]TestContextBuilderOption, 0, len(defaultOpts)+len(testCtxOpts))
+	opts = append(opts, defaultOpts...)
+	opts = append(opts, testCtxOpts...)
+
 	return opts
 }
 
@@ -245,12 +258,121 @@ type TestContext interface {
 	SetDB(*gorm.DB) // Set the database instance
 }
 
+// SetupTest creates and manages the test context for a specific test
+// It does NOT boot the environment. BootEnvironment must be called separately.
+func SetupTest(t TB) TestContext {
+	t.Helper()
+
+	// Check if we already have a context for this test
+	if ctx, ok := testContexts.Load(t); ok {
+		return ctx.(TestContext)
+	}
+
+	// Create new context with current options
+	// Options are NOT processed here, they are added to the global list
+	ctx := NewTestContext(t)
+
+	// Store it
+	testContexts.Store(t, ctx)
+
+	// Automatically clean up when test finishes
+	t.Cleanup(func() {
+		ctx.Teardown()
+		testContexts.Delete(t)
+	})
+
+	return ctx
+}
+
+// SetupTestWithDB creates a test context with database support
+// It does NOT boot the environment. BootEnvironment must be called separately.
+func SetupTestWithDB(t TB) TestContext {
+	t.Helper()
+
+	// Enable DB migrations
+	EnableDBMigrations()
+
+	// Setup test context
+	ctx := SetupTest(t)
+
+	return ctx
+}
+
+// GetTestContext retrieves the context for a test if it exists
+func GetTestContext(t TB) TestContext {
+	t.Helper()
+	if ctx, ok := testContexts.Load(t); ok {
+		return ctx.(TestContext)
+	}
+	t.Fatal("No test context found - did you call SetupTest()?")
+	return nil
+}
+
+// RunTestCase provides a cleaner way to run tests with automatic context setup
+func RunTestCase(t TB, testFunc func(t TB, ctx TestContext), opts ...TestContextBuilderOption) {
+	t.Helper()
+	// Add any provided options to the global collection first
+	if len(opts) > 0 {
+		AddTestContextOptions(opts...)
+	}
+
+	// Get or create the context (without booting the environment yet)
+	ctx := SetupTest(t)
+
+	// Boot the environment *after* the context is stored and before running the test function
+	if err := BootEnvironment(t, ctx); err != nil {
+		t.Fatalf("Failed to boot test environment: %v", err)
+	}
+
+	testFunc(t, ctx)
+
+	// Clean up the added options after test completes
+	if len(opts) > 0 {
+		ClearTestContextOptions()
+	}
+}
+
+// RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
+func RunTestCaseWithDB(t TB, testFunc func(t TB, ctx TestContext), opts ...TestContextBuilderOption) {
+	t.Helper()
+	EnableDBMigrations()
+	defer DisableDBMigrations()
+	// Add any provided options to the global collection first
+	if len(opts) > 0 {
+		AddTestContextOptions(opts...)
+	}
+
+	// Get or create the context (without booting the environment yet)
+	ctx := SetupTestWithDB(t)
+
+	// Boot the environment *after* the context is stored and before running the test function
+	if err := BootEnvironment(t, ctx); err != nil {
+		t.Fatalf("Failed to boot test environment: %v", err)
+	}
+
+	testFunc(t, ctx)
+
+	// Clean up the added options after test completes
+	if len(opts) > 0 {
+		ClearTestContextOptions()
+	}
+}
+
 // ResetAllState resets all global state in the core package and testing package
 func ResetAllState() {
 	core.ResetState()
 	ClearTestContextOptions()
 	DisableDBMigrations()
 	DisableMockDB()
+
+	// Clear all test contexts
+	testContexts.Range(func(key, value interface{}) bool {
+		if ctx, ok := value.(TestContext); ok {
+			ctx.Teardown()
+		}
+		testContexts.Delete(key)
+		return true
+	})
 }
 
 // EnableDBMigrations enables running DB migrations during test context initialization
@@ -309,7 +431,7 @@ type defaultContext struct {
 	startupFuncs []func(core.Context) error
 	db           *gorm.DB
 	cancel       context.CancelFunc
-	event        *event.Manager
+	event        *gevent.Manager
 	router       router.Router
 }
 
@@ -324,6 +446,7 @@ type testContext struct {
 var _ TestContext = (*testContext)(nil)
 
 // NewTestContext creates a new Context suitable for testing with either *testing.T or *testing.B
+// It does NOT process the options immediately. Options are processed during BootEnvironment.
 func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 	tb.Helper()
 
@@ -371,7 +494,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 			services:     make(map[string]any),
 			cfg:          mockConfig,
 			logger:       logger,
-			event:        event.NewManager(""),
+			event:        gevent.NewManager(""),
 			cancel:       cancel,
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
@@ -380,15 +503,9 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 		cleanupFuncs: []func(){},
 	}
 
-	// Apply default options first, then any custom options
-	finalCtx, err := ProcessCtxOptions(testCtx, append(DefaultTestContextOptions(tb), opts...)...)
-	if err != nil {
-		// Log the error and return a context that will cause subsequent test failures
-		testCtx.Logger().Error("Failed to initialize test context", zap.Error(err))
-		return testCtx // Return the partially built context to allow test failures
-	}
+	AddTestContextOptions(opts...)
 
-	return finalCtx
+	return testCtx // Return the context without processing options yet
 }
 
 // RegisterService adds a service to the context after creation
@@ -538,7 +655,7 @@ func (ctx *testContext) ExitCode() int {
 	return ctx.exitCode
 }
 
-func (ctx *testContext) Event() *event.Manager {
+func (ctx *testContext) Event() *gevent.Manager {
 	return ctx.event
 }
 
@@ -585,7 +702,7 @@ func ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption) (Te
 		if err != nil {
 			return newCtx, err
 		}
-		// Type assert back to TestContext
+		// Ensure we maintain TestContext type
 		if tc, ok := returnCtx.(TestContext); ok {
 			newCtx = tc
 		} else {
@@ -640,9 +757,12 @@ func ProcessExitFuncs(ctx TestContext) error {
 // 3. Registering all exit functions
 // Returns the first error encountered at any step.
 // This provides a complete initialization sequence for testing scenarios.
-func InitContext(ctx TestContext, opts ...TestContextBuilderOption) error {
+// NOTE: This function is now primarily used internally by BootEnvironment.
+// For most test cases, use SetupTest or RunTestCase helpers.
+// This function's role is now primarily to process options and run startup funcs.
+func InitContext(tb TB, ctx TestContext, opts ...TestContextBuilderOption) error {
 	// Combine provided options with any globally registered test options
-	allOpts := append(opts, GetTestContextOptions()...)
+	allOpts := append(opts, GetTestContextOptions(tb)...)
 
 	// Process all context options
 	var err error
@@ -656,11 +776,6 @@ func InitContext(ctx TestContext, opts ...TestContextBuilderOption) error {
 	if err != nil {
 		return err
 	}
-
-	// Process exit functions - these are registered during startup, so call them after startup
-	// Note: The original code called ProcessExitFuncs here, which is incorrect as exit funcs are meant for teardown.
-	// I'm removing the call here, assuming teardown is handled by TB.Cleanup or explicit calls.
-	// If you intended to run exit funcs *during* InitContext for some reason, please clarify.
 
 	return nil
 }
@@ -731,6 +846,27 @@ func WithMockContentScannerService(tb TB) TestContextBuilderOption {
 func WithMockCronService(tb TB) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockCronService := mocks.NewMockCronService(tb)
+
+		// Setup default expectations to allow any RegisterEntity calls
+		mockCronService.On("RegisterEntity", mock.MatchedBy(func(arg interface{}) bool {
+			_, ok := arg.(core.Cronable)
+			return ok
+		})).
+			Maybe().
+			Return()
+
+		mockCronService.On("RegisterTask", mock.AnythingOfType("string"),
+			mock.AnythingOfType("core.CronTaskFunction[core.CronTaskArgs]"),
+			mock.AnythingOfType("core.CronTaskDefArgsFactoryFunction"),
+			mock.AnythingOfType("core.CronTaskArgsFactoryFunction"),
+			mock.AnythingOfType("bool")).
+			Maybe().
+			Return()
+
+		mockCronService.On("ScheduleJobs", mock.AnythingOfType("core.CronService")).
+			Maybe().
+			Return(nil)
+
 		ctx.RegisterService(core.CRON_SERVICE, mockCronService)
 		return ctx, nil
 	}
@@ -847,7 +983,7 @@ func WithMockWorkflowService(tb TB) TestContextBuilderOption {
 // --- Default Test Context Options ---
 
 // DefaultTestContextOptions returns the default options used for new test contexts.
-// These options include mock implementations of common core services.
+// These include mock implementations of common core services.
 func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 	_router, err := router.NewRouter(router.APIInfo().Title("Test API").Version("1.0.0"))
 	if err != nil {
@@ -855,6 +991,18 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 	}
 
 	opts := []TestContextBuilderOption{
+		WithDomain("test.local"),
+		WithRandomSeedPhrase(),
+		WithCoreEvents(),
+	}
+
+	// Add DB setup first if enabled
+	if ShouldSetupMockDB() {
+		opts = append(opts, WithSQLite(tb))
+	}
+
+	// Add remaining mock services
+	opts = append(opts,
 		WithMockAccessService(tb),
 		WithRouter(_router),
 		WithMockAuthService(tb),
@@ -873,11 +1021,7 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		WithMockTUSService(tb),
 		WithMockUserService(tb),
 		WithMockWorkflowService(tb),
-	}
-
-	if ShouldSetupMockDB() {
-		opts = append(opts, WithInMemorySQLite())
-	}
+	)
 
 	return opts
 }
@@ -906,6 +1050,30 @@ func GetMockAccessService(ctx core.Context) *MockAccessService {
 		panic(fmt.Sprintf("access service is not a mock - expected *testing.MockAccessService, got %T", accessSvc))
 	}
 	return mockAccess
+}
+
+// NewAPIRegistrationOption creates a TestContextBuilderOption that wraps RegisterAPI
+// to register and configure an API for testing purposes.
+func NewAPIRegistrationOption(id string, factory core.APIFactory) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		opts, err := RegisterAPI(tctx, id, factory)
+		if err != nil {
+			return tctx, err
+		}
+		return ProcessCtxOptions(tctx, opts...)
+	}
+}
+
+// NewProtocolRegistrationOption creates a TestContextBuilderOption that wraps RegisterProtocol
+// to register and configure a Protocol for testing purposes.
+func NewProtocolRegistrationOption(id string, factory core.ProtocolFactory) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		opts, err := RegisterProtocol(tctx, id, factory)
+		if err != nil {
+			return tctx, err
+		}
+		return ProcessCtxOptions(tctx, opts...)
+	}
 }
 
 // RegisterAPI registers an API and wraps any returned context options for test context
@@ -1085,19 +1253,30 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 	return nil
 }
 
-func BootEnvironment(ctx TestContext) error {
-	// InitContext includes processing default and provided options
-	err := InitContext(ctx)
+// BootEnvironment creates and initializes a TestContext with common services and configurations.
+// It handles resetting state, creating the context, applying options, and booting the environment.
+// This function is called internally by RunTestCase and RunTestCaseWithDB.
+func BootEnvironment(tb TB, ctx TestContext) error {
+	// Process all context options (default, global, and those passed to RunTestCase)
+	// This is where options that register global components should be processed.
+	var err error
+	ctx, err = ProcessCtxOptions(ctx, GetTestContextOptions(tb)...)
 	if err != nil {
 		return err
 	}
 
-	// Run migrations first if enabled
+	// Now run migrations with the established DB connection
 	if ShouldRunDBMigrations() {
 		err = RunMigrations(ctx)
 		if err != nil {
 			return err
 		}
+	}
+
+	// Process startup functions first (this will establish DB connection)
+	err = ProcessStartupFuncs(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Then configure protocols and APIs
@@ -1111,11 +1290,11 @@ func BootEnvironment(ctx TestContext) error {
 		return err
 	}
 
-	// Re-process context options after ConfigureAPIs
-	ctx, err = ProcessCtxOptions(ctx, GetTestContextOptions()...)
-	if err != nil {
-		return err
-	}
+	// Re-process context options after ConfigureAPIs (this might be redundant now, but keep for safety)
+	// ctx, err = ProcessCtxOptions(ctx, GetTestContextOptions()...)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = ConfigureAPIRoutes(ctx)
 	if err != nil {
@@ -1123,6 +1302,31 @@ func BootEnvironment(ctx TestContext) error {
 	}
 
 	return nil
+}
+
+// WithDomain configures the test context with a specific domain
+func WithDomain(domain string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		if err := ctx.Config().Update("core.domain", domain); err != nil {
+			return nil, err
+		}
+		return ctx, nil
+	}
+}
+
+// WithSeedPhrase configures the test context with a specific seed phrase
+func WithSeedPhrase(seedPhrase string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		if err := ctx.Config().Update("core.identity", seedPhrase); err != nil {
+			return nil, err
+		}
+		return ctx, nil
+	}
+}
+
+// WithRandomSeedPhrase configures the test context with a randomly generated seed phrase
+func WithRandomSeedPhrase() TestContextBuilderOption {
+	return WithSeedPhrase(wallet.NewSeedPhrase())
 }
 
 // WithMockDB adds a mock database to the test context
@@ -1144,12 +1348,12 @@ func WithMockDB(db *gorm.DB) TestContextBuilderOption {
 // It returns a test context with the mock database and the sqlmock interface.
 func SetupSQLMock(t TB) (TestContext, sqlmock.Sqlmock) {
 	// Create a mock database and gorm instance
-	mockDB, mock := db.NewSQLMock(t.(*testing.T))
+	mockDB, _mock := testingDb.NewSQLMock(t.(*testing.T))
 
 	// Create the test context with the mock DB
 	ctx := NewTestContext(t, WithMockDB(mockDB))
 
-	return ctx, mock
+	return ctx, _mock
 }
 
 // WithInMemorySQLite configures the test context to use an in-memory SQLite database
@@ -1171,62 +1375,80 @@ func ShutdownTestContext(ctx TestContext) {
 	ctx.Teardown()
 }
 
-func WithInMemorySQLite() TestContextBuilderOption {
+func WithSQLite(tb TB) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		provider := db.NewTestSQLiteProvider()
-		dbInst, err := provider.Connect(ctx.Logger())
+		// Generate temp file path
+		tempFile, err := os.CreateTemp("", "portal-test-*.db")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to create temp db file: %w", err)
+		}
+		tempFile.Close() // We just need the path
+
+		// Update config with SQLite type and temp file path
+		err = ctx.Config().Update("core.db.type", "sqlite")
+		if err != nil {
+			return nil, fmt.Errorf("failed to set database type: %w", err)
+		}
+		err = ctx.Config().Update("core.db.file", tempFile.Name())
+		if err != nil {
+			return nil, fmt.Errorf("failed to set database file: %w", err)
 		}
 
+		// Register cleanup to remove temp file
 		ctx.RegisterCleanup(func() {
-			_ = provider.Close()
+			os.Remove(tempFile.Name())
 		})
 
-		return WithMockDB(dbInst)(ctx)
+		// Add a startup function that will create and connect the DB
+		startupOpt := core.ContextWithStartupFunc(func(ctx core.Context) error {
+			provider := testingDb.NewTestSQLiteProvider(ctx.(TestContext))
+
+			// Connect to the database
+			db, err := provider.Connect(ctx.Logger())
+			if err != nil {
+				return fmt.Errorf("failed to connect to SQLite: %w", err)
+			}
+
+			// Set the DB on the context
+			ctx.(TestContext).SetDB(db)
+
+			// Register cleanup
+			ctx.OnExit(func(c core.Context) error {
+				return provider.Close()
+			})
+
+			return nil
+		})
+
+		// Apply the startup option
+		return ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
 	}
 }
 
-// TestEnvironmentOptions configures the test environment setup
-type TestEnvironmentOptions func(ctx TestContext) (TestContext, error)
-
 // SetupTestEnvironment creates and initializes a TestContext with common services and configurations.
 // It handles resetting state, creating the context, applying options, and booting the environment.
-func SetupTestEnvironment(tb TB, opts ...TestEnvironmentOptions) (TestContext, error) {
+func SetupTestEnvironment(tb TB, opts ...TestContextBuilderOption) (TestContext, error) {
 	tb.Helper()
 
 	// Reset global state
 	ResetAllState()
 
-	// Create base test context
-	ctx := NewTestContext(tb)
+	// Create base test context with default options
+	ctx := SetupTest(tb)
 
-	// Combine default and provided options
-	allOpts := append(DefaultTestEnvironmentOptions(tb), opts...)
-
-	// Process all environment options
-	var err error
-	for _, opt := range allOpts {
-		ctx, err = opt(ctx)
-		if err != nil {
-			return ctx, fmt.Errorf("failed to apply test environment option: %w", err)
-		}
+	// Process all options (defaults + provided)
+	ctx, err := ProcessCtxOptions(ctx, append(GetTestContextOptions(tb), opts...)...)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to apply test options: %w", err)
 	}
 
 	// Boot the environment
-	err = BootEnvironment(ctx)
+	err = BootEnvironment(tb, ctx)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to boot test environment: %w", err)
 	}
 
 	return ctx, nil
-}
-
-// WrapTestContextOption converts a TestContextBuilderOption to a TestEnvironmentOptions
-func WrapTestContextOption(opt TestContextBuilderOption) TestEnvironmentOptions {
-	return func(ctx TestContext) (TestContext, error) {
-		return opt(ctx)
-	}
 }
 
 // DefaultRouterOption creates a default router and adds it to the context.
@@ -1240,15 +1462,14 @@ func DefaultRouterOption(tb TB) TestContextBuilderOption {
 	}
 }
 
-// DefaultTestEnvironmentOptions returns the default environment options used for test setup.
-// These include mock implementations of common core services and a default router.
-func DefaultTestEnvironmentOptions(tb TB) []TestEnvironmentOptions {
-	return []TestEnvironmentOptions{
-		WrapTestContextOption(WithMockUserService(tb)),
-		WrapTestContextOption(WithMockAuthService(tb)),
-		WrapTestContextOption(WithMockPasswordResetService(tb)),
-		WrapTestContextOption(WithMockOTPService(tb)),
-		WrapTestContextOption(WithMockAccessService(tb)),
-		WrapTestContextOption(DefaultRouterOption(tb)),
+// WithCoreEvents ensures core events are registered in the test environment
+func WithCoreEvents() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Initialize all core events first
+		event.InitCoreEvents()
+
+		// Then register any additional events
+		opts := RegisterEvents(ctx)
+		return ProcessCtxOptions(ctx, opts...)
 	}
 }

@@ -31,6 +31,14 @@ func FromUUID(id uuid.UUID) BinaryUUID {
 }
 
 // MarshalJSON converts to JSON string
+func (b BinaryUUID) ToUUID() uuid.UUID {
+	return uuid.UUID(b.BinUUID)
+}
+
+func (b BinaryUUID) ToUUIDRaw() []byte {
+	return b.BinUUID[:]
+}
+
 func (b BinaryUUID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.String())
 }

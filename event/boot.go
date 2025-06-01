@@ -8,7 +8,7 @@ const (
 	EVENT_BOOT_COMPLETE = "boot.complete"
 )
 
-func init() {
+func initBootCompleteEvent() {
 	core.RegisterEvent(EVENT_BOOT_COMPLETE, &BootCompleteEvent{})
 }
 

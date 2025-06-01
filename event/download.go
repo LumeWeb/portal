@@ -4,7 +4,7 @@ import "go.lumeweb.com/portal/core"
 
 const EVENT_DOWNLOAD_COMPLETED = "download.completed"
 
-func init() {
+func initDownloadCompletedEvent() {
 	core.RegisterEvent(EVENT_DOWNLOAD_COMPLETED, &DownloadCompletedEvent{})
 }
 

@@ -216,7 +216,7 @@ func (c *CronServiceDefault) Start() error {
 		}
 
 		for _, cronJob := range cronJobs {
-			if slices.Contains(c.jobsAddedBoot, uuid.UUID(cronJob.UUID)) {
+			if slices.Contains(c.jobsAddedBoot, cronJob.UUID.ToUUID()) {
 				continue
 			}
 
@@ -269,13 +269,13 @@ func (c *CronServiceDefault) enqueueJob(job *models.CronJob) error {
 	}
 
 	// Publish the job to the queue
-	id := job.UUID[:]
-	if err := queue.Publish(string(id)); err != nil {
+	id := string(job.UUID.ToUUIDRaw())
+	if err := queue.Publish(id); err != nil {
 		return fmt.Errorf("failed to publish job to queue: %w", err)
 	}
 
 	if c.booting {
-		c.jobsAddedBoot = append(c.jobsAddedBoot, uuid.UUID(job.UUID))
+		c.jobsAddedBoot = append(c.jobsAddedBoot, job.UUID.ToUUID())
 	}
 
 	c.logger.Debug("Job enqueued successfully",
@@ -332,7 +332,7 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 		return fmt.Errorf("failed to prepare task: %w", err)
 	}
 
-	waitForJobCtx := c.getJobStartContext(uuid.UUID(job.UUID))
+	waitForJobCtx := c.getJobStartContext(job.UUID.ToUUID())
 
 	listeners := []gocron.EventListener{
 		gocron.AfterJobRuns(c.listenerFuncNoError),
@@ -346,7 +346,7 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 
 	options := []gocron.JobOption{
 		gocron.WithName(job.UUID.String()),
-		gocron.WithIdentifier(uuid.UUID(job.UUID)),
+		gocron.WithIdentifier(job.UUID.ToUUID()),
 		gocron.WithEventListeners(listeners...),
 	}
 
@@ -366,11 +366,11 @@ func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) err
 	}
 
 	if c.clusterMode() {
-		c.monitorJob(cronJob, uuid.UUID(job.UUID), waitForJobCtx, backoffDelay)
+		c.monitorJob(cronJob, job.UUID.ToUUID(), waitForJobCtx, backoffDelay)
 	}
 
 	if c.booting {
-		c.jobsAddedBoot = append(c.jobsAddedBoot, uuid.UUID(job.UUID))
+		c.jobsAddedBoot = append(c.jobsAddedBoot, job.UUID.ToUUID())
 	}
 
 	return nil
@@ -548,7 +548,7 @@ func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
 	c.checkConsumption()
 
 	var job models.CronJob
-	job.UUID = types.BinaryUUID(jobID)
+	job.UUID = types.FromUUID(jobID)
 
 	if err := c.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
@@ -626,7 +626,7 @@ func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr 
 	c.jobDone(jobID)
 
 	var job models.CronJob
-	job.UUID = types.BinaryUUID(jobID)
+	job.UUID = types.FromUUID(jobID)
 
 	c.logger.Error("Job failed",
 		zap.Error(jobErr),
@@ -728,12 +728,12 @@ func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
 	}
 
 	return c.db.Transaction(func(tx *gorm.DB) error {
-		err := c.updateJobState(c.ctx, uuid.UUID(job.UUID), models.CronJobStateCompleted)
+		err := c.updateJobState(c.ctx, job.UUID.ToUUID(), models.CronJobStateCompleted)
 		if err != nil {
 			return err
 		}
 
-		err = c.updateJobState(c.ctx, uuid.UUID(job.UUID), models.CronJobStateQueued)
+		err = c.updateJobState(c.ctx, job.UUID.ToUUID(), models.CronJobStateQueued)
 		if err != nil {
 			return err
 		}
@@ -782,7 +782,7 @@ func (c *CronServiceDefault) CreateJobScheduled(function string, args any) error
 func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID) error {
 	var job models.CronJob
 
-	job.UUID = types.BinaryUUID(uuid)
+	job.UUID = types.FromUUID(uuid)
 
 	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 		return db.First(&job)
@@ -875,7 +875,7 @@ func (c *CronServiceDefault) JobExists(function string, args any) (bool, *models
 func (c *CronServiceDefault) createJobRecord(function string, args any) (*models.CronJob, error) {
 	job := models.CronJob{
 		Function: function,
-		UUID:     types.BinaryUUID(uuid.New()),
+		UUID:     types.NewBinUUID(),
 	}
 
 	if args != nil {
@@ -922,7 +922,7 @@ func (c *CronServiceDefault) updateJob(ctx context.Context, jobID uuid.UUID, upd
 		// Fetch the job
 		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-				return db.Model(&job).Where(&models.CronJob{UUID: types.BinaryUUID(jobID)}).First(&job)
+				return db.Model(&job).Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&job)
 			})
 		}); err != nil {
 			return fmt.Errorf("failed to fetch job: %w", err)
@@ -936,7 +936,7 @@ func (c *CronServiceDefault) updateJob(ctx context.Context, jobID uuid.UUID, upd
 		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 				ret := db.Model(&job).
-					Where(&models.CronJob{UUID: types.BinaryUUID(jobID), Version: job.Version}).
+					Where(&models.CronJob{UUID: types.FromUUID(jobID), Version: job.Version}).
 					Updates(updates)
 
 				rowsAffected = ret.RowsAffected
@@ -953,7 +953,7 @@ func (c *CronServiceDefault) updateJob(ctx context.Context, jobID uuid.UUID, upd
 		// Fetch the job
 		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-				return db.Model(&job).Where(&models.CronJob{UUID: types.BinaryUUID(jobID)}).First(&job)
+				return db.Model(&job).Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&job)
 			})
 		}); err != nil {
 			return fmt.Errorf("failed to fetch job: %w", err)
@@ -982,7 +982,7 @@ func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uuid.UUID
 
 func (c *CronServiceDefault) getJob(id uuid.UUID) (*models.CronJob, error) {
 	var job models.CronJob
-	job.UUID = types.BinaryUUID(id)
+	job.UUID = types.FromUUID(id)
 
 	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
 		return c.db.Model(&job).Where(&job).First(&job)
@@ -1063,7 +1063,7 @@ func (c *CronServiceDefault) detectAndHandleDeadJobs(ctx context.Context) error 
 			return ctx.Err()
 		default:
 			if c.shouldHandleDeadJob(&job, now) {
-				if err := c.handleDeadJob(ctx, uuid.UUID(job.UUID)); err != nil {
+				if err := c.handleDeadJob(ctx, job.UUID.ToUUID()); err != nil {
 					c.logger.Error("Failed to handle dead job",
 						zap.Error(err),
 						zap.String("jobID", job.UUID.String()),
@@ -1100,7 +1100,7 @@ func (c *CronServiceDefault) handleDeadJob(ctx context.Context, jobID uuid.UUID)
 	var job models.CronJob
 	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where("uuid = ?", types.BinaryUUID(jobID)).First(&job)
+			return db.Where("uuid = ?", types.FromUUID(jobID)).First(&job)
 		})
 	}); err != nil {
 		return fmt.Errorf("failed to fetch job: %w", err)
@@ -1194,7 +1194,7 @@ func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
 		ack(job)
 		return
 	}
-	if err = jc.cron.updateJobState(jc.cron.ctx, uuid.UUID(job.UUID), models.CronJobStateProcessing); err != nil {
+	if err = jc.cron.updateJobState(jc.cron.ctx, job.UUID.ToUUID(), models.CronJobStateProcessing); err != nil {
 		sendErr("Failed to update job state", err)
 		return
 	}

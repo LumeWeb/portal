@@ -8,8 +8,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"net/url"
-	"strings"
 )
 
 // MySQLProvider implements the db.Provider interface for MySQL databases.
@@ -28,53 +26,10 @@ func NewMySQLProvider(cfg config.Manager) *MySQLProvider {
 // Connect establishes a connection to the MySQL database.
 // It configures the connection with the provided logger and returns a GORM DB instance.
 func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
-	dbConfig := p.cfg.Config().Core.DB
-
-	// Build query parameters
-	query := url.Values{}
-	query.Set("parseTime", "True")
-	query.Set("loc", "Local")
-
-	if dbConfig.TLSEnabled {
-		logger.Debug("TLS enabled")
-		if dbConfig.TLSSkipVerify {
-			logger.Debug("Skipping TLS verification")
-			query.Set("tls", "skip-verify")
-		} else {
-			query.Set("tls", "true")
-		}
-	}
-
-	if dbConfig.Charset != "" {
-		query.Set("charset", dbConfig.Charset)
-		logger.Debug("Setting charset", zap.String("charset", dbConfig.Charset))
-	} else {
-		logger.Debug("Charset is empty, skipping parameter")
-	}
-
-	// Construct the DSN using url.URL
-	u := &url.URL{
-		Scheme:   "tcp",
-		User:     url.UserPassword(dbConfig.Username, dbConfig.Password),
-		Host:     fmt.Sprintf("%s:%d", dbConfig.Host, dbConfig.Port),
-		Path:     dbConfig.Name,
-		RawQuery: query.Encode(),
-	}
-
-	// Decode the user info portion since MySQL doesn't expect it to be URL encoded
-	userStr, err := url.QueryUnescape(u.User.String())
+	dsn, err := GetDSN(p.cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unescape user string: %v", err)
+		return nil, err
 	}
-
-	// Format as MySQL DSN with the decoded user string
-	dsn := fmt.Sprintf("%s@%s(%s)/%s?%s",
-		userStr,
-		u.Scheme,
-		u.Host,
-		strings.TrimPrefix(u.Path, "/"),
-		u.RawQuery,
-	)
 
 	logger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
 
