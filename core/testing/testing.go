@@ -4,6 +4,7 @@ package testing
 import (
 	"context"
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gookit/event"
 	"go.lumeweb.com/portal"
 	router "go.lumeweb.com/portal-router"
@@ -20,12 +21,12 @@ import (
 )
 
 var (
-	testCtxOpts          []TestContextBuilderOption
-	testCtxOptsMu        sync.RWMutex
-	runDBMigrations     bool = false
-	runDBMigrationsMu   sync.RWMutex
-	setupMockDB        bool = false
-	setupMockDBMu      sync.RWMutex
+	testCtxOpts       []TestContextBuilderOption
+	testCtxOptsMu     sync.RWMutex
+	runDBMigrations   bool = false
+	runDBMigrationsMu sync.RWMutex
+	setupMockDB       bool = false
+	setupMockDBMu     sync.RWMutex
 )
 
 // AddTestContextOptions adds one or more TestContextOptions to the global testing options collection
@@ -148,7 +149,7 @@ type TestContext interface {
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
 	Router() router.Router
-	SetDB(*gorm.DB)                                 // Set the database instance
+	SetDB(*gorm.DB) // Set the database instance
 }
 
 // ResetAllState resets all global state in the core package and testing package
@@ -1031,6 +1032,33 @@ func BootEnvironment(ctx TestContext) error {
 	return nil
 }
 
+// WithMockDB adds a mock database to the test context
+func WithMockDB(db *gorm.DB) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		ctx.SetDB(db)
+		ctx.RegisterCleanup(func() {
+			sqlDB, err := db.DB()
+			if err == nil {
+				_ = sqlDB.Close()
+			}
+		})
+
+		return ctx, nil
+	}
+}
+
+// SetupSQLMock creates a new sqlmock and configures a test context with it.
+// It returns a test context with the mock database and the sqlmock interface.
+func SetupSQLMock(t TB) (TestContext, sqlmock.Sqlmock) {
+	// Create a mock database and gorm instance
+	mockDB, mock := db.NewSQLMock(t.(*testing.T))
+
+	// Create the test context with the mock DB
+	ctx := NewTestContext(t, WithMockDB(mockDB))
+
+	return ctx, mock
+}
+
 // WithInMemorySQLite configures the test context to use an in-memory SQLite database
 func WithInMemorySQLite() TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
@@ -1044,6 +1072,6 @@ func WithInMemorySQLite() TestContextBuilderOption {
 			_ = provider.Close()
 		})
 
-		return db.WithMockDB(dbInst)(ctx)
+		return WithMockDB(dbInst)(ctx)
 	}
 }

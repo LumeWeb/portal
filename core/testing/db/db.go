@@ -4,7 +4,6 @@ package db
 import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"go.lumeweb.com/portal/core"
-	coretesting "go.lumeweb.com/portal/core/testing"
 	"gorm.io/gorm"
 	"testing"
 )
@@ -35,31 +34,4 @@ func NewSQLMock(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 	})
 
 	return db, mock
-}
-
-// WithMockDB adds a mock database to the test context
-func WithMockDB(db *gorm.DB) coretesting.TestContextBuilderOption {
-	return func(ctx coretesting.TestContext) (coretesting.TestContext, error) {
-		ctx.SetDB(db)
-		ctx.RegisterCleanup(func() {
-			sqlDB, err := db.DB()
-			if err == nil {
-				_ = sqlDB.Close()
-			}
-		})
-
-		return ctx, nil
-	}
-}
-
-// SetupSQLMock creates a new sqlmock and configures a test context with it.
-// It returns a test context with the mock database and the sqlmock interface.
-func SetupSQLMock(t *testing.T) (coretesting.TestContext, sqlmock.Sqlmock) {
-	// Create a mock database and gorm instance
-	mockDB, mock := NewSQLMock(t)
-
-	// Create the test context with the mock DB
-	ctx := coretesting.NewTestContext(t, WithMockDB(mockDB))
-
-	return ctx, mock
 }
