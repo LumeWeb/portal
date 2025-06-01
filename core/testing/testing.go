@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/gookit/event"
+	"go.lumeweb.com/portal"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/core/testing/db"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -18,8 +20,12 @@ import (
 )
 
 var (
-	testCtxOpts   []TestContextBuilderOption
-	testCtxOptsMu sync.RWMutex
+	testCtxOpts          []TestContextBuilderOption
+	testCtxOptsMu        sync.RWMutex
+	runDBMigrations     bool = false
+	runDBMigrationsMu   sync.RWMutex
+	setupMockDB        bool = false
+	setupMockDBMu      sync.RWMutex
 )
 
 // AddTestContextOptions adds one or more TestContextOptions to the global testing options collection
@@ -142,12 +148,57 @@ type TestContext interface {
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
 	Router() router.Router
+	SetDB(*gorm.DB)                                 // Set the database instance
 }
 
 // ResetAllState resets all global state in the core package and testing package
 func ResetAllState() {
 	core.ResetState()
 	ClearTestContextOptions()
+	DisableDBMigrations()
+	DisableMockDB()
+}
+
+// EnableDBMigrations enables running DB migrations during test context initialization
+func EnableDBMigrations() {
+	runDBMigrationsMu.Lock()
+	defer runDBMigrationsMu.Unlock()
+	runDBMigrations = true
+}
+
+// DisableDBMigrations disables running DB migrations during test context initialization
+func DisableDBMigrations() {
+	runDBMigrationsMu.Lock()
+	defer runDBMigrationsMu.Unlock()
+	runDBMigrations = false
+}
+
+// EnableMockDB enables setting up a mock DB during test context initialization
+func EnableMockDB() {
+	setupMockDBMu.Lock()
+	defer setupMockDBMu.Unlock()
+	setupMockDB = true
+}
+
+// DisableMockDB disables setting up a mock DB during test context initialization
+func DisableMockDB() {
+	setupMockDBMu.Lock()
+	defer setupMockDBMu.Unlock()
+	setupMockDB = false
+}
+
+// ShouldRunDBMigrations returns whether DB migrations should run
+func ShouldRunDBMigrations() bool {
+	runDBMigrationsMu.RLock()
+	defer runDBMigrationsMu.RUnlock()
+	return runDBMigrations
+}
+
+// ShouldSetupMockDB returns whether mock DB should be setup
+func ShouldSetupMockDB() bool {
+	setupMockDBMu.RLock()
+	defer setupMockDBMu.RUnlock()
+	return setupMockDB
 }
 
 // TestContextBuilderOption configures a test context
@@ -296,21 +347,6 @@ func WithRouter(r router.Router) TestContextBuilderOption {
 	}
 }
 
-// WithMockDB adds a mock database to the test context
-func WithMockDB(db *gorm.DB) TestContextBuilderOption {
-	return func(ctx TestContext) (TestContext, error) {
-		ctx.(*testContext).db = db
-		ctx.RegisterCleanup(func() {
-			sqlDB, err := db.DB()
-			if err == nil {
-				_ = sqlDB.Close()
-			}
-		})
-
-		return ctx, nil
-	}
-}
-
 // WithConfigValue sets a configuration value
 func WithConfigValue(key string, value interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
@@ -358,6 +394,10 @@ func (ctx *testContext) DB() *gorm.DB {
 		return nil
 	}
 	return ctx.db.WithContext(ctx)
+}
+
+func (ctx *testContext) SetDB(db *gorm.DB) {
+	ctx.db = db
 }
 
 func (ctx *testContext) Logger() *core.Logger {
@@ -720,7 +760,7 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		panic(fmt.Sprintf("failed to create test router: %v", err))
 	}
 
-	return []TestContextBuilderOption{
+	opts := []TestContextBuilderOption{
 		WithMockAccessService(tb),
 		WithRouter(_router),
 		WithMockAuthService(tb),
@@ -740,6 +780,12 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		WithMockUserService(tb),
 		WithMockWorkflowService(tb),
 	}
+
+	if ShouldSetupMockDB() {
+		opts = append(opts, WithInMemorySQLite())
+	}
+
+	return opts
 }
 
 // GetMockConfig returns the mock config manager from the context for testing
@@ -883,6 +929,20 @@ func ConfigureAPIs(ctx TestContext) error {
 	return nil
 }
 
+// RunMigrations executes database migrations for the test context
+func RunMigrations(ctx TestContext) error {
+	migrationManager, err := portal.NewMigrationManager(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create migration manager: %w", err)
+	}
+
+	if err = migrationManager.RunMigrations(ctx.DB()); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	return nil
+}
+
 func ConfigureAPIRoutes(ctx TestContext) error {
 	accessSvc := core.GetService[core.AccessService](ctx, core.ACCESS_SERVICE)
 	if accessSvc == nil {
@@ -932,13 +992,21 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 }
 
 func BootEnvironment(ctx TestContext) error {
-	// InitContext now includes processing default and provided options, and running startup funcs
+	// InitContext includes processing default and provided options
 	err := InitContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Configure protocols and APIs after InitContext has run startup funcs
+	// Run migrations first if enabled
+	if ShouldRunDBMigrations() {
+		err = RunMigrations(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Then configure protocols and APIs
 	err = ConfigureProtocols(ctx)
 	if err != nil {
 		return err
@@ -949,7 +1017,7 @@ func BootEnvironment(ctx TestContext) error {
 		return err
 	}
 
-	// Re-process context options after ConfigureAPIs to include any options returned by API Init
+	// Re-process context options after ConfigureAPIs
 	ctx, err = ProcessCtxOptions(ctx, GetTestContextOptions()...)
 	if err != nil {
 		return err
@@ -961,4 +1029,21 @@ func BootEnvironment(ctx TestContext) error {
 	}
 
 	return nil
+}
+
+// WithInMemorySQLite configures the test context to use an in-memory SQLite database
+func WithInMemorySQLite() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		provider := db.NewTestSQLiteProvider()
+		dbInst, err := provider.Connect(ctx.Logger())
+		if err != nil {
+			return nil, err
+		}
+
+		ctx.RegisterCleanup(func() {
+			_ = provider.Close()
+		})
+
+		return db.WithMockDB(dbInst)(ctx)
+	}
 }
