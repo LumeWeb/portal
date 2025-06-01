@@ -20,6 +20,11 @@ func ParseUUID(id string) BinaryUUID {
 	return BinaryUUID{BinUUID: datatypes.BinUUIDFromString(id)}
 }
 
+// NewBinUUID generates a new random (v4) UUID and returns it as a BinaryUUID
+func NewBinUUID() BinaryUUID {
+	return BinaryUUID{BinUUID: datatypes.NewBinUUIDv4()}
+}
+
 // MarshalJSON converts to JSON string
 func (b BinaryUUID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.String())

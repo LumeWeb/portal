@@ -65,3 +65,22 @@ func TestBinaryUUID_IsNil(t *testing.T) {
 	nonNil := ParseUUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 	assert.False(t, nonNil.IsNil())
 }
+
+func TestNewBinUUID(t *testing.T) {
+	// Generate new UUIDs
+	uuid1 := NewBinUUID()
+	uuid2 := NewBinUUID()
+
+	// Should not be nil
+	assert.False(t, uuid1.IsNil())
+	assert.False(t, uuid2.IsNil())
+
+	// Should be valid UUIDs
+	assert.NotEqual(t, uuid1.String(), uuid2.String())
+	assert.Len(t, uuid1.String(), 36)
+	assert.Len(t, uuid2.String(), 36)
+
+	// Should be v4 UUIDs (check format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx)
+	assert.Equal(t, byte('4'), uuid1.String()[14])
+	assert.Equal(t, byte('4'), uuid2.String()[14])
+}
