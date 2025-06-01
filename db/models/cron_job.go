@@ -34,6 +34,6 @@ type CronJob struct {
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {
 	id, err := uuid.NewRandom()
-	t.UUID = types.BinaryUUID(id)
+	t.UUID = types.ParseUUID(id)
 	return err
 }
