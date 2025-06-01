@@ -2,6 +2,7 @@ package testing
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/mock"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -47,10 +48,10 @@ func NewMockHTTPService(t TB) *MockHTTPService {
 // APISubdomain implements core.HTTPService with automatic mock setup
 func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
 	// Set up expectation if not already set
-	if !m.MethodCalled("APISubdomain", id, proto) {
+	if !WasMethodCalled(&m.MockHTTPService.Mock, "APISubdomain", id, proto) {
 		m.On("APISubdomain", id, proto).Return(m.apiSubdomainFunc(id, proto))
 	}
-	
+
 	return m.MockHTTPService.APISubdomain(id, proto)
 }
 
@@ -67,20 +68,20 @@ func (m *MockHTTPService) apiSubdomainFunc(id string, proto bool) func(string, b
 // Serve implements core.HTTPService with automatic mock setup
 func (m *MockHTTPService) Serve() error {
 	// Set up expectation if not already set
-	if !m.MethodCalled("Serve") {
+	if !WasMethodCalled(&m.MockHTTPService.Mock, "Serve") {
 		m.On("Serve").Return(nil)
 	}
-	
+
 	return m.MockHTTPService.Serve()
 }
 
 // Init implements core.HTTPService with automatic mock setup
 func (m *MockHTTPService) Init() error {
 	// Set up expectation if not already set
-	if !m.MethodCalled("Init") {
+	if !WasMethodCalled(&m.MockHTTPService.Mock, "Init") {
 		m.On("Init").Return(nil)
 	}
-	
+
 	return m.MockHTTPService.Init()
 }
 
@@ -93,22 +94,6 @@ func (m *MockHTTPService) WithRouter(r router.Router) *MockHTTPService {
 func (m *MockHTTPService) WithConfigManager(c config.Manager) *MockHTTPService {
 	m.cmanager = c
 	return m
-}
-
-func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
-	formatter := ""
-
-	if proto {
-		formatter += "https://"
-	}
-
-	formatter += "%s.%s"
-
-	if core.GetAPI(id) == nil {
-		return ""
-	}
-
-	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), m.cmanager.Config().Core.Domain)
 }
 
 // Ensure MockHTTPService implements core.HTTPService
