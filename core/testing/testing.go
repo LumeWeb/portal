@@ -75,10 +75,14 @@ func WithDB(m *testing.M) int {
 	})
 }
 
-// WithoutDB runs tests without database support
-func WithoutDB(m *testing.M) int {
+// WithDBAndOptions runs tests with database support and custom builder options
+func WithDBAndOptions(m *testing.M, opts ...TestContextBuilderOption) int {
 	return RunTests(m, TestMainOpts{
-		WithDB: false,
+		WithDB:       true,
+		DBMigrations: true,
+		CustomSetup: func() {
+			AddTestContextOptions(opts...)
+		},
 	})
 }
 
@@ -87,6 +91,34 @@ func WithDBNoMigrations(m *testing.M) int {
 	return RunTests(m, TestMainOpts{
 		WithDB:       true,
 		DBMigrations: false,
+	})
+}
+
+// WithDBNoMigrationsAndOptions runs tests with database support (no migrations) and custom builder options
+func WithDBNoMigrationsAndOptions(m *testing.M, opts ...TestContextBuilderOption) int {
+	return RunTests(m, TestMainOpts{
+		WithDB:       true,
+		DBMigrations: false,
+		CustomSetup: func() {
+			AddTestContextOptions(opts...)
+		},
+	})
+}
+
+// WithOptions runs tests with custom builder options (no database by default)
+func WithOptions(m *testing.M, opts ...TestContextBuilderOption) int {
+	return RunTests(m, TestMainOpts{
+		WithDB: false,
+		CustomSetup: func() {
+			AddTestContextOptions(opts...)
+		},
+	})
+}
+
+// WithoutDB runs tests without database support
+func WithoutDB(m *testing.M) int {
+	return RunTests(m, TestMainOpts{
+		WithDB: false,
 	})
 }
 
