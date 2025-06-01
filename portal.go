@@ -594,3 +594,21 @@ func Shutdown(activePortal Portal, logger *zap.Logger) {
 	// Exit the process
 	os.Exit(ctx.ExitCode())
 }
+
+// TestingShutdown is a helper for tests that calls all registered exit functions
+// and cleans up resources without exiting the process.
+func TestingShutdown(ctx TestContext) {
+	// Cancel the context first to signal shutdown
+	ctx.Cancel()
+
+	// Wait for context cancellation to propagate
+	<-ctx.Done()
+
+	// Run all registered exit functions
+	if err := ProcessExitFuncs(ctx); err != nil {
+		ctx.Logger().Error("Error during test shutdown", zap.Error(err))
+	}
+
+	// Perform any additional cleanup
+	ctx.Teardown()
+}
