@@ -37,7 +37,7 @@ func NewMockAccessService(t TB) *MockAccessService {
 // CheckAccess implements core.AccessService with automatic mock setup
 func (m *MockAccessService) CheckAccess(userId uint, fqdn, path, method string) (bool, error) {
 	// Set up expectation if not already set
-	if !m.MethodCalled("CheckAccess", userId, fqdn, path, method) {
+	if !WasMethodCalled(&m.MockAccessService.Mock, "CheckAccess", userId, fqdn, path, method) {
 		m.On("CheckAccess", userId, fqdn, path, method).Return(true, nil)
 	}
 	
@@ -47,7 +47,7 @@ func (m *MockAccessService) CheckAccess(userId uint, fqdn, path, method string) 
 // AssignRoleToUser implements core.AccessService with automatic mock setup
 func (m *MockAccessService) AssignRoleToUser(userId uint, role string) error {
 	// Set up expectation if not already set
-	if !m.MethodCalled("AssignRoleToUser", userId, role) {
+	if !WasMethodCalled(&m.MockAccessService.Mock, "AssignRoleToUser", userId, role) {
 		m.On("AssignRoleToUser", userId, role).Return(nil)
 	}
 	
