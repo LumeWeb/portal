@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/google/uuid"
 	"go.lumeweb.com/portal/db/types"
 	"gorm.io/gorm"
 	"time"
@@ -33,7 +32,6 @@ type CronJob struct {
 }
 
 func (t *CronJob) BeforeCreate(_ *gorm.DB) error {
-	id, err := uuid.NewRandom()
-	t.UUID = types.ParseUUID(id)
-	return err
+	t.UUID = types.NewBinUUID()
+	return nil
 }
