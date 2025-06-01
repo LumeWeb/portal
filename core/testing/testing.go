@@ -23,11 +23,72 @@ import (
 var (
 	testCtxOpts       []TestContextBuilderOption
 	testCtxOptsMu     sync.RWMutex
-	runDBMigrations   bool = false
+	runDBMigrations   = false
 	runDBMigrationsMu sync.RWMutex
-	setupMockDB       bool = false
+	setupMockDB       = false
 	setupMockDBMu     sync.RWMutex
 )
+
+// TestMainOpts configures test main behavior
+type TestMainOpts struct {
+	WithDB         bool
+	DBMigrations   bool
+	CustomSetup    func()
+	CustomTeardown func()
+}
+
+// RunTests is the standard way to run tests with automatic setup/teardown
+func RunTests(m *testing.M, opts TestMainOpts) int {
+	ResetAllState()
+
+	if opts.WithDB {
+		EnableDBMigrations()
+		if opts.DBMigrations {
+			runDBMigrationsMu.Lock()
+			runDBMigrations = true
+			runDBMigrationsMu.Unlock()
+		}
+	}
+
+	if opts.CustomSetup != nil {
+		opts.CustomSetup()
+	}
+
+	code := m.Run()
+
+	if opts.CustomTeardown != nil {
+		opts.CustomTeardown()
+	}
+
+	if opts.WithDB {
+		DisableDBMigrations()
+	}
+
+	return code
+}
+
+// WithDB runs tests with database support (migrations enabled by default)
+func WithDB(m *testing.M) int {
+	return RunTests(m, TestMainOpts{
+		WithDB:       true,
+		DBMigrations: true,
+	})
+}
+
+// WithoutDB runs tests without database support
+func WithoutDB(m *testing.M) int {
+	return RunTests(m, TestMainOpts{
+		WithDB: false,
+	})
+}
+
+// WithDBNoMigrations runs tests with database support but skips migrations
+func WithDBNoMigrations(m *testing.M) int {
+	return RunTests(m, TestMainOpts{
+		WithDB:       true,
+		DBMigrations: false,
+	})
+}
 
 // AddTestContextOptions adds one or more TestContextOptions to the global testing options collection
 func AddTestContextOptions(opts ...TestContextBuilderOption) {
@@ -1091,5 +1152,71 @@ func WithInMemorySQLite() TestContextBuilderOption {
 		})
 
 		return WithMockDB(dbInst)(ctx)
+	}
+}
+
+// TestEnvironmentOptions configures the test environment setup
+type TestEnvironmentOptions func(ctx TestContext) (TestContext, error)
+
+// SetupTestEnvironment creates and initializes a TestContext with common services and configurations.
+// It handles resetting state, creating the context, applying options, and booting the environment.
+func SetupTestEnvironment(tb TB, opts ...TestEnvironmentOptions) (TestContext, error) {
+	tb.Helper()
+
+	// Reset global state
+	ResetAllState()
+
+	// Create base test context
+	ctx := NewTestContext(tb)
+
+	// Combine default and provided options
+	allOpts := append(DefaultTestEnvironmentOptions(tb), opts...)
+
+	// Process all environment options
+	var err error
+	for _, opt := range allOpts {
+		ctx, err = opt(ctx)
+		if err != nil {
+			return ctx, fmt.Errorf("failed to apply test environment option: %w", err)
+		}
+	}
+
+	// Boot the environment
+	err = BootEnvironment(ctx)
+	if err != nil {
+		return ctx, fmt.Errorf("failed to boot test environment: %w", err)
+	}
+
+	return ctx, nil
+}
+
+// WrapTestContextOption converts a TestContextBuilderOption to a TestEnvironmentOptions
+func WrapTestContextOption(opt TestContextBuilderOption) TestEnvironmentOptions {
+	return func(ctx TestContext) (TestContext, error) {
+		return opt(ctx)
+	}
+}
+
+// DefaultRouterOption creates a default router and adds it to the context.
+func DefaultRouterOption(tb TB) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		_router, err := router.NewRouter(router.APIInfo().Title("Test API").Version("1.0.0"))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create test router: %v", err)
+		}
+		return WithRouter(_router)(ctx)
+	}
+}
+
+// DefaultTestEnvironmentOptions returns the default environment options used for test setup.
+// These include mock implementations of common core services and a default router.
+func DefaultTestEnvironmentOptions(tb TB) []TestEnvironmentOptions {
+	return []TestEnvironmentOptions{
+		WrapTestContextOption(WithMockUserService(tb)),
+		WrapTestContextOption(WithMockAuthService(tb)),
+		WrapTestContextOption(WithMockPasswordResetService(tb)),
+		WrapTestContextOption(WithMockOTPService(tb)),
+		WrapTestContextOption(WithMockAccessService(tb)),
+		WrapTestContextOption(DefaultRouterOption(tb)),
 	}
 }
