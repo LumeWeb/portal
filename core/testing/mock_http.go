@@ -3,6 +3,7 @@ package testing
 import (
 	"fmt"
 	router "go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 )
@@ -11,7 +12,7 @@ import (
 type MockHTTPService struct {
 	*mocks.MockHTTPService
 	router   router.Router
-	cmanager *MockConfigManager
+	cmanager config.Manager
 }
 
 // NewMockHTTPService creates a new mock HTTP service with default Router expectations
@@ -37,7 +38,7 @@ func (m *MockHTTPService) WithRouter(r router.Router) *MockHTTPService {
 	return m
 }
 
-func (m *MockHTTPService) WithConfigManager(c *MockConfigManager) *MockHTTPService {
+func (m *MockHTTPService) WithConfigManager(c config.Manager) *MockHTTPService {
 	m.cmanager = c
 	return m
 }
