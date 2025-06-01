@@ -9,7 +9,7 @@ const (
 	EVENT_STORAGE_OBJECT_PINNED = "storage.object.pinned"
 )
 
-func init() {
+func initStorageObjectPinnedEvent() {
 	core.RegisterEvent(EVENT_STORAGE_OBJECT_PINNED, &StorageObjectPinnedEvent{})
 }
 

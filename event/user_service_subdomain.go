@@ -8,7 +8,7 @@ const (
 	EVENT_USER_SERVICE_SUBDOMAIN_SET = "user.subdomain.set"
 )
 
-func init() {
+func initUserServiceSubdomainSetEvent() {
 	core.RegisterEvent(EVENT_USER_SERVICE_SUBDOMAIN_SET, &UserServiceSubdomainSetEvent{})
 }
 

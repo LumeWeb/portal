@@ -9,7 +9,7 @@ const (
 	EVENT_USER_ACTIVATED = "user.activated"
 )
 
-func init() {
+func initUserActivatedEvent() {
 	core.RegisterEvent(EVENT_USER_ACTIVATED, &UserActivatedEvent{})
 }
 

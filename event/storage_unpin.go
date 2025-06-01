@@ -9,8 +9,8 @@ const (
 	EVENT_STORAGE_OBJECT_UNPINNED = "storage.object.unpinned"
 )
 
-func init() {
-	core.RegisterEvent(EVENT_STORAGE_OBJECT_UNPINNED, &StorageObjectPinnedEvent{})
+func initStorageObjectUnpinnedEvent() {
+	core.RegisterEvent(EVENT_STORAGE_OBJECT_UNPINNED, &StorageObjectUnpinnedEvent{})
 }
 
 type StorageObjectUnpinnedEvent struct {

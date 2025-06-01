@@ -15,9 +15,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io/fs"
-	"net/url"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -112,12 +110,10 @@ func (m *MigrationManager) acquireMigrationLock() (*etcdLease, error) {
 func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
 	m.logger.Info("Starting database migrations")
 
-	m.logger.Debug("Running dbmate migrations")
-
 	cfg := m.ctx.Config()
-	dbConfig := cfg.Config().Core.DB
-	dbType := dbConfig.Type
+	dbType := cfg.Config().Core.DB.Type
 
+	// Setup composite filesystem with core and plugin migrations
 	compositFs := newCompositeFS()
 	compositFs.Mount("0_core", getMigrationsByType(dbType, db.GetCoreMigrations()))
 
@@ -134,23 +130,23 @@ func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
 		compositFs.Mount(fmt.Sprintf("%d_%s", idx+1, plugin), migrations)
 	}
 
-	dbUrl, err := getDbMateUrl(cfg)
+	// Get dbmate URL using centralized helper
+	dbUrl, err := db.GetDbMateUrl(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get dbmate URL: %w", err)
 	}
 
+	// Configure and run migrations
 	dbMateMigration := dbmate.New(dbUrl)
 	dbMateMigration.FS = compositFs
 	dbMateMigration.MigrationsDir = compositFs.Mounts()
 	dbMateMigration.AutoDumpSchema = false
 
-	err = dbMateMigration.CreateAndMigrate()
-	if err != nil {
-		return err
+	if err := dbMateMigration.CreateAndMigrate(); err != nil {
+		return fmt.Errorf("migration failed: %w", err)
 	}
 
 	m.logger.Info("Database migrations completed successfully")
-
 	return nil
 }
 
@@ -238,90 +234,13 @@ func getMigrations() (map[string]core.DBMigration, []string, error) {
 
 func getMigrationsByType(typ string, migrations core.DBMigration) fs.FS {
 	switch typ {
-	case "sqlite":
+	case "sqlite", "sqlitememory":
 		return migrations["sqlite"]
 	case "mysql":
 		return migrations["mysql"]
 	default:
 		return nil
 	}
-}
-
-// getDbMateUrl generates a database connection URL for dbmate based on the provided configuration.
-// Returns a *url.URL object and any error that occurred during URL generation.
-func getDbMateUrl(cfg config.Manager) (*url.URL, error) {
-	databaseConfig := cfg.Config().Core.DB
-	if databaseConfig.Type == "" {
-		return nil, errors.New("database type is required")
-	}
-
-	var urlStr string
-
-	switch strings.ToLower(databaseConfig.Type) {
-	case "sqlite":
-		if databaseConfig.File == "" {
-			return nil, errors.New("sqlite database requires a file path")
-		}
-		urlStr = "sqlite://" + db.GetSQLiteDBFile(cfg)
-
-	case "mysql":
-		if databaseConfig.Host == "" {
-			return nil, errors.New("mysql database requires a host")
-		}
-		if databaseConfig.Name == "" {
-			return nil, errors.New("mysql database requires a database name")
-		}
-
-		// For MySQL, dbmate expects the format:
-		// mysql://username:password@host:port/dbname?param1=value1
-		// NOT using the tcp() wrapper that's used in Go's sql.Open
-
-		// Handle default port if not specified
-		port := databaseConfig.Port
-		if port == 0 {
-			port = 3306 // Default MySQL port
-		}
-
-		// Build query parameters
-		params := make(url.Values)
-
-		// Add charset if specified
-		if databaseConfig.Charset != "" {
-			params.Add("charset", databaseConfig.Charset)
-		}
-
-		// Add TLS parameters if enabled
-		if databaseConfig.TLSEnabled {
-			if databaseConfig.TLSSkipVerify {
-				params.Add("tls", "skip-verify")
-			} else {
-				params.Add("tls", "true")
-			}
-		}
-
-		// Create a standard URL that url.Parse can handle
-		// Format: mysql://username:password@host:port/dbname?params
-		u := &url.URL{
-			Scheme:   "mysql",
-			User:     url.UserPassword(databaseConfig.Username, databaseConfig.Password),
-			Host:     fmt.Sprintf("%s:%d", databaseConfig.Host, port),
-			Path:     "/" + databaseConfig.Name,
-			RawQuery: params.Encode(),
-		}
-
-		return u, nil
-
-	default:
-		return nil, fmt.Errorf("unsupported database type: %s", databaseConfig.Type)
-	}
-
-	// For SQLite, we need to parse the URL string
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
-	}
-
-	return parsedURL, nil
 }
 
 var ErrLockAcquireFailed = errors.New("failed to acquire migration lock")
