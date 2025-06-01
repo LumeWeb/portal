@@ -25,6 +25,11 @@ func NewBinUUID() BinaryUUID {
 	return BinaryUUID{BinUUID: datatypes.NewBinUUIDv4()}
 }
 
+// FromUUID converts a raw uuid.UUID to BinaryUUID
+func FromUUID(id uuid.UUID) BinaryUUID {
+	return BinaryUUID{BinUUID: datatypes.BinUUID(id)}
+}
+
 // MarshalJSON converts to JSON string
 func (b BinaryUUID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(b.String())
