@@ -39,10 +39,16 @@ type StorageHashParser interface {
 	ParserName() string
 }
 
-// getParsersFromRegistry retrieves StorageHashParser implementations from registered
+// ProtocolParser combines Protocol and StorageHashParser interfaces
+type ProtocolParser interface {
+	Protocol
+	StorageHashParser
+}
+
+// GetParsersFromRegistry retrieves StorageHashParser implementations from registered
 // protocols and appends the core fallback parsers.
 // It returns an ordered list (protocols first, sorted by name, then fallbacks).
-func getParsersFromRegistry() []StorageHashParser {
+func GetParsersFromRegistry() []StorageHashParser {
 	allProtocols := GetProtocolList() // Get sorted list of protocols
 	fallbackParsers := []StorageHashParser{
 		coreBase58Parser,
@@ -152,51 +158,20 @@ func NewStorageHashFromRawMultihash(hash mh.Multihash) StorageHash {
 }
 
 func ParseStorageHash(s string) (StorageHash, error) {
-	var hash mh.Multihash
-	var err error
+	// Get parsers from the registry (includes core fallbacks)
+	parsers := GetParsersFromRegistry()
 
-	// Try Base58 format first (most common for content-addressed systems)
-	hash, err = mh.FromB58String(s)
-	if err == nil {
-		// Get information from the decoded multihash
-		decoded, err := mh.Decode(hash)
-		if err != nil {
-			return nil, fmt.Errorf("invalid multihash structure: %w", err)
+	for _, parser := range parsers {
+		sh, recognized, err := parser.TryParse(s)
+		if recognized {
+			// If the parser recognized the format (even if parsing failed),
+			// we stop and return its result/error.
+			return sh, err
 		}
-
-		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-		return NewStorageHashFromMultihash(hash, cidType, nil), nil
+		// If not recognized, try the next parser.
 	}
 
-	// Try hex format
-	hash, err = mh.FromHexString(s)
-	if err == nil {
-		decoded, err := mh.Decode(hash)
-		if err != nil {
-			return nil, fmt.Errorf("invalid multihash structure: %w", err)
-		}
-
-		cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-		return NewStorageHashFromMultihash(hash, cidType, nil), nil
-	}
-
-	// Try base64 format as a last resort
-	decodedBytes, err := base64.StdEncoding.DecodeString(s)
-	if err == nil {
-		// Try to interpret the decoded bytes as a multihash
-		hash, err = mh.Cast(decodedBytes)
-		if err == nil {
-			decoded, err := mh.Decode(hash)
-			if err != nil {
-				return nil, fmt.Errorf("invalid multihash structure: %w", err)
-			}
-
-			cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
-			return NewStorageHashFromMultihash(hash, cidType, nil), nil
-		}
-	}
-
-	// If we get here, we couldn't parse the hash in any supported format
+	// If no parser recognized the format
 	return nil, ErrInvalidHashFormat
 }
 
@@ -228,7 +203,7 @@ func (p *CoreBase58Parser) TryParse(s string) (StorageHash, bool, error) {
 	}
 
 	// Infer CID type based on multihash properties
-	cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+	cidType := InferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
 
 	// Create the StorageHash object
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
@@ -261,7 +236,7 @@ func (p *CoreHexParser) TryParse(s string) (StorageHash, bool, error) {
 	}
 
 	// Infer CID type
-	cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+	cidType := InferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
 
 	// Create the StorageHash object
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
@@ -305,7 +280,7 @@ func (p *CoreBase64Parser) TryParse(s string) (StorageHash, bool, error) {
 	}
 
 	// Infer CID type
-	cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+	cidType := InferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
 
 	// Create the StorageHash object
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
@@ -330,7 +305,7 @@ func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
 	// If you expect lowercase, you'd need to strings.ToUpper(s) first or use a different library.
 	decodedBytes, err := base32.StdEncoding.DecodeString(s)
 	if err != nil {
-		// If Base32 decoding itself fails, it wasn't this format.
+		// If Base32 decoding itself fails, it definitely wasn't this format.
 		return nil, false, nil
 	}
 
@@ -349,7 +324,7 @@ func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
 	}
 
 	// Infer CID type
-	cidType := inferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
+	cidType := InferCIDTypeFromHashCode(decoded.Code, len(decoded.Digest))
 
 	// Create the StorageHash object
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
@@ -357,9 +332,9 @@ func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
 	return storageHash, true, nil // Success
 }
 
-// inferCIDTypeFromHashCode maps hash algorithm codes to appropriate CID types
+// InferCIDTypeFromHashCode maps hash algorithm codes to appropriate CID types
 // Considers both hash type and length in determining the appropriate CID type
-func inferCIDTypeFromHashCode(code uint64, digestLength int) uint64 {
+func InferCIDTypeFromHashCode(code uint64, digestLength int) uint64 {
 	// Special case for SHA2-256 with 32-byte digest (IPFS compatibility)
 	if code == mh.SHA2_256 && digestLength == 32 {
 		// Check if this is likely an IPFS CIDv0 hash
@@ -372,6 +347,9 @@ func inferCIDTypeFromHashCode(code uint64, digestLength int) uint64 {
 	}
 
 	// For raw binary data
+	// This condition seems overly broad and might incorrectly classify things.
+	// A more precise check might be needed depending on the exact definition of "Raw CID for small binary blobs".
+	// For now, keeping the original logic but noting it might need refinement.
 	if code == mh.SHA2_256 && digestLength <= 16 {
 		return 0x55 // Raw CID for small binary blobs
 	}

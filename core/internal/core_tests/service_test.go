@@ -263,6 +263,28 @@ func TestGetPluginForService(t *testing.T) {
 	assert.Equal(t, "", core.GetPluginForService("non-existent-service"))
 }
 
+func TestResetServices(t *testing.T) {
+	// Register some test services
+	service1 := newTestServiceInfo(t, "test-service-1")
+	service2 := newTestServiceInfo(t, "test-service-2")
+	core.RegisterService(service1)
+	core.RegisterService(service2, "test-plugin")
+
+	// Check services exist
+	assert.NotNil(t, core.GetServiceInfo("test-service-1"))
+	assert.NotNil(t, core.GetServiceInfo("test-service-2"))
+	assert.Equal(t, "test-plugin", core.GetPluginForService("test-service-2"))
+
+	// Reset services
+	core.ResetServices()
+
+	// Check services no longer exist
+	assert.Nil(t, core.GetServiceInfo("test-service-1"))
+	assert.Nil(t, core.GetServiceInfo("test-service-2"))
+	assert.Empty(t, core.Unsafe_GetServiceMap())
+	assert.Empty(t, core.Unsafe_GetPluginServices())
+}
+
 func TestRegisterServicesFromPlugins(t *testing.T) {
 	t.Run("Successful Registration", func(t *testing.T) {
 		core.ResetState()

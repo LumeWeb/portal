@@ -3,24 +3,48 @@ package core
 import (
 	"github.com/gammazero/workerpool"
 	mh "github.com/multiformats/go-multihash"
+	mhcore "github.com/multiformats/go-multihash/core" // Import the core package
 	"hash"
 	"io"
 	"sync"
 )
 
+// HashFactory is an interface for creating hash.Hash instances.
+// This allows us to inject different implementations for testing.
+// This interface is now primarily for internal use and testing.
+type HashFactory interface {
+	// GetHasher returns a hash.Hash for the given code, using the default size.
+	GetHasher(code uint64) (hash.Hash, error)
+	// GetVariableHasher returns a hash.Hash for the given code and size hint.
+	GetVariableHasher(code uint64, sizeHint int) (hash.Hash, error)
+}
+
+// DefaultHashFactory is a HashFactory that wraps the standard go-multihash functions.
+type DefaultHashFactory struct{}
+
+func (f DefaultHashFactory) GetHasher(code uint64) (hash.Hash, error) {
+	return mhcore.GetHasher(code)
+}
+
+func (f DefaultHashFactory) GetVariableHasher(code uint64, sizeHint int) (hash.Hash, error) {
+	return mhcore.GetVariableHasher(code, sizeHint)
+}
+
 type MultiHasher struct {
-	writers   []io.Writer
-	hashes    []hash.Hash
-	algos     []HashAlgorithm
-	pool      *workerpool.WorkerPool
-	mutex     sync.Mutex // Protects access to hashes during concurrent writes
-	verifying bool       // If true, we're in verify mode
+	writers     []io.Writer
+	hashes      []hash.Hash
+	algos       []HashAlgorithm
+	pool        *workerpool.WorkerPool
+	mutex       sync.Mutex // Protects access to hashes during concurrent writes
+	verifying   bool       // If true, we're in verify mode
+	verifyReqs  []*VerifyRequest // Store verify requests for Sums()
+	hashFactory HashFactory // Injected dependency for creating hashers
 }
 
 type HashResult struct {
 	Hash      StorageHash
 	Algorithm HashAlgorithm
-	Proof     []byte // Set when generated during hashing
+	Proof     []byte // Set when generated during hashing or from VerifyRequest
 	Verified  bool   // Set in verify mode
 	Error     error  // Any errors during hashing, proof generation, or verification
 }
@@ -34,7 +58,14 @@ type VerifyRequest struct {
 
 // NewMultiHasher creates a new MultiHasher
 // If verifyReqs is non-empty, the hasher will be in verify mode
+// An optional HashFactory can be provided for testing purposes.
 func NewMultiHasher(verifyReqs ...*VerifyRequest) *MultiHasher {
+	return NewMultiHasherWithFactory(DefaultHashFactory{}, verifyReqs...)
+}
+
+// NewMultiHasherWithFactory creates a new MultiHasher with a specific HashFactory.
+// This is primarily for testing.
+func NewMultiHasherWithFactory(factory HashFactory, verifyReqs ...*VerifyRequest) *MultiHasher {
 	registry := GetHashRegistry()
 	algos := registry.GetHashAlgorithms()
 
@@ -42,58 +73,63 @@ func NewMultiHasher(verifyReqs ...*VerifyRequest) *MultiHasher {
 	pool := workerpool.New(len(algos))
 
 	hasher := &MultiHasher{
-		writers:   make([]io.Writer, len(algos)),
-		hashes:    make([]hash.Hash, len(algos)),
-		algos:     algos,
-		pool:      pool,
-		verifying: verifying,
+		writers:     make([]io.Writer, len(algos)),
+		hashes:      make([]hash.Hash, len(algos)),
+		algos:       algos,
+		pool:        pool,
+		verifying:   verifying,
+		verifyReqs:  verifyReqs, // Store verify requests
+		hashFactory: factory,
 	}
 
 	for i, algo := range algos {
 		if verifying {
 			// In verify mode, look for a verify request for this algorithm
+			var matchingReq *VerifyRequest
 			for _, req := range verifyReqs {
 				if req.Algorithm.Type == algo.Type {
-					// Try specialized verifier if available
-					if algo.NewVerifier != nil {
-						h, err := algo.NewVerifier(req.Hash, req.Proof)
-						if err == nil {
-							hasher.hashes[i] = h
-							hasher.writers[i] = h
-							break
-						}
-					}
-
-					// Fall back to standard hasher with proof provider capability
-					h, err := mh.GetHasher(algo.Type)
-					if err != nil {
-						continue
-					}
-
-					hasher.hashes[i] = h
-					hasher.writers[i] = h
-
-					// Provide proof data if the hasher supports it
-					if provider, ok := h.(HashProofProvider); ok {
-						_ = provider.SetProof(req.Proof)
-					}
+					matchingReq = req
 					break
 				}
 			}
 
-			// If no verify request for this algo, set up normal hasher
-			if hasher.hashes[i] == nil {
-				h, err := mh.GetHasher(algo.Type)
+			if matchingReq != nil {
+				// Try specialized verifier if available
+				if algo.NewVerifier != nil {
+					h, err := algo.NewVerifier(matchingReq.Hash, matchingReq.Proof)
+					if err == nil {
+						hasher.hashes[i] = h
+						hasher.writers[i] = h
+						continue // Move to the next algorithm
+					}
+					// If specialized verifier fails, fall through to standard hasher
+				}
+
+				// Fall back to standard hasher with proof provider capability
+				// Use GetVariableHasher with the expected digest length from the StorageHash
+				decodedHash, err := mh.Decode(matchingReq.Hash.Multihash())
 				if err != nil {
+					// If we can't decode the hash, we can't get the size hint, skip this algo
 					continue
 				}
+
+				h, err := factory.GetVariableHasher(algo.Type, decodedHash.Length)
+				if err != nil {
+					// If we can't get the hasher, skip this algo
+					continue
+				}
+
 				hasher.hashes[i] = h
 				hasher.writers[i] = h
+
+				// Don't set proof here - will be set in Sums() when needed
 			}
+			// If no verify request for this algo, this hasher remains nil
 		} else {
 			// Create mode - normal hashers for all algorithms
-			h, err := mh.GetHasher(algo.Type)
+			h, err := factory.GetHasher(algo.Type)
 			if err != nil {
+				// If we can't get the hasher, this hasher remains nil
 				continue
 			}
 			hasher.hashes[i] = h
@@ -105,11 +141,6 @@ func NewMultiHasher(verifyReqs ...*VerifyRequest) *MultiHasher {
 }
 
 func (m *MultiHasher) Write(p []byte) (n int, err error) {
-	// Make a copy of the data since p might be reused by the caller
-	dataCopy := make([]byte, len(p))
-	copy(dataCopy, p)
-
-	// Use a WaitGroup to wait for all hash operations to complete
 	var wg sync.WaitGroup
 	var errMutex sync.Mutex
 	var writeErr error
@@ -118,25 +149,28 @@ func (m *MultiHasher) Write(p []byte) (n int, err error) {
 		if w != nil {
 			wg.Add(1)
 
-			// Capture loop variables to avoid closure problems
 			writer := w
+			// Create a new copy of the data for each worker
+			dataCopy := make([]byte, len(p))
+			copy(dataCopy, p)
 
 			// Submit task to worker pool
 			m.pool.Submit(func() {
 				defer wg.Done()
 
-				// Perform the write operation
 				_, err := writer.Write(dataCopy)
 				if err != nil {
 					errMutex.Lock()
-					writeErr = err
+					// Only store the first error encountered
+					if writeErr == nil {
+						writeErr = err
+					}
 					errMutex.Unlock()
 				}
 			})
 		}
 	}
 
-	// Wait for all hash operations to complete
 	wg.Wait()
 
 	if writeErr != nil {
@@ -156,25 +190,53 @@ func (m *MultiHasher) Sums() []HashResult {
 
 		sum := h.Sum(nil)
 		var proof []byte
+		var verified bool
+		var verifyErr error
 
-		// Check for proof generation
-		if generator, ok := h.(HashProofGenerator); ok {
-			proof = generator.GetProof()
+		if m.verifying {
+			// In verify mode, get proof from the original verify request
+			var matchingReq *VerifyRequest
+			for _, req := range m.verifyReqs {
+				if req.Algorithm.Type == m.algos[i].Type {
+					matchingReq = req
+					break
+				}
+			}
+			if matchingReq != nil {
+				proof = matchingReq.Proof
+				
+				// Set proof right before verification if the hasher supports it
+				if provider, ok := h.(HashProofProvider); ok {
+					if err := provider.SetProof(proof); err != nil {
+						verifyErr = err
+						continue
+					}
+				}
+			}
+
+			// Check if the hasher can verify the proof
+			if verifier, ok := h.(HashProofVerifier); ok {
+				verified, verifyErr = verifier.VerifyProof()
+			} else {
+				// If not a verifier, it's not considered verified by this hasher
+				verified = false
+				verifyErr = nil // No verification error if it doesn't implement the interface
+			}
+		} else {
+			// In create mode, get proof from the hasher if it generates one
+			if generator, ok := h.(HashProofGenerator); ok {
+				proof = generator.GetProof()
+			}
+			verified = false // Not in verify mode
+			verifyErr = nil
 		}
 
 		result := HashResult{
 			Hash:      NewStorageHash(sum, m.algos[i].Type, 0, proof),
 			Algorithm: m.algos[i],
-			Proof:     proof,
-		}
-
-		// Check for verification if in verify mode
-		if m.verifying {
-			if verifier, ok := h.(HashProofVerifier); ok {
-				verified, err := verifier.VerifyProof()
-				result.Verified = verified
-				result.Error = err
-			}
+			Proof:     proof, // Proof from either generation or verify request
+			Verified:  verified,
+			Error:     verifyErr, // Only verification errors are reported here
 		}
 
 		results = append(results, result)
@@ -183,7 +245,8 @@ func (m *MultiHasher) Sums() []HashResult {
 }
 
 func (m *MultiHasher) Close() {
-	// Stop the worker pool when the MultiHasher is no longer needed
+	// StopWait waits for all submitted tasks to complete.
+	// If we want to allow cancelling ongoing writes, we might need a context.
 	m.pool.StopWait()
 }
 
@@ -200,4 +263,36 @@ type HashProofProvider interface {
 // HashProofVerifier represents a hash implementation that can verify proofs
 type HashProofVerifier interface {
 	VerifyProof() (bool, error)
+}
+
+type TestingHashWithProof interface {
+	hash.Hash
+	HashProofGenerator
+	HashProofProvider
+}
+
+type TestingHashProofGenerator interface {
+	hash.Hash
+	HashProofGenerator
+}
+
+type TestingHashProofProvider interface {
+	hash.Hash
+	HashProofProvider
+}
+
+type TestingHashProofVerifier interface {
+	hash.Hash
+	HashProofVerifier
+}
+
+type TestingTestingHashWithProof interface {
+	hash.Hash
+	HashProofGenerator
+	HashProofProvider
+	HashProofVerifier
+}
+
+type TestingHash interface {
+	hash.Hash
 }

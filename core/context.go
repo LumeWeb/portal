@@ -345,29 +345,13 @@ func ServiceExists(ctx Context, id string) bool {
 
 // ResetState resets all global state in the core package for testing purposes
 func ResetState() {
-	// Reset protocols
-	protocolsMu.Lock()
-	protocols = make(map[string]Protocol)
-	protocolsMu.Unlock()
-
-	// Reset APIs
-	apisMu.Lock()
-	apis = make(map[string]API)
-	apisMu.Unlock()
-
-	// Reset services
-	servicesMu.Lock()
-	services = make(map[string]ServiceInfo)
-	servicesOrderedMu.Lock()
-	servicesOrdered = nil
-	servicesOrderedMu.Unlock()
-	servicesMu.Unlock()
-
-	// Reset plugin services
-	pluginServicesMu.Lock()
-	pluginServices = make(map[string][]string)
-	pluginServicesMu.Unlock()
-
+	ResetProtocols()
+	ResetAPIs()
+	ResetServices()
+	ResetEvents()
+	ResetHashAlgorithms()
+	ResetUploadHandlers()
+	
 	// Reset plugins
 	pluginsMu.Lock()
 	plugins = make(map[string]PluginInfo)
@@ -375,17 +359,4 @@ func ResetState() {
 	pluginsOrdered = nil
 	pluginsOrderedMu.Unlock()
 	pluginsMu.Unlock()
-
-	// Reset events
-	eventRegistryMutex.Lock()
-	eventRegistry = make(map[string]Eventer)
-	eventRegistryMutex.Unlock()
-
-	// Reset hash registry
-	globalHashRegistry = NewHashRegistry()
-
-	// Reset upload data handlers
-	uploadDataHandlersMu.Lock()
-	uploadDataHandlers = make(map[string]UploadDataHandler)
-	uploadDataHandlersMu.Unlock()
 }

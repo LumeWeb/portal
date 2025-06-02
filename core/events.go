@@ -131,6 +131,12 @@ func RegisterEvent(id string, event Eventer) {
 	eventRegistry[id] = event
 }
 
+func ResetEvents() {
+	eventRegistryMutex.Lock()
+	defer eventRegistryMutex.Unlock()
+	eventRegistry = make(map[string]Eventer)
+}
+
 func GetEvents() []Eventer {
 	eventRegistryMutex.RLock()
 	defer eventRegistryMutex.RUnlock()

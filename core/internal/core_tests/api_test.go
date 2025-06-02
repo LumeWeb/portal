@@ -89,3 +89,24 @@ func TestGetAPIList(t *testing.T) {
 	apiList := GetAPIList()
 	require.Len(t, apiList, 2)
 }
+
+func TestResetAPIs(t *testing.T) {
+	// Register some test APIs
+	mockAPI1 := mocks.NewMockAPI(t)
+	mockAPI2 := mocks.NewMockAPI(t)
+	RegisterAPI("test-api-1", mockAPI1)
+	RegisterAPI("test-api-2", mockAPI2)
+
+	// Check APIs exist
+	assert.True(t, APIExists("test-api-1"))
+	assert.True(t, APIExists("test-api-2"))
+
+	// Reset APIs
+	ResetAPIs()
+
+	// Check APIs no longer exist
+	assert.False(t, APIExists("test-api-1"))
+	assert.False(t, APIExists("test-api-2"))
+	assert.Empty(t, GetAPIs())
+	assert.Empty(t, GetAPIList())
+}

@@ -104,6 +104,12 @@ func PluginHasProtocol(plugin PluginInfo) bool {
 	return plugin.Protocol != nil
 }
 
+func ResetProtocols() {
+	protocolsMu.Lock()
+	defer protocolsMu.Unlock()
+	protocols = make(map[string]Protocol)
+}
+
 func ProtocolHasDataRequestHandler(name string) bool {
 	protocol, ok := protocols[name]
 

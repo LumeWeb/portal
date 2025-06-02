@@ -46,6 +46,12 @@ func NewHashRegistry() *HashRegistryDefault {
 	}
 }
 
+func ResetHashAlgorithms() {
+	globalHashRegistry.mu.Lock()
+	defer globalHashRegistry.mu.Unlock()
+	globalHashRegistry.algorithms = make([]HashAlgorithm, 0)
+}
+
 func (r *HashRegistryDefault) RegisterHashAlgorithm(algo HashAlgorithm) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

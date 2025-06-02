@@ -100,3 +100,9 @@ func GetAPIList() []API {
 func PluginHasAPI(plugin PluginInfo) bool {
 	return plugin.API != nil
 }
+
+func ResetAPIs() {
+	apisMu.Lock()
+	defer apisMu.Unlock()
+	apis = make(map[string]API)
+}

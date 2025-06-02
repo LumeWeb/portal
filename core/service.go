@@ -199,3 +199,17 @@ func Unsafe_GetPluginServices() map[string][]string {
 func Unsafe_GetPluginServicesMutex() *sync.RWMutex {
 	return &pluginServicesMu
 }
+
+func ResetServices() {
+	servicesMu.Lock()
+	defer servicesMu.Unlock()
+	services = make(map[string]ServiceInfo)
+	
+	servicesOrderedMu.Lock()
+	defer servicesOrderedMu.Unlock()
+	servicesOrdered = nil
+
+	pluginServicesMu.Lock()
+	defer pluginServicesMu.Unlock()
+	pluginServices = make(map[string][]string)
+}
