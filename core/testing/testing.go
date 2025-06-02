@@ -32,6 +32,7 @@ var (
 	setupMockDB       = false
 	setupMockDBMu     sync.RWMutex
 	testContexts      sync.Map // map[*testing.T]TestContext
+	testMutex         sync.Mutex // Protects test execution
 )
 
 // TestMainOpts configures test main behavior
@@ -242,6 +243,10 @@ func GetTestContext(t TB) TestContext {
 // RunTestCase provides a cleaner way to run tests with automatic context setup
 func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
+	
+	testMutex.Lock()
+	defer testMutex.Unlock()
+
 	// Add any provided options to the global collection first
 	if len(opts) > 0 {
 		AddTestContextOptions(opts...)
@@ -266,6 +271,10 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
 func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
+	
+	testMutex.Lock()
+	defer testMutex.Unlock()
+
 	EnableDBMigrations()
 	defer DisableDBMigrations()
 	// Add any provided options to the global collection first
