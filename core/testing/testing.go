@@ -1018,6 +1018,28 @@ func GetMockConfig(ctx core.Context) *MockConfigManager {
 	return mockConfig
 }
 
+// WithMockAPIConfig sets an expectation on the mock ConfigManager
+// to return the provided config when GetAPI is called with the given ID.
+// The expectation is set to Maybe() to allow but not require the call.
+func WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		mockConfig := GetMockConfig(ctx)
+		mockConfig.On("GetAPI", apiID).Return(apiConfig).Maybe()
+		return ctx, nil
+	}
+}
+
+// WithMockProtocolConfig sets an expectation on the mock ConfigManager
+// to return the provided config when GetProtocol is called with the given ID.
+// The expectation is set to Maybe() to allow but not require the call.
+func WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		mockConfig := GetMockConfig(ctx)
+		mockConfig.On("GetProtocol", protocolID).Return(protocolConfig).Maybe()
+		return ctx, nil
+	}
+}
+
 // GetMockAccessService returns the mock access service from the context for testing
 // Panics if the access service is not a mock
 func GetMockAccessService(ctx core.Context) *MockAccessService {

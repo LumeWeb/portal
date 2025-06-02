@@ -370,7 +370,7 @@
 //     database interactions without external dependencies. This is included
 //     in the default options if `EnableMockDB()` is called (e.g., by `RunTestCaseWithDB`).
 //
-//   - `WithMockService(id string, service core.Service)`: A `TestContextBuilderOption`
+//   - `WithMockService(id string, mockConstructor func(tb TB) interface{})`: A `TestContextBuilderOption`
 //     to register a specific mock service instance directly. The service instance
 //     is provided when creating the option. This can be useful for simple mock
 //     structs that don't require the testing.TB instance during creation, or
@@ -422,11 +422,18 @@
 //
 //   - `NewAPIRegistrationOption(id string, factory core.APIFactory)`: Creates a
 //     `TestContextBuilderOption` to register and configure an API. Pass this option
-//     to `RunTestCase` or `TestMain` helpers.
+//     to `RunTestCase` or `TestMain` helpers. **If the API factory or its `Init`
+//     method retrieves its configuration using `ctx.Config().GetAPI(id)`, you
+//     must also provide a corresponding `WithMockAPIConfig(id, config)` option
+//     in the same list of options.**
 //
 //   - `NewProtocolRegistrationOption(id string, factory core.ProtocolFactory)`: Creates a
-//     `TestContextBuilderOption` to register and configure a Protocol for testing purposes.
-//     Pass this option to `RunTestCase` or `TestMain` helpers.
+//     `TestContextBuilderOption` that wraps RegisterProtocol
+//     to register and configure a Protocol for testing purposes.
+//     Pass this option to `RunTestCase` or `TestMain` helpers. **If the Protocol
+//     factory or its `Init` method retrieves its configuration using
+//     `ctx.Config().GetProtocol(id)`, you must also provide a corresponding
+//     `WithMockProtocolConfig(id, config)` option in the same list of options.**
 //
 //   - `RegisterAPI(ctx TestContext, id string, factory core.APIFactory)`: Registers
 //     an API globally and returns `TestContextBuilderOption`s needed to integrate
@@ -675,6 +682,146 @@
 // By using `ctx.Router()`, `net/http.NewRequest`, `httptest.NewRecorder`, and
 // asserting the response details, you can effectively test the behavior of your
 // API routes and the middleware applied to them within the isolated test environment.
+//
+// Mocking Configuration:
+//
+// Components like APIs and Protocols often retrieve their specific configuration
+// from the `ConfigManager` during their initialization (`Init`) or when handling
+// requests/messages. When using the default mock `ConfigManager` in tests, these
+// configuration lookups need to be mocked to provide the expected configuration
+// values to the component under test.
+//
+// The testing package provides helper functions to simplify mocking the `GetAPI`
+// and `GetProtocol` methods of the mock `ConfigManager`.
+//
+// - `WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption`:
+//   This helper is the recommended way to mock the configuration returned by
+//   `ctx.Config().GetAPI(apiID)`. It sets an expectation on the mock `ConfigManager`
+//   to return the provided `apiConfig` when `GetAPI` is called with the specified `apiID`.
+//   This is crucial when testing APIs whose factory or `Init` method reads its
+//   configuration from the `ConfigManager`.
+//
+//   Example Usage with `RunTestCase`:
+//
+//   ```go
+//   import (
+//       "testing"
+//       "github.com/stretchr/testify/assert"
+//       "go.lumeweb.com/portal/config" // Assuming your config structs are here
+//       coreTesting "go.lumeweb.com/portal/core/testing"
+//   )
+//
+//   // Assume NewMyAPIFactory is a core.APIFactory that looks up its config:
+//   // func NewMyAPIFactory() (core.API, []core.ContextBuilderOption, error) {
+//   //     // ... create API instance ...
+//   //     return &MyAPI{ /* ... */ }, []core.ContextBuilderOption{
+//   //         core.ContextWithStartupFunc(func(ctx core.Context) error {
+//   //             // This is where the API might read its config during boot
+//   //             apiConfig, err := ctx.Config().GetAPI("myapi")
+//   //             if err != nil {
+//   //                 return err
+//   //             }
+//   //             // Use apiConfig to initialize the API instance
+//   //             // myAPIInstance.SetConfig(apiConfig.(*config.APIConfig))
+//   //             return nil
+//   //         }),
+//   //     }, nil
+//   // }
+//
+//   func TestMyAPIInitialization(t *testing.T) {
+//       // Define the expected configuration for your API
+//       mockAPIConfig := &config.APIConfig{
+//           Enabled: true,
+//           Setting: "some_value", // Assuming APIConfig has a 'Setting' field
+//       }
+//
+//       coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//           // Inside this test, when the test environment boots and configures APIs,
+//           // if your API calls ctx.Config().GetAPI("myapi"), it will receive mockAPIConfig.
+//
+//           // You can then assert that your API initialized correctly based on this config.
+//           // For example, if your API stores its config internally:
+//           // myAPI := core.GetAPI("myapi") // Assuming you registered "myapi"
+//           // assert.NotNil(tb, myAPI)
+//           // assert.Equal(tb, mockAPIConfig.Setting, myAPI.GetInternalSetting()) // Assuming GetInternalSetting exists
+//
+//       },
+//           // Use the helper to provide the mock config for "myapi"
+//           coreTesting.WithMockAPIConfig("myapi", mockAPIConfig),
+//           // You MUST also include the registration option for the API itself
+//           coreTesting.NewAPIRegistrationOption("myapi", NewMyAPIFactory), // Assuming NewMyAPIFactory exists
+//       )
+//   }
+//   ```
+//
+// - `WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption`:
+//   This helper is the recommended way to mock the configuration returned by
+//   `ctx.Config().GetProtocol(protocolID)`. It sets an expectation on the mock
+//   `ConfigManager` to return the provided `protocolConfig` when `GetProtocol`
+//   is called with the specified `protocolID`. This is crucial when testing Protocols
+//   whose factory or `Init` method reads its configuration from the `ConfigManager`.
+//
+//   Example Usage with `RunTestCase`:
+//
+//   ```go
+//   import (
+//       "testing"
+//       "github.com/stretchr/testify/assert"
+//       "go.lumeweb.com/portal/config" // Assuming your config structs are here
+//       coreTesting "go.lumeweb.com/portal/core/testing"
+//   )
+//
+//   // Assume NewMyProtocolFactory is a core.ProtocolFactory that looks up its config:
+//   // func NewMyProtocolFactory() (core.Protocol, []core.ContextBuilderOption, error) {
+//   //     // ... create Protocol instance ...
+//   //     return &MyProtocol{ /* ... */ }, []core.ContextBuilderOption{
+//   //         core.ContextWithStartupFunc(func(ctx core.Context) error {
+//   //             // This is where the Protocol might read its config during boot
+//   //             protoConfig, err := ctx.Config().GetProtocol("myproto")
+//   //             if err != nil {
+//   //                 return err
+//   //             }
+//   //             // Use protoConfig to initialize the Protocol instance
+//   //             // myProtocolInstance.SetConfig(protoConfig.(*config.ProtocolConfig))
+//   //             return nil
+//   //         }),
+//   //     }, nil
+//   // }
+//
+//   func TestMyProtocolInitialization(t *testing.T) {
+//       // Define the expected configuration for your Protocol
+//       mockProtocolConfig := &config.ProtocolConfig{
+//           Timeout: 60, // Assuming ProtocolConfig has a 'Timeout' field
+//       }
+//
+//       coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//           // Inside this test, when the test environment boots and configures Protocols,
+//           // if your Protocol calls ctx.Config().GetProtocol("myproto"), it will receive mockProtocolConfig.
+//
+//           // You can then assert that your Protocol initialized correctly based on this config.
+//           // For example, if your Protocol stores its config internally:
+//           // myProtocol := core.GetProtocol("myproto") // Assuming you registered "myproto"
+//           // assert.NotNil(tb, myProtocol)
+//           // assert.Equal(tb, mockProtocolConfig.Timeout, myProtocol.GetInternalTimeout()) // Assuming GetInternalTimeout exists
+//
+//       },
+//           // Use the helper to provide the mock config for "myproto"
+//           coreTesting.WithMockProtocolConfig("myproto", mockProtocolConfig),
+//           // You MUST also include the registration option for the Protocol itself
+//           coreTesting.NewProtocolRegistrationOption("myproto", NewMyProtocolFactory), // Assuming NewMyProtocolFactory exists
+//       )
+//   }
+//   ```
+//
+// These helpers set `Maybe()` expectations on the mock `ConfigManager`. This means
+// the test will not fail if the `GetAPI` or `GetProtocol` call for the specified ID
+// does *not* occur during the test. However, if the call *does* occur, the mock
+// will return the configuration object you provided. This is often sufficient for
+// tests where you just need the component to receive a specific config if it asks
+// for it. For stricter tests where you need to assert that `GetAPI` or `GetProtocol`
+// was called a specific number of times (e.g., `Once()`), you may need to manually
+// retrieve the mock config manager using `GetMockConfig(ctx)` and set the expectation
+// directly using `mockConfig.On(...)`.
 //
 // Advanced Test Setup Scenarios:
 //
