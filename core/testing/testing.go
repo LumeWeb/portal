@@ -830,7 +830,7 @@ func WrapCoreOptions(opts []core.ContextBuilderOption) []TestContextBuilderOptio
 type MockServiceFactory = func(interface {
 	mock.TestingT
 	Cleanup(func())
-}) core.Service
+}) any
 
 // WithMockServiceFactory creates a TestContextBuilderOption that registers a service
 // by calling a factory function during the test context's BootEnvironment phase.
@@ -851,8 +851,14 @@ func WithMockServiceFactory(id string, factory MockServiceFactory) TestContextBu
 			// Call the factory function to create the service using the test's TB
 			serviceInstance := factory(tctx.T())
 
+			// Ensure the mock implements core.Service
+			service, ok := serviceInstance.(core.Service)
+			if !ok {
+				return fmt.Errorf("mock for service '%s' does not implement core.Service", id)
+			}
+
 			// Register the created service in the context
-			tctx.RegisterService(id, serviceInstance)
+			tctx.RegisterService(id, service)
 
 			// The testing.TB.Cleanup registered by SetupTest should handle
 			// verifying expectations on mocks created with tctx.T().
