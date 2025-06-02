@@ -300,7 +300,10 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 
 // ResetAllState resets all global state in the core package and testing package
 func ResetAllState() {
+	// Reset core state
 	core.ResetState()
+
+	// Reset testing state
 	ClearTestContextOptions()
 	DisableDBMigrations()
 	DisableMockDB()

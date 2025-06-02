@@ -48,6 +48,12 @@ func GetUploadDataHandler(id string) (UploadDataHandler, bool) {
 	return handler, ok
 }
 
+func ResetUploadHandlers() {
+	uploadDataHandlersMu.Lock()
+	defer uploadDataHandlersMu.Unlock()
+	uploadDataHandlers = make(map[string]UploadDataHandler)
+}
+
 type UploadService interface {
 	SaveUpload(ctx context.Context, upload *models.Upload) error
 	GetUpload(ctx context.Context, objectHash StorageHash) (*models.Upload, error)

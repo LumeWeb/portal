@@ -81,3 +81,23 @@ func TestGetAPIExtensions_MultipleExtensions(t *testing.T) {
 	mockExt2.AssertExpectations(t)
 	mockExt3.AssertExpectations(t)
 }
+
+func TestResetEvents(t *testing.T) {
+	// Register some test events
+	mockEvent1 := mocks.NewMockEventer(t)
+	mockEvent1.On("SetName", "test-event-1").Return(nil)
+	mockEvent2 := mocks.NewMockEventer(t)
+	mockEvent2.On("SetName", "test-event-2").Return(nil)
+	RegisterEvent("test-event-1", mockEvent1)
+	RegisterEvent("test-event-2", mockEvent2)
+
+	// Check events exist
+	events := GetEvents()
+	assert.Len(t, events, 2)
+
+	// Reset events
+	ResetEvents()
+
+	// Check events no longer exist
+	assert.Empty(t, GetEvents())
+}

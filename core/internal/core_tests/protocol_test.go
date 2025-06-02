@@ -158,3 +158,24 @@ func TestGetProtocolPinHandler(t *testing.T) {
 		core.GetProtocolPinHandler("protocol-without-handler")
 	})
 }
+
+func TestResetProtocols(t *testing.T) {
+	// Register some test protocols
+	mockProtocol1 := mocks.NewMockProtocol(t)
+	mockProtocol2 := mocks.NewMockProtocol(t)
+	core.RegisterProtocol("test-protocol-1", mockProtocol1)
+	core.RegisterProtocol("test-protocol-2", mockProtocol2)
+
+	// Check protocols exist
+	assert.True(t, core.ProtocolExists("test-protocol-1"))
+	assert.True(t, core.ProtocolExists("test-protocol-2"))
+
+	// Reset protocols
+	core.ResetProtocols()
+
+	// Check protocols no longer exist
+	assert.False(t, core.ProtocolExists("test-protocol-1"))
+	assert.False(t, core.ProtocolExists("test-protocol-2"))
+	assert.Empty(t, core.GetProtocols())
+	assert.Empty(t, core.GetProtocolList())
+}
