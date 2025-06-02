@@ -171,12 +171,47 @@
 //		})
 //	}
 //
+//	func TestServiceWithMockDependency(t *testing.T) {
+//		coreTesting.RunTestCase(t, func(t coreTesting.TB, ctx coreTesting.TestContext) {
+//			// Use WithMockServiceFactory to provide a mock that needs the testing.TB instance.
+//			// This factory function will be called during BootEnvironment.
+//			ctx, err := coreTesting.ProcessCtxOptions(ctx,
+//				coreTesting.WithMockServiceFactory(core.MY_DEPENDENCY_SERVICE, func(tb coreTesting.TB) interface{} {
+//					// Create the mock using the provided TB
+//					mockDependency := coreMocks.NewMockMyDependencyService(tb) // Assuming this mock exists
+//					// Set expectations here if needed for the mock's initialization phase
+//					return mockDependency
+//				}),
+//				// Add the real service that depends on the mock
+//				// coreTesting.WithRealMyService(), // Assuming this option exists
+//			)
+//			require.NoError(t, err)
+//
+//			// Retrieve the mock from the context to set expectations for the test logic
+//			mockDependency := coreTesting.GetMockMyDependencyService(ctx) // Assuming this helper exists
+//			assert.NotNil(t, mockDependency)
+//
+//			// Set expectation on the mock for the test logic
+//			mockDependency.EXPECT().DoSomething().Return(nil).Once()
+//
+//			// Get the real service that uses the dependency
+//			// myService := core.GetService[core.MyService](ctx, core.MY_SERVICE)
+//			// assert.NotNil(t, myService)
+//
+//			// Call the service method that uses the dependency
+//			// err := myService.PerformAction()
+//			// assert.NoError(t, err)
+//
+//			// Assert that the mock expectation was met (handled by t.Cleanup)
+//		})
+//	}
+//
 // In this pattern:
 //   - No `TestMain` is required.
 //   - Each test function calls `testing.RunTestCase` or `testing.RunTestCaseWithDB`.
 //   - `RunTestCase` internally calls `testing.SetupTest` (which creates a new
 //     `TestContext` for this test) and registers `ctx.Teardown()` with `t.Cleanup()`.
-//   - `DefaultTestEnvironmentOptions` are applied to the context by default.
+//   - `DefaultTestContextOptions` are applied to the context by default.
 //   - Additional `TestContextBuilderOption`s can be passed to `RunTestCase` or
 //     `RunTestCaseWithDB` to customize the environment for that specific test.
 //   - Helpers like `RegisterAPI`, `RegisterProtocol`, `RegisterAPIExtension`,
@@ -230,14 +265,48 @@
 //
 //   - `DefaultTestContextOptions(tb TB)`: Provides a standard set of options
 //     for `SetupTest`, typically including mock implementations of
-//     common core services and a default router.
+//     common core services and a default router. These options are applied
+//     automatically by `SetupTest` and `RunTestCase` helpers and do not
+//     need to be explicitly passed unless you want to override them.
+//     The default options currently include:
+//       - `WithDomain("test.local")`
+//       - `WithRandomSeedPhrase()`
+//       - `WithCoreEvents()`
+//       - `WithSQLite(tb)` (if `EnableMockDB()` is called, e.g., by `WithDB` helpers)
+//       - `WithMockAccessService(tb)`
+//       - `WithRouter(...)` (a default test router)
+//       - `WithMockAuthService(tb)`
+//       - `WithMockConfigService(tb)`
+//       - `WithMockContentScannerService(tb)`
+//       - `WithMockCronService(tb)`
+//       - `WithMockHTTPService(tb)`
+//       - `WithMockHashMappingService(tb)`
+//       - `WithMockMailerService(tb)`
+//       - `WithMockOTPService(tb)`
+//       - `WithMockPasswordResetService(tb)`
+//       - `WithMockPinService(tb)`
+//       - `WithMockRequestService(tb)`
+//       - `WithMockRenterService(tb)`
+//       - `WithMockStorageService(tb)`
+//       - `WithMockTUSService(tb)`
+//       - `WithMockUserService(tb)`
+//       - `WithMockWorkflowService(tb)`
 //
 //   - `WithInMemorySQLite()`: A `TestContextBuilderOption` that configures the
 //     context to use a real, in-memory SQLite database. Useful for testing
-//     database interactions without external dependencies.
+//     database interactions without external dependencies. This is included
+//     in the default options if `EnableMockDB()` is called.
 //
 //   - `WithMockService(id string, service core.Service)`: A `TestContextBuilderOption`
-//     to register a specific mock service implementation in the context.
+//     to register a specific mock service implementation in the context. Use this
+//     when you have a pre-created mock instance that does not require the
+//     `testing.TB` instance during its construction or initial setup.
+//
+//   - `WithMockServiceFactory(id string, factory MockServiceFactory)`: A `TestContextBuilderOption`
+//     to register a service using a factory function. The factory function is called
+//     during the `BootEnvironment` phase, providing access to the `testing.TB` instance.
+//     Use this when your mock service requires the `testing.TB` instance during
+//     its creation (e.g., for mocks generated by `testify/mock` which use `t.Cleanup`).
 //
 //   - `WithConfigValue(key string, value interface{})`: A `TestContextBuilderOption`
 //     to set a specific configuration value in the mock config manager.
