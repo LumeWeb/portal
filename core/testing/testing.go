@@ -763,36 +763,26 @@ type MockServiceFactory[T any] func(interface {
 }) *T
 
 // WithMockServiceFactory creates a TestContextBuilderOption that registers a service
-// by calling a factory function during the test context's BootEnvironment phase.
+// by calling a factory function immediately during the ProcessCtxOptions phase.
 // This allows mocks that require the testing.TB instance to be created with the
 // correct TB for each individual test run.
 func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T]) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		// We don't create the service here. Instead, we register a startup function
-		// that will create and register the service later, when BootEnvironment runs.
-		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
-			// Cast the core.Context back to TestContext to access the TB
-			tctx, ok := coreCtx.(TestContext)
-			if !ok {
-				// This should not happen if the context is created by the testing package
-				return fmt.Errorf("context is not a TestContext, cannot use WithMockServiceFactory")
-			}
+		// Create the mock instance immediately using the test's TB
+		serviceInstance := factory(ctx.T())
 
-			// Call the factory function to create the service using the test's TB
-			serviceInstance := factory(tctx.T())
+		// Ensure the created instance is not nil
+		if serviceInstance == nil {
+			return ctx, fmt.Errorf("mock service factory for '%s' returned nil", id)
+		}
 
-			// Register the created service in the context
-			tctx.RegisterService(id, serviceInstance)
+		// Register the created service in the context immediately
+		ctx.RegisterService(id, serviceInstance)
 
-			// The testing.TB.Cleanup registered by SetupTest should handle
-			// verifying expectations on mocks created with tctx.T().
+		// The testing.TB.Cleanup registered by SetupTest should handle
+		// verifying expectations on mocks created with ctx.T().
 
-			return nil
-		})
-
-		// Apply the startup option to the context
-		// We need to wrap the core.ContextWithStartupFunc option
-		return ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
+		return ctx, nil
 	}
 }
 
