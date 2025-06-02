@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core/internal"
 	"sync"
@@ -36,7 +37,7 @@ func RegisterServicesFromPlugins() {
 		if PluginHasServices(plugin) {
 			svcs, err := plugin.Services()
 			if err != nil {
-				panic(err)
+				panic(fmt.Errorf("plugin %s service factory returned an error: %w", plugin.ID, err))
 			}
 
 			for _, svc := range svcs {
@@ -84,6 +85,14 @@ func RegisterService(service ServiceInfo, plugin ...string) {
 }
 
 func IsCoreService(id string) bool {
+	servicesMu.RLock()
+	defer servicesMu.RUnlock()
+
+	// First, check if the service is registered at all
+	if _, ok := services[id]; !ok {
+		return false
+	}
+
 	pluginServicesMu.Lock()
 	defer pluginServicesMu.Unlock()
 
@@ -165,4 +174,28 @@ func GetServices() []ServiceInfo {
 	servicesOrdered = svcList
 
 	return svcList
+}
+
+// Unsafe_GetServiceMap returns the internal service map for testing.
+// This function is intended for testing purposes only and should not be used in production code.
+func Unsafe_GetServiceMap() map[string]ServiceInfo {
+	return services
+}
+
+// Unsafe_GetServiceMapMutex returns the internal service map mutex for testing.
+// This function is intended for testing purposes only and should not be used in production code.
+func Unsafe_GetServiceMapMutex() *sync.RWMutex {
+	return &servicesMu
+}
+
+// Unsafe_GetPluginServices returns the internal plugin services map for testing.
+// This function is intended for testing purposes only and should not be used in production code.
+func Unsafe_GetPluginServices() map[string][]string {
+	return pluginServices
+}
+
+// Unsafe_GetPluginServicesMutex returns the internal plugin services mutex for testing.
+// This function is intended for testing purposes only and should not be used in production code.
+func Unsafe_GetPluginServicesMutex() *sync.RWMutex {
+	return &pluginServicesMu
 }

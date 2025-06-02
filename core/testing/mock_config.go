@@ -9,7 +9,6 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/config"
-	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +17,7 @@ const mapStructureTag = "config"
 // MockConfigManager implements config.Manager for testing
 // It builds on top of the mockery-generated mock and adds state tracking
 type MockConfigManager struct {
-	*mocks.MockManager
+	*config.MockManager
 	mu              sync.RWMutex
 	values          map[string]interface{}
 	cfg             *config.Config
@@ -28,7 +27,7 @@ type MockConfigManager struct {
 
 // NewMockConfigManager creates a new mock config manager with state tracking
 func NewMockConfigManager(t *testing.T) *MockConfigManager {
-	mockManager := mocks.NewMockManager(t)
+	mockManager := config.NewMockManager(t)
 	manager := &MockConfigManager{
 		MockManager: mockManager,
 		values:      make(map[string]interface{}),
@@ -225,7 +224,7 @@ func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.Prot
 	if m.MockManager != nil {
 		m.MockManager.ConfigureProtocol(pluginName, cfg)
 	}
-	
+
 	// Update the config struct
 	if m.cfg.Plugin == nil {
 		m.cfg.Plugin = make(map[string]config.PluginEntity)
@@ -236,7 +235,7 @@ func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.Prot
 	entity := m.cfg.Plugin[pluginName]
 	entity.Protocol = cfg
 	m.cfg.Plugin[pluginName] = entity
-	
+
 	return nil
 }
 
@@ -245,7 +244,7 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 	if m.MockManager != nil {
 		m.MockManager.ConfigureAPI(pluginName, cfg)
 	}
-	
+
 	// Update the config struct
 	if m.cfg.Plugin == nil {
 		m.cfg.Plugin = make(map[string]config.PluginEntity)
@@ -256,7 +255,7 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 	entity := m.cfg.Plugin[pluginName]
 	entity.API = cfg
 	m.cfg.Plugin[pluginName] = entity
-	
+
 	return nil
 }
 
@@ -265,7 +264,7 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 	if m.MockManager != nil {
 		m.MockManager.ConfigureService(pluginName, serviceName, cfg)
 	}
-	
+
 	// Update the config struct
 	if m.cfg.Plugin == nil {
 		m.cfg.Plugin = make(map[string]config.PluginEntity)
@@ -281,7 +280,7 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 	}
 	entity.Service[serviceName] = cfg
 	m.cfg.Plugin[pluginName] = entity
-	
+
 	return nil
 }
 

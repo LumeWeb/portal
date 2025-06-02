@@ -51,6 +51,18 @@ type ProtocolPinHandler interface {
 	GetProtocolPinModel() any
 }
 
+type TestingProtocolRequestDataHandler interface {
+	Protocol
+	ProtocolRequestDataHandler
+}
+
+// TestingProtocolPinHandler is a composite interface for testing
+// protocols that also handle pins.
+type TestingProtocolPinHandler interface {
+	Protocol
+	ProtocolPinHandler
+}
+
 func RegisterProtocol(id string, protocol Protocol) {
 	protocolsMu.Lock()
 	defer protocolsMu.Unlock()
