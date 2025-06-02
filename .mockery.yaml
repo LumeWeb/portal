@@ -58,11 +58,13 @@ packages:
       UserService:
       WorkflowCoordinator:
       WorkflowService:
-
+      TestingProtocolRequestDataHandler:
+      TestingProtocolPinHandler:
   go.lumeweb.com/portal/config:
     config:
-      dir: "./core/testing/mocks"
-      outpkg: "mocks"
-      filename: "{{.InterfaceName}}.go"
+      dir: "{{.InterfaceDir}}"
+      structname: "{{.Mock}}{{.InterfaceName}}"
+      outpkg: "{{.PackageName}}"
+      inpackage: true
     interfaces:
-      Manager:
+      Manager: {}

@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ Context = (*defaultContext)(nil)
+var _ Context = (*DefaultContext)(nil)
 
 type LifecycleFunc func(Context) error
 
@@ -38,8 +38,8 @@ type Context interface {
 	GetContext() context.Context
 }
 
-// defaultContext struct implementing the Context interface
-type defaultContext struct {
+// DefaultContext struct implementing the Context interface
+type DefaultContext struct {
 	context.Context
 	services     map[string]any
 	cfg          config.Manager
@@ -57,7 +57,7 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 	// Create a new context with cancel
 	baseCtx, cancel := context.WithCancel(context.Background())
 
-	newCtx := &defaultContext{
+	newCtx := &DefaultContext{
 		Context:  baseCtx,
 		services: make(map[string]any),
 		cfg:      config,
@@ -84,7 +84,7 @@ func ProcessCtxOptions(ctx Context, options ...ContextBuilderOption) (Context, e
 			return currentCtx, err
 		}
 		// Type assert back to *defaultContext if needed
-		if dc, ok := currentCtx.(*defaultContext); ok {
+		if dc, ok := currentCtx.(*DefaultContext); ok {
 			newCtx = dc
 		} else {
 			return currentCtx, fmt.Errorf("context type changed unexpectedly")
@@ -96,78 +96,78 @@ func ProcessCtxOptions(ctx Context, options ...ContextBuilderOption) (Context, e
 
 // Implement the Context interface methods for defaultContext
 
-func (ctx *defaultContext) Service(id string) any {
+func (ctx *DefaultContext) Service(id string) any {
 	if svc, ok := ctx.services[id]; ok {
 		return svc
 	}
 	return nil
 }
 
-func (ctx *defaultContext) OnExit(f LifecycleFunc) {
+func (ctx *DefaultContext) OnExit(f LifecycleFunc) {
 	ctx.exitFuncs = append(ctx.exitFuncs, f)
 }
 
-func (ctx *defaultContext) OnStartup(f LifecycleFunc) {
+func (ctx *DefaultContext) OnStartup(f LifecycleFunc) {
 	ctx.startupFuncs = append(ctx.startupFuncs, f)
 }
 
-func (ctx *defaultContext) StartupFuncs() []func(Context) error {
+func (ctx *DefaultContext) StartupFuncs() []func(Context) error {
 	return ctx.startupFuncs
 }
 
-func (ctx *defaultContext) ExitFuncs() []func(Context) error {
+func (ctx *DefaultContext) ExitFuncs() []func(Context) error {
 	return ctx.exitFuncs
 }
 
-func (ctx *defaultContext) DB() *gorm.DB {
+func (ctx *DefaultContext) DB() *gorm.DB {
 	return ctx.db.WithContext(ctx)
 }
 
-func (ctx *defaultContext) Logger() *Logger {
+func (ctx *DefaultContext) Logger() *Logger {
 	return ctx.logger
 }
 
-func (ctx *defaultContext) Config() config.Manager {
+func (ctx *DefaultContext) Config() config.Manager {
 	return ctx.cfg
 }
 
-func (ctx *defaultContext) Cancel() {
+func (ctx *DefaultContext) Cancel() {
 	ctx.cancel()
 }
 
-func (ctx *defaultContext) ExitCode() int {
+func (ctx *DefaultContext) ExitCode() int {
 	return ctx.exitCode
 }
 
-func (ctx *defaultContext) Event() *event.Manager {
+func (ctx *DefaultContext) Event() *event.Manager {
 	return ctx.event
 }
 
-func (ctx *defaultContext) SetExitCode(code int) {
+func (ctx *DefaultContext) SetExitCode(code int) {
 	ctx.exitCode = code
 }
 
-func (ctx *defaultContext) Value(key any) any {
+func (ctx *DefaultContext) Value(key any) any {
 	return ctx.Context.Value(key)
 }
 
-func (ctx *defaultContext) GetContext() context.Context {
+func (ctx *DefaultContext) GetContext() context.Context {
 	return ctx.Context
 }
 
-func (ctx *defaultContext) ProtocolLogger(protocol Protocol) *Logger {
+func (ctx *DefaultContext) ProtocolLogger(protocol Protocol) *Logger {
 	return ctx.NamedLogger(fmt.Sprintf("protocol-%s", protocol.Name()))
 }
 
-func (ctx *defaultContext) APILogger(api API) *Logger {
+func (ctx *DefaultContext) APILogger(api API) *Logger {
 	return ctx.NamedLogger(fmt.Sprintf("api-%s", api.Name()))
 }
 
-func (ctx *defaultContext) ServiceLogger(service Service) *Logger {
+func (ctx *DefaultContext) ServiceLogger(service Service) *Logger {
 	return ctx.NamedLogger(fmt.Sprintf("service-%s", service.ID()))
 }
 
-func (ctx *defaultContext) NamedLogger(name string) *Logger {
+func (ctx *DefaultContext) NamedLogger(name string) *Logger {
 	return &Logger{
 		Logger: ctx.logger.Logger.Named(name),
 		level:  ctx.logger.level,
@@ -175,7 +175,7 @@ func (ctx *defaultContext) NamedLogger(name string) *Logger {
 	}
 }
 
-func (ctx *defaultContext) WithLoggerOptions(opts ...zap.Option) *Logger {
+func (ctx *DefaultContext) WithLoggerOptions(opts ...zap.Option) *Logger {
 	return &Logger{
 		Logger: ctx.logger.Logger.WithOptions(opts...),
 		level:  ctx.logger.level,
@@ -183,7 +183,7 @@ func (ctx *defaultContext) WithLoggerOptions(opts ...zap.Option) *Logger {
 	}
 }
 
-func (ctx *defaultContext) WithLoggerLazy(opts ...zap.Field) *Logger {
+func (ctx *DefaultContext) WithLoggerLazy(opts ...zap.Field) *Logger {
 	return &Logger{
 		Logger: ctx.logger.Logger.WithLazy(opts...),
 		level:  ctx.logger.level,
@@ -191,7 +191,7 @@ func (ctx *defaultContext) WithLoggerLazy(opts ...zap.Field) *Logger {
 	}
 }
 
-func (ctx *defaultContext) WithLogger(opts ...zap.Field) *Logger {
+func (ctx *DefaultContext) WithLogger(opts ...zap.Field) *Logger {
 	return &Logger{
 		Logger: ctx.logger.Logger.With(opts...),
 		level:  ctx.logger.level,
@@ -205,7 +205,7 @@ type ContextBuilderOption func(Context) (Context, error)
 
 func ContextWithService(id string, svc Service) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
-		if defaultCtx, ok := ctx.(*defaultContext); ok {
+		if defaultCtx, ok := ctx.(*DefaultContext); ok {
 			defaultCtx.services[id] = svc
 		}
 		return ctx, nil
@@ -237,7 +237,7 @@ func ContextWithEvents(events ...Eventer) ContextBuilderOption {
 
 func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
-		if defaultCtx, ok := ctx.(*defaultContext); ok {
+		if defaultCtx, ok := ctx.(*DefaultContext); ok {
 			defaultCtx.db = db
 		}
 		return ctx, nil
@@ -259,6 +259,15 @@ func ContextWithCron(factory CronFactory) ContextBuilderOption {
 			cronService.(CronService).RegisterEntity(cron)
 			return nil
 		})
+		return ctx, nil
+	}
+}
+
+func ContextWithLoggerOptions(opts ...zap.Option) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		if defaultCtx, ok := ctx.(*DefaultContext); ok {
+			defaultCtx.logger = defaultCtx.WithLoggerOptions(opts...)
+		}
 		return ctx, nil
 	}
 }
