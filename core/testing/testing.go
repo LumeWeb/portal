@@ -31,7 +31,7 @@ var (
 	runDBMigrationsMu sync.RWMutex
 	setupMockDB       = false
 	setupMockDBMu     sync.RWMutex
-	testContexts      sync.Map // map[*testing.T]TestContext
+	testContexts      sync.Map   // map[*testing.T]TestContext
 	testMutex         sync.Mutex // Protects test execution
 )
 
@@ -243,7 +243,7 @@ func GetTestContext(t TB) TestContext {
 // RunTestCase provides a cleaner way to run tests with automatic context setup
 func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
-	
+
 	testMutex.Lock()
 	defer testMutex.Unlock()
 
@@ -271,7 +271,7 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
 func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
-	
+
 	testMutex.Lock()
 	defer testMutex.Unlock()
 
@@ -1705,6 +1705,8 @@ func DefaultRouterOption(tb TB) TestContextBuilderOption {
 // WithCoreEvents ensures core events are registered in the test environment
 func WithCoreEvents() TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
+		// Reset events
+		core.ResetEvents()
 		// Initialize all core events first
 		event.InitCoreEvents()
 
