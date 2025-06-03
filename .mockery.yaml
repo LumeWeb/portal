@@ -1,79 +1,72 @@
-with-expecter: true
-resolve-type-alias: false
-disable-version-string: true
-issue-845-fix: true
-
+template: testify
+template-data:
+  unroll-variadic: true
+filename: "{{.InterfaceName}}.go"
 packages:
-  go.lumeweb.com/portal/core:
-    config:
-      dir: "./core/testing/mocks"
-      outpkg: "mocks"
-      filename: "{{.InterfaceName}}.go"
-    interfaces:
-      AccessService:
-      APIExtension:
-      API:
-      APIInit:
-      RoutableAPI:
-      AuthService:
-      ConfigService:
-      ContentScanner:
-      ContentScannerService:
-      Context:
-      CronService:
-      Cronable:
-      Eventer:
-      HashMappingService:
-      HashRegistry:
-      HTTPService:
-      MailerTemplate:
-      MailerService:
-      PortalMetaBuilder:
-      PluginMetaBuilder:
-      HashProofGenerator:
-      HashProofProvider:
-      HashProofVerifier:
-      Operation:
-      OperationHandler:
-      OTPService:
-      PasswordResetService:
-      PinService:
-      Configurable:
-      Protocol:
-      ProtocolInit:
-      ProtocolStart:
-      ProtocolStop:
-      ProtocolRequestDataHandler:
-      ProtocolPinHandler:
-      RenterService:
-      RequestService:
-      Service:
-      StorageHash:
-      StorageProtocol:
-      StorageUploadRequest:
-      StorageService:
-      TUSService:
-      UploadDataHandler:
-      UploadService:
-      UserService:
-      WorkflowCoordinator:
-      WorkflowService:
-      TestingProtocolRequestDataHandler:
-      TestingProtocolPinHandler:
-      TestingHashWithProof:
-      TestingHashProofGenerator:
-      TestingHashProofProvider:
-      TestingHashProofVerifier:
-      TestingTestingHashWithProof:
-      HashFactory:
-      TestingHash:
-      StorageHashParser:
-      ProtocolParser:
   go.lumeweb.com/portal/config:
-    config:
-      dir: "{{.InterfaceDir}}"
-      structname: "{{.Mock}}{{.InterfaceName}}"
-      outpkg: "{{.PackageName}}"
-      inpackage: true
     interfaces:
       Manager: {}
+  go.lumeweb.com/portal/core:
+    config:
+      dir: ./core/testing/mocks
+      pkgname: "mocks"
+    interfaces:
+      API: {}
+      APIExtension: {}
+      APIInit: {}
+      AccessService: {}
+      AuthService: {}
+      ConfigService: {}
+      Configurable: {}
+      ContentScanner: {}
+      ContentScannerService: {}
+      Context: {}
+      CronService: {}
+      Cronable: {}
+      Eventer: {}
+      HTTPService: {}
+      HashFactory: {}
+      HashMappingService: {}
+      HashProofGenerator: {}
+      HashProofProvider: {}
+      HashProofVerifier: {}
+      HashRegistry: {}
+      MailerService: {}
+      MailerTemplate: {}
+      OTPService: {}
+      Operation: {}
+      OperationHandler: {}
+      PasswordResetService: {}
+      PinService: {}
+      PluginMetaBuilder: {}
+      PortalMetaBuilder: {}
+      Protocol: {}
+      ProtocolInit: {}
+      ProtocolParser: {}
+      ProtocolPinHandler: {}
+      ProtocolRequestDataHandler: {}
+      ProtocolStart: {}
+      ProtocolStop: {}
+      RenterService: {}
+      RequestService: {}
+      RoutableAPI: {}
+      Service: {}
+      StorageHash: {}
+      StorageHashParser: {}
+      StorageProtocol: {}
+      StorageService: {}
+      StorageUploadRequest: {}
+      TUSService: {}
+      TestingHash: {}
+      TestingHashProofGenerator: {}
+      TestingHashProofProvider: {}
+      TestingHashProofVerifier: {}
+      TestingHashWithProof: {}
+      TestingProtocolPinHandler: {}
+      TestingProtocolRequestDataHandler: {}
+      TestingTestingHashWithProof: {}
+      UploadDataHandler: {}
+      UploadService: {}
+      UserService: {}
+      WorkflowCoordinator: {}
+      WorkflowService: {}
