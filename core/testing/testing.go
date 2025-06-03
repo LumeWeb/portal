@@ -181,7 +181,7 @@ func ClearGlobalTestContextOptions() {
 // ClearTestCaseContextOptions resets the test case options collection
 func ClearTestCaseContextOptions() {
 	testCaseCtxOptsMu.Lock()
-	defer testCaseCtxOptsMu.RUnlock()
+	defer testCaseCtxOptsMu.Unlock()
 	testCaseCtxOpts = nil
 }
 
