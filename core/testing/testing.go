@@ -339,10 +339,14 @@ func ResetAllState() {
 }
 
 // EnableDBMigrations enables running DB migrations during test context initialization
+// This also enables mock DB setup since migrations require a database connection
 func EnableDBMigrations() {
 	runDBMigrationsMu.Lock()
 	defer runDBMigrationsMu.Unlock()
 	runDBMigrations = true
+
+	// Ensure DB is enabled since migrations require it
+	EnableMockDB()
 }
 
 // DisableDBMigrations disables running DB migrations during test context initialization
@@ -996,6 +1000,22 @@ func WithMockWorkflowService(tb TB) TestContextBuilderOption {
 
 // --- Default Test Context Options ---
 
+// WithDBMigrations adds a startup function that runs migrations if enabled
+func WithDBMigrations() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
+			if ShouldRunDBMigrations() {
+				if coreCtx.DB() == nil {
+					return fmt.Errorf("migrations enabled but no database connection available")
+				}
+				return RunMigrations(coreCtx.(TestContext))
+			}
+			return nil
+		})
+		return ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
+	}
+}
+
 // DefaultTestContextOptions returns the default options used for new test contexts.
 // These include mock implementations of common core services.
 func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
@@ -1013,6 +1033,9 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 	// Add DB setup first if enabled
 	if ShouldSetupMockDB() {
 		opts = append(opts, WithSQLite(tb))
+		if ShouldRunDBMigrations() {
+			opts = append(opts, WithDBMigrations())
+		}
 	}
 
 	// Add remaining mock services
@@ -1573,14 +1596,6 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return err
 	}
 
-	// Now run migrations with the established DB connection
-	if ShouldRunDBMigrations() {
-		err = RunMigrations(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Process startup functions first (this will establish DB connection)
 	err = ProcessStartupFuncs(ctx)
 	if err != nil {
@@ -1690,7 +1705,10 @@ func WithSQLite(tb TB) TestContextBuilderOption {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create temp db file: %w", err)
 		}
-		tempFile.Close() // We just need the path
+		err = tempFile.Close()
+		if err != nil {
+			return nil, err
+		}
 
 		// Update config with SQLite type and temp file path
 		err = ctx.Config().Update("core.db.type", "sqlite")
@@ -1704,7 +1722,12 @@ func WithSQLite(tb TB) TestContextBuilderOption {
 
 		// Register cleanup to remove temp file
 		ctx.RegisterCleanup(func() {
-			os.Remove(tempFile.Name())
+			err = os.Remove(tempFile.Name())
+			if err != nil {
+				ctx.Logger().Error("Failed to remove temp SQLite file",
+					zap.String("path", tempFile.Name()),
+					zap.Error(err))
+			}
 		})
 
 		// Add a startup function that will create and connect the DB
