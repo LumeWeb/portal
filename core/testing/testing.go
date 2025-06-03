@@ -25,14 +25,20 @@ import (
 )
 
 var (
-	testCtxOpts       []TestContextBuilderOption
-	testCtxOptsMu     sync.RWMutex
-	runDBMigrations   = false
-	runDBMigrationsMu sync.RWMutex
-	setupMockDB       = false
-	setupMockDBMu     sync.RWMutex
-	testContexts      sync.Map   // map[*testing.T]TestContext
-	testMutex         sync.Mutex // Protects test execution
+	// Global options set at RunTests level
+	globalTestCtxOpts   []TestContextBuilderOption
+	globalTestCtxOptsMu sync.RWMutex
+
+	// Per-test-case options set at RunTestCase level
+	testCaseCtxOpts     []TestContextBuilderOption
+	testCaseCtxOptsMu   sync.RWMutex
+
+	runDBMigrations     = false
+	runDBMigrationsMu   sync.RWMutex
+	setupMockDB         = false
+	setupMockDBMu       sync.RWMutex
+	testContexts        sync.Map   // map[*testing.T]TestContext
+	testMutex           sync.Mutex // Protects test execution
 )
 
 // TestMainOpts configures test main behavior
@@ -67,6 +73,8 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 		DisableMockDB()
 	}
 
+	// Clear global options at the end of RunTests
+	ClearGlobalTestContextOptions()
 	ResetAllState()
 
 	return code
@@ -127,34 +135,54 @@ func WithoutDB(m *testing.M) int {
 	})
 }
 
-// AddTestContextOptions adds one or more TestContextOptions to the global testing options collection
-func AddTestContextOptions(opts ...TestContextBuilderOption) {
-	testCtxOptsMu.Lock()
-	defer testCtxOptsMu.Unlock()
-	testCtxOpts = append(testCtxOpts, opts...)
+// AddGlobalTestContextOptions adds options that persist for all test cases in a RunTests call
+func AddGlobalTestContextOptions(opts ...TestContextBuilderOption) {
+	globalTestCtxOptsMu.Lock()
+	defer globalTestCtxOptsMu.Unlock()
+	globalTestCtxOpts = append(globalTestCtxOpts, opts...)
 }
 
-// GetTestContextOptions returns a copy of all registered TestContextOptions
-func GetTestContextOptions(tb TB) []TestContextBuilderOption {
-	testCtxOptsMu.RLock()
-	defer testCtxOptsMu.RUnlock()
+// AddTestCaseContextOptions adds options specific to a single test case
+func AddTestCaseContextOptions(opts ...TestContextBuilderOption) {
+	testCaseCtxOptsMu.Lock()
+	defer testCaseCtxOptsMu.Unlock()
+	testCaseCtxOpts = append(testCaseCtxOpts, opts...)
+}
+
+// GetCombinedTestContextOptions returns all applicable options in order:
+// 1. Default options
+// 2. Global options (from RunTests)
+// 3. Test case options (from RunTestCase)
+func GetCombinedTestContextOptions(tb TB) []TestContextBuilderOption {
+	globalTestCtxOptsMu.RLock()
+	defer globalTestCtxOptsMu.RUnlock()
+	testCaseCtxOptsMu.RLock()
+	defer testCaseCtxOptsMu.RUnlock()
 
 	// Get defaults first
 	defaultOpts := DefaultTestContextOptions(tb)
 
-	// Combine with user opts, putting user opts last so they take precedence
-	opts := make([]TestContextBuilderOption, 0, len(defaultOpts)+len(testCtxOpts))
+	// Combine with global and test case options
+	opts := make([]TestContextBuilderOption, 0, len(defaultOpts)+len(globalTestCtxOpts)+len(testCaseCtxOpts))
 	opts = append(opts, defaultOpts...)
-	opts = append(opts, testCtxOpts...)
+	opts = append(opts, globalTestCtxOpts...)
+	opts = append(opts, testCaseCtxOpts...)
 
 	return opts
 }
 
-// ClearTestContextOptions resets the test context options collection
-func ClearTestContextOptions() {
-	testCtxOptsMu.Lock()
-	defer testCtxOptsMu.Unlock()
-	testCtxOpts = nil
+// ClearGlobalTestContextOptions resets the global options collection
+func ClearGlobalTestContextOptions() {
+	globalTestCtxOptsMu.Lock()
+	defer globalTestCtxOptsMu.Unlock()
+	globalTestCtxOpts = nil
+}
+
+// ClearTestCaseContextOptions resets the test case options collection
+func ClearTestCaseContextOptions() {
+	testCaseCtxOptsMu.Lock()
+	defer testCaseCtxOptsMu.RUnlock()
+	testCaseCtxOpts = nil
 }
 
 // TB is an interface that both *testing.T and *testing.B satisfy
@@ -245,13 +273,13 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	testMutex.Lock()
 	defer testMutex.Unlock()
 
-	// Reset all state before test
+	// Reset test case state before test
 	ResetAllState()
 	defer ResetAllState()
 
-	// Add any provided options to the global collection first
+	// Add any provided options to the test case collection
 	if len(opts) > 0 {
-		AddTestContextOptions(opts...)
+		AddTestCaseContextOptions(opts...)
 	}
 
 	// Get or create the context (without booting the environment yet)
@@ -264,10 +292,7 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 
 	testFunc(t, ctx)
 
-	// Clean up the added options after test completes
-	if len(opts) > 0 {
-		ClearTestContextOptions()
-	}
+	// Test case options are cleared by deferred ResetAllState
 }
 
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
@@ -277,15 +302,16 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 	testMutex.Lock()
 	defer testMutex.Unlock()
 
-	// Reset all state before test
+	// Reset test case state before test
 	ResetAllState()
 	defer ResetAllState()
 
 	EnableDBMigrations()
 	defer DisableDBMigrations()
-	// Add any provided options to the global collection first
+
+	// Add any provided options to the test case collection
 	if len(opts) > 0 {
-		AddTestContextOptions(opts...)
+		AddTestCaseContextOptions(opts...)
 	}
 
 	// Get or create the context (without booting the environment yet)
@@ -298,10 +324,7 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 
 	testFunc(t, ctx)
 
-	// Clean up the added options after test completes
-	if len(opts) > 0 {
-		ClearTestContextOptions()
-	}
+	// Test case options are cleared by deferred ResetAllState
 }
 
 // ResetAllState resets all global state in the core package and testing package
@@ -309,11 +332,10 @@ func ResetAllState() {
 	// Reset core state
 	core.ResetState()
 
-	// Reset testing state
-	ClearTestContextOptions()
+	// Reset testing state (only clears test case specific options)
+	ClearTestCaseContextOptions()
 	DisableDBMigrations()
 	DisableMockDB()
-
 }
 
 // EnableDBMigrations enables running DB migrations during test context initialization
@@ -1665,17 +1687,17 @@ func WithSQLite(tb TB) TestContextBuilderOption {
 
 // SetupTestEnvironment creates and initializes a TestContext with common services and configurations.
 // It handles resetting state, creating the context, applying options, and booting the environment.
-func SetupTestEnvironment(tb TB, opts ...TestContextBuilderOption) (TestContext, error) {
+func SetupTestEnvironment(tb TB) (TestContext, error) {
 	tb.Helper()
 
-	// Reset global state
+	// Reset test case state (global state remains)
 	ResetAllState()
 
-	// Create base test context with default options
+	// Create base test context
 	ctx := SetupTest(tb)
 
-	// Process all options (defaults + provided)
-	ctx, err := ProcessCtxOptions(ctx, append(GetTestContextOptions(tb), opts...)...)
+	// Process all options (defaults + global + test case)
+	ctx, err := ProcessCtxOptions(ctx, GetCombinedTestContextOptions(tb)...)
 	if err != nil {
 		return ctx, fmt.Errorf("failed to apply test options: %w", err)
 	}
