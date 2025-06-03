@@ -30,15 +30,15 @@ var (
 	globalTestCtxOptsMu sync.RWMutex
 
 	// Per-test-case options set at RunTestCase level
-	testCaseCtxOpts     []TestContextBuilderOption
-	testCaseCtxOptsMu   sync.RWMutex
+	testCaseCtxOpts   []TestContextBuilderOption
+	testCaseCtxOptsMu sync.RWMutex
 
-	runDBMigrations     = false
-	runDBMigrationsMu   sync.RWMutex
-	setupMockDB         = false
-	setupMockDBMu       sync.RWMutex
-	testContexts        sync.Map   // map[*testing.T]TestContext
-	testMutex           sync.Mutex // Protects test execution
+	runDBMigrations   = false
+	runDBMigrationsMu sync.RWMutex
+	setupMockDB       = false
+	setupMockDBMu     sync.RWMutex
+	testContexts      sync.Map   // map[*testing.T]TestContext
+	testMutex         sync.Mutex // Protects test execution
 )
 
 // TestMainOpts configures test main behavior
@@ -94,7 +94,7 @@ func WithDBAndOptions(m *testing.M, opts ...TestContextBuilderOption) int {
 		WithDB:       true,
 		DBMigrations: true,
 		CustomSetup: func() {
-			AddTestContextOptions(opts...)
+			AddGlobalTestContextOptions(opts...)
 		},
 	})
 }
@@ -113,7 +113,7 @@ func WithDBNoMigrationsAndOptions(m *testing.M, opts ...TestContextBuilderOption
 		WithDB:       true,
 		DBMigrations: false,
 		CustomSetup: func() {
-			AddTestContextOptions(opts...)
+			AddGlobalTestContextOptions(opts...)
 		},
 	})
 }
@@ -123,7 +123,7 @@ func WithOptions(m *testing.M, opts ...TestContextBuilderOption) int {
 	return RunTests(m, TestMainOpts{
 		WithDB: false,
 		CustomSetup: func() {
-			AddTestContextOptions(opts...)
+			AddGlobalTestContextOptions(opts...)
 		},
 	})
 }
@@ -466,7 +466,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 		cleanupFuncs: []func(){},
 	}
 
-	AddTestContextOptions(opts...)
+	AddTestCaseContextOptions(opts...)
 
 	return testCtx // Return the context without processing options yet
 }
@@ -747,7 +747,7 @@ func ProcessExitFuncs(ctx TestContext) error {
 // This function's role is now primarily to process options and run startup funcs.
 func InitContext(tb TB, ctx TestContext, opts ...TestContextBuilderOption) error {
 	// Combine provided options with any globally registered test options
-	allOpts := append(opts, GetTestContextOptions(tb)...)
+	allOpts := append(opts, GetCombinedTestContextOptions(tb)...)
 
 	// Process all context options
 	var err error
@@ -1444,7 +1444,7 @@ func ConfigureAPIs(ctx TestContext) error {
 				return err
 			}
 
-			AddTestContextOptions(WrapCoreOptions(opts)...)
+			AddTestCaseContextOptions(WrapCoreOptions(opts)...)
 		}
 	}
 
@@ -1520,7 +1520,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Process all context options (default, global, and those passed to RunTestCase)
 	// This is where options that register global components should be processed.
 	var err error
-	ctx, err = ProcessCtxOptions(ctx, GetTestContextOptions(tb)...)
+	ctx, err = ProcessCtxOptions(ctx, GetCombinedTestContextOptions(tb)...)
 	if err != nil {
 		return err
 	}
