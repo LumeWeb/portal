@@ -176,7 +176,6 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 
 	for _, svcInfo := range svcs {
 		svc, opts, err := svcInfo.Factory()
-		// ... (error handling, context options setup) ...
 		if err != nil {
 			return nil, err
 		} // Simplified error handling
@@ -377,7 +376,6 @@ func (p *PortalImpl) initEvents() error {
 
 	return nil
 }
-
 
 func (p *PortalImpl) configureProtocols(ctx core.Context) error {
 	for name, _proto := range core.GetProtocols() {
@@ -594,4 +592,3 @@ func Shutdown(activePortal Portal, logger *zap.Logger) {
 	// Exit the process
 	os.Exit(ctx.ExitCode())
 }
-
