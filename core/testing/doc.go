@@ -1,18 +1,188 @@
 // Package testing provides utilities and patterns for writing integration and
 // unit tests for the Portal application's core components and services.
 //
-// It offers a structured way to set up, configure, run, and tear down a
-// test environment that closely mimics the production Portal application,
-// including dependency injection, configuration loading, database access,
-// and service lifecycle management.
+// The core principle of this package is to provide **isolated, predictable
+// environments for each individual test case**. This is primarily achieved
+// through the `RunTestCase` and `RunTestCaseWithDB` helper functions.
 //
-// Two primary patterns for using this package are supported for individual test functions:
+// Key Concepts:
 //
-// 1. Using TestMain for package-level setup and teardown:
+//   - `TB`: An interface satisfied by both `*testing.T` and `*testing.B`, allowing
+//     test helpers to work with both test types.
 //
-// This is the recommended approach for most test suites, especially when
-// database migrations or other expensive setup needs to happen only once
-// for all tests in a package.
+//   - `TestContext`: An extension of `core.Context` specifically for testing.
+//     It provides access to the `testing.TB` instance (`T()`), methods
+//     for registering mock services (`RegisterService`), registering cleanup functions
+//     (`RegisterCleanup`), accessing the test router (`Router()`), and setting the
+//     database instance (`SetDB`).
+//
+//   - `TestContextBuilderOption`: A function type (`func(context TestContext) (TestContext, error)`)
+//     used to configure a `TestContext`. Options are applied during the `BootEnvironment` phase.
+//
+//   - `testMutex`: An internal mutex used by `RunTestCase` and `RunTestCaseWithDB`
+//     to serialize the framework's setup process, ensuring safe access to shared
+//     internal state during test execution.
+//
+//   - `SetupTest(tb TB)`: Creates a basic `TestContext` structure for the given
+//     `testing.TB`. It registers the context with `t.Cleanup` for automatic
+//     teardown but *does not* apply options or run startup functions. It's
+//     primarily an internal helper used by `RunTestCase` helpers. **Users should
+//     generally not call this function directly.**
+//
+//   - `BootEnvironment(tb TB, ctx TestContext)`: The crucial step that takes a
+//     `TestContext` (created by `SetupTest`) and fully initializes it. This
+//     includes applying all `TestContextBuilderOption`s, running database migrations
+//     (if enabled), executing all registered startup functions, configuring protocols
+//     and APIs, and configuring API routes on the test router. This function makes
+//     the context ready for use in test logic. It is called automatically by
+//     `RunTestCase` and `RunTestCaseWithDB`. **Users should generally not call
+//     this function directly.**
+//
+// Testing Patterns:
+//
+// This package supports two primary patterns for structuring tests. The first is
+// the recommended approach for most individual test functions.
+//
+// 1. Recommended - Using `RunTestCase` or `RunTestCaseWithDB` for Individual Tests:
+//
+// This is the standard and preferred way to write most test functions (`func TestXxx(t *testing.T)`)
+// or methods within a `testify/suite`. It ensures a fresh, isolated environment
+// is created and torn down for *each* test function.
+//
+// `RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption)`:
+// This helper encapsulates the full setup, boot, run, and teardown cycle for a single test:
+//   - Calls `SetupTest(t)` to create the basic context and register cleanup via `t.Cleanup`.
+//   - Adds `DefaultTestContextOptions` and any `opts` passed directly to `RunTestCase`
+//     to the context's options list.
+//   - Calls `BootEnvironment(t, ctx)` to apply all options, run startup funcs, etc.
+//   - Executes the provided `testFunc(tb, ctx)`.
+//   - `t.Cleanup` ensures `ctx.Teardown()` is called afterwards.
+//
+// `RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption)`:
+// Identical to `RunTestCase`, but automatically includes the `WithSQLite(tb)` option
+// and enables DB migrations for the test context. **Crucially, this helper ensures a NEW,
+// isolated, in-memory SQLite database instance is created and migrated specifically
+// for each individual test case it wraps.** This guarantees test isolation at the database level.
+//
+// Example Test Function using `RunTestCase`:
+//
+//	package mypackage_test
+//
+//	import (
+//		"testing"
+//
+//		"github.com/stretchr/testify/assert"
+//		"github.com/stretchr/testify/mock"
+//		"go.lumeweb.com/portal/core"
+//		coreTesting "go.lumeweb.com/portal/core/testing"
+//		"go.lumeweb.com/portal/core/testing/mocks" // Assuming mocks are here
+//		"go.lumeweb.com/portal/service" // Assuming your service package is here
+//	)
+//
+//	// No TestMain function needed in this file if you use this pattern exclusively.
+//
+//	func TestMyServiceIsolated(t *testing.T) {
+//		// Use RunTestCase to set up and tear down a NEW, isolated test environment
+//		// specifically for this test function.
+//		// DefaultTestContextOptions are applied automatically.
+//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//			// Inside RunTestCase, the context is already set up and booted.
+//			// Default options are applied (including default mocks).
+//
+//			// 1. Get services/dependencies from the context.
+//			//    Use core.GetService or specific GetMock...Service helpers.
+//			//    Cast mocks to their concrete type to set expectations.
+//			myService := core.GetService[core.MyService](ctx, service.MY_SERVICE) // Get the service under test
+//			assert.NotNil(tb, myService)
+//
+//			// Get a specific mock service to set expectations.
+//			// Use the GetMock...Service helpers or type assertion if no helper exists.
+//			mockDependency := coreTesting.GetMockDependencyService(ctx) // Assuming this helper exists
+//			assert.NotNil(tb, mockDependency)
+//
+//			// 2. Set expectations on mock dependencies.
+//			mockDependency.EXPECT().DoSomething().Return(nil).Once()
+//
+//			// 3. Perform the action being tested.
+//			//    err := myService.PerformAction() // Assuming MyService has this method
+//
+//			// 4. Assert results and errors.
+//			//    assert.NoError(tb, err)
+//			//    assert.Equal(tb, expected, actual)
+//
+//			// Mock expectations are automatically asserted by testify/mock via t.Cleanup.
+//
+//		},
+//			// Pass options specific to THIS test case here.
+//			// Register the service under test using WrapCoreOption.
+//			coreTesting.WrapCoreOption(core.ContextWithService(service.MY_SERVICE, service.NewMyService())), // Assuming NewMyService exists
+//			// Add any other mocks or configurations needed ONLY for this test using WithMockServiceFactory.
+//			coreTesting.WithMockServiceFactory( // Generic type parameter often inferred
+//				service.MY_DEPENDENCY_SERVICE, // Assuming this service ID exists
+//				mocks.NewMockMyDependencyService, // Assuming this factory exists and accepts testing.TB
+//			),
+//			coreTesting.WithConfigValue("my.service.setting", "test_value"),
+//		)
+//	}
+//
+// Example Test Function using `RunTestCaseWithDB`:
+//
+//	func TestMyServiceIsolatedWithDB(t *testing.T) {
+//		// Use RunTestCaseWithDB to get a NEW, isolated context with a real in-memory
+//		// database and migrations run specifically for this test.
+//		coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//			// Inside RunTestCaseWithDB, the context is set up with an in-memory
+//			// SQLite DB, migrations are run, and the environment is booted.
+//
+//			// Get the real UserService instance (which uses the DB).
+//			// This service is registered via an option passed to RunTestCaseWithDB.
+//			userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+//			assert.NotNil(tb, userService)
+//
+//			// Access the database instance for this test.
+//			db := ctx.DB()
+//			assert.NotNil(tb, db)
+//
+//			// You can still get and set expectations on other default mocks
+//			mockMailer := coreTesting.GetMockMailerService(ctx)
+//			mockMailer.EXPECT().SendEmail(mock.Anything, mock.Anything).Return(nil).Once()
+//
+//			// ... test database interactions using userService and ctx.DB() ...
+//			// Example: Create a user and then query it
+//			// Assuming a User model exists and is included in migrations
+//			// newUser := &core.User{Username: "testuser", Email: "test@example.com"}
+//			// err := userService.CreateUser(ctx, newUser) // Assuming CreateUser exists
+//			// require.NoError(tb, err)
+//			// assert.Greater(tb, newUser.ID, uint(0)) // Check if ID was assigned
+//
+//			// fetchedUser, err := userService.GetUserByID(ctx, newUser.ID) // Assuming GetUserByID exists
+//			// require.NoError(tb, err)
+//			// assert.Equal(tb, newUser.Username, fetchedUser.Username)
+//			// assert.Equal(tb, newUser.Email, fetchedUser.Email)
+//		})
+//	}
+//
+// 2. Optional - Using `TestMain` for Package-Level Setup:
+//
+// This approach is used when you need setup or teardown logic that runs *once*
+// for the entire package test run, rather than for each individual test function.
+// This is most commonly used for enabling the database globally or adding mocks/services
+// that are dependencies for *many* components tested within the package.
+//
+// `func TestMain(m *testing.M)` is the entry point for the package's tests. It is
+// called once before any tests in the package are run. Inside `TestMain`, you
+// should call `RunTests` or one of its wrappers (`WithDB`, `WithDBAndOptions`, etc.).
+//
+// `RunTests(m *testing.M, opts TestMainOpts)`: Manages the overall test suite lifecycle.
+// It handles global state reset, optional database setup/migrations, runs `m.Run()`,
+// and performs cleanup. Options passed via `TestMainOpts.CustomSetup` (using
+// `AddGlobalTestContextOptions`) are added to a *global* list (`globalTestCtxOpts`)
+// and apply to *every* context subsequently created by `RunTestCase` or `RunTestCaseWithDB`
+// within this `TestMain` execution.
+//
+// **Crucially:** Even when `TestMain` is used, **individual test functions must still
+// call `RunTestCase` or `RunTestCaseWithDB`** to get their NEW, isolated context.
+// The context created by `RunTestCase` will inherit the global options set in `TestMain`.
 //
 // Example TestMain:
 //
@@ -22,33 +192,38 @@
 //		"testing"
 //
 //		"github.com/stretchr/testify/assert"
+//		"github.com/stretchr/testify/mock"
 //		"go.lumeweb.com/portal/core"
 //		coreTesting "go.lumeweb.com/portal/core/testing"
+//		"go.lumeweb.com/portal/core/testing/mocks" // Assuming mocks are here
+//		"go.lumeweb.com/portal/service" // Assuming your service package is here
 //	)
 //
+//	// TestMain is the entry point for the package's tests.
+//	// It is called once before any tests in the package are run.
 //	func TestMain(m *testing.M) {
 //		// Use RunTests or helpers like WithDBAndOptions to manage the overall
 //		// test suite lifecycle and set up a shared environment (e.g., database).
-//		// Options passed here apply to ALL test contexts created within this TestMain.
+//		// Options passed here are added to a GLOBAL list (`globalTestCtxOpts`)
+//		// and apply to ALL test contexts subsequently created by RunTestCase
+//		// or RunTestCaseWithDB within this TestMain execution.
 //		coreTesting.WithDBAndOptions(m,
-//			// Add package-specific test context options here.
-//			// These options will be applied to every TestContext created by
-//			// RunTestCase within this TestMain execution.
-//			coreTesting.WithConfigValue("mypackage.setting", "value"),
-//			// Register a real service for all tests in this package if needed.
-//			// coreTesting.WithRealMyService(),
+//			// Add package-specific test context options here that apply globally.
+//			// This is best used for truly global configurations or services
+//			// that are dependencies for many components tested in this package.
+//			coreTesting.WithConfigValue("mypackage.setting", "global_value"),
+//			// Example: If a custom mock is a dependency for many services in this package,
+//			// you might add it globally here using WithMockServiceFactory.
+//			// coreTesting.WithMockServiceFactory(
+//			// 	service.MY_GLOBAL_DEPENDENCY_SERVICE,
+//			// 	mocks.NewMockMyGlobalDependencyService,
+//			// ),
 //		)
 //
 //		// Alternatively, use RunTests for more control:
 //		// coreTesting.RunTests(m, coreTesting.TestMainOpts{
 //		// 	WithDB: true, // Enable database
 //		// 	DBMigrations: true, // Run migrations (default with WithDB)
-//		// 	TestContextOptions: []coreTesting.TestContextBuilderOption{
-//		// 		// Add package-specific test context options here
-//		// 		coreTesting.WithConfigValue("mypackage.setting", "value"),
-//		// 		// Register a real service for all tests in this package
-//		// 		// coreTesting.WithRealMyService(),
-//		// 	},
 //		// 	CustomSetup: func() {
 //		// 		// Perform any package-level setup before tests run
 //		// 	},
@@ -60,281 +235,49 @@
 //
 //	// Individual test function using the environment set up by TestMain.
 //	// ALWAYS wrap your test logic in RunTestCase or RunTestCaseWithDB
-//	// when using the TestMain pattern. This ensures the context is
-//	// correctly booted and torn down for each test.
+//	// when using the TestMain pattern. This ensures a NEW, isolated context
+//	// is created, booted, and torn down for EACH test, inheriting global options.
 //	func TestMyService(t *testing.T) {
+//		// RunTestCase creates a new TestContext for this specific test.
+//		// It applies DefaultTestContextOptions and any global options from TestMain.
+//		// It then boots the environment and runs the provided function.
+//		// Teardown is handled automatically via t.Cleanup.
 //		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 //			// Inside RunTestCase, the context is already set up and booted.
 //			// It inherits options from TestMain and applies default options.
 //
 //			// Get services from the context.
-//			// If WithRealMyService was used in TestMain, this will be the real service.
-//			// Otherwise, it will be the default mock.
-//			myService := core.GetService[core.MyService](ctx, core.MY_SERVICE)
+//			// Default mocks (Auth, User, etc.) are available unless overridden globally or per-test.
+//			// Use core.GetService to retrieve the service interface.
+//			authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
+//			assert.NotNil(tb, authService)
+//
+//			// To set expectations on a default mock, cast it to its concrete mock type.
+//			mockAuthService := authService.(*mocks.MockAuthService)
+//			mockAuthService.EXPECT().CheckAccess(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil).Once()
+//
+//			// Get the service under test. This service should be registered via
+//			// an option passed to RunTestCase, NOT globally in TestMain, unless
+//			// it's a dependency for many other tests.
+//			myService := core.GetService[core.MyService](ctx, service.MY_SERVICE) // Assuming MY_SERVICE ID exists
 //			assert.NotNil(tb, myService)
 //
-//			// If you need to interact with a mock service that wasn't explicitly
-//			// replaced by a real one in TestMain options, you can retrieve it:
-//			// mockDependency := coreTesting.GetMockDependencyService(ctx)
-//			// mockDependency.EXPECT().DoSomething().Return(nil).Once()
-//
-//			// ... write test logic ...
+//			// ... write test logic that uses myService and its dependencies ...
+//			// For example, a method on myService that calls authService.CheckAccess
+//			// err := myService.PerformProtectedAction(ctx, "user1", "resource", "read")
+//			// assert.NoError(tb, err)
 //
 //			// Assert mock expectations (handled automatically by t.Cleanup via testify/mock)
-//		})
-//	}
-//
-// In this pattern:
-//   - `TestMain` is the entry point, called once before any tests in the package.
-//   - `testing.RunTests` (or helpers like `testing.WithDB`, `testing.WithDBAndOptions`)
-//     manages the overall setup (`SetupTestEnvironment`) and teardown (`ShutdownTestContext`) lifecycle for the *package*.
-//   - `TestContextBuilderOption`s passed to `RunTests` or its helpers in `TestMain`
-//     apply to *all* test contexts created within that `TestMain` execution.
-//   - Individual test functions *must* call `testing.RunTestCase(t, func(tb, ctx) { ... })`
-//     or `testing.RunTestCaseWithDB(...)`. These helpers internally call `testing.SetupTest(t)`
-//     (which gets or creates the context inheriting global options) and then
-//     `testing.BootEnvironment(t, ctx)` to fully initialize the context for that specific test.
-//     They also register cleanup with `t.Cleanup` to ensure resources are released after each test.
-//
-// 2. Using RunTestCase for per-test setup and teardown (without TestMain):
-//
-// This approach is simpler when you don't have a `TestMain` or when you need
-// each test to have a completely isolated environment, even if it means
-// repeating setup work. This is the recommended pattern if you do not need
-// package-level shared setup like database migrations.
-//
-// Example Test Function:
-//
-//	package mypackage_test
-//
-//	import (
-//		"net/http"
-//		"net/http/httptest"
-//		"strings"
-//		"testing"
-//
-//		"github.com/stretchr/testify/assert"
-//		"github.com/stretchr/testify/require"
-//		"go.lumeweb.com/portal/core"
-//		coreTesting "go.lumeweb.com/portal/core/testing"
-//		coreMocks "go.lumeweb.com/portal/core/testing/mocks" // Assuming mocks are here
-//	)
-//
-//	// No TestMain function needed in this file.
-//
-//	func TestMyServiceIsolated(t *testing.T) {
-//		// Use RunTestCase to set up and tear down the test environment
-//		// specifically for this test function.
-//		// DefaultTestContextOptions are applied automatically.
-//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			// Inside RunTestCase, the context is already set up and booted.
-//			// Default options are applied.
-//
-//			// Get services from the context (these will be mocks by default)
-//			myService := core.GetService[core.MyService](ctx, core.MY_SERVICE) // Assuming MyService exists
-//			assert.NotNil(tb, myService)
-//
-//			// Get a specific mock service to set expectations.
-//			// Use the GetMock...Service helpers or type assertion if no helper exists.
-//			mockDependency := coreTesting.GetMockDependencyService(ctx) // Assuming this helper exists
-//			assert.NotNil(tb, mockDependency)
-//
-//			// Set expectation on the mock
-//			mockDependency.EXPECT().DoSomething().Return(nil).Once()
-//
-//			// Call the service method that uses the dependency
-//			// err := myService.PerformAction() // Assuming MyService has this method
-//			// assert.NoError(tb, err)
-//
-//			// Assert that the mock expectation was met (handled automatically by t.Cleanup)
-//		})
-//	}
-//
-//	func TestMyServiceIsolatedWithDB(t *testing.T) {
-//		// Use RunTestCaseWithDB to get a real in-memory database with migrations.
-//		// You can pass additional TestContextBuilderOptions here that apply
-//		// only to this specific test context.
-//		coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			// Inside RunTestCaseWithDB, the context is set up with an in-memory
-//			// SQLite DB, migrations are run, and the environment is booted.
-//
-//			// Get the real UserService instance (which uses the DB).
-//			// If WithRealUserService was added as an option to RunTestCaseWithDB
-//			// userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
-//			// assert.NotNil(tb, userService)
-//
-//			// ... test database interactions ...
-//
-//		}, coreTesting.WithRealUserService()) // Add DB option and real service option
-//	}
-//
-//	func TestRegisterAPI(t *testing.T) {
-//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			// NOTE: Calling registration helpers like RegisterAPI *inside* the testFunc
-//			// after the initial BootEnvironment call is less common and potentially
-//			// less robust than passing registration options directly to RunTestCase.
-//			// If you register components here, they are added *after* the initial
-//			// environment boot, which might affect tests that expect components
-//			// (like API routes) to be fully configured from the start.
-//			// This pattern might be used for testing dynamic registration scenarios.
-//
-//			// Use the registration helper to get options for registering an API.
-//			// These helpers return options that need to be applied to the context.
-//			opts, err := coreTesting.RegisterAPI(ctx, "test", NewTestAPI) // Assuming NewTestAPI exists
-//			require.NoError(tb, err)
-//
-//			// Process the options returned by RegisterAPI to add them to the current test context.
-//			// This step is necessary because RegisterAPI prepares the options, but doesn't
-//			// apply them to the context's service map or configuration immediately.
-//			ctx, err = coreTesting.ProcessCtxOptions(ctx, opts...)
-//			require.NoError(tb, err)
-//
-//			// After processing options, the environment needs to be re-booted
-//			// to pick up the newly registered components (like API routes).
-//			// NOTE: RunTestCase already calls BootEnvironment once. If you register
-//			// components *after* the initial boot (e.g., inside the testFunc),
-//			// you might need to manually call BootEnvironment again or ensure
-//			// your test logic accounts for components being available after options are processed.
-//			// A cleaner pattern is to pass registration options directly to RunTestCase.
-//
-//			// Example of passing registration options directly to RunTestCase:
-//			// coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			//     // API registration option is processed during the initial BootEnvironment call
-//			//     testAPI := core.GetAPI("test")
-//			//     assert.NotNil(tb, testAPI)
-//			// }, coreTesting.NewAPIRegistrationOption("test", NewTestAPI))
-//
-//			// If registering inside the testFunc and needing the API immediately:
-//			// You might need to re-boot or structure your test differently.
-//			// For now, let's assume GetAPI works after ProcessCtxOptions adds the registration info.
-//			testAPI := core.GetAPI("test") // Get the globally registered API
-//			assert.NotNil(tb, testAPI)
-//
-//			// You can now test interactions with the registered API within this context
-//			// For example, testing its configuration or handlers via the test router.
-//		})
-//	}
-//
-//	func TestServiceWithMockDependency(t *testing.T) {
-//		// Use RunTestCase and pass options to configure the context before booting.
-//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			// Inside RunTestCase, the context is set up and booted with the provided options.
-//
-//			// Retrieve the mock from the context to set expectations for the test logic.
-//			// Use the GetMock...Service helper if available.
-//			mockDependency := coreTesting.GetMockMyDependencyService(ctx) // Assuming this helper exists
-//			assert.NotNil(tb, mockDependency)
-//
-//			// Set expectation on the mock
-//			mockDependency.EXPECT().DoSomething().Return(nil).Once()
-//
-//			// Get the real service that uses the dependency
-//			// myService := core.GetService[core.MyService](ctx, core.MY_SERVICE) // Assuming this service exists
-//			// assert.NotNil(tb, myService)
-//
-//			// Call the service method that uses the dependency
-//			// err := myService.PerformAction()
-//			// assert.NoError(tb, err)
-//
-//			// Assert that the mock expectation was met (handled automatically by t.Cleanup)
 //		},
-//			// Pass options to RunTestCase to configure the context before it's booted.
-//			// Use WithMockServiceFactory for mocks that need the testing.TB instance.
-//			coreTesting.WithMockServiceFactory( // Removed generic type parameter
-//				core.MY_DEPENDENCY_SERVICE, // Assuming this service ID exists
-//				service.NewMockMyDependencyService, // Assuming this factory exists and accepts testing.TB
-//			),
-//			// Add the real service that depends on the mock
-//			// coreTesting.WithRealMyService(), // Assuming this option exists
+//			// Pass options specific to THIS test case here. These override global options if they conflict.
+//			// Register the service under test using WrapCoreOption(core.ContextWithService(...))
+//			coreTesting.WrapCoreOption(core.ContextWithService(service.MY_SERVICE, service.NewMyService())), // Assuming NewMyService exists
+//			// Add any other mocks or configurations needed ONLY for this test.
+//			coreTesting.WithConfigValue("my.service.setting", "test_value"),
 //		)
 //	}
 //
-// In this pattern:
-//   - No `TestMain` is required.
-//   - Each test function calls `testing.RunTestCase` or `testing.RunTestCaseWithDB`.
-//   - `RunTestCase` internally calls `testing.SetupTest` (which creates a new
-//     `TestContext` for this test), applies `DefaultTestContextOptions` and any
-//     options passed to `RunTestCase`, then calls `testing.BootEnvironment` to
-//     fully initialize the context, runs the provided `testFunc`, and automatically
-//     handles teardown using `t.Cleanup()`.
-//   - `TestContextBuilderOption`s passed to `RunTestCase` or `RunTestCaseWithDB`
-//     apply only to that specific test context and are processed during its boot.
-//   - Helpers like `RegisterAPI`, `RegisterProtocol`, `RegisterAPIExtension`,
-//     and `RegisterEvents` are available to register core components. They return
-//     `TestContextBuilderOption`s that *must* be applied using `ProcessCtxOptions`
-//     if called *inside* the test function *after* the initial `BootEnvironment` call.
-//     Prefer passing these options directly to `RunTestCase` so they are processed
-//     during the initial `BootEnvironment` call.
-//
-// Core Components and Concepts:
-//
-//   - `TestContext`: An extension of `core.Context` specifically for testing.
-//     It provides access to the `testing.TB` instance (`t` or `b`) and methods
-//     for registering mock services (`RegisterService`) and cleanup functions
-//     (`RegisterCleanup`). It also includes a test `Router`.
-//
-//   - `TestContextBuilderOption`: Functions used to configure a `TestContext`.
-//     These are applied during the `BootEnvironment` phase. Examples include
-//     `WithMockServiceFactory`, `WithConfigValue`, `WithInMemorySQLite`, etc.
-//     Options are processed sequentially in the order they are provided to
-//     `ProcessCtxOptions` or `RunTestCase`. The order can matter if one option's
-//     configuration depends on another (e.g., setting a config value before a
-//     service that reads that value is initialized).
-//
-//   - `TestEnvironmentOptions`: (Less commonly used directly) Functions used to
-//     configure the overall test environment setup process managed by
-//     `SetupTestEnvironment`. These often wrap `TestContextBuilderOption`s.
-//     For most cases, passing `TestContextBuilderOption`s directly to
-//     `RunTestCase` or `TestMain` helpers is sufficient.
-//
-//   - `SetupTest(tb TB)`: Creates a basic `TestContext` structure for the given
-//     `testing.TB`. It registers the context with `t.Cleanup` for automatic
-//     teardown but *does not* apply options or run startup functions. It's
-//     primarily an internal helper used by `RunTestCase`. You typically don't
-//     call this directly in your test functions.
-//
-//   - `BootEnvironment(tb TB, ctx TestContext)`: The crucial step that takes a
-//     `TestContext` (created by `SetupTest`) and fully initializes it. This
-//     includes:
-//       - Applying all `TestContextBuilderOption`s (default, global from `TestMain`,
-//         and those passed to `RunTestCase`). These options are processed during the
-//         subsequent `BootEnvironment` call.
-//       - Running database migrations (if enabled).
-//       - Executing all registered startup functions (which may create DB connections,
-//         register services from factories, etc.).
-//       - Configuring protocols and APIs (loading config, calling Init).
-//       - Configuring API routes on the test router.
-//     This function makes the context ready for use in test logic. It is called
-//     automatically by `RunTestCase` and `RunTestCaseWithDB`.
-//
-//   - `ShutdownTestContext(ctx TestContext)`: Explicitly shuts down a `TestContext`.
-//     It cancels the context, waits for completion, runs exit functions, and
-//     performs cleanup. `RunTestCase` and `TestMain` helpers handle this automatically
-//     via `t.Cleanup`. You typically don't call this directly.
-//
-//   - `RunTests(m *testing.M, opts TestMainOpts)`: Used in `TestMain` to manage
-//     the lifecycle of the entire test suite. It handles global state reset,
-//     optional database setup/migrations, runs `m.Run()`, and performs cleanup.
-//     Accepts `TestContextBuilderOption`s via `TestMainOpts.TestContextOptions`
-//     which are added to the global options list and applied to every context
-//     created by `RunTestCase` within this `TestMain` run.
-//
-//   - `RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption)`:
-//     **Recommended helper for individual test functions.** It encapsulates the
-//     full setup, boot, run, and teardown cycle for a single test:
-//       1. Calls `SetupTest(t)` to create the basic context and register cleanup.
-//       2. Adds `DefaultTestContextOptions` and any `opts` passed to `RunTestCase`
-//          to the context's options list. These options are processed during the
-//          subsequent `BootEnvironment` call.
-//       3. Calls `BootEnvironment(t, ctx)` to apply all options, run startup funcs, etc.
-//       4. Executes the provided `testFunc(tb, ctx)`.
-//       5. `t.Cleanup` ensures `ctx.Teardown()` is called afterwards.
-//     Use this when you don't need a shared `TestMain` environment or for maximum isolation.
-//
-//   - `RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption)`:
-//     Similar to `RunTestCase` but automatically includes `WithInMemorySQLite()`
-//     and enables DB migrations for the test context, ensuring a real database
-//     is available and migrated before your test logic runs.
+// Core Components and Concepts (Detailed):
 //
 //   - `DefaultTestContextOptions(tb TB)`: Provides a standard set of options
 //     for `SetupTest`, typically including mock implementations of
@@ -345,7 +288,7 @@
 //       - `WithDomain("test.local")`
 //       - `WithRandomSeedPhrase()`
 //       - `WithCoreEvents()`
-//       - `WithSQLite(tb)` (if `EnableMockDB()` is called, e.g., by `WithDB` helpers)
+//       - `WithSQLite(tb)` (if `EnableMockDB()` is called, e.g., by `WithDB` helpers or `RunTestCaseWithDB`)
 //       - `WithMockAccessService(tb)`
 //       - `WithRouter(...)` (a default test router)
 //       - `WithMockAuthService(tb)`
@@ -365,160 +308,113 @@
 //       - `WithMockUserService(tb)`
 //       - `WithMockWorkflowService(tb)`
 //
-//   - `WithInMemorySQLite()`: A `TestContextBuilderOption` that configures the
-//     context to use a real, in-memory SQLite database. Useful for testing
-//     database interactions without external dependencies. This is included
-//     in the default options if `EnableMockDB()` is called (e.g., by `RunTestCaseWithDB`).
-//
-//   - `WithMockService(id string, mockConstructor func(tb TB) interface{})`: A `TestContextBuilderOption`
-//     to register a specific mock service instance directly. The service instance
-//     is provided when creating the option. This can be useful for simple mock
-//     structs that don't require the testing.TB instance during creation, or
-//     if you have manually created a mock instance beforehand. However,
-//     `WithMockServiceFactory` is generally preferred, especially for mocks
-//     generated by `testify/mock`.
-//
-//   - `WithMockServiceFactory[T any](id string, factory MockServiceFactory[T])`: A generic `TestContextBuilderOption`
-//     to register a service using a factory function that returns a specific mock type. The factory function is called
-//     *during* the `BootEnvironment` phase, providing access to the `testing.TB` instance.
-//     **This is the preferred way to add mocks generated by `testify/mock`** because it ensures the mock is created
-//     with the correct `t.Cleanup` registration for expectation verification.
-//     Use this when your mock service requires the `testing.TB` instance during its creation.
-//     Note: The generic type parameter `[T any]` is often inferred by the compiler when using `testify/mock` generated
-//     mocks, so it may not be explicitly needed in your test code.
-//     Example:
-//       coreTesting.WithMockServiceFactory( // Generic type parameter often inferred
-//           service.API_KEY_SERVICE, // Assuming this service ID exists
-//           service.NewMockAPIKeyService, // Assuming this factory exists and accepts testing.TB
-//       )
-//
-//   - `WithConfigValue(key string, value interface{})`: A `TestContextBuilderOption`
-//     to set a specific configuration value in the mock config manager.
-//
-//   - `GetMockConfig(ctx core.Context)`: Helper to retrieve the mock config manager
-//     from the context for testing.
-//
-//   - `GetMockAccessService(ctx core.Context)` (and similar `GetMock...Service` helpers):
-//     Helpers to retrieve specific mock service implementations from the context.
-//     These are useful for setting expectations on mocks. Helpers exist for all
-//     default mock services included in `DefaultTestContextOptions`:
-//       - `GetMockAccessService`
-//       - `GetMockAuthService`
-//       - `GetMockConfigService`
-//       - `GetMockContentScannerService`
-//       - `GetMockCronService`
-//       - `GetMockHTTPService`
-//       - `GetMockHashMappingService`
-//       - `GetMockMailerService`
-//       - `GetMockOTPService`
-//       - `GetMockPasswordResetService`
-//       - `GetMockPinService`
-//       - `GetMockRequestService`
-//       - `GetMockRenterService`
-//       - `GetMockStorageService`
-//       - `GetMockTUSService`
-//       - `GetMockUserService`
-//       - `GetMockWorkflowService`
-//
-//   - `NewAPIRegistrationOption(id string, factory core.APIFactory)`: Creates a
-//     `TestContextBuilderOption` to register and configure an API. Pass this option
-//     to `RunTestCase` or `TestMain` helpers. **If the API factory or its `Init`
-//     method retrieves its configuration using `ctx.Config().GetAPI(id)`, you
-//     must also provide a corresponding `WithMockAPIConfig(id, config)` option
-//     in the same list of options.**
-//
-//   - `NewProtocolRegistrationOption(id string, factory core.ProtocolFactory)`: Creates a
-//     `TestContextBuilderOption` that wraps RegisterProtocol
-//     to register and configure a Protocol for testing purposes.
-//     Pass this option to `RunTestCase` or `TestMain` helpers. **If the Protocol
-//     factory or its `Init` method retrieves its configuration using
-//     `ctx.Config().GetProtocol(id)`, you must also provide a corresponding
-//     `WithMockProtocolConfig(id, config)` option in the same list of options.**
-//
-//   - `RegisterAPI(ctx TestContext, id string, factory core.APIFactory)`: Registers
-//     an API globally and returns `TestContextBuilderOption`s needed to integrate
-//     it into the *current* test context. If called *inside* a test function
-//     *after* the initial `BootEnvironment` call, you *must* apply the returned options
-//     using `ProcessCtxOptions` to make the API available in that context.
-//     Prefer passing `NewAPIRegistrationOption` to `RunTestCase` instead.
-//
-//   - `RegisterEvents(ctx TestContext, events ...core.Eventer)`: Registers events
-//     globally and returns `TestContextBuilderOption`s to add them to the *current*
-//     test context. If called *inside* a test function *after* the initial
-//     `BootEnvironment` call, apply options with `ProcessCtxOptions`. Prefer
-//     passing `WithCoreEvents` or similar options to `RunTestCase`.
-//
-//   - `RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory)`: Registers
-//     API extensions globally and returns `TestContextBuilderOption`s to add them
-//     to the *current* test context. If called *inside* a test function *after*
-//     the initial `BootEnvironment` call, apply options with `ProcessCtxOptions`.
-//     Prefer passing options created by a factory that returns
-//     `TestContextBuilderOption`s directly to `RunTestCase`.
-//
-//   - `RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory)`: Registers
-//     a Protocol globally and returns `TestContextBuilderOption`s needed to integrate
-//     it into the *current* test context. If called *inside* a test function
-//     *after* the initial `BootEnvironment` call, apply options with `ProcessCtxOptions`.
-//     Prefer passing `NewProtocolRegistrationOption` to `RunTestCase`.
+//   - `TestContextBuilderOption`: As defined above, functions that modify the context.
+//     They are processed sequentially during `BootEnvironment`.
 //
 //   - `ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption)`:
-//     Applies a slice of `TestContextBuilderOption`s to a context. This is called
-//     internally by `BootEnvironment`. You might need to call this manually if
-//     you register components *inside* your test function using helpers like
-//     `RegisterAPI` *after* the initial `BootEnvironment` call by `RunTestCase`.
+//     Applies a slice of `TestContextBuilderOption`s to a context. Called internally
+//     by `BootEnvironment`. You might need to call this manually if you register
+//     components *inside* your test function using helpers like `RegisterAPI`
+//     *after* the initial `BootEnvironment` call by `RunTestCase`.
 //
-// Choosing the Right Pattern:
+//   - `ProcessStartupFuncs(ctx TestContext)`: Executes all registered startup functions.
+//     Called internally by `BootEnvironment`.
 //
-// - Use the `TestMain` pattern (`RunTests`, `WithDBAndOptions`, etc.) when:
-//   - Database setup (especially migrations) is required and time-consuming,
-//     and you want it to run only once for the package.
-//   - You need package-level setup or teardown logic.
-//   - You want to share a common environment configuration across multiple tests
-//     in a package for efficiency.
-//   - Individual tests *must* still use `RunTestCase` or `RunTestCaseWithDB`.
+//   - `ProcessExitFuncs(ctx TestContext)`: Executes all registered exit functions.
+//     Called internally by `ShutdownTestContext`.
 //
-// - Use the `RunTestCase` (without TestMain) pattern when:
-//   - You need maximum isolation between individual tests.
-//   - The setup cost per test is negligible.
-//   - You are writing a small number of tests in a package and don't want
-//     to add a `TestMain` function.
-//   - Use `RunTestCase` or `RunTestCaseWithDB` and pass `TestContextBuilderOption`s
-//     directly to configure the environment for that specific test.
+//   - `BootEnvironment(tb TB, ctx TestContext)`: As defined above, the main initialization
+//     function called by `RunTestCase` helpers. **Users should generally not call
+//     this function directly.**
 //
-// Typical Individual Test Function Structure:
+//   - `ShutdownTestContext(ctx TestContext)`: Explicitly shuts down a `TestContext`.
+//     It cancels the context, waits for completion, runs exit functions, and
+//     performs cleanup. `RunTestCase` and `TestMain` helpers handle this automatically
+//     via `t.Cleanup`. You typically don't call this directly.
 //
-// Regardless of whether you use `TestMain`, the structure of an individual test function
-// using this package's helpers is consistent:
+//   - `WrapCoreOption(opt core.ContextBuilderOption)`: Converts a `core.ContextBuilderOption`
+//     to a `TestContextBuilderOption`. Use this when adding core-level options (like
+//     `core.ContextWithService`) to the list of options passed to `RunTestCase` or
+//     `AddGlobalTestContextOptions`.
 //
-//	func TestMyFeature(t *testing.T) {
-//		// Use RunTestCase or RunTestCaseWithDB to handle setup, boot, and teardown.
-//		// Pass any specific options needed for this test.
-//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//			// Inside this function, the context (ctx) is fully initialized and ready.
-//			// tb is the testing.TB instance (*testing.T or *testing.B).
+//   - `WrapCoreOptions(opts []core.ContextBuilderOption)`: Converts a slice of
+//     `core.ContextBuilderOption`s to a slice of `TestContextBuilderOption`s.
 //
-//			// 1. Get services/dependencies from the context.
-//			//    Use core.GetService or specific GetMock...Service helpers.
-//			myService := core.GetService[core.MyService](ctx, core.MY_SERVICE) // Get the service under test
-//			mockDependency := coreTesting.GetMockDependencyService(ctx) // Get a mock dependency
+// Working with Services and Dependencies:
 //
-//			// 2. Set expectations on mock dependencies.
-//			mockDependency.EXPECT().DoSomething(mock.Anything).Return(nil).Once()
+//   - `core.GetService[T](ctx core.Context, id string) T`: The standard way to retrieve
+//     a service (real or mock) from the context by its ID. You should use the generic
+//     type parameter `[T]` to specify the expected interface type.
 //
-//			// 3. Perform the action being tested.
-//			//    err := myService.PerformAction(ctx, "some_arg")
+//   - **Integrating the Service Under Test:** The service you are specifically testing
+//     in a given test function should be added to the context using an option passed
+//     directly to `RunTestCase` or `RunTestCaseWithDB`. This ensures it's available
+//     in that specific test's isolated environment. Use `WrapCoreOption` to include
+//     core-level service registration options.
+//     Example: `coreTesting.WrapCoreOption(core.ContextWithService(service.MY_SERVICE, service.NewMyService()))`
 //
-//			// 4. Assert results and errors.
-//			//    assert.NoError(tb, err)
-//			//    assert.Equal(tb, expected, actual)
+//   - `NewServiceRegistrationOption(id string, factory core.ServiceFactory)`:
+//     Creates a `TestContextBuilderOption` that registers a service using its
+//     `core.ServiceFactory`. This is the recommended way to register the *real*
+//     service under test or other real services needed for integration tests.
+//     It wraps the core `RegisterService` logic and handles any context options
+//     returned by the factory.
 //
-//			// Mock expectations are automatically asserted by testify/mock via t.Cleanup.
+//   - `RegisterService(ctx TestContext, id string, factory core.ServiceFactory)`:
+//     An internal helper function used by `NewServiceRegistrationOption`. It calls
+//     the service factory, registers the service instance with the core, and
+//     returns any `core.ContextBuilderOption`s provided by the factory, wrapped
+//     as `TestContextBuilderOption`s. Users should generally use
+//     `NewServiceRegistrationOption` instead of calling this directly.
 //
-//			// 5. (Optional) Interact with other core components for testing.
+//   - **Working with Mocks generated by Mockery (`testify/mock`):**
+//     Mocks generated by `testify/mock` require a `testing.TB` instance to register
+//     cleanup functions that verify expectations. The `TestContext` provides access
+//     to the correct `TB` via `ctx.T()`.
 //
-//			// Database Interaction:
-//			// If using RunTestCaseWithDB or WithInMemorySQLite option, access the DB:
+//     - **Recommended: `WithMockServiceFactory[T any](id string, factory MockServiceFactory[T])`**:
+//       This is the preferred way to add mocks generated by Mockery (`testify/mock`). It takes
+//       a factory function (`MockServiceFactory[T]`) that accepts a `TB` and returns
+//       the mock instance (`*T`). The framework calls this factory during the
+//       `BootEnvironment` phase with the correct `TB` for the current test, ensuring
+//       `mock.Mock.Test(tb)` is called correctly and expectations are verified via `t.Cleanup`.
+//       Use this for any mock that needs the `TB` during creation.
+//       Example:
+//         `coreTesting.WithMockServiceFactory(service.MY_DEPENDENCY_SERVICE, mocks.NewMockMyDependencyService)`
+//
+//     - **Explicit Warning: Avoid Manual Mock Creation:** **Do NOT** manually create
+//       mocks using `new(MockType)` or calling mock constructors like `mocks.NewMockXxxService(t)`
+//       directly inside your test function's lambda *unless* you are absolutely certain
+//       you understand the `testify/mock` lifecycle and manually handle `mock.Mock.Test(t)`
+//       and expectation verification. Using `WithMockServiceFactory` is safer and
+//       ensures correct integration with the testing framework's cleanup.
+//
+//     - `GetMockXxxService(ctx core.Context)` helpers: Convenience functions like
+//       `GetMockAccessService`, `GetMockAuthService`, etc., are provided to retrieve
+//       and type-assert common default mocks from the context. Use these to easily
+//       access default mocks for setting expectations in your test logic.
+//       Example: `mockAuthService := coreTesting.GetMockAuthService(ctx)`
+//
+// Database Testing:
+//
+//   - `RunTestCaseWithDB` is the easiest way to get a test context with database support.
+//     It automatically includes the `WithSQLite(tb)` option, which sets up a real,
+//     isolated, in-memory SQLite database for that specific test run. **A new database
+//     instance is created and migrated for each test case wrapped by `RunTestCaseWithDB`.**
+//     While this per-test isolation is highly beneficial for reliability, be aware that
+//     creating and migrating a new database for every test case can introduce overhead,
+//     potentially impacting the total execution time for very large test suites.
+//   - Access the database instance via `ctx.DB()`. This returns a `*gorm.DB` instance
+//     scoped to the test context.
+//   - `RunMigrations` is handled automatically by `BootEnvironment` when the DB is enabled
+//     via `WithSQLite` or `EnableDBMigrations()`.
+//
+// Example Database Interaction within `RunTestCaseWithDB`:
+//
+//	func TestDatabaseInteraction(t *testing.T) {
+//		coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 //			db := ctx.DB()
+//			assert.NotNil(tb, db)
 //
 //			// Example: Create a record and then query it
 //			// Assuming a User model exists and is included in migrations
@@ -532,502 +428,156 @@
 //			// assert.NoError(tb, result.Error)
 //			// assert.Equal(tb, newUser.Name, fetchedUser.Name)
 //			// assert.Equal(tb, newUser.Email, fetchedUser.Email)
+//		})
+//	}
 //
-//			// Configuration Testing:
-//			// Get the mock config manager to check or set config values during the test:
-//			// mockConfig := coreTesting.GetMockConfig(ctx)
-//			// value := mockConfig.GetString("some.config.key")
-//			// assert.Equal(tb, "expected_value", value)
-//			// mockConfig.EXPECT().GetString("another.key").Return("mocked_value").Once()
+// Configuration Mocking:
 //
-//			// Event Testing:
-//			// Get the event manager to dispatch or listen for events:
-//			// eventManager := ctx.Event()
-//			// eventManager.Publish("user.created", event.M{"user_id": 123})
-//			// // You might use an EventRecorder or similar pattern to assert events were published
+// The test context includes a mock `ConfigManager` by default.
+//   - Access the mock config manager using `GetMockConfig(ctx)`.
+//   - `WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption`:
+//     Recommended way to mock the configuration returned by `ctx.Config().GetAPI(apiID)`.
+//     Sets a `Maybe()` expectation on the mock `ConfigManager`. Include this option
+//     when testing APIs whose factory or `Init` method reads its configuration.
+//   - `WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption`:
+//     Recommended way to mock the configuration returned by `ctx.Config().GetProtocol(protocolID)`.
+//     Sets a `Maybe()` expectation on the mock `ConfigManager`. Include this option
+//     when testing Protocols whose factory or `Init` method reads its configuration.
+//   - `WithMockServiceConfig(serviceID string, serviceConfig interface{}) TestContextBuilderOption`:
+//     Recommended way to mock the configuration returned by `ctx.Config().GetService(serviceID)`.
+//     Sets a `Maybe()` expectation on the mock `ConfigManager`. Include this option
+//     when testing Services whose factory or `Init` method reads its configuration.
 //
-//			// Testing Real Services with Mock Dependencies:
-//			// If you used an option like coreTesting.WithRealMyService() and MyService
-//			// depends on MockDependencyService (which is included by default),
-//			// you can get the real MyService and the mock dependency, set expectations
-//			// on the mock, and then call methods on the real MyService. The real service
-//			// will use the mock dependency provided in the context.
+// Example Configuration Mocking with Service Registration:
 //
-//			// Testing Service Lifecycle (Init/Shutdown):
-//			// If a service implements core.ServiceInit or core.ServiceShutdown,
-//			// their Init and Shutdown methods are called automatically during
-//			// BootEnvironment and ShutdownTestContext respectively. You can test
-//			// the behavior of these methods by setting up the context with necessary
-//			// dependencies and then asserting the state or mock interactions that
-//			// should occur during Init/Shutdown.
+//	import (
+//		"testing"
+//		"github.com/stretchr/testify/assert"
+//		"go.lumeweb.com/portal/config" // Assuming your config structs are here
+//		coreTesting "go.lumeweb.com/portal/core/testing"
+//		"go.lumeweb.com/portal/core"
+//		"go.lumeweb.com/portal/service" // Assuming your service factory is here
+//	)
+//
+//	// Assume NewMyServiceFactory is a core.ServiceFactory that looks up its config:
+//	// func NewMyServiceFactory() (core.Service, []core.ContextBuilderOption, error) { ... }
+//
+//	func TestMyServiceInitializationWithConfig(t *testing.T) {
+//		mockServiceConfig := &config.ServiceConfig{Enabled: true, Setting: "some_value"}
+//
+//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//			// When BootEnvironment runs, if MyService calls ctx.Config().GetService("myservice"),
+//			// it will receive mockServiceConfig.
+//
+//			// Retrieve the service instance
+//			myService := core.GetService[core.MyService](ctx, "myservice") // Assuming MyService interface exists
+//			assert.NotNil(tb, myService)
+//
+//			// Assert that your service initialized correctly based on this config.
+//			// assert.Equal(tb, mockServiceConfig.Setting, myService.GetInternalSetting()) // Assuming GetInternalSetting exists
 //
 //		},
-//			// Optional: Pass TestContextBuilderOptions specific to this test.
-//			// coreTesting.WithConfigValue("my.setting", "test_value"),
-//			// coreTesting.WithMockServiceFactory(...) // Generic type parameter often inferred
-//			// coreTesting.NewAPIRegistrationOption(...)
+//			// Provide the mock config for "myservice"
+//			coreTesting.WithMockServiceConfig("myservice", mockServiceConfig),
+//			// Register the service itself using the new helper
+//			coreTesting.NewServiceRegistrationOption("myservice", service.NewMyServiceFactory), // Assuming NewMyServiceFactory exists
 //		)
 //	}
 //
 // Testing API Routes and HTTP Interactions:
 //
-// The testing package provides a test router (`ctx.Router()`) that allows you
-// to simulate HTTP requests against the configured API routes within your test
-// environment. This is essential for integration testing of your API handlers
-// and middleware.
-//
-// Steps for testing an API route:
-//
-// 1.  **Ensure the API is Registered:** Make sure the API containing the route
-//     you want to test is registered in the test context. This is typically done
-//     by passing a `NewAPIRegistrationOption` to `RunTestCase` or `TestMain` helpers.
-//
-// 2.  **Get the Test Router:** Access the test router from the context:
-//     `testRouter := ctx.Router()`
-//
-// 3.  **Create a Test Request:** Use `net/http.NewRequest` to create an `*http.Request`
-//     object. You can set the HTTP method, path, headers, and body.
-//
-//     **IMPORTANT:** If the API route is registered using `router.Host()` (which is
-//     common for APIs with subdomains), you **must** set the `Host` header on your
-//     test request to match the expected domain. You can get the base domain from
-//     the context's config and construct the full domain if needed.
-//
-//     Example:
-//
-//     ```go
-//     // For a route on the main domain (e.g., portal.local)
-//     req, err := http.NewRequest(http.MethodGet, "/api/v1/status", nil)
-//     require.NoError(tb, err)
-//     req.Host = ctx.Config().Config().Core.Domain // Set Host header for the main domain
-//
-//     // For a route on a subdomain (e.g., myapi.portal.local)
-//     // Assuming "myapi" is the subdomain configured for the API
-//     apiSubdomain := "myapi" // Get this from your API definition or config
-//     fullDomain := fmt.Sprintf("%s.%s", apiSubdomain, ctx.Config().Config().Core.Domain)
-//     req, err := http.NewRequest(http.MethodPost, "/api/v1/items", strings.NewReader(`{"name": "test"}`))
-//     require.NoError(tb, err)
-//     req.Header.Set("Content-Type", "application/json")
-//     req.Host = fullDomain // Set Host header for the subdomain
-//     ```
-//
-// 4.  **Create a Response Recorder:** Use `net/http/httptest.NewRecorder` to create
-//     an `*httptest.ResponseRecorder`. This object will capture the response written
-//     by the handler.
-//
-//     ```go
-//     resp := httptest.NewRecorder()
-//     ```
-//
-// 5.  **Serve the Request:** Pass the response recorder and the request to the router's
-//     `ServeHTTP` method.
-//
-//     ```go
-//     testRouter.ServeHTTP(resp, req)
-//     ```
-//
-// 6.  **Assert the Response:** Check the captured response details in the `resp` object.
-//
-//     ```go
-//     // Assert status code
-//     assert.Equal(tb, http.StatusOK, resp.Code)
-//
-//     // Assert headers
-//     assert.Equal(tb, "application/json", resp.Header().Get("Content-Type"))
-//
-//     // Assert body content (as string or unmarshal JSON)
-//     assert.Contains(tb, resp.Body.String(), "expected content")
-//
-//     // Example: Unmarshal JSON body
-//     // var responseBody map[string]interface{}
-//     // err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
-//     // require.NoError(tb, err)
-//     // assert.Equal(tb, "success", responseBody["status"])
-//     ```
-//
-// Testing Middleware (e.g., Authentication):
-//
-// If your route is protected by middleware (like the default authentication middleware
-// added by `router.AuthSwagger`), you need to include the necessary headers in your
-// test request to satisfy the middleware.
-//
-// For authentication middleware, this typically involves adding an `Authorization`
-// header with a valid token. You would need to mock or simulate the authentication
-// service to generate or validate these tokens in your test setup.
-//
-// Example with Authentication:
-//
-// ```go
-// // Assuming you have a mock AuthService and a way to generate a test token
-// mockAuthService := coreTesting.GetMockAuthService(ctx)
-// testToken := "fake-jwt-token" // Or generate a real test token
-//
-// // Set expectation on the mock AuthService if the middleware calls it
-// // This depends on how your auth middleware interacts with the service
-// // mockAuthService.EXPECT().ValidateToken(testToken, mock.Anything).Return(&core.User{ID: 1}, nil).Once()
-//
-// req, err := http.NewRequest(http.MethodGet, "/api/v1/protected", nil)
-// require.NoError(tb, err)
-// req.Host = ctx.Config().Config().Core.Domain // Or subdomain host
-// req.Header.Set("Authorization", "Bearer " + testToken) // Add the Authorization header
-//
-// resp := httptest.NewRecorder()
-// testRouter := ctx.Router()
-// testRouter.ServeHTTP(resp, req)
-//
-// assert.Equal(tb, http.StatusOK, resp.Code) // Or http.StatusUnauthorized if token is invalid/missing
-// // ... assert body etc.
-// ```
-//
-// By using `ctx.Router()`, `net/http.NewRequest`, `httptest.NewRecorder`, and
-// asserting the response details, you can effectively test the behavior of your
-// API routes and the middleware applied to them within the isolated test environment.
-//
-// Mocking Configuration:
-//
-// Components like APIs and Protocols often retrieve their specific configuration
-// from the `ConfigManager` during their initialization (`Init`) or when handling
-// requests/messages. When using the default mock `ConfigManager` in tests, these
-// configuration lookups need to be mocked to provide the expected configuration
-// values to the component under test.
-//
-// The testing package provides helper functions to simplify mocking the `GetAPI`
-// and `GetProtocol` methods of the mock `ConfigManager`.
-//
-// - `WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption`:
-//   This helper is the recommended way to mock the configuration returned by
-//   `ctx.Config().GetAPI(apiID)`. It sets an expectation on the mock `ConfigManager`
-//   to return the provided `apiConfig` when `GetAPI` is called with the specified `apiID`.
-//   This is crucial when testing APIs whose factory or `Init` method reads its
-//   configuration from the `ConfigManager`.
-//
-//   Example Usage with `RunTestCase`:
-//
-//   ```go
-//   import (
-//       "testing"
-//       "github.com/stretchr/testify/assert"
-//       "go.lumeweb.com/portal/config" // Assuming your config structs are here
-//       coreTesting "go.lumeweb.com/portal/core/testing"
-//   )
-//
-//   // Assume NewMyAPIFactory is a core.APIFactory that looks up its config:
-//   // func NewMyAPIFactory() (core.API, []core.ContextBuilderOption, error) {
-//   //     // ... create API instance ...
-//   //     return &MyAPI{ /* ... */ }, []core.ContextBuilderOption{
-//   //         core.ContextWithStartupFunc(func(ctx core.Context) error {
-//   //             // This is where the API might read its config during boot
-//   //             apiConfig, err := ctx.Config().GetAPI("myapi")
-//   //             if err != nil {
-//   //                 return err
-//   //             }
-//   //             // Use apiConfig to initialize the API instance
-//   //             // myAPIInstance.SetConfig(apiConfig.(*config.APIConfig))
-//   //             return nil
-//   //         }),
-//   //     }, nil
-//   // }
-//
-//   func TestMyAPIInitialization(t *testing.T) {
-//       // Define the expected configuration for your API
-//       mockAPIConfig := &config.APIConfig{
-//           Enabled: true,
-//           Setting: "some_value", // Assuming APIConfig has a 'Setting' field
-//       }
-//
-//       coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//           // Inside this test, when the test environment boots and configures APIs,
-//           // if your API calls ctx.Config().GetAPI("myapi"), it will receive mockAPIConfig.
-//
-//           // You can then assert that your API initialized correctly based on this config.
-//           // For example, if your API stores its config internally:
-//           // myAPI := core.GetAPI("myapi") // Assuming you registered "myapi"
-//           // assert.NotNil(tb, myAPI)
-//           // assert.Equal(tb, mockAPIConfig.Setting, myAPI.GetInternalSetting()) // Assuming GetInternalSetting exists
-//
-//       },
-//           // Use the helper to provide the mock config for "myapi"
-//           coreTesting.WithMockAPIConfig("myapi", mockAPIConfig),
-//           // You MUST also include the registration option for the API itself
-//           coreTesting.NewAPIRegistrationOption("myapi", NewMyAPIFactory), // Assuming NewMyAPIFactory exists
-//       )
-//   }
-//   ```
-//
-// - `WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption`:
-//   This helper is the recommended way to mock the configuration returned by
-//   `ctx.Config().GetProtocol(protocolID)`. It sets an expectation on the mock
-//   `ConfigManager` to return the provided `protocolConfig` when `GetProtocol`
-//   is called with the specified `protocolID`. This is crucial when testing Protocols
-//   whose factory or `Init` method reads its configuration from the `ConfigManager`.
-//
-//   Example Usage with `RunTestCase`:
-//
-//   ```go
-//   import (
-//       "testing"
-//       "github.com/stretchr/testify/assert"
-//       "go.lumeweb.com/portal/config" // Assuming your config structs are here
-//       coreTesting "go.lumeweb.com/portal/core/testing"
-//   )
-//
-//   // Assume NewMyProtocolFactory is a core.ProtocolFactory that looks up its config:
-//   // func NewMyProtocolFactory() (core.Protocol, []core.ContextBuilderOption, error) {
-//   //     // ... create Protocol instance ...
-//   //     return &MyProtocol{ /* ... */ }, []core.ContextBuilderOption{
-//   //         core.ContextWithStartupFunc(func(ctx core.Context) error {
-//   //             // This is where the Protocol might read its config during boot
-//   //             protoConfig, err := ctx.Config().GetProtocol("myproto")
-//   //             if err != nil {
-//   //                 return err
-//   //             }
-//   //             // Use protoConfig to initialize the Protocol instance
-//   //             // myProtocolInstance.SetConfig(protoConfig.(*config.ProtocolConfig))
-//   //             return nil
-//   //         }),
-//   //     }, nil
-//   // }
-//
-//   func TestMyProtocolInitialization(t *testing.T) {
-//       // Define the expected configuration for your Protocol
-//       mockProtocolConfig := &config.ProtocolConfig{
-//           Timeout: 60, // Assuming ProtocolConfig has a 'Timeout' field
-//       }
-//
-//       coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-//           // Inside this test, when the test environment boots and configures Protocols,
-//           // if your Protocol calls ctx.Config().GetProtocol("myproto"), it will receive mockProtocolConfig.
-//
-//           // You can then assert that your Protocol initialized correctly based on this config.
-//           // For example, if your Protocol stores its config internally:
-//           // myProtocol := core.GetProtocol("myproto") // Assuming you registered "myproto"
-//           // assert.NotNil(tb, myProtocol)
-//           // assert.Equal(tb, mockProtocolConfig.Timeout, myProtocol.GetInternalTimeout()) // Assuming GetInternalTimeout exists
-//
-//       },
-//           // Use the helper to provide the mock config for "myproto"
-//           coreTesting.WithMockProtocolConfig("myproto", mockProtocolConfig),
-//           // You MUST also include the registration option for the Protocol itself
-//           coreTesting.NewProtocolRegistrationOption("myproto", NewMyProtocolFactory), // Assuming NewMyProtocolFactory exists
-//       )
-//   }
-//   ```
-//
-// These helpers set `Maybe()` expectations on the mock `ConfigManager`. This means
-// the test will not fail if the `GetAPI` or `GetProtocol` call for the specified ID
-// does *not* occur during the test. However, if the call *does* occur, the mock
-// will return the configuration object you provided. This is often sufficient for
-// tests where you just need the component to receive a specific config if it asks
-// for it. For stricter tests where you need to assert that `GetAPI` or `GetProtocol`
-// was called a specific number of times (e.g., `Once()`), you may need to manually
-// retrieve the mock config manager using `GetMockConfig(ctx)` and set the expectation
-// directly using `mockConfig.On(...)`.
-//
-// Advanced Test Setup Scenarios:
-//
-// The flexibility of `TestContextBuilderOption`s allows for advanced test setup
-// scenarios, such as overriding default mock services or adding entirely new custom services.
-//
-// Overriding Default Mocks:
-//
-// By default, `RunTestCase` and `TestMain` helpers include a standard set of mock
-// services (`DefaultTestContextOptions`). You can replace any of these default mocks
-// with a different mock implementation or a real service implementation by providing
-// a `TestContextBuilderOption` that registers a service with the *same ID* as the
-// default mock. Options are processed in order, so options provided later will
-// override earlier ones.
-//
-// Example: Replacing the default MockUserService with a real UserService (assuming it exists and is testable):
-//
-// ```go
-// func TestRealUserServiceWithMockDependencies(t *testing.T) {
-// 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-// 		// Inside this test, the default MockUserService is replaced by the real one.
-// 		// However, its dependencies (like the DB, Config, etc.) are still the default mocks
-// 		// unless explicitly overridden.
-//
-// 		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
-// 		require.NotNil(tb, userService)
-//
-// 		// You can still get and set expectations on the *other* default mocks
-// 		mockMailer := coreTesting.GetMockMailerService(ctx)
-// 		mockMailer.EXPECT().SendEmail(mock.Anything, mock.Anything).Return(nil).Once()
-//
-// 		// ... test the real userService ...
-//
-// 	},
-// 		// This option replaces the default MockUserService
-// 		coreTesting.WithRealUserService(), // Assuming this option exists and registers a real UserService
-// 		// You might need to add options for the real service's dependencies if they aren't covered by defaults
-// 		// coreTesting.WithRealDependencyService(),
-// 	)
-// }
-// ```
-//
-// Example: Replacing the default MockUserService with a *different* mock implementation:
-//
-// ```go
-// // Assuming you have a custom mock implementation called MyCustomMockUserService
-// type MyCustomMockUserService struct {
-// 	mock.Mock
-// }
-//
-// func NewMyCustomMockUserService(tb testing.TB) *MyCustomMockUserService {
-// 	m := &MyCustomMockUserService{}
-// 	m.Mock.Test(tb) // Link mock to the test for automatic expectation verification
-// 	return m
-// }
-//
-// // Implement core.UserService methods on MyCustomMockUserService
-// // func (m *MyCustomMockUserService) CreateUser(...) error { ... }
-//
-// func TestWithCustomMockUserService(t *testing.T) {
-// 	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-// 		// Get the custom mock service
-// 		customMockUserSvc := core.GetService[core.UserService](ctx, core.USER_SERVICE)
-// 		require.NotNil(tb, customMockUserSvc)
-//
-// 		// Assert that it's your custom mock type
-// 		_, ok := customMockUserSvc.(*MyCustomMockUserService)
-// 		assert.True(tb, ok, "UserService should be MyCustomMockUserService")
-//
-// 		// Set expectations on your custom mock
-// 		// customMockUserSvc.(*MyCustomMockUserService).EXPECT().CreateUser(...).Return(...)
-//
-// 		// ... test logic ...
-//
-// 	},
-// 		// This option replaces the default MockUserService with your custom mock
-// 		coreTesting.WithMockServiceFactory(
-// 			core.USER_SERVICE,
-// 			NewMyCustomMockUserService, // Use your custom mock factory
-// 		),
-// 	)
-// }
-// ```
-//
-// Adding Custom Services:
-//
-// If you have a service that is not part of the core package's default mocks,
-// you can add it to the test context.
-//
-// Preferred Method (using TestContextBuilderOption):
-// Create a `TestContextBuilderOption` that registers your service. This ensures
-// the service is initialized correctly during the `BootEnvironment` phase.
-// Use `WithMockServiceFactory` for mocks generated by `testify/mock` or
-// `WithMockService` for simple mock structs or real service instances that
-// don't require the `testing.TB` instance during creation.
-//
-// Example: Adding a custom mock service using `WithMockServiceFactory`:
-//
-// ```go
-// // Assuming a custom service interface and its mock exist
-// type MyCustomService interface {
-// 	DoSomethingCustom() error
-// }
-//
-// // Assuming a mock generated by testify/mock: MockMyCustomService
-// // and a factory function: NewMockMyCustomService(tb testing.TB) *MockMyCustomService
-// const MY_CUSTOM_SERVICE = "my_custom_service" // Define a unique ID for your service
-//
-// func TestWithCustomService(t *testing.T) {
-// 	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-// 		// Get your custom mock service
-// 		customSvc := core.GetService[MyCustomService](ctx, MY_CUSTOM_SERVICE)
-// 		require.NotNil(tb, customSvc)
-//
-// 		// Set expectations on the custom mock
-// 		customSvc.(*MockMyCustomService).EXPECT().DoSomethingCustom().Return(nil).Once()
-//
-// 		// ... test logic that uses the custom service ...
-//
-// 	},
-// 		// Add the custom mock service to the context
-// 		coreTesting.WithMockServiceFactory(
-// 			MY_CUSTOM_SERVICE,
-// 			NewMockMyCustomService,
-// 		),
-// 	)
-// }
-// ```
-//
-// Alternative Method (using ctx.RegisterService inside testFunc):
-// You can call `ctx.RegisterService(id, serviceInstance)` directly inside your
-// test function *after* the `BootEnvironment` call (which is handled by `RunTestCase`).
-// However, this is generally discouraged because the service's `Init` method (if it
-// implements `core.ServiceInit`) will *not* be called automatically. This method
-// is only suitable for very simple services or mocks that have no initialization
-// logic or dependencies that need to be resolved during boot.
-//
-// ```go
-// func TestRegisterServiceInsideTestFunc(t *testing.T) {
-// 	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-// 		// Create a simple mock instance
-// 		simpleMock := &struct{ mock.Mock }{}
-// 		simpleMock.Test(tb)
-//
-// 		// Register it directly (Init will NOT be called)
-// 		ctx.RegisterService("my_simple_mock", simpleMock)
-//
-// 		// Get the service
-// 		retrievedMock := ctx.Service("my_simple_mock")
-// 		assert.NotNil(tb, retrievedMock)
-//
-// 		// Set expectations and test...
-// 	})
-// }
-// ```
+// The test context provides a test router (`ctx.Router()`) allowing simulation of
+// HTTP requests against configured API routes.
+//
+// Steps:
+// 1. Ensure the API is registered (e.g., using `NewAPIRegistrationOption` passed to `RunTestCase`).
+// 2. Get the test router: `testRouter := ctx.Router()`.
+// 3. Create a test request: `req, err := http.NewRequest(...)`.
+// 4. **Crucially:** Set the `req.Host` header correctly, especially for subdomain routers.
+//    Use `ctx.Config().Config().Core.Domain` for the main domain or construct
+//    `fmt.Sprintf("%s.%s", apiSubdomain, ctx.Config().Config().Core.Domain)` for subdomains.
+// 5. Create a response recorder: `resp := httptest.NewRecorder()`.
+// 6. Serve the request: `testRouter.ServeHTTP(resp, req)`.
+// 7. Assert the response (`resp.Code`, `resp.Header()`, `resp.Body.String()`).
+//
+// Example API Route Testing:
+//
+//	import (
+//		"fmt"
+//		"net/http"
+//		"net/http/httptest"
+//		"strings"
+//		"testing"
+//
+//		"github.com/stretchr/testify/assert"
+//		"github.com/stretchr/testify/require"
+//		"go.lumeweb.com/portal/core"
+//		coreTesting "go.lumeweb.com/portal/core/testing"
+//		"go.lumeweb.com/portal/service" // Assuming your API factory is here
+//	)
+//
+//	// Assume NewTestAPIFactory registers an API with ID "test" and subdomain "testapi"
+//	// and has a GET /status endpoint.
+//
+//	func TestRegisterAPIAndRoute(t *testing.T) {
+//		coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+//			testRouter := ctx.Router()
+//			assert.NotNil(tb, testRouter)
+//
+//			// Simulate an HTTP request to the API endpoint
+//			req, err := http.NewRequest(http.MethodGet, "/api/v1/status", nil)
+//			require.NoError(tb, err)
+//
+//			// IMPORTANT: Set the Host header for the subdomain
+//			apiSubdomain := "testapi" // Get this from your API definition
+//			fullDomain := fmt.Sprintf("%s.%s", apiSubdomain, ctx.Config().Config().Core.Domain)
+//			req.Host = fullDomain
+//
+//			resp := httptest.NewRecorder()
+//			testRouter.ServeHTTP(resp, req)
+//
+//			assert.Equal(tb, http.StatusOK, resp.Code)
+//			// assert.Contains(tb, resp.Body.String(), "status: ok")
+//
+//		},
+//			// Pass the API registration option directly to RunTestCase.
+//			coreTesting.NewAPIRegistrationOption("test", service.NewTestAPIFactory), // Assuming NewTestAPIFactory exists
+//			// If the API factory or Init method reads config, provide a mock config option too.
+//			// coreTesting.WithMockAPIConfig("test", &config.APIConfig{Enabled: true, Subdomain: "testapi"}),
+//		)
+//	}
 //
 // Best Practices and Tips:
 //
-// - **Naming Conventions:**
-//   - Test files should end with `_test.go`.
-//   - Test functions should start with `Test` followed by the name of the function
-//     or feature being tested (e.g., `TestCreateUser`, `TestGetUserByID`).
-//   - Use descriptive names that indicate what the test is verifying.
-//   - For tests using the `TestMain` pattern, the file containing `TestMain` might
-//     be named `main_test.go` or similar, although this is not strictly required.
+// - **Always wrap test logic in `RunTestCase` or `RunTestCaseWithDB`**. This is the most important rule for ensuring isolated and predictable test environments.
+// - Use `TestMain` with `RunTests` only for package-level global setup (like enabling DB globally or adding widespread dependencies).
+// - Pass test-specific options (like the service under test registration, specific mocks, or config values) directly to `RunTestCase`/`RunTestCaseWithDB`.
+// - Use `WithMockServiceFactory` for adding mocks generated by Mockery (`testify/mock`).
+// - Use `core.GetService[T](ctx, id)` to retrieve services (real or mock). Cast default mocks to their concrete `*mocks.MockXxxService` type (or use `GetMockXxxService` helpers) to set expectations.
+// - Use `require` (from `testify/require`) for conditions that, if false, mean the test cannot continue meaningfully (e.g., setup failures).
+// - Use `assert` (from `testify/assert`) for verifying the final outcome of the test logic.
+// - Use `ctx.Logger()` for debugging output; it integrates with `go test -v`.
+// - Choose test granularity (unit vs. integration) based on what you are trying to verify. Mock dependencies for unit tests; use real components for integration tests.
+// - Remember to set the `req.Host` header when testing API routes, especially for subdomains.
 //
-// - **Test Granularity (Unit vs. Integration):**
-//   - **Unit Tests:** Focus on testing individual components (e.g., a single service method)
-//     in isolation. Mock out all dependencies using `WithMockServiceFactory` or
-//     `WithMockService`. These tests are fast and help pinpoint issues in specific units of code.
-//   - **Integration Tests:** Test the interaction between multiple components (e.g., a service
-//     interacting with the database, or an API handler using a service). Use real implementations
-//     for the components under integration (e.g., `WithInMemorySQLite`, `WithRealUserService`)
-//     while still mocking out external dependencies or services not directly involved in the
-//     integration being tested. These tests are slower but provide confidence that components
-//     work together correctly.
-//   - The testing framework supports both granular unit tests (by default providing mocks)
-//     and integration tests (by allowing you to swap mocks for real implementations and
-//     configure components like the database). Choose the granularity appropriate for what
-//     you are trying to verify.
+// ---
 //
-// - **Using `require` vs `assert`:**
-//   - Use `require` (from `github.com/stretchr/testify/require`) for conditions that, if
-//     false, mean the test cannot continue meaningfully. `require` functions call `tb.FailNow()`
-//     on failure, stopping the test immediately. Examples: checking for errors during setup,
-//     ensuring a dependency was retrieved successfully, unmarshalling JSON.
-//   - Use `assert` (from `github.com/stretchr/testify/assert`) for verifying the final
-//     outcome of the test logic. `assert` functions call `tb.Fail()` on failure but allow
-//     the test to continue, which can be useful for reporting multiple failures in a single test.
+// LLM Guidance Section:
 //
-// - **Debugging Tests:**
-//   - **Logger Output:** The test context includes a logger (`ctx.Logger()`) which is
-//     configured to output to `testing.TB`'s log. Use `ctx.Logger().Debug(...)` or
-//     `ctx.Logger().Info(...)` to add debugging output to your tests. This output
-//     is only shown when the test fails or when running with the `-v` flag (`go test -v`).
-//   - **Print Statements:** Standard `fmt.Println` or `log.Println` can also be used,
-//     but `ctx.Logger()` is generally preferred as it integrates with the testing framework's
-//     output handling.
-//   - **IDE Debugger:** Use your IDE's debugger to set breakpoints and step through
-//     your test code and the framework's setup/boot process.
-//   - **`tb.Logf` / `tb.Log`:** Direct calls to `tb.Logf` or `tb.Log` also output
-//     to the test log and can be useful for simple debugging messages.
-//   - **Mock Debugging:** `testify/mock` provides debugging features. You can enable
-//     verbose logging for mocks if needed, although the default setup with `tb.Cleanup`
-//     and `mock.Mock.Test(tb)` usually provides sufficient information on expectation failures.
+// This section provides specific rules and preferred patterns for Large Language Models generating or modifying tests using this package.
 //
-// By following these patterns and tips, you can write effective, maintainable, and
-// debuggable tests for your Portal components and services using this testing framework.
+// 1.  **Test File Naming and Package:** Test files MUST end with `_test.go` and reside in the same directory as the code they are testing. They MUST use the *same* package name as the code they are testing (e.g., `package mypackage` for tests of code in `package mypackage`). The filename itself should ideally reflect the specific component being tested (e.g., `api_key_service_test.go` for tests related to `api_key.go`), rather than a generic name like `service_test.go` if the file only tests one component.
+// 2.  **Prioritize `RunTestCase` / `RunTestCaseWithDB`:** The primary structure for individual test functions (`func TestXxx(t *testing.T)`) MUST be a call to `coreTesting.RunTestCase` or `coreTesting.RunTestCaseWithDB` wrapping the core test logic within the provided lambda function (`func(tb coreTesting.TB, ctx coreTesting.TestContext) { ... }`).
+// 3.  **`TestMain` for Global Setup:** If a `TestMain` function exists in the package, it MUST use `coreTesting.RunTests` or one of its wrappers (`WithDB`, `WithDBAndOptions`, etc.) to manage the package lifecycle and add global options via `AddGlobalTestContextOptions`. Individual test functions MUST still use `RunTestCase`/`RunTestCaseWithDB`.
+// 4.  **Service Under Test Registration:** The service instance being primarily tested in a given `TestXxx` function MUST be registered using an option passed directly to the `RunTestCase` or `RunTestCaseWithDB` call. The preferred way is `coreTesting.NewServiceRegistrationOption(service.MY_SERVICE_ID, service.NewMyServiceFactory)`. Do NOT add the service under test globally via `TestMain` unless it is a dependency required by *many* other components tested in the package.
+// 5.  **Accessing Dependencies:** To retrieve services (real or mock) within the test lambda, use `core.GetService[T](ctx, serviceID)`. To set expectations on default mocks (like `MockAuthService`), retrieve the service using `core.GetService` and then type-assert it to its concrete mock type (e.g., `authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE); mockAuthService := authService.(*mocks.MockAuthService)`), or use the provided `GetMockXxxService` helpers.
+// 6.  **Correct Mock Creation:** When adding *new* mocks (not the default ones) that are generated by Mockery (`testify/mock`), they MUST be added using the `coreTesting.WithMockServiceFactory` option passed to `RunTestCase`/`RunTestCaseWithDB`. The factory function provided to `WithMockServiceFactory` MUST accept a `TB` argument and call `mock.Mock.Test(tb)` on the mock instance. **Strictly avoid** manually creating mocks with `new(MockType)` or calling mock constructors directly inside the test lambda without properly linking them to the test's `TB` for cleanup.
+// 7.  **Database Interaction:** For tests requiring database access, use `coreTesting.RunTestCaseWithDB`. Access the database instance within the test lambda using `ctx.DB()`. **A new database instance is created and migrated for each test case wrapped by `RunTestCaseWithDB`.** While this per-test isolation is highly beneficial for reliability, be aware that creating and migrating a new database for every test case can introduce overhead, potentially impacting the total execution time for very large test suites.
+// 8.  **Configuration Mocking:** Use `coreTesting.WithMockAPIConfig`, `coreTesting.WithMockProtocolConfig`, and `coreTesting.WithMockServiceConfig` options to provide mock configurations for APIs, Protocols, and Services that read their settings from the `ConfigManager`.
+// 9.  **API Route Testing:** When testing HTTP routes, use `ctx.Router()`, `net/http.NewRequest`, and `httptest.NewRecorder`. Always set the `req.Host` header correctly, especially for subdomain-based APIs, using `ctx.Config().Config().Core.Domain`.
+// 10. **Service Interface Location:** When referencing service interfaces (e.g., `core.AuthService`), assume the interface definition is located either in the same package as the service implementation or in a sibling package named `types` (e.g., `core/types`).
+//
+// ---
+//
+// By adhering to these guidelines, tests will be isolated, reliable, and easier to understand and maintain.
 package testing

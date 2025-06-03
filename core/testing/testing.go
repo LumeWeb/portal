@@ -1072,6 +1072,45 @@ func WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestC
 	}
 }
 
+// WithMockServiceConfig sets an expectation on the mock ConfigManager
+// to return the provided config when GetService is called with the given ID.
+// The expectation is set to Maybe() to allow but not require the call.
+func WithMockServiceConfig(serviceID string, serviceConfig interface{}) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		mockConfig := GetMockConfig(ctx)
+		mockConfig.On("GetService", serviceID).Return(serviceConfig).Maybe()
+		return ctx, nil
+	}
+}
+
+// NewServiceRegistrationOption creates a TestContextBuilderOption that wraps RegisterService
+// to register and configure a Service for testing purposes.
+func NewServiceRegistrationOption(id string, factory core.ServiceFactory) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		opts, err := RegisterService(tctx, id, factory)
+		if err != nil {
+			return tctx, err
+		}
+		return ProcessCtxOptions(tctx, opts...)
+	}
+}
+
+// RegisterService registers a Service and wraps any returned context options for test context
+func RegisterService(ctx TestContext, id string, factory core.ServiceFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	service, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
+		return nil, err
+	}
+
+	if service == nil {
+		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
+	}
+
+	core.RegisterService(id, service)
+	return WrapCoreOptions(opts), nil
+}
+
 // GetMockAccessService returns the mock access service from the context for testing
 // Panics if the access service is not a mock
 func GetMockAccessService(ctx core.Context) *MockAccessService {
