@@ -1105,9 +1105,18 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory) (c
 
 	if service == nil {
 		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
+		return nil, fmt.Errorf("service factory returned nil service")
 	}
 
-	core.RegisterService(id, service)
+	// Create ServiceInfo struct with the ID and factory
+	svcInfo := core.ServiceInfo{
+		ID: id,
+		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+			return service, opts, nil
+		},
+	}
+
+	core.RegisterService(svcInfo)
 	return WrapCoreOptions(opts), nil
 }
 
