@@ -867,7 +867,14 @@ func WithMockCronService() TestContextBuilderOption {
 // WithMockHTTPService adds a mock HTTPService to the test context.
 func WithMockHTTPService() TestContextBuilderOption {
 	return WithMockService(core.HTTP_SERVICE, func(tb TB) any {
-		return NewMockHTTPService(tb)
+		mockSvc := NewMockHTTPService(tb)
+		// Set up the mock to return the test context's router when Router() is called
+		if tctx, ok := tb.(TestContext); ok && tctx.Router() != nil {
+			mockSvc.On("Router").Return(tctx.Router()).Maybe()
+		} else {
+			mockSvc.On("Router").Return(nil).Maybe()
+		}
+		return mockSvc
 	})
 }
 
