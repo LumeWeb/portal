@@ -513,7 +513,7 @@ func (c *testContext) Teardown() {
 
 // WithMockService adds a mock service to the test context by calling the mock constructor
 // during the test context's BootEnvironment phase.
-func WithMockService(id string, mockConstructor func(tb TB) any) TestContextBuilderOption {
+func WithMockService(id string, mockConstructor func(tb TB, ctx TestContext) any) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		// Register a startup function that will create and register the mock later
 		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
@@ -523,7 +523,7 @@ func WithMockService(id string, mockConstructor func(tb TB) any) TestContextBuil
 			}
 
 			// Create and register the mock instance
-			mockInstance := mockConstructor(tctx.T())
+			mockInstance := mockConstructor(tctx.T(), tctx)
 			if err := registerServiceInstance(tctx, id, mockInstance); err != nil {
 				return fmt.Errorf("failed to register mock service: %w", err)
 			}
@@ -818,28 +818,28 @@ func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T]) Tes
 
 // WithMockAccessService adds a mock AccessService to the test context.
 func WithMockAccessService() TestContextBuilderOption {
-	return WithMockService(core.ACCESS_SERVICE, func(tb TB) any {
+	return WithMockService(core.ACCESS_SERVICE, func(tb TB, _ TestContext) any {
 		return NewMockAccessService(tb)
 	})
 }
 
 // WithMockAuthService adds a mock AuthService to the test context.
 func WithMockAuthService() TestContextBuilderOption {
-	return WithMockService(core.AUTH_SERVICE, func(tb TB) any {
+	return WithMockService(core.AUTH_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockAuthService(tb)
 	})
 }
 
 // WithMockConfigService adds a mock ConfigService to the test context.
 func WithMockConfigService() TestContextBuilderOption {
-	return WithMockService(core.CONFIG_SERVICE, func(tb TB) any {
+	return WithMockService(core.CONFIG_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockConfigService(tb)
 	})
 }
 
 // WithMockContentScannerService adds a mock ContentScannerService to the test context.
 func WithMockContentScannerService() TestContextBuilderOption {
-	return WithMockService(core.CONTENT_SCANNER_SERVICE, func(tb TB) any {
+	return WithMockService(core.CONTENT_SCANNER_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockContentScannerService(tb)
 	})
 }
@@ -848,7 +848,7 @@ func WithMockContentScannerService() TestContextBuilderOption {
 // Note: CronService mock comes with pre-configured expectations for common operations
 // to simplify test setup.
 func WithMockCronService() TestContextBuilderOption {
-	return WithMockService(core.CRON_SERVICE, func(tb TB) any {
+	return WithMockService(core.CRON_SERVICE, func(tb TB, _ TestContext) any {
 		_mock := mocks.NewMockCronService(tb)
 		_mock.On("RegisterEntity", mock.MatchedBy(func(arg interface{}) bool {
 			_, ok := arg.(core.Cronable)
@@ -866,91 +866,87 @@ func WithMockCronService() TestContextBuilderOption {
 
 // WithMockHTTPService adds a mock HTTPService to the test context.
 func WithMockHTTPService() TestContextBuilderOption {
-	return WithMockService(core.HTTP_SERVICE, func(tb TB) any {
+	return WithMockService(core.HTTP_SERVICE, func(tb TB, ctx TestContext) any {
 		mockSvc := NewMockHTTPService(tb)
-		// Set up the mock to return the test context's router when Router() is called
-		if tctx, ok := tb.(TestContext); ok && tctx.Router() != nil {
-			mockSvc.On("Router").Return(tctx.Router()).Maybe()
-		} else {
-			mockSvc.On("Router").Return(nil).Maybe()
-		}
+		mockSvc.router = ctx.Router()
+		mockSvc.cmanager = ctx.Config()
 		return mockSvc
 	})
 }
 
 // WithMockHashMappingService adds a mock HashMappingService to the test context.
 func WithMockHashMappingService() TestContextBuilderOption {
-	return WithMockService(core.HASH_MAPPING_SERVICE, func(tb TB) any {
+	return WithMockService(core.HASH_MAPPING_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockHashMappingService(tb)
 	})
 }
 
 // WithMockMailerService adds a mock MailerService to the test context.
 func WithMockMailerService() TestContextBuilderOption {
-	return WithMockService(core.MAILER_SERVICE, func(tb TB) any {
+	return WithMockService(core.MAILER_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockMailerService(tb)
 	})
 }
 
 // WithMockOTPService adds a mock OTPService to the test context.
 func WithMockOTPService() TestContextBuilderOption {
-	return WithMockService(core.OTP_SERVICE, func(tb TB) any {
+	return WithMockService(core.OTP_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockOTPService(tb)
 	})
 }
 
 // WithMockPasswordResetService adds a mock PasswordResetService to the test context.
 func WithMockPasswordResetService() TestContextBuilderOption {
-	return WithMockService(core.PASSWORD_RESET_SERVICE, func(tb TB) any {
+	return WithMockService(core.PASSWORD_RESET_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockPasswordResetService(tb)
 	})
 }
 
 // WithMockPinService adds a mock PinService to the test context.
 func WithMockPinService() TestContextBuilderOption {
-	return WithMockService(core.PIN_SERVICE, func(tb TB) any {
+	return WithMockService(core.PIN_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockPinService(tb)
 	})
 }
 
 // WithMockRequestService adds a mock RequestService to the test context.
 func WithMockRequestService() TestContextBuilderOption {
-	return WithMockService(core.REQUEST_SERVICE, func(tb TB) any {
+	return WithMockService(core.REQUEST_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockRequestService(tb)
 	})
 }
 
 // WithMockRenterService adds a mock RenterService to the test context.
 func WithMockRenterService() TestContextBuilderOption {
-	return WithMockService(core.RENTER_SERVICE, func(tb TB) any {
+	return WithMockService(core.RENTER_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockRenterService(tb)
 	})
 }
 
 // WithMockStorageService adds a mock StorageService to the test context.
 func WithMockStorageService() TestContextBuilderOption {
-	return WithMockService(core.STORAGE_SERVICE, func(tb TB) any {
+	return WithMockService(core.STORAGE_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockStorageService(tb)
 	})
 }
 
 // WithMockTUSService adds a mock TUSService to the test context.
 func WithMockTUSService() TestContextBuilderOption {
-	return WithMockService(core.TUS_SERVICE, func(tb TB) any {
+	return WithMockService(core.TUS_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockTUSService(tb)
 	})
 }
 
 // WithMockUserService adds a mock UserService to the test context.
 func WithMockUserService() TestContextBuilderOption {
-	return WithMockService(core.USER_SERVICE, func(tb TB) any {
+	return WithMockService(core.USER_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockUserService(tb)
 	})
 }
 
 // WithMockWorkflowService adds a mock WorkflowService to the test context.
 func WithMockWorkflowService() TestContextBuilderOption {
-	return WithMockService(core.WORKFLOW_SERVICE, func(tb TB) any {
+	return WithMockService(core.WORKFLOW_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockWorkflowService(tb)
 	})
 }
@@ -1521,7 +1517,7 @@ func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error 
 
 	// Get the config object from the service
 	cfgResult := svc.(config.ServiceConfig)
-	
+
 	// Ensure the config type is compliant with ServiceConfig interface
 	// This handles cases where the service returns a non-pointer but needs pointer semantics
 	compliantCfg, isCompliant := pkgReflect.EnsureCompliantType(cfgResult, serviceConfigType)
@@ -1869,6 +1865,7 @@ func WithCoreEvents() TestContextBuilderOption {
 		return ProcessCtxOptions(ctx, opts...)
 	}
 }
+
 // registerServiceInstance registers a service instance both locally in the test context
 // and globally with the core framework.
 func registerServiceInstance(ctx TestContext, id string, instance any) error {
