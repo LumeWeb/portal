@@ -45,8 +45,6 @@ type TestMainOpts struct {
 
 // RunTests is the standard way to run tests with automatic setup/teardown
 func RunTests(m *testing.M, opts TestMainOpts) int {
-	ResetAllState()
-
 	if opts.WithDB {
 		EnableMockDB()
 		if opts.DBMigrations {
@@ -247,6 +245,10 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	testMutex.Lock()
 	defer testMutex.Unlock()
 
+	// Reset all state before test
+	ResetAllState()
+	defer ResetAllState()
+
 	// Add any provided options to the global collection first
 	if len(opts) > 0 {
 		AddTestContextOptions(opts...)
@@ -274,6 +276,10 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 
 	testMutex.Lock()
 	defer testMutex.Unlock()
+
+	// Reset all state before test
+	ResetAllState()
+	defer ResetAllState()
 
 	EnableDBMigrations()
 	defer DisableDBMigrations()
@@ -308,14 +314,6 @@ func ResetAllState() {
 	DisableDBMigrations()
 	DisableMockDB()
 
-	// Clear all test contexts
-	testContexts.Range(func(key, value interface{}) bool {
-		if ctx, ok := value.(TestContext); ok {
-			ctx.Teardown()
-		}
-		testContexts.Delete(key)
-		return true
-	})
 }
 
 // EnableDBMigrations enables running DB migrations during test context initialization
