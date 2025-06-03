@@ -512,42 +512,25 @@ func (c *testContext) Teardown() {
 }
 
 // WithMockService adds a mock service to the test context by calling the mock constructor
-// during the test context's BootEnvironment phase. The mock must implement core.Service.
-// This registers both locally in the test context and globally via core.RegisterService.
+// during the test context's BootEnvironment phase.
 func WithMockService(id string, mockConstructor func(tb TB) any) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		// Register a startup function that will create and register the mock later
 		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
-			// Cast the core.Context back to TestContext to access the TB
 			tctx, ok := coreCtx.(TestContext)
 			if !ok {
 				return fmt.Errorf("context is not a TestContext, cannot use WithMockService")
 			}
 
-			// Create the mock instance using the test's TB
+			// Create and register the mock instance
 			mockInstance := mockConstructor(tctx.T())
-
-			// Ensure the mock implements core.Service
-			mockInstanceSvc, ok := mockInstance.(core.Service)
-			if !ok {
-				return fmt.Errorf("mock for service '%s' does not implement core.Service", id)
+			if err := registerServiceInstance(tctx, id, mockInstance); err != nil {
+				return fmt.Errorf("failed to register mock service: %w", err)
 			}
-
-			// Register the mock in the context's local service map
-			tctx.RegisterService(id, mockInstance)
-
-			// Register globally with core.RegisterService using a factory that returns our instance
-			core.RegisterService(core.ServiceInfo{
-				ID: id,
-				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-					return mockInstanceSvc, nil, nil
-				},
-			})
 
 			return nil
 		})
 
-		// Apply the startup option to the context
 		return ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
 	}
 }
@@ -1094,19 +1077,14 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory) (c
 	}
 
 	if service == nil {
-		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
 		return nil, fmt.Errorf("service factory returned nil service")
 	}
 
-	// Create ServiceInfo struct with the ID and factory
-	svcInfo := core.ServiceInfo{
-		ID: id,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return service, opts, nil
-		},
+	// Register the instance locally and globally
+	if err := registerServiceInstance(ctx, id, service); err != nil {
+		return nil, fmt.Errorf("failed to register service: %w", err)
 	}
 
-	core.RegisterService(svcInfo)
 	return WrapCoreOptions(opts), nil
 }
 
@@ -1883,4 +1861,30 @@ func WithCoreEvents() TestContextBuilderOption {
 		opts := RegisterEvents(ctx)
 		return ProcessCtxOptions(ctx, opts...)
 	}
+}
+// registerServiceInstance registers a service instance both locally in the test context
+// and globally with the core framework.
+func registerServiceInstance(ctx TestContext, id string, instance any) error {
+	if instance == nil {
+		return fmt.Errorf("service instance for '%s' is nil", id)
+	}
+
+	// Register locally in test context
+	ctx.RegisterService(id, instance)
+
+	// Register globally if it implements core.Service
+	if svc, ok := instance.(core.Service); ok {
+		core.RegisterService(core.ServiceInfo{
+			ID: id,
+			Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+				return svc, nil, nil
+			},
+		})
+	} else {
+		ctx.Logger().Warn("Service instance does not implement core.Service; global registration skipped",
+			zap.String("service", id),
+			zap.Any("type", reflect.TypeOf(instance)))
+	}
+
+	return nil
 }
