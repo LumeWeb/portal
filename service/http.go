@@ -37,8 +37,9 @@ const (
 )
 
 var (
-	pluginIDRegex   = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
-	httpGlobalPaths = []string{"/api/meta", "/swagger"}
+	pluginIDRegex    = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
+	httpGlobalPaths  = []string{"/api/meta", "/swagger"}
+	genericTypeRegex = regexp.MustCompile(`^(.+?)\[(.+)]$`)
 )
 
 func jsonSchemaMapper(_ reflect.Type) *jsonschema.Schema {
@@ -89,7 +90,10 @@ func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) 
 			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version), func(c *router.RouterConfig) {
 				c.Options.CustomServeHTTPHandler = _http
 			}, router.WithReflectorOptions(&jsonschema.Reflector{
-				Mapper: _http.mapSchemaType,
+				Mapper: mapSchemaType,
+				Namer: func(t reflect.Type) string {
+					return nameGenerics(t)
+				},
 			}))
 			if err != nil {
 				return err
@@ -550,7 +554,7 @@ func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
 	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), h.ctx.Config().Config().Core.Domain)
 }
 
-func (h *HTTPServiceDefault) mapSchemaType(typ reflect.Type) *jsonschema.Schema {
+func mapSchemaType(typ reflect.Type) *jsonschema.Schema {
 	// First try our default mappers
 	if mapper, exists := defaultSchemaMappers[typ.Name()]; exists {
 		return mapper(typ)
@@ -598,4 +602,92 @@ func bundleTargetsApp(bundle *core.WebBundle, appType string) bool {
 		}
 	}
 	return false
+}
+
+func getTypeName(t reflect.Type) string {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem() // Dereference the pointer
+	}
+
+	pkgPath := t.PkgPath()
+	name := t.Name()
+
+	if pkgPath != "" && name != "" {
+		parts := strings.Split(pkgPath, "/")
+		pkgName := parts[len(parts)-1]             // Last part of the path
+		return fmt.Sprintf("%s.%s", pkgName, name) // Shortened package + name
+	}
+	if name != "" {
+		return name
+	}
+	return "" // For built-in types
+}
+
+// getGenericName converts generic type names to a more readable format.
+// Handles two cases:
+// 1. Generic types in format "Parent[Child]" → returns "ChildParent"
+// 2. Pointer types "*Type" → returns "Type" (only removes leading asterisk)
+func getGenericName(name string) string {
+	if matches := genericTypeRegex.FindStringSubmatch(name); matches != nil {
+		parent := matches[1]
+		child := matches[2]
+		return fmt.Sprintf("%sOf%s", parent, child) // "Of" separator
+	}
+	return strings.TrimPrefix(name, "*") // Remove only leading pointer prefix
+}
+
+// nameGenerics generates consistent names for generic types in OpenAPI schemas.
+// Handles:
+// - Pointer types by dereferencing (*Type → Type)
+// - Generic types by combining parent/child names (Parent[Child] → ChildParent)
+// - Error types by returning their direct name
+// - Package-qualified names by stripping package path (pkg.Type → Type)
+func nameGenerics(r reflect.Type) string {
+	// Dereference pointer types
+	if r.Kind() == reflect.Ptr {
+		r = r.Elem()
+	}
+
+	name := getTypeName(r)
+
+	// Only process struct types - return simplified name for others
+	if r.Kind() != reflect.Struct {
+		return stripPackageName(getGenericName(name))
+	}
+
+	// Special handling for error types - use their direct name
+	if r.Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+		return r.Name()
+	}
+
+	// Handle generic types with parameters
+	if matches := genericTypeRegex.FindStringSubmatch(name); matches != nil {
+		typeParam := matches[2]
+		if typeParam != "" {
+			parts := strings.Split(typeParam, "/")
+			if len(parts) > 0 {
+				lastPart := parts[len(parts)-1]
+				modelParts := strings.Split(lastPart, ".")
+				if len(modelParts) > 0 {
+					baseTypeName := modelParts[len(modelParts)-1]
+					parentName := matches[1]
+					parentParts := strings.Split(parentName, ".")
+					parentSimpleName := ""
+					if len(parentParts) > 0 {
+						parentSimpleName = parentParts[len(parentParts)-1]
+					}
+					finalName := baseTypeName + parentSimpleName
+					return finalName
+				}
+			}
+		}
+	}
+
+	// Default case - strip package name and apply generic name formatting
+	return stripPackageName(getGenericName(name))
+}
+
+func stripPackageName(name string) string {
+	parts := strings.Split(name, ".")
+	return parts[len(parts)-1]
 }
