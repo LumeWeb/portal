@@ -215,7 +215,7 @@ func (h *HTTPServiceDefault) Init() error {
 				),
 			),
 		),
-	))
+	), router.WithCors())
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func (h *HTTPServiceDefault) Init() error {
 				),
 			),
 		),
-	))
+	), router.WithCors())
 	if err != nil {
 		return err
 	}
