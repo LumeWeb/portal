@@ -2,6 +2,7 @@
 package testing
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
@@ -13,12 +14,15 @@ import (
 	"go.lumeweb.com/portal/core"
 	testingDb "go.lumeweb.com/portal/core/testing/db"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/event"
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.sia.tech/coreutils/wallet"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"reflect"
 	"sync"
@@ -215,7 +219,11 @@ type TestContext interface {
 	Teardown()                                      // Clean up resources
 	RegisterCleanup(fn func())                      // Register custom cleanup functions
 	Router() router.Router
-	SetDB(*gorm.DB) // Set the database instance
+	SetDB(*gorm.DB)                                               // Set the database instance
+	APISubdomain(id string, proto bool) string                    // Get formatted API subdomain URL
+	NewAPIRequest(method, path string, body []byte) *http.Request // Create new API request with proper host header
+	APIID() string                                                // Get the current API ID
+	SetAPIID(id string)                                           // Set the API ID
 }
 
 // SetupTest creates and manages the test context for a specific test
@@ -409,6 +417,7 @@ type testContext struct {
 	*defaultContext
 	tb           TB
 	cleanupFuncs []func()
+	apiID        string // Stores the API ID for this context
 }
 
 // Ensure testContext implements TestContext
@@ -543,8 +552,8 @@ func WithRouter(r router.Router) TestContextBuilderOption {
 	}
 }
 
-// WithConfigValue sets a configuration value
-func WithConfigValue(key string, value interface{}) TestContextBuilderOption {
+// WithConfig sets a configuration value
+func WithConfig(key string, value interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		if ctx.(*testContext).cfg != nil {
 			// Use Update method from config.Manager interface
@@ -674,6 +683,54 @@ func (c *testContext) Value(key interface{}) interface{} {
 
 func (c *testContext) Router() router.Router {
 	return c.router
+}
+
+func (c *testContext) NewAPIRequest(method, path string, body []byte) *http.Request {
+	c.tb.Helper()
+
+	if c.apiID == "" {
+		c.tb.Fatal("API ID not set in test context")
+	}
+
+	mockHttpSvc := core.GetService[core.HTTPService](c, core.HTTP_SERVICE)
+	if mockHttpSvc == nil {
+		c.tb.Fatal("HTTP service not available in context")
+	}
+
+	apiSubdomain := mockHttpSvc.APISubdomain(c.apiID, false)
+
+	req := httptest.NewRequest(method, path, bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Host = apiSubdomain
+
+	return req
+}
+
+func (c *testContext) APIID() string {
+	return c.apiID
+}
+
+func (c *testContext) SetAPIID(id string) {
+	c.apiID = id
+}
+
+// APISubdomain returns the formatted API subdomain URL
+// id: The API identifier (e.g. "admin")
+// proto: Whether to include https:// prefix
+func (c *testContext) APISubdomain(id string, proto bool) string {
+	formatter := ""
+	if proto {
+		formatter += "https://"
+	}
+	formatter += "%s.%s"
+
+	api := core.GetAPI(id)
+	if api == nil {
+		c.tb.Fatalf("API with id '%s' not found - did you register it with WithAPI()?", id)
+		return "" // unreachable but makes compiler happy
+	}
+
+	return fmt.Sprintf(formatter, api.Subdomain(), c.Config().Config().Core.Domain)
 }
 
 // ProcessCtxOptions applies a series of ContextBuilderOptions to a TestContext.
@@ -951,6 +1008,68 @@ func WithMockWorkflowService() TestContextBuilderOption {
 	})
 }
 
+// WithAPIID sets the API ID for the test context, overriding any default value.
+func WithAPIID(apiID string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		ctx.SetAPIID(apiID)
+		return ctx, nil
+	}
+}
+
+// WithAPIExtension registers an API extension and automatically creates and registers
+// a mock version of its target API.
+func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// First create the extension to get its target API
+		ext, extOpts, err := extFactory()
+		if err != nil {
+			return ctx, fmt.Errorf("failed to create API extension: %w", err)
+		}
+
+		targetAPI := ext.TargetAPI()
+		tb := ctx.T()
+
+		// Create mock API for the target
+		mockAPI := coreMocks.NewMockAPI(tb)
+
+		// Configure basic mock API expectations
+		mockAPI.On("Name").Return(targetAPI).Maybe()
+		mockAPI.On("Subdomain").Return(targetAPI).Maybe()
+		mockAPI.On("AuthTokenName").Return(targetAPI + "_token").Maybe()
+		mockAPI.On("Config").Return(&config.Config{}).Maybe()
+		mockAPI.On("OpenAPIInfo").Return(router.APIInfo()).Maybe()
+		mockAPI.On("Configure", mock.Anything, mock.Anything).Return(nil).Maybe()
+
+		// Register the mock API using existing API registration mechanism
+		apiRegOpt := WithAPI(targetAPI, func() (core.API, []core.ContextBuilderOption, error) {
+			return mockAPI, nil, nil
+		})
+
+		// Process API registration first
+		ctx, err = ProcessCtxOptions(ctx, apiRegOpt)
+		if err != nil {
+			return ctx, fmt.Errorf("failed to register mock API: %w", err)
+		}
+
+		// Set the API ID in the context
+		ctx.SetAPIID(targetAPI)
+
+		// Register the extension
+		core.RegisterAPIExtension(ext)
+
+		// Process any extension options
+		if len(extOpts) > 0 {
+			wrappedOpts := WrapCoreOptions(extOpts)
+			ctx, err = ProcessCtxOptions(ctx, wrappedOpts...)
+			if err != nil {
+				return ctx, fmt.Errorf("failed to process extension options: %w", err)
+			}
+		}
+
+		return ctx, nil
+	}
+}
+
 // --- Default Test Context Options ---
 
 // WithDBMigrations adds a startup function that runs migrations if enabled
@@ -1026,10 +1145,10 @@ func GetMockConfig(ctx core.Context) *MockConfigManager {
 	return mockConfig
 }
 
-// WithMockAPIConfig sets an expectation on the mock ConfigManager
+// WithAPIConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetAPI is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
-func WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption {
+func WithAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
 		mockConfig.On("GetAPI", apiID).Return(apiConfig).Maybe()
@@ -1037,10 +1156,10 @@ func WithMockAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOp
 	}
 }
 
-// WithMockProtocolConfig sets an expectation on the mock ConfigManager
+// WithProtocolConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetProtocol is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
-func WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption {
+func WithProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
 		mockConfig.On("GetProtocol", protocolID).Return(protocolConfig).Maybe()
@@ -1048,10 +1167,10 @@ func WithMockProtocolConfig(protocolID string, protocolConfig interface{}) TestC
 	}
 }
 
-// WithMockServiceConfig sets an expectation on the mock ConfigManager
+// WithServiceConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetService is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
-func WithMockServiceConfig(serviceID string, serviceConfig interface{}) TestContextBuilderOption {
+func WithServiceConfig(serviceID string, serviceConfig interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
 		mockConfig.On("GetService", serviceID).Return(serviceConfig).Maybe()
@@ -1059,9 +1178,9 @@ func WithMockServiceConfig(serviceID string, serviceConfig interface{}) TestCont
 	}
 }
 
-// NewServiceRegistrationOption creates a TestContextBuilderOption that wraps RegisterService
+// WithService creates a TestContextBuilderOption that wraps RegisterService
 // to register and configure a Service for testing purposes.
-func NewServiceRegistrationOption(id string, factory core.ServiceFactory) TestContextBuilderOption {
+func WithService(id string, factory core.ServiceFactory) TestContextBuilderOption {
 	return func(tctx TestContext) (TestContext, error) {
 		opts, err := RegisterService(tctx, id, factory)
 		if err != nil {
@@ -1331,9 +1450,9 @@ func GetMockWorkflowService(ctx core.Context) *mocks.MockWorkflowService {
 	return mockWorkflow
 }
 
-// NewAPIRegistrationOption creates a TestContextBuilderOption that wraps RegisterAPI
+// WithAPI creates a TestContextBuilderOption that wraps RegisterAPI
 // to register and configure an API for testing purposes.
-func NewAPIRegistrationOption(id string, factory core.APIFactory) TestContextBuilderOption {
+func WithAPI(id string, factory core.APIFactory) TestContextBuilderOption {
 	return func(tctx TestContext) (TestContext, error) {
 		opts, err := RegisterAPI(tctx, id, factory)
 		if err != nil {
@@ -1343,9 +1462,9 @@ func NewAPIRegistrationOption(id string, factory core.APIFactory) TestContextBui
 	}
 }
 
-// NewProtocolRegistrationOption creates a TestContextBuilderOption that wraps RegisterProtocol
+// WithProtocol creates a TestContextBuilderOption that wraps RegisterProtocol
 // to register and configure a Protocol for testing purposes.
-func NewProtocolRegistrationOption(id string, factory core.ProtocolFactory) TestContextBuilderOption {
+func WithProtocol(id string, factory core.ProtocolFactory) TestContextBuilderOption {
 	return func(tctx TestContext) (TestContext, error) {
 		opts, err := RegisterProtocol(tctx, id, factory)
 		if err != nil {
@@ -1841,8 +1960,8 @@ func SetupTestEnvironment(tb TB) (TestContext, error) {
 	return ctx, nil
 }
 
-// DefaultRouterOption creates a default router and adds it to the context.
-func DefaultRouterOption(tb TB) TestContextBuilderOption {
+// WithDefaultRouter creates a default router and adds it to the context.
+func WithDefaultRouter(tb TB) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		_router, err := router.NewRouter(router.APIInfo().Title("Test API").Version("1.0.0"))
 		if err != nil {
