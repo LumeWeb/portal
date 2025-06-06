@@ -180,6 +180,16 @@ func (h *HTTPServiceDefault) Init() error {
 			}
 		}
 
+		corsCfg := core.CORSConfig{}
+
+		if apicors, ok := api.(core.APICors); ok {
+			corsCfg = apicors.CORSConfig()
+		}
+
+		router.GetRouter(hostRouter).OPTIONS("/api/*", func(c echo.Context) error {
+			return c.NoContent(http.StatusOK)
+		}, echo.WrapMiddleware(cors.NewWithDefaults(corsCfg)))
+
 		// Generate and expose the OpenAPI spec for this API's router
 		if err = hostRouter.GenerateAndExposeOpenapi(); err != nil {
 			return fmt.Errorf("failed to generate openapi for API %s: %w", api.Name(), err)
@@ -205,7 +215,7 @@ func (h *HTTPServiceDefault) Init() error {
 				),
 			),
 		),
-	), echo.WrapMiddleware(cors.NewWithDefaults(cors.Config{})))
+	))
 	if err != nil {
 		return err
 	}
@@ -233,6 +243,10 @@ func (h *HTTPServiceDefault) Init() error {
 	if err != nil {
 		return err
 	}
+
+	router.GetRouter(h.Router()).OPTIONS("/api/*", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	}, echo.WrapMiddleware(cors.NewWithDefaults(core.CORSConfig{})))
 
 	err = swagger.WireRouter(h.router, "/swagger.json", "/swagger")
 	if err != nil {

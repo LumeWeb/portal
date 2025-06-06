@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/invopop/jsonschema"
+	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"net/http"
@@ -15,7 +16,6 @@ var (
 	apis   = make(map[string]API)
 	apisMu sync.RWMutex
 )
-
 
 type API interface {
 	Name() string
@@ -32,6 +32,12 @@ type APIInit interface {
 
 type APISchemer interface {
 	GetSchemaType() func(reflect.Type) *jsonschema.Schema
+}
+
+type CORSConfig = cors.Config
+
+type APICors interface {
+	CORSConfig() cors.Config
 }
 
 type RoutableAPI interface {
