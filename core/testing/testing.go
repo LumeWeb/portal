@@ -421,10 +421,10 @@ type defaultContext struct {
 // testContext extends the default context for testing
 type testContext struct {
 	*defaultContext
-	tb             TB
-	cleanupFuncs   []func()
-	apiID          string // Stores the API ID for this context
-	fireBootComplete bool // Controls whether to fire boot complete event
+	tb               TB
+	cleanupFuncs     []func()
+	apiID            string // Stores the API ID for this context
+	fireBootComplete bool   // Controls whether to fire boot complete event
 }
 
 // Ensure testContext implements TestContext
@@ -487,8 +487,8 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
 		},
-		tb:             tb,
-		cleanupFuncs:   []func(){},
+		tb:               tb,
+		cleanupFuncs:     []func(){},
 		fireBootComplete: fireBootComplete,
 	}
 
@@ -1145,6 +1145,7 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		WithMockOTPService(),
 		WithMockPasswordResetService(),
 		WithMockPinService(),
+		WithMockUploadService(),
 		WithMockRequestService(),
 		WithMockRenterService(),
 		WithMockStorageService(),
@@ -1469,6 +1470,13 @@ func GetMockWorkflowService(ctx core.Context) *mocks.MockWorkflowService {
 		panic(fmt.Sprintf("workflow service is not a mock - expected *mocks.MockWorkflowService, got %T", workflowSvc))
 	}
 	return mockWorkflow
+}
+
+// WithMockUploadService adds a mock UploadService to the test context.
+func WithMockUploadService() TestContextBuilderOption {
+	return WithMockService(core.UPLOAD_SERVICE, func(tb TB, _ TestContext) any {
+		return mocks.NewMockUploadService(tb)
+	})
 }
 
 // WithSQLitePluginMigrations registers a mock plugin with the given ID and SQLite migrations.
