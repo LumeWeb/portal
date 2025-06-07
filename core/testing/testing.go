@@ -340,14 +340,17 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 }
 
 // ResetAllState resets all global state in the core package and testing package
+// while preserving package-level configuration like DB settings
 func ResetAllState() {
 	// Reset core state
 	core.ResetState()
 
 	// Reset testing state (only clears test case specific options)
 	ClearTestCaseContextOptions()
-	DisableDBMigrations()
-	DisableMockDB()
+	
+	// Note: We intentionally don't reset runDBMigrations/setupMockDB here
+	// as these are package-level settings that should persist across tests
+	// They are only reset when TestMain completes
 }
 
 // EnableDBMigrations enables running DB migrations during test context initialization
