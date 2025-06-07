@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
 	"github.com/DATA-DOG/go-sqlmock"
 	gevent "github.com/gookit/event"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal"
 	router "go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	testingDb "go.lumeweb.com/portal/core/testing/db"
@@ -1448,6 +1450,22 @@ func GetMockWorkflowService(ctx core.Context) *mocks.MockWorkflowService {
 		panic(fmt.Sprintf("workflow service is not a mock - expected *mocks.MockWorkflowService, got %T", workflowSvc))
 	}
 	return mockWorkflow
+}
+
+// WithSQLitePluginMigrations registers a mock plugin with the given ID and SQLite migrations.
+func WithSQLitePluginMigrations(pluginID string, migrationsFS fs.FS) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		pluginInfo := core.PluginInfo{
+			ID: pluginID,
+			Version: build.New("", "", "", "", "", "", "").Info(),
+			Migrations: core.DBMigration{
+				core.DB_TYPE_SQLITE: migrationsFS,
+			},
+		}
+
+		core.RegisterPlugin(pluginInfo)
+		return ctx, nil
+	}
 }
 
 // WithAPI creates a TestContextBuilderOption that wraps RegisterAPI
