@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
 	"github.com/DATA-DOG/go-sqlmock"
 	gevent "github.com/gookit/event"
 	"github.com/stretchr/testify/mock"
@@ -23,12 +22,14 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"time"
 )
 
@@ -347,7 +348,7 @@ func ResetAllState() {
 
 	// Reset testing state (only clears test case specific options)
 	ClearTestCaseContextOptions()
-	
+
 	// Note: We intentionally don't reset runDBMigrations/setupMockDB here
 	// as these are package-level settings that should persist across tests
 	// They are only reset when TestMain completes
@@ -1459,11 +1460,12 @@ func GetMockWorkflowService(ctx core.Context) *mocks.MockWorkflowService {
 func WithSQLitePluginMigrations(pluginID string, migrationsFS fs.FS) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		pluginInfo := core.PluginInfo{
-			ID: pluginID,
-			Version: build.New("", "", "", "", "", "", "").Info(),
+			ID:      pluginID,
+			Version: build.New("", "", "", "", "", "", ""),
 			Migrations: core.DBMigration{
 				core.DB_TYPE_SQLITE: migrationsFS,
 			},
+			WebBundles: core.NewWebBundles(core.NewWebBundle(fstest.MapFS{})),
 		}
 
 		core.RegisterPlugin(pluginInfo)
