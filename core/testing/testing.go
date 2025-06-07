@@ -421,9 +421,10 @@ type defaultContext struct {
 // testContext extends the default context for testing
 type testContext struct {
 	*defaultContext
-	tb           TB
-	cleanupFuncs []func()
-	apiID        string // Stores the API ID for this context
+	tb             TB
+	cleanupFuncs   []func()
+	apiID          string // Stores the API ID for this context
+	fireBootComplete bool // Controls whether to fire boot complete event
 }
 
 // Ensure testContext implements TestContext
@@ -436,6 +437,9 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 
 	// Create a mock config manager
 	var mockConfig *MockConfigManager
+
+	// Default to firing boot complete event
+	fireBootComplete := true
 
 	// Handle different types of test runners
 	if t, ok := tb.(*testing.T); ok {
@@ -483,8 +487,9 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
 		},
-		tb:           tb,
-		cleanupFuncs: []func(){},
+		tb:             tb,
+		cleanupFuncs:   []func(){},
+		fireBootComplete: fireBootComplete,
 	}
 
 	AddTestCaseContextOptions(opts...)
@@ -718,6 +723,16 @@ func (c *testContext) APIID() string {
 
 func (c *testContext) SetAPIID(id string) {
 	c.apiID = id
+}
+
+// FireBootComplete returns whether boot complete event should fire
+func (c *testContext) FireBootComplete() bool {
+	return c.fireBootComplete
+}
+
+// SetFireBootComplete sets whether boot complete event should fire
+func (c *testContext) SetFireBootComplete(fire bool) {
+	c.fireBootComplete = fire
 }
 
 // APISubdomain returns the formatted API subdomain URL
@@ -1779,6 +1794,16 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 // BootEnvironment creates and initializes a TestContext with common services and configurations.
 // It handles resetting state, creating the context, applying options, and booting the environment.
 // This function is called internally by RunTestCase and RunTestCaseWithDB.
+// WithNoFireBootCompleteEvent disables automatic firing of boot complete event
+func WithNoFireBootCompleteEvent() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		if tctx, ok := ctx.(*testContext); ok {
+			tctx.SetFireBootComplete(false)
+		}
+		return ctx, nil
+	}
+}
+
 func BootEnvironment(tb TB, ctx TestContext) error {
 	// Process all context options (default, global, and those passed to RunTestCase)
 	// This is where options that register global components should be processed.
@@ -1823,6 +1848,13 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	err = ConfigureAPIRoutes(ctx)
 	if err != nil {
 		return err
+	}
+
+	// Fire boot complete event unless disabled
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err := event.FireBootCompleteEvent(ctx); err != nil {
+			return fmt.Errorf("failed to fire boot complete event: %w", err)
+		}
 	}
 
 	return nil
