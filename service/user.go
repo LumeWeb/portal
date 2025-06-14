@@ -54,8 +54,8 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 
 			_user.cron.RegisterEntity(_user)
 
-			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
-				_user.subdomain = evt.Subdomain()
+			core.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(e *core.CoreEvent[*event.UserServiceSubdomainSetEvent]) error {
+				_user.subdomain = e.Data.Subdomain
 				return nil
 			})
 			return nil
@@ -171,12 +171,12 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 		return nil, core.NewAccountError(core.ErrorAssigningUserRoleFailed, err)
 	}
 
-	if err := event.FireUserCreatedEvent(u.ctx, &_user); err != nil {
+	if err := u.ctx.Fire(event.EVENT_USER_CREATED, event.NewUserCreatedEvent(&_user)); err != nil {
 		return nil, err
 	}
 
 	if isFirstUser || !verifyEmail {
-		if err := event.FireUserActivatedEvent(u.ctx, &_user); err != nil {
+		if err := u.ctx.Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(&_user)); err != nil {
 			return nil, err
 		}
 	}
@@ -448,7 +448,7 @@ func (u UserServiceDefault) VerifyEmail(email string, token string) error {
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
-	err := event.FireUserActivatedEvent(u.ctx, &verification.User)
+	err := u.ctx.Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(&verification.User))
 	if err != nil {
 		return err
 	}

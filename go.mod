@@ -39,11 +39,11 @@ require (
 	github.com/urfave/cli/v3 v3.0.0-beta1
 	github.com/wneessen/go-mail v0.6.2
 	go.etcd.io/etcd/client/v3 v3.5.19
+	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.1
 	go.lumeweb.com/portal-middleware v0.2.8
 	go.lumeweb.com/portal-router v0.6.0
-	go.lumeweb.com/queryutil v0.3.5
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
@@ -112,6 +112,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
+	go.lumeweb.com/queryutil v0.3.5 // indirect
 	go.sia.tech/jape v0.12.1 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/time v0.11.0 // indirect

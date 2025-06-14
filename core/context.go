@@ -3,10 +3,11 @@ package core
 import (
 	"context"
 	"fmt"
-	"github.com/gookit/event"
+	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal/config"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"reflect"
 )
 
 var _ Context = (*DefaultContext)(nil)
@@ -33,9 +34,15 @@ type Context interface {
 	Config() config.Manager
 	Cancel()
 	ExitCode() int
-	Event() *event.Manager
+	Event() event.EventManager[any]
 	SetExitCode(code int)
 	GetContext() context.Context
+
+	// Event helpers
+	Fire(eventName string, payload any) error
+	MustFire(eventName string, payload any)
+	FireAsync(eventName string, payload any)
+	ResetEvents()
 }
 
 // DefaultContext struct implementing the Context interface
@@ -49,7 +56,7 @@ type DefaultContext struct {
 	startupFuncs []func(Context) error
 	db           *gorm.DB
 	cancel       context.CancelFunc
-	event        *event.Manager
+	event        event.EventManager[any]
 }
 
 // NewContext creates a new Context
@@ -62,7 +69,7 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 		services: make(map[string]any),
 		cfg:      config,
 		logger:   logger,
-		event:    event.NewManager(""),
+		event:    event.NewManager[any](""),
 		cancel:   cancel,
 	}
 
@@ -139,7 +146,7 @@ func (ctx *DefaultContext) ExitCode() int {
 	return ctx.exitCode
 }
 
-func (ctx *DefaultContext) Event() *event.Manager {
+func (ctx *DefaultContext) Event() event.EventManager[any] {
 	return ctx.event
 }
 
@@ -153,6 +160,38 @@ func (ctx *DefaultContext) Value(key any) any {
 
 func (ctx *DefaultContext) GetContext() context.Context {
 	return ctx.Context
+}
+
+func ensureValue(payload any) any {
+	if payload == nil {
+		return nil
+	}
+	val := reflect.ValueOf(payload)
+	if val.Kind() == reflect.Ptr {
+		// If it's already a pointer, return the pointed-to value
+		return val.Elem().Interface()
+	}
+	// For non-pointer values, return as-is
+	return payload
+}
+
+func (ctx *DefaultContext) Fire(eventName string, payload any) error {
+	val := ensureValue(payload)
+	return Fire[any](ctx, eventName, &val)
+}
+
+func (ctx *DefaultContext) MustFire(eventName string, payload any) {
+	val := ensureValue(payload)
+	MustFire[any](ctx, eventName, &val)
+}
+
+func (ctx *DefaultContext) FireAsync(eventName string, payload any) {
+	val := ensureValue(payload)
+	FireAsync[any](ctx, eventName, &val)
+}
+
+func (ctx *DefaultContext) ResetEvents() {
+	ctx.Event().Reset()
 }
 
 func (ctx *DefaultContext) ProtocolLogger(protocol Protocol) *Logger {
@@ -226,7 +265,7 @@ func ContextWithExitFunc(f LifecycleFunc) ContextBuilderOption {
 	}
 }
 
-func ContextWithEvents(events ...Eventer) ContextBuilderOption {
+func ContextWithEvents(events ...event.Event[any]) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		for _, e := range events {
 			ctx.Event().AddEvent(e)
@@ -348,10 +387,9 @@ func ResetState() {
 	ResetProtocols()
 	ResetAPIs()
 	ResetServices()
-	ResetEvents()
 	ResetHashAlgorithms()
 	ResetUploadHandlers()
-	
+
 	// Reset plugins
 	pluginsMu.Lock()
 	plugins = make(map[string]PluginInfo)

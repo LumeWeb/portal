@@ -6,8 +6,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
-	gevent "github.com/gookit/event"
 	"github.com/stretchr/testify/mock"
+	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/build"
@@ -16,7 +16,7 @@ import (
 	testingDb "go.lumeweb.com/portal/core/testing/db"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
-	"go.lumeweb.com/portal/event"
+	pevent "go.lumeweb.com/portal/event"
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.sia.tech/coreutils/wallet"
 	"go.uber.org/zap"
@@ -32,6 +32,19 @@ import (
 	"testing/fstest"
 	"time"
 )
+
+func ensureValue(payload any) any {
+	if payload == nil {
+		return nil
+	}
+	val := reflect.ValueOf(payload)
+	if val.Kind() == reflect.Ptr {
+		// If it's already a pointer, return the pointed-to value
+		return val.Elem().Interface()
+	}
+	// For non-pointer values, return as-is
+	return payload
+}
 
 var (
 	// Global options set at RunTests level
@@ -414,7 +427,7 @@ type defaultContext struct {
 	startupFuncs []func(core.Context) error
 	db           *gorm.DB
 	cancel       context.CancelFunc
-	event        *gevent.Manager
+	event        event.EventManager[any]
 	router       router.Router
 }
 
@@ -482,7 +495,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 			services:     make(map[string]any),
 			cfg:          mockConfig,
 			logger:       logger,
-			event:        gevent.NewManager(""),
+			event:        event.NewM(""),
 			cancel:       cancel,
 			exitFuncs:    []func(core.Context) error{},
 			startupFuncs: []func(core.Context) error{},
@@ -660,7 +673,7 @@ func (ctx *testContext) ExitCode() int {
 	return ctx.exitCode
 }
 
-func (ctx *testContext) Event() *gevent.Manager {
+func (ctx *testContext) Event() event.EventManager[any] {
 	return ctx.event
 }
 
@@ -690,6 +703,25 @@ func (c *testContext) Err() error {
 // Value implements the Context interface
 func (c *testContext) Value(key interface{}) interface{} {
 	return c.Context.Value(key)
+}
+
+func (c *testContext) Fire(eventName string, payload any) error {
+	val := ensureValue(payload)
+	return core.Fire[any](c, eventName, &val)
+}
+
+func (c *testContext) MustFire(eventName string, payload any) {
+	val := ensureValue(payload)
+	core.MustFire[any](c, eventName, &val)
+}
+
+func (c *testContext) FireAsync(eventName string, payload any) {
+	val := ensureValue(payload)
+	core.FireAsync[any](c, eventName, &val)
+}
+
+func (c *testContext) ResetEvents() {
+	c.Event().Reset()
 }
 
 func (c *testContext) Router() router.Router {
@@ -1536,19 +1568,6 @@ func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts [
 	return WrapCoreOptions(opts), nil
 }
 
-// RegisterEvents is a testing helper that registers events and stores them in the context
-func RegisterEvents(ctx TestContext, events ...core.Eventer) []TestContextBuilderOption {
-	// Register each event
-	for _, e := range events {
-		core.RegisterEvent(e.Name(), e)
-	}
-
-	// Wrap the events in context options using testing package's WrapCoreOptions
-	return WrapCoreOptions([]core.ContextBuilderOption{
-		core.ContextWithEvents(core.GetEvents()...),
-	})
-}
-
 func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (ctxOpts []TestContextBuilderOption, err error) {
 	extensions, err := factory(ctx)
 	if err != nil {
@@ -1860,7 +1879,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Fire boot complete event unless disabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err := event.FireBootCompleteEvent(ctx); err != nil {
+		if err := ctx.Fire(pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
 		}
 	}
@@ -2038,13 +2057,9 @@ func WithDefaultRouter(tb TB) TestContextBuilderOption {
 func WithCoreEvents() TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		// Reset events
-		core.ResetEvents()
-		// Initialize all core events first
-		event.InitCoreEvents()
+		ctx.ResetEvents()
 
-		// Then register any additional events
-		opts := RegisterEvents(ctx)
-		return ProcessCtxOptions(ctx, opts...)
+		return ctx, nil
 	}
 }
 

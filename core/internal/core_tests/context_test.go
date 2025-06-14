@@ -3,6 +3,7 @@ package core_tests
 import (
 	"context"
 	"github.com/stretchr/testify/require"
+	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap/zapcore"
@@ -140,20 +141,28 @@ func TestContextWithEvents(t *testing.T) {
 	core.ResetState()
 	mockConfigManager := newMockConfigManager(t, nil)
 	mockLogger := core.NewLogger(mockConfigManager, nil)
-	mockEventer := mocks.NewMockEventer(t)
-	mockEventer.On("Name").Return("test-event").Once()
 
-	ctx, err := core.NewContext(mockConfigManager, mockLogger, core.ContextWithEvents(mockEventer))
+	// Create test context with event recorder
+	ctx, err := core.NewContext(mockConfigManager, mockLogger)
 	assert.NoError(t, err)
 	assert.NotNil(t, ctx)
 
-	// Check if the event was added to the event manager
-	// This requires inspecting the internal state of the event manager, which might be fragile.
-	// A better approach might be to trigger an event and see if the mock listener is called,
-	// but that requires setting up listeners, which is outside the scope of ContextWithEvents.
-	// For now, we'll rely on the mock's EXPECT.
-	mockEventer.EXPECT().Name().Return("test-event").Once()
-	ctx.Event().AddEvent(mockEventer) // Adding again to trigger the mock expectation
+	// Setup event recorder
+	recorder := coreTesting.NewEventRecorder()
+	recorder.Listen(ctx, "test-event")
+
+	// Reset events to ensure clean slate
+	ctx.ResetEvents()
+
+	// Add listener back
+	recorder.Listen(ctx, "test-event")
+
+	// Fire test event
+	err = ctx.Fire("test-event", nil)
+	assert.NoError(t, err)
+
+	// Verify event was recorded
+	assert.True(t, recorder.HasEvent("test-event"))
 
 	mockConfigManager.AssertExpectations(t)
 }
@@ -841,9 +850,6 @@ func TestResetState(t *testing.T) {
 		},
 	})
 
-	mockEventer := mocks.NewMockEventer(t)
-	mockEventer.On("SetName", "test-event").Return(nil)
-	core.RegisterEvent("test-event", mockEventer)
 	core.RegisterUploadDataHandler("test-handler", mocks.NewMockUploadDataHandler(t))
 
 	// Register some test hash algorithms
@@ -860,7 +866,6 @@ func TestResetState(t *testing.T) {
 	assert.NotEmpty(t, core.GetAPIs())
 	assert.NotEmpty(t, core.GetServices())
 	assert.NotEmpty(t, core.GetPlugins())
-	assert.NotEmpty(t, core.GetEvents())
 	assert.NotEmpty(t, core.GetHashRegistry().GetHashAlgorithms())
 	_, exists := core.GetUploadDataHandler("test-handler")
 	assert.True(t, exists)
@@ -873,7 +878,6 @@ func TestResetState(t *testing.T) {
 	assert.Empty(t, core.GetAPIs())
 	assert.Empty(t, core.GetServices())
 	assert.Empty(t, core.GetPlugins())
-	assert.Empty(t, core.GetEvents())
 	assert.Empty(t, core.GetHashRegistry().GetHashAlgorithms())
 	_, exists = core.GetUploadDataHandler("test-handler")
 	assert.False(t, exists)

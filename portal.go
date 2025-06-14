@@ -86,11 +86,6 @@ func (p *PortalImpl) Init() error {
 	opts = p.initCron()
 	ctxOpts = append(ctxOpts, opts...)
 
-	if err := p.initEvents(); err != nil {
-		return err
-	}
-
-	ctxOpts = append(ctxOpts, core.ContextWithEvents(core.GetEvents()...))
 	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 
 	if err != nil {
@@ -367,16 +362,6 @@ func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOp
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initEvents() error {
-	for _, plugin := range core.GetPlugins() {
-		for _, e := range plugin.Events {
-			core.RegisterEvent(e.Name(), e)
-		}
-	}
-
-	return nil
-}
-
 func (p *PortalImpl) configureProtocols(ctx core.Context) error {
 	for name, _proto := range core.GetProtocols() {
 		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
@@ -521,7 +506,7 @@ func (p *PortalImpl) runExitFuncs(ctx core.Context) error {
 }
 
 func (p *PortalImpl) fireBootCompleteEvent(ctx core.Context) error {
-	return event.FireBootCompleteEvent(ctx)
+	return ctx.Fire(event.EVENT_BOOT_COMPLETE, event.NewBootCompleteEvent(ctx))
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {

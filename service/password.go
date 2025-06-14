@@ -7,9 +7,10 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
-	"go.lumeweb.com/portal/event"
+	pevent "go.lumeweb.com/portal/event"
 	"gorm.io/gorm"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -31,11 +32,14 @@ type PasswordResetServiceDefault struct {
 	db        *gorm.DB
 	user      core.UserService
 	mailer    core.MailerService
+	mu        *sync.RWMutex
 	subdomain string
 }
 
 func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuilderOption, error) {
-	passwordService := PasswordResetServiceDefault{}
+	passwordService := PasswordResetServiceDefault{
+		mu: &sync.RWMutex{},
+	}
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
@@ -44,9 +48,10 @@ func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuil
 			passwordService.db = ctx.DB()
 			passwordService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
 			passwordService.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
-
-			event.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *event.UserServiceSubdomainSetEvent) error {
-				passwordService.subdomain = evt.Subdomain()
+			core.Listen(ctx, pevent.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(e *core.CoreEvent[pevent.UserServiceSubdomainSetEvent]) error {
+				passwordService.mu.Lock()
+				passwordService.subdomain = e.Data.Subdomain
+				passwordService.mu.Unlock()
 				return nil
 			})
 			return nil
@@ -61,6 +66,14 @@ func (p PasswordResetServiceDefault) ID() string {
 }
 
 func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error {
+	p.mu.RLock()
+	subdomain := p.subdomain
+	p.mu.RUnlock()
+
+	if subdomain == "" {
+		return errors.New("password reset service subdomain not configured")
+	}
+
 	token := core.GenerateSecurityToken()
 
 	var reset models.PasswordReset
@@ -78,7 +91,8 @@ func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error 
 	queryVars := url.Values{}
 	queryVars.Set("email", user.Email)
 	queryVars.Set("token", token)
-	resetUrl := fmt.Sprintf("%s/reset-password/confirm?%s", fmt.Sprintf("https://%s.%s", p.subdomain, p.config.Config().Core.Domain), queryVars.Encode())
+
+	resetUrl := fmt.Sprintf("%s/reset-password/confirm?%s", fmt.Sprintf("https://%s.%s", subdomain, p.config.Config().Core.Domain), queryVars.Encode())
 
 	vars := map[string]interface{}{
 		"FirstName":  user.FirstName,

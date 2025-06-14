@@ -117,7 +117,7 @@ func (cs *ConfigServiceDefault) handleConfigChange(key string, value any) error 
 		}
 	}
 
-	return event.FireConfigPropertyUpdateEvent(cs.ctx, property, value, category, entity, subEntity)
+	return cs.ctx.Fire(event.EVENT_CONFIG_PROPERTY_UPDATE, event.NewConfigPropertyUpdateEvent(category, entity, subEntity, property, value))
 }
 
 func (m *ConfigServiceDefault) configUpdatesProcessor(_ *reflect.StructField, _ reflect.StructField, value reflect.Value, prefix string) error {

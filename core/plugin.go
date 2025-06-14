@@ -32,7 +32,6 @@ type PluginInfo struct {
 	APIExtensions   APIExtensionsFactory
 	Models          []any
 	Migrations      DBMigration
-	Events          []Eventer
 	Depends         []string
 	Cron            CronFactoryFactory
 	MailerTemplates MailerTemplates
