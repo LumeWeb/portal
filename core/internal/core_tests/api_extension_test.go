@@ -1,6 +1,7 @@
 package core_tests
 
 import (
+	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"testing"
 
@@ -83,21 +84,27 @@ func TestGetAPIExtensions_MultipleExtensions(t *testing.T) {
 }
 
 func TestResetEvents(t *testing.T) {
-	// Register some test events
-	mockEvent1 := mocks.NewMockEventer(t)
-	mockEvent1.On("SetName", "test-event-1").Return(nil)
-	mockEvent2 := mocks.NewMockEventer(t)
-	mockEvent2.On("SetName", "test-event-2").Return(nil)
-	RegisterEvent("test-event-1", mockEvent1)
-	RegisterEvent("test-event-2", mockEvent2)
+	ctx := coreTesting.NewTestContext(t)
+	recorder := coreTesting.NewEventRecorder()
 
-	// Check events exist
-	events := GetEvents()
-	assert.Len(t, events, 2)
+	// Listen to test events
+	recorder.Listen(ctx, "test-event-1", "test-event-2")
+
+	// Fire some events
+	err := ctx.Fire("test-event-1", nil)
+	assert.NoError(t, err)
+	err = ctx.Fire("test-event-2", nil)
+	assert.NoError(t, err)
+
+	// Verify events were recorded
+	assert.True(t, recorder.HasEvent("test-event-1"))
+	assert.True(t, recorder.HasEvent("test-event-2"))
 
 	// Reset events
-	ResetEvents()
+	ctx.ResetEvents()
+	recorder.Reset()
 
-	// Check events no longer exist
-	assert.Empty(t, GetEvents())
+	// Verify recorder was reset
+	assert.False(t, recorder.HasEvent("test-event-1"))
+	assert.False(t, recorder.HasEvent("test-event-2"))
 }

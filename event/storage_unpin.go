@@ -1,36 +1,19 @@
 package event
 
 import (
-	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 )
 
-const (
-	EVENT_STORAGE_OBJECT_UNPINNED = "storage.object.unpinned"
-)
-
-func initStorageObjectUnpinnedEvent() {
-	core.RegisterEvent(EVENT_STORAGE_OBJECT_UNPINNED, &StorageObjectUnpinnedEvent{})
-}
+const EVENT_STORAGE_OBJECT_UNPINNED = "storage.object.unpinned"
 
 type StorageObjectUnpinnedEvent struct {
-	core.Event
+	Pin *models.Pin
+	IP  string
 }
 
-func (e *StorageObjectUnpinnedEvent) SetPin(metadata *models.Pin) {
-	e.Set("pin", metadata)
-}
-
-func (e StorageObjectUnpinnedEvent) Pin() *models.Pin {
-	return e.Get("pin").(*models.Pin)
-}
-func (e StorageObjectUnpinnedEvent) IP() string {
-	return e.Get("ip").(string)
-}
-
-func FireStorageObjectUnpinnedEvent(ctx core.Context, pin *models.Pin) error {
-	return Fire[*StorageObjectPinnedEvent](ctx, EVENT_STORAGE_OBJECT_UNPINNED, func(evt *StorageObjectPinnedEvent) error {
-		evt.SetPin(pin)
-		return nil
-	})
+func NewStorageObjectUnpinnedEvent(pin *models.Pin, ip string) *StorageObjectUnpinnedEvent {
+	return &StorageObjectUnpinnedEvent{
+		Pin: pin,
+		IP:  ip,
+	}
 }

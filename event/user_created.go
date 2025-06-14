@@ -1,33 +1,20 @@
 package event
 
 import (
-	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 )
 
-const (
-	EVENT_USER_CREATED = "user.created"
-)
-
-func initUserCreatedEvent() {
-	core.RegisterEvent(EVENT_USER_CREATED, &UserCreatedEvent{})
-}
+const EVENT_USER_CREATED = "user.created"
 
 type UserCreatedEvent struct {
-	core.Event
+	User *models.User
 }
 
-func (e *UserCreatedEvent) SetUser(user *models.User) {
-	e.Set("user", user)
-}
-
-func (e UserCreatedEvent) User() *models.User {
-	return e.Get("user").(*models.User)
-}
-
-func FireUserCreatedEvent(ctx core.Context, user *models.User) error {
-	return Fire[*UserCreatedEvent](ctx, EVENT_USER_CREATED, func(evt *UserCreatedEvent) error {
-		evt.SetUser(user)
-		return nil
-	})
+func NewUserCreatedEvent(user *models.User) *UserCreatedEvent {
+	if user == nil {
+		panic("user cannot be nil in NewUserCreatedEvent")
+	}
+	return &UserCreatedEvent{
+		User: user,
+	}
 }

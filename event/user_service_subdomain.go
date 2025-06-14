@@ -1,32 +1,13 @@
 package event
 
-import (
-	"go.lumeweb.com/portal/core"
-)
-
-const (
-	EVENT_USER_SERVICE_SUBDOMAIN_SET = "user.subdomain.set"
-)
-
-func initUserServiceSubdomainSetEvent() {
-	core.RegisterEvent(EVENT_USER_SERVICE_SUBDOMAIN_SET, &UserServiceSubdomainSetEvent{})
-}
+const EVENT_USER_SERVICE_SUBDOMAIN_SET = "user.subdomain.set"
 
 type UserServiceSubdomainSetEvent struct {
-	core.Event
+	Subdomain string
 }
 
-func (e *UserServiceSubdomainSetEvent) SetSubdomain(subdomain string) {
-	e.Set("subdomain", subdomain)
-}
-
-func (e UserServiceSubdomainSetEvent) Subdomain() string {
-	return e.Get("subdomain").(string)
-}
-
-func FireUseServicerSubdomainSetEvent(ctx core.Context, subdomain string) error {
-	return Fire[*UserServiceSubdomainSetEvent](ctx, EVENT_USER_SERVICE_SUBDOMAIN_SET, func(evt *UserServiceSubdomainSetEvent) error {
-		evt.SetSubdomain(subdomain)
-		return nil
-	})
+func NewUserServiceSubdomainSetEvent(subdomain string) *UserServiceSubdomainSetEvent {
+	return &UserServiceSubdomainSetEvent{
+		Subdomain: subdomain,
+	}
 }
