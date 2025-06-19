@@ -1,11 +1,14 @@
 package config
 
 import (
-	"errors"
+	z "github.com/Oudwins/zog"
+	"go.lumeweb.com/configmanager"
 )
 
-var _ Defaults = (*DatabaseConfig)(nil)
-var _ Validator = (*DatabaseConfig)(nil)
+var (
+	_ configmanager.ConfigSchemaProvider = (*DatabaseConfig)(nil)
+	_ Defaults                           = (*DatabaseConfig)(nil)
+)
 
 type DatabaseConfig struct {
 	Type          string       `config:"type"`
@@ -21,53 +24,73 @@ type DatabaseConfig struct {
 	TLSSkipVerify bool         `config:"tls_skip_verify"`
 }
 
+func (d DatabaseConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Type": z.String().
+			OneOf([]string{"sqlite", "mysql"}),
+		"File":          z.String(),
+		"Host":          z.String(),
+		"Port":          z.Int(),
+		"Username":      z.String(),
+		"Password":      z.String(),
+		"Name":          z.String(),
+		"Charset":       z.String(),
+		"TLSEnabled":    z.Bool(),
+		"TLSSkipVerify": z.Bool(),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		d, ok := data.(*DatabaseConfig)
+		if !ok {
+			return true
+		}
+
+		valid := true
+
+		if d.Type == "sqlite" {
+			if d.File == "" {
+				ctx.AddIssue(ctx.Issue().SetPath("File").SetMessage("core.db.file is required for sqlite"))
+				valid = false
+			}
+		} else if d.Type == "mysql" {
+			if d.Host == "" {
+				ctx.AddIssue(ctx.Issue().SetPath("Host").SetMessage("core.db.host is required for mysql"))
+				valid = false
+			}
+			if d.Port <= 0 {
+				ctx.AddIssue(ctx.Issue().SetPath("Port").SetMessage("core.db.port must be greater than 0"))
+				valid = false
+			}
+			if d.Username == "" {
+				ctx.AddIssue(ctx.Issue().SetPath("Username").SetMessage("core.db.username is required for mysql"))
+				valid = false
+			}
+			if d.Password == "" {
+				ctx.AddIssue(ctx.Issue().SetPath("Password").SetMessage("core.db.password is required for mysql"))
+				valid = false
+			}
+			if d.Name == "" {
+				ctx.AddIssue(ctx.Issue().SetPath("Name").SetMessage("core.db.name is required for mysql"))
+				valid = false
+			}
+		}
+		return valid
+	})
+}
+
 func (d DatabaseConfig) CacheEnabled() bool {
 	return d.Cache != nil && d.Cache.Mode != CacheModeNone
 }
 
-func (d DatabaseConfig) Validate() error {
-	if d.Type == "sqlite" {
-		if d.File == "" {
-			return errors.New("core.db.file is required")
-		}
-	}
-
-	if d.Type == "mysql" {
-		if d.Host == "" {
-			return errors.New("core.db.host is required")
-		}
-		if d.Port == 0 {
-			return errors.New("core.db.port is required")
-		}
-		if d.Username == "" {
-			return errors.New("core.db.username is required")
-		}
-		if d.Password == "" {
-			return errors.New("core.db.password is required")
-		}
-		if d.Name == "" {
-			return errors.New("core.db.name is required")
-		}
-	}
-
-	return nil
-}
-
 func (d DatabaseConfig) Defaults() map[string]any {
-	def := map[string]any{}
-
-	if d.Type == "sqlite" || d.Type == "" {
-		def["file"] = "portal.db"
-		if d.Type == "" {
-			def["type"] = "sqlite"
-		}
+	def := map[string]any{
+		"Type":    "sqlite",
+		"File":    "portal.db",
+		"Charset": "utf8mb4",
 	}
 
 	if d.Type == "mysql" {
-		def["host"] = "localhost"
-		def["port"] = 3306
-		def["charset"] = "utf8mb4"
-		def["name"] = "portal"
+		def["Host"] = "localhost"
+		def["Port"] = 3306
+		def["Name"] = "portal"
 	}
 
 	return def

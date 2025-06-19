@@ -22,17 +22,18 @@ const (
 	APIDir     = "api.d"
 
 	// Section specifiers
-	protoSectionSpecifier   = "plugin.%s.protocol"
-	apiSectionSpecifier     = "plugin.%s.api"
-	serviceSectionSpecifier = "plugin.%s.service.%s"
+	PluginSpecifier         = "plugin.%s"
+	ProtocolSpecifier       = "plugin.%s.protocol" 
+	APISpecifier           = "plugin.%s.api"
+	ServiceSpecifier       = "plugin.%s.service.%s"
 
 	// Struct tags
 	mapStructureTag = "config"
 )
 
 var (
-	// Default config directory paths
-	configDirPaths = []string{
+	// DefaultConfigPaths defines the default search paths for configuration files
+	DefaultConfigPaths = []string{
 		"/etc/lumeweb/portal",
 		"$HOME/.lumeweb/portal",
 		"./portal.yaml",

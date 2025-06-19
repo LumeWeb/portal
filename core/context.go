@@ -331,15 +331,57 @@ func GetService[T Service](ctx Context, id string) T {
 }
 
 func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
-	cfg := ctx.Config().GetService(id)
+	// Find which plugin owns this service
+	pluginID := GetPluginForService(id)
+	if pluginID == "" {
+		ctx.Logger().Fatal("service has no plugin association", zap.String("service", id))
+	}
+
+	// Verify service belongs to plugin
+	plugin := GetPlugin(pluginID)
+	if plugin.ID == "" {
+		ctx.Logger().Fatal("plugin not found", zap.String("plugin", pluginID))
+	}
+
+	if !PluginHasServices(plugin) {
+		ctx.Logger().Fatal("plugin has no services", zap.String("plugin", pluginID))
+	}
+
+	pluginSvcs, err := plugin.Services()
+	if err != nil {
+		ctx.Logger().Fatal("failed to get plugin services", 
+			zap.String("plugin", pluginID),
+			zap.Error(err))
+	}
+
+	// Check if service exists in plugin
+	found := false
+	for _, svc := range pluginSvcs {
+		if svc.ID == id {
+			found = true
+			break
+		}
+	}
+	if !found {
+		ctx.Logger().Fatal("service not found in plugin", 
+			zap.String("service", id),
+			zap.String("plugin", pluginID))
+	}
+
+	// Get the service config from the owning plugin
+	cfg := ctx.Config().GetService(pluginID, id)
 	if cfg == nil {
-		ctx.Logger().Fatal("service not found", zap.String("service", id))
+		ctx.Logger().Fatal("service config not found", 
+			zap.String("service", id),
+			zap.String("plugin", pluginID))
 	}
 
 	typedSvc, ok := cfg.(T)
-
 	if !ok {
-		ctx.Logger().Fatal("service type mismatch", zap.String("service", id))
+		ctx.Logger().Fatal("service type mismatch", 
+			zap.String("service", id),
+			zap.String("expected", reflect.TypeOf(*new(T)).String()),
+			zap.String("actual", reflect.TypeOf(cfg).String()))
 	}
 
 	return typedSvc

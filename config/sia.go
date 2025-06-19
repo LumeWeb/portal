@@ -1,12 +1,15 @@
 package config
 
 import (
-	"errors"
+	z "github.com/Oudwins/zog"
+	"go.lumeweb.com/configmanager"
 	"math/big"
 )
 
-var _ Validator = (*SiaConfig)(nil)
-var _ Defaults = (*SiaConfig)(nil)
+var (
+	_ configmanager.ConfigSchemaProvider = (*SiaConfig)(nil)
+	_ Defaults                           = (*SiaConfig)(nil)
+)
 
 type SiaConfig struct {
 	Key     string `config:"key"`
@@ -14,39 +17,40 @@ type SiaConfig struct {
 	Cluster bool   `config:"cluster"`
 }
 
+func (s SiaConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Key": z.String(),
+		"URL": z.String(),
+		"Cluster": z.Bool().
+			Default(false),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		s, ok := data.(*SiaConfig)
+		if !ok {
+			return true
+		}
+
+		if s.Key != "" {
+			if rat, ok := new(big.Rat).SetString(s.Key); !ok {
+				ctx.AddIssue(ctx.Issue().SetMessage("failed to parse key"))
+				return false
+			} else if rat.Cmp(new(big.Rat).SetUint64(0)) <= 0 {
+				ctx.AddIssue(ctx.Issue().SetMessage("key must be greater than 0"))
+				return false
+			}
+		}
+
+		if s.Cluster && s.URL == "" {
+			ctx.AddIssue(ctx.Issue().SetMessage("core.storage.sia.url is required when cluster is enabled"))
+			return false
+		}
+		return true
+	})
+}
+
 func (s SiaConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
-		"key":     "",
-		"cluster": false,
-		"url":     "",
+		"Key":     "",
+		"Cluster": false,
+		"URL":     "",
 	}
-}
-
-func (s SiaConfig) Validate() error {
-	if s.Key == "" {
-		return errors.New("core.storage.sia.key is required")
-	}
-
-	if s.Cluster && s.URL == "" {
-		return errors.New("core.storage.sia.url is required")
-	}
-
-	return nil
-}
-
-func validateStringNumber(s string, name string) error {
-	if s == "" {
-		return errors.New(name + " is required")
-	}
-
-	rat, ok := new(big.Rat).SetString(s)
-	if !ok {
-		return errors.New("failed to parse " + name)
-	}
-
-	if rat.Cmp(new(big.Rat).SetUint64(0)) <= 0 {
-		return errors.New(name + " must be greater than 0")
-	}
-
-	return nil
 }

@@ -1,25 +1,29 @@
 package config
 
 import (
-	"errors"
-	"github.com/samber/lo"
+	z "github.com/Oudwins/zog"
+	"go.lumeweb.com/configmanager"
+)
+
+var (
+	_ configmanager.ConfigSchemaProvider = (*TusConfig)(nil)
+	_ Defaults                           = (*TusConfig)(nil)
 )
 
 type TusConfig struct {
 	LockerMode string `config:"locker_mode"`
 }
 
-func (t TusConfig) Validate() error {
-	if t.LockerMode != "" && !lo.Contains([]string{"db", "redis"}, t.LockerMode) {
-		return errors.New("tus_locker_mode must be one of: db, redis")
-	}
-
-	return nil
+func (t TusConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"LockerMode": z.String().
+			Default("db").
+			OneOf([]string{"db", "redis"}, z.Message("tus_locker_mode must be one of: db, redis")),
+	})
 }
-func (c Config) Defaults() map[string]any {
-	defaults := map[string]any{
-		"tus_locker_mode": "db",
-	}
 
-	return defaults
+func (t TusConfig) Defaults() map[string]any {
+	return map[string]any{
+		"LockerMode": "db",
+	}
 }
