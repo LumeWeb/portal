@@ -8,8 +8,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/gookit/event"
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -365,19 +365,19 @@ func (_c *MockContext_Err_Call) RunAndReturn(run func() error) *MockContext_Err_
 }
 
 // Event provides a mock function for the type MockContext
-func (_mock *MockContext) Event() *event.Manager {
+func (_mock *MockContext) Event() event.EventManager[any] {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Event")
 	}
 
-	var r0 *event.Manager
-	if returnFunc, ok := ret.Get(0).(func() *event.Manager); ok {
+	var r0 event.EventManager[any]
+	if returnFunc, ok := ret.Get(0).(func() event.EventManager[any]); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*event.Manager)
+			r0 = ret.Get(0).(event.EventManager[any])
 		}
 	}
 	return r0
@@ -400,12 +400,12 @@ func (_c *MockContext_Event_Call) Run(run func()) *MockContext_Event_Call {
 	return _c
 }
 
-func (_c *MockContext_Event_Call) Return(manager *event.Manager) *MockContext_Event_Call {
-	_c.Call.Return(manager)
+func (_c *MockContext_Event_Call) Return(eventManager event.EventManager[any]) *MockContext_Event_Call {
+	_c.Call.Return(eventManager)
 	return _c
 }
 
-func (_c *MockContext_Event_Call) RunAndReturn(run func() *event.Manager) *MockContext_Event_Call {
+func (_c *MockContext_Event_Call) RunAndReturn(run func() event.EventManager[any]) *MockContext_Event_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -500,6 +500,109 @@ func (_c *MockContext_ExitFuncs_Call) RunAndReturn(run func() []func(core.Contex
 	return _c
 }
 
+// Fire provides a mock function for the type MockContext
+func (_mock *MockContext) Fire(eventName string, payload any) error {
+	ret := _mock.Called(eventName, payload)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Fire")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
+		r0 = returnFunc(eventName, payload)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockContext_Fire_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Fire'
+type MockContext_Fire_Call struct {
+	*mock.Call
+}
+
+// Fire is a helper method to define mock.On call
+//   - eventName string
+//   - payload any
+func (_e *MockContext_Expecter) Fire(eventName interface{}, payload interface{}) *MockContext_Fire_Call {
+	return &MockContext_Fire_Call{Call: _e.mock.On("Fire", eventName, payload)}
+}
+
+func (_c *MockContext_Fire_Call) Run(run func(eventName string, payload any)) *MockContext_Fire_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 any
+		if args[1] != nil {
+			arg1 = args[1].(any)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_Fire_Call) Return(err error) *MockContext_Fire_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockContext_Fire_Call) RunAndReturn(run func(eventName string, payload any) error) *MockContext_Fire_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FireAsync provides a mock function for the type MockContext
+func (_mock *MockContext) FireAsync(eventName string, payload any) {
+	_mock.Called(eventName, payload)
+	return
+}
+
+// MockContext_FireAsync_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FireAsync'
+type MockContext_FireAsync_Call struct {
+	*mock.Call
+}
+
+// FireAsync is a helper method to define mock.On call
+//   - eventName string
+//   - payload any
+func (_e *MockContext_Expecter) FireAsync(eventName interface{}, payload interface{}) *MockContext_FireAsync_Call {
+	return &MockContext_FireAsync_Call{Call: _e.mock.On("FireAsync", eventName, payload)}
+}
+
+func (_c *MockContext_FireAsync_Call) Run(run func(eventName string, payload any)) *MockContext_FireAsync_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 any
+		if args[1] != nil {
+			arg1 = args[1].(any)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_FireAsync_Call) Return() *MockContext_FireAsync_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContext_FireAsync_Call) RunAndReturn(run func(eventName string, payload any)) *MockContext_FireAsync_Call {
+	_c.Run(run)
+	return _c
+}
+
 // GetContext provides a mock function for the type MockContext
 func (_mock *MockContext) GetContext() context.Context {
 	ret := _mock.Called()
@@ -589,6 +692,52 @@ func (_c *MockContext_Logger_Call) Return(logger *core.Logger) *MockContext_Logg
 
 func (_c *MockContext_Logger_Call) RunAndReturn(run func() *core.Logger) *MockContext_Logger_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// MustFire provides a mock function for the type MockContext
+func (_mock *MockContext) MustFire(eventName string, payload any) {
+	_mock.Called(eventName, payload)
+	return
+}
+
+// MockContext_MustFire_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MustFire'
+type MockContext_MustFire_Call struct {
+	*mock.Call
+}
+
+// MustFire is a helper method to define mock.On call
+//   - eventName string
+//   - payload any
+func (_e *MockContext_Expecter) MustFire(eventName interface{}, payload interface{}) *MockContext_MustFire_Call {
+	return &MockContext_MustFire_Call{Call: _e.mock.On("MustFire", eventName, payload)}
+}
+
+func (_c *MockContext_MustFire_Call) Run(run func(eventName string, payload any)) *MockContext_MustFire_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 any
+		if args[1] != nil {
+			arg1 = args[1].(any)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_MustFire_Call) Return() *MockContext_MustFire_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContext_MustFire_Call) RunAndReturn(run func(eventName string, payload any)) *MockContext_MustFire_Call {
+	_c.Run(run)
 	return _c
 }
 
@@ -775,6 +924,39 @@ func (_c *MockContext_ProtocolLogger_Call) Return(logger *core.Logger) *MockCont
 
 func (_c *MockContext_ProtocolLogger_Call) RunAndReturn(run func(protocol core.Protocol) *core.Logger) *MockContext_ProtocolLogger_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// ResetEvents provides a mock function for the type MockContext
+func (_mock *MockContext) ResetEvents() {
+	_mock.Called()
+	return
+}
+
+// MockContext_ResetEvents_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetEvents'
+type MockContext_ResetEvents_Call struct {
+	*mock.Call
+}
+
+// ResetEvents is a helper method to define mock.On call
+func (_e *MockContext_Expecter) ResetEvents() *MockContext_ResetEvents_Call {
+	return &MockContext_ResetEvents_Call{Call: _e.mock.On("ResetEvents")}
+}
+
+func (_c *MockContext_ResetEvents_Call) Run(run func()) *MockContext_ResetEvents_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContext_ResetEvents_Call) Return() *MockContext_ResetEvents_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContext_ResetEvents_Call) RunAndReturn(run func()) *MockContext_ResetEvents_Call {
+	_c.Run(run)
 	return _c
 }
 

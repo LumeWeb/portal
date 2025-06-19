@@ -1,77 +1,49 @@
 package config
 
 import (
-	"errors"
-	"reflect"
-
-	"github.com/go-viper/mapstructure/v2"
+	z "github.com/Oudwins/zog"
+	"go.lumeweb.com/configmanager"
+	"go.lumeweb.com/configmanager/config"
 )
 
-var _ Validator = (*ClusterConfig)(nil)
+var (
+	_ configmanager.ConfigSchemaProvider = (*ClusterConfig)(nil)
+	_ Defaults                           = (*ClusterConfig)(nil)
+)
 
 type ClusterConfig struct {
-	Enabled bool         `config:"enabled"`
-	Redis   *RedisConfig `config:"redis"`
-	Etcd    *EtcdConfig  `config:"etcd"`
+	Enabled bool               `config:"enabled"`
+	Redis   *RedisConfig       `config:"redis"`
+	Etcd    *config.EtcdConfig `config:"etcd"`
 }
 
-func (c ClusterConfig) Validate() error {
-	if c.Enabled {
-		if c.Etcd == nil {
-			return errors.New("etcd configuration is required in cluster configuration")
+func (c ClusterConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Enabled": z.Bool(),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		c, ok := data.(*ClusterConfig)
+		if !ok {
+			return true
 		}
-	}
 
-	return nil
+		if c.Enabled && c.Etcd == nil {
+			ctx.AddIssue(ctx.Issue().SetMessage("etcd configuration is required when cluster is enabled"))
+			return false
+		}
+		return true
+	})
 }
 
 func (c ClusterConfig) RedisEnabled() bool {
 	return c.Redis != nil
 }
 
-func (c ClusterConfig) EtcdEnabled() bool {
-	return c.Etcd != nil
+func (c ClusterConfig) Defaults() map[string]any {
+	return map[string]any{
+		"Enabled": false,
+	}
 }
 
-func clusterConfigHook() mapstructure.DecodeHookFuncType {
-	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
-		if f.Kind() != reflect.Map || t != reflect.TypeOf(&ClusterConfig{}) {
-			return data, nil
-		}
-
-		var clusterConfig ClusterConfig
-		if err := mapstructure.Decode(data, &clusterConfig); err != nil {
-			return nil, err
-		}
-
-		// Check if the input data map includes "redis" configuration
-		if opts, ok := data.(map[string]interface{})["redis"].(map[string]interface{}); ok && opts != nil {
-			var redisOptions RedisConfig
-			if err := mapstructure.Decode(opts, &redisOptions); err != nil {
-				return nil, err
-			}
-
-			if err := redisOptions.Validate(); err != nil {
-				return nil, err
-			}
-
-			clusterConfig.Redis = &redisOptions
-		}
-
-		// Check if the input data map includes "etcd" configuration
-		if opts, ok := data.(map[string]interface{})["etcd"].(map[string]interface{}); ok && opts != nil {
-			var etcdOptions EtcdConfig
-			if err := mapstructure.Decode(opts, &etcdOptions); err != nil {
-				return nil, err
-			}
-
-			if err := etcdOptions.Validate(); err != nil {
-				return nil, err
-			}
-
-			clusterConfig.Etcd = &etcdOptions
-		}
-
-		return &clusterConfig, nil
-	}
+func (c ClusterConfig) EtcdEnabled() bool {
+	return c.Etcd != nil
 }

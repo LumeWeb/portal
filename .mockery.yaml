@@ -4,6 +4,8 @@ template-data:
 filename: "{{.InterfaceName}}.go"
 packages:
   go.lumeweb.com/portal/config:
+    config:
+      filename: "mock_{{.InterfaceName}}.go"
     interfaces:
       Manager: {}
   go.lumeweb.com/portal/core:
@@ -16,14 +18,12 @@ packages:
       APIInit: {}
       AccessService: {}
       AuthService: {}
-      ConfigService: {}
       Configurable: {}
       ContentScanner: {}
       ContentScannerService: {}
       Context: {}
       CronService: {}
       Cronable: {}
-      Eventer: {}
       HTTPService: {}
       HashFactory: {}
       HashMappingService: {}

@@ -1,14 +1,17 @@
 package config
 
 import (
-	"errors"
+	z "github.com/Oudwins/zog"
 	"github.com/docker/go-units"
+	"go.lumeweb.com/configmanager"
 	"go.lumeweb.com/portal/config/types"
 	"go.sia.tech/coreutils/wallet"
 )
 
-var _ Defaults = (*CoreConfig)(nil)
-var _ Validator = (*CoreConfig)(nil)
+var (
+	_ configmanager.ConfigSchemaProvider = (*CoreConfig)(nil)
+	_ Defaults                           = (*CoreConfig)(nil)
+)
 
 type CoreConfig struct {
 	DB              DatabaseConfig `config:"db"`
@@ -27,28 +30,39 @@ type CoreConfig struct {
 	Account         AccountConfig  `config:"account"`
 }
 
-func (c CoreConfig) Validate() error {
-	if c.Domain == "" {
-		return errors.New("core.domain is required")
-	}
-	if c.PortalName == "" {
-		return errors.New("core.portal_name is required")
-	}
-	if c.Port == 0 {
-		return errors.New("core.port is required")
-	}
+func (c CoreConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Domain": z.String().
+			Required(z.Message("core.domain is required")),
+		"PortalName": z.String().
+			Required(z.Message("core.portal_name is required")),
+		"Port": z.Int().
+			Required(z.Message("core.port is required")).
+			GT(0, z.Message("core.port must be greater than 0")),
+		"PostUploadLimit": z.Int64().
+			Default(units.MiB * 100),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		c, ok := data.(*CoreConfig)
+		if !ok {
+			return true
+		}
 
-	return nil
+		if c.Clustered != nil && c.Clustered.Enabled && c.Clustered.Etcd == nil {
+			ctx.AddIssue(ctx.Issue().SetMessage("etcd configuration is required when cluster is enabled"))
+			return false
+		}
+		return true
+	})
 }
 
 func (c CoreConfig) Defaults() map[string]any {
 	return map[string]interface{}{
-		"post_upload_limit": units.MiB * 100,
-		"node_id":           types.NewUUID(),
-		"identity":          wallet.NewSeedPhrase(),
-		"domain":            "",
-		"portal_name":       "",
-		"port":              0,
+		"PostUploadLimit": units.MiB * 100,
+		"NodeID":          types.NewUUID(),
+		"Identity":        wallet.NewSeedPhrase(),
+		"Domain":          "",
+		"PortalName":      "",
+		"Port":            0,
 	}
 }
 

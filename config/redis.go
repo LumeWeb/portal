@@ -1,12 +1,15 @@
 package config
 
 import (
-	"errors"
+	z "github.com/Oudwins/zog"
 	"github.com/redis/go-redis/v9"
+	"go.lumeweb.com/configmanager"
 )
 
-var _ Validator = (*RedisConfig)(nil)
-var _ Defaults = (*RedisConfig)(nil)
+var (
+	_ configmanager.ConfigSchemaProvider = (*RedisConfig)(nil)
+	_ Defaults                           = (*RedisConfig)(nil)
+)
 
 type RedisConfig struct {
 	Address  string `config:"address"`
@@ -15,18 +18,21 @@ type RedisConfig struct {
 	client   *redis.Client
 }
 
-func (r *RedisConfig) Defaults() map[string]interface{} {
-	return map[string]interface{}{
-		"address": "localhost:6379",
-		"db":      0,
-	}
+func (r RedisConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Address": z.String().
+			Required(z.Message("address is required")),
+		"Password": z.String(),
+		"DB": z.Int().
+			Default(0),
+	})
 }
 
-func (r *RedisConfig) Validate() error {
-	if r.Address == "" {
-		return errors.New("address is required")
+func (r *RedisConfig) Defaults() map[string]interface{} {
+	return map[string]interface{}{
+		"Address": "localhost:6379",
+		"DB":      0,
 	}
-	return nil
 }
 
 func (r *RedisConfig) Client() (*redis.Client, error) {
