@@ -8,8 +8,6 @@ import (
 	"go.lumeweb.com/portal/config"
 	"net/url"
 	"strings"
-
-	"github.com/go-sql-driver/mysql"
 )
 
 // GetDSN generates the DSN string for GORM based on the configuration.
@@ -70,73 +68,5 @@ func GetDSN(cfg config.Manager) (string, error) {
 
 	default:
 		return "", fmt.Errorf("unsupported database type: %s", dbConfig.Type)
-	}
-}
-
-// GetDbMateUrl generates a database connection URL for dbmate based on the configuration.
-// It uses GetDSN() and converts the DSN to dbmate's expected URL format.
-func GetDbMateUrl(cfg config.Manager) (*url.URL, error) {
-	dsn, err := GetDSN(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	dbType := cfg.Config().Core.DB.Type
-
-	switch strings.ToLower(dbType) {
-	case "sqlite":
-		// For SQLite file, dbmate expects sqlite:// prefix
-		if strings.HasPrefix(dsn, "file:") {
-			dsn = strings.TrimPrefix(dsn, "file:")
-		}
-		return url.Parse("sqlite://" + dsn)
-	case "sqlitememory":
-		// Use our custom driver for in-memory SQLite
-		return url.Parse("sqlitememory://memory")
-
-	case "mysql":
-		// Parse MySQL DSN using driver's parser
-		cfg, err := mysql.ParseDSN(dsn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse MySQL DSN: %w", err)
-		}
-
-		// Construct URL from parsed config
-		u := &url.URL{
-			Scheme: "mysql",
-			User:   url.UserPassword(cfg.User, cfg.Passwd),
-			Host:   cfg.Addr,
-			Path:   "/" + cfg.DBName,
-		}
-
-		// Convert DSN parameters to URL query
-		query := url.Values{}
-		if cfg.Params != nil {
-			for k, v := range cfg.Params {
-				query.Set(k, v)
-			}
-		}
-		if cfg.TLS != nil {
-			if cfg.TLS.ServerName != "" {
-				query.Set("tls", cfg.TLS.ServerName)
-			} else {
-				query.Set("tls", "skip-verify")
-			}
-		}
-		if cfg.Timeout > 0 {
-			query.Set("timeout", cfg.Timeout.String())
-		}
-		if cfg.ReadTimeout > 0 {
-			query.Set("readTimeout", cfg.ReadTimeout.String())
-		}
-		if cfg.WriteTimeout > 0 {
-			query.Set("writeTimeout", cfg.WriteTimeout.String())
-		}
-		u.RawQuery = query.Encode()
-
-		return u, nil
-
-	default:
-		return nil, fmt.Errorf("unsupported database type: %s", dbType)
 	}
 }

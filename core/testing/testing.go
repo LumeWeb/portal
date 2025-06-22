@@ -303,22 +303,22 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	ResetAllState()
 	defer ResetAllState()
 
-	// Add any provided options to the test case collection
+	// Phase 1: Registration
+	// Add test case specific options
 	if len(opts) > 0 {
 		AddTestCaseContextOptions(opts...)
 	}
 
-	// Get or create the context (without booting the environment yet)
+	// Create test context
 	ctx := SetupTest(t)
 
-	// Boot the environment *after* the context is stored and before running the test function
+	// Phases 2 & 3: Configuration & Initialization
 	if err := BootEnvironment(t, ctx); err != nil {
 		t.Fatalf("Failed to boot test environment: %v", err)
 	}
 
+	// Run the actual test
 	testFunc(t, ctx)
-
-	// Test case options are cleared by deferred ResetAllState
 }
 
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
@@ -452,7 +452,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 	var mockConfig *MockConfigManager
 
 	// Default to firing boot complete event
-	fireBootComplete := true
+	fireBootComplete := false
 
 	// Handle different types of test runners
 	if t, ok := tb.(*testing.T); ok {
@@ -462,8 +462,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) TestContext {
 		// For benchmarks or other test types, create a simple wrapper around the MockConfigManager
 		// that doesn't depend on expectations being verified
 		mockConfig = &MockConfigManager{
-			values: make(map[string]interface{}),
-			cfg:    &config.Config{},
+			cfg: &config.Config{},
 		}
 	}
 
@@ -581,7 +580,7 @@ func WithConfig(key string, value interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		if ctx.(*testContext).cfg != nil {
 			// Use Update method from config.Manager interface
-			_ = ctx.(*testContext).cfg.Update(key, value)
+			_ = ctx.(*testContext).cfg.Set(ctx, key, value)
 		}
 		return ctx, nil
 	}
@@ -940,13 +939,6 @@ func WithMockAuthService() TestContextBuilderOption {
 	})
 }
 
-// WithMockConfigService adds a mock ConfigService to the test context.
-func WithMockConfigService() TestContextBuilderOption {
-	return WithMockService(core.CONFIG_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockConfigService(tb)
-	})
-}
-
 // WithMockContentScannerService adds a mock ContentScannerService to the test context.
 func WithMockContentScannerService() TestContextBuilderOption {
 	return WithMockService(core.CONTENT_SCANNER_SERVICE, func(tb TB, _ TestContext) any {
@@ -1168,7 +1160,6 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		WithMockAccessService(),
 		WithRouter(_router),
 		WithMockAuthService(),
-		WithMockConfigService(),
 		WithMockContentScannerService(),
 		WithMockCronService(),
 		WithMockHTTPService(),
@@ -1292,20 +1283,6 @@ func GetMockAuthService(ctx core.Context) *mocks.MockAuthService {
 		panic(fmt.Sprintf("auth service is not a mock - expected *mocks.MockAuthService, got %T", authSvc))
 	}
 	return mockAuth
-}
-
-// GetMockConfigService returns the mock config service from the context for testing
-// Panics if the config service is not a mock
-func GetMockConfigService(ctx core.Context) *mocks.MockConfigService {
-	configSvc := ctx.Service(core.CONFIG_SERVICE)
-	if configSvc == nil {
-		panic("config service not found in context")
-	}
-	mockConfig, ok := configSvc.(*mocks.MockConfigService)
-	if !ok {
-		panic(fmt.Sprintf("config service is not a mock - expected *mocks.MockConfigService, got %T", configSvc))
-	}
-	return mockConfig
 }
 
 // GetMockContentScannerService returns the mock content scanner service from the context for testing
@@ -1832,52 +1809,42 @@ func WithNoFireBootCompleteEvent() TestContextBuilderOption {
 }
 
 func BootEnvironment(tb TB, ctx TestContext) error {
-	// Process all context options (default, global, and those passed to RunTestCase)
-	// This is where options that register global components should be processed.
-	var err error
-	ctx, err = ProcessCtxOptions(ctx, GetCombinedTestContextOptions(tb)...)
+	// Phase 1: Registration
+	// Process all context options (default, global, and test case specific)
+	ctx, err := ProcessCtxOptions(ctx, GetCombinedTestContextOptions(tb)...)
 	if err != nil {
-		return err
+		return fmt.Errorf("registration phase failed: %w", err)
 	}
 
-	// Process startup functions first (this will establish DB connection)
-	err = ProcessStartupFuncs(ctx)
-	if err != nil {
-		return err
+	// Process startup functions (DB connection, etc)
+	if err := ProcessStartupFuncs(ctx); err != nil {
+		return fmt.Errorf("startup functions failed: %w", err)
 	}
 
-	// Configure components in dependency order:
-	// 1. Protocols (no options returned)
-	err = ConfigureProtocols(ctx)
-	if err != nil {
-		return err
+	// Phase 2: Configuration
+	if err := ConfigureProtocols(ctx); err != nil {
+		return fmt.Errorf("protocol configuration failed: %w", err)
 	}
 
-	// 2. APIs (may return context options)
 	apiOpts, err := ConfigureAPIs(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("API configuration failed: %w", err)
 	}
 
-	// 3. Services (uses config from protocols/APIs)
-	err = ConfigureServices(ctx)
-	if err != nil {
-		return err
+	if err := ConfigureServices(ctx); err != nil {
+		return fmt.Errorf("service configuration failed: %w", err)
 	}
 
-	// 4. Process collected API options
-	allOpts := apiOpts
-	ctx, err = ProcessCtxOptions(ctx, allOpts...)
-	if err != nil {
-		return err
+	// Phase 3: Initialization
+	if _, err := ProcessCtxOptions(ctx, apiOpts...); err != nil {
+		return fmt.Errorf("API initialization failed: %w", err)
 	}
 
-	err = ConfigureAPIRoutes(ctx)
-	if err != nil {
-		return err
+	if err := ConfigureAPIRoutes(ctx); err != nil {
+		return fmt.Errorf("API route configuration failed: %w", err)
 	}
 
-	// Fire boot complete event unless disabled
+	// Fire boot complete event if enabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err := ctx.Fire(pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
@@ -1890,7 +1857,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 // WithDomain configures the test context with a specific domain
 func WithDomain(domain string) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		if err := ctx.Config().Update("core.domain", domain); err != nil {
+		if err := ctx.Config().Set(ctx, "core.domain", domain); err != nil {
 			return nil, err
 		}
 		return ctx, nil
@@ -1900,7 +1867,7 @@ func WithDomain(domain string) TestContextBuilderOption {
 // WithSeedPhrase configures the test context with a specific seed phrase
 func WithSeedPhrase(seedPhrase string) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		if err := ctx.Config().Update("core.identity", seedPhrase); err != nil {
+		if err := ctx.Config().Set(ctx, "core.identity", seedPhrase); err != nil {
 			return nil, err
 		}
 		return ctx, nil
@@ -1971,11 +1938,11 @@ func WithSQLite(tb TB) TestContextBuilderOption {
 		}
 
 		// Update config with SQLite type and temp file path
-		err = ctx.Config().Update("core.db.type", "sqlite")
+		err = ctx.Config().Set(ctx, "core.db.type", "sqlite")
 		if err != nil {
 			return nil, fmt.Errorf("failed to set database type: %w", err)
 		}
-		err = ctx.Config().Update("core.db.file", tempFile.Name())
+		err = ctx.Config().Set(ctx, "core.db.file", tempFile.Name())
 		if err != nil {
 			return nil, fmt.Errorf("failed to set database file: %w", err)
 		}

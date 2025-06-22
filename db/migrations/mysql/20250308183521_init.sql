@@ -1,4 +1,4 @@
--- migrate:up
+-- +goose Up
 
 --
 -- Table structure for table `users`
@@ -383,7 +383,7 @@ CREATE TABLE `tus_locks`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
--- migrate:down
+-- +goose Down
 
 DROP TABLE IF EXISTS `tus_locks`;
 DROP TABLE IF EXISTS `sia_uploads`;

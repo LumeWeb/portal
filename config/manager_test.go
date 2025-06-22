@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -105,41 +104,46 @@ func (m mockFileInfo) IsDir() bool        { return m.isDir }
 func (m mockFileInfo) Sys() interface{}   { return nil }
 
 func TestFindConfigFile(t *testing.T) {
-	// Define test cases
-	testCases := []struct {
+	type testCase struct {
 		name          string
 		options       findConfigFileOptions
-		existingFiles map[string][]byte // Used when no custom fs provided
-		fs            *MockFileSystem   // Optional custom filesystem configuration
+		setup         func(h *testHelper)
 		expectedPath  string
 		expectedError string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			name: "File exists in default path",
 			options: findConfigFileOptions{
 				Paths: []string{"/etc/lumeweb/portal"},
-				fs:    &MockFileSystem{},
 			},
-			existingFiles: map[string][]byte{"/etc/lumeweb/portal/core.yaml": []byte("test")},
-			expectedPath:  "/etc/lumeweb/portal/core.yaml",
+			setup: func(h *testHelper) {
+				h.withMockFS(map[string][]byte{"/etc/lumeweb/portal/core.yaml": []byte("test")})
+			},
+			expectedPath: "/etc/lumeweb/portal/core.yaml",
 		},
 		{
 			name: "File exists in home path",
 			options: findConfigFileOptions{
 				Paths: []string{"$HOME/.lumeweb/portal"},
-				fs:    &MockFileSystem{},
 			},
-			existingFiles: map[string][]byte{filepath.Join(os.Getenv("HOME"), ".lumeweb/portal/core.yaml"): []byte("test")},
-			expectedPath:  filepath.Join(os.Getenv("HOME"), ".lumeweb/portal/core.yaml"),
+			setup: func(h *testHelper) {
+				h.withMockFS(map[string][]byte{
+					filepath.Join(os.Getenv("HOME"), ".lumeweb/portal/core.yaml"): []byte("test"),
+				})
+			},
+			expectedPath: filepath.Join(os.Getenv("HOME"), ".lumeweb/portal/core.yaml"),
 		},
 		{
 			name: "File exists in current directory",
 			options: findConfigFileOptions{
 				Paths: []string{"./"},
-				fs:    &MockFileSystem{},
 			},
-			existingFiles: map[string][]byte{"core.yaml": []byte("test")},
-			expectedPath:  "core.yaml",
+			setup: func(h *testHelper) {
+				h.withMockFS(map[string][]byte{"core.yaml": []byte("test")})
+			},
+			expectedPath: "core.yaml",
 		},
 		{
 			name: "No file exists",
@@ -164,14 +168,16 @@ func TestFindConfigFile(t *testing.T) {
 				Paths:         []string{"/tmp"},
 				CheckWritable: true,
 			},
-			fs: &MockFileSystem{
-				Files: map[string][]byte{
-					"/tmp/core.yaml": []byte("test"),
-				},
-				Dirs: make(map[string]bool),
-				WritableFiles: map[string]bool{
-					"/tmp/core.yaml": false, // Explicitly mark file as not writable
-				},
+			setup: func(h *testHelper) {
+				h.fs = &MockFileSystem{
+					Files: map[string][]byte{
+						"/tmp/core.yaml": []byte("test"),
+					},
+					Dirs: make(map[string]bool),
+					WritableFiles: map[string]bool{
+						"/tmp/core.yaml": false, // Explicitly mark file as not writable
+					},
+				}
 			},
 			expectedError: "no valid config file found in paths: [/tmp]",
 		},
@@ -179,27 +185,21 @@ func TestFindConfigFile(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Use provided mock FS if specified, otherwise create basic one
-			if tc.fs == nil {
-				tc.options.fs = &MockFileSystem{
-					Files: tc.existingFiles,
-					Dirs:  make(map[string]bool),
-				}
-			} else {
-				tc.options.fs = tc.fs
+			h := newTestHelper(t)
+			if tc.setup != nil {
+				tc.setup(h)
 			}
 
-			// Mock ConfigManager
+			tc.options.fs = h.fs
+
 			cm, err := configmanager.NewConfigManager(
 				[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR)},
 				configmanager.WithLogger(zap.NewNop()),
 			)
 			require.NoError(t, err)
 
-			// Execute findConfigFile
 			path, err := findConfigFile(tc.options, cm)
 
-			// Verify results
 			if tc.expectedError != "" {
 				assert.Error(t, err)
 				assert.EqualError(t, err, tc.expectedError)
@@ -242,56 +242,70 @@ func TestCreateDefaultConfig(t *testing.T) {
 }
 
 func TestManagerDefault_Init(t *testing.T) {
-	// Setup mock file system
-	fs := &MockFileSystem{
-		Files: map[string][]byte{
-			"/tmp/core.yaml": []byte{},
-		},
-		Dirs: make(map[string]bool),
-	}
+	// Create temp dir for test
+	tempDir, err := os.MkdirTemp("", "config_test")
+	require.NoError(t, err)
+	defer func(path string) {
+		err = os.RemoveAll(path)
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}(tempDir)
 
-	// Mock ConfigManager
-	cm, err := configmanager.NewConfigManager(
-		[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR)},
-		configmanager.WithLogger(zap.NewNop()),
-	)
+	// Create test config file
+	configFile := filepath.Join(tempDir, CoreConfigFile)
+	err = os.WriteFile(configFile, []byte(`
+domain: "example.com"
+portal_name: "test_portal"
+`), 0644)
 	require.NoError(t, err)
 
-	// Create a mock command
-	cmd := &cli.Command{}
+	// Create manager with real filesystem
+	m, err := NewManager(&cli.Command{}, WithConfigPaths([]string{tempDir}))
+	require.NoError(t, err)
 
-	// Create and initialize ManagerDefault instance
-	m := &ManagerDefault{
-		Manager:    cm,
-		logger:     zap.NewNop(),
-		configFile: "/tmp/core.yaml",
-		configDir:  "/tmp",
-		cmd:        cmd,
-		lock:       sync.RWMutex{},
-		fs:         fs,
-	}
+	// Initialize
 	err = m.Init()
 	require.NoError(t, err)
 
-	// Verify that the plugin directories were created
+	// Verify directories were created
 	expectedDirs := []string{
 		filepath.Join(m.configDir, ProtoDir),
 		filepath.Join(m.configDir, APIDir),
 		filepath.Join(m.configDir, ServiceDir),
 	}
 	for _, dir := range expectedDirs {
-		assert.True(t, fs.Dirs[dir], fmt.Sprintf("Directory %s should be created", dir))
+		_, err := os.Stat(dir)
+		assert.NoError(t, err, fmt.Sprintf("Directory %s should exist", dir))
 	}
 }
 
 func TestManagerDefault_ConfigureAndGet(t *testing.T) {
+	// Create temp dir for test
+	tempDir, err := os.MkdirTemp("", "config_test")
+	require.NoError(t, err)
+	defer func(path string) {
+		err = os.RemoveAll(path)
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}(tempDir)
+
+	// Create core config file with required fields
+	coreConfigPath := filepath.Join(tempDir, CoreConfigFile)
+	err = os.WriteFile(coreConfigPath, []byte(`
+domain: test.com
+portal_name: test_portal
+`), 0644)
+	require.NoError(t, err)
+
 	tests := []struct {
 		name         string
 		configType   string
 		pluginName   string
 		serviceName  string
 		newConfig    func() interface{}
-		setTestValue func(source *source.MemoryConfigSource, pluginName, serviceName string)
+		setTestValue func(pluginName, serviceName string) string
 		getKey       func(pluginName, serviceName string) string
 		getFunc      func(m *ManagerDefault, name string) interface{}
 	}{
@@ -300,8 +314,8 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			configType: "protocol",
 			pluginName: "test_plugin",
 			newConfig:  func() interface{} { return newTestProtocolConfig() },
-			setTestValue: func(s *source.MemoryConfigSource, pluginName, _ string) {
-				s.Set(fmt.Sprintf("plugin.%s.protocol.value", pluginName), "test")
+			setTestValue: func(pluginName, _ string) string {
+				return "value: test"
 			},
 			getKey: func(pluginName, _ string) string {
 				return fmt.Sprintf(ProtocolSpecifier, pluginName)
@@ -315,8 +329,8 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			configType: "api",
 			pluginName: "test_api",
 			newConfig:  func() interface{} { return newTestAPIConfig() },
-			setTestValue: func(s *source.MemoryConfigSource, pluginName, _ string) {
-				s.Set(fmt.Sprintf("plugin.%s.api.value", pluginName), "test")
+			setTestValue: func(pluginName, _ string) string {
+				return "value: test" 
 			},
 			getKey: func(pluginName, _ string) string {
 				return fmt.Sprintf(APISpecifier, pluginName)
@@ -331,8 +345,8 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			pluginName:  "test_plugin",
 			serviceName: "test_service",
 			newConfig:   func() interface{} { return newTestServiceConfig() },
-			setTestValue: func(s *source.MemoryConfigSource, pluginName, serviceName string) {
-				s.Set(fmt.Sprintf("plugin.%s.service.%s.value", pluginName, serviceName), "test")
+			setTestValue: func(pluginName, serviceName string) string {
+				return "value: test"
 			},
 			getKey: func(pluginName, serviceName string) string {
 				return fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
@@ -345,24 +359,31 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup mock file system with empty config file
-			fs := newMockFS(map[string][]byte{
-				"/tmp/core.yaml": []byte{},
-			})
-
-			// Create memory source for testing
-			memSource := source.NewMemoryConfigSource(nil)
-
-			// Create manager with memory source
-			m := newTestManager(t, fs, func(m *ManagerDefault) {
-				m.Manager.RegisterSource(memSource)
-			})
+			// Create manager with real filesystem
+			m, err := NewManager(&cli.Command{}, WithConfigPaths([]string{tempDir}))
+			require.NoError(t, err)
 
 			// Create test config
 			config := tt.newConfig()
 
+			// Create config file with test values before Configure calls
+			configFile := ""
+			switch tt.configType {
+			case "protocol":
+				configFile = filepath.Join(tempDir, ProtoDir, tt.pluginName+CONFIG_EXTENSION)
+			case "api":
+				configFile = filepath.Join(tempDir, APIDir, tt.pluginName+CONFIG_EXTENSION)
+			case "service":
+				configFile = filepath.Join(tempDir, ServiceDir, tt.pluginName+"_"+tt.serviceName+CONFIG_EXTENSION)
+			}
+
+			// Write test config
+			err = os.MkdirAll(filepath.Dir(configFile), 0755)
+			require.NoError(t, err)
+			err = os.WriteFile(configFile, []byte(tt.setTestValue(tt.pluginName, tt.serviceName)), 0644)
+			require.NoError(t, err)
+
 			// Configure the component
-			var err error
 			switch tt.configType {
 			case "protocol":
 				err = m.ConfigureProtocol(tt.pluginName, config.(ProtocolConfig))
@@ -377,9 +398,6 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			err = m.Init()
 			require.NoError(t, err)
 
-			// Set test values
-			tt.setTestValue(memSource, tt.pluginName, tt.serviceName)
-
 			// Verify registration
 			var key string
 			if tt.configType == "service" {
@@ -390,19 +408,6 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			registeredStructs := m.Manager.GetRegisteredStructs()
 			_, ok := registeredStructs[key]
 			assert.True(t, ok, "%s config struct should be registered", tt.configType)
-
-			// Verify namespace registration
-			var expectedFilePath string
-			switch tt.configType {
-			case "protocol":
-				expectedFilePath = filepath.Join(m.configDir, ProtoDir, tt.pluginName+CONFIG_EXTENSION)
-			case "api":
-				expectedFilePath = filepath.Join(m.configDir, APIDir, tt.pluginName+CONFIG_EXTENSION)
-			case "service":
-				expectedFilePath = filepath.Join(m.configDir, ServiceDir, tt.pluginName+"_"+tt.serviceName+CONFIG_EXTENSION)
-			}
-			_, fileExists := fs.Files[expectedFilePath]
-			assert.False(t, fileExists, "File source should be created")
 
 			// Verify config was set
 			var val interface{}
@@ -424,9 +429,8 @@ func TestManagerDefault_ConfigureAndGet(t *testing.T) {
 			require.NotNil(t, val)
 			assert.Equal(t, "test", reflect.ValueOf(val).FieldByName("Value").String())
 
-			// Test retrieval - pass appropriate name based on config type
-			var retrieved interface{}
-			retrieved = tt.getFunc(m, tt.pluginName)
+			// Test retrieval
+			retrieved := tt.getFunc(m, tt.pluginName)
 			assert.Equal(t, config, retrieved, "%s should be retrieved correctly", strings.ToUpper(tt.configType))
 		})
 	}
@@ -504,30 +508,55 @@ func createTempFile(t *testing.T, dir, content string) string {
 	return tmpFile.Name()
 }
 
-// Helper to create a test ManagerDefault instance
-func newTestManager(t *testing.T, fs fileSystem, opts ...ManagerOption) *ManagerDefault {
-	// Ensure fs is not nil
-	if fs == nil {
-		fs = newMockFS(map[string][]byte{})
-	}
+type testHelper struct {
+	t      *testing.T
+	fs     *MockFileSystem
+	cmd    *cli.Command
+	logger *zap.Logger
+}
 
-	// Start with basic options
+func newTestHelper(t *testing.T) *testHelper {
+	return &testHelper{
+		t:      t,
+		fs:     newMockFS(nil),
+		cmd:    &cli.Command{},
+		logger: zap.NewNop(),
+	}
+}
+
+func (h *testHelper) newManager(opts ...ManagerOption) *ManagerDefault {
 	baseOpts := []ManagerOption{
-		withFileSystem(fs),
-		WithLogger(zap.NewNop()),
+		withFileSystem(h.fs),
+		WithLogger(h.logger),
 	}
-
-	// Add any additional options
 	baseOpts = append(baseOpts, opts...)
 
-	m, err := NewManager(&cli.Command{}, baseOpts...)
-	require.NoError(t, err)
+	m, err := NewManager(h.cmd, baseOpts...)
+	require.NoError(h.t, err)
+	return m
+}
+
+func (h *testHelper) newTestManager(configFile string, opts ...ManagerOption) *ManagerDefault {
+	// Create a manager with the config file path explicitly set
+	m := h.newManager(append(opts, WithConfigPaths([]string{filepath.Dir(configFile)}))...)
 
 	return m
 }
 
-// Helper to create a mock file system with initial state
+func (h *testHelper) withMockFS(files map[string][]byte) *testHelper {
+	h.fs = newMockFS(files)
+	return h
+}
+
+func (h *testHelper) withLogger(logger *zap.Logger) *testHelper {
+	h.logger = logger
+	return h
+}
+
 func newMockFS(files map[string][]byte) *MockFileSystem {
+	if files == nil {
+		files = make(map[string][]byte)
+	}
 	return &MockFileSystem{
 		Files: files,
 		Dirs:  make(map[string]bool),
@@ -554,6 +583,7 @@ func TestDatabaseConfigValidation(t *testing.T) {
 		name          string
 		config        DatabaseConfig
 		expectedError string
+		errorContains []string
 		expectedPath  string
 	}{
 		{
@@ -561,7 +591,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 			config: DatabaseConfig{
 				Type: "sqlite",
 			},
-			expectedError: "core.db.file is required for sqlite",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.File:", // Check that File field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "MySQL - Missing Host",
@@ -572,7 +606,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				Password: "password",
 				Name:     "db",
 			},
-			expectedError: "core.db.host is required for mysql",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.Host:", // Check that Host field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "MySQL - Invalid Port",
@@ -584,7 +622,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				Password: "password",
 				Name:     "db",
 			},
-			expectedError: "core.db.port must be greater than 0",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.Port:", // Check that Port field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "MySQL - Missing Username",
@@ -595,7 +637,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				Password: "password",
 				Name:     "db",
 			},
-			expectedError: "core.db.username is required for mysql",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.Username:", // Check that Username field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "MySQL - Missing Password",
@@ -606,7 +652,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				Username: "user",
 				Name:     "db",
 			},
-			expectedError: "core.db.password is required for mysql",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.Password:", // Check that Password field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "MySQL - Missing Name",
@@ -617,8 +667,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				Username: "user",
 				Password: "password",
 			},
-			expectedError: "core.db.name is required for mysql",
-			expectedPath:  "db.Name",
+			expectedError: "validation failed for struct db: configuration validation failed for db:",
+			errorContains: []string{
+				"db.Name:", // Check that Name field is mentioned
+				"db: struct is invalid",
+			},
 		},
 		{
 			name: "Valid SQLite Config",
@@ -672,6 +725,11 @@ func TestDatabaseConfigValidation(t *testing.T) {
 				// The error message includes the full validation path
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.expectedError)
+				if tc.errorContains != nil {
+					for _, s := range tc.errorContains {
+						assert.Contains(t, err.Error(), s)
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}

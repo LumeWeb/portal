@@ -33,10 +33,14 @@ const (
 
 var (
 	// DefaultConfigPaths defines the default search paths for configuration files
-	DefaultConfigPaths = []string{
+	DefaultConfigPaths = getDefaultConfigPaths()
+)
+
+func getDefaultConfigPaths() []string {
+	return []string{
 		"/etc/lumeweb/portal",
-		"$HOME/.lumeweb/portal",
+		"$HOME/.lumeweb/portal", 
 		"./portal.yaml",
 		"./",
 	}
-)
+}

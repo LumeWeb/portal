@@ -597,6 +597,39 @@ func (_c *MockManager_Delim_Call) RunAndReturn(run func() string) *MockManager_D
 	return _c
 }
 
+// DisableValidation provides a mock function for the type MockManager
+func (_mock *MockManager) DisableValidation() {
+	_mock.Called()
+	return
+}
+
+// MockManager_DisableValidation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisableValidation'
+type MockManager_DisableValidation_Call struct {
+	*mock.Call
+}
+
+// DisableValidation is a helper method to define mock.On call
+func (_e *MockManager_Expecter) DisableValidation() *MockManager_DisableValidation_Call {
+	return &MockManager_DisableValidation_Call{Call: _e.mock.On("DisableValidation")}
+}
+
+func (_c *MockManager_DisableValidation_Call) Run(run func()) *MockManager_DisableValidation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_DisableValidation_Call) Return() *MockManager_DisableValidation_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockManager_DisableValidation_Call) RunAndReturn(run func()) *MockManager_DisableValidation_Call {
+	_c.Run(run)
+	return _c
+}
+
 // EnableSync provides a mock function for the type MockManager
 func (_mock *MockManager) EnableSync(opts ...configmanager.ConfigOption) error {
 	// configmanager.ConfigOption
@@ -657,6 +690,39 @@ func (_c *MockManager_EnableSync_Call) Return(err error) *MockManager_EnableSync
 
 func (_c *MockManager_EnableSync_Call) RunAndReturn(run func(opts ...configmanager.ConfigOption) error) *MockManager_EnableSync_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// EnableValidation provides a mock function for the type MockManager
+func (_mock *MockManager) EnableValidation() {
+	_mock.Called()
+	return
+}
+
+// MockManager_EnableValidation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnableValidation'
+type MockManager_EnableValidation_Call struct {
+	*mock.Call
+}
+
+// EnableValidation is a helper method to define mock.On call
+func (_e *MockManager_Expecter) EnableValidation() *MockManager_EnableValidation_Call {
+	return &MockManager_EnableValidation_Call{Call: _e.mock.On("EnableValidation")}
+}
+
+func (_c *MockManager_EnableValidation_Call) Run(run func()) *MockManager_EnableValidation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_EnableValidation_Call) Return() *MockManager_EnableValidation_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockManager_EnableValidation_Call) RunAndReturn(run func()) *MockManager_EnableValidation_Call {
+	_c.Run(run)
 	return _c
 }
 
@@ -1962,6 +2028,68 @@ func (_c *MockManager_RegisterStruct_Call) RunAndReturn(run func(key string, cfg
 	return _c
 }
 
+// Root provides a mock function for the type MockManager
+func (_mock *MockManager) Root(target any) (any, error) {
+	ret := _mock.Called(target)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Root")
+	}
+
+	var r0 any
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(any) (any, error)); ok {
+		return returnFunc(target)
+	}
+	if returnFunc, ok := ret.Get(0).(func(any) any); ok {
+		r0 = returnFunc(target)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(any)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(any) error); ok {
+		r1 = returnFunc(target)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockManager_Root_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Root'
+type MockManager_Root_Call struct {
+	*mock.Call
+}
+
+// Root is a helper method to define mock.On call
+//   - target any
+func (_e *MockManager_Expecter) Root(target interface{}) *MockManager_Root_Call {
+	return &MockManager_Root_Call{Call: _e.mock.On("Root", target)}
+}
+
+func (_c *MockManager_Root_Call) Run(run func(target any)) *MockManager_Root_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 any
+		if args[0] != nil {
+			arg0 = args[0].(any)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockManager_Root_Call) Return(v any, err error) *MockManager_Root_Call {
+	_c.Call.Return(v, err)
+	return _c
+}
+
+func (_c *MockManager_Root_Call) RunAndReturn(run func(target any) (any, error)) *MockManager_Root_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Set provides a mock function for the type MockManager
 func (_mock *MockManager) Set(ctx context.Context, key string, value any) error {
 	ret := _mock.Called(ctx, key, value)
@@ -2398,6 +2526,94 @@ func (_c *MockManager_Validate_Call) Return(err error) *MockManager_Validate_Cal
 }
 
 func (_c *MockManager_Validate_Call) RunAndReturn(run func(keyPrefix ...string) error) *MockManager_Validate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ValidateRegisteredStructs provides a mock function for the type MockManager
+func (_mock *MockManager) ValidateRegisteredStructs() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ValidateRegisteredStructs")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockManager_ValidateRegisteredStructs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateRegisteredStructs'
+type MockManager_ValidateRegisteredStructs_Call struct {
+	*mock.Call
+}
+
+// ValidateRegisteredStructs is a helper method to define mock.On call
+func (_e *MockManager_Expecter) ValidateRegisteredStructs() *MockManager_ValidateRegisteredStructs_Call {
+	return &MockManager_ValidateRegisteredStructs_Call{Call: _e.mock.On("ValidateRegisteredStructs")}
+}
+
+func (_c *MockManager_ValidateRegisteredStructs_Call) Run(run func()) *MockManager_ValidateRegisteredStructs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_ValidateRegisteredStructs_Call) Return(err error) *MockManager_ValidateRegisteredStructs_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockManager_ValidateRegisteredStructs_Call) RunAndReturn(run func() error) *MockManager_ValidateRegisteredStructs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ValidationEnabled provides a mock function for the type MockManager
+func (_mock *MockManager) ValidationEnabled() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ValidationEnabled")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockManager_ValidationEnabled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidationEnabled'
+type MockManager_ValidationEnabled_Call struct {
+	*mock.Call
+}
+
+// ValidationEnabled is a helper method to define mock.On call
+func (_e *MockManager_Expecter) ValidationEnabled() *MockManager_ValidationEnabled_Call {
+	return &MockManager_ValidationEnabled_Call{Call: _e.mock.On("ValidationEnabled")}
+}
+
+func (_c *MockManager_ValidationEnabled_Call) Run(run func()) *MockManager_ValidationEnabled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_ValidationEnabled_Call) Return(b bool) *MockManager_ValidationEnabled_Call {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockManager_ValidationEnabled_Call) RunAndReturn(run func() bool) *MockManager_ValidationEnabled_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/urfave/cli/v3"
@@ -29,7 +30,8 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 	}
 
 	for _, _path := range paths {
-		expandedPath := os.ExpandEnv(path.Join(_path, CoreConfigFile))
+		// Expand environment variables in both the path and filename
+		expandedPath := path.Join(os.ExpandEnv(_path), CoreConfigFile)
 
 		_, err := options.fs.Stat(expandedPath)
 		if err == nil {
@@ -95,11 +97,27 @@ type ManagerDefault struct {
 	logger      *zap.Logger
 	configFile  string
 	configDir   string
+	configPaths []string
 	cmd         *cli.Command
 	syncEnabled bool
 	lock        sync.RWMutex
 	fs          fileSystem
 	initialized bool
+}
+
+func newManagerDefault(cm configmanager.Manager, cmd *cli.Command) *ManagerDefault {
+	return &ManagerDefault{
+		Manager: cm,
+		logger:  zap.NewNop(),
+		cmd:     cmd,
+		lock:    sync.RWMutex{},
+		fs:      osFS{}, // Default to OS filesystem
+	}
+}
+
+func (m *ManagerDefault) setConfigPaths(configFile string) {
+	m.configFile = configFile
+	m.configDir = filepath.Dir(configFile)
 }
 
 var _ Manager = (*ManagerDefault)(nil)
@@ -118,10 +136,16 @@ func WithLogger(logger *zap.Logger) ManagerOption {
 	}
 }
 
+func WithConfigPaths(paths []string) ManagerOption {
+	return func(m *ManagerDefault) {
+		m.configPaths = paths
+	}
+}
+
 func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error) {
 	// First create a basic ConfigManager with just env source
 	cm, err := configmanager.NewConfigManager(
-		[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR)},
+		[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR, source.WithEnvSourceGlobal())},
 		configmanager.WithLogger(zap.NewNop()),
 	)
 	if err != nil {
@@ -134,13 +158,7 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 	}
 
 	// Initialize ManagerDefault with basic values
-	m := &ManagerDefault{
-		Manager: cm,
-		logger:  zap.NewNop(),
-		cmd:     cmd,
-		lock:    sync.RWMutex{},
-		fs:      osFS{}, // Default to OS filesystem
-	}
+	m := newManagerDefault(cm, cmd)
 
 	// Apply options which may override defaults
 	for _, opt := range opts {
@@ -148,8 +166,18 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 	}
 
 	// Determine config file and directory
+	// Get paths - use custom paths if set, otherwise check env var, then fall back to defaults
+	var paths []string
+	if len(m.configPaths) > 0 {
+		paths = m.configPaths
+	} else if customPaths := os.Getenv(ENV_PREFIX + "CONFIG_PATHS"); customPaths != "" {
+		paths = strings.Split(customPaths, string(os.PathListSeparator))
+	} else {
+		paths = DefaultConfigPaths
+	}
+
 	configFile, err := findConfigFile(findConfigFileOptions{
-		Paths:           DefaultConfigPaths,
+		Paths:           paths,
 		CreateIfMissing: true,
 		CheckWritable:   true,
 		fs:              m.fs, // Use the configured filesystem
@@ -157,14 +185,21 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to find or create config file: %w", err)
 	}
-	configDir := filepath.Dir(configFile)
 
-	// Update ManagerDefault with final config paths
-	m.configFile = configFile
-	m.configDir = configDir
+	// Set final config paths
+	m.setConfigPaths(configFile)
+
+	fileSource := source.NewFileSource(configFile)
 
 	// Register the file source now that we know the path
-	m.Manager.RegisterSource(source.NewFileSource(configFile))
+	m.Manager.RegisterSource(fileSource)
+	m.Manager.RegisterNamespace("core", fileSource)
+
+	m.Manager.RegisterSource(source.NewDefaultConfigSource(m, source.WithDefaultSourceGlobal()))
+	err = m.Manager.RegisterStruct("", Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to register config: %w", err)
+	}
 
 	return m, nil
 }
@@ -176,7 +211,6 @@ func (m *ManagerDefault) Init() error {
 	if m.initialized {
 		return nil
 	}
-
 	// Load configuration from all sources
 	if err := m.Manager.Load(); err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
@@ -229,8 +263,8 @@ func (m *ManagerDefault) EnableSync(opts ...configmanager.ConfigOption) error {
 
 func (m *ManagerDefault) Config() *Config {
 	var cfg Config
-	if _, _, err := m.Manager.Get("core", &cfg); err != nil {
-		panic(fmt.Errorf("failed to load core config: %v", err))
+	if _, err := m.Root(&cfg); err != nil {
+		panic(fmt.Errorf("failed to load config: %v", err))
 	}
 	return &cfg
 }
@@ -249,7 +283,9 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 	}
 
 	// Register namespace for this protocol
-	m.Manager.RegisterNamespace(key, source.NewFileSource(filePath))
+	fsSource := source.NewFileSource(filePath)
+	m.Manager.RegisterNamespace(key, fsSource)
+	m.Manager.RegisterSource(fsSource)
 
 	return nil
 }
@@ -268,7 +304,9 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 	}
 
 	// Register namespace for this API
-	m.Manager.RegisterNamespace(key, source.NewFileSource(filePath))
+	fsSource := source.NewFileSource(filePath)
+	m.Manager.RegisterNamespace(key, fsSource)
+	m.Manager.RegisterSource(fsSource)
 
 	return nil
 }
@@ -287,7 +325,9 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	}
 
 	// Register namespace for this service
-	m.Manager.RegisterNamespace(key, source.NewFileSource(filePath))
+	fsSource := source.NewFileSource(filePath)
+	m.Manager.RegisterNamespace(key, fsSource)
+	m.Manager.RegisterSource(fsSource)
 
 	return nil
 }

@@ -18,10 +18,10 @@ import (
 
 const (
 	// Key format constants for configuration
-	ProtocolKeyFormat = "%s.protocol"  // Format for protocol configuration keys
-	APIKeyFormat      = "%s.api"       // Format for API configuration keys
+	ProtocolKeyFormat = "%s.protocol"   // Format for protocol configuration keys
+	APIKeyFormat      = "%s.api"        // Format for API configuration keys
 	ServiceKeyFormat  = "%s.service.%s" // Format for service configuration keys
-	CoreKeyFormat     = "core"         // Core configuration key
+	CoreKeyFormat     = "core"          // Core configuration key
 )
 
 const mapStructureTag = "config"
@@ -40,20 +40,30 @@ type MockConfigManager struct {
 func NewMockConfigManager(t *testing.T) *MockConfigManager {
 	mockManager := config.NewMockManager(t)
 
-	// Create a confmap provider for initial values (can be empty)
-	initialValues := map[string]interface{}{
-		CoreKeyFormat: map[string]interface{}{},
-	}
-
 	// Initialize ConfigManager with the confmap source
-	cm, err := configmanager.NewConfigManager(configmanager.UsingSources(source.NewMemoryConfigSource(initialValues)), configmanager.WithLogger(zap.NewNop()))
+	cm, err := configmanager.NewConfigManager(configmanager.UsingSources(source.NewMemoryConfigSource(map[string]any{
+		"core.domain":      "portal.local",
+		"core.portal_name": "portal",
+	})), configmanager.WithLogger(zap.NewNop()))
 	if err != nil {
 		panic(err) // Handle error appropriately in tests
 	}
 
-	// Register core config structs
-	if err := cm.RegisterStruct("core", config.CoreConfig{}); err != nil {
+	cm.RegisterSource(source.NewDefaultConfigSource(cm, source.WithDefaultSourceGlobal()))
+
+	// Register config struct
+	if err = cm.RegisterStruct("", config.Config{}); err != nil {
 		panic(err)
+	}
+
+	// Register core config struct
+	if err = cm.RegisterStruct(CoreKeyFormat, config.CoreConfig{}); err != nil {
+		panic(err)
+	}
+
+	err = cm.Load()
+	if err != nil {
+		panic(fmt.Sprintf("failed to load config manager: %v", err))
 	}
 
 	manager := &MockConfigManager{
@@ -63,77 +73,72 @@ func NewMockConfigManager(t *testing.T) *MockConfigManager {
 		cfg:         &config.Config{Plugin: make(map[string]config.PluginEntity)},
 	}
 
-	// Setup the basic methods to use our state tracking instead of requiring explicit expectations
-	mockManager.On("Get", mock.AnythingOfType("string"), mock.Anything).
+	mockManager.EXPECT().Get(mock.AnythingOfType("string"), mock.Anything).
 		Maybe().
 		Return(nil, nil, nil) // Return nil, nil, nil
 
-	mockManager.On("Exists", mock.AnythingOfType("string")).
+	mockManager.EXPECT().Exists(mock.AnythingOfType("string")).
 		Maybe().
 		Return(false)
 
-	mockManager.On("Set", mock.AnythingOfType("context.Context"), mock.AnythingOfType("string"), mock.Anything).
-		Maybe().
-		Return(nil).
-		Run(func(args mock.Arguments) {
-			ctx := args.Get(0).(context.Context)
-			key := args.String(1)
-			value := args.Get(2)
-			_ = manager.cm.Set(ctx, key, value) // Use cm.Set
-		})
+	mockManager.EXPECT().Set(
+		mock.MatchedBy(func(ctx interface{}) bool {
+			_, ok := ctx.(context.Context)
+			return ok
+		}),
+		mock.AnythingOfType("string"),
+		mock.Anything,
+	).Maybe().Return(nil).Run(func(args mock.Arguments) {
+		ctx := args.Get(0).(context.Context)
+		key := args.String(1)
+		value := args.Get(2)
+		_ = manager.cm.Set(ctx, key, value) // Use cm.Set
+	})
 
-	mockManager.On("All").
+	mockManager.EXPECT().All().
 		Maybe().
 		Return(manager.cm.All()) // Delegate to cm.All()
 
-	mockManager.On("Config").
+	mockManager.EXPECT().Config().
 		Maybe().
 		Return(manager.Config())
 
-	mockManager.On("SetLogger", mock.AnythingOfType("*zap.Logger")).
+	mockManager.EXPECT().SetLogger(mock.AnythingOfType("*zap.Logger")).
 		Maybe().
 		Run(func(args mock.Arguments) {
 			manager.logger = args.Get(0).(*zap.Logger)
 		})
 
-	mockManager.On("IsEditable", mock.AnythingOfType("string")).
-		Maybe().
-		Return(true)
-
-	mockManager.On("Flags", mock.AnythingOfType("string")).
-		Maybe().
-		Return([]string{})
-
 	// Setup default expectations for configuration methods
-	mockManager.On("ConfigureAPI", mock.AnythingOfType("string"), mock.Anything).
+	mockManager.EXPECT().ConfigureAPI(mock.AnythingOfType("string"), mock.Anything).
 		Maybe().
 		Return(nil)
 
-	mockManager.On("ConfigureProtocol", mock.AnythingOfType("string"), mock.Anything).
+	mockManager.EXPECT().ConfigureProtocol(mock.AnythingOfType("string"), mock.Anything).
 		Maybe().
 		Return(nil)
 
-	mockManager.On("ConfigureService", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.Anything).
+	mockManager.EXPECT().ConfigureService(mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.Anything).
 		Maybe().
 		Return(nil)
 
-	mockManager.On("GetString", mock.AnythingOfType("string")).
+	mockManager.EXPECT().GetString(mock.AnythingOfType("string")).
 		Maybe().
 		Return("", nil)
 
-	mockManager.On("GetInt", mock.AnythingOfType("string")).
+	mockManager.EXPECT().GetInt(mock.AnythingOfType("string")).
 		Maybe().
 		Return(int64(0), nil)
 
-	mockManager.On("GetBool", mock.AnythingOfType("string")).
+	mockManager.EXPECT().GetBool(mock.AnythingOfType("string")).
 		Maybe().
 		Return(false, nil)
 
-	mockManager.On("GetDuration", mock.AnythingOfType("string")).
+	mockManager.EXPECT().GetDuration(mock.AnythingOfType("string")).
 		Maybe().
 		Return(time.Duration(0), nil)
 
-	mockManager.On("GetRegisteredStructs").
+	mockManager.EXPECT().GetRegisteredStructs().
 		Maybe().
 		Return(map[string]reflect.Type{})
 
@@ -169,7 +174,7 @@ func (m *MockConfigManager) SetLogger(logger *zap.Logger) {
 // Config returns the configuration
 func (m *MockConfigManager) Config() *config.Config {
 	var cfg config.Config
-	if _, _, err := m.cm.Get(CoreKeyFormat, &cfg); err != nil {
+	if _, err := m.cm.Root(&cfg); err != nil {
 		panic(err)
 	}
 	return &cfg
@@ -228,7 +233,7 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 func (m *MockConfigManager) GetString(key string) (string, error) {
 	// Set up an expectation for this call if MockManager is initialized
 	if m.MockManager != nil {
-		m.MockManager.On("GetString", key).Return("", nil).Maybe()
+		m.MockManager.EXPECT().GetString(key).Return("", nil).Maybe()
 	}
 
 	_, val, err := m.cm.Get(key)
@@ -249,7 +254,7 @@ func (m *MockConfigManager) GetString(key string) (string, error) {
 func (m *MockConfigManager) GetInt(key string) (int64, error) {
 	// Set up an expectation for this call if MockManager is initialized
 	if m.MockManager != nil {
-		m.MockManager.On("GetInt", key).Return(int64(0), nil).Maybe()
+		m.MockManager.EXPECT().GetInt(key).Return(int64(0), nil).Maybe()
 	}
 
 	_, val, err := m.cm.Get(key)
@@ -282,7 +287,7 @@ func (m *MockConfigManager) GetInt(key string) (int64, error) {
 func (m *MockConfigManager) GetBool(key string) (bool, error) {
 	// Set up an expectation for this call if MockManager is initialized
 	if m.MockManager != nil {
-		m.MockManager.On("GetBool", key).Return(false, nil).Maybe()
+		m.MockManager.EXPECT().GetBool(key).Return(false, nil).Maybe()
 	}
 
 	_, val, err := m.cm.Get(key)
@@ -303,7 +308,7 @@ func (m *MockConfigManager) GetBool(key string) (bool, error) {
 func (m *MockConfigManager) GetDuration(key string) (time.Duration, error) {
 	// Set up an expectation for this call if MockManager is initialized
 	if m.MockManager != nil {
-		m.MockManager.On("GetDuration", key).Return(time.Duration(0), nil).Maybe()
+		m.MockManager.EXPECT().GetDuration(key).Return(time.Duration(0), nil).Maybe()
 	}
 
 	_, val, err := m.cm.Get(key)
@@ -324,7 +329,7 @@ func (m *MockConfigManager) GetDuration(key string) (time.Duration, error) {
 func (m *MockConfigManager) GetRegisteredStructs() map[string]reflect.Type {
 	// Set up an expectation for this call if MockManager is initialized
 	if m.MockManager != nil {
-		m.MockManager.On("GetRegisteredStructs").Return(m.cm.GetRegisteredStructs()).Maybe()
+		m.MockManager.EXPECT().GetRegisteredStructs().Return(m.cm.GetRegisteredStructs()).Maybe()
 	}
 	return m.cm.GetRegisteredStructs()
 }
