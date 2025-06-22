@@ -24,9 +24,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/google/uuid v1.6.0
-	github.com/gookit/event v1.1.2
 	github.com/invopop/jsonschema v0.13.0
-	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/v2 v2.2.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/multiformats/go-multihash v0.2.3
@@ -43,8 +41,8 @@ require (
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.1
-	go.lumeweb.com/portal-middleware v0.2.8-0.20250620155544-266a2cbed262
-	go.lumeweb.com/portal-router v0.6.1-0.20250620155241-6c28c4a0cdfd
+	go.lumeweb.com/portal-middleware v0.2.8
+	go.lumeweb.com/portal-router v0.6.1
 	go.sia.tech/core v0.10.4
 	go.sia.tech/coreutils v0.12.1
 	go.sia.tech/renterd v1.1.1
