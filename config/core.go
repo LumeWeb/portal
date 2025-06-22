@@ -36,11 +36,10 @@ func (c CoreConfig) Schema() z.ZogSchema {
 			Required(z.Message("core.domain is required")),
 		"PortalName": z.String().
 			Required(z.Message("core.portal_name is required")),
-		"Port": z.Int().
+		"Port": ZogUInt().
 			Required(z.Message("core.port is required")).
 			GT(0, z.Message("core.port must be greater than 0")),
-		"PostUploadLimit": z.Int64().
-			Default(units.MiB * 100),
+		"PostUploadLimit": ZogUInt64(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*CoreConfig)
 		if !ok {
@@ -62,7 +61,7 @@ func (c CoreConfig) Defaults() map[string]any {
 		"Identity":        wallet.NewSeedPhrase(),
 		"Domain":          "",
 		"PortalName":      "",
-		"Port":            0,
+		"Port":            8080,
 	}
 }
 

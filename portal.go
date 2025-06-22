@@ -36,9 +36,9 @@ type PortalImpl struct {
 
 func (p *PortalImpl) Init() error {
 	ctx := p.Context()
-
 	ctx.Logger().Info("Initializing portal")
 
+	// First phase: Register components and gather context options
 	dbInst, ctxOpts := db.NewDatabase(ctx)
 
 	opts, err := p.initModels(ctx, dbInst)
@@ -71,28 +71,46 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
+	// Create new context with all gathered options
+	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+	if err != nil {
+		ctx.Logger().Error("Error creating context", zap.Error(err))
+		return err
+	}
+	p.SetContext(ctx)
+
+	// Second phase: Configure components
+	if err := p.configureServices(ctx); err != nil {
+		return fmt.Errorf("failed to configure services: %w", err)
+	}
+
+	if err := p.configureProtocols(ctx); err != nil {
+		return fmt.Errorf("failed to configure protocols: %w", err)
+	}
+
+	if err := p.configureAPIs(ctx); err != nil {
+		return fmt.Errorf("failed to configure APIs: %w", err)
+	}
+
+	// Third phase: Initialize components
 	opts, err = p.initProtocols(ctx)
 	if err != nil {
 		return err
 	}
-	ctxOpts = append(ctxOpts, opts...)
 
 	opts, err = p.initAPIs(ctx)
 	if err != nil {
 		return err
 	}
-	ctxOpts = append(ctxOpts, opts...)
 
 	opts = p.initCron()
-	ctxOpts = append(ctxOpts, opts...)
-
-	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
-
+	
+	// Apply any additional context options from initialization
+	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), opts...)
 	if err != nil {
-		ctx.Logger().Error("Error creating context", zap.Error(err))
+		ctx.Logger().Error("Error updating context", zap.Error(err))
 		return err
 	}
-
 	p.SetContext(ctx)
 
 	return nil
@@ -166,36 +184,25 @@ func (p *PortalImpl) Serve() error {
 	return httpSvc.(core.HTTPService).Serve()
 }
 
-func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) configureServices(ctx core.Context) error {
 	svcs := core.GetServices()
 
 	for _, svcInfo := range svcs {
-		svc, opts, err := svcInfo.Factory()
-		if err != nil {
-			return nil, err
-		} // Simplified error handling
-		if opts != nil {
-			ctxOpts = append(ctxOpts, opts...)
-		}
-		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
-
 		if !core.IsCoreService(svcInfo.ID) {
-			if configurableSvc, ok := svc.(core.Configurable); ok {
+			if configurableSvc, ok := ctx.Service(svcInfo.ID).(core.Configurable); ok {
 				cfgResult, err := configurableSvc.Config()
 				if err != nil {
-					return nil, err
+					return err
 				}
 				if cfgResult == nil {
 					ctx.Logger().Error("Configurable service returned nil config", zap.String("service", svcInfo.ID))
-					return nil, config.ErrInvalidServiceConfig
+					return config.ErrInvalidServiceConfig
 				}
 
-				// --- Use the new helper to get a compliant object ---
 				compliantCfg, isCompliant := pkgReflect.EnsureCompliantType(cfgResult, serviceConfigType)
-
 				if !isCompliant {
 					ctx.Logger().Error(config.ErrInvalidServiceConfig.Error()+" (type does not implement interface)", zap.String("service", svcInfo.ID), zap.Any("config_type", reflect.TypeOf(cfgResult)))
-					return nil, config.ErrInvalidServiceConfig
+					return config.ErrInvalidServiceConfig
 				}
 
 				if reflect.ValueOf(cfgResult).Kind() != reflect.Pointer && reflect.ValueOf(compliantCfg).Kind() == reflect.Pointer && !reflect.ValueOf(cfgResult).CanAddr() {
@@ -204,24 +211,51 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 
 				svcConfig, ok := compliantCfg.(config.ServiceConfig)
 				if !ok {
-					// Should be impossible if EnsureCompliantType returned true, but check defensively.
 					ctx.Logger().Error("Internal error: compliant config object could not be cast to ServiceConfig", zap.String("service", svcInfo.ID), zap.Any("config_type", reflect.TypeOf(compliantCfg)))
-					return nil, config.ErrInvalidServiceConfig
+					return config.ErrInvalidServiceConfig
 				}
 
 				plugin := core.GetPluginForService(svcInfo.ID)
 				if plugin == "" {
-					return nil, config.ErrInvalidServiceConfig
+					return config.ErrInvalidServiceConfig
 				}
 
 				if err := ctx.Config().ConfigureService(plugin, svcInfo.ID, svcConfig); err != nil {
-					return nil, err
+					return fmt.Errorf("failed to configure service %q for plugin %q: %w", svcInfo.ID, plugin, err)
 				}
 			}
 		}
 	}
 
+	return nil
+}
+
+func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+	svcs := core.GetServices()
+
+	for _, svcInfo := range svcs {
+		svc, opts, err := svcInfo.Factory()
+		if err != nil {
+			return nil, err
+		}
+		if opts != nil {
+			ctxOpts = append(ctxOpts, opts...)
+		}
+		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
+	}
+
 	return ctxOpts, nil
+}
+
+func (p *PortalImpl) configureProtocols(ctx core.Context) error {
+	for name, proto := range core.GetProtocols() {
+		err := ctx.Config().ConfigureProtocol(name, proto.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", proto.Name()), zap.Error(err))
+			return fmt.Errorf("failed to configure protocol %q: %w", proto.Name(), err)
+		}
+	}
+	return nil
 }
 
 func (p *PortalImpl) registerProtocols(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
@@ -229,23 +263,33 @@ func (p *PortalImpl) registerProtocols(ctx core.Context) (ctxOpts []core.Context
 
 	for _, plugin := range plugins {
 		if core.PluginHasProtocol(plugin) {
-			_proto, opts, err := plugin.Protocol()
+			proto, opts, err := plugin.Protocol()
 			if err != nil {
 				ctx.Logger().Error("Error building protocol", zap.String("plugin", plugin.ID), zap.Error(err))
 				return nil, err
 			}
 
-			if _proto == nil {
+			if proto == nil {
 				continue
 			}
 
 			ctxOpts = append(ctxOpts, opts...)
-
-			core.RegisterProtocol(plugin.ID, _proto)
+			core.RegisterProtocol(plugin.ID, proto)
 		}
 	}
 
 	return ctxOpts, nil
+}
+
+func (p *PortalImpl) configureAPIs(ctx core.Context) error {
+	for name, api := range core.GetAPIs() {
+		err := ctx.Config().ConfigureAPI(name, api.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
+			return fmt.Errorf("failed to configure API %q: %w", api.Name(), err)
+		}
+	}
+	return nil
 }
 
 func (p *PortalImpl) registerAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
@@ -362,29 +406,6 @@ func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOp
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) configureProtocols(ctx core.Context) error {
-	for name, _proto := range core.GetProtocols() {
-		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
-		if err != nil {
-			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (p *PortalImpl) configureAPIs(ctx core.Context) error {
-	for name, api := range core.GetAPIs() {
-		err := ctx.Config().ConfigureAPI(name, api.Config())
-		if err != nil {
-			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
-			return err
-		}
-	}
-
-	return nil
-}
 
 func (p *PortalImpl) initCron() (ctxOpts []core.ContextBuilderOption) {
 	for _, plugin := range core.GetPlugins() {

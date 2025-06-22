@@ -1,4 +1,4 @@
--- migrate:up
+-- +goose Up
 
 -- 1. Independent tables (no foreign key dependencies)
 CREATE TABLE `access_rules`
@@ -277,7 +277,7 @@ CREATE UNIQUE INDEX `idx_tus_requests_tus_upload_id` ON `tus_requests` (`tus_upl
 CREATE UNIQUE INDEX `idx_tus_requests_request_id` ON `tus_requests` (`request_id`);
 CREATE INDEX `idx_tus_requests_deleted_at` ON `tus_requests` (`deleted_at`);
 
--- migrate:down
+-- +goose Down
 DROP TABLE IF EXISTS `tus_requests`;
 DROP TABLE IF EXISTS `public_keys`;
 DROP TABLE IF EXISTS `pins`;

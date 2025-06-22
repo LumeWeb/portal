@@ -4,12 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/amacneil/dbmate/v2/pkg/dbmate"
-	_ "github.com/amacneil/dbmate/v2/pkg/dbmate"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/mysql"
-	_ "github.com/amacneil/dbmate/v2/pkg/driver/sqlite"
+	"github.com/pressly/goose/v3"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.uber.org/zap"
@@ -25,9 +21,9 @@ const (
 )
 
 type MigrationManager struct {
-	ctx     core.Context
-	etcdMgr *config.EtcdManager
-	logger  *core.Logger
+	ctx core.Context
+	//etcdMgr *config.EtcdManager
+	logger *core.Logger
 }
 
 func NewMigrationManager(ctx core.Context) (*MigrationManager, error) {
@@ -38,22 +34,16 @@ func NewMigrationManager(ctx core.Context) (*MigrationManager, error) {
 		}, nil
 	}
 
-	etcdManager, err := ctx.Config().Config().Core.Clustered.Etcd.GetManager(ctx.Logger().Logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get etcd manager: %w", err)
-	}
-
 	return &MigrationManager{
-		ctx:     ctx,
-		etcdMgr: etcdManager,
-		logger:  ctx.Logger(),
+		ctx:    ctx,
+		logger: ctx.Logger(),
 	}, nil
 }
 
 func (m *MigrationManager) RunMigrations(db *gorm.DB) error {
 	// Only attempt migrations in cluster mode
 	if !m.ctx.Config().Config().Core.ClusterEnabled() {
-		return m.executeMigrations(db)
+		return m.ExecuteMigrations(db)
 	}
 
 	// Try to acquire migration lock
@@ -67,47 +57,16 @@ func (m *MigrationManager) RunMigrations(db *gorm.DB) error {
 	}
 	defer lease.Close()
 
-	return m.executeMigrations(db)
+	return m.ExecuteMigrations(db)
 }
 
 func (m *MigrationManager) acquireMigrationLock() (*etcdLease, error) {
-	// Create lease
-	client := m.etcdMgr.Client()
-	resp, err := client.Grant(context.Background(), int64(migrationLockTTL.Seconds()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create lease: %w", err)
-	}
-
-	// Try to acquire lock using lease
-	txn := m.etcdMgr.Client().Txn(context.Background())
-	txn = txn.If(clientv3.Compare(clientv3.CreateRevision(migrationLockKey), "=", 0))
-	txn = txn.Then(clientv3.OpPut(migrationLockKey, "", clientv3.WithLease(resp.ID)))
-	txn = txn.Else(clientv3.OpGet(migrationLockKey))
-
-	txnResp, err := txn.Commit()
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute transaction: %w", err)
-	}
-
-	if !txnResp.Succeeded {
-		return nil, ErrLockAcquireFailed
-	}
-
-	// Create lease keeper
-	lease := &etcdLease{
-		client: m.etcdMgr.Client(),
-		id:     resp.ID,
-		logger: m.logger,
-		done:   make(chan struct{}),
-	}
-
-	// Start lease keepalive
-	go lease.keepalive()
-
-	return lease, nil
+	m.logger.Warn("ETCD distributed lock support is not yet implemented - TODO: Add proper distributed lock support for clustered migrations")
+	// TODO: Implement proper distributed lock support using ETCD for clustered migrations
+	return nil, nil
 }
 
-func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
+func (m *MigrationManager) ExecuteMigrations(_db *gorm.DB) error {
 	m.logger.Info("Starting database migrations")
 
 	cfg := m.ctx.Config()
@@ -130,20 +89,25 @@ func (m *MigrationManager) executeMigrations(_ *gorm.DB) error {
 		compositFs.Mount(fmt.Sprintf("%d_%s", idx+1, plugin), migrations)
 	}
 
-	// Get dbmate URL using centralized helper
-	dbUrl, err := db.GetDbMateUrl(cfg)
+	// Flatten the composite filesystem for goose
+	flatFS, err := compositFs.Flatten()
 	if err != nil {
-		return fmt.Errorf("failed to get dbmate URL: %w", err)
+		return fmt.Errorf("failed to flatten migrations filesystem: %w", err)
+	}
+	goose.SetBaseFS(flatFS)
+	err = goose.SetDialect(dbType)
+	if err != nil {
+		return fmt.Errorf("failed to select goose db dialect: %w", err)
 	}
 
-	// Configure and run migrations
-	dbMateMigration := dbmate.New(dbUrl)
-	dbMateMigration.FS = compositFs
-	dbMateMigration.MigrationsDir = compositFs.Mounts()
-	dbMateMigration.AutoDumpSchema = false
+	sqlDb, err := _db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get db: %w", err)
+	}
 
-	if err := dbMateMigration.CreateAndMigrate(); err != nil {
-		return fmt.Errorf("migration failed: %w", err)
+	err = goose.RunContext(context.Background(), "up", sqlDb, ".")
+	if err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	m.logger.Info("Database migrations completed successfully")
