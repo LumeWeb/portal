@@ -66,15 +66,34 @@ func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) 
 }
 
 func (u UserServiceDefault) RegisterTasks(crn core.CronService) error {
-	crn.RegisterTask(user.CronTaskProcessAccountDeletionRequestsName, core.CronTaskFuncHandler(user.CronTaskProcessAccountDeletionRequests), core.CronTaskDefinitionDaily, core.CronTaskNoArgsFactory, true)
+	attime, err := time.Parse(time.Kitchen, "03:00AM")
+	if err != nil {
+		return fmt.Errorf("failed to parse time: %w", err)
+	}
+
+	// Register the job type with the cron service
+	err = crn.RegisterJobType(
+		user.ProcessAccountDeletionRequestsJobType,
+		func() (core.CronJob, error) {
+			return user.NewProcessAccountDeletionRequestsJob(), nil
+		},
+		&core.CronScheduleDefinition{
+			Type:   core.CronScheduleTypeDaily,
+			AtTime: attime,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register account deletion job: %w", err)
+	}
 
 	return nil
 }
 
 func (u UserServiceDefault) ScheduleJobs(cron core.CronService) error {
-	err := cron.CreateJobIfNotExists(user.CronTaskProcessAccountDeletionRequestsName, nil)
+	// Create the job if it doesn't exist
+	_, err := cron.JobFactory().CreateJob(user.ProcessAccountDeletionRequestsJobType)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create account deletion job: %w", err)
 	}
 
 	return nil

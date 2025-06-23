@@ -9,11 +9,26 @@ import (
 type CronJobState string
 
 const (
-	CronJobStateQueued     CronJobState = "queued"
-	CronJobStateProcessing CronJobState = "processing"
-	CronJobStateCompleted  CronJobState = "completed"
-	CronJobStateFailed     CronJobState = "failed"
+	CronJobStateQueued    CronJobState = "queued"
+	CronJobStateRunning   CronJobState = "running"
+	CronJobStateCompleted CronJobState = "completed"
+	CronJobStateFailed    CronJobState = "failed"
 )
+
+var cronJobStateNames = map[CronJobState]string{
+	CronJobStateQueued:    "Queued",
+	CronJobStateRunning:   "Running",
+	CronJobStateCompleted: "Completed",
+	CronJobStateFailed:    "Failed",
+}
+
+// DisplayName returns the human-readable name for a cron job state
+func (s CronJobState) DisplayName() string {
+	if name, ok := cronJobStateNames[s]; ok {
+		return name
+	}
+	return string(s)
+}
 
 func init() {
 	registerModel(&CronJob{})
@@ -21,17 +36,20 @@ func init() {
 
 type CronJob struct {
 	gorm.Model
-	UUID          types.BinaryUUID `gorm:"uniqueIndex"`
-	Function      string
+	UUID          types.BinaryUUID
+	Origin        string
+	SourceID      string
+	JobType       string
 	Args          string
-	LastRun       *time.Time
-	Failures      uint64
+	SchedDef      string
+	ScheduleType  string
 	State         CronJobState
+	LastRun       *time.Time
 	LastHeartbeat *time.Time
-	Version       uint64
+	Failures      uint
+	Version       int64
 }
 
-func (t *CronJob) BeforeCreate(_ *gorm.DB) error {
-	t.UUID = types.NewBinUUID()
-	return nil
+func (c *CronJob) TableName() string {
+	return "cron_jobs"
 }

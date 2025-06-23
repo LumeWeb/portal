@@ -23,7 +23,14 @@ packages:
       ContentScannerService: {}
       Context: {}
       CronService: {}
+      CronJob: {}
       Cronable: {}
+      CronScheduleRegistry: {}
+      CronJobStateMachineRegistry: {}
+      CronJobFactory: {}
+      CronJobStateMachine: {}
+      CronCoordinator: {}
+      CronMonitor: {}
       HTTPService: {}
       HashFactory: {}
       HashMappingService: {}

@@ -104,7 +104,7 @@ func (p *PortalImpl) Init() error {
 	}
 
 	opts = p.initCron()
-	
+
 	// Apply any additional context options from initialization
 	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), opts...)
 	if err != nil {
@@ -406,9 +406,8 @@ func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOp
 	return ctxOpts, nil
 }
 
-
 func (p *PortalImpl) initCron() (ctxOpts []core.ContextBuilderOption) {
-	for _, plugin := range core.GetPlugins() {
+	/*	for _, plugin := range core.GetPlugins() {
 		if core.PluginHasCron(plugin) {
 			cronFactory := plugin.Cron()
 			if cronFactory == nil {
@@ -417,7 +416,7 @@ func (p *PortalImpl) initCron() (ctxOpts []core.ContextBuilderOption) {
 
 			ctxOpts = append(ctxOpts, core.ContextWithCron(cronFactory))
 		}
-	}
+	}*/
 
 	return ctxOpts
 }

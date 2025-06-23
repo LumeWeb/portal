@@ -1,186 +1,135 @@
 package service
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/adjust/rmq/v5"
-	redislock "github.com/go-co-op/gocron-redis-lock/v2"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
-	"go.lumeweb.com/portal/config"
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.lumeweb.com/portal/service/internal/cron"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"math"
-	"math/rand"
-	"runtime/debug"
-	"slices"
 	"strings"
-	"sync"
 	"time"
 )
 
 var _ core.CronService = (*CronServiceDefault)(nil)
-var _ gocron.Logger = (*cronLogger)(nil)
-
-const failureBackoffBaseDelay = 1 * time.Millisecond
-const failureBackoffMaxDelay = 1 * time.Hour
-const queuePollDuration = 100 * time.Millisecond
-
-const redisQueueNamespace = "cron"
-const consumerTag = "cron-consumer"
-const consumerPrefetch = 10
-const deadJobCheckInterval = 1 * time.Minute
-const heartbeatInterval = 5 * time.Minute
-const heartbeatTimeout = 10 * time.Minute
-const oneOffSuffix = "_oneoff_"
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.CRON_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewCronService()
-		},
+		ID:      core.CRON_SERVICE,
+		Factory: NewCronService,
+		Depends: []string{},
 	})
 }
 
 type CronServiceDefault struct {
 	ctx              core.Context
-	config           config.Manager
 	db               *gorm.DB
+	coordinator      core.CronCoordinator
+	jobFactory       core.CronJobFactory
+	scheduleRegistry core.CronScheduleRegistry
 	logger           *core.Logger
+	stateMachine     core.CronJobStateMachine
+	stopHeartbeat    chan struct{}
+	heartbeatTicker  *time.Ticker
+	monitor          core.CronMonitor
 	entities         []core.Cronable
-	scheduler        gocron.Scheduler
-	tasks            sync.Map
-	taskArgs         sync.Map
-	taskDefs         sync.Map
-	taskRecurring    sync.Map
-	taskDefsOriginal sync.Map
-	queueMu          sync.Mutex
-	queues           map[string]rmq.Queue
-	redisQueueConn   rmq.Connection
-	cronRunningMap   sync.Map
-	waitForStartMap  sync.Map
-	booting          bool
-	jobsAddedBoot    []uuid.UUID
 }
 
-type cancelStruct struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+func (c *CronServiceDefault) initializeComponents(ctx core.Context) error {
+	c.ctx = ctx
+	c.db = ctx.DB()
+	c.logger = ctx.ServiceLogger(c)
+
+	var stateMachineRegistry core.CronJobStateMachineRegistry
+	var err error
+
+	if stateMachineRegistry, err = c.initializeStateMachine(ctx); err != nil {
+		return err
+	}
+
+	if err = c.initializeFactories(); err != nil {
+		return err
+	}
+
+	if err = c.initializeCoordinator(ctx, stateMachineRegistry); err != nil {
+		return err
+	}
+
+	c.monitor = cron.NewDefaultCronMonitor(ctx, c)
+
+	if err = c.loadAndValidateJobs(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-type taskDefWrapper struct {
-	originalDef core.CronTaskDefArgsFactoryFunction
-	isOneOff    bool
+func (c *CronServiceDefault) initializeStateMachine(ctx core.Context) (core.CronJobStateMachineRegistry, error) {
+	stateMachineRegistry := cron.NewStateMachineRegistry(ctx)
+	c.stateMachine = cron.NewCronJobStateMachine(ctx, stateMachineRegistry)
+	return stateMachineRegistry, nil
+}
+
+func (c *CronServiceDefault) initializeFactories() error {
+	c.scheduleRegistry = cron.NewScheduleRegistry()
+	c.jobFactory = cron.NewJobFactory(c.scheduleRegistry)
+	return nil
+}
+
+func (c *CronServiceDefault) initializeCoordinator(ctx core.Context, registry core.CronJobStateMachineRegistry) error {
+	coordinator, err := cron.NewCoordinatorFromContext(ctx, c, registry)
+	if err != nil {
+		return fmt.Errorf("failed to create coordinator: %w", err)
+	}
+	c.coordinator = coordinator
+	return nil
+}
+
+func (c *CronServiceDefault) loadAndValidateJobs() error {
+	if err := c.loadJobsFromDB(); err != nil {
+		return fmt.Errorf("failed to load jobs from database: %w", err)
+	}
+
+	if err := c.registerMaintenanceJobs(); err != nil {
+		return fmt.Errorf("failed to register maintenance jobs: %w", err)
+	}
+
+	if cleaned, err := c.monitor.CleanupOrphanedJobs(); err != nil {
+		return fmt.Errorf("failed to validate existing jobs: %w", err)
+	} else if cleaned > 0 {
+		c.logger.Info("Cleaned up orphaned jobs", zap.Int("count", cleaned))
+	}
+
+	return nil
+}
+
+func NewCronService() (core.Service, []core.ContextBuilderOption, error) {
+	cronService := &CronServiceDefault{}
+
+	opts := core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			return cronService.initializeComponents(ctx)
+		}),
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			return cronService.Start()
+		}),
+		core.ContextWithExitFunc(func(ctx core.Context) error {
+			return cronService.Stop()
+		}),
+	)
+
+	return cronService, opts, nil
 }
 
 func (c *CronServiceDefault) ID() string {
 	return core.CRON_SERVICE
 }
 
-func NewCronService() (*CronServiceDefault, []core.ContextBuilderOption, error) {
-	cron := &CronServiceDefault{
-		queues:        make(map[string]rmq.Queue),
-		booting:       true,
-		jobsAddedBoot: make([]uuid.UUID, 0),
-	}
-
-	opts := core.ContextOptions(
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			cron.ctx = ctx
-			cron.config = ctx.Config()
-			cron.db = ctx.DB()
-			cron.logger = ctx.ServiceLogger(cron)
-			return nil
-		}),
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			scheduler, queue, err := newScheduler(ctx.Config(), ctx.Logger())
-			if err != nil {
-				return err
-			}
-
-			cron.scheduler = scheduler
-			cron.redisQueueConn = queue
-
-			return nil
-		}),
-		core.ContextWithExitFunc(func(ctx core.Context) error {
-			return cron.stop()
-		}),
-	)
-
-	return cron, opts, nil
-}
-
-type cronLogger struct {
-	logger *core.Logger
-}
-
-func (c cronLogger) Debug(msg string, args ...any) {
-	c.logger.Debug(msg, zap.Any("args", args))
-}
-
-func (c cronLogger) Error(msg string, args ...any) {
-	c.logger.Error(msg, zap.Any("args", args))
-}
-
-func (c cronLogger) Info(msg string, args ...any) {
-	c.logger.Info(msg, zap.Any("args", args))
-}
-
-func (c cronLogger) Warn(msg string, args ...any) {
-	c.logger.Warn(msg, zap.Any("args", args))
-}
-
-func NewCronLogger(logger *core.Logger) gocron.Logger {
-	return &cronLogger{logger: logger}
-}
-
-func newScheduler(cm config.Manager, logger *core.Logger) (gocron.Scheduler, rmq.Connection, error) {
-	cfg := cm.Config()
-	if cfg.Core.ClusterEnabled() && cfg.Core.Clustered.Redis != nil {
-		redisClient, err := cfg.Core.Clustered.Redis.Client()
-		if err != nil {
-			return nil, nil, err
-		}
-		locker, err := redislock.NewRedisLocker(redisClient, redislock.WithTries(1), redislock.WithExpiry(heartbeatTimeout))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		errCh := make(chan error)
-		go func(errCh chan error) {
-			for err := range errCh {
-				logger.Error("rmq Background error", zap.Error(err))
-			}
-		}(errCh)
-
-		client, err := rmq.OpenConnectionWithRedisClient(consumerTag, redisClient, errCh)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		scheduler, err := gocron.NewScheduler(gocron.WithDistributedLocker(locker), gocron.WithLogger(NewCronLogger(logger)))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return scheduler, client, nil
-	}
-
-	scheduler, err := gocron.NewScheduler(gocron.WithLogger(NewCronLogger(logger)))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return scheduler, nil, nil
-}
 func (c *CronServiceDefault) Start() error {
 	for _, service := range c.entities {
 		err := service.RegisterTasks(c)
@@ -197,1037 +146,286 @@ func (c *CronServiceDefault) Start() error {
 		}
 	}
 
-	err := c.scheduler.SetLimit(c.config.Config().Core.Cron.MaxQueue, gocron.LimitModeWait)
-	if err != nil {
-		return err
-	}
-
-	if c.config.Config().Core.Cron.Enabled {
-		c.scheduler.Start()
-	}
-
-	go c.startDeadJobDetection()
-
-	go func() {
-		var cronJobs []models.CronJob
-		result := c.db.Where(&models.CronJob{State: models.CronJobStateQueued}).Find(&cronJobs)
-		if result.Error != nil {
-			c.logger.Error("Failed to fetch queued jobs", zap.Error(result.Error))
-		}
-
-		for _, cronJob := range cronJobs {
-			if slices.Contains(c.jobsAddedBoot, cronJob.UUID.ToUUID()) {
-				continue
-			}
-
-			if c.clusterMode() {
-				err = c.enqueueJob(&cronJob)
-				if err != nil {
-					c.logger.Error("Failed to enqueue job", zap.Error(err))
-				}
-			} else {
-				err = c.kickOffJob(&cronJob, cronJob.Failures)
-				if err != nil {
-					c.logger.Error("Failed to kick off job", zap.Error(err))
-				}
-			}
-		}
-
-		c.jobsAddedBoot = make([]uuid.UUID, 0)
-	}()
-
-	c.booting = false
-
-	return nil
-}
-
-func (c *CronServiceDefault) stop() error {
-	err := c.scheduler.Shutdown()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *CronServiceDefault) clusterMode() bool {
-	return c.ctx.Config().Config().Core.ClusterEnabled()
-}
-
-func (c *CronServiceDefault) kickOffJob(job *models.CronJob, errors uint64) error {
-	if c.ctx.Config().Config().Core.ClusterEnabled() {
-		return c.enqueueJob(job)
-	}
-
-	return c.scheduleJob(job, errors)
-}
-
-func (c *CronServiceDefault) enqueueJob(job *models.CronJob) error {
-	// Get or create the queue for this job function
-	queue, err := c.getOrCreateQueue(job.Function)
-	if err != nil {
-		return fmt.Errorf("failed to get or create queue: %w", err)
-	}
-
-	// Publish the job to the queue
-	id := string(job.UUID.ToUUIDRaw())
-	if err := queue.Publish(id); err != nil {
-		return fmt.Errorf("failed to publish job to queue: %w", err)
-	}
-
-	if c.booting {
-		c.jobsAddedBoot = append(c.jobsAddedBoot, job.UUID.ToUUID())
-	}
-
-	c.logger.Debug("Job enqueued successfully",
-		zap.String("jobID", job.UUID.String()),
-		zap.String("function", job.Function))
-
-	return nil
-}
-
-func (c *CronServiceDefault) getOrCreateQueue(name string) (rmq.Queue, error) {
-	c.queueMu.Lock()
-	defer c.queueMu.Unlock()
-
-	// Check if the queue already exists
-	if queue, exists := c.queues[name]; exists {
-		return queue, nil
-	}
-
-	// Create a new queue
-	queue, err := c.redisQueueConn.OpenQueue(redisQueueNamespace + "." + name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open queue %s: %w", name, err)
-	}
-
-	// Store the queue for future use
-	c.queues[name] = queue
-
-	// Start consuming from this queue
-	if err = c.startConsuming(queue, name); err != nil {
-		return nil, fmt.Errorf("failed to start consuming from queue %s: %w", name, err)
-	}
-
-	return queue, nil
-}
-
-func (c *CronServiceDefault) startConsuming(queue rmq.Queue, name string) error {
-	// Start consuming with a prefetch of 10 and a poll duration of 100ms
-	if err := queue.StartConsuming(consumerPrefetch, queuePollDuration); err != nil {
-		return fmt.Errorf("failed to start consuming: %w", err)
-	}
-
-	// Add a consumer to the queue
-	_, err := queue.AddConsumer(consumerTag, NewJobConsumer(c, name))
-	if err != nil {
-		return fmt.Errorf("failed to add consumer: %w", err)
-	}
-
-	return nil
-}
-
-func (c *CronServiceDefault) scheduleJob(job *models.CronJob, errors uint64) error {
-	task, err := c.prepareTask(job)
-	if err != nil {
-		return fmt.Errorf("failed to prepare task: %w", err)
-	}
-
-	waitForJobCtx := c.getJobStartContext(job.UUID.ToUUID())
-
-	listeners := []gocron.EventListener{
-		gocron.AfterJobRuns(c.listenerFuncNoError),
-		gocron.AfterJobRunsWithError(c.listenerFuncErr),
-		gocron.AfterJobRunsWithPanic(c.listenerFuncPanic),
-	}
-
-	if c.clusterMode() {
-		listeners = append(listeners, gocron.BeforeJobRuns(c.listenerJobStarted))
-	}
-
-	options := []gocron.JobOption{
-		gocron.WithName(job.UUID.String()),
-		gocron.WithIdentifier(job.UUID.ToUUID()),
-		gocron.WithEventListeners(listeners...),
-	}
-
-	jobDef, err := c.loadTaskDef(job)
-	if err != nil {
-		return fmt.Errorf("failed to load task definition: %w", err)
-	}
-
-	backoffDelay := c.calculateBackoff(job.Failures)
-	if errors > 0 {
-		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(backoffDelay)))
-	}
-
-	cronJob, err := c.scheduler.NewJob(jobDef, task, options...)
-	if err != nil {
-		return fmt.Errorf("failed to schedule job: %w", err)
-	}
-
-	if c.clusterMode() {
-		c.monitorJob(cronJob, job.UUID.ToUUID(), waitForJobCtx, backoffDelay)
-	}
-
-	if c.booting {
-		c.jobsAddedBoot = append(c.jobsAddedBoot, job.UUID.ToUUID())
-	}
-
-	return nil
-}
-
-func (c *CronServiceDefault) monitorJob(job gocron.Job, id uuid.UUID, waitCtx context.Context, backoff time.Duration) {
-	ctx := job.Context()
-
-	wrapCtx, cancel := context.WithCancel(ctx)
-
-	c.cronRunningMap.Store(id, cancelStruct{ctx: wrapCtx, cancel: cancel})
-
-	go func() {
-		if backoff > 0 {
-			ticker := time.NewTicker(heartbeatInterval)
-			defer ticker.Stop()
-
-			backoffEnd := time.Now().Add(backoff)
-
-			for {
-				select {
-				case <-ticker.C:
-					if err := c.jobHeartbeat(c.ctx, id); err != nil {
-						c.logger.Error("Failed to update job heartbeat during backoff", zap.Error(err))
-					}
-				case <-time.After(time.Until(backoffEnd)):
-					// Backoff period is over
-					goto waitForStart
-				}
-			}
-		}
-
-		go func() {
-			ticker := time.NewTicker(heartbeatInterval)
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-ticker.C:
-					if err := c.jobHeartbeat(c.ctx, id); err != nil {
-						c.logger.Error("Failed to update job heartbeat during pre-startup", zap.Error(err))
-					}
-				case <-ctx.Done():
-					c.logger.Debug("Job canceled, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
-					return
-				case <-wrapCtx.Done():
-					c.logger.Debug("Job done, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
-					return
-				case <-waitCtx.Done():
-					c.logger.Debug("Job started, exiting pre-heartbeat watch", zap.String("jobID", id.String()))
-					return
-				}
-			}
-		}()
-
-	waitForStart:
-		<-waitCtx.Done()
-
-		lock := job.Lock()
-
-		if lock == nil {
-			c.logger.Error("Failed to get lock", zap.String("jobID", id.String()))
-			return
-		}
-
-		rlock := lock.(*redislock.RedisLock)
-
-		for {
-			until := rlock.Get().Until()
-			timeToWait := until.Sub(time.Now()) - 30*time.Second
-
-			select {
-			case <-time.After(timeToWait):
-				c.logger.Debug("Lock expired, attempting to extend", zap.String("jobID", id.String()))
-
-				err := rlock.Extend(ctx)
-				if err != nil {
-					c.logger.Debug("Failed to extend lock", zap.Error(err))
-					err = rlock.Get().Lock()
-					if err != nil {
-						c.logger.Error("Failed to lock after extending", zap.Error(err))
-						continue
-					}
-				}
-
-				// Call the heartbeat
-				if err = c.jobHeartbeat(context.Background(), id); err != nil {
-					c.logger.Error("Failed to update job heartbeat", zap.Error(err))
-				}
-			case <-ctx.Done():
-				c.logger.Debug("Job canceled, exiting heartbeat watch", zap.String("jobID", id.String()))
-				return
-			case <-wrapCtx.Done():
-				c.logger.Debug("Job done, exiting heartbeat watch", zap.String("jobID", id.String()))
-				return
-			}
-		}
-	}()
-}
-
-func (c *CronServiceDefault) prepareTask(job *models.CronJob) (gocron.Task, error) {
-	funcName := job.Function
-	if strings.Contains(job.Function, oneOffSuffix) {
-		funcName = strings.Split(job.Function, oneOffSuffix)[0]
-	}
-
-	taskFunc, ok := c.tasks.Load(funcName)
-	if !ok {
-		return nil, fmt.Errorf("function %s not found", funcName)
-	}
-
-	argsFunc, ok := c.taskArgs.Load(funcName)
-	if !ok {
-		return nil, fmt.Errorf("arguments factory for function %s not found", funcName)
-	}
-
-	args := argsFunc.(core.CronTaskArgsFactoryFunction)()
-
-	if len(job.Args) > 0 {
-		if err := json.Unmarshal([]byte(job.Args), args); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal job arguments: %w", err)
-		}
-	}
-
-	varArgs := []interface{}{
-		interface{}(struct{}{}),
-		interface{}(c.ctx),
-	}
-
-	if args != nil {
-		varArgs = []interface{}{
-			args,
-			interface{}(c.ctx),
-		}
-	}
-
-	return gocron.NewTask(taskFunc, varArgs...), nil
-}
-
-func (c *CronServiceDefault) loadTaskDef(job *models.CronJob) (gocron.JobDefinition, error) {
-	// If this is a one-off job, we want to return an immediate execution definition
-	if strings.Contains(job.Function, oneOffSuffix) {
-		return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()), nil
-	}
-
-	// For regular jobs, proceed with normal task definition loading
-	taskDefFunc, ok := c.taskDefs.Load(job.Function)
-	if !ok {
-		return nil, fmt.Errorf("task definition for function %s not found", job.Function)
-	}
-
-	return taskDefFunc.(core.CronTaskDefArgsFactoryFunction)(), nil
-}
-
-func (c *CronServiceDefault) listenerJobStarted(id uuid.UUID, _ string) {
-	c.logger.Debug("Job started", zap.String("jobID", id.String()))
-
-	if val, ok := c.waitForStartMap.Load(id); ok {
-		cancel := val.(cancelStruct)
-		cancel.cancel()
-		c.waitForStartMap.Delete(id)
-	} else {
-		c.logger.Error("Failed to find job in waitForStartMap", zap.String("jobID", id.String()))
-	}
-}
-
-func (c *CronServiceDefault) getJobStartContext(jobID uuid.UUID) context.Context {
-	ctx, cancel := context.WithCancel(c.ctx)
-	c.waitForStartMap.Store(jobID, cancelStruct{ctx: ctx, cancel: cancel})
-	return ctx
-}
-
-func (c *CronServiceDefault) listenerFuncNoError(jobID uuid.UUID, _ string) {
-	c.jobDone(jobID)
-	c.checkConsumption()
-
-	var job models.CronJob
-	job.UUID = types.FromUUID(jobID)
-
-	if err := c.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where(&job).First(&job)
-		})
-	}); err != nil {
-		c.logger.Error("Failed to fetch job",
-			zap.Error(err),
-			zap.String("jobID", jobID.String()),
-		)
-		return
-	}
-
-	// Always handle one-off jobs first
-	if strings.Contains(job.Function, oneOffSuffix) {
-		// Clean up resources
-		c.taskDefs.Delete(job.Function)
-		c.taskDefsOriginal.Delete(job.Function)
-		c.taskRecurring.Delete(job.Function)
-		c.tasks.Delete(job.Function)
-		c.taskArgs.Delete(job.Function)
-
-		err := c.updateJobState(c.ctx, jobID, models.CronJobStateCompleted)
-		if err != nil {
-			c.logger.Error("Failed to update one-off job state", zap.Error(err))
-		}
-
-		if err = c.deleteJob(&job); err != nil {
-			c.logger.Error("Failed to delete one-off job", zap.Error(err))
-		}
-		return
-	}
-
-	_, err := c.updateJob(c.ctx, jobID, models.CronJob{LastRun: timeNow(), Failures: 0})
-	if err != nil {
-		c.logger.Error("Failed to update job after successful run", zap.Error(err))
-	}
-
-	if c.isRecurring(job.Function) {
-		if err := c.rescheduleJob(&job); err != nil {
-			c.logger.Error("Failed to reschedule recurring job",
-				zap.Error(err),
-				zap.String("jobID", jobID.String()),
-			)
-		}
-	} else {
-		err := c.updateJobState(c.ctx, jobID, models.CronJobStateCompleted)
-		if err != nil {
-			c.logger.Error("Failed to update job state", zap.Error(err))
-		}
-		if err = c.deleteJob(&job); err != nil {
-			c.logger.Error("Failed to delete one-time job after completion",
-				zap.Error(err),
-				zap.String("jobID", jobID.String()),
-			)
-		}
-	}
-
-	c.logger.Debug("Job completed successfully",
-		zap.String("jobID", jobID.String()),
-		zap.String("function", job.Function))
-}
-
-func (c *CronServiceDefault) listenerFuncErr(jobID uuid.UUID, jobName string, err error) {
-	c.checkConsumption()
-	c.handleJobFailure(jobID, jobName, err)
-}
-
-func (c *CronServiceDefault) listenerFuncPanic(jobID uuid.UUID, jobName string, recoverData any) {
-	err := fmt.Errorf("panic occurred: %v\n%s", recoverData, debug.Stack())
-	c.handleJobFailure(jobID, jobName, err)
-}
-
-func (c *CronServiceDefault) handleJobFailure(jobID uuid.UUID, _ string, jobErr error) {
-	c.jobDone(jobID)
-
-	var job models.CronJob
-	job.UUID = types.FromUUID(jobID)
-
-	c.logger.Error("Job failed",
-		zap.Error(jobErr),
-		zap.String("jobID", jobID.String()),
-	)
-
-	err := c.updateJobState(c.ctx, jobID, models.CronJobStateFailed)
-	if err != nil {
-		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
-		return
-	}
-
-	err = c.updateJobState(c.ctx, jobID, models.CronJobStateQueued)
-	if err != nil {
-		c.logger.Error("Failed to update job state", zap.Error(err), zap.String("jobID", jobID.String()))
-		return
-	}
-
-	// Fetch the updated job to get the current failure count
-	if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.Where(&job).First(&job)
-	}); err != nil {
-		c.logger.Error("Failed to fetch updated job",
-			zap.Error(err),
-			zap.String("jobID", jobID.String()),
-		)
-		return
-	}
-
-	// Log the failure (including panics) in the cron job logs
-	cronLog := &models.CronJobLog{
-		CronJobID: job.ID,
-		Type:      models.CronJobLogTypeFailure,
-		Message:   jobErr.Error(),
-	}
-	if err = db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.Create(cronLog)
-	}); err != nil {
-		c.logger.Error("Failed to create cron job log",
-			zap.Error(err),
-			zap.String("jobID", jobID.String()),
-		)
-	}
-
-	// Reschedule the job with backoff
-	if err := c.kickOffJob(&job, job.Failures); err != nil {
-		c.logger.Error("Failed to reschedule job with backoff",
-			zap.Error(err),
-			zap.String("jobID", jobID.String()),
-		)
-	}
-}
-
-func (c *CronServiceDefault) jobDone(jobID uuid.UUID) {
-	if !c.clusterMode() {
-		return
-	}
-	if val, ok := c.cronRunningMap.Load(jobID); ok {
-		cancel := val.(cancelStruct)
-		cancel.cancel()
-		c.cronRunningMap.Delete(jobID)
-	}
-}
-
-func (c *CronServiceDefault) isRecurring(funcName string) bool {
-	// Always treat one-off jobs as non-recurring
-	if strings.Contains(funcName, oneOffSuffix) {
-		return false
-	}
-
-	recurring, ok := c.taskRecurring.Load(funcName)
-	if !ok {
-		return false
-	}
-	return recurring.(bool)
-}
-
-func (c *CronServiceDefault) checkConsumption() {
-	if !c.clusterMode() || c.redisQueueConn == nil {
-		return
-	}
-
-	if uint(c.scheduler.JobsWaitingInQueue()) >= c.scheduler.LimitMode().Limit() {
-		c.redisQueueConn.StopAllConsuming()
-	} else {
-		for _, queue := range c.queues {
-			err := queue.StartConsuming(consumerPrefetch, queuePollDuration)
-			if err != nil && !errors.Is(err, rmq.ErrorAlreadyConsuming) {
-				c.logger.Error("Failed to start consuming from queue", zap.Error(err))
-			}
-		}
-	}
-}
-
-func (c *CronServiceDefault) rescheduleJob(job *models.CronJob) error {
-	// Additional safety check for one-off jobs
-	if strings.Contains(job.Function, oneOffSuffix) {
-		return nil // Don't reschedule one-off jobs
-	}
-
-	return c.db.Transaction(func(tx *gorm.DB) error {
-		err := c.updateJobState(c.ctx, job.UUID.ToUUID(), models.CronJobStateCompleted)
+	if c.ctx.Config().Config().Core.Cron.Enabled {
+		err := c.coordinator.Start()
 		if err != nil {
 			return err
 		}
+	}
 
-		err = c.updateJobState(c.ctx, job.UUID.ToUUID(), models.CronJobStateQueued)
-		if err != nil {
-			return err
-		}
-
-		return c.kickOffJob(job, job.Failures)
-	})
+	return nil
 }
 
-func (c *CronServiceDefault) deleteJob(job *models.CronJob) error {
-	return db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.Where(&models.CronJob{UUID: job.UUID}).Delete(job)
+func (c *CronServiceDefault) registerMaintenanceJobs() error {
+	// Register dead job check job using the pre-registered schedule
+	err := c.RegisterJobType(core.GetCronJobIdentifier(core.JobOriginCore, cron.DeadJobCheckJobType), func() (core.CronJob, error) {
+		return &cron.DeadJobCheckJob{
+			BaseCronJob: core.NewBaseCronJob(
+				uuid.New(),
+				core.JobOriginCore,
+				cron.DeadJobCheckJobType,
+				"Dead Job Check",
+				nil,
+				nil,
+			),
+		}, nil
+	}, &core.CronScheduleDefinition{
+		Type: core.CronScheduleTypeDaily,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to register dead job check job: %w", err)
+	}
+
+	// Register cleanup job using the pre-registered schedule
+	err = c.RegisterJobType(core.GetCronJobIdentifier(core.JobOriginCore, cron.CleanupJobType), func() (core.CronJob, error) {
+		return &cron.CleanupJob{
+			BaseCronJob: core.NewBaseCronJob(
+				uuid.New(),
+				core.JobOriginCore,
+				cron.CleanupJobType,
+				"Cleanup Job",
+				nil,
+				nil,
+			),
+		}, nil
+	}, &core.CronScheduleDefinition{
+		Type: core.CronScheduleTypeDaily,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to register cleanup job: %w", err)
+	}
+
+	return nil
+}
+
+func (c *CronServiceDefault) Monitor() core.CronMonitor {
+	return c.monitor
+}
+
+func (c *CronServiceDefault) Stop() error {
+	return c.coordinator.Close()
+}
+
+func (c *CronServiceDefault) GetActiveJob(jobID uuid.UUID) (core.CronJob, bool, error) {
+	// Check coordinator's active jobs first
+	jobs := c.coordinator.Jobs()
+	for _, job := range jobs {
+		if job.ID() == jobID {
+			// Found active job, create and return the instance
+			cronJob, err := c.coordinator.CreateJobFromDB(jobID)
+			if err != nil {
+				return nil, false, fmt.Errorf("failed to create job instance: %w", err)
+			}
+			cronJob.SetJob(job)
+			jobCtx := c.coordinator.JobContext(jobID)
+			if jobCtx != nil {
+				cronJob.SetDone(jobCtx.Done())
+
+			}
+			return cronJob, true, nil
+		}
+	}
+
+	// Not found in active jobs
+	return nil, false, nil
 }
 
 func (c *CronServiceDefault) RegisterEntity(service core.Cronable) {
 	c.entities = append(c.entities, service)
 }
 
-func (c *CronServiceDefault) RegisterTask(name string, taskFunc core.CronTaskFunction[core.CronTaskArgs], taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool) {
-	c.tasks.Store(name, taskFunc)
-	c.taskDefs.Store(name, taskDefFunc)
-	c.taskArgs.Store(name, taskArgFunc)
-	if recurring {
-		c.taskRecurring.Store(name, recurring)
-	}
+func (c *CronServiceDefault) Coordinator() core.CronCoordinator {
+	return c.coordinator
 }
 
-func (c *CronServiceDefault) CreateJob(function string, args any) error {
-	job, err := c.createJobRecord(function, args)
-	if err != nil {
-		return err
+func (c *CronServiceDefault) RegisterJob(job core.CronJob) error {
+	if job == nil {
+		return fmt.Errorf("job cannot be nil")
 	}
 
-	return c.kickOffJob(job, job.Failures)
-}
+	// Validate origin
+	switch job.Origin() {
+	case core.JobOriginCore:
+		// Core jobs must have non-empty source ID
+		if job.SourceID() == "" {
+			return fmt.Errorf("core jobs must specify subsystem source ID")
+		}
+	case core.JobOriginPlugin:
+		// Plugin jobs must reference an existing plugin
+		if job.SourceID() == "" {
+			return fmt.Errorf("plugin jobs must specify plugin ID")
+		}
 
-func (c *CronServiceDefault) CreateJobScheduled(function string, args any) error {
-	job, err := c.createJobRecord(function, args)
-	if err != nil {
-		return err
+		if !core.PluginExists(job.SourceID()) {
+			return fmt.Errorf("plugin %q not found", job.SourceID())
+		}
+	default:
+		return fmt.Errorf("invalid job origin: %s", job.Origin())
 	}
 
-	return c.kickOffJob(job, job.Failures)
-}
-
-func (c *CronServiceDefault) CreateExistingJobScheduled(uuid uuid.UUID) error {
-	var job models.CronJob
-
-	job.UUID = types.FromUUID(uuid)
-
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return db.First(&job)
-	}); err != nil {
-		return err
+	jobType := job.Type()
+	if err := core.ValidateCronJobType(jobType); err != nil {
+		return fmt.Errorf("invalid job type: %w", err)
 	}
 
-	return c.kickOffJob(&job, job.Failures)
-}
-
-func (c *CronServiceDefault) CreateJobIfNotExists(function string, args any) error {
-	exists, _ := c.JobExists(function, args)
-
-	if !exists {
-		return c.CreateJob(function, args)
+	// Additional validation based on origin
+	switch job.Origin() {
+	case core.JobOriginCore:
+		if !strings.HasPrefix(jobType, core.JobNamespaceCore+".") {
+			return fmt.Errorf("core jobs must use core.* namespace")
+		}
+	case core.JobOriginPlugin:
+		if !strings.HasPrefix(jobType, core.JobNamespacePlugin+".") {
+			return fmt.Errorf("plugin jobs must use plugin.* namespace")
+		}
 	}
 
-	return nil
-}
-
-func (c *CronServiceDefault) CreateRecurringOneOffJob(function string, args any) error {
-	taskFunc, ok := c.tasks.Load(function)
-	if !ok {
-		return fmt.Errorf("function %s not found", function)
+	// Check for existing job
+	var existingJob models.CronJob
+	if err := c.db.Where(&models.CronJob{UUID: types.FromUUID(job.ID())}).First(&existingJob).Error; err == nil {
+		return fmt.Errorf("job with ID %s already exists", job.ID())
 	}
 
-	// Check if task args exist
-	taskArgs, ok := c.taskArgs.Load(function)
-	if !ok {
-		return fmt.Errorf("task args for function %s not found", function)
-	}
-
-	// Create a one-time job record
-	job, err := c.createJobRecord(function, args)
-	if err != nil {
-		return fmt.Errorf("failed to create job record: %w", err)
-	}
-
-	// Create the one-off function name
-	oneOffKey := function + oneOffSuffix + job.UUID.String()
-
-	// Store the job with the one-off function name
-	job.Function = oneOffKey
-
-	if err = db.RetryableTransaction(c.ctx, c.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Save(job)
-	}); err != nil {
-		return fmt.Errorf("failed to update job function: %w", err)
-	}
-
-	// Store the base function tasks for the one-off job
-	c.tasks.Store(oneOffKey, taskFunc)
-	c.taskArgs.Store(oneOffKey, taskArgs)
-
-	// Schedule the job
-	err = c.kickOffJob(job, 0)
-	if err != nil {
-		// Clean up if scheduling fails
-		c.tasks.Delete(oneOffKey)
-		c.taskArgs.Delete(oneOffKey)
-		return fmt.Errorf("failed to kick off one-off job: %w", err)
-	}
-
-	return nil
-}
-
-func (c *CronServiceDefault) JobExists(function string, args any) (bool, *models.CronJob) {
-	var job models.CronJob
-
-	job.Function = function
-
-	if args != nil {
-		bytes, err := json.Marshal(args)
+	// Serialize the arguments
+	var argsBytes []byte
+	if job.Args() != nil {
+		var err error
+		argsBytes, err = json.Marshal(job.Args())
 		if err != nil {
-			return false, nil
+			return fmt.Errorf("failed to marshal arguments: %w", err)
 		}
-
-		job.Args = string(bytes)
+		// If args marshals to "null", treat as empty
+		if string(argsBytes) == "null" {
+			argsBytes = nil
+		}
 	}
 
-	result := c.db.Where(&job).First(&job)
-
-	if result.Error != nil {
-		return false, nil
+	// Get schedule definition from job
+	var schedDefBytes []byte
+	var schedDef *core.CronScheduleDefinition
+	if schedDef = job.Schedule(); schedDef == nil {
+		schedDef, _ = c.JobFactory().GetDefaultSchedule(job.Type())
 	}
 
-	return true, &job
-}
-
-func (c *CronServiceDefault) createJobRecord(function string, args any) (*models.CronJob, error) {
-	job := models.CronJob{
-		Function: function,
-		UUID:     types.NewBinUUID(),
-	}
-
-	if args != nil {
-		bytes, err := json.Marshal(args)
+	if schedDef != nil {
+		var err error
+		schedDefBytes, err = json.Marshal(schedDef)
 		if err != nil {
-			return nil, err
-		}
-
-		job.Args = string(bytes)
-	}
-
-	if err := db.RetryableTransaction(c.ctx, c.db, func(tx *gorm.DB) *gorm.DB {
-		return c.db.Create(&job)
-	}); err != nil {
-		return nil, err
-	}
-
-	return &job, nil
-}
-
-func (c *CronServiceDefault) jobHeartbeat(ctx context.Context, jobID uuid.UUID) error {
-	updatedJob, err := c.updateJob(ctx, jobID, models.CronJob{LastHeartbeat: timeNow()})
-	if err != nil {
-		return fmt.Errorf("failed to update job heartbeat: %w", err)
-	}
-
-	lastHeartbeat := time.Unix(0, 0)
-
-	if updatedJob.LastHeartbeat != nil {
-		lastHeartbeat = *updatedJob.LastHeartbeat
-	}
-
-	c.logger.Debug("Job heartbeat updated",
-		zap.String("jobID", jobID.String()),
-		zap.Time("heartbeat", lastHeartbeat))
-
-	return nil
-}
-
-func (c *CronServiceDefault) updateJob(ctx context.Context, jobID uuid.UUID, updates models.CronJob) (*models.CronJob, error) {
-	var job models.CronJob
-
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Fetch the job
-		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-				return db.Model(&job).Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&job)
-			})
-		}); err != nil {
-			return fmt.Errorf("failed to fetch job: %w", err)
-		}
-
-		// Always increment version and update LastHeartbeat
-		updates.Version = job.Version + 1
-
-		// Update the job
-		var rowsAffected int64
-		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-				ret := db.Model(&job).
-					Where(&models.CronJob{UUID: types.FromUUID(jobID), Version: job.Version}).
-					Updates(updates)
-
-				rowsAffected = ret.RowsAffected
-				return ret
-			})
-		}); err != nil {
-			return fmt.Errorf("failed to update job: %w", err)
-		}
-
-		if rowsAffected == 0 {
-			return errors.New("job was updated by another process")
-		}
-
-		// Fetch the job
-		if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-				return db.Model(&job).Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&job)
-			})
-		}); err != nil {
-			return fmt.Errorf("failed to fetch job: %w", err)
-		}
-
-		c.logger.Debug("Job updated", zap.String("jobID", jobID.String()))
-
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return &job, nil
-}
-
-func (c *CronServiceDefault) updateJobState(ctx context.Context, jobID uuid.UUID, newState models.CronJobState) error {
-	updateJob, err := c.updateJob(ctx, jobID, models.CronJob{State: newState, LastHeartbeat: timeNow()})
-	if err != nil {
-		return err
-	}
-
-	c.logger.Debug("Job state updated", zap.String("jobID", jobID.String()), zap.String("newState", string(updateJob.State)))
-
-	return nil
-}
-
-func (c *CronServiceDefault) getJob(id uuid.UUID) (*models.CronJob, error) {
-	var job models.CronJob
-	job.UUID = types.FromUUID(id)
-
-	if err := db.RetryOnLock(c.db, func(db *gorm.DB) *gorm.DB {
-		return c.db.Model(&job).Where(&job).First(&job)
-	}); err != nil {
-		return nil, err
-	}
-
-	return &job, nil
-}
-
-func (c *CronServiceDefault) startDeadJobDetection() {
-	ticker := time.NewTicker(deadJobCheckInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-c.ctx.Done():
-			c.logger.Info("Stopping dead job detection")
-			return
-		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(c.ctx, 5*time.Minute)
-			err := c.detectAndHandleDeadJobs(ctx)
-			cancel()
-			if err != nil {
-				if !errors.Is(err, context.Canceled) {
-					c.logger.Error("Failed to detect and handle dead jobs", zap.Error(err))
-				} else {
-					c.logger.Info("Dead job detection cancelled")
-				}
-			}
-		}
-	}
-}
-func (c *CronServiceDefault) calculateBackoff(failures uint64) time.Duration {
-	if failures == 0 {
-		return 0
-	}
-	backoffDelay := c.calculateMaxBackoffWithJitter(failures)
-	return backoffDelay
-}
-
-func (c *CronServiceDefault) calculateMaxBackoffWithJitter(failures uint64) time.Duration {
-	if failures == 0 {
-		return 0
-	}
-
-	// Calculate the maximum possible delay including jitter
-	baseDelay := float64(failureBackoffBaseDelay) * math.Pow(2, float64(failures))
-	maxDelayWithJitter := baseDelay * 1.5 // 1.5 accounts for maximum 50% jitter
-
-	// Cap the delay
-	if maxDelayWithJitter > float64(failureBackoffMaxDelay) {
-		maxDelayWithJitter = float64(failureBackoffMaxDelay)
-	}
-
-	return time.Duration(maxDelayWithJitter)
-}
-
-func (c *CronServiceDefault) detectAndHandleDeadJobs(ctx context.Context) error {
-	now := time.Now()
-	heartbeatDeadline := now.Add(-heartbeatTimeout)
-
-	var potentialDeadJobs []models.CronJob
-
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where("state IN (?, ?) AND last_heartbeat < ?",
-				models.CronJobStateProcessing, models.CronJobStateQueued, heartbeatDeadline).
-				Find(&potentialDeadJobs)
-		})
-	}); err != nil {
-		return fmt.Errorf("error querying for potential dead jobs: %w", err)
-	}
-
-	for _, job := range potentialDeadJobs {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if c.shouldHandleDeadJob(&job, now) {
-				if err := c.handleDeadJob(ctx, job.UUID.ToUUID()); err != nil {
-					c.logger.Error("Failed to handle dead job",
-						zap.Error(err),
-						zap.String("jobID", job.UUID.String()),
-						zap.String("function", job.Function))
-				}
-			}
+			return fmt.Errorf("failed to marshal schedule definition: %w", err)
 		}
 	}
 
-	return nil
-}
-
-func (c *CronServiceDefault) shouldHandleDeadJob(job *models.CronJob, now time.Time) bool {
-	if job.State == models.CronJobStateProcessing {
-		// Always handle processing jobs that missed their heartbeat
-		return true
+	// Create the database record
+	cronJob := models.CronJob{
+		UUID:     types.FromUUID(job.ID()),
+		Origin:   job.Origin(),
+		SourceID: job.SourceID(),
+		JobType:  jobType,
+		Args:     string(argsBytes),
+		SchedDef: string(schedDefBytes),
+		State:    models.CronJobStateQueued,
+		Version:  1,
 	}
 
-	// For queued jobs, check if the backoff period has elapsed
-	backoffDuration := c.calculateBackoff(job.Failures)
-	var backoffEndTime time.Time
-
-	if job.LastRun != nil && !job.LastRun.IsZero() {
-		backoffEndTime = job.LastRun.Add(backoffDuration)
-	} else {
-		backoffEndTime = job.UpdatedAt.Add(backoffDuration)
+	if err := c.db.Create(&cronJob).Error; err != nil {
+		return fmt.Errorf("failed to create database record: %w", err)
 	}
 
-	return now.After(backoffEndTime)
-}
-
-func (c *CronServiceDefault) handleDeadJob(ctx context.Context, jobID uuid.UUID) error {
-	// Fetch the job
-	var job models.CronJob
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Where("uuid = ?", types.FromUUID(jobID)).First(&job)
-		})
-	}); err != nil {
-		return fmt.Errorf("failed to fetch job: %w", err)
-	}
-
-	// Check if the job is still in a processing state
-	if job.State != models.CronJobStateProcessing {
-		return nil // Job has already been handled, nothing to do
-	}
-
-	_, err := c.updateJob(ctx, jobID, models.CronJob{State: models.CronJobStateQueued, Failures: job.Failures + 1})
-	if err != nil {
-		return fmt.Errorf("failed to update job: %w", err)
-	}
-
-	lastHeartbeat := time.Unix(0, 0)
-
-	if job.LastHeartbeat != nil {
-		lastHeartbeat = *job.LastHeartbeat
-	}
-
-	c.logger.Warn("Detected and requeued dead job",
-		zap.String("jobID", job.UUID.String()),
-		zap.String("function", job.Function),
-		zap.Time("lastHeartbeat", lastHeartbeat),
-		zap.Uint64("failures", job.Failures))
-
-	// Handle recurring or one-time job
-	if c.isRecurring(job.Function) {
-		if err := c.rescheduleJob(&job); err != nil {
-			return fmt.Errorf("failed to reschedule dead recurring job: %w", err)
+	// Delegate scheduling to coordinator if available
+	if c.coordinator != nil {
+		if err := c.coordinator.EnqueueJob(job.ID()); err != nil {
+			return fmt.Errorf("failed to schedule job: %w", err)
 		}
 	} else {
-		if err := c.kickOffJob(&job, job.Failures); err != nil {
-			return fmt.Errorf("failed to re-enqueue dead one-time job: %w", err)
-		}
+		c.logger.Warn("Coordinator not initialized, job will be scheduled on next startup",
+			zap.String("jobID", job.ID().String()))
 	}
 
 	return nil
 }
 
-type JobConsumer struct {
-	cron     *CronServiceDefault
-	function string
+func (c *CronServiceDefault) RunJob(id uuid.UUID) error {
+	// Simply enqueue the job through the coordinator
+	return c.coordinator.EnqueueJob(id)
 }
 
-func NewJobConsumer(cron *CronServiceDefault, function string) *JobConsumer {
-	return &JobConsumer{cron: cron, function: function}
-}
+func (s *CronServiceDefault) RegisterJobType(
+	jobType string,
+	factory core.CronJobFactoryFunc,
+	defaultSchedule *core.CronScheduleDefinition,
+) error {
+	// Register the job factory
+	if err := s.jobFactory.RegisterFactory(jobType, factory, defaultSchedule); err != nil {
+		return fmt.Errorf("failed to register job factory: %w", err)
+	}
 
-func (jc *JobConsumer) Consume(delivery rmq.Delivery) {
-	sendErr := func(msg string, err error) {
+	// If default schedule provided, create and register a default job instance
+	if defaultSchedule != nil {
+		job, err := factory()
 		if err != nil {
-			jc.cron.logger.Error(msg,
-				zap.Error(err),
-				zap.String("payload", delivery.Payload()))
-			err = delivery.Reject()
-			if err != nil {
-				jc.cron.logger.Error("Failed to reject delivery",
-					zap.Error(err),
-					zap.String("payload", delivery.Payload()))
-			}
+			return fmt.Errorf("failed to create default job: %w", err)
+		}
+		return s.RegisterJob(job)
+	}
+	return nil
+}
+
+func (s *CronServiceDefault) ScheduleRegistry() core.CronScheduleRegistry {
+	return s.scheduleRegistry
+}
+
+func (s *CronServiceDefault) JobFactory() core.CronJobFactory {
+	return s.jobFactory
+}
+
+func (s *CronServiceDefault) StateMachine() core.CronJobStateMachine {
+	return s.stateMachine
+}
+
+func (s *CronServiceDefault) RegisterPluginJobs(plugin core.PluginInfo) error {
+	for _, jobReg := range plugin.CronJobs {
+		// Use the existing GetCronJobIdentifier which handles proper formatting
+		jobType := core.GetCronJobIdentifier(core.JobOriginPlugin, fmt.Sprintf("%s.%s", plugin.ID, jobReg.Name))
+		err := s.RegisterJobType(
+			jobType,
+			jobReg.Factory,
+			jobReg.Schedule,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to register job %s (type: %s): %w", jobReg.Name, jobType, err)
+		}
+	}
+	return nil
+}
+
+func (c *CronServiceDefault) loadJobsFromDB() error {
+	dbJobs := make([]models.CronJob, 0)
+	if err := c.db.Where(models.CronJob{
+		State: models.CronJobStateQueued,
+	}).Find(&dbJobs).Error; err != nil {
+		return fmt.Errorf("failed to load jobs from database: %w", err)
+	}
+
+	for _, dbJob := range dbJobs {
+		jobID := dbJob.UUID.ToUUID()
+
+		// Skip if already scheduled by checking all jobs' UUIDs
+		jobs := c.coordinator.Jobs()
+
+		if lo.ContainsBy(jobs, func(job gocron.Job) bool {
+			return job.ID() == jobID
+		}) {
+			continue
+		}
+
+		// Delegate all job scheduling to coordinator
+		if err := c.coordinator.EnqueueJob(jobID); err != nil {
+			c.logger.Error("Failed to schedule job from database",
+				zap.String("jobID", jobID.String()),
+				zap.Error(err))
+			continue
 		}
 	}
 
-	ack := func(job *models.CronJob) {
-		err := delivery.Ack()
-		if err != nil {
-			jc.cron.logger.Error("Failed to ack delivery",
-				zap.Error(err),
-				zap.String("jobID", job.UUID.String()))
-		}
-	}
-
-	_uuid, err := uuid.FromBytes([]byte(delivery.Payload()))
-	if err != nil {
-		sendErr("Failed to parse job ID", err)
-		return
-	}
-
-	job, err := jc.cron.getJob(_uuid)
-	if err != nil {
-		jc.cron.logger.Error("Attempted to run job that does not exist", zap.String("jobID", _uuid.String()))
-		ack(job)
-		return
-	}
-
-	jc.cron.logger.Debug("Job consumed", zap.String("jobID", job.UUID.String()), zap.String("function", job.Function), zap.String("args", job.Args))
-
-	if job.State != models.CronJobStateQueued {
-		ack(job)
-		return
-	}
-	if err = jc.cron.updateJobState(jc.cron.ctx, job.UUID.ToUUID(), models.CronJobStateProcessing); err != nil {
-		sendErr("Failed to update job state", err)
-		return
-	}
-
-	if err = jc.cron.scheduleJob(job, job.Failures); err != nil {
-		sendErr("Failed to kick off job", err)
-		return
-	}
-
-	ack(job)
-}
-
-func TaskDefinitionOneTimeJob() gocron.JobDefinition {
-	return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
-}
-func exponentialBackoff(attempt uint64, baseDelay, maxDelay time.Duration) time.Duration {
-	// Calculate delay
-	delay := float64(baseDelay) * math.Pow(2, float64(attempt))
-
-	// Add jitter (randomness)
-	jitter := rand.Float64() * 0.5 // 50% jitter
-	delay = delay * (1 + jitter)
-
-	// Cap the delay
-	if delay > float64(maxDelay) {
-		delay = float64(maxDelay)
-	}
-
-	return time.Duration(delay)
-}
-
-func timeNow() *time.Time {
-	t := time.Now()
-
-	return &t
+	return nil
 }

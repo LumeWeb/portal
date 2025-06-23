@@ -40,40 +40,40 @@ type ClientManager struct {
 }
 
 func NewClientManager(ctx core.Context) *ClientManager {
-	etcdKey := ""
+	/*	etcdKey := ""
 
-	if ctx.Config().Config().Core.ClusterEnabled() && ctx.Config().Config().Core.Clustered.EtcdEnabled() {
-		etcdKey = ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey)
-	}
+		if ctx.Config().Config().Core.ClusterEnabled() && ctx.Config().Config().Core.Clustered.EtcdEnabled() {
+			etcdKey = ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey)
+		}*/
 
 	return &ClientManager{
-		ctx:     ctx,
-		etcdKey: etcdKey,
-		nodes:   make(map[ClientType][]NodeInfo),
-		logger:  ctx.Logger(),
+		ctx: ctx,
+		//	etcdKey: etcdKey,
+		nodes:  make(map[ClientType][]NodeInfo),
+		logger: ctx.Logger(),
 	}
 }
 
 func (cm *ClientManager) Start() error {
-	if !cm.ctx.Config().Config().Core.ClusterEnabled() {
-		return nil
-	}
+	/*	if !cm.ctx.Config().Config().Core.ClusterEnabled() {
+			return nil
+		}
 
-	etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
-	if err != nil {
-		return fmt.Errorf("failed to create etcd manager: %w", err)
-	}
+		etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
+		if err != nil {
+			return fmt.Errorf("failed to create etcd manager: %w", err)
+		}
 
-	client := etcdMgr.Client()
+		client := etcdMgr.Client()
 
-	// Initial load of nodes
-	if err := cm.loadNodes(client); err != nil {
-		return err
-	}
+		// Initial load of nodes
+		if err := cm.loadNodes(client); err != nil {
+			return err
+		}
 
-	// Watch for changes
-	go cm.watchNodes(client)
-
+		// Watch for changes
+		go cm.watchNodes(client)
+	*/
 	return nil
 }
 

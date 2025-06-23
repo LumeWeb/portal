@@ -283,7 +283,7 @@ func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	}
 }
 
-func ContextWithCron(factory CronFactory) ContextBuilderOption {
+/*func ContextWithCron(factory CronFactory) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		cron, err := factory(ctx)
 		if err != nil {
@@ -300,7 +300,7 @@ func ContextWithCron(factory CronFactory) ContextBuilderOption {
 		})
 		return ctx, nil
 	}
-}
+}*/
 
 func ContextWithLoggerOptions(opts ...zap.Option) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
@@ -349,7 +349,7 @@ func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
 
 	pluginSvcs, err := plugin.Services()
 	if err != nil {
-		ctx.Logger().Fatal("failed to get plugin services", 
+		ctx.Logger().Fatal("failed to get plugin services",
 			zap.String("plugin", pluginID),
 			zap.Error(err))
 	}
@@ -363,7 +363,7 @@ func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
 		}
 	}
 	if !found {
-		ctx.Logger().Fatal("service not found in plugin", 
+		ctx.Logger().Fatal("service not found in plugin",
 			zap.String("service", id),
 			zap.String("plugin", pluginID))
 	}
@@ -371,14 +371,14 @@ func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
 	// Get the service config from the owning plugin
 	cfg := ctx.Config().GetService(pluginID, id)
 	if cfg == nil {
-		ctx.Logger().Fatal("service config not found", 
+		ctx.Logger().Fatal("service config not found",
 			zap.String("service", id),
 			zap.String("plugin", pluginID))
 	}
 
 	typedSvc, ok := cfg.(T)
 	if !ok {
-		ctx.Logger().Fatal("service type mismatch", 
+		ctx.Logger().Fatal("service type mismatch",
 			zap.String("service", id),
 			zap.String("expected", reflect.TypeOf(*new(T)).String()),
 			zap.String("actual", reflect.TypeOf(cfg).String()))

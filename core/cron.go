@@ -1,62 +1,585 @@
 package core
 
 import (
+	"context"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/adjust/rmq/v5"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/looplab/fsm"
 	"go.lumeweb.com/portal/db/models"
+	"go.uber.org/zap"
 )
-
-type CronTaskFunction[T CronTaskArgs] func(T, Context) error
-type CronTaskArgsFactoryFunction func() any
-type CronTaskDefArgsFactoryFunction func() gocron.JobDefinition
 
 const CRON_SERVICE = "cron"
 
-type CronTaskArgs interface{}
+// CronScheduleType defines the type of schedule for a cron job.
+type CronScheduleType string
 
-type CronService interface {
-	RegisterEntity(entity Cronable)
-	RegisterTask(name string, taskFunc CronTaskFunction[CronTaskArgs], taskDefFunc CronTaskDefArgsFactoryFunction, taskArgFunc CronTaskArgsFactoryFunction, recurring bool)
-	CreateJob(function string, args any) error
-	JobExists(function string, args any) (bool, *models.CronJob)
-	CreateJobScheduled(function string, args any) error
-	CreateExistingJobScheduled(uuid uuid.UUID) error
-	CreateJobIfNotExists(function string, args any) error
-	CreateRecurringOneOffJob(function string, args any) error
+const (
+	// CronScheduleTypeDaily indicates a job should run every day.
+	CronScheduleTypeDaily CronScheduleType = "daily"
+	// CronScheduleTypeWeekly indicates a job should run every week.
+	CronScheduleTypeWeekly CronScheduleType = "weekly"
+	// CronScheduleTypeMonthly indicates a job should run every month.
+	CronScheduleTypeMonthly CronScheduleType = "monthly"
+	// CronScheduleTypeHourly indicates a job should run every hour.
+	CronScheduleTypeHourly CronScheduleType = "hourly"
+	// CronScheduleTypeCron indicates a job should run based on a cron expression.
+	CronScheduleTypeCron CronScheduleType = "cron"
+	// CronScheduleTypeOnce indicates a job should run only once.
+	CronScheduleTypeOnce CronScheduleType = "once"
+)
 
-	Start() error
-	Service
-}
+// Cronable is an interface for entities that can register and schedule cron jobs.
 type Cronable interface {
+	// RegisterTasks registers cron tasks with the CronService.
 	RegisterTasks(cron CronService) error
+	// ScheduleJobs schedules cron jobs with the CronService.
 	ScheduleJobs(cron CronService) error
 }
 
-type CronTaskNoArgs struct{}
+// CronScheduleDefinition defines a serializable schedule definition for cron jobs.
+// The meaning of fields depends on the CronScheduleType:
+//   - Daily: Runs every X days at specified time
+//   - Weekly: Runs every X weeks on specified day/time
+//   - Monthly: Runs every X months on specified day/time
+//   - Cron: Uses cron expression for scheduling
+//   - Once: Runs once at specified time
+type CronScheduleDefinition struct {
+	Type CronScheduleType `json:"type"` // Type of schedule (daily, weekly, etc)
 
-func CronTaskDefinitionOneTimeJob() gocron.JobDefinition {
-	return gocron.OneTimeJob(gocron.OneTimeJobStartImmediately())
+	Interval uint `json:"interval,omitempty"` // Frequency multiplier based on type:
+	// - Daily: Days between runs (1 = daily, 2 = every 2 days)
+	// - Weekly: Weeks between runs (1 = weekly, 2 = biweekly)
+	// - Monthly: Months between runs (1 = monthly, 2 = every 2 months)
+	// - Cron/Once: Not used
+
+	AtTime time.Time `json:"at_time,omitempty"` // Execution time
+
+	DayOfWeek string `json:"day_of_week,omitempty"` // Day of week for weekly schedules (e.g. "Monday")
+
+	DayOfMonth int `json:"day_of_month,omitempty"` // Day of month for monthly schedules (1-31)
+
+	CronExpression string `json:"cron_expression,omitempty"` // Cron expression for CronScheduleTypeCron
 }
 
-func CronTaskDefinitionDaily() gocron.JobDefinition {
-	return gocron.DailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(0, 0, 0)))
-}
-
-func CronTaskNoArgsFactory() any {
-	return &CronTaskNoArgs{}
-}
-
-func PluginHasCron(pi PluginInfo) bool {
-	return pi.Cron != nil
-}
-
-func CronTaskFuncHandler[T CronTaskArgs](f func(args T, ctx Context) error) CronTaskFunction[CronTaskArgs] {
-	return func(args CronTaskArgs, ctx Context) error {
-		typedArgs, ok := args.(T)
-		if !ok {
-			return fmt.Errorf("invalid argument type: expected %T, got %T", *new(T), args)
-		}
-		return f(typedArgs, ctx)
+// NewCronScheduleDefinition creates a new CronScheduleDefinition with defaults:
+//   - Type: Set to provided scheduleType
+//   - Interval: Defaults to 1 (run every period)
+//   - Other fields: Zero values
+func NewCronScheduleDefinition(schedType CronScheduleType) *CronScheduleDefinition {
+	return &CronScheduleDefinition{
+		Type:     schedType,
+		Interval: 1, // Default to running every period (daily/weekly/monthly)
 	}
+}
+
+// WithInterval sets the frequency multiplier for the schedule.
+// The interval's meaning depends on the CronScheduleType:
+//   - Daily: Days between runs (e.g. 2 = every 2 days)
+//   - Weekly: Weeks between runs (e.g. 2 = biweekly)
+//   - Monthly: Months between runs (e.g. 3 = quarterly)
+//   - Cron/Once: Interval has no effect
+//
+// Must be a positive integer (uint). Returns the CronScheduleDefinition for chaining.
+func (s *CronScheduleDefinition) WithInterval(interval uint) *CronScheduleDefinition {
+	s.Interval = interval
+	return s
+}
+
+// WithAtTime sets the execution time for the schedule.
+func (s *CronScheduleDefinition) WithAtTime(atTime time.Time) *CronScheduleDefinition {
+	s.AtTime = atTime
+	return s
+}
+
+// WithDayOfWeek sets the day of week for weekly schedules.
+func (s *CronScheduleDefinition) WithDayOfWeek(day string) *CronScheduleDefinition {
+	s.DayOfWeek = day
+	return s
+}
+
+// WithDayOfMonth sets the day of month for monthly schedules.
+func (s *CronScheduleDefinition) WithDayOfMonth(day int) *CronScheduleDefinition {
+	s.DayOfMonth = day
+	return s
+}
+
+// WithCronExpression sets the cron expression for cron schedules.
+func (s *CronScheduleDefinition) WithCronExpression(expr string) *CronScheduleDefinition {
+	s.CronExpression = expr
+	return s
+}
+
+// CronScheduleRegistry provides extended schedule management capabilities.
+type CronScheduleRegistry interface {
+	// Register adds a schedule factory for a given type.
+	Register(schedType CronScheduleType, factory ScheduleFactoryFunc)
+	// Create creates a gocron.JobDefinition from a CronScheduleDefinition.
+	Create(def CronScheduleDefinition) (gocron.JobDefinition, error)
+	// Validate checks if a schedule definition is valid.
+	Validate(def CronScheduleDefinition) error
+	// GetRegisteredTypes returns all registered schedule types.
+	GetRegisteredTypes() []CronScheduleType
+}
+
+// ScheduleFactoryFunc creates a gocron.JobDefinition from schedule parameters.
+type ScheduleFactoryFunc func(def CronScheduleDefinition) (gocron.JobDefinition, error)
+
+const (
+	// JobNamespaceCore represents the namespace for core jobs.
+	JobNamespaceCore = "core"
+	// JobNamespacePlugin represents the namespace for plugin jobs.
+	JobNamespacePlugin = "plugin"
+)
+
+// ValidateCronJobType validates the format of a cron job type string.
+// Job types must be in the format "namespace.format" (e.g., "core.subsystem.job" or "plugin.id.job").
+func ValidateCronJobType(jobType string) error {
+	parts := strings.Split(jobType, ".")
+	if len(parts) < 2 {
+		return fmt.Errorf("job type must be in namespace.format (core.subsystem.job or plugin.id.job)")
+	}
+
+	switch parts[0] {
+	case JobNamespaceCore:
+		if len(parts) < 3 {
+			return fmt.Errorf("core jobs require subsystem.job format")
+		}
+	case JobNamespacePlugin:
+		if !PluginExists(parts[1]) {
+			return fmt.Errorf("plugin '%s' not registered", parts[1])
+		}
+	default:
+		return fmt.Errorf("first part must be 'core' or 'plugin'")
+	}
+	return nil
+}
+
+// GetCronJobNamespace extracts the namespace from a cron job type string.
+func GetCronJobNamespace(jobType string) string {
+	if parts := strings.Split(jobType, "."); len(parts) > 0 {
+		return parts[0]
+	}
+	return ""
+}
+
+// IsCoreCronJob checks if a cron job is a core job based on its type.
+func IsCoreCronJob(jobType string) bool {
+	return GetCronJobNamespace(jobType) == JobNamespaceCore
+}
+
+// IsPluginCronJob checks if a cron job is a plugin job based on its type.
+func IsPluginCronJob(jobType string) bool {
+	return GetCronJobNamespace(jobType) == JobNamespacePlugin
+}
+
+// BaseCronJob provides common implementation for CronJob interface.
+type BaseCronJob struct {
+	id                 uuid.UUID
+	origin             string
+	sourceID           string
+	displayName        string
+	scheduleDefinition *CronScheduleDefinition
+	args               any
+	job                gocron.Job
+	done               <-chan struct{}
+}
+
+var _ CronJob = (*BaseCronJob)(nil)
+
+// Job returns the underlying gocron.Job instance.
+func (b *BaseCronJob) Job() gocron.Job {
+	return b.job
+}
+
+// SetJob sets the underlying gocron.Job instance.
+func (b *BaseCronJob) SetJob(job gocron.Job) {
+	b.job = job
+}
+
+// NewBaseCronJob creates a new BaseCronJob instance.
+func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName string, scheduleDef *CronScheduleDefinition, args any) *BaseCronJob {
+	return &BaseCronJob{
+		id:                 id,
+		origin:             origin,
+		sourceID:           sourceID,
+		displayName:        displayName,
+		scheduleDefinition: scheduleDef,
+		args:               args,
+		job:                nil,
+		done:               nil,
+	}
+}
+
+// Done returns a channel that will be closed when the job completes execution.
+func (b *BaseCronJob) Done() <-chan struct{} {
+	return b.done
+}
+
+// SetDone sets the done channel for the job.
+func (b *BaseCronJob) SetDone(done <-chan struct{}) {
+	b.done = done
+}
+
+// ID returns a unique identifier for the job.
+func (b *BaseCronJob) ID() uuid.UUID {
+	return b.id
+}
+
+// Origin returns whether job is from core or plugin.
+func (b *BaseCronJob) Origin() string {
+	return b.origin
+}
+
+// SourceID returns plugin_id for plugins or subsystem for core.
+func (b *BaseCronJob) SourceID() string {
+	return b.sourceID
+}
+
+// DisplayName returns localized human-readable name.
+func (b *BaseCronJob) DisplayName() string {
+	return b.displayName
+}
+
+// GetScheduledDefinition returns the schedule definition for the job.
+func (b *BaseCronJob) GetScheduledDefinition() *CronScheduleDefinition {
+	return b.scheduleDefinition
+}
+
+// Args returns the arguments for the job.
+func (b *BaseCronJob) Args() any {
+	return b.args
+}
+
+// SetArgs sets the arguments for the job.
+func (b *BaseCronJob) SetArgs(args any) {
+	b.args = args
+}
+
+// Schedule returns the schedule definition for the job.
+func (b *BaseCronJob) Schedule() *CronScheduleDefinition {
+	return b.scheduleDefinition
+}
+
+func (b *BaseCronJob) Run(_ Context) error {
+	return nil
+}
+
+// GetCronJobIdentifier returns the full job type identifier based on origin and source ID.
+// Returns an identifier string and an error if validation fails. The identifier will be
+// empty if validation fails.
+func GetCronJobIdentifier(origin string, sourceID string) string {
+	if sourceID == "" {
+		return ""
+	}
+
+	switch origin {
+	case JobOriginCore:
+		return fmt.Sprintf("%s.%s", JobNamespaceCore, sourceID)
+	case JobOriginPlugin:
+		return fmt.Sprintf("%s.%s", JobNamespacePlugin, sourceID)
+	default:
+		return ""
+	}
+}
+
+// Type returns the full job type identifier based on origin and source.
+func (b *BaseCronJob) Type() string {
+	return GetCronJobIdentifier(b.origin, b.sourceID)
+}
+
+// CronJob defines the interface for a cron job.
+type CronJob interface {
+	// ID returns a unique identifier for the job.
+	ID() uuid.UUID
+
+	// Origin returns whether job is from core or plugin
+	Origin() string // 'core' or 'plugin'
+
+	// SourceID returns plugin_id for plugins or subsystem for core
+	SourceID() string
+
+	// DisplayName returns localized human-readable name
+	DisplayName() string
+
+	// Run executes the job logic.
+	Run(ctx Context) error
+
+	// Schedule returns the schedule definition for the job.
+	Schedule() *CronScheduleDefinition
+
+	// Args returns the arguments for the job.
+	Args() any
+	// SetArgs sets the arguments for the job.
+	SetArgs(args any)
+
+	// Type returns the full job type identifier based on origin and source
+	Type() string
+
+	// Job returns the underlying gocron.Job instance
+	Job() gocron.Job
+
+	// SetJob sets the underlying gocron.Job instance
+	SetJob(job gocron.Job)
+
+	// Done returns a channel that will be closed when the job completes execution.
+	// This can be used to wait for job completion or detect when a one-time job finishes.
+	// For recurring jobs, the channel is closed after each execution.
+	Done() <-chan struct{}
+	// SetDone sets the done channel for the job
+	SetDone(done <-chan struct{})
+}
+
+const (
+	// JobOriginCore indicates that the job originated from the core system.
+	JobOriginCore = "core"
+	// JobOriginPlugin indicates that the job originated from a plugin.
+	JobOriginPlugin = "plugin"
+)
+
+// CronTaskFunc defines the function signature for cron tasks.
+type CronTaskFunc func(ctx Context, jobID uuid.UUID) error
+
+// JobLogField returns a standardized zap.Field for job logging.
+func JobLogField(job CronJob) zap.Field {
+	return zap.String("job", fmt.Sprintf("%s/%s", job.Origin(), job.ID()))
+}
+
+// CronService defines the interface for managing cron jobs.
+type CronService interface {
+	// Start starts the scheduler.
+	Start() error
+	// Stop stops the scheduler.
+	Stop() error
+
+	// RegisterEntity registers a Cronable entity (like a service) that has cron jobs to register.
+	// The entity must implement both RegisterTasks() and ScheduleJobs() methods.
+	RegisterEntity(entity Cronable)
+
+	// RegisterJobType registers a job type with optional default schedule.
+	RegisterJobType(jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
+
+	// RegisterJob registers a fully configured job instance.
+	RegisterJob(job CronJob) error
+
+	// RegisterPluginJobs registers all cron jobs from a plugin.
+	RegisterPluginJobs(plugin PluginInfo) error
+
+	// RunJob manually triggers a job by its ID.
+	RunJob(id uuid.UUID) error
+
+	// GetActiveJob returns an active cron job by its UUID if it exists.
+	GetActiveJob(jobID uuid.UUID) (CronJob, bool, error)
+
+	// GetScheduleRegistry provides access to schedule registry.
+	ScheduleRegistry() CronScheduleRegistry
+
+	// GetJobFactory provides access to job factory.
+	JobFactory() CronJobFactory
+
+	// StateMachine provides access to the state machine.
+	StateMachine() CronJobStateMachine
+
+	// Monitor provides access to the cron job monitor.
+	Monitor() CronMonitor
+
+	// Coordinator provides access to the cron coordinator.
+	Coordinator() CronCoordinator
+
+	// Service provides access to the base service interface.
+	Service
+}
+
+// CronCoordinator handles all cron coordination regardless of mode.
+type CronCoordinator interface {
+	// SetHeartbeat sets the heartbeat for a job.
+	SetHeartbeat(jobID uuid.UUID) error
+	// CheckHeartbeat checks the heartbeat for a job.
+	CheckHeartbeat(jobID uuid.UUID) (bool, error)
+
+	// EnqueueJob enqueues a job for execution.
+	EnqueueJob(jobID uuid.UUID) error
+	// CreateJobFromDB creates a CronJob instance from the database.
+	CreateJobFromDB(jobID uuid.UUID) (CronJob, error)
+	// HandleFailedJob handles a failed job.
+	HandleFailedJob(jobID uuid.UUID, failures uint) error
+
+	// SetupJob performs setup tasks for a job.
+	SetupJob(jobID uuid.UUID) error
+	// CleanupJob performs cleanup tasks for a job.
+	CleanupJob(jobID uuid.UUID) error
+	// ExecuteJob executes a job.
+	ExecuteJob(jobID uuid.UUID) error
+	// JobContext returns the context for a job.
+	JobContext(jobID uuid.UUID) context.Context
+
+	// Jobs returns all scheduled jobs.
+	Jobs() []gocron.Job
+
+	// Start starts the coordinator.
+	Start() error
+	// Close closes the coordinator.
+	Close() error
+}
+
+// CronJobFactoryFunc defines a function signature for creating CronJob instances.
+type CronJobFactoryFunc func() (CronJob, error)
+
+// CronJobFactory defines a factory for creating CronJob instances based on their type.
+type CronJobFactory interface {
+	// CreateJob creates a new CronJob instance of the specified type.
+	CreateJob(jobType string) (CronJob, error)
+	// RegisterFactory registers a factory function for a given job type.
+	RegisterFactory(jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
+	// GetDefaultSchedule retrieves the default schedule for a given job type.
+	GetDefaultSchedule(jobType string) (*CronScheduleDefinition, bool)
+}
+
+// CronJobTriggerTransport handles distributing job triggers in cluster mode.
+type CronJobTriggerTransport interface {
+	// Publish publishes a job ID to trigger its execution.
+	Publish(jobID uuid.UUID) error
+	// Subscribe subscribes to job trigger events and calls the handler function when a job ID is received.
+	Subscribe(handler func(jobID uuid.UUID)) error
+	// Close closes the trigger transport.
+	Close() error
+}
+
+// CronRedisConnector provides shared Redis connection management.
+type CronRedisConnector interface {
+	// GetConnection returns the Redis connection.
+	GetConnection() rmq.Connection
+	// Close closes the Redis connection.
+	Close() error
+}
+
+// RedisTriggerService handles job trigger distribution.
+type RedisTriggerService interface {
+	CronJobTriggerTransport
+	CronHeartbeatService
+}
+
+// CronRedisQueueService handles job execution queuing.
+type CronRedisQueueService interface {
+	// Enqueue enqueues a message onto a queue.
+	Enqueue(queueName string, message []byte) error
+	// StartConsuming begins consuming messages from the queue
+	StartConsuming(handler func([]byte) error) error
+	// Close cleans up queue resources
+	Close() error
+}
+
+// CronHeartbeatService handles job heartbeat tracking.
+type CronHeartbeatService interface {
+	// SetHeartbeat sets the heartbeat for a job.
+	SetHeartbeat(jobID uuid.UUID) error
+	// CheckHeartbeat checks the heartbeat for a job.
+	CheckHeartbeat(jobID uuid.UUID) (bool, error)
+}
+
+// CronMonitor handles monitoring and maintenance of cron jobs.
+type CronStateOption func(*CronStateParams)
+
+// CronStateParams holds parameters for cron job state transitions.
+type CronStateParams struct {
+	lastRun   bool
+	failures  int
+	heartbeat bool
+}
+
+// LastRun returns whether the job was last run.
+func (p *CronStateParams) LastRun() bool {
+	return p.lastRun
+}
+
+// Failures returns the number of failures for the job.
+func (p *CronStateParams) Failures() int {
+	return p.failures
+}
+
+// Heartbeat returns whether the job has a heartbeat.
+func (p *CronStateParams) Heartbeat() bool {
+	return p.heartbeat
+}
+
+// WithCronLastRun sets the lastRun parameter for a CronStateParams.
+func WithCronLastRun() CronStateOption {
+	return func(p *CronStateParams) {
+		p.lastRun = true
+	}
+}
+
+// WithCronFailures sets the failures parameter for a CronStateParams.
+func WithCronFailures(count int) CronStateOption {
+	return func(p *CronStateParams) {
+		p.failures = count
+	}
+}
+
+// WithCronHeartbeat sets the heartbeat parameter for a CronStateParams.
+func WithCronHeartbeat() CronStateOption {
+	return func(p *CronStateParams) {
+		p.heartbeat = true
+	}
+}
+
+// CronMonitor defines the interface for monitoring cron jobs.
+type CronMonitor interface {
+	// CleanupOrphanedJobs removes jobs from plugins that no longer exist.
+	CleanupOrphanedJobs() (int, error)
+
+	// ProcessDeadJobs detects and handles jobs that appear to be dead/stuck.
+	RequeueStuckJobs() error
+
+	// CleanupCompletedJobs removes old completed one-time jobs.
+	CleanupCompletedJobs() error
+
+	// StartMonitoring begins monitoring cron jobs.
+	StartMonitoring() error
+
+	// StopMonitoring stops all monitoring activities.
+	StopMonitoring() error
+
+	// SignalMaintenance signals the monitor to perform maintenance tasks.
+	SignalMaintenance()
+
+	// StartHeartbeat starts periodic heartbeats for a job.
+	StartHeartbeat(jobID uuid.UUID)
+
+	// StopHeartbeat stops heartbeats for a job.
+	StopHeartbeat(jobID uuid.UUID)
+
+	// CheckHeartbeat verifies if a job's heartbeat is still active.
+	CheckHeartbeat(jobID uuid.UUID) (bool, error)
+}
+
+// CronJobStateMachine handles state transitions for cron jobs.
+type CronJobStateMachine interface {
+	// Transition validates and performs state transitions for a job.
+	Transition(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...CronStateOption) error
+
+	// IsValidTransition checks if a state transition is valid.
+	IsValidTransition(current, new models.CronJobState) bool
+
+	// RemoveStateMachine removes the state machine for a job.
+	RemoveStateMachine(jobID uuid.UUID)
+}
+
+// CronJobStateMachineRegistry manages FSM instances for cron jobs.
+type CronJobStateMachineRegistry interface {
+	// GetOrCreate gets or creates an FSM instance for a job.
+	GetOrCreate(jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error)
+
+	// Remove removes an FSM instance for a job.
+	Remove(jobID uuid.UUID)
+}
+
+// PluginHasCron checks if a plugin has cron jobs.
+func PluginHasCron(plugin PluginInfo) bool {
+	return len(plugin.CronJobs) > 0
 }
