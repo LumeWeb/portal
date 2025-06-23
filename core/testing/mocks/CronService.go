@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/models"
 )
 
 // NewMockCronService creates a new instance of MockCronService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -38,35 +37,98 @@ func (_m *MockCronService) EXPECT() *MockCronService_Expecter {
 	return &MockCronService_Expecter{mock: &_m.Mock}
 }
 
-// CreateExistingJobScheduled provides a mock function for the type MockCronService
-func (_mock *MockCronService) CreateExistingJobScheduled(uuid1 uuid.UUID) error {
-	ret := _mock.Called(uuid1)
+// Coordinator provides a mock function for the type MockCronService
+func (_mock *MockCronService) Coordinator() core.CronCoordinator {
+	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateExistingJobScheduled")
+		panic("no return value specified for Coordinator")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(uuid1)
+	var r0 core.CronCoordinator
+	if returnFunc, ok := ret.Get(0).(func() core.CronCoordinator); ok {
+		r0 = returnFunc()
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronCoordinator)
+		}
 	}
 	return r0
 }
 
-// MockCronService_CreateExistingJobScheduled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateExistingJobScheduled'
-type MockCronService_CreateExistingJobScheduled_Call struct {
+// MockCronService_Coordinator_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Coordinator'
+type MockCronService_Coordinator_Call struct {
 	*mock.Call
 }
 
-// CreateExistingJobScheduled is a helper method to define mock.On call
-//   - uuid1 uuid.UUID
-func (_e *MockCronService_Expecter) CreateExistingJobScheduled(uuid1 interface{}) *MockCronService_CreateExistingJobScheduled_Call {
-	return &MockCronService_CreateExistingJobScheduled_Call{Call: _e.mock.On("CreateExistingJobScheduled", uuid1)}
+// Coordinator is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Coordinator() *MockCronService_Coordinator_Call {
+	return &MockCronService_Coordinator_Call{Call: _e.mock.On("Coordinator")}
 }
 
-func (_c *MockCronService_CreateExistingJobScheduled_Call) Run(run func(uuid1 uuid.UUID)) *MockCronService_CreateExistingJobScheduled_Call {
+func (_c *MockCronService_Coordinator_Call) Run(run func()) *MockCronService_Coordinator_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Coordinator_Call) Return(cronCoordinator core.CronCoordinator) *MockCronService_Coordinator_Call {
+	_c.Call.Return(cronCoordinator)
+	return _c
+}
+
+func (_c *MockCronService_Coordinator_Call) RunAndReturn(run func() core.CronCoordinator) *MockCronService_Coordinator_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetActiveJob provides a mock function for the type MockCronService
+func (_mock *MockCronService) GetActiveJob(jobID uuid.UUID) (core.CronJob, bool, error) {
+	ret := _mock.Called(jobID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveJob")
+	}
+
+	var r0 core.CronJob
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (core.CronJob, bool, error)); ok {
+		return returnFunc(jobID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) core.CronJob); ok {
+		r0 = returnFunc(jobID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronJob)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) bool); ok {
+		r1 = returnFunc(jobID)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+	if returnFunc, ok := ret.Get(2).(func(uuid.UUID) error); ok {
+		r2 = returnFunc(jobID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockCronService_GetActiveJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetActiveJob'
+type MockCronService_GetActiveJob_Call struct {
+	*mock.Call
+}
+
+// GetActiveJob is a helper method to define mock.On call
+//   - jobID uuid.UUID
+func (_e *MockCronService_Expecter) GetActiveJob(jobID interface{}) *MockCronService_GetActiveJob_Call {
+	return &MockCronService_GetActiveJob_Call{Call: _e.mock.On("GetActiveJob", jobID)}
+}
+
+func (_c *MockCronService_GetActiveJob_Call) Run(run func(jobID uuid.UUID)) *MockCronService_GetActiveJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 uuid.UUID
 		if args[0] != nil {
@@ -79,240 +141,12 @@ func (_c *MockCronService_CreateExistingJobScheduled_Call) Run(run func(uuid1 uu
 	return _c
 }
 
-func (_c *MockCronService_CreateExistingJobScheduled_Call) Return(err error) *MockCronService_CreateExistingJobScheduled_Call {
-	_c.Call.Return(err)
+func (_c *MockCronService_GetActiveJob_Call) Return(cronJob core.CronJob, b bool, err error) *MockCronService_GetActiveJob_Call {
+	_c.Call.Return(cronJob, b, err)
 	return _c
 }
 
-func (_c *MockCronService_CreateExistingJobScheduled_Call) RunAndReturn(run func(uuid1 uuid.UUID) error) *MockCronService_CreateExistingJobScheduled_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) CreateJob(function string, args any) error {
-	ret := _mock.Called(function, args)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateJob")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
-		r0 = returnFunc(function, args)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockCronService_CreateJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJob'
-type MockCronService_CreateJob_Call struct {
-	*mock.Call
-}
-
-// CreateJob is a helper method to define mock.On call
-//   - function string
-//   - args any
-func (_e *MockCronService_Expecter) CreateJob(function interface{}, args interface{}) *MockCronService_CreateJob_Call {
-	return &MockCronService_CreateJob_Call{Call: _e.mock.On("CreateJob", function, args)}
-}
-
-func (_c *MockCronService_CreateJob_Call) Run(run func(function string, args any)) *MockCronService_CreateJob_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 any
-		if args[1] != nil {
-			arg1 = args[1].(any)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockCronService_CreateJob_Call) Return(err error) *MockCronService_CreateJob_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockCronService_CreateJob_Call) RunAndReturn(run func(function string, args any) error) *MockCronService_CreateJob_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateJobIfNotExists provides a mock function for the type MockCronService
-func (_mock *MockCronService) CreateJobIfNotExists(function string, args any) error {
-	ret := _mock.Called(function, args)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateJobIfNotExists")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
-		r0 = returnFunc(function, args)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockCronService_CreateJobIfNotExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobIfNotExists'
-type MockCronService_CreateJobIfNotExists_Call struct {
-	*mock.Call
-}
-
-// CreateJobIfNotExists is a helper method to define mock.On call
-//   - function string
-//   - args any
-func (_e *MockCronService_Expecter) CreateJobIfNotExists(function interface{}, args interface{}) *MockCronService_CreateJobIfNotExists_Call {
-	return &MockCronService_CreateJobIfNotExists_Call{Call: _e.mock.On("CreateJobIfNotExists", function, args)}
-}
-
-func (_c *MockCronService_CreateJobIfNotExists_Call) Run(run func(function string, args any)) *MockCronService_CreateJobIfNotExists_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 any
-		if args[1] != nil {
-			arg1 = args[1].(any)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockCronService_CreateJobIfNotExists_Call) Return(err error) *MockCronService_CreateJobIfNotExists_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockCronService_CreateJobIfNotExists_Call) RunAndReturn(run func(function string, args any) error) *MockCronService_CreateJobIfNotExists_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateJobScheduled provides a mock function for the type MockCronService
-func (_mock *MockCronService) CreateJobScheduled(function string, args any) error {
-	ret := _mock.Called(function, args)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateJobScheduled")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
-		r0 = returnFunc(function, args)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockCronService_CreateJobScheduled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobScheduled'
-type MockCronService_CreateJobScheduled_Call struct {
-	*mock.Call
-}
-
-// CreateJobScheduled is a helper method to define mock.On call
-//   - function string
-//   - args any
-func (_e *MockCronService_Expecter) CreateJobScheduled(function interface{}, args interface{}) *MockCronService_CreateJobScheduled_Call {
-	return &MockCronService_CreateJobScheduled_Call{Call: _e.mock.On("CreateJobScheduled", function, args)}
-}
-
-func (_c *MockCronService_CreateJobScheduled_Call) Run(run func(function string, args any)) *MockCronService_CreateJobScheduled_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 any
-		if args[1] != nil {
-			arg1 = args[1].(any)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockCronService_CreateJobScheduled_Call) Return(err error) *MockCronService_CreateJobScheduled_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockCronService_CreateJobScheduled_Call) RunAndReturn(run func(function string, args any) error) *MockCronService_CreateJobScheduled_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateRecurringOneOffJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) CreateRecurringOneOffJob(function string, args any) error {
-	ret := _mock.Called(function, args)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateRecurringOneOffJob")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, any) error); ok {
-		r0 = returnFunc(function, args)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockCronService_CreateRecurringOneOffJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateRecurringOneOffJob'
-type MockCronService_CreateRecurringOneOffJob_Call struct {
-	*mock.Call
-}
-
-// CreateRecurringOneOffJob is a helper method to define mock.On call
-//   - function string
-//   - args any
-func (_e *MockCronService_Expecter) CreateRecurringOneOffJob(function interface{}, args interface{}) *MockCronService_CreateRecurringOneOffJob_Call {
-	return &MockCronService_CreateRecurringOneOffJob_Call{Call: _e.mock.On("CreateRecurringOneOffJob", function, args)}
-}
-
-func (_c *MockCronService_CreateRecurringOneOffJob_Call) Run(run func(function string, args any)) *MockCronService_CreateRecurringOneOffJob_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 any
-		if args[1] != nil {
-			arg1 = args[1].(any)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockCronService_CreateRecurringOneOffJob_Call) Return(err error) *MockCronService_CreateRecurringOneOffJob_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockCronService_CreateRecurringOneOffJob_Call) RunAndReturn(run func(function string, args any) error) *MockCronService_CreateRecurringOneOffJob_Call {
+func (_c *MockCronService_GetActiveJob_Call) RunAndReturn(run func(jobID uuid.UUID) (core.CronJob, bool, error)) *MockCronService_GetActiveJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -361,70 +195,94 @@ func (_c *MockCronService_ID_Call) RunAndReturn(run func() string) *MockCronServ
 	return _c
 }
 
-// JobExists provides a mock function for the type MockCronService
-func (_mock *MockCronService) JobExists(function string, args any) (bool, *models.CronJob) {
-	ret := _mock.Called(function, args)
+// JobFactory provides a mock function for the type MockCronService
+func (_mock *MockCronService) JobFactory() core.CronJobFactory {
+	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for JobExists")
+		panic("no return value specified for JobFactory")
 	}
 
-	var r0 bool
-	var r1 *models.CronJob
-	if returnFunc, ok := ret.Get(0).(func(string, any) (bool, *models.CronJob)); ok {
-		return returnFunc(function, args)
-	}
-	if returnFunc, ok := ret.Get(0).(func(string, any) bool); ok {
-		r0 = returnFunc(function, args)
+	var r0 core.CronJobFactory
+	if returnFunc, ok := ret.Get(0).(func() core.CronJobFactory); ok {
+		r0 = returnFunc()
 	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	if returnFunc, ok := ret.Get(1).(func(string, any) *models.CronJob); ok {
-		r1 = returnFunc(function, args)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*models.CronJob)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronJobFactory)
 		}
 	}
-	return r0, r1
+	return r0
 }
 
-// MockCronService_JobExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'JobExists'
-type MockCronService_JobExists_Call struct {
+// MockCronService_JobFactory_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'JobFactory'
+type MockCronService_JobFactory_Call struct {
 	*mock.Call
 }
 
-// JobExists is a helper method to define mock.On call
-//   - function string
-//   - args any
-func (_e *MockCronService_Expecter) JobExists(function interface{}, args interface{}) *MockCronService_JobExists_Call {
-	return &MockCronService_JobExists_Call{Call: _e.mock.On("JobExists", function, args)}
+// JobFactory is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) JobFactory() *MockCronService_JobFactory_Call {
+	return &MockCronService_JobFactory_Call{Call: _e.mock.On("JobFactory")}
 }
 
-func (_c *MockCronService_JobExists_Call) Run(run func(function string, args any)) *MockCronService_JobExists_Call {
+func (_c *MockCronService_JobFactory_Call) Run(run func()) *MockCronService_JobFactory_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 any
-		if args[1] != nil {
-			arg1 = args[1].(any)
-		}
-		run(
-			arg0,
-			arg1,
-		)
+		run()
 	})
 	return _c
 }
 
-func (_c *MockCronService_JobExists_Call) Return(b bool, cronJob *models.CronJob) *MockCronService_JobExists_Call {
-	_c.Call.Return(b, cronJob)
+func (_c *MockCronService_JobFactory_Call) Return(cronJobFactory core.CronJobFactory) *MockCronService_JobFactory_Call {
+	_c.Call.Return(cronJobFactory)
 	return _c
 }
 
-func (_c *MockCronService_JobExists_Call) RunAndReturn(run func(function string, args any) (bool, *models.CronJob)) *MockCronService_JobExists_Call {
+func (_c *MockCronService_JobFactory_Call) RunAndReturn(run func() core.CronJobFactory) *MockCronService_JobFactory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Monitor provides a mock function for the type MockCronService
+func (_mock *MockCronService) Monitor() core.CronMonitor {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Monitor")
+	}
+
+	var r0 core.CronMonitor
+	if returnFunc, ok := ret.Get(0).(func() core.CronMonitor); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronMonitor)
+		}
+	}
+	return r0
+}
+
+// MockCronService_Monitor_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Monitor'
+type MockCronService_Monitor_Call struct {
+	*mock.Call
+}
+
+// Monitor is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Monitor() *MockCronService_Monitor_Call {
+	return &MockCronService_Monitor_Call{Call: _e.mock.On("Monitor")}
+}
+
+func (_c *MockCronService_Monitor_Call) Run(run func()) *MockCronService_Monitor_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Monitor_Call) Return(cronMonitor core.CronMonitor) *MockCronService_Monitor_Call {
+	_c.Call.Return(cronMonitor)
+	return _c
+}
+
+func (_c *MockCronService_Monitor_Call) RunAndReturn(run func() core.CronMonitor) *MockCronService_Monitor_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -469,67 +327,265 @@ func (_c *MockCronService_RegisterEntity_Call) RunAndReturn(run func(entity core
 	return _c
 }
 
-// RegisterTask provides a mock function for the type MockCronService
-func (_mock *MockCronService) RegisterTask(name string, taskFunc core.CronTaskFunction[core.CronTaskArgs], taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool) {
-	_mock.Called(name, taskFunc, taskDefFunc, taskArgFunc, recurring)
-	return
+// RegisterJob provides a mock function for the type MockCronService
+func (_mock *MockCronService) RegisterJob(job core.CronJob) error {
+	ret := _mock.Called(job)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterJob")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(core.CronJob) error); ok {
+		r0 = returnFunc(job)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
 }
 
-// MockCronService_RegisterTask_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterTask'
-type MockCronService_RegisterTask_Call struct {
+// MockCronService_RegisterJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterJob'
+type MockCronService_RegisterJob_Call struct {
 	*mock.Call
 }
 
-// RegisterTask is a helper method to define mock.On call
-//   - name string
-//   - taskFunc core.CronTaskFunction[core.CronTaskArgs]
-//   - taskDefFunc core.CronTaskDefArgsFactoryFunction
-//   - taskArgFunc core.CronTaskArgsFactoryFunction
-//   - recurring bool
-func (_e *MockCronService_Expecter) RegisterTask(name interface{}, taskFunc interface{}, taskDefFunc interface{}, taskArgFunc interface{}, recurring interface{}) *MockCronService_RegisterTask_Call {
-	return &MockCronService_RegisterTask_Call{Call: _e.mock.On("RegisterTask", name, taskFunc, taskDefFunc, taskArgFunc, recurring)}
+// RegisterJob is a helper method to define mock.On call
+//   - job core.CronJob
+func (_e *MockCronService_Expecter) RegisterJob(job interface{}) *MockCronService_RegisterJob_Call {
+	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", job)}
 }
 
-func (_c *MockCronService_RegisterTask_Call) Run(run func(name string, taskFunc core.CronTaskFunction[core.CronTaskArgs], taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool)) *MockCronService_RegisterTask_Call {
+func (_c *MockCronService_RegisterJob_Call) Run(run func(job core.CronJob)) *MockCronService_RegisterJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 core.CronJob
 		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 core.CronTaskFunction[core.CronTaskArgs]
-		if args[1] != nil {
-			arg1 = args[1].(core.CronTaskFunction[core.CronTaskArgs])
-		}
-		var arg2 core.CronTaskDefArgsFactoryFunction
-		if args[2] != nil {
-			arg2 = args[2].(core.CronTaskDefArgsFactoryFunction)
-		}
-		var arg3 core.CronTaskArgsFactoryFunction
-		if args[3] != nil {
-			arg3 = args[3].(core.CronTaskArgsFactoryFunction)
-		}
-		var arg4 bool
-		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg0 = args[0].(core.CronJob)
 		}
 		run(
 			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *MockCronService_RegisterTask_Call) Return() *MockCronService_RegisterTask_Call {
-	_c.Call.Return()
+func (_c *MockCronService_RegisterJob_Call) Return(err error) *MockCronService_RegisterJob_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockCronService_RegisterTask_Call) RunAndReturn(run func(name string, taskFunc core.CronTaskFunction[core.CronTaskArgs], taskDefFunc core.CronTaskDefArgsFactoryFunction, taskArgFunc core.CronTaskArgsFactoryFunction, recurring bool)) *MockCronService_RegisterTask_Call {
-	_c.Run(run)
+func (_c *MockCronService_RegisterJob_Call) RunAndReturn(run func(job core.CronJob) error) *MockCronService_RegisterJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RegisterJobType provides a mock function for the type MockCronService
+func (_mock *MockCronService) RegisterJobType(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
+	ret := _mock.Called(jobType, factory, defaultSchedule)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterJobType")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, core.CronJobFactoryFunc, *core.CronScheduleDefinition) error); ok {
+		r0 = returnFunc(jobType, factory, defaultSchedule)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockCronService_RegisterJobType_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterJobType'
+type MockCronService_RegisterJobType_Call struct {
+	*mock.Call
+}
+
+// RegisterJobType is a helper method to define mock.On call
+//   - jobType string
+//   - factory core.CronJobFactoryFunc
+//   - defaultSchedule *core.CronScheduleDefinition
+func (_e *MockCronService_Expecter) RegisterJobType(jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronService_RegisterJobType_Call {
+	return &MockCronService_RegisterJobType_Call{Call: _e.mock.On("RegisterJobType", jobType, factory, defaultSchedule)}
+}
+
+func (_c *MockCronService_RegisterJobType_Call) Run(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition)) *MockCronService_RegisterJobType_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 core.CronJobFactoryFunc
+		if args[1] != nil {
+			arg1 = args[1].(core.CronJobFactoryFunc)
+		}
+		var arg2 *core.CronScheduleDefinition
+		if args[2] != nil {
+			arg2 = args[2].(*core.CronScheduleDefinition)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_RegisterJobType_Call) Return(err error) *MockCronService_RegisterJobType_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockCronService_RegisterJobType_Call) RunAndReturn(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error) *MockCronService_RegisterJobType_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RegisterPluginJobs provides a mock function for the type MockCronService
+func (_mock *MockCronService) RegisterPluginJobs(plugin core.PluginInfo) error {
+	ret := _mock.Called(plugin)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterPluginJobs")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(core.PluginInfo) error); ok {
+		r0 = returnFunc(plugin)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockCronService_RegisterPluginJobs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterPluginJobs'
+type MockCronService_RegisterPluginJobs_Call struct {
+	*mock.Call
+}
+
+// RegisterPluginJobs is a helper method to define mock.On call
+//   - plugin core.PluginInfo
+func (_e *MockCronService_Expecter) RegisterPluginJobs(plugin interface{}) *MockCronService_RegisterPluginJobs_Call {
+	return &MockCronService_RegisterPluginJobs_Call{Call: _e.mock.On("RegisterPluginJobs", plugin)}
+}
+
+func (_c *MockCronService_RegisterPluginJobs_Call) Run(run func(plugin core.PluginInfo)) *MockCronService_RegisterPluginJobs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.PluginInfo
+		if args[0] != nil {
+			arg0 = args[0].(core.PluginInfo)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_RegisterPluginJobs_Call) Return(err error) *MockCronService_RegisterPluginJobs_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockCronService_RegisterPluginJobs_Call) RunAndReturn(run func(plugin core.PluginInfo) error) *MockCronService_RegisterPluginJobs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RunJob provides a mock function for the type MockCronService
+func (_mock *MockCronService) RunJob(id uuid.UUID) error {
+	ret := _mock.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RunJob")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
+		r0 = returnFunc(id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockCronService_RunJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RunJob'
+type MockCronService_RunJob_Call struct {
+	*mock.Call
+}
+
+// RunJob is a helper method to define mock.On call
+//   - id uuid.UUID
+func (_e *MockCronService_Expecter) RunJob(id interface{}) *MockCronService_RunJob_Call {
+	return &MockCronService_RunJob_Call{Call: _e.mock.On("RunJob", id)}
+}
+
+func (_c *MockCronService_RunJob_Call) Run(run func(id uuid.UUID)) *MockCronService_RunJob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 uuid.UUID
+		if args[0] != nil {
+			arg0 = args[0].(uuid.UUID)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_RunJob_Call) Return(err error) *MockCronService_RunJob_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockCronService_RunJob_Call) RunAndReturn(run func(id uuid.UUID) error) *MockCronService_RunJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ScheduleRegistry provides a mock function for the type MockCronService
+func (_mock *MockCronService) ScheduleRegistry() core.CronScheduleRegistry {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ScheduleRegistry")
+	}
+
+	var r0 core.CronScheduleRegistry
+	if returnFunc, ok := ret.Get(0).(func() core.CronScheduleRegistry); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronScheduleRegistry)
+		}
+	}
+	return r0
+}
+
+// MockCronService_ScheduleRegistry_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ScheduleRegistry'
+type MockCronService_ScheduleRegistry_Call struct {
+	*mock.Call
+}
+
+// ScheduleRegistry is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) ScheduleRegistry() *MockCronService_ScheduleRegistry_Call {
+	return &MockCronService_ScheduleRegistry_Call{Call: _e.mock.On("ScheduleRegistry")}
+}
+
+func (_c *MockCronService_ScheduleRegistry_Call) Run(run func()) *MockCronService_ScheduleRegistry_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_ScheduleRegistry_Call) Return(cronScheduleRegistry core.CronScheduleRegistry) *MockCronService_ScheduleRegistry_Call {
+	_c.Call.Return(cronScheduleRegistry)
+	return _c
+}
+
+func (_c *MockCronService_ScheduleRegistry_Call) RunAndReturn(run func() core.CronScheduleRegistry) *MockCronService_ScheduleRegistry_Call {
+	_c.Call.Return(run)
 	return _c
 }
 
@@ -573,6 +629,96 @@ func (_c *MockCronService_Start_Call) Return(err error) *MockCronService_Start_C
 }
 
 func (_c *MockCronService_Start_Call) RunAndReturn(run func() error) *MockCronService_Start_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StateMachine provides a mock function for the type MockCronService
+func (_mock *MockCronService) StateMachine() core.CronJobStateMachine {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for StateMachine")
+	}
+
+	var r0 core.CronJobStateMachine
+	if returnFunc, ok := ret.Get(0).(func() core.CronJobStateMachine); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.CronJobStateMachine)
+		}
+	}
+	return r0
+}
+
+// MockCronService_StateMachine_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StateMachine'
+type MockCronService_StateMachine_Call struct {
+	*mock.Call
+}
+
+// StateMachine is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) StateMachine() *MockCronService_StateMachine_Call {
+	return &MockCronService_StateMachine_Call{Call: _e.mock.On("StateMachine")}
+}
+
+func (_c *MockCronService_StateMachine_Call) Run(run func()) *MockCronService_StateMachine_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_StateMachine_Call) Return(cronJobStateMachine core.CronJobStateMachine) *MockCronService_StateMachine_Call {
+	_c.Call.Return(cronJobStateMachine)
+	return _c
+}
+
+func (_c *MockCronService_StateMachine_Call) RunAndReturn(run func() core.CronJobStateMachine) *MockCronService_StateMachine_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Stop provides a mock function for the type MockCronService
+func (_mock *MockCronService) Stop() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Stop")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockCronService_Stop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Stop'
+type MockCronService_Stop_Call struct {
+	*mock.Call
+}
+
+// Stop is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Stop() *MockCronService_Stop_Call {
+	return &MockCronService_Stop_Call{Call: _e.mock.On("Stop")}
+}
+
+func (_c *MockCronService_Stop_Call) Run(run func()) *MockCronService_Stop_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Stop_Call) Return(err error) *MockCronService_Stop_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockCronService_Stop_Call) RunAndReturn(run func() error) *MockCronService_Stop_Call {
 	_c.Call.Return(run)
 	return _c
 }

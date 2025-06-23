@@ -14,13 +14,17 @@ type PluginFactory func() PluginInfo
 
 type MailerTemplates map[string]MailerTemplate
 
-type CronFactory func(Context) (Cronable, error)
 type MetaFactory func(Context, PortalMetaBuilder) error
 type APIFactory func() (API, []ContextBuilderOption, error)
 type ProtocolFactory func() (Protocol, []ContextBuilderOption, error)
 type ServicesFactory func() ([]ServiceInfo, error)
 type APIExtensionsFactory func(Context) ([]APIExtensionFactory, error)
-type CronFactoryFactory func() CronFactory
+
+type PluginCronJob struct {
+	Name     string                  // Unique type identifier for the job
+	Factory  CronJobFactoryFunc      // Function to create the CronJob instance
+	Schedule *CronScheduleDefinition // Default schedule for the job
+}
 
 type PluginInfo struct {
 	ID              string
@@ -33,7 +37,7 @@ type PluginInfo struct {
 	Models          []any
 	Migrations      DBMigration
 	Depends         []string
-	Cron            CronFactoryFactory
+	CronJobs        []PluginCronJob
 	MailerTemplates MailerTemplates
 	WebBundles      []*WebBundle
 	TargetApps      []string
@@ -64,9 +68,9 @@ func RegisterPlugin(info PluginInfo) {
 	}
 
 	hasComponent := info.API != nil || info.Protocol != nil || info.Services != nil ||
-		info.APIExtensions != nil || len(info.WebBundles) > 0
+		info.APIExtensions != nil || len(info.WebBundles) > 0 || len(info.CronJobs) > 0
 	if !hasComponent {
-		panic("plugin must have at least one of API, Protocol, Service, APIExtension, or WebBundle")
+		panic("plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, or CronJob")
 	}
 
 	pluginsMu.Lock()
@@ -85,6 +89,7 @@ func RegisterPlugin(info PluginInfo) {
 
 	plugins[info.ID] = info
 }
+
 func GetProtocol(id string) Protocol {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
@@ -98,6 +103,26 @@ func GetProtocol(id string) Protocol {
 	return protocol
 }
 
+/*func UninstallPlugin(name string) error {
+	pluginsMu.Lock()
+	defer pluginsMu.Unlock()
+
+	if _, exists := plugins[name]; !exists {
+		return fmt.Errorf("plugin %s not found", name)
+	}
+
+	// Clean up plugin jobs first
+	ctx := GetContext() // Get global context
+	if cron := GetService[CronService](ctx, CRON_SERVICE); cron != nil {
+		if _, err := cron.CleanupOrphanedJobs(); err != nil {
+			return fmt.Errorf("failed to clean up plugin jobs: %w", err)
+		}
+	}
+
+	delete(plugins, name)
+	return nil
+}*/
+
 func ProtocolExists(id string) bool {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
@@ -110,14 +135,14 @@ func ProtocolExists(id string) bool {
 func GetPlugin(name string) PluginInfo {
 	pluginsMu.RLock()
 	defer pluginsMu.RUnlock()
+	return plugins[name] // Returns zero-value if not found
+}
 
-	plugin, ok := plugins[name]
-
-	if !ok {
-		return PluginInfo{}
-	}
-
-	return plugin
+func PluginExists(name string) bool {
+	pluginsMu.RLock()
+	defer pluginsMu.RUnlock()
+	_, ok := plugins[name]
+	return ok
 }
 
 func GetPlugins() []PluginInfo {

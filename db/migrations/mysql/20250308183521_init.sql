@@ -64,8 +64,11 @@ CREATE TABLE `cron_jobs`
     `updated_at`     datetime(3)     DEFAULT NULL,
     `deleted_at`     datetime(3)     DEFAULT NULL,
     `uuid`           binary(16)      DEFAULT NULL,
-    `function`       varchar(255)    DEFAULT NULL,
+    `origin`         varchar(8)      NOT NULL,
+    `source_id`      varchar(255)    NOT NULL,
+    `job_type`       varchar(255)    NOT NULL,
     `args`           longtext,
+    `sched_def`      longtext,
     `last_run`       datetime(3)     DEFAULT NULL,
     `failures`       bigint unsigned DEFAULT NULL,
     `state`          varchar(20)     DEFAULT 'queued',
@@ -73,7 +76,10 @@ CREATE TABLE `cron_jobs`
     `version`        bigint unsigned DEFAULT '0',
     PRIMARY KEY (`id`),
     UNIQUE KEY `idx_cron_jobs_uuid` (`uuid`),
-    KEY `idx_cron_jobs_deleted_at` (`deleted_at`)
+    KEY `idx_cron_jobs_deleted_at` (`deleted_at`),
+    KEY `idx_cron_jobs_origin` (`origin`),
+    KEY `idx_cron_jobs_source` (`source_id`),
+    KEY `idx_cron_jobs_type` (`job_type`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;

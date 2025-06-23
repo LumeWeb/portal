@@ -1,13 +1,35 @@
 package user
 
 import (
+	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
 )
 
-const CronTaskProcessAccountDeletionRequestsName = "ProcessAccountDeletionRequests"
+const (
+	ProcessAccountDeletionRequestsJobType = "user.process_account_deletion_requests"
+)
 
-func CronTaskProcessAccountDeletionRequests(_ *core.CronTaskNoArgs, ctx core.Context) error {
+type ProcessAccountDeletionRequestsJob struct {
+	*core.BaseCronJob
+}
+
+func NewProcessAccountDeletionRequestsJob() *ProcessAccountDeletionRequestsJob {
+	return &ProcessAccountDeletionRequestsJob{
+		BaseCronJob: core.NewBaseCronJob(
+			uuid.New(),
+			core.JobOriginCore,
+			ProcessAccountDeletionRequestsJobType,
+			"Process Account Deletion Requests",
+			&core.CronScheduleDefinition{
+				Type: core.CronScheduleTypeDaily,
+			},
+			nil, // No arguments needed
+		),
+	}
+}
+
+func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context) error {
 	logger := ctx.Logger()
 	userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 	pinService := core.GetService[core.PinService](ctx, core.PIN_SERVICE)
@@ -29,28 +51,36 @@ func CronTaskProcessAccountDeletionRequests(_ *core.CronTaskNoArgs, ctx core.Con
 		for _, uploadRequest := range uploadRequests {
 			err := requestService.DeleteRequest(ctx, uploadRequest.ID)
 			if err != nil {
-				logger.Error("Failed to delete request", zap.Uint("request_id", uploadRequest.ID), zap.Error(err))
+				logger.Error("Failed to delete request",
+					zap.Uint("request_id", uploadRequest.ID),
+					zap.Error(err))
 				continue
 			}
 		}
 
 		pins, err := pinService.AllAccountPins(request.ID)
 		if err != nil {
-			logger.Error("Failed to get account pins", zap.Uint("user_id", request.ID), zap.Error(err))
+			logger.Error("Failed to get account pins",
+				zap.Uint("user_id", request.ID),
+				zap.Error(err))
 			continue
 		}
 
 		for _, pin := range pins {
 			err = pinService.DeletePin(ctx, pin.ID)
 			if err != nil {
-				logger.Error("Failed to delete pin", zap.Uint("pin_id", pin.ID), zap.Error(err))
+				logger.Error("Failed to delete pin",
+					zap.Uint("pin_id", pin.ID),
+					zap.Error(err))
 				continue
 			}
 		}
 
 		err = userService.DeleteAccount(request.ID)
 		if err != nil {
-			logger.Error("Failed to delete account", zap.Uint("user_id", request.ID), zap.Error(err))
+			logger.Error("Failed to delete account",
+				zap.Uint("user_id", request.ID),
+				zap.Error(err))
 			continue
 		}
 	}

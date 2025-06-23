@@ -923,6 +923,51 @@ func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T]) Tes
 	}
 }
 
+// WithServiceFactory creates a TestContextBuilderOption that registers a real service
+// by calling a factory function during the startup phase. This allows services to be
+// created with the fully initialized test context for each test run.
+func WithServiceFactory(id string, factory core.ServiceFactory) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+
+		// Create the service instance using the test context
+		serviceInstance, ctxOpts, err := factory()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create service '%s': %w", id, err)
+		}
+
+		// Register a startup function that will create and register the service later
+		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
+			tctx, ok := coreCtx.(TestContext)
+			if !ok {
+				return fmt.Errorf("context is not a TestContext, cannot use WithServiceFactory")
+			}
+			// Ensure the created instance is not nil
+			if serviceInstance == nil {
+				return fmt.Errorf("service factory for '%s' returned nil", id)
+			}
+
+			// Register the created service in the context
+			if err := registerServiceInstance(tctx, id, serviceInstance); err != nil {
+				return fmt.Errorf("failed to register service: %w", err)
+			}
+
+			return nil
+		})
+
+		options, err := ProcessCtxOptions(ctx, WrapCoreOptions(ctxOpts)...)
+		if err != nil {
+			return nil, err
+		}
+
+		options, err = ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
+		if err != nil {
+			return nil, err
+		}
+
+		return options, nil
+	}
+}
+
 // --- Modular Mock Service Setup Functions ---
 
 // WithMockAccessService adds a mock AccessService to the test context.
@@ -952,16 +997,10 @@ func WithMockContentScannerService() TestContextBuilderOption {
 func WithMockCronService() TestContextBuilderOption {
 	return WithMockService(core.CRON_SERVICE, func(tb TB, _ TestContext) any {
 		_mock := mocks.NewMockCronService(tb)
-		_mock.On("RegisterEntity", mock.MatchedBy(func(arg interface{}) bool {
+		_mock.EXPECT().RegisterEntity(mock.MatchedBy(func(arg interface{}) bool {
 			_, ok := arg.(core.Cronable)
 			return ok
 		})).Maybe().Return()
-		_mock.On("RegisterTask", mock.AnythingOfType("string"),
-			mock.AnythingOfType("core.CronTaskFunction[core.CronTaskArgs]"),
-			mock.AnythingOfType("core.CronTaskDefArgsFactoryFunction"),
-			mock.AnythingOfType("core.CronTaskArgsFactoryFunction"),
-			mock.AnythingOfType("bool")).Maybe().Return()
-		_mock.On("ScheduleJobs", mock.AnythingOfType("core.CronService")).Maybe().Return(nil)
 		return _mock
 	})
 }

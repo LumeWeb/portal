@@ -124,16 +124,23 @@ CREATE TABLE `cron_jobs`
     `updated_at`     datetime,
     `deleted_at`     datetime,
     `uuid`           binary(16),
-    `function`       varchar(255),
-    `args`           longtext,
+    `origin`         varchar(8) NOT NULL,
+    `source_id`      text NOT NULL,
+    `job_type`       text NOT NULL,
+    `args`           text,
+    `sched_def`      text,
+    `schedule_type`  varchar(20),
     `last_run`       datetime,
     `failures`       integer,
     `state`          varchar(20) DEFAULT 'queued',
     `last_heartbeat` datetime,
-    `version`        integer     DEFAULT 0
+    `version`        integer DEFAULT 0
 );
 CREATE INDEX `idx_cron_jobs_deleted_at` ON `cron_jobs` (`deleted_at`);
 CREATE UNIQUE INDEX `idx_cron_jobs_uuid` ON `cron_jobs` (`uuid`);
+CREATE INDEX `idx_cron_jobs_origin` ON `cron_jobs` (`origin`);
+CREATE INDEX `idx_cron_jobs_source` ON `cron_jobs` (`source_id`);
+CREATE INDEX `idx_cron_jobs_type` ON `cron_jobs` (`job_type`);
 
 -- 3. Tables that depend on users table
 CREATE TABLE `uploads`
@@ -287,6 +294,9 @@ DROP TABLE IF EXISTS `cron_job_logs`;
 DROP TABLE IF EXISTS `account_deletions`;
 DROP TABLE IF EXISTS `requests`;
 DROP TABLE IF EXISTS `uploads`;
+DROP INDEX IF EXISTS `idx_cron_jobs_origin`;
+DROP INDEX IF EXISTS `idx_cron_jobs_source`;
+DROP INDEX IF EXISTS `idx_cron_jobs_type`;
 DROP TABLE IF EXISTS `cron_jobs`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `tus_locks`;
