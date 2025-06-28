@@ -10,10 +10,8 @@ var _ core.OTPService = (*OTPServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.OTP_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewOTPService()
-		},
+		ID:      core.OTP_SERVICE,
+		Factory: NewOTPService,
 		Depends: []string{core.USER_SERVICE},
 	})
 }
@@ -25,7 +23,7 @@ type OTPServiceDefault struct {
 	user   core.UserService
 }
 
-func NewOTPService() (*OTPServiceDefault, []core.ContextBuilderOption, error) {
+func NewOTPService() (core.Service, []core.ContextBuilderOption, error) {
 	otp := &OTPServiceDefault{}
 
 	opts := core.ContextOptions(
@@ -49,6 +47,9 @@ func (o OTPServiceDefault) OTPGenerate(userId uint) (string, error) {
 	exists, user, err := o.user.AccountExists(userId)
 
 	if !exists || err != nil {
+		if err == nil {
+			err = core.NewAccountError(core.ErrKeyUserNotFound, nil)
+		}
 		return "", err
 	}
 
@@ -70,6 +71,9 @@ func (o OTPServiceDefault) OTPVerify(userId uint, code string) (bool, error) {
 	exists, user, err := o.user.AccountExists(userId)
 
 	if !exists || err != nil {
+		if err == nil {
+			err = core.NewAccountError(core.ErrKeyUserNotFound, nil)
+		}
 		return false, err
 	}
 
@@ -95,5 +99,14 @@ func (o OTPServiceDefault) OTPEnable(userId uint, code string) error {
 }
 
 func (o OTPServiceDefault) OTPDisable(userId uint) error {
+	exists, _, err := o.user.AccountExists(userId)
+
+	if !exists || err != nil {
+		if err == nil {
+			err = core.NewAccountError(core.ErrKeyUserNotFound, nil)
+		}
+		return err
+	}
+
 	return o.user.UpdateAccountInfo(userId, map[string]interface{}{"otp_enabled": false, "otp_secret": ""})
 }

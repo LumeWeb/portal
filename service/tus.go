@@ -23,10 +23,8 @@ var _ core.TUSService = (*TUSServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.TUS_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewTUSService()
-		},
+		ID:      core.TUS_SERVICE,
+		Factory: NewTUSService,
 		Depends: []string{core.REQUEST_SERVICE},
 	})
 }
@@ -38,7 +36,7 @@ type TUSServiceDefault struct {
 	requests core.RequestService
 }
 
-func NewTUSService() (*TUSServiceDefault, []core.ContextBuilderOption, error) {
+func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {
 	storage := &TUSServiceDefault{}
 
 	opts := core.ContextOptions(

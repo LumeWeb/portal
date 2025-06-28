@@ -22,10 +22,8 @@ var _ core.Cronable = (*UserServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.USER_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewUserService()
-		},
+		ID:      core.USER_SERVICE,
+		Factory: NewUserService,
 		Depends: []string{core.MAILER_SERVICE, core.CRON_SERVICE},
 	})
 }
@@ -40,7 +38,7 @@ type UserServiceDefault struct {
 	access    core.AccessService
 }
 
-func NewUserService() (*UserServiceDefault, []core.ContextBuilderOption, error) {
+func NewUserService() (core.Service, []core.ContextBuilderOption, error) {
 	_user := &UserServiceDefault{}
 
 	opts := core.ContextOptions(
@@ -138,6 +136,15 @@ func (u UserServiceDefault) HashPassword(password string) (string, error) {
 }
 
 func (u UserServiceDefault) CreateAccount(email string, password string, verifyEmail bool) (*models.User, error) {
+	// First check if email already exists
+	exists, _, err := u.EmailExists(email)
+	if err != nil {
+		return nil, fmt.Errorf("error checking email existence: %w", err)
+	}
+	if exists {
+		return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
+	}
+
 	passwordHash, err := u.HashPassword(password)
 	if err != nil {
 		return nil, err

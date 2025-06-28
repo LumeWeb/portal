@@ -33,7 +33,7 @@ func TestJobCreator_CreateFromDB_Success(t *testing.T) {
 		mockJob := mocks.NewMockCronJob(tb)
 		mockFactory.On("CreateJob", "core.cron.integration-test-job").Return(mockJob, nil)
 		mockJob.On("Args").Return(&map[string]interface{}{"key": "value"})
-		mockJob.On("SetArgs", &map[string]interface{}{"key": "value"}).Return()
+		mockJob.On("SetArgs", map[string]interface{}{"key": "value"}).Return()
 
 		// Create JobCreator with real DB and context logger
 		creator := NewJobCreator(db, mockFactory, ctx.Logger())

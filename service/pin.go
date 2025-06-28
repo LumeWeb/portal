@@ -21,10 +21,8 @@ var _ core.PinService = (*PinServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.PIN_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewPinService()
-		},
+		ID:      core.PIN_SERVICE,
+		Factory: NewPinService,
 		Depends: []string{core.UPLOAD_SERVICE},
 	})
 }
@@ -36,7 +34,7 @@ type PinServiceDefault struct {
 	db       *gorm.DB
 	metadata core.UploadService
 	models   map[string]data_models.PinDataModel
-	mutex    sync.RWMutex
+	mutex    *sync.RWMutex
 }
 
 func (p *PinServiceDefault) RegisterPinModel(protocol string, model data_models.PinDataModel) {
@@ -61,7 +59,7 @@ func (p *PinServiceDefault) CreatePinModel(protocol string) (data_models.PinData
 	return model.NewInstance().(data_models.PinDataModel), nil
 }
 
-func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
+func NewPinService() (core.Service, []core.ContextBuilderOption, error) {
 	pinService := &PinServiceDefault{}
 
 	opts := core.ContextOptions(
@@ -71,6 +69,8 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 			pinService.config = ctx.Config()
 			pinService.db = ctx.DB()
 			pinService.metadata = core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
+			pinService.mutex = &sync.RWMutex{}
+			pinService.models = make(map[string]data_models.PinDataModel)
 			return nil
 		}),
 	)
@@ -78,11 +78,11 @@ func NewPinService() (*PinServiceDefault, []core.ContextBuilderOption, error) {
 	return pinService, opts, nil
 }
 
-func (p PinServiceDefault) ID() string {
+func (p *PinServiceDefault) ID() string {
 	return core.PIN_SERVICE
 }
 
-func (p PinServiceDefault) AllAccountPins(id uint) ([]*models.Pin, error) {
+func (p *PinServiceDefault) AllAccountPins(id uint) ([]*models.Pin, error) {
 	var pins []*models.Pin
 	if err := db.RetryableTransaction(p.ctx, p.db, func(tx *gorm.DB) *gorm.DB {
 		return tx.Where("user_id = ?", id).
@@ -95,7 +95,7 @@ func (p PinServiceDefault) AllAccountPins(id uint) ([]*models.Pin, error) {
 	return pins, nil
 }
 
-func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error) {
+func (p *PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error) {
 	ctx := context.Background()
 	filter := core.PinFilter{
 		UserID:       id,
@@ -120,7 +120,7 @@ func (p PinServiceDefault) AccountPins(id uint, createdAfter uint64) ([]*models.
 	return pins, nil
 }
 
-func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) error {
+func (p *PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) error {
 	ctx := context.Background()
 	pin, err := p.QueryPin(ctx, nil, core.PinFilter{
 		Hash:   hash,
@@ -136,7 +136,7 @@ func (p PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) e
 	return p.DeletePin(ctx, pin.ID)
 }
 
-func (p PinServiceDefault) PinByHash(hash core.StorageHash, userId uint, protocolData any) error {
+func (p *PinServiceDefault) PinByHash(hash core.StorageHash, userId uint, protocolData any) error {
 	ctx := context.Background()
 	upload, err := p.metadata.GetUpload(ctx, hash)
 	if err != nil {
@@ -152,7 +152,7 @@ func (p PinServiceDefault) PinByHash(hash core.StorageHash, userId uint, protoco
 	return err
 }
 
-func (p PinServiceDefault) PinByID(uploadId uint, userId uint, protocolData any) error {
+func (p *PinServiceDefault) PinByID(uploadId uint, userId uint, protocolData any) error {
 	ctx := context.Background()
 	pin := &models.Pin{
 		UserID:   userId,
@@ -163,11 +163,11 @@ func (p PinServiceDefault) PinByID(uploadId uint, userId uint, protocolData any)
 	return err
 }
 
-func (p PinServiceDefault) UploadPinnedGlobal(hash core.StorageHash) (bool, error) {
+func (p *PinServiceDefault) UploadPinnedGlobal(hash core.StorageHash) (bool, error) {
 	return p.UploadPinnedByUser(hash, 0)
 }
 
-func (p PinServiceDefault) UploadPinnedByUser(hash core.StorageHash, userId uint) (bool, error) {
+func (p *PinServiceDefault) UploadPinnedByUser(hash core.StorageHash, userId uint) (bool, error) {
 	ctx := context.Background()
 	upload, err := p.metadata.GetUpload(ctx, hash)
 	if err != nil {
@@ -193,7 +193,7 @@ func (p PinServiceDefault) UploadPinnedByUser(hash core.StorageHash, userId uint
 	return pin != nil, nil
 }
 
-func (p PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error) {
+func (p *PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error) {
 	var pins []*models.Pin
 	err := p.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
@@ -237,7 +237,7 @@ func (p *PinServiceDefault) CreatePin(ctx context.Context, pin *models.Pin, prot
 	return pin, nil
 }
 
-func (p PinServiceDefault) UpdatePin(ctx context.Context, pin *models.Pin) error {
+func (p *PinServiceDefault) UpdatePin(ctx context.Context, pin *models.Pin) error {
 	return p.ctx.DB().Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).Save(pin)

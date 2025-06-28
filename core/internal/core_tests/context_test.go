@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
@@ -222,34 +221,6 @@ func TestContextWithDB(t *testing.T) {
 		err := exitFunc(ctx)
 		assert.NoError(t, err)
 	}
-}
-
-func TestContextWithCron(t *testing.T) {
-	core.ResetState()
-	mockConfigManager := newMockConfigManager(t, nil)
-	mockLogger := core.NewLogger(mockConfigManager, nil)
-	mockCronable := mocks.NewMockCronable(t)
-	mockCronService := mocks.NewMockCronService(t)
-	mockCronService.On("RegisterEntity", mock.Anything).Return()
-
-	ctx, err := core.NewContext(mockConfigManager, mockLogger,
-		core.ContextWithService(core.CRON_SERVICE, mockCronService),
-		core.ContextWithCron(func(ctx core.Context) (core.Cronable, error) {
-			return mockCronable, nil
-		}),
-	)
-	assert.NoError(t, err)
-	assert.NotNil(t, ctx)
-
-	startupFuncs := ctx.StartupFuncs()
-	assert.Len(t, startupFuncs, 1) // The cron startup func
-
-	// Manually call the startup function to trigger registration
-	err = startupFuncs[0](ctx)
-	assert.NoError(t, err)
-
-	mockCronService.AssertExpectations(t)
-	mockConfigManager.AssertExpectations(t)
 }
 
 func TestProcessCtxOptions(t *testing.T) {

@@ -19,10 +19,8 @@ var _ core.RequestService = (*RequestServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.REQUEST_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewRequestService()
-		},
+		ID:      core.REQUEST_SERVICE,
+		Factory: NewRequestService,
 	})
 }
 
@@ -56,7 +54,7 @@ func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_model
 	return model.NewInstance().(data_models.RequestDataModel), nil
 }
 
-func NewRequestService() (*RequestServiceDefault, []core.ContextBuilderOption, error) {
+func NewRequestService() (core.Service, []core.ContextBuilderOption, error) {
 	req := &RequestServiceDefault{
 		models: make(map[string]data_models.RequestDataModel),
 	}

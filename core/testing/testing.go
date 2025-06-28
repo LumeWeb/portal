@@ -207,25 +207,7 @@ func ClearTestCaseContextOptions() {
 	testCaseCtxOpts = nil
 }
 
-// TB is an interface that both *testing.T and *testing.B satisfy
-type TB interface {
-	Helper()
-	Cleanup(func())
-	Error(args ...any)
-	Errorf(format string, args ...any)
-	Fail()
-	FailNow()
-	Failed() bool
-	Fatal(args ...any)
-	Fatalf(format string, args ...any)
-	Log(args ...any)
-	Logf(format string, args ...any)
-	Name() string
-	Skip(args ...any)
-	SkipNow()
-	Skipf(format string, args ...any)
-	Skipped() bool
-}
+type TB = testing.TB
 
 // TestContext extends core.Context with testing-specific methods
 type TestContext interface {
@@ -1782,7 +1764,18 @@ func ConfigureServices(ctx TestContext) error {
 		if err := configureService(ctx, svcInfo, svc); err != nil {
 			return err
 		}
+
+		if _, ok := svc.(core.ServiceInit); ok {
+			err := svc.(core.ServiceInit).Init()
+			if err != nil {
+				ctx.Logger().Error("Error initializing service",
+					zap.String("service", svcInfo.ID),
+					zap.Error(err))
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -2081,6 +2074,7 @@ func registerServiceInstance(ctx TestContext, id string, instance any) error {
 
 	// Register globally if it implements core.Service
 	if svc, ok := instance.(core.Service); ok {
+		core.UnregisterService(id)
 		core.RegisterService(core.ServiceInfo{
 			ID: id,
 			Factory: func() (core.Service, []core.ContextBuilderOption, error) {

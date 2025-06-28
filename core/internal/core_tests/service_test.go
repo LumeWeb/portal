@@ -263,6 +263,55 @@ func TestGetPluginForService(t *testing.T) {
 	assert.Equal(t, "", core.GetPluginForService("non-existent-service"))
 }
 
+func TestUnregisterService(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Register a service
+	service := newTestServiceInfo(t, "test-service")
+	core.RegisterService(service)
+
+	// Register a plugin service 
+	plugin := newTestPluginInfoWithComponent(t, "test-plugin", "Services")
+	core.RegisterPlugin(plugin)
+	pluginServices, _ := plugin.Services()
+	core.RegisterService(pluginServices[0], plugin.ID)
+
+	// Verify services exist
+	assert.NotNil(t, core.GetServiceInfo("test-service"))
+	assert.NotNil(t, core.GetServiceInfo("test-plugin-svc"))
+	assert.Equal(t, "test-plugin", core.GetPluginForService("test-plugin-svc"))
+
+	// Unregister the services
+	core.UnregisterService("test-service")
+	core.UnregisterService("test-plugin-svc")
+
+	// Verify services no longer exist
+	assert.Nil(t, core.GetServiceInfo("test-service"))
+	assert.Nil(t, core.GetServiceInfo("test-plugin-svc"))
+	assert.Equal(t, "", core.GetPluginForService("test-plugin-svc"))
+
+	// Verify plugin services map is cleaned up
+	pluginServicesMap := core.Unsafe_GetPluginServices()
+	pluginServicesMutex := core.Unsafe_GetPluginServicesMutex()
+
+	pluginServicesMutex.RLock()
+	defer pluginServicesMutex.RUnlock()
+	
+	servicesForPlugin, ok := pluginServicesMap["test-plugin"]
+	assert.False(t, ok || len(servicesForPlugin) > 0, "Plugin services map should be empty after unregister")
+}
+
+func TestUnregisterService_NotFound(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Try to unregister non-existent service - should not panic
+	assert.NotPanics(t, func() {
+		core.UnregisterService("non-existent-service")
+	})
+}
+
 func TestResetServices(t *testing.T) {
 	// Register some test services
 	service1 := newTestServiceInfo(t, "test-service-1")

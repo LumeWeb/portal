@@ -18,10 +18,8 @@ var _ core.ContentScannerService = (*ContentScannerServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.CONTENT_SCANNER_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewContentScannerService()
-		},
+		ID:      core.CONTENT_SCANNER_SERVICE,
+		Factory: NewContentScannerService,
 	})
 }
 
@@ -33,7 +31,7 @@ type ContentScannerServiceDefault struct {
 	scanners []core.ContentScanner
 }
 
-func NewContentScannerService() (*ContentScannerServiceDefault, []core.ContextBuilderOption, error) {
+func NewContentScannerService() (core.Service, []core.ContextBuilderOption, error) {
 	svc := &ContentScannerServiceDefault{
 		scanners: make([]core.ContentScanner, 0),
 	}
@@ -136,13 +134,13 @@ func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash 
 }
 
 func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id uint) (*core.ScanResult, error) {
-	var result *core.ScanResult
+	var result core.ScanResult
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).
 				Model(&models.ScanResult{}).
-				First(result, id)
+				First(&result, id)
 		})
 	})
 
@@ -150,7 +148,7 @@ func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id
 		return nil, fmt.Errorf("failed to get scan results: %w", err)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 func (s *ContentScannerServiceDefault) storeScanResult(ctx context.Context, hash core.StorageHash, result *core.ScanResult) error {

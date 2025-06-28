@@ -1,11 +1,11 @@
 package service
 
 import (
-	"embed"
 	"github.com/wneessen/go-mail"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	"io/fs"
+	"path"
 	"strings"
 	"text/template"
 )
@@ -66,7 +66,7 @@ func (m *Mailer) TemplateRegister(name string, template core.MailerTemplate) err
 	return nil
 }
 
-func NewMailerService(templateRegistry *mailer.TemplateRegistry) (*Mailer, []core.ContextBuilderOption, error) {
+func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, []core.ContextBuilderOption, error) {
 	m := &Mailer{
 		templateRegistry: templateRegistry,
 	}
@@ -124,13 +124,12 @@ func NewMailerTemplateRegistry() *mailer.TemplateRegistry {
 	return mailer.NewTemplateRegistry()
 }
 
-func MailerTemplatesFromEmbed(embed *embed.FS, prefix string) (map[string]core.MailerTemplate, error) {
+func MailerTemplatesFromEmbed(embed fs.FS, prefix string) (map[string]core.MailerTemplate, error) {
 	if prefix == "" {
 		prefix = mailer.EMAIL_FS_PREFIX
 	}
 
-	subjectTemplates, err := fs.Glob(embed, prefix+"*_subject*")
-
+	subjectTemplates, err := fs.Glob(embed, path.Join(prefix, "*_subject*"))
 	if err != nil {
 		return nil, err
 	}
@@ -138,12 +137,17 @@ func MailerTemplatesFromEmbed(embed *embed.FS, prefix string) (map[string]core.M
 	templates := make(map[string]core.MailerTemplate)
 
 	for _, subjectTemplate := range subjectTemplates {
-		templateName := strings.TrimPrefix(subjectTemplate, mailer.EMAIL_FS_PREFIX)
-		templateName = strings.TrimSuffix(templateName, "_subject.tpl")
-		bodyTemplate := strings.TrimSuffix(subjectTemplate, "_subject.tpl") + "_body.tpl"
-		bodyTemplate = strings.TrimPrefix(bodyTemplate, mailer.EMAIL_FS_PREFIX)
+		// Get relative path from prefix
+		relPath := strings.TrimPrefix(subjectTemplate, prefix)
+		relPath = strings.TrimPrefix(relPath, "/")
 
-		subjectContent, err := fs.ReadFile(embed, mailer.EMAIL_FS_PREFIX+templateName+"_subject.tpl")
+		// Extract template name by removing _subject.tpl suffix
+		templateName := strings.TrimSuffix(relPath, "_subject.tpl")
+
+		// Construct body template path
+		bodyTemplate := path.Join(prefix, templateName+"_body.tpl")
+
+		subjectContent, err := fs.ReadFile(embed, subjectTemplate)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +157,7 @@ func MailerTemplatesFromEmbed(embed *embed.FS, prefix string) (map[string]core.M
 			return nil, err
 		}
 
-		bodyContent, err := fs.ReadFile(embed, mailer.EMAIL_FS_PREFIX+bodyTemplate)
+		bodyContent, err := fs.ReadFile(embed, bodyTemplate)
 		if err != nil {
 			return nil, err
 		}

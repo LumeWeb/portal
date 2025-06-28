@@ -283,25 +283,6 @@ func ContextWithDB(db *gorm.DB) ContextBuilderOption {
 	}
 }
 
-/*func ContextWithCron(factory CronFactory) ContextBuilderOption {
-	return func(ctx Context) (Context, error) {
-		cron, err := factory(ctx)
-		if err != nil {
-			return ctx, err
-		}
-		ctx.OnStartup(func(ctx Context) error {
-			cronService := ctx.Service(CRON_SERVICE)
-			if cronService == nil {
-				return fmt.Errorf("cron service not found")
-			}
-
-			cronService.(CronService).RegisterEntity(cron)
-			return nil
-		})
-		return ctx, nil
-	}
-}*/
-
 func ContextWithLoggerOptions(opts ...zap.Option) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		if defaultCtx, ok := ctx.(*DefaultContext); ok {
