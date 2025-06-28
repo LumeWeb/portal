@@ -13,6 +13,10 @@ type Service interface {
 	ID() string
 }
 
+type ServiceInit interface {
+	Init() error
+}
+
 var (
 	services                 = make(map[string]ServiceInfo)
 	servicesOrdered          []ServiceInfo
@@ -81,6 +85,44 @@ func RegisterService(service ServiceInfo, plugin ...string) {
 		defer pluginServicesMu.Unlock()
 
 		pluginServices[plugin[0]] = append(pluginServices[plugin[0]], service.ID)
+	}
+}
+
+func UnregisterService(id string) {
+	servicesMu.Lock()
+	defer servicesMu.Unlock()
+
+	servicesOrderedMu.Lock()
+	defer servicesOrderedMu.Unlock()
+
+	if _, ok := services[id]; !ok {
+		return
+	}
+
+	// Remove from services map
+	delete(services, id)
+
+	// Reset ordered services to force rebuild
+	if servicesOrdered != nil {
+		servicesOrdered = make([]ServiceInfo, 0)
+	}
+
+	// Remove from plugin services if registered under a plugin
+	pluginServicesMu.Lock()
+	defer pluginServicesMu.Unlock()
+
+	for plugin, svcs := range pluginServices {
+		newSvcs := make([]string, 0, len(svcs))
+		for _, svc := range svcs {
+			if svc != id {
+				newSvcs = append(newSvcs, svc)
+			}
+		}
+		if len(newSvcs) == 0 {
+			delete(pluginServices, plugin)
+		} else {
+			pluginServices[plugin] = newSvcs
+		}
 	}
 }
 
@@ -204,7 +246,7 @@ func ResetServices() {
 	servicesMu.Lock()
 	defer servicesMu.Unlock()
 	services = make(map[string]ServiceInfo)
-	
+
 	servicesOrderedMu.Lock()
 	defer servicesOrderedMu.Unlock()
 	servicesOrdered = nil

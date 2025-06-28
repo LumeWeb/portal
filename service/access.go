@@ -21,14 +21,12 @@ type AccessServiceDefault struct {
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.ACCESS_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewAccessService()
-		},
+		ID:      core.ACCESS_SERVICE,
+		Factory: NewAccessService,
 	})
 }
 
-func NewAccessService() (*AccessServiceDefault, []core.ContextBuilderOption, error) {
+func NewAccessService() (core.Service, []core.ContextBuilderOption, error) {
 	service := &AccessServiceDefault{}
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {

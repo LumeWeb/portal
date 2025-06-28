@@ -18,10 +18,8 @@ var _ core.PasswordResetService = (*PasswordResetServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.PASSWORD_RESET_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewPasswordResetService()
-		},
+		ID:      core.PASSWORD_RESET_SERVICE,
+		Factory: NewPasswordResetService,
 		Depends: []string{core.USER_SERVICE, core.MAILER_SERVICE},
 	})
 }
@@ -36,7 +34,7 @@ type PasswordResetServiceDefault struct {
 	subdomain string
 }
 
-func NewPasswordResetService() (*PasswordResetServiceDefault, []core.ContextBuilderOption, error) {
+func NewPasswordResetService() (core.Service, []core.ContextBuilderOption, error) {
 	passwordService := PasswordResetServiceDefault{
 		mu: &sync.RWMutex{},
 	}

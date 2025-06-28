@@ -32,10 +32,8 @@ var _ core.StorageUploadRequest = (*StorageUploadRequestDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.STORAGE_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewStorageService()
-		},
+		ID:      core.STORAGE_SERVICE,
+		Factory: NewStorageService,
 		Depends: []string{core.RENTER_SERVICE, core.UPLOAD_SERVICE},
 	})
 }
@@ -124,7 +122,7 @@ type StorageServiceDefault struct {
 	logger   *core.Logger
 }
 
-func NewStorageService() (*StorageServiceDefault, []core.ContextBuilderOption, error) {
+func NewStorageService() (core.Service, []core.ContextBuilderOption, error) {
 	storage := &StorageServiceDefault{}
 
 	opts := core.ContextOptions(

@@ -1,12 +1,5 @@
 package redis
 
-import (
-	"fmt"
-	"github.com/adjust/rmq/v5"
-	"go.lumeweb.com/portal/core"
-	"go.uber.org/zap"
-)
-
 /*
 // CronRedisQueueService implementation
 type RedisQueueService struct {
@@ -129,7 +122,7 @@ func (r *RedisQueueService) Consume(delivery rmq.Delivery) {
 
 	// Get the cron service from context
 	cronService := r.cron.ctx.Service(core.CRON_SERVICE).(core.CronService)
-		
+
 	// Execute the job through the coordinator
 	if err := cronService.RunJob(msg.ID); err != nil {
 		r.logger.Error("Failed to run job",

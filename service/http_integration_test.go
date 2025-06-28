@@ -1,0 +1,143 @@
+package service
+
+import (
+	"embed"
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.lumeweb.com/portal/core"
+	coreTesting "go.lumeweb.com/portal/core/testing"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+//go:embed internal/http/testdata/web_bundle/*
+var testWebBundleFS embed.FS
+
+func TestHTTPService_apiMetaHandler_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// Test basic meta endpoint
+		req := httptest.NewRequest(http.MethodGet, "/api/meta", nil)
+		rec := httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+
+		// Assertions
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.NotEmpty(tb, rec.Body.String())
+		assert.Equal(tb, "application/json", rec.Header().Get("Content-Type"))
+
+		// Test with app query parameter
+		core.RegisterPlugin(core.PluginInfo{
+			ID:         "testplugin",
+			TargetApps: []string{"testapp"},
+			WebBundles: []*core.WebBundle{
+				core.NewWebBundle(
+					testWebBundleFS,
+					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+				),
+			},
+		})
+
+		req = httptest.NewRequest(http.MethodGet, "/api/meta?app=testapp", nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.NotEmpty(tb, rec.Body.String())
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+}
+
+func TestHTTPService_apiPluginWebBundleFileServerHandler_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// 1. Create a test plugin with a web bundle
+		pluginID := "testplugin"
+		bundleContent := "test bundle content"
+		pluginInfo := core.PluginInfo{
+			ID: pluginID,
+			WebBundles: []*core.WebBundle{
+				core.NewWebBundle(
+					testWebBundleFS,
+					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+				),
+			},
+		}
+		core.RegisterPlugin(pluginInfo)
+
+		// 2. Create a test request
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/test.html", pluginID), nil)
+		rec := httptest.NewRecorder()
+
+		// 3. Serve the request through the router
+		httpService.Router().ServeHTTP(rec, req)
+
+		// 4. Assertions
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.Equal(tb, bundleContent, rec.Body.String())
+		assert.Equal(tb, "public, max-age=31536000", rec.Header().Get("Cache-Control"))
+
+		// Test with non-existent plugin
+		req = httptest.NewRequest(http.MethodGet, "/api/meta/plugin/nonexistent/bundle/0/test.html", nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+		// Test with invalid bundle ID
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/invalid/index.html", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusBadRequest, rec.Code)
+
+		// Test with non-existent file
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/missing.html", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+}
+
+func TestHTTPService_ServeHTTP_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// Create a test request and recorder
+		req := httptest.NewRequest(http.MethodGet, "/api/meta", nil)
+		rec := httptest.NewRecorder()
+
+		// Call the ServeHTTP method
+		httpService.(*HTTPServiceDefault).ServeHTTP(rec, req)
+
+		// Assertions
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.NotEmpty(tb, rec.Body.String())
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+}
+
+func TestHTTPService_APISubdomain_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// Create a mock API
+		api := coreTesting.NewMockAPI(t, "testapi").WithSubdomain("testsubdomain")
+		core.RegisterAPI("testapi", api)
+
+		// Call the APISubdomain method
+		subdomain := httpService.APISubdomain("testapi", false)
+
+		// Assertions
+		assert.Equal(tb, "testsubdomain."+ctx.Config().Config().Core.Domain, subdomain)
+
+		// Test with non-existent API
+		subdomain = httpService.APISubdomain("nonexistent", false)
+		assert.Empty(tb, subdomain)
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+}

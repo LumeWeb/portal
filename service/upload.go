@@ -13,10 +13,8 @@ var _ core.UploadService = (*UploadServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.UPLOAD_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewMetadataService()
-		},
+		ID:      core.UPLOAD_SERVICE,
+		Factory: NewMetadataService,
 	})
 }
 
@@ -25,7 +23,7 @@ type UploadServiceDefault struct {
 	db  *gorm.DB
 }
 
-func NewMetadataService() (*UploadServiceDefault, []core.ContextBuilderOption, error) {
+func NewMetadataService() (core.Service, []core.ContextBuilderOption, error) {
 	meta := &UploadServiceDefault{}
 
 	opts := core.ContextOptions(
@@ -82,9 +80,13 @@ func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Up
 	})
 }
 
-func (m *UploadServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (*models.Upload, error) {
+func (m *UploadServiceDefault) GetUpload(_ context.Context, objectHash core.StorageHash) (*models.Upload, error) {
 	var upload models.Upload
 	upload.Hash = objectHash.Multihash()
+
+	if upload.Hash == nil || len(upload.Hash) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
 
 	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&upload).Where(&upload).First(&upload)

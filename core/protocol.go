@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"gorm.io/gorm"
 	"sort"
 	"sync"
@@ -48,7 +49,11 @@ type ProtocolPinHandler interface {
 	UpdateProtocolPin(ctx context.Context, id uint, data any) error
 	DeleteProtocolPin(ctx context.Context, id uint) error
 	QueryProtocolPin(ctx context.Context, query any) *gorm.DB
-	GetProtocolPinModel() any
+	GetProtocolPinModel() data_models.PinDataModel
+}
+
+type ProtocolGetPinHandler interface {
+	PinHandler() ProtocolPinHandler
 }
 
 type TestingProtocolRequestDataHandler interface {
@@ -143,8 +148,15 @@ func ProtocolHasPinHandler(name string) bool {
 		return false
 	}
 
-	_, ok = protocol.(ProtocolPinHandler)
-	return ok
+	if _, ok := protocol.(ProtocolPinHandler); ok {
+		return true
+	}
+
+	if getter, ok := protocol.(ProtocolGetPinHandler); ok {
+		return getter.PinHandler() != nil
+	}
+
+	return false
 }
 
 func GetProtocolPinHandler(name string) ProtocolPinHandler {
@@ -154,10 +166,15 @@ func GetProtocolPinHandler(name string) ProtocolPinHandler {
 		panic(fmt.Sprintf("protocol not found: %s", name))
 	}
 
-	handler, ok := protocol.(ProtocolPinHandler)
-	if !ok {
-		panic(fmt.Sprintf("protocol does not have a data pin handler: %T", protocol))
+	if handler, ok := protocol.(ProtocolPinHandler); ok {
+		return handler
 	}
 
-	return handler
+	if getter, ok := protocol.(ProtocolGetPinHandler); ok {
+		if handler := getter.PinHandler(); handler != nil {
+			return handler
+		}
+	}
+
+	panic(fmt.Sprintf("protocol does not have a data pin handler: %T", protocol))
 }

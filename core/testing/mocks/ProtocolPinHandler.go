@@ -8,6 +8,7 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/db/models/data_models"
 	"gorm.io/gorm"
 )
 
@@ -233,19 +234,19 @@ func (_c *MockProtocolPinHandler_GetProtocolPin_Call) RunAndReturn(run func(ctx 
 }
 
 // GetProtocolPinModel provides a mock function for the type MockProtocolPinHandler
-func (_mock *MockProtocolPinHandler) GetProtocolPinModel() any {
+func (_mock *MockProtocolPinHandler) GetProtocolPinModel() data_models.PinDataModel {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProtocolPinModel")
 	}
 
-	var r0 any
-	if returnFunc, ok := ret.Get(0).(func() any); ok {
+	var r0 data_models.PinDataModel
+	if returnFunc, ok := ret.Get(0).(func() data_models.PinDataModel); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(any)
+			r0 = ret.Get(0).(data_models.PinDataModel)
 		}
 	}
 	return r0
@@ -268,12 +269,12 @@ func (_c *MockProtocolPinHandler_GetProtocolPinModel_Call) Run(run func()) *Mock
 	return _c
 }
 
-func (_c *MockProtocolPinHandler_GetProtocolPinModel_Call) Return(v any) *MockProtocolPinHandler_GetProtocolPinModel_Call {
-	_c.Call.Return(v)
+func (_c *MockProtocolPinHandler_GetProtocolPinModel_Call) Return(pinDataModel data_models.PinDataModel) *MockProtocolPinHandler_GetProtocolPinModel_Call {
+	_c.Call.Return(pinDataModel)
 	return _c
 }
 
-func (_c *MockProtocolPinHandler_GetProtocolPinModel_Call) RunAndReturn(run func() any) *MockProtocolPinHandler_GetProtocolPinModel_Call {
+func (_c *MockProtocolPinHandler_GetProtocolPinModel_Call) RunAndReturn(run func() data_models.PinDataModel) *MockProtocolPinHandler_GetProtocolPinModel_Call {
 	_c.Call.Return(run)
 	return _c
 }

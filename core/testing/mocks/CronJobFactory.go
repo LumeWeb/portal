@@ -150,8 +150,8 @@ func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Run(run func(jobType strin
 	return _c
 }
 
-func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Return(scheduleDefinition *core.CronScheduleDefinition, b bool) *MockCronJobFactory_GetDefaultSchedule_Call {
-	_c.Call.Return(scheduleDefinition, b)
+func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Return(cronScheduleDefinition *core.CronScheduleDefinition, b bool) *MockCronJobFactory_GetDefaultSchedule_Call {
+	_c.Call.Return(cronScheduleDefinition, b)
 	return _c
 }
 

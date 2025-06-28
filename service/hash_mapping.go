@@ -17,10 +17,8 @@ var _ core.HashMappingService = (*HashMappingServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.HASH_MAPPING_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewHashMappingService()
-		},
+		ID:      core.HASH_MAPPING_SERVICE,
+		Factory: NewHashMappingService,
 	})
 }
 
@@ -30,7 +28,7 @@ type HashMappingServiceDefault struct {
 	logger *core.Logger
 }
 
-func NewHashMappingService() (*HashMappingServiceDefault, []core.ContextBuilderOption, error) {
+func NewHashMappingService() (core.Service, []core.ContextBuilderOption, error) {
 	svc := &HashMappingServiceDefault{}
 
 	opts := core.ContextOptions(
@@ -50,6 +48,10 @@ func (h *HashMappingServiceDefault) ID() string {
 }
 
 func (h *HashMappingServiceDefault) StoreMapping(ctx context.Context, sourceHash, targetHash core.StorageHash, protocol string, metadata map[string]interface{}) error {
+	if sourceHash == nil || targetHash == nil {
+		return fmt.Errorf("sourceHash and targetHash cannot be nil")
+	}
+
 	metaJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal meta %w", err)
@@ -72,8 +74,12 @@ func (h *HashMappingServiceDefault) GetMappings(ctx context.Context, sourceHash 
 
 	err := db.RetryableTransaction(h.ctx, h.db, func(tx *gorm.DB) *gorm.DB {
 		query := tx.WithContext(ctx).Where("source_hash = ?", sourceHash.Multihash())
-		if len(protocol) > 0 && protocol[0] != "" {
-			query = query.Where("protocol = ?", protocol[0])
+		if len(protocol) > 0 {
+			if protocol[0] == "" {
+				query = query.Where("protocol = ?", "")
+			} else {
+				query = query.Where("protocol = ?", protocol[0])
+			}
 		}
 		return query.Find(&mappings)
 	})

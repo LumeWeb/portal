@@ -76,7 +76,7 @@ type HTTPServiceDefault struct {
 	fsCache     sync.Map // Cache for bundle filesystems
 }
 
-func NewHTTPService() (*HTTPServiceDefault, []core.ContextBuilderOption, error) {
+func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
 	_http := &HTTPServiceDefault{}
 
 	srv := &http.Server{}

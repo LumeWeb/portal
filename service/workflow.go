@@ -21,10 +21,8 @@ var _ core.WorkflowService = (*WorkflowCoordinatorDefault)(nil)
 // Register service
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.WORKFLOW_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewWorkflowCoordinator()
-		},
+		ID:      core.WORKFLOW_SERVICE,
+		Factory: NewWorkflowCoordinator,
 		Depends: []string{core.REQUEST_SERVICE},
 	})
 }
@@ -59,7 +57,7 @@ type WorkflowCoordinatorDefault struct {
 }
 
 // NewWorkflowCoordinator creates a new workflow coordinator
-func NewWorkflowCoordinator() (*WorkflowCoordinatorDefault, []core.ContextBuilderOption, error) {
+func NewWorkflowCoordinator() (core.Service, []core.ContextBuilderOption, error) {
 	coordinator := &WorkflowCoordinatorDefault{
 		workflows: make(map[string]*core.WorkflowDefinition),
 	}
@@ -89,6 +87,13 @@ func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.
 
 	if _, exists := w.workflows[name]; exists {
 		return fmt.Errorf("workflow '%s' already exists", name)
+	}
+
+	// Ensure all steps have handlers
+	for i := range steps {
+		if steps[i].Handler == nil {
+			return fmt.Errorf("step %d has nil handler", i)
+		}
 	}
 
 	w.workflows[name] = &core.WorkflowDefinition{
@@ -280,15 +285,10 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	metadataJSON, _ = json.Marshal(metadata)
 	currentReq.Metadata = metadataJSON
 
-	// Fix RetryableTransaction usage
-	err = db.RetryableTransaction(w.ctx, w.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&models.Request{}).
-			Where("id = ?", currentReq.ID).
-			Update("metadata", string(metadataJSON))
-	})
-
-	if err != nil {
-		return err
+	// Update current request's metadata with next ID and save it
+	currentReq.Metadata = metadataJSON
+	if err := w.requestSvc.UpdateRequest(ctx, currentReq); err != nil {
+		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
 	w.logger.Info("Advanced workflow to next step",
@@ -321,17 +321,8 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 
 	currentStep := workflow.Steps[metadata.CurrentStep]
 
-	// Mark current step failed - fix RetryableTransaction
-	err = db.RetryableTransaction(w.ctx, w.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&models.Request{}).
-			Where("id = ?", currentReq.ID).
-			Updates(map[string]interface{}{
-				"status":         models.RequestStatusFailed,
-				"status_message": reason,
-			})
-	})
-
-	if err != nil {
+	// Mark current step failed using RequestService
+	if err = w.requestSvc.FailRequest(ctx, currentReq.ID, reason); err != nil {
 		return err
 	}
 
@@ -399,11 +390,17 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 
 		prevReq, err := w.requestSvc.GetRequest(ctx, prevID)
 		if err != nil {
+			w.logger.Warn("Previous request not found in workflow chain",
+				zap.Uint("requestID", prevID),
+				zap.Error(err))
 			break
 		}
 
 		var prevMetadata WorkflowMetadata
 		if err := json.Unmarshal(prevReq.Metadata, &prevMetadata); err != nil {
+			w.logger.Warn("Failed to parse metadata for previous request",
+				zap.Uint("requestID", prevID),
+				zap.Error(err))
 			break
 		}
 

@@ -1,12 +1,14 @@
 package core_tests
 
 import (
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
 	. "go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"testing"
+	"time"
 )
 
 // MockServiceConfig is a mock implementation of config.ServiceConfig for testing.
@@ -97,10 +99,31 @@ func newTestPluginInfoWithComponent(t *testing.T, id string, componentType strin
 	case "WebBundles":
 		info.WebBundles = []*WebBundle{{}} // Minimal valid WebBundle
 	case "Cron":
-		info.Cron = func() CronFactory {
-			return func(ctx Context) (Cronable, error) {
-				return mocks.NewMockCronable(t), nil
-			}
+		// Add a test cron job
+		jobName := "test-job"
+		info.CronJobs = []PluginCronJob{
+			{
+				Name: jobName,
+				Factory: func() (CronJob, error) {
+					return NewBaseCronJob(
+						uuid.New(),
+						JobOriginPlugin,
+						id,
+						"Test Job",
+						&CronScheduleDefinition{
+							Type:     CronScheduleTypeDaily,
+							Interval: 1,
+							AtTime:   time.Now().Add(time.Hour),
+						},
+						nil,
+					), nil
+				},
+				Schedule: &CronScheduleDefinition{
+					Type:     CronScheduleTypeDaily,
+					Interval: 1,
+					AtTime:   time.Now().Add(time.Hour),
+				},
+			},
 		}
 	default:
 		t.Fatalf("unknown component type: %s", componentType)

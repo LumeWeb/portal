@@ -17,10 +17,8 @@ var _ core.AuthService = (*AuthServiceDefault)(nil)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID: core.AUTH_SERVICE,
-		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewAuthService()
-		},
+		ID:      core.AUTH_SERVICE,
+		Factory: NewAuthService,
 		Depends: []string{core.USER_SERVICE, core.OTP_SERVICE},
 	})
 }
@@ -33,7 +31,7 @@ type AuthServiceDefault struct {
 	otp    core.OTPService
 }
 
-func NewAuthService() (*AuthServiceDefault, []core.ContextBuilderOption, error) {
+func NewAuthService() (core.Service, []core.ContextBuilderOption, error) {
 	authService := &AuthServiceDefault{}
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
@@ -61,7 +59,7 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 	}
 
 	if !valid {
-		return "", nil, nil
+		return "", nil, core.NewAccountError(core.ErrKeyInvalidPassword, nil)
 	}
 
 	token, err := a.doLogin(user, ip, false, rememberMe)

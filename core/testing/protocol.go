@@ -4,14 +4,23 @@ import (
 	"context"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
+	"io"
+	"testing"
+
+	mh "github.com/multiformats/go-multihash"
 )
+
+var _ core.StorageProtocol = (*MockProtocol)(nil)
 
 // MockProtocol implements core.Protocol for testing
 type MockProtocol struct {
-	NameValue      string
-	ConfigValue    config.ProtocolConfig
-	OperationsValue []core.Operation
+	NameValue          string
+	ConfigValue        config.ProtocolConfig
+	OperationsValue    []core.Operation
+	EncodeFileNameFunc func(core.StorageHash) string
+	HashFunc           func(r io.Reader, size uint64) (core.StorageHash, error)
+	PinHandlerValue    core.ProtocolPinHandler
 }
 
 func (p *MockProtocol) Name() string {
@@ -26,11 +35,64 @@ func (p *MockProtocol) Operations() []core.Operation {
 	return p.OperationsValue
 }
 
-// NewMockProtocol creates a new mock protocol
-func NewMockProtocol(name string) *MockProtocol {
+func (p *MockProtocol) EncodeFileName(hash core.StorageHash) string {
+	if p.EncodeFileNameFunc != nil {
+		return p.EncodeFileNameFunc(hash)
+	}
+	return ""
+}
+
+func (p *MockProtocol) Hash(r io.Reader, size uint64) (core.StorageHash, error) {
+	if p.HashFunc != nil {
+		return p.HashFunc(r, size)
+	}
+	return nil, nil
+}
+
+func (p *MockProtocol) PinHandler() core.ProtocolPinHandler {
+	return p.PinHandlerValue
+}
+
+// NewMockProtocol creates a new mock protocol with default mock implementations
+func NewMockProtocol(t testing.TB, name string) *MockProtocol {
+	// Create mock pin handler with default behavior
+	pinHandler := NewMockProtocolPinHandler(t).
+		WithCreateProtocolPin(func(ctx context.Context, id uint, data any) error {
+			return nil
+		}).
+		WithGetProtocolPin(func(ctx context.Context, tx *gorm.DB, id uint) (any, error) {
+			return nil, nil
+		}).
+		WithUpdateProtocolPin(func(ctx context.Context, id uint, data any) error {
+			return nil
+		}).
+		WithDeleteProtocolPin(func(ctx context.Context, id uint) error {
+			return nil
+		}).
+		WithQueryProtocolPin(func(ctx context.Context, query any) *gorm.DB {
+			return nil
+		})
+
 	return &MockProtocol{
-		NameValue:      name,
+		NameValue:       name,
 		OperationsValue: []core.Operation{},
+		PinHandlerValue: pinHandler,
+		HashFunc: func(r io.Reader, size uint64) (core.StorageHash, error) {
+			// Read all data from reader
+			data, err := io.ReadAll(r)
+			if err != nil {
+				return nil, err
+			}
+
+			// Create SHA2-256 hash of the data
+			hash, err := mh.Sum(data, mh.SHA2_256, -1)
+			if err != nil {
+				return nil, err
+			}
+
+			// Create storage hash with CID type 0 (IPFS CIDv0)
+			return core.NewStorageHashFromMultihash(hash, 0, nil), nil
+		},
 	}
 }
 
@@ -46,79 +108,8 @@ func (p *MockProtocol) WithConfig(cfg config.ProtocolConfig) *MockProtocol {
 	return p
 }
 
-// MockOperation implements core.Operation for testing
-type MockOperation struct {
-	TypeValue       string
-	GlobalTypeValue core.OperationType
-	HandlerValue    core.OperationHandler
-}
-
-func (o *MockOperation) Type() string {
-	return o.TypeValue
-}
-
-func (o *MockOperation) GlobalType() core.OperationType {
-	return o.GlobalTypeValue
-}
-
-func (o *MockOperation) Handler() core.OperationHandler {
-	return o.HandlerValue
-}
-
-// NewMockOperation creates a new mock operation
-func NewMockOperation(opType string, globalType core.OperationType) *MockOperation {
-	return &MockOperation{
-		TypeValue:       opType,
-		GlobalTypeValue: globalType,
-	}
-}
-
-// WithHandler sets the handler for the mock operation
-func (o *MockOperation) WithHandler(handler core.OperationHandler) *MockOperation {
-	o.HandlerValue = handler
-	return o
-}
-
-// MockOperationHandler implements core.OperationHandler for testing
-type MockOperationHandler struct {
-	ValidateRequestFunc func(ctx context.Context, req *models.Request) error
-	ExecuteFunc         func(ctx context.Context, req *models.Request) error
-	GetStatusFunc       func(ctx context.Context, req *models.Request) (core.RequestStatus, error)
-	CleanupFunc         func(ctx context.Context, req *models.Request) error
-}
-
-func (h *MockOperationHandler) ValidateRequest(ctx context.Context, req *models.Request) error {
-	if h.ValidateRequestFunc != nil {
-		return h.ValidateRequestFunc(ctx, req)
-	}
-	return nil
-}
-
-func (h *MockOperationHandler) Execute(ctx context.Context, req *models.Request) error {
-	if h.ExecuteFunc != nil {
-		return h.ExecuteFunc(ctx, req)
-	}
-	return nil
-}
-
-func (h *MockOperationHandler) GetStatus(ctx context.Context, req *models.Request) (core.RequestStatus, error) {
-	if h.GetStatusFunc != nil {
-		return h.GetStatusFunc(ctx, req)
-	}
-	return core.RequestStatus{
-		State:   "completed",
-		Message: "Mock operation completed",
-	}, nil
-}
-
-func (h *MockOperationHandler) Cleanup(ctx context.Context, req *models.Request) error {
-	if h.CleanupFunc != nil {
-		return h.CleanupFunc(ctx, req)
-	}
-	return nil
-}
-
-// NewMockOperationHandler creates a new mock operation handler
-func NewMockOperationHandler() *MockOperationHandler {
-	return &MockOperationHandler{}
+// WithPinHandler sets the pin handler for the mock protocol
+func (p *MockProtocol) WithPinHandler(handler core.ProtocolPinHandler) *MockProtocol {
+	p.PinHandlerValue = handler
+	return p
 }

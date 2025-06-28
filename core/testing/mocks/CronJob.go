@@ -397,8 +397,8 @@ func (_c *MockCronJob_Schedule_Call) Run(run func()) *MockCronJob_Schedule_Call 
 	return _c
 }
 
-func (_c *MockCronJob_Schedule_Call) Return(scheduleDefinition *core.CronScheduleDefinition) *MockCronJob_Schedule_Call {
-	_c.Call.Return(scheduleDefinition)
+func (_c *MockCronJob_Schedule_Call) Return(cronScheduleDefinition *core.CronScheduleDefinition) *MockCronJob_Schedule_Call {
+	_c.Call.Return(cronScheduleDefinition)
 	return _c
 }
 

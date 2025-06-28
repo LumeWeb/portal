@@ -135,8 +135,8 @@ func (_c *MockCronScheduleRegistry_GetRegisteredTypes_Call) Run(run func()) *Moc
 	return _c
 }
 
-func (_c *MockCronScheduleRegistry_GetRegisteredTypes_Call) Return(scheduleTypes []core.CronScheduleType) *MockCronScheduleRegistry_GetRegisteredTypes_Call {
-	_c.Call.Return(scheduleTypes)
+func (_c *MockCronScheduleRegistry_GetRegisteredTypes_Call) Return(cronScheduleTypes []core.CronScheduleType) *MockCronScheduleRegistry_GetRegisteredTypes_Call {
+	_c.Call.Return(cronScheduleTypes)
 	return _c
 }
 
