@@ -40,16 +40,26 @@ func (j *JobCreator) CreateFromDB(jobID uuid.UUID) (core.CronJob, error) {
 	}
 
 	// Populate job arguments
-	if err := j.populateJobArguments(job, cronJob.Args); err != nil {
+	if err := j.populateJobArguments(job, string(cronJob.Args), string(cronJob.RetryPolicy)); err != nil {
 		return nil, err
 	}
 
 	return job, nil
 }
 
-func (j *JobCreator) populateJobArguments(job core.CronJob, args string) error {
-	if len(args) == 0 {
+func (j *JobCreator) populateJobArguments(job core.CronJob, args string, retryPolicy string) error {
+	if len(args) == 0 && len(retryPolicy) == 0 {
 		return nil
+	}
+
+	if len(retryPolicy) > 0 {
+		var policy core.RetryPolicy
+		if err := json.Unmarshal([]byte(retryPolicy), &policy); err != nil {
+			return fmt.Errorf("failed to unmarshal retry policy: %w", err)
+		}
+		if jobWithPolicy, ok := job.(interface{ SetRetryPolicy(policy *core.RetryPolicy) }); ok {
+			jobWithPolicy.SetRetryPolicy(&policy)
+		}
 	}
 
 	argsPtr := job.Args()

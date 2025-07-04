@@ -11,6 +11,7 @@ import (
 	"go.lumeweb.com/portal/db/types"
 	"go.lumeweb.com/portal/service/internal/cron"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -27,17 +28,18 @@ func init() {
 }
 
 type CronServiceDefault struct {
-	ctx              core.Context
-	db               *gorm.DB
-	coordinator      core.CronCoordinator
-	jobFactory       core.CronJobFactory
-	scheduleRegistry core.CronScheduleRegistry
-	logger           *core.Logger
-	stateMachine     core.CronJobStateMachine
-	stopHeartbeat    chan struct{}
-	heartbeatTicker  *time.Ticker
-	monitor          core.CronMonitor
-	entities         []core.Cronable
+	ctx                core.Context
+	db                 *gorm.DB
+	coordinator        core.CronCoordinator
+	jobFactory         core.CronJobFactory
+	scheduleRegistry   core.CronScheduleRegistry
+	logger             *core.Logger
+	stateMachine       core.CronJobStateMachine
+	stopHeartbeat      chan struct{}
+	heartbeatTicker    *time.Ticker
+	monitor            core.CronMonitor
+	entities           []core.Cronable
+	defaultRetryPolicy *core.RetryPolicy
 }
 
 func (c *CronServiceDefault) initializeComponents(ctx core.Context) error {
@@ -238,7 +240,7 @@ func (c *CronServiceDefault) Coordinator() core.CronCoordinator {
 	return c.coordinator
 }
 
-func (c *CronServiceDefault) RegisterJob(job core.CronJob) error {
+func (c *CronServiceDefault) RegisterJob(job core.CronJob, retryPolicy *core.RetryPolicy) error {
 	if job == nil {
 		return fmt.Errorf("job cannot be nil")
 	}
@@ -286,7 +288,7 @@ func (c *CronServiceDefault) RegisterJob(job core.CronJob) error {
 		return fmt.Errorf("job with ID %s already exists", job.ID())
 	}
 
-	// Serialize the arguments
+	// Serialize the arguments and retry policy
 	var argsBytes []byte
 	if job.Args() != nil {
 		var err error
@@ -298,6 +300,18 @@ func (c *CronServiceDefault) RegisterJob(job core.CronJob) error {
 		if string(argsBytes) == "null" {
 			argsBytes = nil
 		}
+	}
+
+	// Use provided retry policy or default if none specified
+	if retryPolicy == nil {
+		retryPolicy = core.DefaultRetryPolicy
+	}
+
+	var retryPolicyBytes []byte
+	var err error
+	retryPolicyBytes, err = json.Marshal(retryPolicy)
+	if err != nil {
+		return fmt.Errorf("failed to marshal retry policy: %w", err)
 	}
 
 	// Get schedule definition from job
@@ -317,14 +331,15 @@ func (c *CronServiceDefault) RegisterJob(job core.CronJob) error {
 
 	// Create the database record
 	cronJob := models.CronJob{
-		UUID:     types.FromUUID(job.ID()),
-		Origin:   job.Origin(),
-		SourceID: job.SourceID(),
-		JobType:  jobType,
-		Args:     string(argsBytes),
-		SchedDef: string(schedDefBytes),
-		State:    models.CronJobStateQueued,
-		Version:  1,
+		UUID:        types.FromUUID(job.ID()),
+		Origin:      job.Origin(),
+		SourceID:    job.SourceID(),
+		JobType:     jobType,
+		Args:        datatypes.JSON(argsBytes),
+		RetryPolicy: datatypes.JSON(retryPolicyBytes),
+		SchedDef:    datatypes.JSON(schedDefBytes),
+		State:       models.CronJobStateQueued,
+		Version:     1,
 	}
 
 	if err := c.db.Create(&cronJob).Error; err != nil {
@@ -365,7 +380,7 @@ func (s *CronServiceDefault) RegisterJobType(
 		if err != nil {
 			return fmt.Errorf("failed to create default job: %w", err)
 		}
-		return s.RegisterJob(job)
+		return s.RegisterJob(job, defaultSchedule.RetryPolicy)
 	}
 	return nil
 }

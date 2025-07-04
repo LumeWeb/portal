@@ -73,6 +73,7 @@ CREATE TABLE `cron_jobs`
     `failures`       bigint unsigned DEFAULT NULL,
     `state`          varchar(20)     DEFAULT 'queued',
     `last_heartbeat` datetime(3)     DEFAULT NULL,
+    `retry_policy`   longtext        DEFAULT NULL,
     `version`        bigint unsigned DEFAULT '0',
     PRIMARY KEY (`id`),
     UNIQUE KEY `idx_cron_jobs_uuid` (`uuid`),

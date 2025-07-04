@@ -134,6 +134,7 @@ CREATE TABLE `cron_jobs`
     `failures`       integer,
     `state`          varchar(20) DEFAULT 'queued',
     `last_heartbeat` datetime,
+    `retry_policy`   text,
     `version`        integer DEFAULT 0
 );
 CREATE INDEX `idx_cron_jobs_deleted_at` ON `cron_jobs` (`deleted_at`);

@@ -42,6 +42,19 @@ type Cronable interface {
 	ScheduleJobs(cron CronService) error
 }
 
+type RetryPolicy struct {
+	MaxRetries    int           `json:"max_retries"`    // Maximum number of retry attempts (0 means no retries)
+	InitialDelay  time.Duration `json:"initial_delay"`  // Initial delay between retries
+	BackoffFactor float64       `json:"backoff_factor"` // Multiplier for exponential backoff (1.0 for constant delay)
+}
+
+// DefaultRetryPolicy provides sensible defaults for job retries
+var DefaultRetryPolicy = &RetryPolicy{
+	MaxRetries:    3,                  // Retry up to 3 times
+	InitialDelay:  5 * time.Minute,    // Start with 5 minute delay
+	BackoffFactor: 1.5,                // Exponential backoff factor
+}
+
 // CronScheduleDefinition defines a serializable schedule definition for cron jobs.
 // The meaning of fields depends on the CronScheduleType:
 //   - Daily: Runs every X days at specified time
@@ -50,21 +63,13 @@ type Cronable interface {
 //   - Cron: Uses cron expression for scheduling
 //   - Once: Runs once at specified time
 type CronScheduleDefinition struct {
-	Type CronScheduleType `json:"type"` // Type of schedule (daily, weekly, etc)
-
-	Interval uint `json:"interval,omitempty"` // Frequency multiplier based on type:
-	// - Daily: Days between runs (1 = daily, 2 = every 2 days)
-	// - Weekly: Weeks between runs (1 = weekly, 2 = biweekly)
-	// - Monthly: Months between runs (1 = monthly, 2 = every 2 months)
-	// - Cron/Once: Not used
-
-	AtTime time.Time `json:"at_time,omitempty"` // Execution time
-
-	DayOfWeek string `json:"day_of_week,omitempty"` // Day of week for weekly schedules (e.g. "Monday")
-
-	DayOfMonth int `json:"day_of_month,omitempty"` // Day of month for monthly schedules (1-31)
-
-	CronExpression string `json:"cron_expression,omitempty"` // Cron expression for CronScheduleTypeCron
+	Type           CronScheduleType `json:"type"`                      // Type of schedule (daily, weekly, etc)
+	Interval       uint             `json:"interval,omitempty"`        // Frequency multiplier based on type
+	AtTime         time.Time        `json:"at_time,omitempty"`         // Execution time
+	DayOfWeek      string           `json:"day_of_week,omitempty"`     // Day of week for weekly schedules
+	DayOfMonth     int              `json:"day_of_month,omitempty"`    // Day of month for monthly schedules
+	CronExpression string           `json:"cron_expression,omitempty"` // Cron expression for CronScheduleTypeCron
+	RetryPolicy    *RetryPolicy     `json:"retry_policy,omitempty"`    // Retry behavior configuration
 }
 
 // NewCronScheduleDefinition creates a new CronScheduleDefinition with defaults:
@@ -365,7 +370,7 @@ type CronService interface {
 	RegisterJobType(jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
 
 	// RegisterJob registers a fully configured job instance.
-	RegisterJob(job CronJob) error
+	RegisterJob(job CronJob, retryPolicy *RetryPolicy) error
 
 	// RegisterPluginJobs registers all cron jobs from a plugin.
 	RegisterPluginJobs(plugin PluginInfo) error
