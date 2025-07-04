@@ -24,3 +24,13 @@ func ZogStringLike[T ~string](opts ...zog.SchemaOption) *zog.StringSchema[T] {
 	}
 	return s
 }
+
+// ZogUInt64 creates a NumberSchema for uint64 values
+func ZogUInt64(opts ...zog.SchemaOption) *zog.NumberSchema[uint64] {
+	s := &zog.NumberSchema[uint64]{}
+	opts = append(opts, zog.WithCoercer(conf.Coercers.Uint))
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
