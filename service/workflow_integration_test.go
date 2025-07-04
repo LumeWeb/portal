@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
@@ -46,13 +47,10 @@ func TestWorkflowCoordinatorDefault_RegisterWorkflow_Integration(t *testing.T) {
 		// Create a mock operation handler
 		mockHandler := coreTesting.NewMockOperationHandler(tb)
 
-		// Create a mock operation
-		mockOperation := coreTesting.NewMockOperation(tb).WithType(func() string { return operationName }).WithHandler(func() core.OperationHandler { return mockHandler })
-
 		steps := []core.OperationStep{
 			{
 				Operation: operationName,
-				Handler:   mockOperation.Handler(),
+				Handler:   mockHandler,
 			},
 		}
 
@@ -122,14 +120,11 @@ func TestWorkflowCoordinatorDefault_FailWorkflowStep_Integration(t *testing.T) {
 		// Create a mock operation handler
 		mockHandler := coreTesting.NewMockOperationHandler(tb)
 
-		// Create a mock operation
-		mockOperation := coreTesting.NewMockOperation(tb).WithType(func() string { return operationName }).WithHandler(func() core.OperationHandler { return mockHandler })
-
 		steps := []core.OperationStep{
 			{
 				Operation:       operationName,
 				FailureBehavior: core.FailWorkflow,
-				Handler:         mockOperation.Handler(),
+				Handler:         mockHandler,
 			},
 		}
 
@@ -444,6 +439,219 @@ func TestWorkflowCoordinatorDefault_GetWorkflowStatus_PreviousSteps_Integration(
 		assert.Len(tb, status.PreviousSteps, 2)
 		assert.Contains(tb, status.PreviousSteps, req1.ID)
 		assert.Contains(tb, status.PreviousSteps, req2.ID)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	)
+}
+
+func TestWorkflowCoordinatorDefault_ExecuteWorkflowStep_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		registerTestProtocol(tb)
+
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		// 1. Define a workflow
+		workflowName := "testWorkflow"
+		operationName := "test.operation"
+
+		// Create a mock operation handler that will succeed
+		mockHandler := coreTesting.NewMockOperationHandler(tb).WithExecute(
+			func(ctx context.Context, req *models.Request) error {
+				return nil
+			},
+		)
+
+		steps := []core.OperationStep{
+			{
+				Operation: operationName,
+				Handler:   mockHandler,
+			},
+		}
+
+		// 2. Register the workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps)
+		require.NoError(tb, err)
+
+		// 3. Start the workflow
+		initialData := map[string]interface{}{"key": "value"}
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, initialData)
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// 4. Execute the workflow step
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req.ID)
+		require.NoError(tb, err)
+
+		// 5. Verify the request was completed
+		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
+		require.NoError(tb, err)
+		assert.Equal(tb, models.RequestStatusCompleted, updatedReq.Status)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	)
+}
+
+func TestWorkflowCoordinatorDefault_ExecuteWorkflowStep_Failure_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		registerTestProtocol(tb)
+
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		// 1. Define a workflow
+		workflowName := "testWorkflow"
+		operationName := "test.operation"
+		failureReason := "test failure"
+
+		// Create a mock operation handler that will fail
+		mockHandler := coreTesting.NewMockOperationHandler(tb).WithExecute(
+			func(ctx context.Context, req *models.Request) error {
+				return fmt.Errorf("%s", failureReason)
+			},
+		)
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName,
+				FailureBehavior: core.FailWorkflow,
+				Handler:         mockHandler,
+			},
+		}
+
+		// 2. Register the workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps)
+		require.NoError(tb, err)
+
+		// 3. Start the workflow
+		initialData := map[string]interface{}{"key": "value"}
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, initialData)
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// 4. Execute the workflow step (should fail)
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req.ID)
+		require.NoError(tb, err) // The error is handled internally
+
+		// 5. Verify the request was failed
+		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
+		require.NoError(tb, err)
+		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
+		assert.Equal(tb, failureReason, updatedReq.StatusMessage)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	)
+}
+
+func TestWorkflowCoordinatorDefault_CanTransition_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		registerTestProtocol(tb)
+
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		// 1. Define a workflow
+		workflowName := "testWorkflow"
+		operationName := "test.operation"
+
+		// Create a mock operation handler
+		mockHandler := coreTesting.NewMockOperationHandler(tb)
+
+		// Create a mock operation
+		mockOperation := coreTesting.NewMockOperation(tb).WithType(func() string { return operationName }).WithHandler(func() core.OperationHandler { return mockHandler })
+
+		steps := []core.OperationStep{
+			{
+				Operation: operationName,
+				Handler:   mockOperation.Handler(),
+			},
+		}
+
+		// 2. Register the workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps)
+		require.NoError(tb, err)
+
+		// 3. Start the workflow
+		initialData := map[string]interface{}{"key": "value"}
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, initialData)
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// 4. Test CanTransition with pending request
+		canTransition, err := workflowService.CanTransition(context.Background(), req.ID)
+		require.NoError(tb, err)
+		assert.True(tb, canTransition)
+
+		// 5. Complete the request
+		err = workflowService.CompleteWorkflowStep(context.Background(), req.ID)
+		require.NoError(tb, err)
+
+		// 6. Test CanTransition with completed request
+		canTransition, err = workflowService.CanTransition(context.Background(), req.ID)
+		require.NoError(tb, err)
+		assert.False(tb, canTransition)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	)
+}
+
+func TestWorkflowCoordinatorDefault_GetWorkflowStepInfo_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		registerTestProtocol(tb)
+
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		// 1. Define a workflow
+		workflowName := "testWorkflow"
+		operationName := "test.operation"
+
+		// Create a mock operation handler
+		mockHandler := coreTesting.NewMockOperationHandler(tb)
+
+		// Create a mock operation
+		mockOperation := coreTesting.NewMockOperation(tb).WithType(func() string { return operationName }).WithHandler(func() core.OperationHandler { return mockHandler })
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName,
+				FailureBehavior: core.FailWorkflow,
+				Handler:         mockOperation.Handler(),
+			},
+		}
+
+		// 2. Register the workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps)
+		require.NoError(tb, err)
+
+		// 3. Start the workflow
+		initialData := map[string]interface{}{"key": "value"}
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, initialData)
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// 4. Get workflow step info
+		info, err := workflowService.GetWorkflowStepInfo(context.Background(), req.ID)
+		require.NoError(tb, err)
+		assert.Equal(tb, operationName, info.Operation)
+		assert.Equal(tb, core.FailWorkflow, info.FailureBehavior)
+		assert.Equal(tb, string(models.RequestStatusPending), info.Status)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),

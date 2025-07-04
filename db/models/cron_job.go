@@ -2,6 +2,7 @@ package models
 
 import (
 	"go.lumeweb.com/portal/db/types"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
 )
@@ -40,13 +41,14 @@ type CronJob struct {
 	Origin        string
 	SourceID      string
 	JobType       string
-	Args          string
-	SchedDef      string
+	Args          datatypes.JSON
+	SchedDef      datatypes.JSON
 	ScheduleType  string
 	State         CronJobState
 	LastRun       *time.Time
 	LastHeartbeat *time.Time
 	Failures      uint
+	RetryPolicy   datatypes.JSON
 	Version       int64
 }
 

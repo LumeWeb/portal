@@ -11,6 +11,7 @@ import (
 	"go.lumeweb.com/portal/db/types"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"math"
 	"sync"
 	"time"
 )
@@ -32,6 +33,10 @@ type StandaloneCoordinator struct {
 	failureMu     sync.Mutex
 	maxFailures   int
 }
+
+const (
+	maxRetryDelay = 24 * time.Hour // Maximum allowed delay for retries
+)
 
 type CoordinatorOptions struct {
 	JobCreator   *JobCreator
@@ -182,6 +187,46 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 		return s.ExecuteJob(jobID)
 	}
 
+	// Calculate delay if this is a retry
+	var delay time.Duration
+	if failures, exists := s.failureCounts[jobID]; exists && failures > 0 {
+		var retryPolicy *core.RetryPolicy
+		if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
+			if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err == nil && retryPolicy != nil {
+				// Validate retry policy parameters
+				if retryPolicy.InitialDelay < 0 {
+					s.logger.Error("Invalid retry policy: InitialDelay cannot be negative",
+						zap.String("jobID", jobID.String()),
+						zap.Duration("initialDelay", retryPolicy.InitialDelay))
+					return fmt.Errorf("invalid retry policy: InitialDelay cannot be negative")
+				}
+				if retryPolicy.BackoffFactor < 1 {
+					s.logger.Error("Invalid retry policy: BackoffFactor must be >= 1",
+						zap.String("jobID", jobID.String()),
+						zap.Float64("backoffFactor", retryPolicy.BackoffFactor))
+					return fmt.Errorf("invalid retry policy: BackoffFactor must be >= 1")
+				}
+				if retryPolicy.MaxRetries < 0 {
+					s.logger.Error("Invalid retry policy: MaxRetries cannot be negative",
+						zap.String("jobID", jobID.String()),
+						zap.Int("maxRetries", retryPolicy.MaxRetries))
+					return fmt.Errorf("invalid retry policy: MaxRetries cannot be negative")
+				}
+
+				delay = retryPolicy.InitialDelay * time.Duration(math.Pow(retryPolicy.BackoffFactor, float64(failures-1)))
+				// Cap the delay at maxRetryDelay
+				if delay > maxRetryDelay {
+					delay = maxRetryDelay
+				}
+			}
+		}
+	}
+
+	// Apply delay to job definition if needed
+	if delay > 0 {
+		jobDef = gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(time.Now().Add(delay)))
+	}
+
 	// Define the before job runs event listener
 	beforeJobRuns := func(jobID uuid.UUID, jobName string) {
 		s.logger.Debug("Before job runs", zap.String("jobID", jobID.String()), zap.String("jobName", jobName))
@@ -213,7 +258,21 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 		// Increment failure count
 		s.failureCounts[jobID]++
 
-		if s.failureCounts[jobID] >= s.maxFailures {
+		var retryPolicy *core.RetryPolicy
+		if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
+			if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err != nil {
+				s.logger.Error("Failed to parse retry policy",
+					zap.String("jobID", jobID.String()),
+					zap.Error(err))
+			}
+		}
+
+		maxFailures := s.maxFailures
+		if retryPolicy != nil && retryPolicy.MaxRetries > 0 {
+			maxFailures = retryPolicy.MaxRetries
+		}
+
+		if s.failureCounts[jobID] >= maxFailures {
 			s.logger.Error("Job exceeded maximum failure threshold - marking as permanently failed",
 				zap.String("jobID", jobID.String()),
 				zap.Int("failures", s.failureCounts[jobID]))

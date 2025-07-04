@@ -35,6 +35,22 @@ type WorkflowCoordinator interface {
 type WorkflowService interface {
 	Service
 	WorkflowCoordinator
+
+	// ExecuteWorkflowStep executes the operation handler for a workflow step
+	ExecuteWorkflowStep(ctx context.Context, requestID uint) error
+
+	// CanTransition checks if a workflow step can be transitioned from its current state
+	CanTransition(ctx context.Context, requestID uint) (bool, error)
+
+	// GetWorkflowStepInfo returns information about a specific workflow step
+	GetWorkflowStepInfo(ctx context.Context, requestID uint) (*WorkflowStepInfo, error)
+}
+
+// WorkflowStepInfo provides information about a workflow step
+type WorkflowStepInfo struct {
+	Operation       string
+	FailureBehavior FailureBehavior
+	Status          string
 }
 
 // OperationStep defines a single step in a workflow
@@ -47,6 +63,9 @@ type OperationStep struct {
 
 	// What to do if this step fails
 	FailureBehavior FailureBehavior
+
+	// Whether to delegate execution to cron system
+	DelegateToCron bool
 }
 
 // FailureBehavior defines behavior when a step fails
@@ -60,8 +79,9 @@ const (
 
 // WorkflowDefinition represents a registered workflow
 type WorkflowDefinition struct {
-	Name  string
-	Steps []OperationStep
+	Name               string
+	Steps              []OperationStep
+	AutoTriggerFirstStep bool // Whether to automatically trigger first step execution
 }
 
 // WorkflowStatus provides current status of a workflow instance

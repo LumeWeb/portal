@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -710,6 +711,194 @@ func TestWorkflowCoordinatorDefault_FailWorkflowStep_ContinueWorkflow(t *testing
 		// Assert
 		assert.NoError(tb, err)
 
+	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
+}
+
+func TestWorkflowCoordinatorDefault_ExecuteWorkflowStep(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		// Arrange
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[*coreMocks.MockRequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "testWorkflow"
+		operationName := "testOp"
+		initialData := map[string]interface{}{"key": "value"}
+
+		// Mock operation handler
+		mockHandler := coreMocks.NewMockOperationHandler(tb)
+		mockHandler.EXPECT().ValidateRequest(mock.Anything, mock.Anything).Return(nil)
+		mockHandler.EXPECT().Execute(mock.Anything, mock.Anything).Return(nil)
+		steps := []core.OperationStep{{
+			Operation: operationName,
+			Handler:   mockHandler,
+		}}
+		testWorkflowRegister(tb, workflowService, workflowName, steps)
+
+		// Mock CreateRequest to return the created request
+		mockRequest := &models.Request{
+			Operation: operationName,
+			Status:    models.RequestStatusPending,
+			Metadata:  datatypes.JSON([]byte(`{"workflow_name":"testWorkflow","current_step":0,"total_steps":1,"started_at":1751145351,"initial_data":{"key":"value"}}`)),
+		}
+		requestService.EXPECT().CreateRequest(mock.Anything, mock.Anything, mock.Anything).
+			Return(mockRequest, nil)
+		requestService.EXPECT().GetRequest(mock.Anything, mockRequest.ID).Return(mockRequest, nil)
+		requestService.EXPECT().CompleteRequest(mock.Anything, mockRequest.ID).Return(nil)
+
+		req := testWorkflowStart(tb, context.Background(), workflowService, workflowName, initialData)
+
+		// Act
+		err := workflowService.ExecuteWorkflowStep(context.Background(), req.ID)
+
+		// Assert
+		assert.NoError(tb, err)
+	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
+}
+
+func TestWorkflowCoordinatorDefault_ExecuteWorkflowStep_Failure(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		// Arrange
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[*coreMocks.MockRequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "testWorkflow"
+		operationName := "testOp"
+		initialData := map[string]interface{}{"key": "value"}
+		failureReason := "test failure"
+
+		// Mock operation handler
+		mockHandler := coreMocks.NewMockOperationHandler(tb)
+		mockHandler.EXPECT().ValidateRequest(mock.Anything, mock.Anything).Return(nil)
+		mockHandler.EXPECT().Execute(mock.Anything, mock.Anything).Return(fmt.Errorf("%s", failureReason))
+		steps := []core.OperationStep{{
+			Operation: operationName,
+			Handler:   mockHandler,
+		}}
+		testWorkflowRegister(tb, workflowService, workflowName, steps)
+
+		// Mock CreateRequest to return the created request
+		mockRequest := &models.Request{
+			Operation: operationName,
+			Status:    models.RequestStatusPending,
+			Metadata:  datatypes.JSON([]byte(`{"workflow_name":"testWorkflow","current_step":0,"total_steps":1,"started_at":1751145351,"initial_data":{"key":"value"}}`)),
+		}
+		requestService.EXPECT().CreateRequest(mock.Anything, mock.Anything, mock.Anything).
+			Return(mockRequest, nil)
+		requestService.EXPECT().GetRequest(mock.Anything, mockRequest.ID).Return(mockRequest, nil)
+		requestService.EXPECT().FailRequest(mock.Anything, mockRequest.ID, failureReason).Return(nil)
+
+		req := testWorkflowStart(tb, context.Background(), workflowService, workflowName, initialData)
+
+		// Act
+		err := workflowService.ExecuteWorkflowStep(context.Background(), req.ID)
+
+		// Assert
+		assert.NoError(tb, err)
+	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
+}
+
+func TestWorkflowCoordinatorDefault_CanTransition(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		// Arrange
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[*coreMocks.MockRequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "testWorkflow"
+		operationName := "testOp"
+		initialData := map[string]interface{}{"key": "value"}
+
+		// Mock operation handler
+		mockHandler := coreMocks.NewMockOperationHandler(tb)
+		mockHandler.EXPECT().ValidateRequest(mock.Anything, mock.Anything).Return(nil)
+		steps := []core.OperationStep{{
+			Operation: operationName,
+			Handler:   mockHandler,
+		}}
+		testWorkflowRegister(tb, workflowService, workflowName, steps)
+
+		// Mock CreateRequest to return the created request
+		mockRequest := &models.Request{
+			Operation: operationName,
+			Status:    models.RequestStatusPending,
+			Metadata:  datatypes.JSON([]byte(`{"workflow_name":"testWorkflow","current_step":0,"total_steps":1,"started_at":1751145351,"initial_data":{"key":"value"}}`)),
+		}
+		requestService.EXPECT().CreateRequest(mock.Anything, mock.Anything, mock.Anything).
+			Return(mockRequest, nil)
+		requestService.EXPECT().GetRequest(mock.Anything, mockRequest.ID).Return(mockRequest, nil)
+
+		req := testWorkflowStart(tb, context.Background(), workflowService, workflowName, initialData)
+
+		// Test pending request
+		canTransition, err := workflowService.CanTransition(context.Background(), req.ID)
+		assert.NoError(tb, err)
+		assert.True(tb, canTransition)
+
+		// Test completed request
+		mockRequest.Status = models.RequestStatusCompleted
+		canTransition, err = workflowService.CanTransition(context.Background(), req.ID)
+		assert.NoError(tb, err)
+		assert.False(tb, canTransition)
+
+		// Test failed request
+		mockRequest.Status = models.RequestStatusFailed
+		canTransition, err = workflowService.CanTransition(context.Background(), req.ID)
+		assert.NoError(tb, err)
+		assert.False(tb, canTransition)
+	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
+}
+
+func TestWorkflowCoordinatorDefault_GetWorkflowStepInfo(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		// Arrange
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[*coreMocks.MockRequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "testWorkflow"
+		operationName := "testOp"
+		initialData := map[string]interface{}{"key": "value"}
+
+		// Mock operation handler
+		mockHandler := coreMocks.NewMockOperationHandler(tb)
+		mockHandler.EXPECT().ValidateRequest(mock.Anything, mock.Anything).Return(nil)
+		steps := []core.OperationStep{{
+			Operation:       operationName,
+			FailureBehavior: core.FailWorkflow,
+			Handler:         mockHandler,
+		}}
+		testWorkflowRegister(tb, workflowService, workflowName, steps)
+
+		// Mock CreateRequest to return the created request
+		mockRequest := &models.Request{
+			Operation: operationName,
+			Status:    models.RequestStatusPending,
+			Metadata:  datatypes.JSON([]byte(`{"workflow_name":"testWorkflow","current_step":0,"total_steps":1,"started_at":1751145351,"initial_data":{"key":"value"}}`)),
+		}
+		requestService.EXPECT().CreateRequest(mock.Anything, mock.Anything, mock.Anything).
+			Return(mockRequest, nil)
+		requestService.EXPECT().GetRequest(mock.Anything, mockRequest.ID).Return(mockRequest, nil)
+
+		req := testWorkflowStart(tb, context.Background(), workflowService, workflowName, initialData)
+
+		// Act
+		info, err := workflowService.GetWorkflowStepInfo(context.Background(), req.ID)
+
+		// Assert
+		assert.NoError(tb, err)
+		assert.Equal(tb, operationName, info.Operation)
+		assert.Equal(tb, core.FailWorkflow, info.FailureBehavior)
+		assert.Equal(tb, string(models.RequestStatusPending), info.Status)
 	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
 }
 

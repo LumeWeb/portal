@@ -17,13 +17,18 @@ import (
 )
 
 var _ core.WorkflowService = (*WorkflowCoordinatorDefault)(nil)
+var _ core.Cronable = (*WorkflowCoordinatorDefault)(nil)
+
+var (
+	noRetryPolicy = &core.RetryPolicy{MaxRetries: 0}
+)
 
 // Register service
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.WORKFLOW_SERVICE,
 		Factory: NewWorkflowCoordinator,
-		Depends: []string{core.REQUEST_SERVICE},
+		Depends: []string{core.REQUEST_SERVICE, core.CRON_SERVICE},
 	})
 }
 
@@ -51,9 +56,25 @@ type WorkflowCoordinatorDefault struct {
 	ctx         core.Context
 	logger      *core.Logger
 	requestSvc  core.RequestService
+	cronService core.CronService
 	db          *gorm.DB
 	workflows   map[string]*core.WorkflowDefinition
 	workflowsMu sync.RWMutex
+}
+
+func (w *WorkflowCoordinatorDefault) RegisterTasks(cron core.CronService) error {
+	err := cron.RegisterJobType(workflowStepExecutorJobType, func() (core.CronJob, error) {
+		return newWorkflowStepExecutorJob(), nil
+	}, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *WorkflowCoordinatorDefault) ScheduleJobs(_ core.CronService) error {
+	return nil
 }
 
 // NewWorkflowCoordinator creates a new workflow coordinator
@@ -67,7 +88,10 @@ func NewWorkflowCoordinator() (core.Service, []core.ContextBuilderOption, error)
 			coordinator.ctx = ctx
 			coordinator.logger = ctx.ServiceLogger(coordinator)
 			coordinator.requestSvc = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+			coordinator.cronService = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 			coordinator.db = ctx.DB()
+
+			coordinator.cronService.RegisterEntity(coordinator)
 			return nil
 		}),
 	)
@@ -210,6 +234,28 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		zap.String("workflow", workflow.Name),
 		zap.Uint("requestID", createdReq.ID))
 
+	// Auto-trigger first step if configured
+	if workflow.AutoTriggerFirstStep {
+		firstStep := workflow.Steps[0]
+		if firstStep.DelegateToCron {
+			if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
+				w.logger.Error("Failed to dispatch first step to cron",
+					zap.String("workflow", workflow.Name),
+					zap.Uint("requestID", createdReq.ID),
+					zap.Error(err))
+				return createdReq, nil // Return request even if cron dispatch fails
+			}
+		} else {
+			if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
+				w.logger.Error("Failed to execute first step",
+					zap.String("workflow", workflow.Name),
+					zap.Uint("requestID", createdReq.ID),
+					zap.Error(err))
+				return createdReq, nil // Return request even if execution fails
+			}
+		}
+	}
+
 	return createdReq, nil
 }
 
@@ -291,10 +337,25 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
-	w.logger.Info("Advanced workflow to next step",
-		zap.String("workflow", metadata.WorkflowName),
-		zap.Int("step", nextStepIdx),
-		zap.Uint("nextRequestID", createdReq.ID))
+	if nextStep.DelegateToCron {
+		if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
+			return err
+		}
+		w.logger.Info("Delegated workflow step to cron",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Int("step", nextStepIdx),
+			zap.Uint("nextRequestID", createdReq.ID))
+	} else {
+		// Execute the next step directly
+		err = w.ExecuteWorkflowStep(ctx, createdReq.ID)
+		if err != nil {
+			return err
+		}
+		w.logger.Info("Advanced workflow to next step",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Int("step", nextStepIdx),
+			zap.Uint("nextRequestID", createdReq.ID))
+	}
 
 	return nil
 }
@@ -412,7 +473,98 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 	return status, nil
 }
 
+// ExecuteWorkflowStep executes the operation handler for a workflow step
+func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, requestID uint) error {
+	// Get current request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("failed to get request: %w", err)
+	}
+
+	// Get workflow metadata
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+		return fmt.Errorf("invalid workflow meta %w", err)
+	}
+
+	// Get workflow and current step
+	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	if err != nil {
+		return err
+	}
+	currentStep := workflow.Steps[metadata.CurrentStep]
+
+	// Execute the operation handler
+	err = currentStep.Handler.Execute(ctx, req)
+	if err != nil {
+		// Fail the workflow step
+		return w.FailWorkflowStep(ctx, req.ID, err.Error())
+	}
+
+	// Complete the workflow step
+	return w.CompleteWorkflowStep(ctx, req.ID)
+}
+
+// CanTransition checks if a workflow step can be transitioned from its current state
+func (w *WorkflowCoordinatorDefault) CanTransition(ctx context.Context, requestID uint) (bool, error) {
+	// Get current request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get request: %w", err)
+	}
+
+	// Check if the request is already completed or failed
+	if req.Status == models.RequestStatusCompleted || req.Status == models.RequestStatusFailed {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// GetWorkflowStepInfo returns information about a specific workflow step
+func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, requestID uint) (*core.WorkflowStepInfo, error) {
+	// Get current request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get request: %w", err)
+	}
+
+	// Parse metadata
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+		return nil, fmt.Errorf("invalid workflow meta %w", err)
+	}
+
+	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	if err != nil {
+		return nil, err
+	}
+
+	currentStep := workflow.Steps[metadata.CurrentStep]
+
+	return &core.WorkflowStepInfo{
+		Operation:       currentStep.Operation,
+		FailureBehavior: currentStep.FailureBehavior,
+		Status:          string(req.Status),
+	}, nil
+}
+
 // scheduleRetry schedules a retry for a failed step
+func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, requestID uint) error {
+	// Create and register the workflow step executor job
+	job, err := w.cronService.JobFactory().CreateJob(workflowStepExecutorJobType)
+	if err != nil {
+		return fmt.Errorf("failed to create job instance: %w", err)
+	}
+
+	job.SetArgs(requestID)
+
+	if err := w.cronService.RegisterJob(job, noRetryPolicy); err != nil {
+		return fmt.Errorf("failed to register workflow step job: %w", err)
+	}
+	return nil
+}
+
 func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestID uint) error {
 	// Get current request
 	req, err := w.requestSvc.GetRequest(ctx, requestID)
