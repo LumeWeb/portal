@@ -23,6 +23,7 @@ import (
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1201,6 +1202,40 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 	return opts
 }
 
+// ConfigBuilder is a generic builder for any config type that implements
+// the Defaults pattern (map[string]any)
+type ConfigBuilder struct {
+	values map[string]any
+}
+
+// NewConfigBuilder creates a new ConfigBuilder
+func NewConfigBuilder() *ConfigBuilder {
+	return &ConfigBuilder{
+		values: make(map[string]any),
+	}
+}
+
+// With adds a configuration key-value pair
+func (b *ConfigBuilder) With(key string, value any) *ConfigBuilder {
+	b.values[key] = value
+	return b
+}
+
+// Build creates a config object implementing the Defaults interface
+func (b *ConfigBuilder) Build() config.Defaults {
+	// Create a copy to avoid shared reference issues
+	return &genericConfig{values: maps.Clone(b.values)}
+}
+
+// genericConfig implements config.Defaults with custom values
+type genericConfig struct {
+	values map[string]any
+}
+
+func (c *genericConfig) Defaults() map[string]any {
+	return c.values
+}
+
 // GetMockConfig returns the mock config manager from the context for testing
 // Panics if the config manager is not a mock
 func GetMockConfig(ctx core.Context) *MockConfigManager {
@@ -1222,6 +1257,11 @@ func WithAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption
 	}
 }
 
+// WithCustomAPIConfig creates API config using builder pattern
+func WithCustomAPIConfig(apiID string, builder *ConfigBuilder) TestContextBuilderOption {
+	return WithAPIConfig(apiID, builder.Build())
+}
+
 // WithProtocolConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetProtocol is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
@@ -1233,6 +1273,11 @@ func WithProtocolConfig(protocolID string, protocolConfig interface{}) TestConte
 	}
 }
 
+// WithCustomConfig creates a TestContextBuilderOption using the builder pattern
+func WithCustomProtocolConfig(configID string, builder *ConfigBuilder) TestContextBuilderOption {
+	return WithProtocolConfig(configID, builder.Build())
+}
+
 // WithServiceConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetService is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
@@ -1242,6 +1287,10 @@ func WithServiceConfig(serviceID string, serviceConfig interface{}) TestContextB
 		mockConfig.On("GetService", serviceID).Return(serviceConfig).Maybe()
 		return ctx, nil
 	}
+}
+
+func WithCustomServiceConfig(configID string, builder *ConfigBuilder) TestContextBuilderOption {
+	return WithServiceConfig(configID, builder.Build())
 }
 
 // WithService creates a TestContextBuilderOption that wraps RegisterService
