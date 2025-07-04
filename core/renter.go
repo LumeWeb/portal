@@ -3,9 +3,7 @@ package core
 import (
 	"context"
 	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/core/types"
-	"go.sia.tech/renterd/api"
-	"go.sia.tech/renterd/object"
+	"go.sia.tech/renterd/v2/api"
 	"io"
 )
 
@@ -23,47 +21,19 @@ type MultipartUploadParams struct {
 
 type RenterHostFilterMode string
 
-const (
-	RenterHostFilterModeAll     RenterHostFilterMode = "all"
-	RenterHostFilterModeAllowed RenterHostFilterMode = "allowed"
-	RenterHostFilterModeBlocked RenterHostFilterMode = "blocked"
-)
-
-type RenterHostUsabilityMode string
-
-const (
-	RenterHostUsabilityModeAll      RenterHostUsabilityMode = "all"
-	RenterHostUsabilityModeUsable   RenterHostUsabilityMode = "usable"
-	RenterHostUsabilityModeUnusable RenterHostUsabilityMode = "unusable"
-)
-
 type RenterService interface {
 	CreateBucketIfNotExists(bucket string) error
 	UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error
-	ImportObjectMetadata(ctx context.Context, bucket string, fileName string, object_ object.Object) error
 	GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error)
 	GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error)
 	DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error
-	GetSetting(ctx context.Context, setting string, out any) error
 	UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error)
 	UploadObjectMultipart(ctx context.Context, params *MultipartUploadParams) error
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
 	GougingSettings(ctx context.Context) (api.GougingSettings, error)
 	RedundancySettings(ctx context.Context) (api.RedundancySettings, error)
-	AutopilotConfig(_ context.Context) (api.AutopilotConfig, error)
-	AutopilotState(_ context.Context) (api.AutopilotStateResponse, error)
-	TestAutoPilotConfig(ctx context.Context, gs api.GougingSettings) (api.ConfigEvaluationResponse, error)
-	TriggerAutoPilot(_ context.Context) (bool, error)
-	AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error
-	GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error)
 	SlabSize(ctx context.Context) (uint64, error)
-	ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error)
-	Hosts(ctx context.Context, usabilityMode RenterHostUsabilityMode, filterMode RenterHostFilterMode) ([]api.Host, error)
-	Host(ctx context.Context, host types.PublicKey) (api.Host, error)
-	AutopilotHosts(ctx context.Context, usabilityMode RenterHostUsabilityMode, filterMode RenterHostFilterMode) ([]api.HostResponse, error)
-	ConsensusState(ctx context.Context) (api.ConsensusState, error)
-	RecommendedFee(ctx context.Context) (types.Currency, error)
 
 	Service
 }

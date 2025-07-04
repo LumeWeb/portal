@@ -16,7 +16,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/renterd/api"
+	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
