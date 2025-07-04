@@ -9,7 +9,6 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	renterInternal "go.lumeweb.com/portal/service/internal/renter"
-	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/core/types"
 	"go.sia.tech/renterd/v2/api"
 	autoPilotClient "go.sia.tech/renterd/v2/autopilot"
@@ -25,11 +24,6 @@ import (
 )
 
 var _ core.RenterService = (*RenterDefault)(nil)
-
-const (
-	// TODO: This is a workaround as we no longer have API access to fetch the redundancy settings
-	minShards = 10
-)
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -405,8 +399,18 @@ func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSetting
 	return settings, nil
 }
 
-func (r *RenterDefault) SlabSize(_ context.Context) (uint64, error) {
-	return uint64(minShards * rhpv2.SectorSize), nil
+func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
+	client, err := r.getBusClient()
+	if err != nil {
+		return 0, err
+	}
+
+	uploadSettings, err := client.UploadSettings(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return uploadSettings.Redundancy.SlabSizeNoRedundancy(), nil
 }
 
 func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {
