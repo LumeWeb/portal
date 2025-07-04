@@ -26,6 +26,11 @@ import (
 
 var _ core.RenterService = (*RenterDefault)(nil)
 
+const (
+	// TODO: This is a workaround as we no longer have API access to fetch the redundancy settings
+	minShards = 10
+)
+
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID: core.RENTER_SERVICE,
@@ -400,29 +405,8 @@ func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSetting
 	return settings, nil
 }
 
-func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancySettings, error) {
-	var settings api.RedundancySettings
-	client, err := r.getBusClient()
-	if err != nil {
-		return api.RedundancySettings{}, err
-	}
-	settings, err = client.RedundancySettings(ctx)
-
-	if err != nil {
-		return api.RedundancySettings{}, err
-	}
-
-	return settings, nil
-}
-
-func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
-	settings, err := r.RedundancySettings(ctx)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(settings.MinShards * rhpv2.SectorSize), nil
+func (r *RenterDefault) SlabSize(_ context.Context) (uint64, error) {
+	return uint64(minShards * rhpv2.SectorSize), nil
 }
 
 func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {

@@ -166,6 +166,7 @@ github.com/gofiber/fiber/v2 v2.52.5/go.mod h1:KEOE+cXMhXG0zHc9d8+E38hoX+ZN7bhOtg
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/golang-jwt/jwt v3.2.1+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
+github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
 github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/golang-jwt/jwt/v4 v4.2.0/go.mod h1:/xlHOz8bRuivTWchD4jCa+NbatV+wEUSzwAxVc6locg=
 github.com/golang-jwt/jwt/v5 v5.2.2 h1:Rl4B7itRWVtYIHFrSNd7vhTiz9UpLdi6gZhZ3wEeDy8=
@@ -445,6 +446,7 @@ go.sia.tech/jape v0.14.0 h1:hyocTKqvcji+rC1vDE1djINlpErQQVDS6zoLMmxW3Xs=
 go.sia.tech/jape v0.14.0/go.mod h1:tONxoKrNr0iQWzBCygwlTkGoGjuEhyVpLGInvGd2mGY=
 go.sia.tech/mux v1.4.0 h1:LgsLHtn7l+25MwrgaPaUCaS8f2W2/tfvHIdXps04sVo=
 go.sia.tech/mux v1.4.0/go.mod h1:iNFi9ifFb2XhuD+LF4t2HBb4Mvgq/zIPKqwXU/NlqHA=
+go.sia.tech/renterd v1.1.1 h1:6d3uBFdXYdC6kN3LB37H44FYmXu+aDVqfbDAvdedtsg=
 go.sia.tech/renterd/v2 v2.4.0 h1:OLUXF7flQFWGaJznDJRjuqhP33QL7nPM4hr7g4WcayM=
 go.sia.tech/renterd/v2 v2.4.0/go.mod h1:A8ZYz7bskS7dLmOzFSu82T2TkkxexZ/MaM6N+rvhXZ4=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=

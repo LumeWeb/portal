@@ -32,7 +32,6 @@ type RenterService interface {
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error
 	GougingSettings(ctx context.Context) (api.GougingSettings, error)
-	RedundancySettings(ctx context.Context) (api.RedundancySettings, error)
 	SlabSize(ctx context.Context) (uint64, error)
 
 	Service
