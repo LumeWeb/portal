@@ -39,7 +39,7 @@ func (c CoreConfig) Schema() z.ZogSchema {
 		"Port": z.Uint().
 			Required(z.Message("core.port is required")).
 			GT(0, z.Message("core.port must be greater than 0")),
-		"PostUploadLimit": z.Uint(),
+		"PostUploadLimit": ZogUInt64(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*CoreConfig)
 		if !ok {
