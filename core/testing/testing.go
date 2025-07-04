@@ -791,6 +791,20 @@ func ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption) (Te
 	return newCtx, nil
 }
 
+// CombineOptions combines multiple TestContextBuilderOptions into a single option
+func CombineOptions(opts ...TestContextBuilderOption) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		var err error
+		for _, opt := range opts {
+			ctx, err = opt(ctx)
+			if err != nil {
+				return ctx, err
+			}
+		}
+		return ctx, nil
+	}
+}
+
 // ProcessStartupFuncs executes all registered startup functions in the TestContext.
 // Returns the first error encountered, if any. Functions are executed in the order they were registered.
 // This is typically called during test initialization to simulate the portal's startup sequence.
