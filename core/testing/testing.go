@@ -1538,15 +1538,45 @@ func WithAPI(id string, factory core.APIFactory) TestContextBuilderOption {
 	}
 }
 
-// WithProtocol creates a TestContextBuilderOption that wraps RegisterProtocol
-// to register and configure a Protocol for testing purposes.
+// registerProtocolWithHelper is a helper function to register a protocol.
+func registerProtocolWithHelper(tctx TestContext, id string, factory core.ProtocolFactory) (TestContext, error) {
+	opts, err := RegisterProtocol(tctx, id, factory)
+	if err != nil {
+		return tctx, err
+	}
+	return ProcessCtxOptions(tctx, opts...)
+}
+
+// WithProtocol creates a TestContextBuilderOption that registers and configures a Protocol.
 func WithProtocol(id string, factory core.ProtocolFactory) TestContextBuilderOption {
 	return func(tctx TestContext) (TestContext, error) {
-		opts, err := RegisterProtocol(tctx, id, factory)
-		if err != nil {
-			return tctx, err
+		return registerProtocolWithHelper(tctx, id, factory)
+	}
+}
+
+// WithMockProtocol creates a TestContextBuilderOption that registers a mock protocol.
+// It takes a protocol name and a callback function that allows configuring the mock protocol.
+func WithMockProtocol(protocolName string, configureMock ...func(protocol *MockProtocol)) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		// Create a new mock protocol
+		mockProtocol := NewMockProtocol(tctx.T(), protocolName)
+
+		// Configure the mock using the provided callback
+		if len(configureMock) > 0 {
+			for _, v := range configureMock {
+				if v != nil {
+					v(mockProtocol)
+				}
+			}
+
 		}
-		return ProcessCtxOptions(tctx, opts...)
+
+		// Create a protocol factory that returns the configured mock
+		protocolFactory := func() (core.Protocol, []core.ContextBuilderOption, error) {
+			return mockProtocol, nil, nil // No additional context options for mock protocols
+		}
+
+		return registerProtocolWithHelper(tctx, protocolName, protocolFactory)
 	}
 }
 
