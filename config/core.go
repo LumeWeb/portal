@@ -36,10 +36,10 @@ func (c CoreConfig) Schema() z.ZogSchema {
 			Required(z.Message("core.domain is required")),
 		"PortalName": z.String().
 			Required(z.Message("core.portal_name is required")),
-		"Port": ZogUInt().
+		"Port": z.Uint().
 			Required(z.Message("core.port is required")).
 			GT(0, z.Message("core.port must be greater than 0")),
-		"PostUploadLimit": ZogUInt64(),
+		"PostUploadLimit": z.Uint(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*CoreConfig)
 		if !ok {

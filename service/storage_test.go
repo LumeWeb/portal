@@ -3,12 +3,12 @@ package service
 import (
 	"bytes"
 	"context"
-	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/renterd/api"
+	"go.sia.tech/renterd/v2/api"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

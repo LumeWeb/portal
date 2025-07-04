@@ -15,7 +15,7 @@ require (
 	github.com/casbin/gorm-adapter/v3 v3.32.0
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/structs v1.1.0
-	github.com/gabriel-vasile/mimetype v1.4.8
+	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-00010101000000-000000000000
 	github.com/go-co-op/gocron/v2 v2.16.2
@@ -46,7 +46,7 @@ require (
 	go.lumeweb.com/portal-router v0.6.1
 	go.sia.tech/core v0.14.1
 	go.sia.tech/coreutils v0.16.4
-	go.sia.tech/renterd v1.1.1
+	go.sia.tech/renterd/v2 v2.4.0
 	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.3.0
@@ -119,7 +119,7 @@ require (
 	go.lumeweb.com/queryutil v0.3.12 // indirect
 	go.sia.tech/jape v0.14.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

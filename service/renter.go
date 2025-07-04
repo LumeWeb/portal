@@ -11,11 +11,10 @@ import (
 	renterInternal "go.lumeweb.com/portal/service/internal/renter"
 	rhpv2 "go.sia.tech/core/rhp/v2"
 	"go.sia.tech/core/types"
-	"go.sia.tech/renterd/api"
-	autoPilotClient "go.sia.tech/renterd/autopilot"
-	busClient "go.sia.tech/renterd/bus/client"
-	"go.sia.tech/renterd/object"
-	workerClient "go.sia.tech/renterd/worker/client"
+	"go.sia.tech/renterd/v2/api"
+	autoPilotClient "go.sia.tech/renterd/v2/autopilot"
+	busClient "go.sia.tech/renterd/v2/bus/client"
+	workerClient "go.sia.tech/renterd/v2/worker/client"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"io"
@@ -122,14 +121,6 @@ func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket
 	return nil
 }
 
-func (r *RenterDefault) ImportObjectMetadata(ctx context.Context, bucket string, fileName string, object_ object.Object) error {
-	cfg, err := r.autoPilotClient.Config()
-	if err != nil {
-		return err
-	}
-	return r.busClient.AddObject(ctx, bucket, fileName, cfg.Contracts.Set, object_, api.AddObjectOptions{})
-}
-
 func (r *RenterDefault) init() error {
 	r.clientManager = renterInternal.NewClientManager(r.ctx)
 	if err := r.clientManager.Start(); err != nil {
@@ -155,7 +146,7 @@ func (r *RenterDefault) init() error {
 		addrURL.Path = "/api/autopilot"
 		r.autoPilotClient = autoPilotClient.NewClient(addrURL.String(), passwd)
 
-		_, stateErr := r.busClient.State()
+		_, stateErr := r.busClient.State(r.ctx)
 		if stateErr != nil {
 			return fmt.Errorf("renter status check: failed to get renter state: %w", stateErr)
 		}
@@ -218,7 +209,7 @@ func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fi
 		return nil, err
 	}
 
-	return ret.Object, nil
+	return &ret, nil
 }
 
 func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error {
@@ -226,21 +217,7 @@ func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string,
 	if err != nil {
 		return err
 	}
-	return client.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
-}
-
-func (r *RenterDefault) GetSetting(ctx context.Context, setting string, out any) error {
-	client, err := r.getBusClient()
-	if err != nil {
-		return err
-	}
-	err = client.Setting(ctx, setting, out)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client.DeleteObject(ctx, bucket, fileName)
 }
 
 func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error) {
@@ -301,7 +278,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 		if err != nil {
 			return err
 		}
-		upload, err := client.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{GenerateKey: true})
+		upload, err := client.CreateMultipartUpload(ctx, bucket, fileName, api.CreateMultipartOptions{})
 		if err != nil {
 			return err
 		}
@@ -402,16 +379,19 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 }
 
 func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileName string) error {
-	return r.workerClient.DeleteObject(ctx, bucket, fileName, api.DeleteObjectOptions{})
+	return r.workerClient.DeleteObject(ctx, bucket, fileName)
 }
 
 func (r *RenterDefault) UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error {
-	return r.busClient.UpdateSetting(ctx, api.SettingGouging, settings)
+	return r.busClient.UpdateGougingSettings(ctx, settings)
 }
 
 func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSettings, error) {
-	var settings api.GougingSettings
-	err := r.GetSetting(ctx, api.SettingGouging, &settings)
+	client, err := r.getBusClient()
+	if err != nil {
+		return api.GougingSettings{}, err
+	}
+	settings, err := client.GougingSettings(ctx)
 
 	if err != nil {
 		return api.GougingSettings{}, err
@@ -422,7 +402,11 @@ func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSetting
 
 func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancySettings, error) {
 	var settings api.RedundancySettings
-	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
+	client, err := r.getBusClient()
+	if err != nil {
+		return api.RedundancySettings{}, err
+	}
+	settings, err = client.RedundancySettings(ctx)
 
 	if err != nil {
 		return api.RedundancySettings{}, err
@@ -431,57 +415,8 @@ func (r *RenterDefault) RedundancySettings(ctx context.Context) (api.RedundancyS
 	return settings, nil
 }
 
-func (r *RenterDefault) AutopilotConfig(_ context.Context) (api.AutopilotConfig, error) {
-	cfg, err := r.autoPilotClient.Config()
-
-	if err != nil {
-		return api.AutopilotConfig{}, err
-	}
-
-	return cfg, nil
-}
-
-func (r *RenterDefault) AutopilotState(_ context.Context) (api.AutopilotStateResponse, error) {
-	return r.autoPilotClient.State()
-}
-
-func (r *RenterDefault) TestAutoPilotConfig(ctx context.Context, gs api.GougingSettings) (api.ConfigEvaluationResponse, error) {
-	ap, err := r.AutopilotConfig(ctx)
-	if err != nil {
-		return api.ConfigEvaluationResponse{}, err
-	}
-
-	rs, err := r.RedundancySettings(ctx)
-	if err != nil {
-		return api.ConfigEvaluationResponse{}, err
-	}
-
-	return r.autoPilotClient.EvaluateConfig(ctx, ap, gs, rs)
-}
-
-func (r *RenterDefault) TriggerAutoPilot(_ context.Context) (bool, error) {
-	return r.autoPilotClient.Trigger(true)
-}
-
-func (r *RenterDefault) AddHostsToAllowlist(ctx context.Context, hosts []types.PublicKey) error {
-	client, err := r.getBusClient()
-	if err != nil {
-		return err
-	}
-	return client.UpdateHostAllowlist(ctx, hosts, nil, false)
-}
-
-func (r *RenterDefault) GetAllowlistedHosts(ctx context.Context) ([]types.PublicKey, error) {
-	client, err := r.getBusClient()
-	if err != nil {
-		return nil, err
-	}
-	return client.HostAllowlist(ctx)
-}
-
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
-	var settings api.RedundancySettings
-	err := r.GetSetting(ctx, api.SettingRedundancy, &settings)
+	settings, err := r.RedundancySettings(ctx)
 
 	if err != nil {
 		return 0, err
@@ -490,36 +425,12 @@ func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 	return uint64(settings.MinShards * rhpv2.SectorSize), nil
 }
 
-func (r *RenterDefault) ScanHost(ctx context.Context, host types.PublicKey, hostIP string) (api.RHPScanResponse, error) {
-	client, err := r.getWorkerClient()
-	if err != nil {
-		return api.RHPScanResponse{}, err
-	}
-	return client.RHPScan(ctx, host, hostIP, 30*time.Second)
-}
-
-func (r *RenterDefault) Hosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.Host, error) {
-	client, err := r.getBusClient()
-	if err != nil {
-		return nil, err
-	}
-	return client.SearchHosts(ctx, api.SearchHostOptions{
-		Limit:         -1,
-		FilterMode:    string(filterMode),
-		UsabilityMode: string(usabilityMode),
-	})
-}
-
 func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {
 	client, err := r.getBusClient()
 	if err != nil {
 		return api.Host{}, err
 	}
 	return client.Host(ctx, host)
-}
-
-func (r *RenterDefault) AutopilotHosts(ctx context.Context, usabilityMode core.RenterHostUsabilityMode, filterMode core.RenterHostFilterMode) ([]api.HostResponse, error) {
-	return r.autoPilotClient.HostInfos(ctx, string(filterMode), string(usabilityMode), "", nil, 0, -1)
 }
 
 func (r *RenterDefault) ConsensusState(ctx context.Context) (api.ConsensusState, error) {
