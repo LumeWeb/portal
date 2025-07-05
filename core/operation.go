@@ -2,7 +2,9 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
 )
 
@@ -107,4 +109,31 @@ func NewScanOperation(protocol string, handler OperationHandler) Operation {
 		OpTypeScan,
 		handler,
 	)
+}
+
+// OperationHelper provides helper methods for working with operations
+type OperationHelper interface {
+	// WorkflowData retrieves workflow metadata for a request
+	WorkflowData(requestID uint) (*koanf.Koanf, error)
+}
+
+// OperationHelperDefault is the default implementation of OperationHelper
+type OperationHelperDefault struct {
+	ctx Context
+}
+
+// NewOperationHelper creates a new OperationHelper instance
+func NewOperationHelper(ctx Context) OperationHelper {
+	return &OperationHelperDefault{
+		ctx: ctx,
+	}
+}
+
+// GetWorkflowData retrieves workflow metadata for a request
+func (h *OperationHelperDefault) WorkflowData(requestID uint) (*koanf.Koanf, error) {
+	// Get workflow service
+	workflow := GetService[WorkflowService](h.ctx, WORKFLOW_SERVICE)
+
+	// Get the workflow metadata
+	return workflow.GetWorkflowMetadata(h.ctx, requestID)
 }
