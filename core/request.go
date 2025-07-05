@@ -34,7 +34,6 @@ type RequestService interface {
 	// Query operations
 	QueryRequest(ctx context.Context, query interface{}, filter RequestFilter) (*models.Request, error)
 	GetRequestByHash(ctx context.Context, hash StorageHash, filter RequestFilter) (*models.Request, error)
-	GetRequestByUploadHash(ctx context.Context, hash StorageHash, filter RequestFilter) (*models.Request, error)
 	ListRequestsByUser(ctx context.Context, userID uint, filter RequestFilter) ([]*models.Request, error)
 	ListRequestsByStatus(ctx context.Context, status string, filter RequestFilter) ([]*models.Request, error)
 
@@ -48,7 +47,7 @@ type RequestService interface {
 	RequestExists(ctx context.Context, id uint) (bool, error)
 
 	ExecuteRequest(ctx context.Context, id uint) error
-	
+
 	Service
 }
 

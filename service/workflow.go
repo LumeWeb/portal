@@ -47,10 +47,6 @@ func (w *WorkflowCoordinatorDefault) copyRequestData(target, source *models.Requ
 	target.SourceIP = source.SourceIP
 	target.Hash = source.Hash
 	target.CIDType = source.CIDType
-	target.UploadHash = source.UploadHash
-	target.UploadHashCIDType = source.UploadHashCIDType
-	target.Size = source.Size
-	target.MimeType = source.MimeType
 }
 
 // handleRequestData processes request data options and updates the target request
@@ -60,6 +56,15 @@ func (w *WorkflowCoordinatorDefault) handleRequestData(options *core.WorkflowOpt
 		case *models.Request:
 			w.copyRequestData(target, requestData)
 		}
+	}
+
+	if options.SourceIP != "" {
+		target.SourceIP = options.SourceIP
+	}
+
+	if options.StorageHash != nil {
+		target.Hash = options.StorageHash.Multihash()
+		target.CIDType = options.StorageHash.CIDType()
 	}
 }
 
@@ -249,6 +254,11 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 
 	w.handleRequestData(processedOpts, req)
 
+	// Set UserID if provided in options
+	if processedOpts.UserID > 0 {
+		req.UserID = &processedOpts.UserID
+	}
+
 	// Validate the request
 	if err := firstStep.Handler.ValidateRequest(ctx, req); err != nil {
 		return nil, err
@@ -336,21 +346,22 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 
 	// Create next request - copying relevant fields from current request
 	nextReq := &models.Request{
-		Operation:         nextStep.Operation,
-		Protocol:          currentReq.Protocol,
-		Status:            models.RequestStatusPending,
-		UserID:            currentReq.UserID,
-		SourceIP:          currentReq.SourceIP,
-		Hash:              currentReq.Hash,
-		CIDType:           currentReq.CIDType,
-		UploadHash:        currentReq.UploadHash,
-		UploadHashCIDType: currentReq.UploadHashCIDType,
-		Size:              currentReq.Size,
-		MimeType:          currentReq.MimeType,
-		Metadata:          datatypes.JSON(metadataJSON),
+		Operation: nextStep.Operation,
+		Protocol:  currentReq.Protocol,
+		Status:    models.RequestStatusPending,
+		UserID:    currentReq.UserID,
+		SourceIP:  currentReq.SourceIP,
+		Hash:      currentReq.Hash,
+		CIDType:   currentReq.CIDType,
+		Metadata:  datatypes.JSON(metadataJSON),
 	}
 
 	w.handleRequestData(processedOpts, nextReq)
+
+	// Set UserID if provided in options
+	if processedOpts.UserID > 0 {
+		nextReq.UserID = &processedOpts.UserID
+	}
 
 	// Create next request - fix CreateRequest call
 	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, processedOpts.RequestData)

@@ -84,6 +84,9 @@ type WorkflowOption func(*WorkflowOptions)
 type WorkflowOptions struct {
 	InitialData any
 	RequestData any
+	SourceIP    string
+	StorageHash StorageHash
+	UserID      uint
 }
 
 // WithWorkflowInitialData returns a WorkflowOption that sets the initial data
@@ -97,6 +100,27 @@ func WithWorkflowInitialData(data any) WorkflowOption {
 func WithWorkflowRequestData(data any) WorkflowOption {
 	return func(o *WorkflowOptions) {
 		o.RequestData = data
+	}
+}
+
+// WithWorkflowSourceIP returns a WorkflowOption that sets the SourceIP
+func WithWorkflowSourceIP(ip string) WorkflowOption {
+	return func(o *WorkflowOptions) {
+		o.SourceIP = ip
+	}
+}
+
+// WithWorkflowStorageHash returns a WorkflowOption that sets the Hash and CIDType from a StorageHash
+func WithWorkflowStorageHash(hash StorageHash) WorkflowOption {
+	return func(o *WorkflowOptions) {
+		o.StorageHash = hash
+	}
+}
+
+// WithWorkflowUserID returns a WorkflowOption that sets the UserID
+func WithWorkflowUserID(userID uint) WorkflowOption {
+	return func(o *WorkflowOptions) {
+		o.UserID = userID
 	}
 }
 

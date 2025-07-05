@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
@@ -27,7 +28,7 @@ func TestRequestServiceDefault_CreateRequest(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 
 		// Create the request
@@ -63,7 +64,7 @@ func TestRequestServiceDefault_GetRequest(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
@@ -93,7 +94,7 @@ func TestRequestServiceDefault_UpdateRequestStatus(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
@@ -120,7 +121,7 @@ func TestRequestServiceDefault_CompleteRequest(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
@@ -146,7 +147,7 @@ func TestRequestServiceDefault_FailRequest(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
@@ -180,7 +181,7 @@ func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
@@ -203,7 +204,7 @@ func TestRequestServiceDefault_RequestExists(t *testing.T) {
 		req := &models.Request{
 			Operation: "test.operation",
 			Status:    models.RequestStatusPending,
-			UserID:    1,
+			UserID:    lo.ToPtr(uint(1)),
 		}
 		err := ctx.DB().Create(req).Error
 		require.NoError(tb, err)
