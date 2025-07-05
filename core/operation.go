@@ -100,3 +100,11 @@ func NewUploadOperation(protocol string, handler OperationHandler) Operation {
 		handler,
 	)
 }
+
+func NewScanOperation(protocol string, handler OperationHandler) Operation {
+	return NewOperation(
+		fmt.Sprintf("%s.scan", protocol),
+		OpTypeScan,
+		handler,
+	)
+}
