@@ -42,7 +42,7 @@ require (
 	github.com/urfave/cli/v3 v3.3.8
 	github.com/wneessen/go-mail v0.6.2
 	go.etcd.io/etcd/client/v3 v3.6.1
-	go.lumeweb.com/configmanager v0.3.14
+	go.lumeweb.com/configmanager v0.3.15
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.1
@@ -88,7 +88,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/parsers/yaml v1.1.0 // indirect
-	github.com/knadh/koanf/providers/env v1.1.0 // indirect
 	github.com/knadh/koanf/providers/file v1.2.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
@@ -173,6 +172,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/klauspost/reedsolomon v1.12.4 // indirect
+	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
