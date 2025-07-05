@@ -23,20 +23,14 @@ const (
 
 type Request struct {
 	gorm.Model
-	Operation         string
-	Protocol          string
-	Status            RequestStatusType
-	StatusMessage     string
-	System            bool
-	UserID            uint
-	User              User
-	SourceIP          string
-	HashType          uint64
-	Hash              mh.Multihash
-	CIDType           uint64 `gorm:"column:cid_type"`
-	UploadHash        mh.Multihash
-	UploadHashCIDType uint64 `gorm:"column:upload_hash_cid_type"`
-	Size              uint64
-	MimeType          string
-	Metadata          datatypes.JSON
+	Operation     string
+	Protocol      string
+	Status        RequestStatusType
+	StatusMessage string
+	UserID        *uint
+	User          User
+	SourceIP      string
+	Hash          mh.Multihash
+	CIDType       uint64 `gorm:"column:cid_type"`
+	Metadata      datatypes.JSON
 }

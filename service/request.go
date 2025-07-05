@@ -270,33 +270,11 @@ func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.
 	return &req, nil
 }
 
-func (r *RequestServiceDefault) GetRequestByUploadHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
-	var req models.Request
-	req.UploadHash = hash.Multihash()
-
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).
-				Scopes(
-					applyFilters(filter),
-				).
-				Where(&req).First(&req)
-		})
-	})
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("request with upload hash not found: %w", err)
-		}
-		return nil, fmt.Errorf("failed to get request: %w", err)
-	}
-	return &req, nil
-}
-
 func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID uint, filter core.RequestFilter) ([]*models.Request, error) {
 	var requests []*models.Request
 
 	var req models.Request
-	req.UserID = userID
+	req.UserID = &userID
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
 			return db.WithContext(ctx).Where(&req).Scopes(
