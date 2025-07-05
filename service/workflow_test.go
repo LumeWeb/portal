@@ -206,7 +206,7 @@ func TestWorkflowCoordinatorDefault_StartWorkflow(t *testing.T) {
 		assert.Equal(tb, workflowName, metadata.WorkflowName)
 		assert.Equal(tb, 0, metadata.CurrentStep)
 		assert.Equal(tb, 1, metadata.TotalSteps)
-		assert.Equal(tb, initialData, metadata.InitialData)
+		assert.Equal(tb, initialData, metadata.Data)
 
 	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
 }
@@ -521,7 +521,7 @@ func TestWorkflowMetadata_JSONMarshal(t *testing.T) {
 		NextRequestID: 42,
 		PrevRequestID: 1,
 		StartedAt:     time.Now().Unix(),
-		InitialData:   map[string]interface{}{"key": "value"},
+		Data:          map[string]interface{}{"key": "value"},
 	}
 
 	// Act
@@ -629,7 +629,7 @@ func TestWorkflowCoordinatorDefault_StartWorkflow_InitialDataIsRequest(t *testin
 		assert.Equal(tb, workflowName, metadata.WorkflowName)
 		assert.Equal(tb, 0, metadata.CurrentStep)
 		assert.Equal(tb, 1, metadata.TotalSteps)
-		assert.Nil(tb, metadata.InitialData) // InitialData should be nil
+		assert.Nil(tb, metadata.Data) // Data should be nil
 
 	}, coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator))
 }

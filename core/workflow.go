@@ -2,6 +2,11 @@ package core
 
 import (
 	"context"
+	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/knadh/koanf/providers/structs"
+	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
 	"time"
 )
@@ -44,6 +49,9 @@ type WorkflowService interface {
 
 	// GetWorkflowStepInfo returns information about a specific workflow step
 	GetWorkflowStepInfo(ctx context.Context, requestID uint) (*WorkflowStepInfo, error)
+
+	// GetWorkflowMetadata returns the workflow metadata for a request
+	GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error)
 }
 
 // WorkflowStepInfo provides information about a workflow step
@@ -77,50 +85,203 @@ const (
 	RetryStep                               // Retry this step (with backoff)
 )
 
-// WorkflowOption configures workflow options
-type WorkflowOption func(*WorkflowOptions)
+// WorkflowOption configures workflow options and may return an error
+type WorkflowOption func(WorkflowOptions) error
 
-// WorkflowOptions contains options for starting a workflow
-type WorkflowOptions struct {
-	InitialData any
-	RequestData any
-	SourceIP    string
-	StorageHash StorageHash
-	UserID      uint
+type WorkflowData = map[string]any
+
+// WorkflowOptions defines the interface for workflow options
+type WorkflowOptions interface {
+	Data() WorkflowData
+	SetData(data WorkflowData)
+	RequestData() any
+	SetRequestData(data any)
+	SourceIP() string
+	SetSourceIP(ip string)
+	StorageHash() StorageHash
+	SetStorageHash(hash StorageHash)
+	UserID() uint
+	SetUserID(id uint)
+	MergeData(data WorkflowData) error
+	MergeJSON(jsonData string) error
+	MarshalData() ([]byte, error)
+	HasData() bool
+	GetKoanf() (*koanf.Koanf, error)
 }
 
-// WithWorkflowInitialData returns a WorkflowOption that sets the initial data
-func WithWorkflowInitialData(data any) WorkflowOption {
-	return func(o *WorkflowOptions) {
-		o.InitialData = data
+// WorkflowOptionsDefault is the default implementation of WorkflowOptions
+type WorkflowOptionsDefault struct {
+	data        WorkflowData
+	requestData any
+	sourceIP    string
+	storageHash StorageHash
+	userID      uint
+	koanfCache  *koanf.Koanf
+}
+
+// NewWorkflowOptions creates a new WorkflowOptions instance with initialized koanf cache
+func NewWorkflowOptions() WorkflowOptions {
+	return &WorkflowOptionsDefault{
+		koanfCache: koanf.New("."),
+	}
+}
+
+func (o *WorkflowOptionsDefault) Data() WorkflowData {
+	return o.data
+}
+
+func (o *WorkflowOptionsDefault) SetData(data WorkflowData) {
+	o.data = data
+}
+
+func (o *WorkflowOptionsDefault) RequestData() any {
+	return o.requestData
+}
+
+func (o *WorkflowOptionsDefault) SetRequestData(data any) {
+	o.requestData = data
+}
+
+func (o *WorkflowOptionsDefault) SourceIP() string {
+	return o.sourceIP
+}
+
+func (o *WorkflowOptionsDefault) SetSourceIP(ip string) {
+	o.sourceIP = ip
+}
+
+func (o *WorkflowOptionsDefault) StorageHash() StorageHash {
+	return o.storageHash
+}
+
+func (o *WorkflowOptionsDefault) SetStorageHash(hash StorageHash) {
+	o.storageHash = hash
+}
+
+func (o *WorkflowOptionsDefault) UserID() uint {
+	return o.userID
+}
+
+func (o *WorkflowOptionsDefault) SetUserID(id uint) {
+	o.userID = id
+}
+
+// MergeData merges new data into the cached koanf instance
+func (o *WorkflowOptionsDefault) MergeData(data WorkflowData) error {
+	if o.koanfCache == nil {
+		o.koanfCache = koanf.New(".")
+	}
+	if err := o.koanfCache.Load(confmap.Provider(data, "."), nil); err != nil {
+		return err
+	}
+
+	o.data = o.koanfCache.Raw()
+	return nil
+}
+
+// MergeJSON merges raw JSON data into the cached koanf instance
+func (o *WorkflowOptionsDefault) MergeJSON(jsonData string) error {
+	if jsonData == "" {
+		return nil
+	}
+
+	if o.koanfCache == nil {
+		o.koanfCache = koanf.New(".")
+	}
+
+	// Create temporary koanf instance to parse JSON
+	k := koanf.New(".")
+	if err := k.Load(rawbytes.Provider([]byte(jsonData)), json.Parser()); err != nil {
+		return err
+	}
+
+	// Merge the parsed data into our cache
+	if err := o.koanfCache.Merge(k); err != nil {
+		return err
+	}
+
+	o.data = o.koanfCache.Raw()
+	return nil
+}
+
+// MarshalData marshals the workflow data to JSON
+func (o *WorkflowOptionsDefault) MarshalData() ([]byte, error) {
+	if o.koanfCache == nil {
+		return []byte("{}"), nil
+	}
+	return o.koanfCache.Marshal(json.Parser())
+}
+
+// HasData checks if there is any data in the koanf cache
+func (o *WorkflowOptionsDefault) HasData() bool {
+	if o.koanfCache == nil {
+		return false
+	}
+	return len(o.koanfCache.Keys()) > 0
+}
+
+// GetKoanf returns the cached koanf instance or creates a new one
+func (o *WorkflowOptionsDefault) GetKoanf() (*koanf.Koanf, error) {
+	if o.koanfCache == nil {
+		o.koanfCache = koanf.New(".")
+		if o.data != nil {
+			if err := o.koanfCache.Load(confmap.Provider(o.data, "."), nil); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return o.koanfCache, nil
+}
+
+// WithWorkflowData returns a WorkflowOption that sets the initial data
+func WithWorkflowData(data WorkflowData) WorkflowOption {
+	return func(o WorkflowOptions) error {
+		return o.MergeData(data)
+	}
+}
+
+// WithWorkflowStructData returns a WorkflowOption that sets the initial data from a struct
+// using the specified struct tag (e.g. "json"). The struct will be converted to a map
+// and merged into the workflow data.
+func WithWorkflowStructData(data any, tag string) WorkflowOption {
+	return func(o WorkflowOptions) error {
+		k := koanf.New(".")
+		if err := k.Load(structs.Provider(data, tag), nil); err != nil {
+			return err
+		}
+		return o.MergeData(k.Raw())
 	}
 }
 
 // WithWorkflowRequestData returns a WorkflowOption that sets the request data
 func WithWorkflowRequestData(data any) WorkflowOption {
-	return func(o *WorkflowOptions) {
-		o.RequestData = data
+	return func(o WorkflowOptions) error {
+		o.SetRequestData(data)
+		return nil
 	}
 }
 
 // WithWorkflowSourceIP returns a WorkflowOption that sets the SourceIP
 func WithWorkflowSourceIP(ip string) WorkflowOption {
-	return func(o *WorkflowOptions) {
-		o.SourceIP = ip
+	return func(o WorkflowOptions) error {
+		o.SetSourceIP(ip)
+		return nil
 	}
 }
 
 // WithWorkflowStorageHash returns a WorkflowOption that sets the Hash and CIDType from a StorageHash
 func WithWorkflowStorageHash(hash StorageHash) WorkflowOption {
-	return func(o *WorkflowOptions) {
-		o.StorageHash = hash
+	return func(o WorkflowOptions) error {
+		o.SetStorageHash(hash)
+		return nil
 	}
 }
 
 // WithWorkflowUserID returns a WorkflowOption that sets the UserID
 func WithWorkflowUserID(userID uint) WorkflowOption {
-	return func(o *WorkflowOptions) {
-		o.UserID = userID
+	return func(o WorkflowOptions) error {
+		o.SetUserID(userID)
+		return nil
 	}
 }
 
