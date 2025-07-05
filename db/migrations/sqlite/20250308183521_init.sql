@@ -173,16 +173,10 @@ CREATE TABLE `requests`
     `protocol`             text,
     `status`               text,
     `status_message`       text,
-    `system`               numeric DEFAULT false,
     `user_id`              integer,
     `source_ip`            text,
-    `hash_type`            integer,
     `hash`                 varbinary(64),
     `cid_type`             integer,
-    `upload_hash`          varbinary(64),
-    `upload_hash_cid_type` integer,
-    `size`                 integer,
-    `mime_type`            text,
     `metadata`             JSON,
     CONSTRAINT `fk_requests_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 );
