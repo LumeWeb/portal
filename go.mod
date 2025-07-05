@@ -24,6 +24,10 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.13.0
+	github.com/knadh/koanf/parsers/json v1.0.0
+	github.com/knadh/koanf/providers/confmap v1.0.0
+	github.com/knadh/koanf/providers/rawbytes v1.0.0
+	github.com/knadh/koanf/providers/structs v1.0.0
 	github.com/knadh/koanf/v2 v2.2.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/looplab/fsm v1.0.3

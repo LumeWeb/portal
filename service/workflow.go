@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	kjson "github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/rawbytes"
+	"github.com/knadh/koanf/v2"
 	"gorm.io/datatypes"
 	"sync"
 	"time"
@@ -50,52 +53,58 @@ func (w *WorkflowCoordinatorDefault) copyRequestData(target, source *models.Requ
 }
 
 // handleRequestData processes request data options and updates the target request
-func (w *WorkflowCoordinatorDefault) handleRequestData(options *core.WorkflowOptions, target *models.Request) {
-	if options.RequestData != nil {
-		switch requestData := options.RequestData.(type) {
+func (w *WorkflowCoordinatorDefault) handleRequestData(options core.WorkflowOptions, target *models.Request) {
+	if requestData := options.RequestData(); requestData != nil {
+		switch rd := requestData.(type) {
 		case *models.Request:
-			w.copyRequestData(target, requestData)
+			w.copyRequestData(target, rd)
 		}
 	}
 
-	if options.SourceIP != "" {
-		target.SourceIP = options.SourceIP
+	if sourceIP := options.SourceIP(); sourceIP != "" {
+		target.SourceIP = sourceIP
 	}
 
-	if options.StorageHash != nil {
-		target.Hash = options.StorageHash.Multihash()
-		target.CIDType = options.StorageHash.CIDType()
+	if storageHash := options.StorageHash(); storageHash != nil {
+		target.Hash = storageHash.Multihash()
+		target.CIDType = storageHash.CIDType()
 	}
 }
 
 // processWorkflowOptions handles workflow options and updates metadata accordingly
 // Returns the processed options and marshaled metadata
-func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.WorkflowOption, metadata *WorkflowMetadata) (*core.WorkflowOptions, []byte, error) {
-	// Process options
-	options := &core.WorkflowOptions{}
+func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.WorkflowOption, metadata *WorkflowMetadata) (core.WorkflowOptions, []byte, error) {
+	// Initialize options with defaults
+	options := core.NewWorkflowOptions()
+
+	// Apply all provided options
 	for _, opt := range opts {
-		opt(options)
-	}
-
-	// Handle initial data if provided
-	if options.InitialData != nil {
-		metadata.InitialData = options.InitialData
-	}
-
-	// Handle request data if provided
-	if options.RequestData != nil {
-		switch requestData := options.RequestData.(type) {
-		case *models.Request:
-			// Copy fields from Request model
-			metadata.RequestData = requestData
-		default:
-			// For other types, store in metadata
-			metadata.RequestData = requestData
+		if err := opt(options); err != nil {
+			return nil, nil, err
 		}
 	}
 
-	metadataJSON, err := json.Marshal(metadata)
-	return options, metadataJSON, err
+	// Handle metadata merging
+	if metadata != nil && metadata.Data != "" {
+		if err := options.MergeJSON(metadata.Data); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// Merge new data if provided
+	if data := options.Data(); data != nil {
+		if err := options.MergeData(data); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// Serialize the final koanf data for storage
+	metadataBytes, err := options.MarshalData()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return options, metadataBytes, nil
 }
 
 // WorkflowMetadata stored in request.Metadata JSON field
@@ -106,8 +115,7 @@ type WorkflowMetadata struct {
 	NextRequestID uint   `json:"next_request_id,omitempty"`
 	PrevRequestID uint   `json:"prev_request_id,omitempty"`
 	StartedAt     int64  `json:"started_at"`
-	InitialData   any    `json:"initial_data"`
-	RequestData   any    `json:"request_data,omitempty"`
+	Data          string `json:"data"`
 }
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
@@ -255,8 +263,8 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	w.handleRequestData(processedOpts, req)
 
 	// Set UserID if provided in options
-	if processedOpts.UserID > 0 {
-		req.UserID = &processedOpts.UserID
+	if userID := processedOpts.UserID(); userID > 0 {
+		req.UserID = &userID
 	}
 
 	// Validate the request
@@ -359,8 +367,8 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	w.handleRequestData(processedOpts, nextReq)
 
 	// Set UserID if provided in options
-	if processedOpts.UserID > 0 {
-		nextReq.UserID = &processedOpts.UserID
+	if userID := processedOpts.UserID(); userID > 0 {
+		nextReq.UserID = &userID
 	}
 
 	// Create next request - fix CreateRequest call
@@ -609,6 +617,41 @@ func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, request
 		return fmt.Errorf("failed to register workflow step job: %w", err)
 	}
 	return nil
+}
+
+func (w *WorkflowCoordinatorDefault) GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error) {
+	// Get current request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse metadata
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+		return nil, fmt.Errorf("invalid workflow meta %w", err)
+	}
+
+	k, err := w.jsonToKoanf(metadata.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return k, nil
+}
+
+// jsonToKoanf converts a JSON string to a koanf.Koanf instance
+func (w *WorkflowCoordinatorDefault) jsonToKoanf(jsonStr string) (*koanf.Koanf, error) {
+	k := koanf.New(".")
+	if jsonStr == "" {
+		return k, nil
+	}
+
+	err := k.Load(rawbytes.Provider([]byte(jsonStr)), kjson.Parser())
+	if err != nil {
+		return nil, err
+	}
+	return k, nil
 }
 
 func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestID uint) error {
