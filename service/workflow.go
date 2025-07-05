@@ -40,6 +40,59 @@ func TUSUploadStep(failureBehavior core.FailureBehavior) core.OperationStep {
 	}
 }
 
+// copyRequestData copies fields from source request to target request
+func (w *WorkflowCoordinatorDefault) copyRequestData(target, source *models.Request) {
+	target.Protocol = source.Protocol
+	target.UserID = source.UserID
+	target.SourceIP = source.SourceIP
+	target.Hash = source.Hash
+	target.CIDType = source.CIDType
+	target.UploadHash = source.UploadHash
+	target.UploadHashCIDType = source.UploadHashCIDType
+	target.Size = source.Size
+	target.MimeType = source.MimeType
+}
+
+// handleRequestData processes request data options and updates the target request
+func (w *WorkflowCoordinatorDefault) handleRequestData(options *core.WorkflowOptions, target *models.Request) {
+	if options.RequestData != nil {
+		switch requestData := options.RequestData.(type) {
+		case *models.Request:
+			w.copyRequestData(target, requestData)
+		}
+	}
+}
+
+// processWorkflowOptions handles workflow options and updates metadata accordingly
+// Returns the processed options and marshaled metadata
+func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.WorkflowOption, metadata *WorkflowMetadata) (*core.WorkflowOptions, []byte, error) {
+	// Process options
+	options := &core.WorkflowOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// Handle initial data if provided
+	if options.InitialData != nil {
+		metadata.InitialData = options.InitialData
+	}
+
+	// Handle request data if provided
+	if options.RequestData != nil {
+		switch requestData := options.RequestData.(type) {
+		case *models.Request:
+			// Copy fields from Request model
+			metadata.RequestData = requestData
+		default:
+			// For other types, store in metadata
+			metadata.RequestData = requestData
+		}
+	}
+
+	metadataJSON, err := json.Marshal(metadata)
+	return options, metadataJSON, err
+}
+
 // WorkflowMetadata stored in request.Metadata JSON field
 type WorkflowMetadata struct {
 	WorkflowName  string `json:"workflow_name"`
@@ -49,6 +102,7 @@ type WorkflowMetadata struct {
 	PrevRequestID uint   `json:"prev_request_id,omitempty"`
 	StartedAt     int64  `json:"started_at"`
 	InitialData   any    `json:"initial_data"`
+	RequestData   any    `json:"request_data,omitempty"`
 }
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
@@ -159,7 +213,7 @@ func (w *WorkflowCoordinatorDefault) ListWorkflows() []string {
 }
 
 // StartWorkflow starts a new workflow instance
-func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error) {
+func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
 	// Get workflow
 	workflow, err := w.GetWorkflow(name)
 	if err != nil {
@@ -173,15 +227,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	// First step
 	firstStep := workflow.Steps[0]
 
-	dataIsRequest := false
-	var modelRequest *models.Request
-
-	if _, ok := initialData.(*models.Request); ok {
-		dataIsRequest = true
-		modelRequest = initialData.(*models.Request)
-	}
-
-	// Create metadata for first step
+	// Create and process metadata for first step
 	metadata := WorkflowMetadata{
 		WorkflowName: workflow.Name,
 		CurrentStep:  0,
@@ -189,12 +235,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		StartedAt:    time.Now().Unix(),
 	}
 
-	if !dataIsRequest {
-		metadata.InitialData = initialData
-	}
-
-	// Serialize metadata
-	metadataJSON, err := json.Marshal(metadata)
+	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -206,18 +247,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		Metadata:  datatypes.JSON(metadataJSON),
 	}
 
-	// If initialData is a Request, copy its fields
-	if dataIsRequest {
-		req.Protocol = modelRequest.Protocol
-		req.UserID = modelRequest.UserID
-		req.SourceIP = modelRequest.SourceIP
-		req.Hash = modelRequest.Hash
-		req.CIDType = modelRequest.CIDType
-		req.UploadHash = modelRequest.UploadHash
-		req.UploadHashCIDType = modelRequest.UploadHashCIDType
-		req.Size = modelRequest.Size
-		req.MimeType = modelRequest.MimeType
-	}
+	w.handleRequestData(processedOpts, req)
 
 	// Validate the request
 	if err := firstStep.Handler.ValidateRequest(ctx, req); err != nil {
@@ -225,7 +255,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	}
 
 	// Create the request
-	createdReq, err := w.requestSvc.CreateRequest(ctx, req, nil)
+	createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +290,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 }
 
 // CompleteWorkflowStep completes the current step and advances to the next
-func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint) error {
+func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
 	// Get current request
 	currentReq, err := w.requestSvc.GetRequest(ctx, requestID)
 	if err != nil {
@@ -299,7 +329,7 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	metadata.CurrentStep = nextStepIdx
 	metadata.PrevRequestID = requestID
 
-	metadataJSON, err := json.Marshal(metadata)
+	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
 	if err != nil {
 		return err
 	}
@@ -320,8 +350,10 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		Metadata:          datatypes.JSON(metadataJSON),
 	}
 
+	w.handleRequestData(processedOpts, nextReq)
+
 	// Create next request - fix CreateRequest call
-	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, nil)
+	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, processedOpts.RequestData)
 	if err != nil {
 		return err
 	}
@@ -494,15 +526,18 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 	}
 	currentStep := workflow.Steps[metadata.CurrentStep]
 
-	// Execute the operation handler
-	err = currentStep.Handler.Execute(ctx, req)
+	// Delegate execution to RequestService
+	err = w.requestSvc.ExecuteRequest(ctx, requestID)
 	if err != nil {
-		// Fail the workflow step
-		return w.FailWorkflowStep(ctx, req.ID, err.Error())
+		// Handle failure according to step's behavior
+		if currentStep.FailureBehavior == core.FailWorkflow {
+			return w.FailWorkflowStep(ctx, requestID, err.Error())
+		}
+		return err
 	}
 
-	// Complete the workflow step
-	return w.CompleteWorkflowStep(ctx, req.ID)
+	// If execution succeeded, complete it
+	return w.CompleteWorkflowStep(ctx, requestID)
 }
 
 // CanTransition checks if a workflow step can be transitioned from its current state

@@ -20,10 +20,10 @@ type WorkflowCoordinator interface {
 	ListWorkflows() []string
 
 	// Start a new workflow instance
-	StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error)
+	StartWorkflow(ctx context.Context, name string, opts ...WorkflowOption) (*models.Request, error)
 
-	// Advance workflow to next step
-	CompleteWorkflowStep(ctx context.Context, requestID uint) error
+	// Advance workflow to next step with optional data
+	CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...WorkflowOption) error
 
 	// Handle failure in workflow step
 	FailWorkflowStep(ctx context.Context, requestID uint, reason string) error
@@ -77,10 +77,33 @@ const (
 	RetryStep                               // Retry this step (with backoff)
 )
 
+// WorkflowOption configures workflow options
+type WorkflowOption func(*WorkflowOptions)
+
+// WorkflowOptions contains options for starting a workflow
+type WorkflowOptions struct {
+	InitialData any
+	RequestData any
+}
+
+// WithWorkflowInitialData returns a WorkflowOption that sets the initial data
+func WithWorkflowInitialData(data any) WorkflowOption {
+	return func(o *WorkflowOptions) {
+		o.InitialData = data
+	}
+}
+
+// WithWorkflowRequestData returns a WorkflowOption that sets the request data
+func WithWorkflowRequestData(data any) WorkflowOption {
+	return func(o *WorkflowOptions) {
+		o.RequestData = data
+	}
+}
+
 // WorkflowDefinition represents a registered workflow
 type WorkflowDefinition struct {
-	Name               string
-	Steps              []OperationStep
+	Name                 string
+	Steps                []OperationStep
 	AutoTriggerFirstStep bool // Whether to automatically trigger first step execution
 }
 

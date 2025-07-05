@@ -47,6 +47,8 @@ type RequestService interface {
 	// Utility operations
 	RequestExists(ctx context.Context, id uint) (bool, error)
 
+	ExecuteRequest(ctx context.Context, id uint) error
+	
 	Service
 }
 
