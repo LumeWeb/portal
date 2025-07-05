@@ -136,34 +136,46 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 		}
 	}
 
-	// Start async execution if handler provided
-	if handler != nil {
-		go func() {
-			execCtx := context.Background()
+	return &newReq, nil
+}
 
-			// Update status to processing
-			if err := r.UpdateRequestStatus(execCtx, newReq.ID, models.RequestStatusProcessing); err != nil {
-				r.logger.Error("Failed to update request status",
-					zap.Error(err), zap.Uint("requestID", newReq.ID))
-				return
-			}
-
-			// Execute the operation
-			if err := handler.Execute(execCtx, &newReq); err != nil {
-				r.logger.Error("Request execution failed",
-					zap.Error(err), zap.Uint("requestID", newReq.ID))
-
-				failErr := r.FailRequest(execCtx, newReq.ID, err.Error())
-				if failErr != nil {
-					r.logger.Error("Failed to mark request as failed",
-						zap.Error(failErr), zap.Uint("requestID", newReq.ID))
-				}
-				return
-			}
-		}()
+func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) error {
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return err
 	}
 
-	return &newReq, nil
+	// Find the operation handler
+	_, handler, err := r.findOperationHandler(req.Operation)
+	if err != nil {
+		return err
+	}
+
+	if handler == nil {
+		return nil // No handler means nothing to execute
+	}
+
+	// Update status to processing
+	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusProcessing); err != nil {
+		r.logger.Error("Failed to update request status",
+			zap.Error(err), zap.Uint("requestID", id))
+		return err
+	}
+
+	// Execute the operation
+	if err := handler.Execute(ctx, req); err != nil {
+		r.logger.Error("Request execution failed",
+			zap.Error(err), zap.Uint("requestID", id))
+
+		failErr := r.FailRequest(ctx, id, err.Error())
+		if failErr != nil {
+			r.logger.Error("Failed to mark request as failed",
+				zap.Error(failErr), zap.Uint("requestID", id))
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
