@@ -476,66 +476,6 @@ func (_c *MockRenterService_ID_Call) RunAndReturn(run func() string) *MockRenter
 	return _c
 }
 
-// RedundancySettings provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) RedundancySettings(ctx context.Context) (api.RedundancySettings, error) {
-	ret := _mock.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RedundancySettings")
-	}
-
-	var r0 api.RedundancySettings
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (api.RedundancySettings, error)); ok {
-		return returnFunc(ctx)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) api.RedundancySettings); ok {
-		r0 = returnFunc(ctx)
-	} else {
-		r0 = ret.Get(0).(api.RedundancySettings)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockRenterService_RedundancySettings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RedundancySettings'
-type MockRenterService_RedundancySettings_Call struct {
-	*mock.Call
-}
-
-// RedundancySettings is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *MockRenterService_Expecter) RedundancySettings(ctx interface{}) *MockRenterService_RedundancySettings_Call {
-	return &MockRenterService_RedundancySettings_Call{Call: _e.mock.On("RedundancySettings", ctx)}
-}
-
-func (_c *MockRenterService_RedundancySettings_Call) Run(run func(ctx context.Context)) *MockRenterService_RedundancySettings_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockRenterService_RedundancySettings_Call) Return(redundancySettings api.RedundancySettings, err error) *MockRenterService_RedundancySettings_Call {
-	_c.Call.Return(redundancySettings, err)
-	return _c
-}
-
-func (_c *MockRenterService_RedundancySettings_Call) RunAndReturn(run func(ctx context.Context) (api.RedundancySettings, error)) *MockRenterService_RedundancySettings_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // SlabSize provides a mock function for the type MockRenterService
 func (_mock *MockRenterService) SlabSize(ctx context.Context) (uint64, error) {
 	ret := _mock.Called(ctx)

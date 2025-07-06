@@ -367,17 +367,20 @@ func (p *PortalImpl) initModels(_ core.Context, dbInst *gorm.DB) (ctxOpts []core
 }
 
 func (p *PortalImpl) initProtocols(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
-	for name, _proto := range core.GetProtocols() {
-		err := ctx.Config().ConfigureProtocol(name, _proto.Config())
-		if err != nil {
-			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
-			return nil, err
+	for _, proto := range core.GetProtocols() {
+		if initProto, ok := proto.(core.ProtocolInit); ok {
+			if err := initProto.Init(ctx); err != nil {
+				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", proto.Name()), zap.Error(err))
+				return nil, err
+			}
 		}
 
-		if initProto, ok := _proto.(core.ProtocolInit); ok {
-			if err := initProto.Init(ctx); err != nil {
-				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", _proto.Name()), zap.Error(err))
-				return nil, err
+		workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+
+		// Register workflows for each protocol
+		for _, workflow := range proto.Workflows() {
+			if err := workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps); err != nil {
+				return nil, fmt.Errorf("failed to register workflow %s for protocol %s: %w", workflow.Name, proto.Name(), err)
 			}
 		}
 	}

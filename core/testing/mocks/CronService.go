@@ -328,16 +328,16 @@ func (_c *MockCronService_RegisterEntity_Call) RunAndReturn(run func(entity core
 }
 
 // RegisterJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) RegisterJob(job core.CronJob) error {
-	ret := _mock.Called(job)
+func (_mock *MockCronService) RegisterJob(job core.CronJob, retryPolicy *core.RetryPolicy) error {
+	ret := _mock.Called(job, retryPolicy)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.CronJob) error); ok {
-		r0 = returnFunc(job)
+	if returnFunc, ok := ret.Get(0).(func(core.CronJob, *core.RetryPolicy) error); ok {
+		r0 = returnFunc(job, retryPolicy)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -351,18 +351,24 @@ type MockCronService_RegisterJob_Call struct {
 
 // RegisterJob is a helper method to define mock.On call
 //   - job core.CronJob
-func (_e *MockCronService_Expecter) RegisterJob(job interface{}) *MockCronService_RegisterJob_Call {
-	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", job)}
+//   - retryPolicy *core.RetryPolicy
+func (_e *MockCronService_Expecter) RegisterJob(job interface{}, retryPolicy interface{}) *MockCronService_RegisterJob_Call {
+	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", job, retryPolicy)}
 }
 
-func (_c *MockCronService_RegisterJob_Call) Run(run func(job core.CronJob)) *MockCronService_RegisterJob_Call {
+func (_c *MockCronService_RegisterJob_Call) Run(run func(job core.CronJob, retryPolicy *core.RetryPolicy)) *MockCronService_RegisterJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 core.CronJob
 		if args[0] != nil {
 			arg0 = args[0].(core.CronJob)
 		}
+		var arg1 *core.RetryPolicy
+		if args[1] != nil {
+			arg1 = args[1].(*core.RetryPolicy)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -373,7 +379,7 @@ func (_c *MockCronService_RegisterJob_Call) Return(err error) *MockCronService_R
 	return _c
 }
 
-func (_c *MockCronService_RegisterJob_Call) RunAndReturn(run func(job core.CronJob) error) *MockCronService_RegisterJob_Call {
+func (_c *MockCronService_RegisterJob_Call) RunAndReturn(run func(job core.CronJob, retryPolicy *core.RetryPolicy) error) *MockCronService_RegisterJob_Call {
 	_c.Call.Return(run)
 	return _c
 }

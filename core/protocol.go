@@ -19,6 +19,7 @@ type Protocol interface {
 	Name() string
 	Config() config.ProtocolConfig
 	Operations() []Operation
+	Workflows() []WorkflowDefinition
 }
 
 type ProtocolInit interface {

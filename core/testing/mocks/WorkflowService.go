@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 
+	"github.com/knadh/koanf/v2"
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -39,36 +40,45 @@ func (_m *MockWorkflowService) EXPECT() *MockWorkflowService_Expecter {
 	return &MockWorkflowService_Expecter{mock: &_m.Mock}
 }
 
-// CompleteWorkflowStep provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) CompleteWorkflowStep(ctx context.Context, requestID uint) error {
+// CanTransition provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) CanTransition(ctx context.Context, requestID uint) (bool, error) {
 	ret := _mock.Called(ctx, requestID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CompleteWorkflowStep")
+		panic("no return value specified for CanTransition")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (bool, error)); ok {
+		return returnFunc(ctx, requestID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) bool); ok {
 		r0 = returnFunc(ctx, requestID)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(bool)
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, requestID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
-// MockWorkflowService_CompleteWorkflowStep_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CompleteWorkflowStep'
-type MockWorkflowService_CompleteWorkflowStep_Call struct {
+// MockWorkflowService_CanTransition_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CanTransition'
+type MockWorkflowService_CanTransition_Call struct {
 	*mock.Call
 }
 
-// CompleteWorkflowStep is a helper method to define mock.On call
+// CanTransition is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-func (_e *MockWorkflowService_Expecter) CompleteWorkflowStep(ctx interface{}, requestID interface{}) *MockWorkflowService_CompleteWorkflowStep_Call {
-	return &MockWorkflowService_CompleteWorkflowStep_Call{Call: _e.mock.On("CompleteWorkflowStep", ctx, requestID)}
+func (_e *MockWorkflowService_Expecter) CanTransition(ctx interface{}, requestID interface{}) *MockWorkflowService_CanTransition_Call {
+	return &MockWorkflowService_CanTransition_Call{Call: _e.mock.On("CanTransition", ctx, requestID)}
 }
 
-func (_c *MockWorkflowService_CompleteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_CompleteWorkflowStep_Call {
+func (_c *MockWorkflowService_CanTransition_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_CanTransition_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -86,12 +96,233 @@ func (_c *MockWorkflowService_CompleteWorkflowStep_Call) Run(run func(ctx contex
 	return _c
 }
 
+func (_c *MockWorkflowService_CanTransition_Call) Return(b bool, err error) *MockWorkflowService_CanTransition_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_CanTransition_Call) RunAndReturn(run func(ctx context.Context, requestID uint) (bool, error)) *MockWorkflowService_CanTransition_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CompleteWorkflowStep provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, requestID)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CompleteWorkflowStep")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, ...core.WorkflowOption) error); ok {
+		r0 = returnFunc(ctx, requestID, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_CompleteWorkflowStep_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CompleteWorkflowStep'
+type MockWorkflowService_CompleteWorkflowStep_Call struct {
+	*mock.Call
+}
+
+// CompleteWorkflowStep is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowService_Expecter) CompleteWorkflowStep(ctx interface{}, requestID interface{}, opts ...interface{}) *MockWorkflowService_CompleteWorkflowStep_Call {
+	return &MockWorkflowService_CompleteWorkflowStep_Call{Call: _e.mock.On("CompleteWorkflowStep",
+		append([]interface{}{ctx, requestID}, opts...)...)}
+}
+
+func (_c *MockWorkflowService_CompleteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint, opts ...core.WorkflowOption)) *MockWorkflowService_CompleteWorkflowStep_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
 func (_c *MockWorkflowService_CompleteWorkflowStep_Call) Return(err error) *MockWorkflowService_CompleteWorkflowStep_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockWorkflowService_CompleteWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint) error) *MockWorkflowService_CompleteWorkflowStep_Call {
+func (_c *MockWorkflowService_CompleteWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error) *MockWorkflowService_CompleteWorkflowStep_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ConvertRequestToWorkflow provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, requestID, workflowName, startStep)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConvertRequestToWorkflow")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, int, ...core.WorkflowOption) error); ok {
+		r0 = returnFunc(ctx, requestID, workflowName, startStep, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_ConvertRequestToWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConvertRequestToWorkflow'
+type MockWorkflowService_ConvertRequestToWorkflow_Call struct {
+	*mock.Call
+}
+
+// ConvertRequestToWorkflow is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+//   - workflowName string
+//   - startStep int
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowService_Expecter) ConvertRequestToWorkflow(ctx interface{}, requestID interface{}, workflowName interface{}, startStep interface{}, opts ...interface{}) *MockWorkflowService_ConvertRequestToWorkflow_Call {
+	return &MockWorkflowService_ConvertRequestToWorkflow_Call{Call: _e.mock.On("ConvertRequestToWorkflow",
+		append([]interface{}{ctx, requestID, workflowName, startStep}, opts...)...)}
+}
+
+func (_c *MockWorkflowService_ConvertRequestToWorkflow_Call) Run(run func(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption)) *MockWorkflowService_ConvertRequestToWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		var arg4 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
+		}
+		arg4 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_ConvertRequestToWorkflow_Call) Return(err error) *MockWorkflowService_ConvertRequestToWorkflow_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_ConvertRequestToWorkflow_Call) RunAndReturn(run func(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error) *MockWorkflowService_ConvertRequestToWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecuteWorkflowStep provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) ExecuteWorkflowStep(ctx context.Context, requestID uint) error {
+	ret := _mock.Called(ctx, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecuteWorkflowStep")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, requestID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_ExecuteWorkflowStep_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecuteWorkflowStep'
+type MockWorkflowService_ExecuteWorkflowStep_Call struct {
+	*mock.Call
+}
+
+// ExecuteWorkflowStep is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+func (_e *MockWorkflowService_Expecter) ExecuteWorkflowStep(ctx interface{}, requestID interface{}) *MockWorkflowService_ExecuteWorkflowStep_Call {
+	return &MockWorkflowService_ExecuteWorkflowStep_Call{Call: _e.mock.On("ExecuteWorkflowStep", ctx, requestID)}
+}
+
+func (_c *MockWorkflowService_ExecuteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_ExecuteWorkflowStep_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_ExecuteWorkflowStep_Call) Return(err error) *MockWorkflowService_ExecuteWorkflowStep_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_ExecuteWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint) error) *MockWorkflowService_ExecuteWorkflowStep_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -221,6 +452,74 @@ func (_c *MockWorkflowService_GetWorkflow_Call) RunAndReturn(run func(name strin
 	return _c
 }
 
+// GetWorkflowMetadata provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error) {
+	ret := _mock.Called(ctx, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowMetadata")
+	}
+
+	var r0 *koanf.Koanf
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*koanf.Koanf, error)); ok {
+		return returnFunc(ctx, requestID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *koanf.Koanf); ok {
+		r0 = returnFunc(ctx, requestID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*koanf.Koanf)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, requestID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockWorkflowService_GetWorkflowMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowMetadata'
+type MockWorkflowService_GetWorkflowMetadata_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowMetadata is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+func (_e *MockWorkflowService_Expecter) GetWorkflowMetadata(ctx interface{}, requestID interface{}) *MockWorkflowService_GetWorkflowMetadata_Call {
+	return &MockWorkflowService_GetWorkflowMetadata_Call{Call: _e.mock.On("GetWorkflowMetadata", ctx, requestID)}
+}
+
+func (_c *MockWorkflowService_GetWorkflowMetadata_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_GetWorkflowMetadata_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowMetadata_Call) Return(koanf1 *koanf.Koanf, err error) *MockWorkflowService_GetWorkflowMetadata_Call {
+	_c.Call.Return(koanf1, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowMetadata_Call) RunAndReturn(run func(ctx context.Context, requestID uint) (*koanf.Koanf, error)) *MockWorkflowService_GetWorkflowMetadata_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWorkflowStatus provides a mock function for the type MockWorkflowService
 func (_mock *MockWorkflowService) GetWorkflowStatus(ctx context.Context, requestID uint) (*core.WorkflowStatus, error) {
 	ret := _mock.Called(ctx, requestID)
@@ -285,6 +584,74 @@ func (_c *MockWorkflowService_GetWorkflowStatus_Call) Return(workflowStatus *cor
 }
 
 func (_c *MockWorkflowService_GetWorkflowStatus_Call) RunAndReturn(run func(ctx context.Context, requestID uint) (*core.WorkflowStatus, error)) *MockWorkflowService_GetWorkflowStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetWorkflowStepInfo provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) GetWorkflowStepInfo(ctx context.Context, requestID uint) (*core.WorkflowStepInfo, error) {
+	ret := _mock.Called(ctx, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowStepInfo")
+	}
+
+	var r0 *core.WorkflowStepInfo
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.WorkflowStepInfo, error)); ok {
+		return returnFunc(ctx, requestID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.WorkflowStepInfo); ok {
+		r0 = returnFunc(ctx, requestID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.WorkflowStepInfo)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, requestID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockWorkflowService_GetWorkflowStepInfo_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowStepInfo'
+type MockWorkflowService_GetWorkflowStepInfo_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowStepInfo is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+func (_e *MockWorkflowService_Expecter) GetWorkflowStepInfo(ctx interface{}, requestID interface{}) *MockWorkflowService_GetWorkflowStepInfo_Call {
+	return &MockWorkflowService_GetWorkflowStepInfo_Call{Call: _e.mock.On("GetWorkflowStepInfo", ctx, requestID)}
+}
+
+func (_c *MockWorkflowService_GetWorkflowStepInfo_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_GetWorkflowStepInfo_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowStepInfo_Call) Return(workflowStepInfo *core.WorkflowStepInfo, err error) *MockWorkflowService_GetWorkflowStepInfo_Call {
+	_c.Call.Return(workflowStepInfo, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowStepInfo_Call) RunAndReturn(run func(ctx context.Context, requestID uint) (*core.WorkflowStepInfo, error)) *MockWorkflowService_GetWorkflowStepInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -437,8 +804,16 @@ func (_c *MockWorkflowService_RegisterWorkflow_Call) RunAndReturn(run func(name 
 }
 
 // StartWorkflow provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error) {
-	ret := _mock.Called(ctx, name, initialData)
+func (_mock *MockWorkflowService) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, name)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StartWorkflow")
@@ -446,18 +821,18 @@ func (_mock *MockWorkflowService) StartWorkflow(ctx context.Context, name string
 
 	var r0 *models.Request
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) (*models.Request, error)); ok {
-		return returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...core.WorkflowOption) (*models.Request, error)); ok {
+		return returnFunc(ctx, name, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) *models.Request); ok {
-		r0 = returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...core.WorkflowOption) *models.Request); ok {
+		r0 = returnFunc(ctx, name, opts...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.Request)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, any) error); ok {
-		r1 = returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...core.WorkflowOption) error); ok {
+		r1 = returnFunc(ctx, name, opts...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -472,12 +847,13 @@ type MockWorkflowService_StartWorkflow_Call struct {
 // StartWorkflow is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - initialData any
-func (_e *MockWorkflowService_Expecter) StartWorkflow(ctx interface{}, name interface{}, initialData interface{}) *MockWorkflowService_StartWorkflow_Call {
-	return &MockWorkflowService_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow", ctx, name, initialData)}
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowService_Expecter) StartWorkflow(ctx interface{}, name interface{}, opts ...interface{}) *MockWorkflowService_StartWorkflow_Call {
+	return &MockWorkflowService_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow",
+		append([]interface{}{ctx, name}, opts...)...)}
 }
 
-func (_c *MockWorkflowService_StartWorkflow_Call) Run(run func(ctx context.Context, name string, initialData any)) *MockWorkflowService_StartWorkflow_Call {
+func (_c *MockWorkflowService_StartWorkflow_Call) Run(run func(ctx context.Context, name string, opts ...core.WorkflowOption)) *MockWorkflowService_StartWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -487,14 +863,18 @@ func (_c *MockWorkflowService_StartWorkflow_Call) Run(run func(ctx context.Conte
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 any
-		if args[2] != nil {
-			arg2 = args[2].(any)
+		var arg2 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
 		}
+		arg2 = variadicArgs
 		run(
 			arg0,
 			arg1,
-			arg2,
+			arg2...,
 		)
 	})
 	return _c
@@ -505,7 +885,139 @@ func (_c *MockWorkflowService_StartWorkflow_Call) Return(request *models.Request
 	return _c
 }
 
-func (_c *MockWorkflowService_StartWorkflow_Call) RunAndReturn(run func(ctx context.Context, name string, initialData any) (*models.Request, error)) *MockWorkflowService_StartWorkflow_Call {
+func (_c *MockWorkflowService_StartWorkflow_Call) RunAndReturn(run func(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error)) *MockWorkflowService_StartWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateWorkflowData provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) UpdateWorkflowData(ctx context.Context, requestID uint, data map[string]any) error {
+	ret := _mock.Called(ctx, requestID, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateWorkflowData")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, map[string]any) error); ok {
+		r0 = returnFunc(ctx, requestID, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_UpdateWorkflowData_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateWorkflowData'
+type MockWorkflowService_UpdateWorkflowData_Call struct {
+	*mock.Call
+}
+
+// UpdateWorkflowData is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+//   - data map[string]any
+func (_e *MockWorkflowService_Expecter) UpdateWorkflowData(ctx interface{}, requestID interface{}, data interface{}) *MockWorkflowService_UpdateWorkflowData_Call {
+	return &MockWorkflowService_UpdateWorkflowData_Call{Call: _e.mock.On("UpdateWorkflowData", ctx, requestID, data)}
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowData_Call) Run(run func(ctx context.Context, requestID uint, data map[string]any)) *MockWorkflowService_UpdateWorkflowData_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 map[string]any
+		if args[2] != nil {
+			arg2 = args[2].(map[string]any)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowData_Call) Return(err error) *MockWorkflowService_UpdateWorkflowData_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowData_Call) RunAndReturn(run func(ctx context.Context, requestID uint, data map[string]any) error) *MockWorkflowService_UpdateWorkflowData_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateWorkflowDataStruct provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) UpdateWorkflowDataStruct(ctx context.Context, requestID uint, data any, tag string) error {
+	ret := _mock.Called(ctx, requestID, data, tag)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateWorkflowDataStruct")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, any, string) error); ok {
+		r0 = returnFunc(ctx, requestID, data, tag)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_UpdateWorkflowDataStruct_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateWorkflowDataStruct'
+type MockWorkflowService_UpdateWorkflowDataStruct_Call struct {
+	*mock.Call
+}
+
+// UpdateWorkflowDataStruct is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+//   - data any
+//   - tag string
+func (_e *MockWorkflowService_Expecter) UpdateWorkflowDataStruct(ctx interface{}, requestID interface{}, data interface{}, tag interface{}) *MockWorkflowService_UpdateWorkflowDataStruct_Call {
+	return &MockWorkflowService_UpdateWorkflowDataStruct_Call{Call: _e.mock.On("UpdateWorkflowDataStruct", ctx, requestID, data, tag)}
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowDataStruct_Call) Run(run func(ctx context.Context, requestID uint, data any, tag string)) *MockWorkflowService_UpdateWorkflowDataStruct_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 any
+		if args[2] != nil {
+			arg2 = args[2].(any)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowDataStruct_Call) Return(err error) *MockWorkflowService_UpdateWorkflowDataStruct_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_UpdateWorkflowDataStruct_Call) RunAndReturn(run func(ctx context.Context, requestID uint, data any, tag string) error) *MockWorkflowService_UpdateWorkflowDataStruct_Call {
 	_c.Call.Return(run)
 	return _c
 }
