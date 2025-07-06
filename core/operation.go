@@ -116,6 +116,8 @@ type OperationHelper interface {
 	WorkflowData(requestID uint) (*koanf.Koanf, error)
 	// Protocol retrieves a protocol instance by ID
 	Protocol() Protocol
+	// StorageHash retrieves the storage hash from the current request
+	StorageHash(req *models.Request) StorageHash
 }
 
 // OperationHelperDefault is the default implementation of OperationHelper
@@ -156,4 +158,18 @@ func (h *OperationHelperDefault) Protocol() Protocol {
 
 	// Get the protocol instance
 	return GetProtocol(h.proto)
+}
+
+// StorageHash retrieves the storage hash from the provided request
+func (h *OperationHelperDefault) StorageHash(req *models.Request) StorageHash {
+	if req == nil {
+		return nil
+	}
+
+	// Create storage hash from request data
+	if req.Hash == nil {
+		return nil
+	}
+
+	return NewStorageHashFromMultihash(req.Hash, req.CIDType, nil)
 }
