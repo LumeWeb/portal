@@ -270,6 +270,108 @@ func (_c *MockWorkflowService_ConvertRequestToWorkflow_Call) RunAndReturn(run fu
 	return _c
 }
 
+// DisableWorkflow provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) DisableWorkflow(name string) error {
+	ret := _mock.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DisableWorkflow")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
+		r0 = returnFunc(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_DisableWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisableWorkflow'
+type MockWorkflowService_DisableWorkflow_Call struct {
+	*mock.Call
+}
+
+// DisableWorkflow is a helper method to define mock.On call
+//   - name string
+func (_e *MockWorkflowService_Expecter) DisableWorkflow(name interface{}) *MockWorkflowService_DisableWorkflow_Call {
+	return &MockWorkflowService_DisableWorkflow_Call{Call: _e.mock.On("DisableWorkflow", name)}
+}
+
+func (_c *MockWorkflowService_DisableWorkflow_Call) Run(run func(name string)) *MockWorkflowService_DisableWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_DisableWorkflow_Call) Return(err error) *MockWorkflowService_DisableWorkflow_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_DisableWorkflow_Call) RunAndReturn(run func(name string) error) *MockWorkflowService_DisableWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// EnableWorkflow provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) EnableWorkflow(name string) error {
+	ret := _mock.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnableWorkflow")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
+		r0 = returnFunc(name)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_EnableWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnableWorkflow'
+type MockWorkflowService_EnableWorkflow_Call struct {
+	*mock.Call
+}
+
+// EnableWorkflow is a helper method to define mock.On call
+//   - name string
+func (_e *MockWorkflowService_Expecter) EnableWorkflow(name interface{}) *MockWorkflowService_EnableWorkflow_Call {
+	return &MockWorkflowService_EnableWorkflow_Call{Call: _e.mock.On("EnableWorkflow", name)}
+}
+
+func (_c *MockWorkflowService_EnableWorkflow_Call) Run(run func(name string)) *MockWorkflowService_EnableWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_EnableWorkflow_Call) Return(err error) *MockWorkflowService_EnableWorkflow_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_EnableWorkflow_Call) RunAndReturn(run func(name string) error) *MockWorkflowService_EnableWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ExecuteWorkflowStep provides a mock function for the type MockWorkflowService
 func (_mock *MockWorkflowService) ExecuteWorkflowStep(ctx context.Context, requestID uint) error {
 	ret := _mock.Called(ctx, requestID)

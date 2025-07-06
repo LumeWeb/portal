@@ -103,3 +103,15 @@ func (wt *WorkflowTest) ExecuteWorkflowStep(req *models.Request) {
 	err := wt.workflowSvc.ExecuteWorkflowStep(context.Background(), req.ID)
 	require.NoError(wt.TB, err)
 }
+
+// DisableWorkflow disables the workflow with the given name.
+func (wt *WorkflowTest) DisableWorkflow(workflowName string) {
+	err := wt.workflowSvc.DisableWorkflow(workflowName)
+	require.NoError(wt.TB, err)
+}
+
+// EnableWorkflow enables the workflow with the given name.
+func (wt *WorkflowTest) EnableWorkflow(workflowName string) {
+	err := wt.workflowSvc.EnableWorkflow(workflowName)
+	require.NoError(wt.TB, err)
+}

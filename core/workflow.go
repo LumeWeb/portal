@@ -24,6 +24,12 @@ type WorkflowCoordinator interface {
 	// List all registered workflows
 	ListWorkflows() []string
 
+	// Disable a workflow by name (primarily for testing)
+	DisableWorkflow(name string) error
+
+	// Enable a workflow by name (primarily for testing) 
+	EnableWorkflow(name string) error
+
 	// Start a new workflow instance
 	StartWorkflow(ctx context.Context, name string, opts ...WorkflowOption) (*models.Request, error)
 

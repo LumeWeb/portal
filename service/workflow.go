@@ -127,6 +127,7 @@ type WorkflowCoordinatorDefault struct {
 	cronService core.CronService
 	db          *gorm.DB
 	workflows   map[string]*core.WorkflowDefinition
+	disabled    map[string]bool
 	workflowsMu sync.RWMutex
 }
 
@@ -149,6 +150,7 @@ func (w *WorkflowCoordinatorDefault) ScheduleJobs(_ core.CronService) error {
 func NewWorkflowCoordinator() (core.Service, []core.ContextBuilderOption, error) {
 	coordinator := &WorkflowCoordinatorDefault{
 		workflows: make(map[string]*core.WorkflowDefinition),
+		disabled:  make(map[string]bool),
 	}
 
 	opts := core.ContextOptions(
@@ -208,6 +210,32 @@ func (w *WorkflowCoordinatorDefault) GetWorkflow(name string) (*core.WorkflowDef
 	return wf, nil
 }
 
+func (w *WorkflowCoordinatorDefault) DisableWorkflow(name string) error {
+	w.workflowsMu.Lock()
+	defer w.workflowsMu.Unlock()
+
+	if _, exists := w.workflows[name]; !exists {
+		return fmt.Errorf("workflow '%s' not found", name)
+	}
+
+	w.disabled[name] = true
+	w.logger.Debug("Disabled workflow", zap.String("name", name))
+	return nil
+}
+
+func (w *WorkflowCoordinatorDefault) EnableWorkflow(name string) error {
+	w.workflowsMu.Lock()
+	defer w.workflowsMu.Unlock()
+
+	if _, exists := w.workflows[name]; !exists {
+		return fmt.Errorf("workflow '%s' not found", name)
+	}
+
+	delete(w.disabled, name)
+	w.logger.Debug("Enabled workflow", zap.String("name", name))
+	return nil
+}
+
 // ListWorkflows returns all registered workflow names
 func (w *WorkflowCoordinatorDefault) ListWorkflows() []string {
 	w.workflowsMu.RLock()
@@ -227,6 +255,16 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	workflow, err := w.GetWorkflow(name)
 	if err != nil {
 		return nil, err
+	}
+
+	w.workflowsMu.RLock()
+	disabled := w.disabled[name]
+	w.workflowsMu.RUnlock()
+
+	if disabled {
+		w.logger.Warn("Attempted to start disabled workflow",
+			zap.String("workflow", name))
+		return nil, nil
 	}
 
 	if len(workflow.Steps) == 0 {
@@ -304,6 +342,20 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 }
 
 // CompleteWorkflowStep completes the current step and advances to the next
+func (w *WorkflowCoordinatorDefault) isDisabled(name string) bool {
+	w.workflowsMu.RLock()
+	defer w.workflowsMu.RUnlock()
+	return w.disabled[name]
+}
+
+func (w *WorkflowCoordinatorDefault) parseWorkflowMetadata(metadataJSON datatypes.JSON) (WorkflowMetadata, error) {
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(metadataJSON, &metadata); err != nil {
+		return metadata, fmt.Errorf("invalid workflow meta %w", err)
+	}
+	return metadata, nil
+}
+
 func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
 	// Get current request
 	currentReq, err := w.requestSvc.GetRequest(ctx, requestID)
@@ -312,9 +364,16 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	}
 
 	// Parse metadata
-	var metadata WorkflowMetadata
-	if err := json.Unmarshal(currentReq.Metadata, &metadata); err != nil {
-		return fmt.Errorf("invalid workflow meta %w", err)
+	metadata, err := w.parseWorkflowMetadata(currentReq.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if w.isDisabled(metadata.WorkflowName) {
+		w.logger.Warn("Attempted to complete step in disabled workflow",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID))
+		return nil
 	}
 
 	workflow, err := w.GetWorkflow(metadata.WorkflowName)
@@ -416,9 +475,16 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	}
 
 	// Parse metadata
-	var metadata WorkflowMetadata
-	if err := json.Unmarshal(currentReq.Metadata, &metadata); err != nil {
-		return fmt.Errorf("invalid workflow meta %w", err)
+	metadata, err := w.parseWorkflowMetadata(currentReq.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if w.isDisabled(metadata.WorkflowName) {
+		w.logger.Warn("Attempted to fail step in disabled workflow",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID))
+		return nil
 	}
 
 	// Get workflow and current step
@@ -464,9 +530,9 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 	}
 
 	// Parse metadata
-	var metadata WorkflowMetadata
-	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
-		return nil, fmt.Errorf("invalid workflow meta %w", err)
+	metadata, err := w.parseWorkflowMetadata(req.Metadata)
+	if err != nil {
+		return nil, err
 	}
 
 	// Build status
@@ -528,10 +594,17 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 		return fmt.Errorf("failed to get request: %w", err)
 	}
 
-	// Get workflow metadata
-	var metadata WorkflowMetadata
-	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
-		return fmt.Errorf("invalid workflow meta %w", err)
+	// Parse metadata
+	metadata, err := w.parseWorkflowMetadata(req.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if w.isDisabled(metadata.WorkflowName) {
+		w.logger.Warn("Attempted to execute step in disabled workflow",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID))
+		return nil
 	}
 
 	// Get workflow and current step
@@ -580,9 +653,9 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 	}
 
 	// Parse metadata
-	var metadata WorkflowMetadata
-	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
-		return nil, fmt.Errorf("invalid workflow meta %w", err)
+	metadata, err := w.parseWorkflowMetadata(req.Metadata)
+	if err != nil {
+		return nil, err
 	}
 
 	workflow, err := w.GetWorkflow(metadata.WorkflowName)
@@ -703,6 +776,13 @@ func (w *WorkflowCoordinatorDefault) jsonToKoanf(jsonStr string) (*koanf.Koanf, 
 }
 
 func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
+	if w.isDisabled(workflowName) {
+		w.logger.Warn("Attempted to convert request to disabled workflow",
+			zap.String("workflow", workflowName),
+			zap.Uint("requestID", requestID))
+		return nil
+	}
+
 	// Get the existing request
 	req, err := w.requestSvc.GetRequest(ctx, requestID)
 	if err != nil {
