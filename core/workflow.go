@@ -76,9 +76,6 @@ type OperationStep struct {
 	// The operation identifier (e.g., "ipfs.upload" or "content.scan")
 	Operation string
 
-	// The handler for this operation
-	Handler OperationHandler
-
 	// What to do if this step fails
 	FailureBehavior FailureBehavior
 

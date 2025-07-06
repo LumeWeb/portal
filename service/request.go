@@ -76,17 +76,9 @@ func (r *RequestServiceDefault) ID() string {
 }
 
 func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
-	// Find the operation handler
-	_, handler, err := r.findOperationHandler(req.Operation)
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate the request if handler available
-	if handler != nil {
-		if err := handler.ValidateRequest(ctx, req); err != nil {
-			return nil, fmt.Errorf("request validation failed: %w", err)
-		}
+	// Validate the request
+	if err := r.ValidateRequest(ctx, req); err != nil {
+		return nil, fmt.Errorf("request validation failed: %w", err)
 	}
 
 	// Set default values if not specified
@@ -384,6 +376,21 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (
 	}
 
 	return status, nil
+}
+
+func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models.Request) error {
+	// Find the operation handler
+	_, handler, err := r.findOperationHandler(req.Operation)
+	if err != nil {
+		return fmt.Errorf("failed to find handler for operation %s: %w", req.Operation, err)
+	}
+
+	// Validate if handler exists
+	if handler != nil {
+		return handler.ValidateRequest(ctx, req)
+	}
+
+	return nil
 }
 
 func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (bool, error) {
