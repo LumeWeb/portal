@@ -272,6 +272,7 @@ CREATE TABLE `tus_requests`
     `deleted_at`    datetime,
     `request_id`    integer,
     `tus_upload_id` varchar(500),
+    `upload_hash`   varbinary(64),
     `completed`     numeric,
     CONSTRAINT `fk_tus_requests_request` FOREIGN KEY (`request_id`) REFERENCES `requests` (`id`)
 );

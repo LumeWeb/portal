@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"gorm.io/gorm"
 )
@@ -15,6 +16,7 @@ type TUSRequest struct {
 	RequestID   uint `gorm:"uniqueIndex"`
 	Request     Request
 	TUSUploadID string `gorm:"uniqueIndex"`
+	UploadHash  mh.Multihash
 	Completed   bool
 }
 
