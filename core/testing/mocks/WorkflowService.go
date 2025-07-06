@@ -747,16 +747,16 @@ func (_c *MockWorkflowService_ListWorkflows_Call) RunAndReturn(run func() []stri
 }
 
 // RegisterWorkflow provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) RegisterWorkflow(name string, steps []core.OperationStep) error {
-	ret := _mock.Called(name, steps)
+func (_mock *MockWorkflowService) RegisterWorkflow(name string, steps []core.OperationStep, autoTriggerFirstStep bool) error {
+	ret := _mock.Called(name, steps, autoTriggerFirstStep)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterWorkflow")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, []core.OperationStep) error); ok {
-		r0 = returnFunc(name, steps)
+	if returnFunc, ok := ret.Get(0).(func(string, []core.OperationStep, bool) error); ok {
+		r0 = returnFunc(name, steps, autoTriggerFirstStep)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -771,11 +771,12 @@ type MockWorkflowService_RegisterWorkflow_Call struct {
 // RegisterWorkflow is a helper method to define mock.On call
 //   - name string
 //   - steps []core.OperationStep
-func (_e *MockWorkflowService_Expecter) RegisterWorkflow(name interface{}, steps interface{}) *MockWorkflowService_RegisterWorkflow_Call {
-	return &MockWorkflowService_RegisterWorkflow_Call{Call: _e.mock.On("RegisterWorkflow", name, steps)}
+//   - autoTriggerFirstStep bool
+func (_e *MockWorkflowService_Expecter) RegisterWorkflow(name interface{}, steps interface{}, autoTriggerFirstStep interface{}) *MockWorkflowService_RegisterWorkflow_Call {
+	return &MockWorkflowService_RegisterWorkflow_Call{Call: _e.mock.On("RegisterWorkflow", name, steps, autoTriggerFirstStep)}
 }
 
-func (_c *MockWorkflowService_RegisterWorkflow_Call) Run(run func(name string, steps []core.OperationStep)) *MockWorkflowService_RegisterWorkflow_Call {
+func (_c *MockWorkflowService_RegisterWorkflow_Call) Run(run func(name string, steps []core.OperationStep, autoTriggerFirstStep bool)) *MockWorkflowService_RegisterWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 string
 		if args[0] != nil {
@@ -785,9 +786,14 @@ func (_c *MockWorkflowService_RegisterWorkflow_Call) Run(run func(name string, s
 		if args[1] != nil {
 			arg1 = args[1].([]core.OperationStep)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -798,7 +804,7 @@ func (_c *MockWorkflowService_RegisterWorkflow_Call) Return(err error) *MockWork
 	return _c
 }
 
-func (_c *MockWorkflowService_RegisterWorkflow_Call) RunAndReturn(run func(name string, steps []core.OperationStep) error) *MockWorkflowService_RegisterWorkflow_Call {
+func (_c *MockWorkflowService_RegisterWorkflow_Call) RunAndReturn(run func(name string, steps []core.OperationStep, autoTriggerFirstStep bool) error) *MockWorkflowService_RegisterWorkflow_Call {
 	_c.Call.Return(run)
 	return _c
 }

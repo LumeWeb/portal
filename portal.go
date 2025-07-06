@@ -379,7 +379,7 @@ func (p *PortalImpl) initProtocols(ctx core.Context) (ctxOpts []core.ContextBuil
 
 		// Register workflows for each protocol
 		for _, workflow := range proto.Workflows() {
-			if err := workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps); err != nil {
+			if err := workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps, workflow.AutoTriggerFirstStep); err != nil {
 				return nil, fmt.Errorf("failed to register workflow %s for protocol %s: %w", workflow.Name, proto.Name(), err)
 			}
 		}

@@ -16,7 +16,7 @@ const WORKFLOW_SERVICE = "workflow"
 // WorkflowCoordinator orchestrates multi-step operations across protocols
 type WorkflowCoordinator interface {
 	// Register a new workflow with specified steps
-	RegisterWorkflow(name string, steps []OperationStep) error
+	RegisterWorkflow(name string, steps []OperationStep, autoTriggerFirstStep bool) error
 
 	// Get a registered workflow by name
 	GetWorkflow(name string) (*WorkflowDefinition, error)
