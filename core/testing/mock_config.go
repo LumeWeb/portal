@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"os"
 	"testing"
 	"time"
 
@@ -141,6 +142,17 @@ func NewMockConfigManager(t *testing.T) *MockConfigManager {
 	mockManager.EXPECT().GetRegisteredStructs().
 		Maybe().
 		Return(map[string]reflect.Type{})
+
+	tempDir, err := os.MkdirTemp("", "portal-test-")
+	if err != nil {
+		panic(fmt.Sprintf("failed to create temp dir: %v", err))
+	}
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
+	mockManager.EXPECT().ConfigDir().
+		Maybe().
+		Return(tempDir, nil)
 
 	return manager
 }
