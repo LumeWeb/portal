@@ -6,6 +6,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
 	"reflect"
+	"strings"
 )
 
 // Default implementation
@@ -63,6 +64,34 @@ type OperationHandler interface {
 	Cleanup(ctx context.Context, req *models.Request) error
 }
 
+func operationName(protocol string, opType OperationType) string {
+	return fmt.Sprintf("%s.%s", protocol, strings.ToLower(string(opType)))
+}
+
+func StoreOperationName(protocol string) string {
+	return operationName(protocol, OpTypeStore)
+}
+
+func RetrieveOperationName(protocol string) string {
+	return operationName(protocol, OpTypeRetrieve)
+}
+
+func PublishOperationName(protocol string) string {
+	return operationName(protocol, OpTypePublish)
+}
+
+func UploadOperationName(protocol string) string {
+	return operationName(protocol, OpTypeUpload)
+}
+
+func ScanOperationName(protocol string) string {
+	return operationName(protocol, OpTypeScan)
+}
+
+func UnstoreOperationName(protocol string) string {
+	return operationName(protocol, OpTypeUnstore)
+}
+
 func NewOperation(opType string, globalType OperationType, handler OperationHandler) Operation {
 	return &operation{
 		opType:     opType,
@@ -73,7 +102,7 @@ func NewOperation(opType string, globalType OperationType, handler OperationHand
 
 func NewStoreOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
-		fmt.Sprintf("%s.store", protocol),
+		StoreOperationName(protocol),
 		OpTypeStore,
 		handler,
 	)
@@ -81,7 +110,7 @@ func NewStoreOperation(protocol string, handler OperationHandler) Operation {
 
 func NewRetrieveOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
-		fmt.Sprintf("%s.retrieve", protocol),
+		RetrieveOperationName(protocol),
 		OpTypeRetrieve,
 		handler,
 	)
@@ -89,7 +118,7 @@ func NewRetrieveOperation(protocol string, handler OperationHandler) Operation {
 
 func NewPublishOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
-		fmt.Sprintf("%s.publish", protocol),
+		PublishOperationName(protocol),
 		OpTypePublish,
 		handler,
 	)
@@ -97,7 +126,7 @@ func NewPublishOperation(protocol string, handler OperationHandler) Operation {
 
 func NewUploadOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
-		fmt.Sprintf("%s.upload", protocol),
+		UploadOperationName(protocol),
 		OpTypeUpload,
 		handler,
 	)
@@ -105,8 +134,16 @@ func NewUploadOperation(protocol string, handler OperationHandler) Operation {
 
 func NewScanOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
-		fmt.Sprintf("%s.scan", protocol),
+		ScanOperationName(protocol),
 		OpTypeScan,
+		handler,
+	)
+}
+
+func NewUnstoreOperation(protocol string, handler OperationHandler) Operation {
+	return NewOperation(
+		UnstoreOperationName(protocol),
+		OpTypeUnstore,
 		handler,
 	)
 }
