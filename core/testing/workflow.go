@@ -1,7 +1,6 @@
 package testing
 
 import (
-	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
@@ -27,8 +26,8 @@ func NewWorkflowTest(ctx TestContext) *WorkflowTest {
 }
 
 // RegisterWorkflow registers a workflow with the given steps.
-func (wt *WorkflowTest) RegisterWorkflow(workflowName string, steps []core.OperationStep) {
-	err := wt.workflowSvc.RegisterWorkflow(workflowName, steps)
+func (wt *WorkflowTest) RegisterWorkflow(workflowName string, steps []core.OperationStep, autoTriggerFirstStep bool) {
+	err := wt.workflowSvc.RegisterWorkflow(workflowName, steps, autoTriggerFirstStep)
 	require.NoError(wt.TB, err)
 }
 
@@ -52,7 +51,7 @@ func (wt *WorkflowTest) AssertMetadataValue(requestID uint, key string, expected
 	metadata, err := wt.workflowSvc.GetWorkflowMetadata(wt.Ctx, requestID)
 	require.NoError(wt.TB, err, "failed to get workflow metadata")
 	require.NotNil(wt.TB, metadata, "metadata should not be nil")
-	
+
 	actualValue := metadata.Get(key)
 	assert.Equal(wt.TB, expectedValue, actualValue, "metadata value mismatch for key %q", key)
 }
