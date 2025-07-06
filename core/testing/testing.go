@@ -6,6 +6,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3afero"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal"
@@ -24,6 +27,7 @@ import (
 	"gorm.io/gorm"
 	"io/fs"
 	"maps"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -334,6 +338,21 @@ func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...Test
 	testFunc(t, ctx)
 
 	// Test case options are cleared by deferred ResetAllState
+}
+
+// GetFreeListener finds and returns a listener on a TCP port
+func GetFreeListener() (net.Listener, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "0.0.0.0:0")
+	if err != nil {
+		return nil, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return l, nil
 }
 
 // ResetAllState resets all global state in the core package and testing package
@@ -1570,6 +1589,99 @@ func WithMockUploadService() TestContextBuilderOption {
 	return WithMockService(core.UPLOAD_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockUploadService(tb)
 	})
+}
+
+// WithMockS3 configures a test context to use a gofakes3 instance.
+// It launches a gofakes3 server, configures the S3 config, and registers cleanup.
+// bucketName: The name of the S3 bucket to create.
+// configureS3Config: Optional function to further configure the S3Config.
+func WithMockS3() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Create a gofakes3 instance
+		tempDir, err := os.MkdirTemp("", "portal-s3-")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temp dir: %w", err)
+		}
+
+		backend, err := s3afero.SingleBucket("fakebucket", afero.NewBasePathFs(afero.NewOsFs(), tempDir), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create s3 backend: %w", err)
+		}
+		faker := gofakes3.New(backend)
+
+		// Launch the gofakes3 server
+		httpHandler := faker.Server()
+		server := &http.Server{Handler: httpHandler}
+
+		// Find an available port
+		listener, err := GetFreeListener()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get free port: %w", err)
+		}
+
+		endpoint := fmt.Sprintf("http://%s", listener.Addr().String())
+
+		// Channel to signal server is ready
+		ready := make(chan struct{})
+		
+		go func() {
+			close(ready) // Signal server is starting
+			if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+				ctx.Logger().Error("gofakes3 server failed", zap.Error(err))
+			}
+		}()
+
+		// Wait for server to be ready
+		select {
+		case <-ready:
+			// Brief delay to ensure server is listening
+			time.Sleep(10 * time.Millisecond)
+		case <-time.After(100 * time.Millisecond):
+			return nil, fmt.Errorf("timeout waiting for S3 server to start")
+		}
+
+		ctx.RegisterCleanup(func() {
+			// Shutdown server
+			if err = server.Shutdown(ctx.GetContext()); err != nil {
+				ctx.Logger().Error("failed to shutdown gofakes3 server",
+					zap.Error(err))
+			}
+
+			// Remove temp directory
+			if err = os.RemoveAll(tempDir); err != nil {
+				ctx.Logger().Error("failed to remove temp directory",
+					zap.String("path", tempDir),
+					zap.Error(err))
+			}
+		})
+
+		// Configure the S3 config
+		s3Config := &config.S3Config{
+			BufferBucket: "fakebucket",
+			Endpoint:     endpoint,
+			Region:       "us-east-1",
+			AccessKey:    "FAKEACCESSKEY",
+			SecretKey:    "FAKESECRETKEY",
+		}
+
+		// Set the S3 config in the test context
+		mockConfig := GetMockConfig(ctx)
+		configValues := map[string]interface{}{
+			"core.s3.buffer_bucket": s3Config.BufferBucket,
+			"core.s3.endpoint":      s3Config.Endpoint,
+			"core.s3.region":        s3Config.Region,
+			"core.s3.access_key":    s3Config.AccessKey,
+			"core.s3.secret_key":    s3Config.SecretKey,
+		}
+
+		for key, value := range configValues {
+			if err := mockConfig.Set(ctx, key, value); err != nil {
+				return nil, fmt.Errorf("failed to set s3 config: %w", err)
+			}
+		}
+
+		return ctx, nil
+	}
 }
 
 // WithSQLitePluginMigrations registers a mock plugin with the given ID and SQLite migrations.
