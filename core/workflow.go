@@ -52,6 +52,13 @@ type WorkflowService interface {
 
 	// GetWorkflowMetadata returns the workflow metadata for a request
 	GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error)
+
+	// UpdateWorkflowData updates workflow metadata with the provided data map
+	UpdateWorkflowData(ctx context.Context, requestID uint, data map[string]any) error
+
+	// UpdateWorkflowDataStruct updates workflow metadata with the provided struct
+	// using the specified struct tag (e.g. "json")
+	UpdateWorkflowDataStruct(ctx context.Context, requestID uint, data any, tag string) error
 }
 
 // WorkflowStepInfo provides information about a workflow step
@@ -104,6 +111,7 @@ type WorkflowOptions interface {
 	SetUserID(id uint)
 	MergeData(data WorkflowData) error
 	MergeJSON(jsonData string) error
+	MergeStruct(data any, tag string) error
 	MarshalData() ([]byte, error)
 	HasData() bool
 	GetKoanf() (*koanf.Koanf, error)
@@ -179,6 +187,25 @@ func (o *WorkflowOptionsDefault) MergeData(data WorkflowData) error {
 	return nil
 }
 
+// MergeStruct merges struct data into the cached koanf instance using the specified tag
+func (o *WorkflowOptionsDefault) MergeStruct(data any, tag string) error {
+	if o.koanfCache == nil {
+		o.koanfCache = koanf.New(".")
+	}
+	
+	k := koanf.New(".")
+	if err := k.Load(structs.Provider(data, tag), nil); err != nil {
+		return err
+	}
+	
+	if err := o.koanfCache.Merge(k); err != nil {
+		return err
+	}
+	
+	o.data = o.koanfCache.Raw()
+	return nil
+}
+
 // MergeJSON merges raw JSON data into the cached koanf instance
 func (o *WorkflowOptionsDefault) MergeJSON(jsonData string) error {
 	if jsonData == "" {
@@ -245,11 +272,7 @@ func WithWorkflowData(data WorkflowData) WorkflowOption {
 // and merged into the workflow data.
 func WithWorkflowStructData(data any, tag string) WorkflowOption {
 	return func(o WorkflowOptions) error {
-		k := koanf.New(".")
-		if err := k.Load(structs.Provider(data, tag), nil); err != nil {
-			return err
-		}
-		return o.MergeData(k.Raw())
+		return o.MergeStruct(data, tag)
 	}
 }
 

@@ -99,12 +99,13 @@ func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.Workflow
 	}
 
 	// Serialize the final koanf data for storage
-	metadataBytes, err := options.MarshalData()
+	dataBytes, err := options.MarshalData()
 	if err != nil {
 		return nil, nil, err
 	}
+	metadataBytes := string(dataBytes)
 
-	return options, metadataBytes, nil
+	return options, []byte(metadataBytes), nil
 }
 
 // WorkflowMetadata stored in request.Metadata JSON field
@@ -638,6 +639,58 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowMetadata(ctx context.Context, re
 	}
 
 	return k, nil
+}
+
+func (w *WorkflowCoordinatorDefault) UpdateWorkflowData(ctx context.Context, requestID uint, data map[string]any) error {
+	// Get current request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return err
+	}
+
+	// Parse existing metadata
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+		return fmt.Errorf("invalid workflow meta %w", err)
+	}
+
+	// Create workflow options and merge data
+	opts := core.NewWorkflowOptions()
+	if metadata.Data != "" {
+		if err := opts.MergeJSON(metadata.Data); err != nil {
+			return err
+		}
+	}
+	if err := opts.MergeData(data); err != nil {
+		return err
+	}
+
+	// Marshal back to JSON
+	dataBytes, err := opts.MarshalData()
+	if err != nil {
+		return fmt.Errorf("failed to marshal workflow data: %w", err)
+	}
+	metadata.Data = string(dataBytes)
+
+	// Update request metadata
+	metadataBytes, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal workflow metadata: %w", err)
+	}
+
+	req.Metadata = metadataBytes
+	return w.requestSvc.UpdateRequest(ctx, req)
+}
+
+func (w *WorkflowCoordinatorDefault) UpdateWorkflowDataStruct(ctx context.Context, requestID uint, data any, tag string) error {
+	// Create workflow options and load struct data
+	opts := core.NewWorkflowOptions()
+	if err := opts.MergeStruct(data, tag); err != nil {
+		return err
+	}
+
+	// Use the map version to update
+	return w.UpdateWorkflowData(ctx, requestID, opts.Data())
 }
 
 // jsonToKoanf converts a JSON string to a koanf.Koanf instance
