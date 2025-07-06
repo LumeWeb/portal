@@ -181,9 +181,7 @@ CREATE TABLE `requests`
     CONSTRAINT `fk_requests_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 );
 CREATE INDEX `idx_requests_hash` ON `requests` (`hash`);
-CREATE INDEX `idx_request_operation_system` ON `requests` (`operation`, `system`);
 CREATE INDEX `idx_requests_deleted_at` ON `requests` (`deleted_at`);
-CREATE INDEX `idx_requests_upload_hash` ON `requests` (`upload_hash`);
 
 -- 4. Tables that depend on primary tables
 CREATE TABLE `account_deletions`
