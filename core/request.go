@@ -15,6 +15,9 @@ var (
 )
 
 type RequestService interface {
+	// Request validation
+	ValidateRequest(ctx context.Context, req *models.Request) error
+
 	// Model registration methods
 	// RegisterRequestModel registers a protocol-specific request data model for an operation
 	RegisterRequestModel(operation string, model data_models.RequestDataModel)

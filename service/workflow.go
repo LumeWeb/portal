@@ -181,12 +181,6 @@ func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.
 		return fmt.Errorf("workflow '%s' already exists", name)
 	}
 
-	// Ensure all steps have handlers
-	for i := range steps {
-		if steps[i].Handler == nil {
-			return fmt.Errorf("step %d has nil handler", i)
-		}
-	}
 
 	w.workflows[name] = &core.WorkflowDefinition{
 		Name:  name,
@@ -268,8 +262,8 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		req.UserID = &userID
 	}
 
-	// Validate the request
-	if err := firstStep.Handler.ValidateRequest(ctx, req); err != nil {
+	// Validate the request using request service
+	if err := w.requestSvc.ValidateRequest(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -546,7 +540,7 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 	}
 	currentStep := workflow.Steps[metadata.CurrentStep]
 
-	// Delegate execution to RequestService
+	// Delegate execution to RequestService which will lookup the handler
 	err = w.requestSvc.ExecuteRequest(ctx, requestID)
 	if err != nil {
 		// Handle failure according to step's behavior
