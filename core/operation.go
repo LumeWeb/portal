@@ -118,6 +118,8 @@ type OperationHelper interface {
 	Protocol() Protocol
 	// StorageHash retrieves the storage hash from the current request
 	StorageHash(req *models.Request) StorageHash
+	// Context returns the operation context
+	Context() Context
 }
 
 // OperationHelperDefault is the default implementation of OperationHelper
@@ -172,4 +174,9 @@ func (h *OperationHelperDefault) StorageHash(req *models.Request) StorageHash {
 	}
 
 	return NewStorageHashFromMultihash(req.Hash, req.CIDType, nil)
+}
+
+// Context returns the operation context
+func (h *OperationHelperDefault) Context() Context {
+	return h.ctx
 }
