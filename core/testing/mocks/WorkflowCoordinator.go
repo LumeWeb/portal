@@ -40,16 +40,24 @@ func (_m *MockWorkflowCoordinator) EXPECT() *MockWorkflowCoordinator_Expecter {
 }
 
 // CompleteWorkflowStep provides a mock function for the type MockWorkflowCoordinator
-func (_mock *MockWorkflowCoordinator) CompleteWorkflowStep(ctx context.Context, requestID uint) error {
-	ret := _mock.Called(ctx, requestID)
+func (_mock *MockWorkflowCoordinator) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, requestID)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CompleteWorkflowStep")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
-		r0 = returnFunc(ctx, requestID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, ...core.WorkflowOption) error); ok {
+		r0 = returnFunc(ctx, requestID, opts...)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -64,11 +72,13 @@ type MockWorkflowCoordinator_CompleteWorkflowStep_Call struct {
 // CompleteWorkflowStep is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-func (_e *MockWorkflowCoordinator_Expecter) CompleteWorkflowStep(ctx interface{}, requestID interface{}) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
-	return &MockWorkflowCoordinator_CompleteWorkflowStep_Call{Call: _e.mock.On("CompleteWorkflowStep", ctx, requestID)}
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowCoordinator_Expecter) CompleteWorkflowStep(ctx interface{}, requestID interface{}, opts ...interface{}) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
+	return &MockWorkflowCoordinator_CompleteWorkflowStep_Call{Call: _e.mock.On("CompleteWorkflowStep",
+		append([]interface{}{ctx, requestID}, opts...)...)}
 }
 
-func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
+func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -78,9 +88,18 @@ func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) Run(run func(ctx co
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
+		}
+		arg2 = variadicArgs
 		run(
 			arg0,
 			arg1,
+			arg2...,
 		)
 	})
 	return _c
@@ -91,7 +110,95 @@ func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) Return(err error) *
 	return _c
 }
 
-func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint) error) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
+func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ConvertRequestToWorkflow provides a mock function for the type MockWorkflowCoordinator
+func (_mock *MockWorkflowCoordinator) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, requestID, workflowName, startStep)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ConvertRequestToWorkflow")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, int, ...core.WorkflowOption) error); ok {
+		r0 = returnFunc(ctx, requestID, workflowName, startStep, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowCoordinator_ConvertRequestToWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ConvertRequestToWorkflow'
+type MockWorkflowCoordinator_ConvertRequestToWorkflow_Call struct {
+	*mock.Call
+}
+
+// ConvertRequestToWorkflow is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+//   - workflowName string
+//   - startStep int
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowCoordinator_Expecter) ConvertRequestToWorkflow(ctx interface{}, requestID interface{}, workflowName interface{}, startStep interface{}, opts ...interface{}) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
+	return &MockWorkflowCoordinator_ConvertRequestToWorkflow_Call{Call: _e.mock.On("ConvertRequestToWorkflow",
+		append([]interface{}{ctx, requestID, workflowName, startStep}, opts...)...)}
+}
+
+func (_c *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call) Run(run func(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		var arg4 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
+		}
+		arg4 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call) Return(err error) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call) RunAndReturn(run func(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -393,8 +500,16 @@ func (_c *MockWorkflowCoordinator_RegisterWorkflow_Call) RunAndReturn(run func(n
 }
 
 // StartWorkflow provides a mock function for the type MockWorkflowCoordinator
-func (_mock *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name string, initialData any) (*models.Request, error) {
-	ret := _mock.Called(ctx, name, initialData)
+func (_mock *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
+	// core.WorkflowOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, name)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StartWorkflow")
@@ -402,18 +517,18 @@ func (_mock *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name st
 
 	var r0 *models.Request
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) (*models.Request, error)); ok {
-		return returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...core.WorkflowOption) (*models.Request, error)); ok {
+		return returnFunc(ctx, name, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, any) *models.Request); ok {
-		r0 = returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...core.WorkflowOption) *models.Request); ok {
+		r0 = returnFunc(ctx, name, opts...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.Request)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, any) error); ok {
-		r1 = returnFunc(ctx, name, initialData)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...core.WorkflowOption) error); ok {
+		r1 = returnFunc(ctx, name, opts...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -428,12 +543,13 @@ type MockWorkflowCoordinator_StartWorkflow_Call struct {
 // StartWorkflow is a helper method to define mock.On call
 //   - ctx context.Context
 //   - name string
-//   - initialData any
-func (_e *MockWorkflowCoordinator_Expecter) StartWorkflow(ctx interface{}, name interface{}, initialData interface{}) *MockWorkflowCoordinator_StartWorkflow_Call {
-	return &MockWorkflowCoordinator_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow", ctx, name, initialData)}
+//   - opts ...core.WorkflowOption
+func (_e *MockWorkflowCoordinator_Expecter) StartWorkflow(ctx interface{}, name interface{}, opts ...interface{}) *MockWorkflowCoordinator_StartWorkflow_Call {
+	return &MockWorkflowCoordinator_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow",
+		append([]interface{}{ctx, name}, opts...)...)}
 }
 
-func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.Context, name string, initialData any)) *MockWorkflowCoordinator_StartWorkflow_Call {
+func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.Context, name string, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_StartWorkflow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -443,14 +559,18 @@ func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.C
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 any
-		if args[2] != nil {
-			arg2 = args[2].(any)
+		var arg2 []core.WorkflowOption
+		variadicArgs := make([]core.WorkflowOption, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.WorkflowOption)
+			}
 		}
+		arg2 = variadicArgs
 		run(
 			arg0,
 			arg1,
-			arg2,
+			arg2...,
 		)
 	})
 	return _c
@@ -461,7 +581,7 @@ func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Return(request *models.Req
 	return _c
 }
 
-func (_c *MockWorkflowCoordinator_StartWorkflow_Call) RunAndReturn(run func(ctx context.Context, name string, initialData any) (*models.Request, error)) *MockWorkflowCoordinator_StartWorkflow_Call {
+func (_c *MockWorkflowCoordinator_StartWorkflow_Call) RunAndReturn(run func(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error)) *MockWorkflowCoordinator_StartWorkflow_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -18,6 +18,7 @@ type MockProtocol struct {
 	NameValue          string
 	ConfigValue        config.ProtocolConfig
 	OperationsValue    []core.Operation
+	WorkflowsValue     []core.WorkflowDefinition
 	EncodeFileNameFunc func(core.StorageHash) string
 	HashFunc           func(r io.Reader, size uint64) (core.StorageHash, error)
 	PinHandlerValue    core.ProtocolPinHandler
@@ -53,6 +54,10 @@ func (p *MockProtocol) PinHandler() core.ProtocolPinHandler {
 	return p.PinHandlerValue
 }
 
+func (p *MockProtocol) Workflows() []core.WorkflowDefinition {
+	return p.WorkflowsValue
+}
+
 // NewMockProtocol creates a new mock protocol with default mock implementations
 func NewMockProtocol(t testing.TB, name string) *MockProtocol {
 	// Create mock pin handler with default behavior
@@ -76,6 +81,7 @@ func NewMockProtocol(t testing.TB, name string) *MockProtocol {
 	return &MockProtocol{
 		NameValue:       name,
 		OperationsValue: []core.Operation{},
+		WorkflowsValue:  []core.WorkflowDefinition{},
 		PinHandlerValue: pinHandler,
 		HashFunc: func(r io.Reader, size uint64) (core.StorageHash, error) {
 			// Read all data from reader
@@ -111,5 +117,10 @@ func (p *MockProtocol) WithConfig(cfg config.ProtocolConfig) *MockProtocol {
 // WithPinHandler sets the pin handler for the mock protocol
 func (p *MockProtocol) WithPinHandler(handler core.ProtocolPinHandler) *MockProtocol {
 	p.PinHandlerValue = handler
+	return p
+}
+
+func (p *MockProtocol) WithWorkflows(workflows []core.WorkflowDefinition) *MockProtocol {
+	p.WorkflowsValue = workflows
 	return p
 }

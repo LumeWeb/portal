@@ -290,6 +290,63 @@ func (_c *MockRequestService_DeleteRequest_Call) RunAndReturn(run func(ctx conte
 	return _c
 }
 
+// ExecuteRequest provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) ExecuteRequest(ctx context.Context, id uint) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecuteRequest")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRequestService_ExecuteRequest_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecuteRequest'
+type MockRequestService_ExecuteRequest_Call struct {
+	*mock.Call
+}
+
+// ExecuteRequest is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uint
+func (_e *MockRequestService_Expecter) ExecuteRequest(ctx interface{}, id interface{}) *MockRequestService_ExecuteRequest_Call {
+	return &MockRequestService_ExecuteRequest_Call{Call: _e.mock.On("ExecuteRequest", ctx, id)}
+}
+
+func (_c *MockRequestService_ExecuteRequest_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_ExecuteRequest_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_ExecuteRequest_Call) Return(err error) *MockRequestService_ExecuteRequest_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRequestService_ExecuteRequest_Call) RunAndReturn(run func(ctx context.Context, id uint) error) *MockRequestService_ExecuteRequest_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FailRequest provides a mock function for the type MockRequestService
 func (_mock *MockRequestService) FailRequest(ctx context.Context, id uint, reason string) error {
 	ret := _mock.Called(ctx, id, reason)
@@ -491,80 +548,6 @@ func (_c *MockRequestService_GetRequestByHash_Call) Return(request *models.Reque
 }
 
 func (_c *MockRequestService_GetRequestByHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error)) *MockRequestService_GetRequestByHash_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetRequestByUploadHash provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) GetRequestByUploadHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
-	ret := _mock.Called(ctx, hash, filter)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetRequestByUploadHash")
-	}
-
-	var r0 *models.Request
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, core.RequestFilter) (*models.Request, error)); ok {
-		return returnFunc(ctx, hash, filter)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, core.RequestFilter) *models.Request); ok {
-		r0 = returnFunc(ctx, hash, filter)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.Request)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash, core.RequestFilter) error); ok {
-		r1 = returnFunc(ctx, hash, filter)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockRequestService_GetRequestByUploadHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRequestByUploadHash'
-type MockRequestService_GetRequestByUploadHash_Call struct {
-	*mock.Call
-}
-
-// GetRequestByUploadHash is a helper method to define mock.On call
-//   - ctx context.Context
-//   - hash core.StorageHash
-//   - filter core.RequestFilter
-func (_e *MockRequestService_Expecter) GetRequestByUploadHash(ctx interface{}, hash interface{}, filter interface{}) *MockRequestService_GetRequestByUploadHash_Call {
-	return &MockRequestService_GetRequestByUploadHash_Call{Call: _e.mock.On("GetRequestByUploadHash", ctx, hash, filter)}
-}
-
-func (_c *MockRequestService_GetRequestByUploadHash_Call) Run(run func(ctx context.Context, hash core.StorageHash, filter core.RequestFilter)) *MockRequestService_GetRequestByUploadHash_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 core.StorageHash
-		if args[1] != nil {
-			arg1 = args[1].(core.StorageHash)
-		}
-		var arg2 core.RequestFilter
-		if args[2] != nil {
-			arg2 = args[2].(core.RequestFilter)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockRequestService_GetRequestByUploadHash_Call) Return(request *models.Request, err error) *MockRequestService_GetRequestByUploadHash_Call {
-	_c.Call.Return(request, err)
-	return _c
-}
-
-func (_c *MockRequestService_GetRequestByUploadHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error)) *MockRequestService_GetRequestByUploadHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1324,6 +1307,63 @@ func (_c *MockRequestService_UpdateRequestStatus_Call) Return(err error) *MockRe
 }
 
 func (_c *MockRequestService_UpdateRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint, status models.RequestStatusType) error) *MockRequestService_UpdateRequestStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ValidateRequest provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) ValidateRequest(ctx context.Context, req *models.Request) error {
+	ret := _mock.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ValidateRequest")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.Request) error); ok {
+		r0 = returnFunc(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRequestService_ValidateRequest_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateRequest'
+type MockRequestService_ValidateRequest_Call struct {
+	*mock.Call
+}
+
+// ValidateRequest is a helper method to define mock.On call
+//   - ctx context.Context
+//   - req *models.Request
+func (_e *MockRequestService_Expecter) ValidateRequest(ctx interface{}, req interface{}) *MockRequestService_ValidateRequest_Call {
+	return &MockRequestService_ValidateRequest_Call{Call: _e.mock.On("ValidateRequest", ctx, req)}
+}
+
+func (_c *MockRequestService_ValidateRequest_Call) Run(run func(ctx context.Context, req *models.Request)) *MockRequestService_ValidateRequest_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *models.Request
+		if args[1] != nil {
+			arg1 = args[1].(*models.Request)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_ValidateRequest_Call) Return(err error) *MockRequestService_ValidateRequest_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRequestService_ValidateRequest_Call) RunAndReturn(run func(ctx context.Context, req *models.Request) error) *MockRequestService_ValidateRequest_Call {
 	_c.Call.Return(run)
 	return _c
 }

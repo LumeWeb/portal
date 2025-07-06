@@ -284,3 +284,49 @@ func (_c *MockProtocolParser_TryParse_Call) RunAndReturn(run func(s string) (cor
 	_c.Call.Return(run)
 	return _c
 }
+
+// Workflows provides a mock function for the type MockProtocolParser
+func (_mock *MockProtocolParser) Workflows() []core.WorkflowDefinition {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Workflows")
+	}
+
+	var r0 []core.WorkflowDefinition
+	if returnFunc, ok := ret.Get(0).(func() []core.WorkflowDefinition); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]core.WorkflowDefinition)
+		}
+	}
+	return r0
+}
+
+// MockProtocolParser_Workflows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Workflows'
+type MockProtocolParser_Workflows_Call struct {
+	*mock.Call
+}
+
+// Workflows is a helper method to define mock.On call
+func (_e *MockProtocolParser_Expecter) Workflows() *MockProtocolParser_Workflows_Call {
+	return &MockProtocolParser_Workflows_Call{Call: _e.mock.On("Workflows")}
+}
+
+func (_c *MockProtocolParser_Workflows_Call) Run(run func()) *MockProtocolParser_Workflows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocolParser_Workflows_Call) Return(workflowDefinitions []core.WorkflowDefinition) *MockProtocolParser_Workflows_Call {
+	_c.Call.Return(workflowDefinitions)
+	return _c
+}
+
+func (_c *MockProtocolParser_Workflows_Call) RunAndReturn(run func() []core.WorkflowDefinition) *MockProtocolParser_Workflows_Call {
+	_c.Call.Return(run)
+	return _c
+}

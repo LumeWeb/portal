@@ -1623,7 +1623,7 @@ func WithMockS3() TestContextBuilderOption {
 
 		// Channel to signal server is ready
 		ready := make(chan struct{})
-		
+
 		go func() {
 			close(ready) // Signal server is starting
 			if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
@@ -2081,6 +2081,11 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return fmt.Errorf("API route configuration failed: %w", err)
 	}
 
+	// Register workflows from all protocols
+	if err := ConfigureProtocolWorkflows(ctx); err != nil {
+		return fmt.Errorf("failed to configure protocol workflows: %w", err)
+	}
+
 	// Fire boot complete event if enabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err := ctx.Fire(pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
@@ -2265,6 +2270,19 @@ func WithCoreEvents() TestContextBuilderOption {
 
 		return ctx, nil
 	}
+}
+
+// ConfigureProtocolWorkflows registers all workflows from all protocols with the workflow service
+func ConfigureProtocolWorkflows(ctx core.Context) error {
+	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+	for _, proto := range core.GetProtocols() {
+		for _, workflow := range proto.Workflows() {
+			if err := workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps); err != nil {
+				return fmt.Errorf("failed to register workflow %s for protocol %s: %w", workflow.Name, proto.Name(), err)
+			}
+		}
+	}
+	return nil
 }
 
 // registerServiceInstance registers a service instance both locally in the test context
