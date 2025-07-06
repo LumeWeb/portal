@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
@@ -368,7 +369,7 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 			ctx.Logger().Error("Workflow service not available")
 			// Mark request as failed since workflow service is unavailable
 			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID, "Workflow service unavailable"); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status after workflow service failure", 
+				ctx.Logger().Error("Failed to update request status after workflow service failure",
 					zap.Error(updateErr),
 					zap.Uint("requestID", tusReq.RequestID))
 			}
@@ -381,7 +382,7 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 			ctx.Logger().Error("Failed to convert request to workflow", zap.Error(err))
 			// Mark request as failed since workflow conversion failed
 			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID, fmt.Sprintf("Workflow conversion failed: %v", err)); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status after workflow conversion failure", 
+				ctx.Logger().Error("Failed to update request status after workflow conversion failure",
 					zap.Error(updateErr),
 					zap.Uint("requestID", tusReq.RequestID))
 			}
@@ -394,7 +395,7 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 			ctx.Logger().Error("Failed to execute workflow step", zap.Error(err))
 			// Mark request as failed since workflow execution failed
 			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID, fmt.Sprintf("Workflow execution failed: %v", err)); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status after workflow execution failure", 
+				ctx.Logger().Error("Failed to update request status after workflow execution failure",
 					zap.Error(updateErr),
 					zap.Uint("requestID", tusReq.RequestID))
 			}
