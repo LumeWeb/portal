@@ -27,6 +27,9 @@ type WorkflowCoordinator interface {
 	// Start a new workflow instance
 	StartWorkflow(ctx context.Context, name string, opts ...WorkflowOption) (*models.Request, error)
 
+	// Convert an existing request to a workflow
+	ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...WorkflowOption) error
+
 	// Advance workflow to next step with optional data
 	CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...WorkflowOption) error
 
@@ -79,8 +82,8 @@ type OperationStep struct {
 	// What to do if this step fails
 	FailureBehavior FailureBehavior
 
-	// Whether to delegate execution to cron system
-	DelegateToCron bool
+	// Whether to run the operation in the active request directly or send to the cron system
+	Foreground bool
 }
 
 // FailureBehavior defines behavior when a step fails
@@ -192,16 +195,16 @@ func (o *WorkflowOptionsDefault) MergeStruct(data any, tag string) error {
 	if o.koanfCache == nil {
 		o.koanfCache = koanf.New(".")
 	}
-	
+
 	k := koanf.New(".")
 	if err := k.Load(structs.Provider(data, tag), nil); err != nil {
 		return err
 	}
-	
+
 	if err := o.koanfCache.Merge(k); err != nil {
 		return err
 	}
-	
+
 	o.data = o.koanfCache.Raw()
 	return nil
 }

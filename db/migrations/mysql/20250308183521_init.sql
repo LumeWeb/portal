@@ -244,6 +244,7 @@ CREATE TABLE `tus_requests`
     `deleted_at`    datetime(3)     DEFAULT NULL,
     `request_id`    bigint unsigned DEFAULT NULL,
     `tus_upload_id` varchar(500)    DEFAULT NULL,
+    `upload_hash`   varbinary(64)   DEFAULT NULL,
     `completed`     tinyint(1)      DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `idx_tus_requests_request_id` (`request_id`),

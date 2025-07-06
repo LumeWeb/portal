@@ -286,21 +286,21 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	// Auto-trigger first step if configured
 	if workflow.AutoTriggerFirstStep {
 		firstStep := workflow.Steps[0]
-		if firstStep.DelegateToCron {
-			if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
-				w.logger.Error("Failed to dispatch first step to cron",
-					zap.String("workflow", workflow.Name),
-					zap.Uint("requestID", createdReq.ID),
-					zap.Error(err))
-				return createdReq, nil // Return request even if cron dispatch fails
-			}
-		} else {
+		if firstStep.Foreground {
 			if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to execute first step",
 					zap.String("workflow", workflow.Name),
 					zap.Uint("requestID", createdReq.ID),
 					zap.Error(err))
 				return createdReq, nil // Return request even if execution fails
+			}
+		} else {
+			if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
+				w.logger.Error("Failed to dispatch first step to cron",
+					zap.String("workflow", workflow.Name),
+					zap.Uint("requestID", createdReq.ID),
+					zap.Error(err))
+				return createdReq, nil // Return request even if cron dispatch fails
 			}
 		}
 	}
@@ -389,21 +389,21 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
-	if nextStep.DelegateToCron {
-		if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
-			return err
-		}
-		w.logger.Info("Delegated workflow step to cron",
-			zap.String("workflow", metadata.WorkflowName),
-			zap.Int("step", nextStepIdx),
-			zap.Uint("nextRequestID", createdReq.ID))
-	} else {
+	if nextStep.Foreground {
 		// Execute the next step directly
 		err = w.ExecuteWorkflowStep(ctx, createdReq.ID)
 		if err != nil {
 			return err
 		}
 		w.logger.Info("Advanced workflow to next step",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Int("step", nextStepIdx),
+			zap.Uint("nextRequestID", createdReq.ID))
+	} else {
+		if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
+			return err
+		}
+		w.logger.Info("Delegated workflow step to cron",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Int("step", nextStepIdx),
 			zap.Uint("nextRequestID", createdReq.ID))
@@ -705,6 +705,54 @@ func (w *WorkflowCoordinatorDefault) jsonToKoanf(jsonStr string) (*koanf.Koanf, 
 		return nil, err
 	}
 	return k, nil
+}
+
+func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
+	// Get the existing request
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("failed to get request: %w", err)
+	}
+
+	// Get the workflow definition
+	workflow, err := w.GetWorkflow(workflowName)
+	if err != nil {
+		return fmt.Errorf("failed to get workflow: %w", err)
+	}
+
+	if startStep < 0 || startStep >= len(workflow.Steps) {
+		return fmt.Errorf("invalid start step: %d", startStep)
+	}
+
+	// Create the WorkflowMetadata
+	metadata := WorkflowMetadata{
+		WorkflowName: workflow.Name,
+		CurrentStep:  startStep,
+		TotalSteps:   len(workflow.Steps),
+		StartedAt:    time.Now().Unix(),
+	}
+
+	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	if err != nil {
+		return err
+	}
+
+	// Update the request's metadata and operation
+	req.Metadata = datatypes.JSON(metadataJSON)
+	req.Operation = workflow.Steps[startStep].Operation
+
+	w.handleRequestData(processedOpts, req)
+
+	if userID := processedOpts.UserID(); userID > 0 {
+		req.UserID = &userID
+	}
+
+	// Save the updated request
+	if err := w.requestSvc.UpdateRequest(ctx, req); err != nil {
+		return fmt.Errorf("failed to update request: %w", err)
+	}
+
+	return nil
 }
 
 func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestID uint) error {
