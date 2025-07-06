@@ -125,6 +125,8 @@ type OperationHelper interface {
 	Context() Context
 	// Logger returns the operation logger
 	Logger() *Logger
+	// StartWorkflow starts a new workflow with the given name and options
+	StartWorkflow(name string, opts ...WorkflowOption) (*models.Request, error)
 }
 
 // OperationHelperDefault is the default implementation of OperationHelper
@@ -221,4 +223,10 @@ func (h *OperationHelperDefault) Context() Context {
 // Logger returns the operation logger
 func (h *OperationHelperDefault) Logger() *Logger {
 	return h.ctx.Logger()
+}
+
+// StartWorkflow starts a new workflow with the given name and options
+func (h *OperationHelperDefault) StartWorkflow(name string, opts ...WorkflowOption) (*models.Request, error) {
+	workflow := GetService[WorkflowService](h.ctx, WORKFLOW_SERVICE)
+	return workflow.StartWorkflow(h.ctx, name, opts...)
 }
