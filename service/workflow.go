@@ -173,7 +173,7 @@ func (w *WorkflowCoordinatorDefault) ID() string {
 }
 
 // RegisterWorkflow registers a new workflow
-func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.OperationStep) error {
+func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.OperationStep, autoTriggerFirstStep bool) error {
 	w.workflowsMu.Lock()
 	defer w.workflowsMu.Unlock()
 
@@ -181,15 +181,16 @@ func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.
 		return fmt.Errorf("workflow '%s' already exists", name)
 	}
 
-
 	w.workflows[name] = &core.WorkflowDefinition{
-		Name:  name,
-		Steps: steps,
+		Name:                 name,
+		Steps:                steps,
+		AutoTriggerFirstStep: autoTriggerFirstStep,
 	}
 
 	w.logger.Debug("Registered workflow",
 		zap.String("name", name),
-		zap.Int("steps", len(steps)))
+		zap.Int("steps", len(steps)),
+		zap.Bool("autoTriggerFirstStep", autoTriggerFirstStep))
 
 	return nil
 }
