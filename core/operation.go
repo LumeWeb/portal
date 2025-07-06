@@ -117,6 +117,10 @@ type OperationHelper interface {
 	WorkflowData(requestID uint) (*koanf.Koanf, error)
 	// StructuredWorkflowData retrieves workflow metadata and unmarshals it into the provided struct
 	StructuredWorkflowData(requestID uint, out any) error
+	// UpdateWorkflowData updates workflow metadata with the provided data map
+	UpdateWorkflowData(requestID uint, data map[string]any) error
+	// UpdateWorkflowDataStruct updates workflow metadata with the provided struct
+	UpdateWorkflowDataStruct(requestID uint, data any) error
 	// Protocol retrieves a protocol instance by ID
 	Protocol() Protocol
 	// StorageHash retrieves the storage hash from the current request
@@ -134,6 +138,7 @@ type OperationHelperDefault struct {
 	ctx       Context
 	proto     string
 	unmarshalTag string // Tag to use for unmarshaling (default: "json")
+	workflow  WorkflowService // Cached workflow service instance
 }
 
 // DefaultUnmarshalTag is the default tag used for unmarshaling
@@ -144,6 +149,7 @@ func NewOperationHelper(ctx Context) OperationHelper {
 	return &OperationHelperDefault{
 		ctx:          ctx,
 		unmarshalTag: DefaultUnmarshalTag,
+		workflow:     GetService[WorkflowService](ctx, WORKFLOW_SERVICE),
 	}
 }
 
@@ -153,6 +159,7 @@ func NewProtocolOperationHelper(ctx Context, proto string) OperationHelper {
 		ctx:          ctx,
 		proto:        proto,
 		unmarshalTag: DefaultUnmarshalTag,
+		workflow:     GetService[WorkflowService](ctx, WORKFLOW_SERVICE),
 	}
 }
 
@@ -225,8 +232,17 @@ func (h *OperationHelperDefault) Logger() *Logger {
 	return h.ctx.Logger()
 }
 
+// UpdateWorkflowData updates workflow metadata with the provided data map
+func (h *OperationHelperDefault) UpdateWorkflowData(requestID uint, data map[string]any) error {
+	return h.workflow.UpdateWorkflowData(h.ctx, requestID, data)
+}
+
+// UpdateWorkflowDataStruct updates workflow metadata with the provided struct
+func (h *OperationHelperDefault) UpdateWorkflowDataStruct(requestID uint, data any) error {
+	return h.workflow.UpdateWorkflowDataStruct(h.ctx, requestID, data, h.unmarshalTag)
+}
+
 // StartWorkflow starts a new workflow with the given name and options
 func (h *OperationHelperDefault) StartWorkflow(name string, opts ...WorkflowOption) (*models.Request, error) {
-	workflow := GetService[WorkflowService](h.ctx, WORKFLOW_SERVICE)
-	return workflow.StartWorkflow(h.ctx, name, opts...)
+	return h.workflow.StartWorkflow(h.ctx, name, opts...)
 }
