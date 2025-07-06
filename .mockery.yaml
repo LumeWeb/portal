@@ -79,7 +79,6 @@ packages:
       TestingProtocolPinHandler: {}
       TestingProtocolRequestDataHandler: {}
       TestingTestingHashWithProof: {}
-      UploadDataHandler: {}
       UploadService: {}
       UserService: {}
       WorkflowCoordinator: {}

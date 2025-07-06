@@ -821,8 +821,6 @@ func TestResetState(t *testing.T) {
 		},
 	})
 
-	core.RegisterUploadDataHandler("test-handler", mocks.NewMockUploadDataHandler(t))
-
 	// Register some test hash algorithms
 	err := core.GetHashRegistry().RegisterHashAlgorithm(core.HashAlgorithm{
 		Type:     0x12, // SHA2-256
@@ -838,8 +836,6 @@ func TestResetState(t *testing.T) {
 	assert.NotEmpty(t, core.GetServices())
 	assert.NotEmpty(t, core.GetPlugins())
 	assert.NotEmpty(t, core.GetHashRegistry().GetHashAlgorithms())
-	_, exists := core.GetUploadDataHandler("test-handler")
-	assert.True(t, exists)
 
 	// Reset the state
 	core.ResetState()
@@ -850,6 +846,4 @@ func TestResetState(t *testing.T) {
 	assert.Empty(t, core.GetServices())
 	assert.Empty(t, core.GetPlugins())
 	assert.Empty(t, core.GetHashRegistry().GetHashAlgorithms())
-	_, exists = core.GetUploadDataHandler("test-handler")
-	assert.False(t, exists)
 }
