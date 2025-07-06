@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
+	"reflect"
 )
 
 // Default implementation
@@ -112,8 +113,10 @@ func NewScanOperation(protocol string, handler OperationHandler) Operation {
 
 // OperationHelper provides helper methods for working with operations
 type OperationHelper interface {
-	// WorkflowData retrieves workflow metadata for a request
+	// WorkflowData retrieves workflow metadata for a request as a koanf instance
 	WorkflowData(requestID uint) (*koanf.Koanf, error)
+	// StructuredWorkflowData retrieves workflow metadata and unmarshals it into the provided struct
+	StructuredWorkflowData(requestID uint, out any) error
 	// Protocol retrieves a protocol instance by ID
 	Protocol() Protocol
 	// StorageHash retrieves the storage hash from the current request
@@ -126,23 +129,35 @@ type OperationHelper interface {
 
 // OperationHelperDefault is the default implementation of OperationHelper
 type OperationHelperDefault struct {
-	ctx   Context
-	proto string
+	ctx       Context
+	proto     string
+	unmarshalTag string // Tag to use for unmarshaling (default: "json")
 }
+
+// DefaultUnmarshalTag is the default tag used for unmarshaling
+const DefaultUnmarshalTag = "json"
 
 // NewProtocolOperationHelper creates a new OperationHelper instance with protocol context
 func NewOperationHelper(ctx Context) OperationHelper {
 	return &OperationHelperDefault{
-		ctx: ctx,
+		ctx:          ctx,
+		unmarshalTag: DefaultUnmarshalTag,
 	}
 }
 
 // NewOperationHelper creates a new OperationHelper instance
 func NewProtocolOperationHelper(ctx Context, proto string) OperationHelper {
 	return &OperationHelperDefault{
-		ctx:   ctx,
-		proto: proto,
+		ctx:          ctx,
+		proto:        proto,
+		unmarshalTag: DefaultUnmarshalTag,
 	}
+}
+
+// WithUnmarshalTag sets the tag to use for unmarshaling
+func (h *OperationHelperDefault) WithUnmarshalTag(tag string) *OperationHelperDefault {
+	h.unmarshalTag = tag
+	return h
 }
 
 // GetWorkflowData retrieves workflow metadata for a request
@@ -152,6 +167,26 @@ func (h *OperationHelperDefault) WorkflowData(requestID uint) (*koanf.Koanf, err
 
 	// Get the workflow metadata
 	return workflow.GetWorkflowMetadata(h.ctx, requestID)
+}
+
+// StructuredWorkflowData retrieves workflow metadata and unmarshals it into the provided struct
+// out must be a non-nil pointer to a struct or an interface
+func (h *OperationHelperDefault) StructuredWorkflowData(requestID uint, out any) error {
+	if out == nil {
+		return fmt.Errorf("out parameter cannot be nil")
+	}
+
+	val := reflect.ValueOf(out)
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		return fmt.Errorf("out parameter must be a non-nil pointer")
+	}
+
+	k, err := h.WorkflowData(requestID)
+	if err != nil {
+		return err
+	}
+
+	return k.UnmarshalWithConf("", out, koanf.UnmarshalConf{Tag: h.unmarshalTag})
 }
 
 // Protocol retrieves a protocol instance by ID
