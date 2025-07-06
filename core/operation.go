@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
@@ -115,17 +114,28 @@ func NewScanOperation(protocol string, handler OperationHandler) Operation {
 type OperationHelper interface {
 	// WorkflowData retrieves workflow metadata for a request
 	WorkflowData(requestID uint) (*koanf.Koanf, error)
+	// Protocol retrieves a protocol instance by ID
+	Protocol() Protocol
 }
 
 // OperationHelperDefault is the default implementation of OperationHelper
 type OperationHelperDefault struct {
-	ctx Context
+	ctx   Context
+	proto string
 }
 
-// NewOperationHelper creates a new OperationHelper instance
+// NewProtocolOperationHelper creates a new OperationHelper instance with protocol context
 func NewOperationHelper(ctx Context) OperationHelper {
 	return &OperationHelperDefault{
 		ctx: ctx,
+	}
+}
+
+// NewOperationHelper creates a new OperationHelper instance
+func NewProtocolOperationHelper(ctx Context, proto string) OperationHelper {
+	return &OperationHelperDefault{
+		ctx:   ctx,
+		proto: proto,
 	}
 }
 
@@ -136,4 +146,14 @@ func (h *OperationHelperDefault) WorkflowData(requestID uint) (*koanf.Koanf, err
 
 	// Get the workflow metadata
 	return workflow.GetWorkflowMetadata(h.ctx, requestID)
+}
+
+// Protocol retrieves a protocol instance by ID
+func (h *OperationHelperDefault) Protocol() Protocol {
+	if h.proto == "" {
+		h.ctx.Logger().Fatal("protocol not set in OperationHelper")
+	}
+
+	// Get the protocol instance
+	return GetProtocol(h.proto)
 }
