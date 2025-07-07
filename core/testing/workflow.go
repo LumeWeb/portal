@@ -91,7 +91,7 @@ func (wt *WorkflowTest) AssertOperationStatusMessageContains(req *models.Request
 }
 
 // AssertOperationStatusProgress asserts that the request status progress is equal to the given value.
-func (wt *WorkflowTest) AssertOperationStatusProgress(req *models.Request, expectedProgress int) {
+func (wt *WorkflowTest) AssertOperationStatusProgress(req *models.Request, expectedProgress float64) {
 	requestSvc := core.GetService[core.RequestService](wt.Ctx, core.REQUEST_SERVICE)
 	updatedReq, err := requestSvc.GetRequestStatus(wt.Ctx, req.ID)
 	require.NoError(wt.TB, err)
