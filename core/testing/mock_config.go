@@ -35,6 +35,12 @@ type MockConfigManager struct {
 	cm     configmanager.Manager // Internal configmanager
 	logger *zap.Logger
 	cfg    *config.Config
+
+	// Tracking fields to match real implementation
+	configuredPlugins   map[string]bool
+	configuredAPIs      map[string]bool
+	configuredProtocols map[string]bool
+	configuredServices  map[string]map[string]bool // plugin -> services
 }
 
 // NewMockConfigManager creates a new mock config manager with state tracking
@@ -68,10 +74,14 @@ func NewMockConfigManager(t *testing.T) *MockConfigManager {
 	}
 
 	manager := &MockConfigManager{
-		MockManager: mockManager,
-		cm:          cm,
-		logger:      zap.NewNop(),
-		cfg:         &config.Config{Plugin: make(map[string]config.PluginEntity)},
+		MockManager:         mockManager,
+		cm:                  cm,
+		logger:              zap.NewNop(),
+		cfg:                 &config.Config{Plugin: make(map[string]config.PluginEntity)},
+		configuredPlugins:   make(map[string]bool),
+		configuredAPIs:      make(map[string]bool),
+		configuredProtocols: make(map[string]bool),
+		configuredServices:  make(map[string]map[string]bool),
 	}
 
 	mockManager.EXPECT().Get(mock.AnythingOfType("string"), mock.Anything).
@@ -185,11 +195,76 @@ func (m *MockConfigManager) SetLogger(logger *zap.Logger) {
 
 // Config returns the configuration
 func (m *MockConfigManager) Config() *config.Config {
-	var cfg config.Config
-	if _, err := m.cm.Root(&cfg); err != nil {
-		panic(err)
+	cfg := &config.Config{
+		Core:   config.CoreConfig{},
+		Plugin: make(map[string]config.PluginEntity),
 	}
-	return &cfg
+
+	// Get core config first
+	if _, _, err := m.cm.Get("core", &cfg.Core); err != nil {
+		m.logger.Error("failed to get core config", zap.Error(err))
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Process protocols
+	for pluginName, configured := range m.configuredProtocols {
+		if !configured {
+			continue
+		}
+		protoCfg := m.GetProtocol(pluginName)
+		if protoCfg != nil {
+			if _, exists := cfg.Plugin[pluginName]; !exists {
+				cfg.Plugin[pluginName] = config.PluginEntity{}
+			}
+			pe := cfg.Plugin[pluginName]
+			pe.Protocol = protoCfg
+			cfg.Plugin[pluginName] = pe
+		}
+	}
+
+	// Process APIs
+	for pluginName, configured := range m.configuredAPIs {
+		if !configured {
+			continue
+		}
+		apiCfg := m.GetAPI(pluginName)
+		if apiCfg != nil {
+			if _, exists := cfg.Plugin[pluginName]; !exists {
+				cfg.Plugin[pluginName] = config.PluginEntity{}
+			}
+			pe := cfg.Plugin[pluginName]
+			pe.API = apiCfg
+			cfg.Plugin[pluginName] = pe
+		}
+	}
+
+	// Process services
+	for pluginName, services := range m.configuredServices {
+		if len(services) == 0 {
+			continue
+		}
+		if _, exists := cfg.Plugin[pluginName]; !exists {
+			cfg.Plugin[pluginName] = config.PluginEntity{
+				Service: make(map[string]config.ServiceConfig),
+			}
+		}
+		pe := cfg.Plugin[pluginName]
+		if pe.Service == nil {
+			pe.Service = make(map[string]config.ServiceConfig)
+		}
+
+		for serviceName := range services {
+			svcCfg := m.GetService(pluginName, serviceName)
+			if svcCfg != nil {
+				pe.Service[serviceName] = svcCfg
+			}
+		}
+		cfg.Plugin[pluginName] = pe
+	}
+
+	return cfg
 }
 
 // ConfigureProtocol implements config.Manager
@@ -200,13 +275,18 @@ func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.Prot
 		return err
 	}
 
-	defSource := source.NewDefaultConfigSource(m.cm)
+	defSource := source.NewDefaultConfigSource(m.cm, source.WithDefaultSourceGlobal())
 	m.cm.RegisterNamespace(key, defSource)
 	m.cm.RegisterSource(defSource)
 	err = m.cm.LoadNamespace(key)
 	if err != nil {
 		return err
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.configuredProtocols[pluginName] = true
+	m.configuredPlugins[pluginName] = true
 
 	if m.MockManager != nil {
 		_, newCfg, err := m.cm.Get(key)
@@ -228,13 +308,18 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 		return err
 	}
 
-	defSource := source.NewDefaultConfigSource(m.cm)
+	defSource := source.NewDefaultConfigSource(m.cm, source.WithDefaultSourceGlobal())
 	m.cm.RegisterNamespace(key, defSource)
 	m.cm.RegisterSource(defSource)
 	err = m.cm.LoadNamespace(key)
 	if err != nil {
 		return err
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.configuredAPIs[pluginName] = true
+	m.configuredPlugins[pluginName] = true
 
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetAPI
@@ -256,13 +341,21 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 		return err
 	}
 
-	defSource := source.NewDefaultConfigSource(m.cm)
+	defSource := source.NewDefaultConfigSource(m.cm, source.WithDefaultSourceGlobal())
 	m.cm.RegisterNamespace(key, defSource)
 	m.cm.RegisterSource(defSource)
 	err = m.cm.LoadNamespace(key)
 	if err != nil {
 		return err
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, exists := m.configuredServices[pluginName]; !exists {
+		m.configuredServices[pluginName] = make(map[string]bool)
+	}
+	m.configuredServices[pluginName][serviceName] = true
+	m.configuredPlugins[pluginName] = true
 
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetService
