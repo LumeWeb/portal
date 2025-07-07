@@ -85,8 +85,8 @@ func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.Workflow
 	}
 
 	// Handle metadata merging
-	if metadata != nil && metadata.Data != "" {
-		if err := options.MergeJSON(metadata.Data); err != nil {
+	if metadata != nil && string(metadata.Data) != "" {
+		if err := options.MergeJSON(string(metadata.Data)); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -103,20 +103,18 @@ func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.Workflow
 	if err != nil {
 		return nil, nil, err
 	}
-	metadataBytes := string(dataBytes)
-
-	return options, []byte(metadataBytes), nil
+	return options, dataBytes, nil
 }
 
 // WorkflowMetadata stored in request.Metadata JSON field
 type WorkflowMetadata struct {
-	WorkflowName  string `json:"workflow_name"`
-	CurrentStep   int    `json:"current_step"`
-	TotalSteps    int    `json:"total_steps"`
-	NextRequestID uint   `json:"next_request_id,omitempty"`
-	PrevRequestID uint   `json:"prev_request_id,omitempty"`
-	StartedAt     int64  `json:"started_at"`
-	Data          string `json:"data"`
+	WorkflowName  string         `json:"workflow_name"`
+	CurrentStep   int            `json:"current_step"`
+	TotalSteps    int            `json:"total_steps"`
+	NextRequestID uint           `json:"next_request_id,omitempty"`
+	PrevRequestID uint           `json:"prev_request_id,omitempty"`
+	StartedAt     int64          `json:"started_at"`
+	Data          datatypes.JSON `json:"data"`
 }
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
@@ -282,7 +280,14 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		StartedAt:    time.Now().Unix(),
 	}
 
-	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata.Data = wfMetadataJSON
+
+	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +312,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	}
 
 	// Create the request
-	createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData)
+	createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData())
 	if err != nil {
 		return nil, err
 	}
@@ -434,8 +439,11 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 
 	// Update current request's metadata with next ID
 	metadata.NextRequestID = createdReq.ID
-	metadataJSON, _ = json.Marshal(metadata)
-	currentReq.Metadata = metadataJSON
+	metadataJSON, err = json.Marshal(metadata)
+
+	if err != nil {
+		return err
+	}
 
 	// Update current request's metadata with next ID and save it
 	currentReq.Metadata = metadataJSON
@@ -701,7 +709,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowMetadata(ctx context.Context, re
 		return nil, fmt.Errorf("invalid workflow meta %w", err)
 	}
 
-	k, err := w.jsonToKoanf(metadata.Data)
+	k, err := w.jsonToKoanf(string(metadata.Data))
 	if err != nil {
 		return nil, err
 	}
@@ -724,8 +732,8 @@ func (w *WorkflowCoordinatorDefault) UpdateWorkflowData(ctx context.Context, req
 
 	// Create workflow options and merge data
 	opts := core.NewWorkflowOptions()
-	if metadata.Data != "" {
-		if err := opts.MergeJSON(metadata.Data); err != nil {
+	if string(metadata.Data) != "" {
+		if err := opts.MergeJSON(string(metadata.Data)); err != nil {
 			return err
 		}
 	}
@@ -738,7 +746,7 @@ func (w *WorkflowCoordinatorDefault) UpdateWorkflowData(ctx context.Context, req
 	if err != nil {
 		return fmt.Errorf("failed to marshal workflow data: %w", err)
 	}
-	metadata.Data = string(dataBytes)
+	metadata.Data = dataBytes
 
 	// Update request metadata
 	metadataBytes, err := json.Marshal(metadata)
