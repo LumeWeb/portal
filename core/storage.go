@@ -55,6 +55,13 @@ type StorageUploadRequest interface {
 }
 
 // StorageUploadOption defines a function to configure StorageUploadRequest
+type StorageOption struct {
+	Start             int64
+	SkipMetadataCheck bool
+}
+
+type StorageOptionFunc func(*StorageOption)
+
 type StorageUploadOption func(StorageUploadRequest)
 
 // WithProtocol sets the protocol for the upload request
@@ -92,10 +99,25 @@ func StorageUploadWithProof(proof StorageHash) StorageUploadOption {
 	}
 }
 
+// WithStart sets the start offset for download operations
+func StorageDownloadWithStart(start int64) StorageOptionFunc {
+	return func(o *StorageOption) {
+		o.Start = start
+	}
+}
+
+// WithSkipMetadataCheck skips the upload metadata check
+func StorageDownloadWithSkipMetadataCheck(skip bool) StorageOptionFunc {
+	return func(o *StorageOption) {
+		o.SkipMetadataCheck = skip
+	}
+}
+
 type StorageService interface {
 	UploadObject(ctx context.Context, request StorageUploadRequest) (*models.Upload, error)
 	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof StorageHash, size uint64) error
 	DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash, start int64) (io.ReadCloser, error)
+	DownloadObjectWithOptions(ctx context.Context, protocol StorageProtocol, objectHash StorageHash, opts ...StorageOptionFunc) (io.ReadCloser, error)
 	DownloadObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) (io.ReadCloser, error)
 	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error

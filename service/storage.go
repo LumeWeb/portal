@@ -326,18 +326,33 @@ func (s StorageServiceDefault) getObjectProof(protocol core.StorageProtocol, dat
 	return hashResult, nil
 }
 
-func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, start int64) (io.ReadCloser, error) {
-	var partialRange *api.DownloadRange = nil
-
-	upload, err := s.metadata.GetUpload(ctx, objectHash)
-	if err != nil {
-		return nil, err
+func (s StorageServiceDefault) applyStorageOptions(opts []core.StorageOptionFunc) *core.StorageOption {
+	options := &core.StorageOption{}
+	for _, opt := range opts {
+		opt(options)
 	}
+	return options
+}
 
-	if start > 0 {
-		partialRange = &api.DownloadRange{
-			Offset: start,
-			Length: int64(upload.Size) - start + 1,
+func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, start int64) (io.ReadCloser, error) {
+	return s.DownloadObjectWithOptions(ctx, protocol, objectHash, core.StorageDownloadWithStart(start))
+}
+
+func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc) (io.ReadCloser, error) {
+	var partialRange *api.DownloadRange = nil
+	options := s.applyStorageOptions(opts)
+
+	if !options.SkipMetadataCheck {
+		upload, err := s.metadata.GetUpload(ctx, objectHash)
+		if err != nil {
+			return nil, err
+		}
+
+		if options.Start > 0 {
+			partialRange = &api.DownloadRange{
+				Offset: options.Start,
+				Length: int64(upload.Size) - options.Start + 1,
+			}
 		}
 	}
 
