@@ -1076,6 +1076,13 @@ func WithMockRequestService() TestContextBuilderOption {
 // WithMockRenterService adds a mock RenterService to the test context.
 func WithMockRenterService() TestContextBuilderOption {
 	return WithMockService(core.RENTER_SERVICE, func(tb TB, _ TestContext) any {
+		return mocks.NewMockRenterService(tb)
+	})
+}
+
+// WithStatefulMockRenterService adds a stateful mock RenterService to the test context.
+func WithStatefulMockRenterService() TestContextBuilderOption {
+	return WithMockService(core.RENTER_SERVICE, func(tb TB, _ TestContext) any {
 		return NewMockRenterService(tb)
 	})
 }
