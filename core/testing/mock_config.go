@@ -195,6 +195,8 @@ func (m *MockConfigManager) Config() *config.Config {
 // ConfigureProtocol implements config.Manager
 func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.ProtocolConfig) error {
 	if m.MockManager != nil {
+		// Setup Maybe expectation for GetProtocol
+		m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(cfg, nil)
 		err := m.MockManager.ConfigureProtocol(pluginName, cfg)
 		if err != nil {
 			return err
@@ -212,6 +214,8 @@ func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.Prot
 // ConfigureAPI implements config.Manager
 func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig) error {
 	if m.MockManager != nil {
+		// Setup Maybe expectation for GetAPI
+		m.MockManager.EXPECT().GetAPI(pluginName).Maybe().Return(cfg, nil)
 		err := m.MockManager.ConfigureAPI(pluginName, cfg)
 		if err != nil {
 			return err
@@ -228,6 +232,8 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 // ConfigureService implements config.Manager
 func (m *MockConfigManager) ConfigureService(pluginName string, serviceName string, cfg config.ServiceConfig) error {
 	if m.MockManager != nil {
+		// Setup Maybe expectation for GetService
+		m.MockManager.EXPECT().GetService(pluginName, serviceName).Maybe().Return(cfg, nil)
 		err := m.MockManager.ConfigureService(pluginName, serviceName, cfg)
 		if err != nil {
 			return err
