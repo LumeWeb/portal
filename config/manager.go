@@ -100,18 +100,28 @@ type ManagerDefault struct {
 	configPaths []string
 	cmd         *cli.Command
 	syncEnabled bool
-	lock        sync.RWMutex
 	fs          fileSystem
 	initialized bool
+
+	// Tracking fields
+	configuredPlugins   map[string]bool
+	configuredAPIs      map[string]bool
+	configuredProtocols map[string]bool
+	configuredServices  map[string]map[string]bool // plugin -> services
+	lock                sync.RWMutex
 }
 
 func newManagerDefault(cm configmanager.Manager, cmd *cli.Command) *ManagerDefault {
 	return &ManagerDefault{
-		Manager: cm,
-		logger:  zap.NewNop(),
-		cmd:     cmd,
-		lock:    sync.RWMutex{},
-		fs:      osFS{}, // Default to OS filesystem
+		Manager:             cm,
+		logger:              zap.NewNop(),
+		cmd:                 cmd,
+		fs:                  osFS{}, // Default to OS filesystem
+		configuredPlugins:   make(map[string]bool),
+		configuredAPIs:      make(map[string]bool),
+		configuredProtocols: make(map[string]bool),
+		configuredServices:  make(map[string]map[string]bool),
+		lock:                sync.RWMutex{},
 	}
 }
 
@@ -262,11 +272,76 @@ func (m *ManagerDefault) EnableSync(opts ...configmanager.ConfigOption) error {
 }
 
 func (m *ManagerDefault) Config() *Config {
-	var cfg Config
-	if _, err := m.Root(&cfg); err != nil {
-		panic(fmt.Errorf("failed to load config: %v", err))
+	cfg := &Config{
+		Core:   CoreConfig{},
+		Plugin: make(map[string]PluginEntity),
 	}
-	return &cfg
+
+	// Get core config first
+	if _, _, err := m.Manager.Get("core", &cfg.Core); err != nil {
+		m.logger.Error("failed to get core config", zap.Error(err))
+	}
+
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	// Process protocols
+	for pluginName, configured := range m.configuredProtocols {
+		if !configured {
+			continue
+		}
+		protoCfg := m.GetProtocol(pluginName)
+		if protoCfg != nil {
+			if _, exists := cfg.Plugin[pluginName]; !exists {
+				cfg.Plugin[pluginName] = PluginEntity{}
+			}
+			pe := cfg.Plugin[pluginName]
+			pe.Protocol = protoCfg
+			cfg.Plugin[pluginName] = pe
+		}
+	}
+
+	// Process APIs
+	for pluginName, configured := range m.configuredAPIs {
+		if !configured {
+			continue
+		}
+		apiCfg := m.GetAPI(pluginName)
+		if apiCfg != nil {
+			if _, exists := cfg.Plugin[pluginName]; !exists {
+				cfg.Plugin[pluginName] = PluginEntity{}
+			}
+			pe := cfg.Plugin[pluginName]
+			pe.API = apiCfg
+			cfg.Plugin[pluginName] = pe
+		}
+	}
+
+	// Process services
+	for pluginName, services := range m.configuredServices {
+		if len(services) == 0 {
+			continue
+		}
+		if _, exists := cfg.Plugin[pluginName]; !exists {
+			cfg.Plugin[pluginName] = PluginEntity{
+				Service: make(map[string]ServiceConfig),
+			}
+		}
+		pe := cfg.Plugin[pluginName]
+		if pe.Service == nil {
+			pe.Service = make(map[string]ServiceConfig)
+		}
+
+		for serviceName := range services {
+			svcCfg := m.GetService(pluginName, serviceName)
+			if svcCfg != nil {
+				pe.Service[serviceName] = svcCfg
+			}
+		}
+		cfg.Plugin[pluginName] = pe
+	}
+
+	return cfg
 }
 
 func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig) error {
@@ -286,6 +361,11 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 	fsSource := source.NewFileSource(filePath)
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.configuredProtocols[pluginName] = true
+	m.configuredPlugins[pluginName] = true
 
 	return nil
 }
@@ -308,6 +388,11 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
 
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.configuredAPIs[pluginName] = true
+	m.configuredPlugins[pluginName] = true
+
 	return nil
 }
 
@@ -328,6 +413,14 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	fsSource := source.NewFileSource(filePath)
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
+
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if _, exists := m.configuredServices[pluginName]; !exists {
+		m.configuredServices[pluginName] = make(map[string]bool)
+	}
+	m.configuredServices[pluginName][serviceName] = true
+	m.configuredPlugins[pluginName] = true
 
 	return nil
 }
