@@ -3,10 +3,10 @@ package testing
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"sync"
-	"os"
 	"testing"
 	"time"
 
@@ -194,25 +194,48 @@ func (m *MockConfigManager) Config() *config.Config {
 
 // ConfigureProtocol implements config.Manager
 func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.ProtocolConfig) error {
-	if m.MockManager != nil {
-		// Setup Maybe expectation for GetProtocol
-		m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(cfg, nil)
-		err := m.MockManager.ConfigureProtocol(pluginName, cfg)
-		if err != nil {
-			return err
-		}
-	}
-
 	key := fmt.Sprintf(ProtocolKeyFormat, pluginName)
 	err := m.cm.RegisterStruct(key, cfg)
 	if err != nil {
 		return err
+	}
+
+	defSource := source.NewDefaultConfigSource(m.cm)
+	m.cm.RegisterNamespace(key, defSource)
+	m.cm.RegisterSource(defSource)
+	err = m.cm.LoadNamespace(key)
+	if err != nil {
+		return err
+	}
+
+	if m.MockManager != nil {
+		_, newCfg, err := m.cm.Get(key)
+		// Setup Maybe expectation for GetProtocol
+		m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(newCfg.(config.ProtocolConfig), nil)
+		err = m.MockManager.ConfigureProtocol(pluginName, cfg)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // ConfigureAPI implements config.Manager
 func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig) error {
+	key := fmt.Sprintf(APIKeyFormat, pluginName)
+	err := m.cm.RegisterStruct(key, cfg)
+	if err != nil {
+		return err
+	}
+
+	defSource := source.NewDefaultConfigSource(m.cm)
+	m.cm.RegisterNamespace(key, defSource)
+	m.cm.RegisterSource(defSource)
+	err = m.cm.LoadNamespace(key)
+	if err != nil {
+		return err
+	}
+
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetAPI
 		m.MockManager.EXPECT().GetAPI(pluginName).Maybe().Return(cfg, nil)
@@ -221,16 +244,26 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 			return err
 		}
 	}
-	key := fmt.Sprintf(APIKeyFormat, pluginName)
-	err := m.cm.RegisterStruct(key, cfg)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
 // ConfigureService implements config.Manager
 func (m *MockConfigManager) ConfigureService(pluginName string, serviceName string, cfg config.ServiceConfig) error {
+	key := fmt.Sprintf(ServiceKeyFormat, pluginName, serviceName)
+	err := m.cm.RegisterStruct(key, cfg)
+	if err != nil {
+		return err
+	}
+
+	defSource := source.NewDefaultConfigSource(m.cm)
+	m.cm.RegisterNamespace(key, defSource)
+	m.cm.RegisterSource(defSource)
+	err = m.cm.LoadNamespace(key)
+	if err != nil {
+		return err
+	}
+
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetService
 		m.MockManager.EXPECT().GetService(pluginName, serviceName).Maybe().Return(cfg, nil)
@@ -238,11 +271,6 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 		if err != nil {
 			return err
 		}
-	}
-	key := fmt.Sprintf(ServiceKeyFormat, pluginName, serviceName)
-	err := m.cm.RegisterStruct(key, cfg)
-	if err != nil {
-		return err
 	}
 	return nil
 }
