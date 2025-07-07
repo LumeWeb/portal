@@ -19,10 +19,10 @@ import (
 
 const (
 	// Key format constants for configuration
-	ProtocolKeyFormat = "%s.protocol"   // Format for protocol configuration keys
-	APIKeyFormat      = "%s.api"        // Format for API configuration keys
-	ServiceKeyFormat  = "%s.service.%s" // Format for service configuration keys
-	CoreKeyFormat     = "core"          // Core configuration key
+	ProtocolKeyFormat = "plugin.%s.protocol"   // Format for protocol configuration keys
+	APIKeyFormat      = "plugin.%s.api"        // Format for API configuration keys
+	ServiceKeyFormat  = "plugin.%s.service.%s" // Format for service configuration keys
+	CoreKeyFormat     = "core"                 // Core configuration key
 )
 
 const mapStructureTag = "config"
