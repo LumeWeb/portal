@@ -101,7 +101,7 @@ func TestRequestServiceDefault_UpdateRequestStatus(t *testing.T) {
 
 		// 2. Update the request status
 		newStatus := models.RequestStatusProcessing
-		err = requestService.UpdateRequestStatus(context.Background(), req.ID, newStatus)
+		err = requestService.UpdateRequestStatus(context.Background(), req.ID, newStatus, "Processing")
 		require.NoError(tb, err)
 
 		// 3. Verify the status is updated

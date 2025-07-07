@@ -234,7 +234,7 @@ func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
 		return core.ErrUploadNotFound
 	}
 
-	err := t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusFailed)
+	err := t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusFailed, "Upload failed")
 	if err != nil {
 		return err
 	}

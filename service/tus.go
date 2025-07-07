@@ -195,7 +195,7 @@ func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, uploadID strin
 		return core.ErrUploadNotFound
 	}
 
-	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing)
+	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing, "Uploading...")
 }
 
 func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
