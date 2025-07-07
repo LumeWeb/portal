@@ -148,7 +148,7 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 	}
 
 	// Update status to processing
-	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusProcessing); err != nil {
+	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusProcessing, "Processing request"); err != nil {
 		r.logger.Error("Failed to update request status",
 			zap.Error(err), zap.Uint("requestID", id))
 		return err
@@ -296,11 +296,14 @@ func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status
 	return requests, nil
 }
 
-func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType) error {
+func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error {
 	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.Request{}).
 			Where("id = ?", id).
-			Update("status", status)
+			Updates(map[string]interface{}{
+				"status":         status,
+				"status_message": message,
+			})
 	})
 }
 
@@ -315,7 +318,18 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return nil
 	}
 
-	return r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted)
+	// Get the request status to use its message
+	status, err := r.GetRequestStatus(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	message := "Request completed successfully"
+	if status.Message != "" {
+		message = status.Message
+	}
+
+	return r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
 }
 
 func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason string) error {

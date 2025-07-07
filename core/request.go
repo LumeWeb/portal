@@ -41,7 +41,7 @@ type RequestService interface {
 	ListRequestsByStatus(ctx context.Context, status string, filter RequestFilter) ([]*models.Request, error)
 
 	// Status operations
-	UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType) error
+	UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error
 	CompleteRequest(ctx context.Context, id uint) error
 	FailRequest(ctx context.Context, id uint, reason string) error
 	GetRequestStatus(ctx context.Context, id uint) (*RequestStatus, error)

@@ -1249,16 +1249,16 @@ func (_c *MockRequestService_UpdateRequestData_Call) RunAndReturn(run func(ctx c
 }
 
 // UpdateRequestStatus provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType) error {
-	ret := _mock.Called(ctx, id, status)
+func (_mock *MockRequestService) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error {
+	ret := _mock.Called(ctx, id, status, message)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateRequestStatus")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, models.RequestStatusType) error); ok {
-		r0 = returnFunc(ctx, id, status)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, models.RequestStatusType, string) error); ok {
+		r0 = returnFunc(ctx, id, status, message)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1274,11 +1274,12 @@ type MockRequestService_UpdateRequestStatus_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - status models.RequestStatusType
-func (_e *MockRequestService_Expecter) UpdateRequestStatus(ctx interface{}, id interface{}, status interface{}) *MockRequestService_UpdateRequestStatus_Call {
-	return &MockRequestService_UpdateRequestStatus_Call{Call: _e.mock.On("UpdateRequestStatus", ctx, id, status)}
+//   - message string
+func (_e *MockRequestService_Expecter) UpdateRequestStatus(ctx interface{}, id interface{}, status interface{}, message interface{}) *MockRequestService_UpdateRequestStatus_Call {
+	return &MockRequestService_UpdateRequestStatus_Call{Call: _e.mock.On("UpdateRequestStatus", ctx, id, status, message)}
 }
 
-func (_c *MockRequestService_UpdateRequestStatus_Call) Run(run func(ctx context.Context, id uint, status models.RequestStatusType)) *MockRequestService_UpdateRequestStatus_Call {
+func (_c *MockRequestService_UpdateRequestStatus_Call) Run(run func(ctx context.Context, id uint, status models.RequestStatusType, message string)) *MockRequestService_UpdateRequestStatus_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1292,10 +1293,15 @@ func (_c *MockRequestService_UpdateRequestStatus_Call) Run(run func(ctx context.
 		if args[2] != nil {
 			arg2 = args[2].(models.RequestStatusType)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -1306,7 +1312,7 @@ func (_c *MockRequestService_UpdateRequestStatus_Call) Return(err error) *MockRe
 	return _c
 }
 
-func (_c *MockRequestService_UpdateRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint, status models.RequestStatusType) error) *MockRequestService_UpdateRequestStatus_Call {
+func (_c *MockRequestService_UpdateRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint, status models.RequestStatusType, message string) error) *MockRequestService_UpdateRequestStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }
