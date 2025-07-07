@@ -1282,10 +1282,13 @@ func GetMockConfig(ctx core.Context) *MockConfigManager {
 // WithAPIConfig sets an expectation on the mock ConfigManager
 // to return the provided config when GetAPI is called with the given ID.
 // The expectation is set to Maybe() to allow but not require the call.
-func WithAPIConfig(apiID string, apiConfig interface{}) TestContextBuilderOption {
+func WithAPIConfig(apiID string, apiConfig config.APIConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
-		mockConfig.On("GetAPI", apiID).Return(apiConfig).Maybe()
+		err := mockConfig.ConfigureAPI(apiID, apiConfig)
+		if err != nil {
+			panic(fmt.Errorf("failed to configure API %s: %w", apiID, err))
+		}
 		return ctx, nil
 	}
 }
@@ -1295,35 +1298,38 @@ func WithCustomAPIConfig(apiID string, builder *ConfigBuilder) TestContextBuilde
 	return WithAPIConfig(apiID, builder.Build())
 }
 
-// WithProtocolConfig sets an expectation on the mock ConfigManager
-// to return the provided config when GetProtocol is called with the given ID.
-// The expectation is set to Maybe() to allow but not require the call.
-func WithProtocolConfig(protocolID string, protocolConfig interface{}) TestContextBuilderOption {
+// WithProtocolConfig configures a protocol with the given config using the config manager
+func WithProtocolConfig(protocolID string, protocolConfig config.ProtocolConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
-		mockConfig.On("GetProtocol", protocolID).Return(protocolConfig).Maybe()
+		err := mockConfig.ConfigureProtocol(protocolID, protocolConfig)
+		if err != nil {
+			panic(fmt.Errorf("failed to configure protocol %s: %w", protocolID, err))
+		}
 		return ctx, nil
 	}
 }
 
-// WithCustomConfig creates a TestContextBuilderOption using the builder pattern
-func WithCustomProtocolConfig(configID string, builder *ConfigBuilder) TestContextBuilderOption {
-	return WithProtocolConfig(configID, builder.Build())
+// WithCustomProtocolConfig creates protocol config using builder pattern
+func WithCustomProtocolConfig(protocolID string, builder *ConfigBuilder) TestContextBuilderOption {
+	return WithProtocolConfig(protocolID, builder.Build())
 }
 
-// WithServiceConfig sets an expectation on the mock ConfigManager
-// to return the provided config when GetService is called with the given ID.
-// The expectation is set to Maybe() to allow but not require the call.
-func WithServiceConfig(serviceID string, serviceConfig interface{}) TestContextBuilderOption {
+// WithServiceConfig configures a service with the given config using the config manager
+func WithServiceConfig(pluginName string, serviceName string, serviceConfig config.ServiceConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		mockConfig := GetMockConfig(ctx)
-		mockConfig.On("GetService", serviceID).Return(serviceConfig).Maybe()
+		err := mockConfig.ConfigureService(pluginName, serviceName, serviceConfig)
+		if err != nil {
+			panic(fmt.Errorf("failed to configure service %s for plugin %s: %w", serviceName, pluginName, err))
+		}
 		return ctx, nil
 	}
 }
 
-func WithCustomServiceConfig(configID string, builder *ConfigBuilder) TestContextBuilderOption {
-	return WithServiceConfig(configID, builder.Build())
+// WithCustomServiceConfig creates service config using builder pattern
+func WithCustomServiceConfig(pluginName string, serviceName string, builder *ConfigBuilder) TestContextBuilderOption {
+	return WithServiceConfig(pluginName, serviceName, builder.Build())
 }
 
 // WithService creates a TestContextBuilderOption that wraps RegisterService
