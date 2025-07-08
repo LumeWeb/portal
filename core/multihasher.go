@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"github.com/gammazero/workerpool"
 	mh "github.com/multiformats/go-multihash"
 	mhcore "github.com/multiformats/go-multihash/core" // Import the core package
@@ -30,16 +31,22 @@ func (f DefaultHashFactory) GetVariableHasher(code uint64, sizeHint int) (hash.H
 	return mhcore.GetVariableHasher(code, sizeHint)
 }
 
+var (
+	_ io.Reader     = (*MultiHasher)(nil)
+	_ io.ReadCloser = (*MultiHasher)(nil)
+	_ io.Seeker     = (*MultiHasher)(nil)
+)
+
 type MultiHasher struct {
 	writers     []io.Writer
 	hashes      []hash.Hash
 	algos       []HashAlgorithm
 	pool        *workerpool.WorkerPool
-	mutex       sync.Mutex // Protects access to hashes during concurrent writes
-	verifying   bool       // If true, we're in verify mode
+	mutex       sync.Mutex       // Protects access to hashes during concurrent writes
+	verifying   bool             // If true, we're in verify mode
 	verifyReqs  []*VerifyRequest // Store verify requests for Sums()
-	hashFactory HashFactory // Injected dependency for creating hashers
-	source      io.Reader  // Source reader for passthrough mode
+	hashFactory HashFactory      // Injected dependency for creating hashers
+	source      io.Reader        // Source reader for passthrough mode
 }
 
 type HashResult struct {
@@ -68,18 +75,21 @@ func NewMultiHasher(verifyReqs ...*VerifyRequest) *MultiHasher {
 // The returned MultiHasher implements io.Reader and can be used as a passthrough.
 func NewMultiHasherFromReader(r io.Reader) (*MultiHasher, error) {
 	hasher := NewMultiHasher()
-	
+
 	// If the input is seekable, ensure we start from the beginning
 	if seeker, ok := r.(io.ReadSeeker); ok {
 		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
-			hasher.Close()
+			err2 := hasher.Close()
+			if err2 != nil {
+				return nil, err
+			}
 			return nil, err
 		}
 	}
 
 	// Store the source reader
 	hasher.source = r
-	
+
 	return hasher, nil
 }
 
@@ -224,7 +234,7 @@ func (m *MultiHasher) Sums() []HashResult {
 			}
 			if matchingReq != nil {
 				proof = matchingReq.Proof
-				
+
 				// Set proof right before verification if the hasher supports it
 				if provider, ok := h.(HashProofProvider); ok {
 					if err := provider.SetProof(proof); err != nil {
@@ -279,9 +289,50 @@ func (m *MultiHasher) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-func (m *MultiHasher) Close() {
+func (m *MultiHasher) Seek(offset int64, whence int) (int64, error) {
+	if m.source == nil {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	seeker, ok := m.source.(io.Seeker)
+	if !ok {
+		return 0, errors.New("source does not support seeking")
+	}
+
+	// Seek the underlying reader
+	newPos, err := seeker.Seek(offset, whence)
+	if err != nil {
+		return newPos, err
+	}
+
+	// Reset all hashers since we're changing position
+	for _, h := range m.hashes {
+		if h != nil {
+			h.Reset()
+		}
+	}
+
+	return newPos, nil
+}
+
+func (m *MultiHasher) Close() error {
 	// StopWait waits for all submitted tasks to complete.
 	m.pool.StopWait()
+
+	// Close the source reader if it implements io.Closer
+	if closer, ok := m.source.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
+// GetHashes returns the internal hash implementations.
+// This method is primarily intended for testing purposes to inspect the hashers.
+// It should not be used in production code.
+func (m *MultiHasher) GetHashes() []hash.Hash {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.hashes
 }
 
 // SetHashes sets the internal hash implementations.
