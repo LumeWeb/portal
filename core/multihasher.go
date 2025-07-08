@@ -39,6 +39,7 @@ type MultiHasher struct {
 	verifying   bool       // If true, we're in verify mode
 	verifyReqs  []*VerifyRequest // Store verify requests for Sums()
 	hashFactory HashFactory // Injected dependency for creating hashers
+	source      io.Reader  // Source reader for passthrough mode
 }
 
 type HashResult struct {
@@ -61,6 +62,25 @@ type VerifyRequest struct {
 // An optional HashFactory can be provided for testing purposes.
 func NewMultiHasher(verifyReqs ...*VerifyRequest) *MultiHasher {
 	return NewMultiHasherWithFactory(DefaultHashFactory{}, verifyReqs...)
+}
+
+// NewMultiHasherFromReader creates a new MultiHasher that will hash data as it's read from the provided reader.
+// The returned MultiHasher implements io.Reader and can be used as a passthrough.
+func NewMultiHasherFromReader(r io.Reader) (*MultiHasher, error) {
+	hasher := NewMultiHasher()
+	
+	// If the input is seekable, ensure we start from the beginning
+	if seeker, ok := r.(io.ReadSeeker); ok {
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			hasher.Close()
+			return nil, err
+		}
+	}
+
+	// Store the source reader
+	hasher.source = r
+	
+	return hasher, nil
 }
 
 // NewMultiHasherWithFactory creates a new MultiHasher with a specific HashFactory.
@@ -244,10 +264,42 @@ func (m *MultiHasher) Sums() []HashResult {
 	return results
 }
 
+func (m *MultiHasher) Read(p []byte) (n int, err error) {
+	if m.source == nil {
+		return 0, io.EOF
+	}
+
+	n, err = m.source.Read(p)
+	if n > 0 {
+		// Hash the data we just read
+		if _, writeErr := m.Write(p[:n]); writeErr != nil {
+			return n, writeErr
+		}
+	}
+	return n, err
+}
+
 func (m *MultiHasher) Close() {
 	// StopWait waits for all submitted tasks to complete.
-	// If we want to allow cancelling ongoing writes, we might need a context.
 	m.pool.StopWait()
+}
+
+// SetHashes sets the internal hash implementations.
+// This method is primarily intended for testing purposes to inject mock hashers.
+// It should not be used in production code.
+func (m *MultiHasher) SetHashes(hashes []hash.Hash) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.hashes = hashes
+}
+
+// SetWriters sets the internal writer implementations.
+// This method is primarily intended for testing purposes to inject mock writers.
+// It should not be used in production code.
+func (m *MultiHasher) SetWriters(writers []io.Writer) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.writers = writers
 }
 
 // HashProofGenerator represents a hash implementation that generates proofs during hashing
