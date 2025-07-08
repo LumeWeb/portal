@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
 	"io"
@@ -39,6 +40,22 @@ func (s *MockStorageHash) Type() uint64 {
 
 func (s *MockStorageHash) String() string {
 	return s.MultihashValue.String()
+}
+
+// Bytes returns the binary representation of the storage hash as a CID (Content Identifier).
+// It handles both CIDv0 (for legacy IPFS hashes) and CIDv1 formats based on CIDTypeValue.
+// Returns nil if MultihashValue is nil to prevent panics during testing.
+func (s *MockStorageHash) Bytes() []byte {
+	if s.MultihashValue == nil {
+		return nil
+	}
+
+	if s.CIDTypeValue == 0 {
+		cid := cid.NewCidV0(s.MultihashValue)
+		return cid.Bytes()
+	}
+	cid := cid.NewCidV1(s.CIDTypeValue, s.MultihashValue) 
+	return cid.Bytes()
 }
 
 // NewMockStorageHash creates a new mock storage hash
