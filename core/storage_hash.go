@@ -4,6 +4,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -21,6 +22,7 @@ type StorageHash interface {
 	CIDType() uint64
 	Type() uint64
 	String() string
+	Bytes() []byte
 }
 
 // StorageHashParser defines the interface for attempting to parse a string
@@ -127,6 +129,16 @@ func (s StorageHashDefault) Type() uint64 {
 
 func (s StorageHashDefault) String() string {
 	return s.Multihash().B58String()
+}
+
+func (s StorageHashDefault) Bytes() []byte {
+	var c cid.Cid
+	if s.cidType == 0 {
+		c = cid.NewCidV0(s.Multihash())
+	} else {
+		c = cid.NewCidV1(s.cidType, s.Multihash())
+	}
+	return c.Bytes()
 }
 
 func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {
