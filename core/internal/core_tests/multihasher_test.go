@@ -24,7 +24,7 @@ func (f *failingSeeker) Read(p []byte) (n int, err error) {
 }
 
 func (f *failingSeeker) Seek(offset int64, whence int) (int64, error) {
-	return 0, errors.New("seek error")
+	return 0, io.ErrUnexpectedEOF
 }
 
 func TestNewMultiHasher_CreateMode(t *testing.T) {
@@ -617,6 +617,113 @@ func TestMultiHasher_Close(t *testing.T) {
 	mockHash1.AssertExpectations(t)
 }
 
+func TestMultiHasher_Close_WithClosableSource(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Register mock hash algorithm
+	mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"}
+	registry := core.GetHashRegistry()
+	err := registry.RegisterHashAlgorithm(mockAlgo)
+	require.NoError(t, err)
+
+	// Create a buffer wrapped in a NopCloser to implement io.ReadCloser
+	testData := []byte("test data")
+	source := bytes.NewBuffer(testData)
+	closer := io.NopCloser(source)
+
+	// Create hasher with closable source
+	hasher, err := core.NewMultiHasherFromReader(closer)
+	require.NoError(t, err)
+
+	err = hasher.Close()
+	assert.NoError(t, err)
+
+	// Verify buffer is still intact
+	assert.Equal(t, testData, source.Bytes())
+}
+
+func TestMultiHasher_Seek(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Register mock hash algorithm
+	mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"}
+	registry := core.GetHashRegistry()
+	err := registry.RegisterHashAlgorithm(mockAlgo)
+	require.NoError(t, err)
+
+	// Create mock seekable source
+	testData := []byte("test data for seeking")
+	source := bytes.NewReader(testData)
+
+	// Create hasher with seekable source
+	hasher, err := core.NewMultiHasherFromReader(source)
+	assert.NoError(t, err)
+
+	// Test seeking to start
+	pos, err := hasher.Seek(0, io.SeekStart)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), pos)
+
+	// Test seeking to end
+	pos, err = hasher.Seek(0, io.SeekEnd)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(len(testData)), pos)
+
+	// Test seeking to middle
+	pos, err = hasher.Seek(5, io.SeekStart)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(5), pos)
+
+	// Verify hashers were reset after seek
+	for _, h := range hasher.GetHashes() {
+		if h != nil {
+			mockHash, ok := h.(*mocks.MockTestingHashWithProof)
+			if ok {
+				mockHash.AssertCalled(t, "Reset")
+			}
+		}
+	}
+}
+
+func TestMultiHasher_Seek_ErrorCases(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	t.Run("NonSeekableSource", func(t *testing.T) {
+		// Register mock hash algorithm
+		mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"}
+		registry := core.GetHashRegistry()
+		err := registry.RegisterHashAlgorithm(mockAlgo)
+		require.NoError(t, err)
+
+		// Create hasher with non-seekable source
+		source := bytes.NewBufferString("test data")
+		hasher, err := core.NewMultiHasherFromReader(source)
+		require.NoError(t, err)
+
+		_, err = hasher.Seek(0, io.SeekStart)
+		assert.Error(t, err)
+		assert.Equal(t, errors.New("source does not support seeking"), err)
+	})
+
+	t.Run("SeekError", func(t *testing.T) {
+		// Register mock hash algorithm
+		mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"}
+		registry := core.GetHashRegistry()
+		err := registry.RegisterHashAlgorithm(mockAlgo)
+		require.NoError(t, err)
+
+		// Create buffer with failing seek
+		failingSource := &failingSeeker{buf: bytes.NewBufferString("test data")}
+
+		_, err = core.NewMultiHasherFromReader(failingSource)
+		assert.Error(t, err)
+		assert.Equal(t, err, io.ErrUnexpectedEOF)
+	})
+}
+
 func TestMultiHasher_EmptyInput(t *testing.T) {
 	core.ResetState()
 	defer core.ResetState()
@@ -773,7 +880,12 @@ func TestNewMultiHasherFromReader_BasicReader(t *testing.T) {
 	// Create hasher from reader
 	hasher, err := core.NewMultiHasherFromReader(reader)
 	require.NoError(t, err)
-	defer hasher.Close()
+	defer func(hasher *core.MultiHasher) {
+		err = hasher.Close()
+		if err != nil {
+			require.NoError(t, err)
+		}
+	}(hasher)
 
 	// Read all data through the hasher
 	readBuf := make([]byte, len(testData))
