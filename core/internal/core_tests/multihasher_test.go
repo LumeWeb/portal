@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"hash"
+	"io"
 	"testing"
 
 	mh "github.com/multiformats/go-multihash"
@@ -13,6 +14,18 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 )
+
+type failingSeeker struct {
+	buf *bytes.Buffer
+}
+
+func (f *failingSeeker) Read(p []byte) (n int, err error) {
+	return f.buf.Read(p)
+}
+
+func (f *failingSeeker) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("seek error")
+}
 
 func TestNewMultiHasher_CreateMode(t *testing.T) {
 	core.ResetState()
@@ -741,6 +754,113 @@ func TestMultiHasher_MultipleWrites(t *testing.T) {
 	mockFactory.AssertExpectations(t)
 	mockHash1.AssertExpectations(t)
 	mockHash2.AssertExpectations(t)
+}
+
+func TestNewMultiHasherFromReader_BasicReader(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Register mock hash algorithms
+	mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"} // SHA2-256
+	registry := core.GetHashRegistry()
+	err := registry.RegisterHashAlgorithm(mockAlgo)
+	require.NoError(t, err)
+
+	// Create a test reader
+	testData := []byte("test data")
+	reader := bytes.NewReader(testData)
+
+	// Create hasher from reader
+	hasher, err := core.NewMultiHasherFromReader(reader)
+	require.NoError(t, err)
+	defer hasher.Close()
+
+	// Read all data through the hasher
+	readBuf := make([]byte, len(testData))
+	n, err := hasher.Read(readBuf)
+	require.NoError(t, err)
+	assert.Equal(t, len(testData), n)
+	assert.Equal(t, testData, readBuf)
+
+	// Verify the hasher processed the data
+	sums := hasher.Sums()
+	assert.NotEmpty(t, sums)
+}
+
+func TestNewMultiHasherFromReader_SeekableReader(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// Register mock hash algorithms
+	mockAlgo := core.HashAlgorithm{Type: 0x12, Name: "SHA-256", Priority: 100, Protocol: "test"} // SHA2-256
+	registry := core.GetHashRegistry()
+	err := registry.RegisterHashAlgorithm(mockAlgo)
+	require.NoError(t, err)
+
+	// Create a test reader
+	testData := []byte("test data")
+	reader := bytes.NewReader(testData)
+
+	// Create hasher from reader
+	hasher, err := core.NewMultiHasherFromReader(reader)
+	require.NoError(t, err)
+	defer hasher.Close()
+
+	// Verify seek position was reset to start
+	pos, err := reader.Seek(0, io.SeekCurrent)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), pos)
+
+	// Read partial data
+	partialBuf := make([]byte, 4)
+	n, err := hasher.Read(partialBuf)
+	require.NoError(t, err)
+	assert.Equal(t, 4, n)
+	assert.Equal(t, testData[:4], partialBuf)
+
+	// Read remaining data
+	remainingBuf := make([]byte, len(testData)-4)
+	n, err = hasher.Read(remainingBuf)
+	require.NoError(t, err)
+	assert.Equal(t, len(testData)-4, n)
+	assert.Equal(t, testData[4:], remainingBuf)
+
+	// Verify all data was hashed
+	sums := hasher.Sums()
+	assert.NotEmpty(t, sums)
+}
+
+func TestNewMultiHasherFromReader_ErrorCases(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	t.Run("SeekError", func(t *testing.T) {
+		// Create a reader that fails Seek
+		failingReader := &failingSeeker{buf: bytes.NewBufferString("test data")}
+		hasher, err := core.NewMultiHasherFromReader(failingReader)
+		assert.Error(t, err)
+		assert.Nil(t, hasher)
+	})
+
+	t.Run("ReadError", func(t *testing.T) {
+		testData := []byte("test data")
+		reader := bytes.NewReader(testData)
+
+		hasher, err := core.NewMultiHasherFromReader(reader)
+		require.NoError(t, err)
+		defer hasher.Close()
+
+		// Mock the Write to fail
+		mockHash := mocks.NewMockTestingHashWithProof(t)
+		mockHash.On("Write", mock.Anything).Return(0, errors.New("write error")).Once()
+		hasher.SetHashes([]hash.Hash{mockHash})
+		hasher.SetWriters([]io.Writer{mockHash})
+
+		buf := make([]byte, 4)
+		_, err = hasher.Read(buf)
+		assert.Error(t, err)
+		mockHash.AssertExpectations(t)
+	})
 }
 
 func TestMultiHasher_NoRegisteredAlgorithms(t *testing.T) {
