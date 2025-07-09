@@ -255,7 +255,7 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 	return handler, nil
 }
 func TUSDefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
-	return tus.DefaultUploadCreatedHandler(e, ctx, verifyFunc, afterFunc)
+	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc, afterFunc)
 }
 
 func TUSDefaultUploadProgressHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
