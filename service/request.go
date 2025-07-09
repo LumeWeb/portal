@@ -115,6 +115,7 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 
 			// Set request ID
 			model.SetRequestID(newReq.ID)
+			model.SetRequest(newReq)
 
 			// Validate
 			if err := model.Validate(); err != nil {
@@ -458,6 +459,7 @@ func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *mode
 
 	// Set request ID
 	model.SetRequestID(req.ID)
+	model.SetRequest(req)
 
 	// Validate
 	if err := model.Validate(); err != nil {

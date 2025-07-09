@@ -6,6 +6,7 @@ type RequestDataModel interface {
 	NewInstance() RequestDataModel
 	SetRequestID(id uint)
 	GetRequestID() uint
+	SetRequest(req any)
 }
 
 type PinDataModel interface {
@@ -14,4 +15,5 @@ type PinDataModel interface {
 	NewInstance() PinDataModel
 	SetPinID(id uint)
 	GetPinID() uint
+	SetPin(req any)
 }

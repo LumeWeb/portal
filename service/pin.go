@@ -424,6 +424,7 @@ func (p *PinServiceDefault) UpdatePinData(ctx context.Context, pin *models.Pin, 
 
 	// Set pin ID
 	model.SetPinID(pin.ID)
+	model.SetPin(pin)
 
 	// Validate
 	if err := model.Validate(); err != nil {
