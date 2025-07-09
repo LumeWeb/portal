@@ -1680,11 +1680,11 @@ func WithMockS3() TestContextBuilderOption {
 		// Set the S3 config in the test context
 		mockConfig := GetMockConfig(ctx)
 		configValues := map[string]interface{}{
-			"core.s3.buffer_bucket": s3Config.BufferBucket,
-			"core.s3.endpoint":      s3Config.Endpoint,
-			"core.s3.region":        s3Config.Region,
-			"core.s3.access_key":    s3Config.AccessKey,
-			"core.s3.secret_key":    s3Config.SecretKey,
+			"core.storage.s3.buffer_bucket": s3Config.BufferBucket,
+			"core.storage.s3.endpoint":      s3Config.Endpoint,
+			"core.storage.s3.region":        s3Config.Region,
+			"core.storage.s3.access_key":    s3Config.AccessKey,
+			"core.storage.s3.secret_key":    s3Config.SecretKey,
 		}
 
 		for key, value := range configValues {
