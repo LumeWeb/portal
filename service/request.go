@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fatih/structs"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"maps"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -507,6 +510,53 @@ func (r *RequestServiceDefault) findOperationHandler(operationType string) (core
 	return nil, nil, fmt.Errorf("operation not found: %s", operationType)
 }
 
+func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
+	var req models.Request
+
+	// Get model for the operation if specified
+	var model data_models.RequestDataModel
+	var err error
+	if filter.Operation != "" {
+		model, err = r.CreateRequestModel(filter.Operation)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create data model: %w", err)
+		}
+	}
+
+	err = r.db.Transaction(func(tx *gorm.DB) error {
+		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+			tx := db.WithContext(ctx).Model(&req)
+
+			// Join with data model if operation was specified
+			if model != nil {
+				tx = tx.Joins(
+					"INNER JOIN ? as data ON data.request_id = requests.id",
+					gorm.Expr(model.TableName()),
+				)
+			}
+
+			if query != nil {
+				queryMap := requestModelToMap(query)
+				for column, value := range queryMap {
+					tx = tx.Where("data."+column+" = ?", value)
+				}
+			}
+
+			return tx.Scopes(
+				applyFilters(filter),
+			).First(&req)
+		})
+	})
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request not found: %w", err)
+		}
+		return nil, fmt.Errorf("query failed: %w", err)
+	}
+	return &req, nil
+}
+
 // Helper functions
 func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
@@ -528,4 +578,39 @@ func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 
 		return db
 	}
+}
+
+func requestModelToMap(v any) map[string]any {
+	s := structs.New(v)
+
+	out := make(map[string]any)
+
+	for _, field := range s.Fields() {
+		if !field.IsExported() || field.IsEmbedded() {
+			continue
+		}
+
+		if field.Kind() == reflect.Interface || field.Kind() == reflect.Map || field.Kind() == reflect.Pointer {
+			continue
+		}
+
+		if field.Kind() == reflect.Struct {
+			gfield, exists := field.FieldOk("Model")
+			if exists && reflect.TypeOf(gfield.Value()) == reflect.TypeOf(gorm.Model{}) {
+				continue
+			}
+		}
+
+		if field.Tag("gorm") == "" {
+			continue
+		}
+
+		if field.IsZero() {
+			continue
+		}
+
+		out[field.Tag("gorm")] = field.Value()
+	}
+
+	return out
 }

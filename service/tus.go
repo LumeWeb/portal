@@ -72,7 +72,7 @@ func (t *TUSServiceDefault) Name() string {
 func (t *TUSServiceDefault) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
 	opName := core.TUSUploadOperationName(protocol.Name())
 
-	req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
+	req, err := t.requests.QueryRequestData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
 		Operation: opName,
 	})
 	if err != nil {

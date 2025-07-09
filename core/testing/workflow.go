@@ -15,15 +15,18 @@ type WorkflowTest struct {
 	TB          testing.TB
 	Ctx         TestContext
 	workflowSvc core.WorkflowService
+	requestSvc  core.RequestService
 }
 
 // NewWorkflowTest creates a new WorkflowTest instance.
 func NewWorkflowTest(ctx TestContext) *WorkflowTest {
 	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+	requestSvc := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 	return &WorkflowTest{
 		TB:          ctx.T(),
 		Ctx:         ctx,
 		workflowSvc: workflowSvc,
+		requestSvc:  requestSvc,
 	}
 }
 
@@ -42,8 +45,7 @@ func (wt *WorkflowTest) StartWorkflow(workflowName string, opts ...core.Workflow
 
 // AssertRequestStatus asserts that the request has the given status.
 func (wt *WorkflowTest) AssertRequestStatus(requestID uint, expectedStatus models.RequestStatusType) {
-	requestSvc := core.GetService[core.RequestService](wt.Ctx, core.REQUEST_SERVICE)
-	req, err := requestSvc.GetRequest(wt.Ctx, requestID)
+	req, err := wt.requestSvc.GetRequest(wt.Ctx, requestID)
 	require.NoError(wt.TB, err)
 	assert.Equal(wt.TB, expectedStatus, req.Status)
 }
@@ -84,16 +86,14 @@ func (wt *WorkflowTest) AssertOperationFailed(req *models.Request) {
 
 // AssertOperationStatusMessageContains asserts that the request status message contains the given string.
 func (wt *WorkflowTest) AssertOperationStatusMessageContains(req *models.Request, expectedMessage string) {
-	requestSvc := core.GetService[core.RequestService](wt.Ctx, core.REQUEST_SERVICE)
-	updatedReq, err := requestSvc.GetRequest(wt.Ctx, req.ID)
+	updatedReq, err := wt.requestSvc.GetRequest(wt.Ctx, req.ID)
 	require.NoError(wt.TB, err)
 	assert.Contains(wt.TB, updatedReq.StatusMessage, expectedMessage)
 }
 
 // AssertOperationStatusProgress asserts that the request status progress is equal to the given value.
 func (wt *WorkflowTest) AssertOperationStatusProgress(req *models.Request, expectedProgress float64) {
-	requestSvc := core.GetService[core.RequestService](wt.Ctx, core.REQUEST_SERVICE)
-	updatedReq, err := requestSvc.GetRequestStatus(wt.Ctx, req.ID)
+	updatedReq, err := wt.requestSvc.GetRequestStatus(wt.Ctx, req.ID)
 	require.NoError(wt.TB, err)
 	assert.Equal(wt.TB, expectedProgress, updatedReq.ProgressPercent)
 }
@@ -114,4 +114,22 @@ func (wt *WorkflowTest) DisableWorkflow(workflowName string) {
 func (wt *WorkflowTest) EnableWorkflow(workflowName string) {
 	err := wt.workflowSvc.EnableWorkflow(workflowName)
 	require.NoError(wt.TB, err)
+}
+
+// ConvertRequestToWorkflow converts an existing request to a workflow with the given name and options.
+func (wt *WorkflowTest) ConvertRequestToWorkflow(requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
+	return wt.workflowSvc.ConvertRequestToWorkflow(wt.Ctx, requestID, workflowName, startStep, opts...)
+}
+
+// MustConvertRequestToWorkflow converts an existing request to a workflow and fails the test if it errors.
+func (wt *WorkflowTest) MustConvertRequestToWorkflow(requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) {
+	err := wt.ConvertRequestToWorkflow(requestID, workflowName, startStep, opts...)
+	require.NoError(wt.TB, err)
+}
+
+// GetRequest retrieves a request by ID and fails the test if it errors.
+func (wt *WorkflowTest) GetRequest(requestID uint) *models.Request {
+	req, err := wt.requestSvc.GetRequest(wt.Ctx, requestID)
+	require.NoError(wt.TB, err)
+	return req
 }

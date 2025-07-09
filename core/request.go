@@ -2,17 +2,12 @@ package core
 
 import (
 	"context"
-	"errors"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"time"
 )
 
 const REQUEST_SERVICE = "request"
-
-var (
-	ErrDuplicateRequest = errors.New("duplicate request")
-)
 
 type RequestService interface {
 	// Request validation
@@ -35,7 +30,8 @@ type RequestService interface {
 	DeleteRequest(ctx context.Context, id uint) error
 
 	// Query operations
-	QueryRequest(ctx context.Context, query interface{}, filter RequestFilter) (*models.Request, error)
+	QueryRequest(ctx context.Context, query any, filter RequestFilter) (*models.Request, error)
+	QueryRequestData(ctx context.Context, query any, filter RequestFilter) (*models.Request, error)
 	GetRequestByHash(ctx context.Context, hash StorageHash, filter RequestFilter) (*models.Request, error)
 	ListRequestsByUser(ctx context.Context, userID uint, filter RequestFilter) ([]*models.Request, error)
 	ListRequestsByStatus(ctx context.Context, status string, filter RequestFilter) ([]*models.Request, error)

@@ -799,7 +799,7 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 		return fmt.Errorf("invalid start step: %d", startStep)
 	}
 
-	// Create the WorkflowMetadata
+	// Create initial metadata
 	metadata := WorkflowMetadata{
 		WorkflowName: workflow.Name,
 		CurrentStep:  startStep,
@@ -807,7 +807,16 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 		StartedAt:    time.Now().Unix(),
 	}
 
-	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	// Process workflow options and get metadata JSON
+	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	if err != nil {
+		return err
+	}
+
+	metadata.Data = wfMetadataJSON
+
+	// Marshal the complete metadata
+	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
