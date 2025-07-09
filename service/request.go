@@ -16,6 +16,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 )
 
 var _ core.RequestService = (*RequestServiceDefault)(nil)
@@ -141,6 +142,19 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 		return err
 	}
 
+	// Compute current status
+	status, err := r.ComputeRequestStatus(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Update status based on computed state
+	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusType(status.State), status.Message); err != nil {
+		r.logger.Error("Failed to update request status",
+			zap.Error(err), zap.Uint("requestID", id))
+		return err
+	}
+
 	// Find the operation handler
 	_, handler, err := r.findOperationHandler(req.Operation)
 	if err != nil {
@@ -149,13 +163,6 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 
 	if handler == nil {
 		return nil // No handler means nothing to execute
-	}
-
-	// Update status to processing
-	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusProcessing, "Processing request"); err != nil {
-		r.logger.Error("Failed to update request status",
-			zap.Error(err), zap.Uint("requestID", id))
-		return err
 	}
 
 	// Execute the operation
@@ -171,7 +178,14 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 		return err
 	}
 
-	return nil
+	// Recompute status after execution
+	status, err = r.ComputeRequestStatus(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Update final status
+	return r.UpdateRequestStatus(ctx, id, models.RequestStatusType(status.State), status.Message)
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
@@ -307,6 +321,7 @@ func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint
 			Updates(map[string]interface{}{
 				"status":         status,
 				"status_message": message,
+				"updated_at":     time.Now(),
 			})
 	})
 }
@@ -323,7 +338,7 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 	}
 
 	// Get the request status to use its message
-	status, err := r.GetRequestStatus(ctx, id)
+	status, err := r.ComputeRequestStatus(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -347,7 +362,7 @@ func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason
 	})
 }
 
-func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
+func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return nil, err
@@ -359,13 +374,8 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (
 		return nil, err
 	}
 
-	// Basic status from request model
-	status := &core.RequestStatus{
-		State:     string(req.Status),
-		UpdatedAt: req.UpdatedAt,
-	}
-
-	// If we have a handler, get detailed status
+	// Get status from handler if available
+	var status *core.RequestStatus
 	if handler != nil {
 		detailedStatus, err := handler.GetStatus(ctx, req)
 		if err != nil {
@@ -376,20 +386,19 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (
 		}
 	}
 
+	// Fall back to basic status from request model if handler didn't provide status
+	if status == nil || status.State == "" {
+		status = &core.RequestStatus{
+			State:     string(req.Status),
+			UpdatedAt: req.UpdatedAt,
+		}
+	}
+
 	// Set default message based on status if not provided
 	if status.Message == "" {
-		switch req.Status {
-		case models.RequestStatusPending:
-			status.Message = "Request is pending processing"
-		case models.RequestStatusProcessing:
-			status.Message = "Request is being processed"
-		case models.RequestStatusCompleted:
-			status.Message = "Request completed successfully"
-		case models.RequestStatusFailed:
+		status.Message = core.GetDefaultStatusMessage(req.Status)
+		if req.Status == models.RequestStatusFailed && req.StatusMessage != "" {
 			status.Message = req.StatusMessage
-			if status.Message == "" {
-				status.Message = "Request failed"
-			}
 		}
 	}
 
@@ -409,6 +418,27 @@ func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models
 	}
 
 	return nil
+}
+
+func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	status := &core.RequestStatus{
+		State:     string(req.Status),
+		UpdatedAt: req.UpdatedAt,
+	}
+
+	// Set default message based on status if not provided
+	if req.StatusMessage == "" {
+		status.Message = core.GetDefaultStatusMessage(req.Status)
+	} else {
+		status.Message = req.StatusMessage
+	}
+
+	return status, nil
 }
 
 func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (bool, error) {
