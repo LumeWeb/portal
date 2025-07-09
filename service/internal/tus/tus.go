@@ -85,12 +85,12 @@ func NewTusHandler(
 	return th, nil
 }
 
-func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int64) (io.ReadCloser, error) {
+func (t *TusHandler) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
 	var upload handler.Upload
 
 	switch v := identifier.(type) {
 	case core.StorageHash:
-		exists, _upload := t.tusService.UploadHashExists(ctx, v)
+		exists, _upload := t.tusService.UploadHashExists(ctx, protocol, v)
 
 		if !exists {
 			return nil, gorm.ErrRecordNotFound
@@ -103,7 +103,7 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 
 		upload = meta
 	case string:
-		exists, _upload := t.tusService.UploadExists(ctx, v)
+		exists, _upload := t.tusService.UploadExists(ctx, protocol, v)
 
 		if !exists {
 			return nil, gorm.ErrRecordNotFound
@@ -140,15 +140,15 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, start int
 	return reader, nil
 }
 
-func (t *TusHandler) UploadSize(ctx context.Context, identifier any) (uint64, error) {
+func (t *TusHandler) UploadSize(ctx context.Context, protocol core.StorageProtocol, identifier any) (uint64, error) {
 	var exists bool
 	var _upload *models.TUSRequest
 
 	switch v := identifier.(type) {
 	case core.StorageHash:
-		exists, _upload = t.tusService.UploadHashExists(ctx, v)
+		exists, _upload = t.tusService.UploadHashExists(ctx, protocol, v)
 	case string:
-		exists, _upload = t.tusService.UploadExists(ctx, v)
+		exists, _upload = t.tusService.UploadExists(ctx, protocol, v)
 	default:
 		return 0, fmt.Errorf("invalid identifier type")
 	}
@@ -196,15 +196,15 @@ func (t *TusHandler) HandleEventResponseError(message string, httpCode int, hook
 	hook.Upload.StopUpload(resp)
 }
 
-func (t *TusHandler) CompleteUpload(ctx context.Context, identifier any) error {
+func (t *TusHandler) CompleteUpload(ctx context.Context, protocol core.StorageProtocol, identifier any) error {
 	var exists bool
 	var _upload *models.TUSRequest
 
 	switch v := identifier.(type) {
 	case core.StorageHash:
-		exists, _upload = t.tusService.UploadHashExists(ctx, v)
+		exists, _upload = t.tusService.UploadHashExists(ctx, protocol, v)
 	case string:
-		exists, _upload = t.tusService.UploadExists(ctx, v)
+		exists, _upload = t.tusService.UploadExists(ctx, protocol, v)
 	default:
 		return fmt.Errorf("invalid identifier type")
 	}
@@ -213,7 +213,7 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, identifier any) error {
 		return gorm.ErrRecordNotFound
 	}
 
-	err := t.tusService.UploadCompleted(ctx, _upload.TUSUploadID)
+	err := t.tusService.UploadCompleted(ctx, protocol, _upload.TUSUploadID)
 	if err != nil {
 		return err
 	}
@@ -227,8 +227,8 @@ func (t *TusHandler) CompleteUpload(ctx context.Context, identifier any) error {
 	return nil
 }
 
-func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
-	exists, upload := t.tusService.UploadExists(ctx, id)
+func (t *TusHandler) FailUploadById(ctx context.Context, protocol core.StorageProtocol, id string) error {
+	exists, upload := t.tusService.UploadExists(ctx, protocol, id)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -239,7 +239,7 @@ func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
 		return err
 	}
 
-	err = t.tusService.DeleteUpload(ctx, id)
+	err = t.tusService.DeleteUpload(ctx, protocol, id)
 	if err != nil {
 		return err
 	}
@@ -490,17 +490,7 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 
 		uploaderIP := hook.HTTPRequest.RemoteAddr
 
-		var mimeType string
-
-		for _, field := range []string{"mimeType", "mimetype", "filetype"} {
-			typ, ok := hook.Upload.MetaData[field]
-			if ok {
-				mimeType = typ
-				break
-			}
-		}
-
-		req, err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, handlr.StorageProtocol(), mimeType)
+		req, err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, handlr.StorageProtocol())
 		if err != nil {
 			errMessage = "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -520,7 +510,7 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 
 func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, hook.Upload.ID)
+		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, handlr.StorageProtocol(), hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload progress"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -531,7 +521,7 @@ func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 
 func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := handlr.FailUploadById(ctx, hook.Upload.ID)
+		err := handlr.FailUploadById(ctx, handlr.StorageProtocol(), hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -542,7 +532,7 @@ func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 
 func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, hook.Upload.ID)
+		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, handlr.StorageProtocol(), hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
