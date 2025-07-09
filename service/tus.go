@@ -268,14 +268,13 @@ type TUSOperationHandler struct {
 	handler    TUSOperationHandlerCallback
 }
 
-type TUSOperationHandlerCallback = func(context.Context, core.OperationHelper, *models.Request, *models.TUSRequest) error
+type TUSOperationHandlerCallback = func(ctx context.Context, h core.OperationHelper, req *models.Request, tusReq *models.TUSRequest) error
 
 // NewTUSOperationHandler creates a new TUS operation handler
 func NewTUSOperationHandler(ctx core.Context, protocol core.Protocol, handler TUSOperationHandlerCallback) core.Operation {
 	svc := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
 
-	return core.NewOperation(fmt.Sprintf("%s.tus.upload", protocol.Name()),
-		core.OpTypeUpload,
+	return core.NewTUSUploadOperation(protocol.Name(),
 		&TUSOperationHandler{
 			tusService:      svc,
 			OperationHelper: core.NewProtocolOperationHelper(ctx, protocol.Name()),

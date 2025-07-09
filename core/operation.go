@@ -68,6 +68,10 @@ func operationName(protocol string, opType OperationType) string {
 	return fmt.Sprintf("%s.%s", protocol, strings.ToLower(string(opType)))
 }
 
+func tusOperationName(protocol string, opType OperationType) string {
+	return fmt.Sprintf("%s.tus.%s", protocol, strings.ToLower(string(opType)))
+}
+
 func StoreOperationName(protocol string) string {
 	return operationName(protocol, OpTypeStore)
 }
@@ -82,6 +86,10 @@ func PublishOperationName(protocol string) string {
 
 func UploadOperationName(protocol string) string {
 	return operationName(protocol, OpTypeUpload)
+}
+
+func TUSUploadOperationName(protocol string) string {
+	return tusOperationName(protocol, OpTypeUpload)
 }
 
 func ScanOperationName(protocol string) string {
@@ -132,6 +140,14 @@ func NewUploadOperation(protocol string, handler OperationHandler) Operation {
 	)
 }
 
+func NewTUSUploadOperation(protocol string, handler OperationHandler) Operation {
+	return NewOperation(
+		TUSUploadOperationName(protocol),
+		OpTypeUpload,
+		handler,
+	)
+}
+
 func NewScanOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
 		ScanOperationName(protocol),
@@ -172,10 +188,10 @@ type OperationHelper interface {
 
 // OperationHelperDefault is the default implementation of OperationHelper
 type OperationHelperDefault struct {
-	ctx       Context
-	proto     string
-	unmarshalTag string // Tag to use for unmarshaling (default: "json")
-	workflow  WorkflowService // Cached workflow service instance
+	ctx          Context
+	proto        string
+	unmarshalTag string          // Tag to use for unmarshaling (default: "json")
+	workflow     WorkflowService // Cached workflow service instance
 }
 
 // DefaultUnmarshalTag is the default tag used for unmarshaling
