@@ -16,11 +16,11 @@ var _ data_models.RequestDataModel = (*TUSRequest)(nil)
 
 type TUSRequest struct {
 	gorm.Model
-	RequestID   uint `gorm:"uniqueIndex"`
+	RequestID   uint `gorm:"request_id"`
 	Request     Request
-	TUSUploadID string `gorm:"uniqueIndex"`
-	UploadHash  mh.Multihash
-	Completed   bool
+	TUSUploadID string       `gorm:"tus_upload_id"`
+	UploadHash  mh.Multihash `gorm:"upload_hash"`
+	Completed   bool         `gorm:"completed"`
 }
 
 func (t *TUSRequest) TableName() string {
