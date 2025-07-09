@@ -44,6 +44,9 @@ type WorkflowCoordinator interface {
 
 	// Get current status of workflow
 	GetWorkflowStatus(ctx context.Context, requestID uint) (*WorkflowStatus, error)
+
+	// Cleanup all requests in a workflow
+	CleanupWorkflow(ctx context.Context, requestID uint) error
 }
 
 type WorkflowService interface {

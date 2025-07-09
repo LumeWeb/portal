@@ -65,3 +65,19 @@ type RequestStatus struct {
 	UpdatedAt       time.Time // When status was last updated
 	Error           error     // Error if operation failed
 }
+
+// GetDefaultStatusMessage returns the default status message for a given request status
+func GetDefaultStatusMessage(status models.RequestStatusType) string {
+	switch status {
+	case models.RequestStatusPending:
+		return "Request is pending processing"
+	case models.RequestStatusProcessing:
+		return "Request is being processed"
+	case models.RequestStatusCompleted:
+		return "Request completed successfully"
+	case models.RequestStatusFailed:
+		return "Request failed"
+	default:
+		return ""
+	}
+}

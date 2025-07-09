@@ -388,6 +388,15 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		w.logger.Info("Workflow completed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
+
+		// Run cleanup for the entire workflow chain
+		if err := w.CleanupWorkflow(ctx, requestID); err != nil {
+			w.logger.Error("Failed to cleanup workflow",
+				zap.String("workflow", metadata.WorkflowName),
+				zap.Uint("requestID", requestID),
+				zap.Error(err))
+			return err
+		}
 		return nil
 	}
 
@@ -535,24 +544,38 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 		return nil, err
 	}
 
+	// Get detailed request status
+	reqStatus, err := w.requestSvc.GetRequestStatus(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Build status
 	status := &core.WorkflowStatus{
 		WorkflowName:  metadata.WorkflowName,
 		CurrentStep:   metadata.CurrentStep,
 		TotalSteps:    metadata.TotalSteps,
-		Status:        string(req.Status),
+		Status:        reqStatus.State,
 		CurrentStepID: req.ID,
 		StartedAt:     time.Unix(metadata.StartedAt, 0),
-		UpdatedAt:     req.UpdatedAt,
+		UpdatedAt:     reqStatus.UpdatedAt,
 	}
 
-	// Calculate progress
+	// Calculate unified weighted progress
 	if metadata.TotalSteps > 0 {
-		status.Progress = float64(metadata.CurrentStep) / float64(metadata.TotalSteps) * 100
+		// Step progress contributes 50% weight
+		stepProgress := float64(metadata.CurrentStep) / float64(metadata.TotalSteps)
 
-		// For completed requests, report 100% for this step
+		// Current step's internal progress contributes 50% weight
+		stepInternalProgress := reqStatus.ProgressPercent / 100.0
+
+		// Combine weighted progress
+		unifiedProgress := (stepProgress*0.5 + stepInternalProgress*0.5) * 100
+		status.Progress = unifiedProgress
+
+		// For completed requests, report 100%
 		if req.Status == models.RequestStatusCompleted {
-			status.Progress = float64(metadata.CurrentStep+1) / float64(metadata.TotalSteps) * 100
+			status.Progress = 100
 		}
 	}
 
@@ -834,6 +857,64 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 	// Save the updated request
 	if err := w.requestSvc.UpdateRequest(ctx, req); err != nil {
 		return fmt.Errorf("failed to update request: %w", err)
+	}
+
+	return nil
+}
+
+func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, requestID uint) error {
+	// Get the initial request
+	initialReq, err := w.requestSvc.GetRequest(ctx, requestID)
+	if err != nil {
+		return fmt.Errorf("failed to get initial request: %w", err)
+	}
+
+	// Parse metadata
+	metadata, err := w.parseWorkflowMetadata(initialReq.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if w.isDisabled(metadata.WorkflowName) {
+		w.logger.Warn("Attempted to cleanup disabled workflow",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID))
+		return nil
+	}
+
+	// Iterate through all requests in the workflow
+	currentReqID := requestID
+	for {
+		// Delete the request through RequestService which handles cleanup
+		err = w.requestSvc.DeleteRequest(ctx, currentReqID)
+		if err != nil {
+			w.logger.Warn("Failed to delete request during cleanup",
+				zap.Uint("requestID", currentReqID),
+				zap.Error(err))
+		}
+
+		// Get the request to check for previous IDs
+		req, err := w.requestSvc.GetRequest(ctx, currentReqID)
+		if err != nil {
+			break // Stop if we can't get the request
+		}
+
+		// Parse metadata to find the previous request
+		metadata, err = w.parseWorkflowMetadata(req.Metadata)
+		if err != nil {
+			w.logger.Warn("Failed to parse metadata during cleanup",
+				zap.Uint("requestID", currentReqID),
+				zap.Error(err))
+			break
+		}
+
+		// Move to the previous request
+		currentReqID = metadata.PrevRequestID
+
+		// If there is no previous request, we are done
+		if currentReqID == 0 {
+			break
+		}
 	}
 
 	return nil
