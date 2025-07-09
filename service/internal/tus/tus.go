@@ -254,7 +254,7 @@ func (t *TusHandler) FailUploadById(ctx context.Context, id string) error {
 }
 
 func (t *TusHandler) SetHashById(ctx context.Context, id string, hash core.StorageHash) error {
-	err := t.tusService.SetHash(ctx, id, hash)
+	err := t.tusService.SetHash(ctx, t.storageProtocol, id, hash)
 	if err != nil {
 		return err
 	}

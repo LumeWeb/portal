@@ -47,7 +47,11 @@ func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {
 			storage.logger = ctx.ServiceLogger(storage)
 			storage.requests = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 
-			storage.requests.RegisterRequestModel(models.RequestOperationTusUpload, &models.TUSRequest{})
+			for _, proto := range core.GetProtocolList() {
+				if sproto, ok := proto.(core.StorageProtocol); ok {
+					storage.requests.RegisterRequestModel(core.TUSUploadOperationName(sproto.Name()), &models.TUSRequest{})
+				}
+			}
 
 			return nil
 		}),
@@ -65,9 +69,11 @@ func (t *TUSServiceDefault) Name() string {
 	return "tus"
 }
 
-func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, *models.TUSRequest) {
+func (t *TUSServiceDefault) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
+	opName := core.TUSUploadOperationName(protocol.Name())
+
 	req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
-		Operation: models.RequestOperationTusUpload,
+		Operation: opName,
 	})
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -85,9 +91,11 @@ func (t *TUSServiceDefault) UploadExists(ctx context.Context, id string) (bool, 
 	return true, data.(*models.TUSRequest)
 }
 
-func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, hash core.StorageHash) (bool, *models.TUSRequest) {
+func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash) (bool, *models.TUSRequest) {
+	opName := core.TUSUploadOperationName(protocol.Name())
+
 	req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{UploadHash: hash.Multihash()}, core.RequestFilter{
-		Operation: models.RequestOperationTusUpload,
+		Operation: opName,
 	})
 
 	if err != nil {
@@ -108,11 +116,13 @@ func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, hash core.Stor
 	return true, data.(*models.TUSRequest)
 }
 
-func (t *TUSServiceDefault) Uploads(ctx context.Context, uploaderID uint) ([]*models.TUSRequest, error) {
+func (t *TUSServiceDefault) Uploads(ctx context.Context, protocol core.StorageProtocol, uploaderID uint) ([]*models.TUSRequest, error) {
 	var uploads []*models.TUSRequest
 
+	opName := core.TUSUploadOperationName(protocol.Name())
+
 	data, err := t.requests.ListRequestsByUser(ctx, uploaderID, core.RequestFilter{
-		Operation: models.RequestOperationTusUpload,
+		Operation: opName,
 	})
 
 	if err != nil {
@@ -136,17 +146,19 @@ func (t *TUSServiceDefault) Uploads(ctx context.Context, uploaderID uint) ([]*mo
 	return uploads, nil
 }
 
-func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string) (*models.TUSRequest, error) {
+func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol) (*models.TUSRequest, error) {
 	var hashBytes []byte
 
 	if hash != nil {
 		hashBytes = hash.Multihash()
 	}
 
+	opName := core.TUSUploadOperationName(protocol.Name())
+
 	upload := &models.Request{
 		Hash:      hashBytes,
 		Protocol:  protocol.Name(),
-		Operation: models.RequestOperationTusUpload,
+		Operation: opName,
 		Status:    models.RequestStatusPending,
 		UserID:    lo.ToPtr(uploaderID),
 		SourceIP:  uploaderIP,
@@ -171,8 +183,8 @@ func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageH
 	return dataReq.(*models.TUSRequest), nil
 }
 
-func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, uploadID)
+func (t *TUSServiceDefault) UploadProgress(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -187,8 +199,8 @@ func (t *TUSServiceDefault) UploadProgress(ctx context.Context, uploadID string)
 	return t.requests.UpdateRequestData(ctx, req, upload)
 }
 
-func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, uploadID)
+func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -197,8 +209,8 @@ func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, uploadID strin
 	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing, "Uploading...")
 }
 
-func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, uploadID)
+func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -211,8 +223,8 @@ func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, uploadID string
 	return t.requests.CompleteRequest(ctx, upload.RequestID)
 }
 
-func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, uploadID)
+func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -226,8 +238,8 @@ func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, uploadID string) e
 	return nil
 }
 
-func (t *TUSServiceDefault) SetHash(ctx context.Context, uploadID string, hash core.StorageHash) error {
-	exists, upload := t.UploadExists(ctx, uploadID)
+func (t *TUSServiceDefault) SetHash(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
 	if !exists {
 		return core.ErrUploadNotFound
@@ -347,7 +359,7 @@ func (h *TUSOperationHandler) Cleanup(_ context.Context, _ *models.Request) erro
 	return nil
 }
 
-func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUploadCallbackHandler, workflowName string) TUSUploadCallbackHandler {
+func TUSDefaultUploadCompletedHandler(ctx core.Context, protocol core.StorageProtocol, processHandler TUSUploadCallbackHandler, workflowName string) TUSUploadCallbackHandler {
 	return func(handler *tus.TusHandler, info tusHandler.HookEvent) {
 		// Call the original handler first
 		processHandler(handler, info)
@@ -356,7 +368,7 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 		tusService := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
 
 		// Check if this upload is part of a workflow
-		exists, tusReq := tusService.UploadExists(ctx, info.Upload.ID)
+		exists, tusReq := tusService.UploadExists(ctx, protocol, info.Upload.ID)
 		if !exists {
 			return // Not our upload, nothing to do
 		}

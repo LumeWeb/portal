@@ -40,8 +40,8 @@ func (_m *MockTUSService) EXPECT() *MockTUSService_Expecter {
 }
 
 // CreateUpload provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string) (*models.TUSRequest, error) {
-	ret := _mock.Called(ctx, hash, uploadID, uploaderID, uploaderIP, protocol, mimeType)
+func (_mock *MockTUSService) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol) (*models.TUSRequest, error) {
+	ret := _mock.Called(ctx, hash, uploadID, uploaderID, uploaderIP, protocol)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateUpload")
@@ -49,18 +49,18 @@ func (_mock *MockTUSService) CreateUpload(ctx context.Context, hash core.Storage
 
 	var r0 *models.TUSRequest
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol, string) (*models.TUSRequest, error)); ok {
-		return returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol, mimeType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol) (*models.TUSRequest, error)); ok {
+		return returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol, string) *models.TUSRequest); ok {
-		r0 = returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol, mimeType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol) *models.TUSRequest); ok {
+		r0 = returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.TUSRequest)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol, string) error); ok {
-		r1 = returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol, mimeType)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash, string, uint, string, core.StorageProtocol) error); ok {
+		r1 = returnFunc(ctx, hash, uploadID, uploaderID, uploaderIP, protocol)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -79,12 +79,11 @@ type MockTUSService_CreateUpload_Call struct {
 //   - uploaderID uint
 //   - uploaderIP string
 //   - protocol core.StorageProtocol
-//   - mimeType string
-func (_e *MockTUSService_Expecter) CreateUpload(ctx interface{}, hash interface{}, uploadID interface{}, uploaderID interface{}, uploaderIP interface{}, protocol interface{}, mimeType interface{}) *MockTUSService_CreateUpload_Call {
-	return &MockTUSService_CreateUpload_Call{Call: _e.mock.On("CreateUpload", ctx, hash, uploadID, uploaderID, uploaderIP, protocol, mimeType)}
+func (_e *MockTUSService_Expecter) CreateUpload(ctx interface{}, hash interface{}, uploadID interface{}, uploaderID interface{}, uploaderIP interface{}, protocol interface{}) *MockTUSService_CreateUpload_Call {
+	return &MockTUSService_CreateUpload_Call{Call: _e.mock.On("CreateUpload", ctx, hash, uploadID, uploaderID, uploaderIP, protocol)}
 }
 
-func (_c *MockTUSService_CreateUpload_Call) Run(run func(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string)) *MockTUSService_CreateUpload_Call {
+func (_c *MockTUSService_CreateUpload_Call) Run(run func(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol)) *MockTUSService_CreateUpload_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -110,10 +109,6 @@ func (_c *MockTUSService_CreateUpload_Call) Run(run func(ctx context.Context, ha
 		if args[5] != nil {
 			arg5 = args[5].(core.StorageProtocol)
 		}
-		var arg6 string
-		if args[6] != nil {
-			arg6 = args[6].(string)
-		}
 		run(
 			arg0,
 			arg1,
@@ -121,7 +116,6 @@ func (_c *MockTUSService_CreateUpload_Call) Run(run func(ctx context.Context, ha
 			arg3,
 			arg4,
 			arg5,
-			arg6,
 		)
 	})
 	return _c
@@ -132,22 +126,22 @@ func (_c *MockTUSService_CreateUpload_Call) Return(tUSRequest *models.TUSRequest
 	return _c
 }
 
-func (_c *MockTUSService_CreateUpload_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol, mimeType string) (*models.TUSRequest, error)) *MockTUSService_CreateUpload_Call {
+func (_c *MockTUSService_CreateUpload_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol) (*models.TUSRequest, error)) *MockTUSService_CreateUpload_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // DeleteUpload provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) DeleteUpload(ctx context.Context, uploadID string) error {
-	ret := _mock.Called(ctx, uploadID)
+func (_mock *MockTUSService) DeleteUpload(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ret := _mock.Called(ctx, protocol, uploadID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteUpload")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, uploadID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -161,24 +155,30 @@ type MockTUSService_DeleteUpload_Call struct {
 
 // DeleteUpload is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) DeleteUpload(ctx interface{}, uploadID interface{}) *MockTUSService_DeleteUpload_Call {
-	return &MockTUSService_DeleteUpload_Call{Call: _e.mock.On("DeleteUpload", ctx, uploadID)}
+func (_e *MockTUSService_Expecter) DeleteUpload(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_DeleteUpload_Call {
+	return &MockTUSService_DeleteUpload_Call{Call: _e.mock.On("DeleteUpload", ctx, protocol, uploadID)}
 }
 
-func (_c *MockTUSService_DeleteUpload_Call) Run(run func(ctx context.Context, uploadID string)) *MockTUSService_DeleteUpload_Call {
+func (_c *MockTUSService_DeleteUpload_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string)) *MockTUSService_DeleteUpload_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -189,7 +189,7 @@ func (_c *MockTUSService_DeleteUpload_Call) Return(err error) *MockTUSService_De
 	return _c
 }
 
-func (_c *MockTUSService_DeleteUpload_Call) RunAndReturn(run func(ctx context.Context, uploadID string) error) *MockTUSService_DeleteUpload_Call {
+func (_c *MockTUSService_DeleteUpload_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string) error) *MockTUSService_DeleteUpload_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -239,16 +239,16 @@ func (_c *MockTUSService_ID_Call) RunAndReturn(run func() string) *MockTUSServic
 }
 
 // SetHash provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) SetHash(ctx context.Context, uploadID string, hash core.StorageHash) error {
-	ret := _mock.Called(ctx, uploadID, hash)
+func (_mock *MockTUSService) SetHash(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash) error {
+	ret := _mock.Called(ctx, protocol, uploadID, hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetHash")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, core.StorageHash) error); ok {
-		r0 = returnFunc(ctx, uploadID, hash)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string, core.StorageHash) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID, hash)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -262,30 +262,36 @@ type MockTUSService_SetHash_Call struct {
 
 // SetHash is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploadID string
 //   - hash core.StorageHash
-func (_e *MockTUSService_Expecter) SetHash(ctx interface{}, uploadID interface{}, hash interface{}) *MockTUSService_SetHash_Call {
-	return &MockTUSService_SetHash_Call{Call: _e.mock.On("SetHash", ctx, uploadID, hash)}
+func (_e *MockTUSService_Expecter) SetHash(ctx interface{}, protocol interface{}, uploadID interface{}, hash interface{}) *MockTUSService_SetHash_Call {
+	return &MockTUSService_SetHash_Call{Call: _e.mock.On("SetHash", ctx, protocol, uploadID, hash)}
 }
 
-func (_c *MockTUSService_SetHash_Call) Run(run func(ctx context.Context, uploadID string, hash core.StorageHash)) *MockTUSService_SetHash_Call {
+func (_c *MockTUSService_SetHash_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash)) *MockTUSService_SetHash_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
 		}
-		var arg2 core.StorageHash
+		var arg2 string
 		if args[2] != nil {
-			arg2 = args[2].(core.StorageHash)
+			arg2 = args[2].(string)
+		}
+		var arg3 core.StorageHash
+		if args[3] != nil {
+			arg3 = args[3].(core.StorageHash)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -296,22 +302,22 @@ func (_c *MockTUSService_SetHash_Call) Return(err error) *MockTUSService_SetHash
 	return _c
 }
 
-func (_c *MockTUSService_SetHash_Call) RunAndReturn(run func(ctx context.Context, uploadID string, hash core.StorageHash) error) *MockTUSService_SetHash_Call {
+func (_c *MockTUSService_SetHash_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash) error) *MockTUSService_SetHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadCompleted provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) UploadCompleted(ctx context.Context, uploadID string) error {
-	ret := _mock.Called(ctx, uploadID)
+func (_mock *MockTUSService) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ret := _mock.Called(ctx, protocol, uploadID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadCompleted")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, uploadID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -325,24 +331,30 @@ type MockTUSService_UploadCompleted_Call struct {
 
 // UploadCompleted is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadCompleted(ctx interface{}, uploadID interface{}) *MockTUSService_UploadCompleted_Call {
-	return &MockTUSService_UploadCompleted_Call{Call: _e.mock.On("UploadCompleted", ctx, uploadID)}
+func (_e *MockTUSService_Expecter) UploadCompleted(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadCompleted_Call {
+	return &MockTUSService_UploadCompleted_Call{Call: _e.mock.On("UploadCompleted", ctx, protocol, uploadID)}
 }
 
-func (_c *MockTUSService_UploadCompleted_Call) Run(run func(ctx context.Context, uploadID string)) *MockTUSService_UploadCompleted_Call {
+func (_c *MockTUSService_UploadCompleted_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string)) *MockTUSService_UploadCompleted_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -353,14 +365,14 @@ func (_c *MockTUSService_UploadCompleted_Call) Return(err error) *MockTUSService
 	return _c
 }
 
-func (_c *MockTUSService_UploadCompleted_Call) RunAndReturn(run func(ctx context.Context, uploadID string) error) *MockTUSService_UploadCompleted_Call {
+func (_c *MockTUSService_UploadCompleted_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string) error) *MockTUSService_UploadCompleted_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadExists provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) UploadExists(ctx context.Context, id string) (bool, *models.TUSRequest) {
-	ret := _mock.Called(ctx, id)
+func (_mock *MockTUSService) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
+	ret := _mock.Called(ctx, protocol, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadExists")
@@ -368,16 +380,16 @@ func (_mock *MockTUSService) UploadExists(ctx context.Context, id string) (bool,
 
 	var r0 bool
 	var r1 *models.TUSRequest
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (bool, *models.TUSRequest)); ok {
-		return returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) (bool, *models.TUSRequest)); ok {
+		return returnFunc(ctx, protocol, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) bool); ok {
-		r0 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) bool); ok {
+		r0 = returnFunc(ctx, protocol, id)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *models.TUSRequest); ok {
-		r1 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageProtocol, string) *models.TUSRequest); ok {
+		r1 = returnFunc(ctx, protocol, id)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.TUSRequest)
@@ -393,24 +405,30 @@ type MockTUSService_UploadExists_Call struct {
 
 // UploadExists is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - id string
-func (_e *MockTUSService_Expecter) UploadExists(ctx interface{}, id interface{}) *MockTUSService_UploadExists_Call {
-	return &MockTUSService_UploadExists_Call{Call: _e.mock.On("UploadExists", ctx, id)}
+func (_e *MockTUSService_Expecter) UploadExists(ctx interface{}, protocol interface{}, id interface{}) *MockTUSService_UploadExists_Call {
+	return &MockTUSService_UploadExists_Call{Call: _e.mock.On("UploadExists", ctx, protocol, id)}
 }
 
-func (_c *MockTUSService_UploadExists_Call) Run(run func(ctx context.Context, id string)) *MockTUSService_UploadExists_Call {
+func (_c *MockTUSService_UploadExists_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, id string)) *MockTUSService_UploadExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -421,14 +439,14 @@ func (_c *MockTUSService_UploadExists_Call) Return(b bool, tUSRequest *models.TU
 	return _c
 }
 
-func (_c *MockTUSService_UploadExists_Call) RunAndReturn(run func(ctx context.Context, id string) (bool, *models.TUSRequest)) *MockTUSService_UploadExists_Call {
+func (_c *MockTUSService_UploadExists_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest)) *MockTUSService_UploadExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadHashExists provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) UploadHashExists(ctx context.Context, hash core.StorageHash) (bool, *models.TUSRequest) {
-	ret := _mock.Called(ctx, hash)
+func (_mock *MockTUSService) UploadHashExists(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash) (bool, *models.TUSRequest) {
+	ret := _mock.Called(ctx, protocol, hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadHashExists")
@@ -436,16 +454,16 @@ func (_mock *MockTUSService) UploadHashExists(ctx context.Context, hash core.Sto
 
 	var r0 bool
 	var r1 *models.TUSRequest
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) (bool, *models.TUSRequest)); ok {
-		return returnFunc(ctx, hash)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, core.StorageHash) (bool, *models.TUSRequest)); ok {
+		return returnFunc(ctx, protocol, hash)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) bool); ok {
-		r0 = returnFunc(ctx, hash)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, core.StorageHash) bool); ok {
+		r0 = returnFunc(ctx, protocol, hash)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash) *models.TUSRequest); ok {
-		r1 = returnFunc(ctx, hash)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageProtocol, core.StorageHash) *models.TUSRequest); ok {
+		r1 = returnFunc(ctx, protocol, hash)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.TUSRequest)
@@ -461,24 +479,30 @@ type MockTUSService_UploadHashExists_Call struct {
 
 // UploadHashExists is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - hash core.StorageHash
-func (_e *MockTUSService_Expecter) UploadHashExists(ctx interface{}, hash interface{}) *MockTUSService_UploadHashExists_Call {
-	return &MockTUSService_UploadHashExists_Call{Call: _e.mock.On("UploadHashExists", ctx, hash)}
+func (_e *MockTUSService_Expecter) UploadHashExists(ctx interface{}, protocol interface{}, hash interface{}) *MockTUSService_UploadHashExists_Call {
+	return &MockTUSService_UploadHashExists_Call{Call: _e.mock.On("UploadHashExists", ctx, protocol, hash)}
 }
 
-func (_c *MockTUSService_UploadHashExists_Call) Run(run func(ctx context.Context, hash core.StorageHash)) *MockTUSService_UploadHashExists_Call {
+func (_c *MockTUSService_UploadHashExists_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash)) *MockTUSService_UploadHashExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 core.StorageHash
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(core.StorageHash)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 core.StorageHash
+		if args[2] != nil {
+			arg2 = args[2].(core.StorageHash)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -489,22 +513,22 @@ func (_c *MockTUSService_UploadHashExists_Call) Return(b bool, tUSRequest *model
 	return _c
 }
 
-func (_c *MockTUSService_UploadHashExists_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash) (bool, *models.TUSRequest)) *MockTUSService_UploadHashExists_Call {
+func (_c *MockTUSService_UploadHashExists_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash) (bool, *models.TUSRequest)) *MockTUSService_UploadHashExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadProcessing provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) UploadProcessing(ctx context.Context, uploadID string) error {
-	ret := _mock.Called(ctx, uploadID)
+func (_mock *MockTUSService) UploadProcessing(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ret := _mock.Called(ctx, protocol, uploadID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadProcessing")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, uploadID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -518,24 +542,30 @@ type MockTUSService_UploadProcessing_Call struct {
 
 // UploadProcessing is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadProcessing(ctx interface{}, uploadID interface{}) *MockTUSService_UploadProcessing_Call {
-	return &MockTUSService_UploadProcessing_Call{Call: _e.mock.On("UploadProcessing", ctx, uploadID)}
+func (_e *MockTUSService_Expecter) UploadProcessing(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadProcessing_Call {
+	return &MockTUSService_UploadProcessing_Call{Call: _e.mock.On("UploadProcessing", ctx, protocol, uploadID)}
 }
 
-func (_c *MockTUSService_UploadProcessing_Call) Run(run func(ctx context.Context, uploadID string)) *MockTUSService_UploadProcessing_Call {
+func (_c *MockTUSService_UploadProcessing_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string)) *MockTUSService_UploadProcessing_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -546,22 +576,22 @@ func (_c *MockTUSService_UploadProcessing_Call) Return(err error) *MockTUSServic
 	return _c
 }
 
-func (_c *MockTUSService_UploadProcessing_Call) RunAndReturn(run func(ctx context.Context, uploadID string) error) *MockTUSService_UploadProcessing_Call {
+func (_c *MockTUSService_UploadProcessing_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string) error) *MockTUSService_UploadProcessing_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadProgress provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) UploadProgress(ctx context.Context, uploadID string) error {
-	ret := _mock.Called(ctx, uploadID)
+func (_mock *MockTUSService) UploadProgress(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ret := _mock.Called(ctx, protocol, uploadID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadProgress")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, uploadID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -575,24 +605,30 @@ type MockTUSService_UploadProgress_Call struct {
 
 // UploadProgress is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadProgress(ctx interface{}, uploadID interface{}) *MockTUSService_UploadProgress_Call {
-	return &MockTUSService_UploadProgress_Call{Call: _e.mock.On("UploadProgress", ctx, uploadID)}
+func (_e *MockTUSService_Expecter) UploadProgress(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadProgress_Call {
+	return &MockTUSService_UploadProgress_Call{Call: _e.mock.On("UploadProgress", ctx, protocol, uploadID)}
 }
 
-func (_c *MockTUSService_UploadProgress_Call) Run(run func(ctx context.Context, uploadID string)) *MockTUSService_UploadProgress_Call {
+func (_c *MockTUSService_UploadProgress_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string)) *MockTUSService_UploadProgress_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -603,14 +639,14 @@ func (_c *MockTUSService_UploadProgress_Call) Return(err error) *MockTUSService_
 	return _c
 }
 
-func (_c *MockTUSService_UploadProgress_Call) RunAndReturn(run func(ctx context.Context, uploadID string) error) *MockTUSService_UploadProgress_Call {
+func (_c *MockTUSService_UploadProgress_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string) error) *MockTUSService_UploadProgress_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Uploads provides a mock function for the type MockTUSService
-func (_mock *MockTUSService) Uploads(ctx context.Context, uploaderID uint) ([]*models.TUSRequest, error) {
-	ret := _mock.Called(ctx, uploaderID)
+func (_mock *MockTUSService) Uploads(ctx context.Context, protocol core.StorageProtocol, uploaderID uint) ([]*models.TUSRequest, error) {
+	ret := _mock.Called(ctx, protocol, uploaderID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Uploads")
@@ -618,18 +654,18 @@ func (_mock *MockTUSService) Uploads(ctx context.Context, uploaderID uint) ([]*m
 
 	var r0 []*models.TUSRequest
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]*models.TUSRequest, error)); ok {
-		return returnFunc(ctx, uploaderID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, uint) ([]*models.TUSRequest, error)); ok {
+		return returnFunc(ctx, protocol, uploaderID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []*models.TUSRequest); ok {
-		r0 = returnFunc(ctx, uploaderID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, uint) []*models.TUSRequest); ok {
+		r0 = returnFunc(ctx, protocol, uploaderID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*models.TUSRequest)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, uploaderID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageProtocol, uint) error); ok {
+		r1 = returnFunc(ctx, protocol, uploaderID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -643,24 +679,30 @@ type MockTUSService_Uploads_Call struct {
 
 // Uploads is a helper method to define mock.On call
 //   - ctx context.Context
+//   - protocol core.StorageProtocol
 //   - uploaderID uint
-func (_e *MockTUSService_Expecter) Uploads(ctx interface{}, uploaderID interface{}) *MockTUSService_Uploads_Call {
-	return &MockTUSService_Uploads_Call{Call: _e.mock.On("Uploads", ctx, uploaderID)}
+func (_e *MockTUSService_Expecter) Uploads(ctx interface{}, protocol interface{}, uploaderID interface{}) *MockTUSService_Uploads_Call {
+	return &MockTUSService_Uploads_Call{Call: _e.mock.On("Uploads", ctx, protocol, uploaderID)}
 }
 
-func (_c *MockTUSService_Uploads_Call) Run(run func(ctx context.Context, uploaderID uint)) *MockTUSService_Uploads_Call {
+func (_c *MockTUSService_Uploads_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploaderID uint)) *MockTUSService_Uploads_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 core.StorageProtocol
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -671,7 +713,7 @@ func (_c *MockTUSService_Uploads_Call) Return(tUSRequests []*models.TUSRequest, 
 	return _c
 }
 
-func (_c *MockTUSService_Uploads_Call) RunAndReturn(run func(ctx context.Context, uploaderID uint) ([]*models.TUSRequest, error)) *MockTUSService_Uploads_Call {
+func (_c *MockTUSService_Uploads_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploaderID uint) ([]*models.TUSRequest, error)) *MockTUSService_Uploads_Call {
 	_c.Call.Return(run)
 	return _c
 }

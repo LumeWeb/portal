@@ -16,9 +16,6 @@ const (
 	RequestStatusCompleted  RequestStatusType = "completed"
 	RequestStatusFailed     RequestStatusType = "failed"
 	RequestStatusDuplicate  RequestStatusType = "duplicate"
-
-	// Operation types
-	RequestOperationTusUpload = "tus.upload"
 )
 
 type Request struct {
