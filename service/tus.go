@@ -259,7 +259,7 @@ func TUSDefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc
 }
 
 func TUSDefaultUploadProgressHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
-	return tus.DefaultUploadProgressHandler(e, ctx)
+	return tus.DefaultUploadProgressHandler(ctx)
 }
 
 // TUSOperationHandler implements core.OperationHandler for TUS uploads
@@ -405,5 +405,5 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 }
 
 func TUSDefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
-	return tus.DefaultUploadTerminatedHandler(e, ctx)
+	return tus.DefaultUploadTerminatedHandler(ctx)
 }

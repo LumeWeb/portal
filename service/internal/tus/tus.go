@@ -177,7 +177,7 @@ func (t *TusHandler) SetupRoute(router router.Router, subdomain string, authRequ
 		core.GetService[core.AccessService](t.ctx, core.ACCESS_SERVICE),
 		subdomain,
 		path,
-		echo.WrapHandler(t.tus),
+		wrapContextHandler(t.tus),
 		authRequired,
 		twoFARequired,
 	)
@@ -454,11 +454,19 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 	return nil, nil
 }
 
-func DefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
+func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		var errMessage string
 
-		uploaderID, err := mcontext.GetUserID(e)
+		echoCtx, ok := getEchoContext(hook.Context)
+		if !ok {
+			errMessage = "Failed to get echo context"
+			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
+			ctx.Logger().Error(errMessage)
+			return
+		}
+
+		uploaderID, err := mcontext.GetUserID(echoCtx)
 
 		if err != nil {
 			errMessage = "Failed to get user from context"
@@ -510,7 +518,7 @@ func DefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc Up
 	}
 }
 
-func DefaultUploadProgressHandler(e echo.Context, ctx core.Context) UploadCallbackHandler {
+func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, hook.Upload.ID)
 		if err != nil {
@@ -521,7 +529,7 @@ func DefaultUploadProgressHandler(e echo.Context, ctx core.Context) UploadCallba
 	}
 }
 
-func DefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) UploadCallbackHandler {
+func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := handlr.FailUploadById(ctx, hook.Upload.ID)
 		if err != nil {
@@ -532,7 +540,7 @@ func DefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) UploadCall
 	}
 }
 
-func DefaultUploadCompletedHandler(e echo.Context, ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
+func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
 	return func(handlr *TusHandler, hook handler.HookEvent) {
 		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, hook.Upload.ID)
 		if err != nil {
@@ -550,6 +558,7 @@ func DefaultUploadCompletedHandler(e echo.Context, ctx core.Context, processHand
 func loggerToSlog(logger *core.Logger) *slog.Logger {
 	return slog.New(zapslog.NewHandler(logger.Core()))
 }
+
 func splitIds(id string) (objectId, multipartId string) {
 	// We use LastIndex to allow plus signs in the object ID and assume that S3 will never
 	// returns multipart ID that incldues a plus sign.
@@ -561,4 +570,22 @@ func splitIds(id string) (objectId, multipartId string) {
 	objectId = id[:index]
 	multipartId = id[index+1:]
 	return
+}
+
+type echoContextKeyType string
+
+const echoContextKey echoContextKeyType = "echoContext"
+
+func wrapContextHandler(h http.Handler) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := context.WithValue(c.Request().Context(), echoContextKey, c)
+		req := c.Request().WithContext(ctx)
+		h.ServeHTTP(c.Response(), req)
+		return nil
+	}
+}
+
+func getEchoContext(ctx context.Context) (echo.Context, bool) {
+	c, ok := ctx.Value(echoContextKey).(echo.Context)
+	return c, ok
 }
