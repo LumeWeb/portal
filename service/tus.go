@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
@@ -254,11 +253,11 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 
 	return handler, nil
 }
-func TUSDefaultUploadCreatedHandler(e echo.Context, ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
+func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
 	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc, afterFunc)
 }
 
-func TUSDefaultUploadProgressHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
+func TUSDefaultUploadProgressHandler(ctx core.Context) TUSUploadCallbackHandler {
 	return tus.DefaultUploadProgressHandler(ctx)
 }
 
@@ -404,6 +403,6 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 	}
 }
 
-func TUSDefaultUploadTerminatedHandler(e echo.Context, ctx core.Context) TUSUploadCallbackHandler {
+func TUSDefaultUploadTerminatedHandler(ctx core.Context) TUSUploadCallbackHandler {
 	return tus.DefaultUploadTerminatedHandler(ctx)
 }
