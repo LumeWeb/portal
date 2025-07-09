@@ -265,16 +265,23 @@ func TUSDefaultUploadProgressHandler(ctx core.Context) TUSUploadCallbackHandler 
 type TUSOperationHandler struct {
 	core.OperationHelper
 	tusService core.TUSService
-	logger     *core.Logger
+	handler    TUSOperationHandlerCallback
 }
 
+type TUSOperationHandlerCallback = func(context.Context, core.OperationHelper, *models.Request, *models.TUSRequest) error
+
 // NewTUSOperationHandler creates a new TUS operation handler
-func NewTUSOperationHandler(ctx core.Context) *TUSOperationHandler {
+func NewTUSOperationHandler(ctx core.Context, protocol core.Protocol, handler TUSOperationHandlerCallback) core.Operation {
 	svc := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
-	return &TUSOperationHandler{
-		tusService:      svc,
-		OperationHelper: core.NewOperationHelper(ctx),
-	}
+
+	return core.NewOperation(fmt.Sprintf("%s.tus.upload", protocol.Name()),
+		core.OpTypeUpload,
+		&TUSOperationHandler{
+			tusService:      svc,
+			OperationHelper: core.NewProtocolOperationHelper(ctx, protocol.Name()),
+			handler:         handler,
+		},
+	)
 }
 
 // ValidateRequest validates a TUS upload request
@@ -296,12 +303,12 @@ func (h *TUSOperationHandler) Execute(ctx context.Context, req *models.Request) 
 		return errors.New("invalid request data type")
 	}
 
-	// Mark the request as processing
-	if err := h.tusService.UploadProcessing(ctx, tusReq.TUSUploadID); err != nil {
-		return err
+	if h.handler != nil {
+		if err = h.handler(ctx, h.OperationHelper, req, tusReq); err != nil {
+			return err
+		}
 	}
 
-	// TUS uploads are processed asynchronously by the TUS handler
 	return nil
 }
 
