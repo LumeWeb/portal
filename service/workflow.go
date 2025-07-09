@@ -35,14 +35,6 @@ func init() {
 	})
 }
 
-// TUSUploadStep creates a workflow step for TUS upload that can be added to any workflow
-func TUSUploadStep(failureBehavior core.FailureBehavior) core.OperationStep {
-	return core.OperationStep{
-		Operation:       models.RequestOperationTusUpload,
-		FailureBehavior: failureBehavior,
-	}
-}
-
 // copyRequestData copies fields from source request to target request
 func (w *WorkflowCoordinatorDefault) copyRequestData(target, source *models.Request) {
 	target.Protocol = source.Protocol
