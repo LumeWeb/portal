@@ -126,6 +126,46 @@ func (_c *MockPinDataModel_NewInstance_Call) RunAndReturn(run func() data_models
 	return _c
 }
 
+// SetPin provides a mock function for the type MockPinDataModel
+func (_mock *MockPinDataModel) SetPin(req any) {
+	_mock.Called(req)
+	return
+}
+
+// MockPinDataModel_SetPin_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetPin'
+type MockPinDataModel_SetPin_Call struct {
+	*mock.Call
+}
+
+// SetPin is a helper method to define mock.On call
+//   - req any
+func (_e *MockPinDataModel_Expecter) SetPin(req interface{}) *MockPinDataModel_SetPin_Call {
+	return &MockPinDataModel_SetPin_Call{Call: _e.mock.On("SetPin", req)}
+}
+
+func (_c *MockPinDataModel_SetPin_Call) Run(run func(req any)) *MockPinDataModel_SetPin_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 any
+		if args[0] != nil {
+			arg0 = args[0].(any)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinDataModel_SetPin_Call) Return() *MockPinDataModel_SetPin_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPinDataModel_SetPin_Call) RunAndReturn(run func(req any)) *MockPinDataModel_SetPin_Call {
+	_c.Run(run)
+	return _c
+}
+
 // SetPinID provides a mock function for the type MockPinDataModel
 func (_mock *MockPinDataModel) SetPinID(id uint) {
 	_mock.Called(id)
