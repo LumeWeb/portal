@@ -126,6 +126,46 @@ func (_c *MockRequestDataModel_NewInstance_Call) RunAndReturn(run func() data_mo
 	return _c
 }
 
+// SetRequest provides a mock function for the type MockRequestDataModel
+func (_mock *MockRequestDataModel) SetRequest(req any) {
+	_mock.Called(req)
+	return
+}
+
+// MockRequestDataModel_SetRequest_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetRequest'
+type MockRequestDataModel_SetRequest_Call struct {
+	*mock.Call
+}
+
+// SetRequest is a helper method to define mock.On call
+//   - req any
+func (_e *MockRequestDataModel_Expecter) SetRequest(req interface{}) *MockRequestDataModel_SetRequest_Call {
+	return &MockRequestDataModel_SetRequest_Call{Call: _e.mock.On("SetRequest", req)}
+}
+
+func (_c *MockRequestDataModel_SetRequest_Call) Run(run func(req any)) *MockRequestDataModel_SetRequest_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 any
+		if args[0] != nil {
+			arg0 = args[0].(any)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestDataModel_SetRequest_Call) Return() *MockRequestDataModel_SetRequest_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRequestDataModel_SetRequest_Call) RunAndReturn(run func(req any)) *MockRequestDataModel_SetRequest_Call {
+	_c.Run(run)
+	return _c
+}
+
 // SetRequestID provides a mock function for the type MockRequestDataModel
 func (_mock *MockRequestDataModel) SetRequestID(id uint) {
 	_mock.Called(id)
