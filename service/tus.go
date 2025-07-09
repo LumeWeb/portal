@@ -359,16 +359,16 @@ func (h *TUSOperationHandler) Cleanup(_ context.Context, _ *models.Request) erro
 	return nil
 }
 
-func TUSDefaultUploadCompletedHandler(ctx core.Context, protocol core.StorageProtocol, processHandler TUSUploadCallbackHandler, workflowName string) TUSUploadCallbackHandler {
-	return func(handler *tus.TusHandler, info tusHandler.HookEvent) {
+func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUploadCallbackHandler, workflowName string) TUSUploadCallbackHandler {
+	return func(handlr *tus.TusHandler, info tusHandler.HookEvent) {
 		// Call the original handler first
-		processHandler(handler, info)
+		processHandler(handlr, info)
 
 		// Get the TUS service
 		tusService := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
 
 		// Check if this upload is part of a workflow
-		exists, tusReq := tusService.UploadExists(ctx, protocol, info.Upload.ID)
+		exists, tusReq := tusService.UploadExists(ctx, handlr.StorageProtocol(), info.Upload.ID)
 		if !exists {
 			return // Not our upload, nothing to do
 		}
