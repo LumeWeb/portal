@@ -304,20 +304,20 @@ func (h *TUSOperationHandler) Execute(ctx context.Context, req *models.Request) 
 }
 
 // GetStatus gets the status of a TUS upload request
-func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request) (core.RequestStatus, error) {
+func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request) (*core.RequestStatus, error) {
 	// Get the TUS upload data
 	data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
 	if err != nil {
-		return core.RequestStatus{}, err
+		return nil, err
 	}
 
 	tusReq, ok := data.(*models.TUSRequest)
 	if !ok {
-		return core.RequestStatus{}, errors.New("invalid request data type")
+		return nil, errors.New("invalid request data type")
 	}
 
 	status := core.RequestStatus{
-		State:   string(req.Status),
+		State:   req.Status,
 		Message: req.StatusMessage,
 	}
 
@@ -329,7 +329,7 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 		status.ProgressPercent = 50
 	}
 
-	return status, nil
+	return &status, nil
 }
 
 // Cleanup handles any necessary cleanup after the operation completes or fails

@@ -59,11 +59,11 @@ type RequestFilter struct {
 }
 
 type RequestStatus struct {
-	State           string    // e.g., "pending", "processing", "completed", "failed"
-	ProgressPercent float64   // 0-100 completion percentage
-	Message         string    // Human-readable status message
-	UpdatedAt       time.Time // When status was last updated
-	Error           error     // Error if operation failed
+	State           models.RequestStatusType // e.g., "pending", "processing", "completed", "failed"
+	ProgressPercent float64                  // 0-100 completion percentage
+	Message         string                   // Human-readable status message
+	UpdatedAt       time.Time                // When status was last updated
+	Error           error                    // Error if operation failed
 }
 
 // GetDefaultStatusMessage returns the default status message for a given request status

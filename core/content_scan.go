@@ -121,9 +121,9 @@ func (h *noopScanHandler) Cleanup(ctx context.Context, req *models.Request) erro
 	return nil
 }
 
-func (h *noopScanHandler) GetStatus(ctx context.Context, req *models.Request) (RequestStatus, error) {
-	return RequestStatus{
-		State:   string(models.RequestStatusCompleted),
+func (h *noopScanHandler) GetStatus(ctx context.Context, req *models.Request) (*RequestStatus, error) {
+	return &RequestStatus{
+		State:   models.RequestStatusCompleted,
 		Message: "No-op scan completed",
 	}, nil
 }

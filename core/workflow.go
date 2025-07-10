@@ -27,7 +27,7 @@ type WorkflowCoordinator interface {
 	// Disable a workflow by name (primarily for testing)
 	DisableWorkflow(name string) error
 
-	// Enable a workflow by name (primarily for testing) 
+	// Enable a workflow by name (primarily for testing)
 	EnableWorkflow(name string) error
 
 	// Start a new workflow instance
@@ -329,7 +329,7 @@ type WorkflowStatus struct {
 	WorkflowName  string
 	CurrentStep   int
 	TotalSteps    int
-	Status        string
+	Status        models.RequestStatusType
 	Progress      float64
 	CurrentStepID uint
 	PreviousSteps []uint

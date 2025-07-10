@@ -45,9 +45,9 @@ func (wt *WorkflowTest) StartWorkflow(workflowName string, opts ...core.Workflow
 
 // AssertRequestStatus asserts that the request has the given status.
 func (wt *WorkflowTest) AssertRequestStatus(requestID uint, expectedStatus models.RequestStatusType) {
-	req, err := wt.requestSvc.GetRequest(wt.Ctx, requestID)
+	req, err := wt.requestSvc.GetRequestStatus(wt.Ctx, requestID, true)
 	require.NoError(wt.TB, err)
-	assert.Equal(wt.TB, expectedStatus, req.Status)
+	assert.EqualValues(wt.TB, expectedStatus, req.State)
 }
 
 // AssertMetadataValue asserts that the metadata contains the given key-value pair.
@@ -86,14 +86,14 @@ func (wt *WorkflowTest) AssertOperationFailed(req *models.Request) {
 
 // AssertOperationStatusMessageContains asserts that the request status message contains the given string.
 func (wt *WorkflowTest) AssertOperationStatusMessageContains(req *models.Request, expectedMessage string) {
-	updatedReq, err := wt.requestSvc.GetRequest(wt.Ctx, req.ID)
+	reqStatus, err := wt.requestSvc.GetRequestStatus(wt.Ctx, req.ID, true)
 	require.NoError(wt.TB, err)
-	assert.Contains(wt.TB, updatedReq.StatusMessage, expectedMessage)
+	assert.Contains(wt.TB, reqStatus.Message, expectedMessage)
 }
 
 // AssertOperationStatusProgress asserts that the request status progress is equal to the given value.
 func (wt *WorkflowTest) AssertOperationStatusProgress(req *models.Request, expectedProgress float64) {
-	updatedReq, err := wt.requestSvc.GetRequestStatus(wt.Ctx, req.ID)
+	updatedReq, err := wt.requestSvc.GetRequestStatus(wt.Ctx, req.ID, true)
 	require.NoError(wt.TB, err)
 	assert.Equal(wt.TB, expectedProgress, updatedReq.ProgressPercent)
 }

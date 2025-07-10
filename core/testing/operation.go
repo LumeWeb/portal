@@ -2,10 +2,10 @@ package testing
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
-	"github.com/stretchr/testify/mock"
 )
 
 // MockOperation implements core.Operation for testing with default expectations
@@ -66,7 +66,7 @@ func (m *MockOperationHandler) Execute(ctx context.Context, req *models.Request)
 }
 
 // GetStatus implements core.OperationHandler
-func (m *MockOperationHandler) GetStatus(ctx context.Context, req *models.Request) (core.RequestStatus, error) {
+func (m *MockOperationHandler) GetStatus(ctx context.Context, req *models.Request) (*core.RequestStatus, error) {
 	if m.getStatusFunc != nil {
 		return m.getStatusFunc(ctx, req)
 	}

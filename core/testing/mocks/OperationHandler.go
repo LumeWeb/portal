@@ -154,22 +154,24 @@ func (_c *MockOperationHandler_Execute_Call) RunAndReturn(run func(ctx context.C
 }
 
 // GetStatus provides a mock function for the type MockOperationHandler
-func (_mock *MockOperationHandler) GetStatus(ctx context.Context, req *models.Request) (core.RequestStatus, error) {
+func (_mock *MockOperationHandler) GetStatus(ctx context.Context, req *models.Request) (*core.RequestStatus, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetStatus")
 	}
 
-	var r0 core.RequestStatus
+	var r0 *core.RequestStatus
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.Request) (core.RequestStatus, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.Request) (*core.RequestStatus, error)); ok {
 		return returnFunc(ctx, req)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.Request) core.RequestStatus); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.Request) *core.RequestStatus); ok {
 		r0 = returnFunc(ctx, req)
 	} else {
-		r0 = ret.Get(0).(core.RequestStatus)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.RequestStatus)
+		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *models.Request) error); ok {
 		r1 = returnFunc(ctx, req)
@@ -209,12 +211,12 @@ func (_c *MockOperationHandler_GetStatus_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockOperationHandler_GetStatus_Call) Return(requestStatus core.RequestStatus, err error) *MockOperationHandler_GetStatus_Call {
+func (_c *MockOperationHandler_GetStatus_Call) Return(requestStatus *core.RequestStatus, err error) *MockOperationHandler_GetStatus_Call {
 	_c.Call.Return(requestStatus, err)
 	return _c
 }
 
-func (_c *MockOperationHandler_GetStatus_Call) RunAndReturn(run func(ctx context.Context, req *models.Request) (core.RequestStatus, error)) *MockOperationHandler_GetStatus_Call {
+func (_c *MockOperationHandler_GetStatus_Call) RunAndReturn(run func(ctx context.Context, req *models.Request) (*core.RequestStatus, error)) *MockOperationHandler_GetStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }

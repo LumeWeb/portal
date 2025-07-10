@@ -683,8 +683,8 @@ func (_c *MockRequestService_GetRequestModel_Call) RunAndReturn(run func(operati
 }
 
 // GetRequestStatus provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) GetRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	ret := _mock.Called(ctx, id)
+func (_mock *MockRequestService) GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
+	ret := _mock.Called(ctx, id, withDeleted)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRequestStatus")
@@ -692,18 +692,18 @@ func (_mock *MockRequestService) GetRequestStatus(ctx context.Context, id uint) 
 
 	var r0 *core.RequestStatus
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.RequestStatus, error)); ok {
-		return returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) (*core.RequestStatus, error)); ok {
+		return returnFunc(ctx, id, withDeleted)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.RequestStatus); ok {
-		r0 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) *core.RequestStatus); ok {
+		r0 = returnFunc(ctx, id, withDeleted)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*core.RequestStatus)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, bool) error); ok {
+		r1 = returnFunc(ctx, id, withDeleted)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -718,11 +718,85 @@ type MockRequestService_GetRequestStatus_Call struct {
 // GetRequestStatus is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) GetRequestStatus(ctx interface{}, id interface{}) *MockRequestService_GetRequestStatus_Call {
-	return &MockRequestService_GetRequestStatus_Call{Call: _e.mock.On("GetRequestStatus", ctx, id)}
+//   - withDeleted bool
+func (_e *MockRequestService_Expecter) GetRequestStatus(ctx interface{}, id interface{}, withDeleted interface{}) *MockRequestService_GetRequestStatus_Call {
+	return &MockRequestService_GetRequestStatus_Call{Call: _e.mock.On("GetRequestStatus", ctx, id, withDeleted)}
 }
 
-func (_c *MockRequestService_GetRequestStatus_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_GetRequestStatus_Call {
+func (_c *MockRequestService_GetRequestStatus_Call) Run(run func(ctx context.Context, id uint, withDeleted bool)) *MockRequestService_GetRequestStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_GetRequestStatus_Call) Return(requestStatus *core.RequestStatus, err error) *MockRequestService_GetRequestStatus_Call {
+	_c.Call.Return(requestStatus, err)
+	return _c
+}
+
+func (_c *MockRequestService_GetRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error)) *MockRequestService_GetRequestStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetRequestWithDeleted provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRequestWithDeleted")
+	}
+
+	var r0 *models.Request
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*models.Request, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *models.Request); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.Request)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRequestService_GetRequestWithDeleted_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRequestWithDeleted'
+type MockRequestService_GetRequestWithDeleted_Call struct {
+	*mock.Call
+}
+
+// GetRequestWithDeleted is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uint
+func (_e *MockRequestService_Expecter) GetRequestWithDeleted(ctx interface{}, id interface{}) *MockRequestService_GetRequestWithDeleted_Call {
+	return &MockRequestService_GetRequestWithDeleted_Call{Call: _e.mock.On("GetRequestWithDeleted", ctx, id)}
+}
+
+func (_c *MockRequestService_GetRequestWithDeleted_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_GetRequestWithDeleted_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -740,12 +814,12 @@ func (_c *MockRequestService_GetRequestStatus_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockRequestService_GetRequestStatus_Call) Return(requestStatus *core.RequestStatus, err error) *MockRequestService_GetRequestStatus_Call {
-	_c.Call.Return(requestStatus, err)
+func (_c *MockRequestService_GetRequestWithDeleted_Call) Return(request *models.Request, err error) *MockRequestService_GetRequestWithDeleted_Call {
+	_c.Call.Return(request, err)
 	return _c
 }
 
-func (_c *MockRequestService_GetRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint) (*core.RequestStatus, error)) *MockRequestService_GetRequestStatus_Call {
+func (_c *MockRequestService_GetRequestWithDeleted_Call) RunAndReturn(run func(ctx context.Context, id uint) (*models.Request, error)) *MockRequestService_GetRequestWithDeleted_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -943,7 +1017,7 @@ func (_c *MockRequestService_ListRequestsByUser_Call) RunAndReturn(run func(ctx 
 }
 
 // QueryRequest provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) QueryRequest(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error) {
+func (_mock *MockRequestService) QueryRequest(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
 	ret := _mock.Called(ctx, query, filter)
 
 	if len(ret) == 0 {
@@ -952,17 +1026,17 @@ func (_mock *MockRequestService) QueryRequest(ctx context.Context, query interfa
 
 	var r0 *models.Request
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, interface{}, core.RequestFilter) (*models.Request, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, core.RequestFilter) (*models.Request, error)); ok {
 		return returnFunc(ctx, query, filter)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, interface{}, core.RequestFilter) *models.Request); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, core.RequestFilter) *models.Request); ok {
 		r0 = returnFunc(ctx, query, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.Request)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, interface{}, core.RequestFilter) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, any, core.RequestFilter) error); ok {
 		r1 = returnFunc(ctx, query, filter)
 	} else {
 		r1 = ret.Error(1)
@@ -977,21 +1051,21 @@ type MockRequestService_QueryRequest_Call struct {
 
 // QueryRequest is a helper method to define mock.On call
 //   - ctx context.Context
-//   - query interface{}
+//   - query any
 //   - filter core.RequestFilter
 func (_e *MockRequestService_Expecter) QueryRequest(ctx interface{}, query interface{}, filter interface{}) *MockRequestService_QueryRequest_Call {
 	return &MockRequestService_QueryRequest_Call{Call: _e.mock.On("QueryRequest", ctx, query, filter)}
 }
 
-func (_c *MockRequestService_QueryRequest_Call) Run(run func(ctx context.Context, query interface{}, filter core.RequestFilter)) *MockRequestService_QueryRequest_Call {
+func (_c *MockRequestService_QueryRequest_Call) Run(run func(ctx context.Context, query any, filter core.RequestFilter)) *MockRequestService_QueryRequest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 interface{}
+		var arg1 any
 		if args[1] != nil {
-			arg1 = args[1].(interface{})
+			arg1 = args[1].(any)
 		}
 		var arg2 core.RequestFilter
 		if args[2] != nil {
@@ -1011,7 +1085,81 @@ func (_c *MockRequestService_QueryRequest_Call) Return(request *models.Request, 
 	return _c
 }
 
-func (_c *MockRequestService_QueryRequest_Call) RunAndReturn(run func(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error)) *MockRequestService_QueryRequest_Call {
+func (_c *MockRequestService_QueryRequest_Call) RunAndReturn(run func(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error)) *MockRequestService_QueryRequest_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// QueryRequestData provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) QueryRequestData(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
+	ret := _mock.Called(ctx, query, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for QueryRequestData")
+	}
+
+	var r0 *models.Request
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, core.RequestFilter) (*models.Request, error)); ok {
+		return returnFunc(ctx, query, filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, core.RequestFilter) *models.Request); ok {
+		r0 = returnFunc(ctx, query, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.Request)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, any, core.RequestFilter) error); ok {
+		r1 = returnFunc(ctx, query, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRequestService_QueryRequestData_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'QueryRequestData'
+type MockRequestService_QueryRequestData_Call struct {
+	*mock.Call
+}
+
+// QueryRequestData is a helper method to define mock.On call
+//   - ctx context.Context
+//   - query any
+//   - filter core.RequestFilter
+func (_e *MockRequestService_Expecter) QueryRequestData(ctx interface{}, query interface{}, filter interface{}) *MockRequestService_QueryRequestData_Call {
+	return &MockRequestService_QueryRequestData_Call{Call: _e.mock.On("QueryRequestData", ctx, query, filter)}
+}
+
+func (_c *MockRequestService_QueryRequestData_Call) Run(run func(ctx context.Context, query any, filter core.RequestFilter)) *MockRequestService_QueryRequestData_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 any
+		if args[1] != nil {
+			arg1 = args[1].(any)
+		}
+		var arg2 core.RequestFilter
+		if args[2] != nil {
+			arg2 = args[2].(core.RequestFilter)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_QueryRequestData_Call) Return(request *models.Request, err error) *MockRequestService_QueryRequestData_Call {
+	_c.Call.Return(request, err)
+	return _c
+}
+
+func (_c *MockRequestService_QueryRequestData_Call) RunAndReturn(run func(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error)) *MockRequestService_QueryRequestData_Call {
 	_c.Call.Return(run)
 	return _c
 }
