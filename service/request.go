@@ -184,7 +184,7 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 	}
 
 	// Update final status
-	return r.UpdateRequestStatus(ctx, id, models.RequestStatusType(status.State), status.Message)
+	return r.UpdateRequestStatus(ctx, id, status.State, status.Message)
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
@@ -359,6 +359,20 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		message = status.Message
 	}
 
+	err = r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
+	if err != nil {
+		return err
+	}
+
+	status, err = r.ComputeRequestStatus(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if status.Message != "" {
+		message = status.Message
+	}
+
 	return r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
 }
 
@@ -464,6 +478,12 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		status.Message = core.GetDefaultStatusMessage(req.Status)
 	} else {
 		status.Message = req.StatusMessage
+	}
+
+	// Get progress percentage from ComputeRequestStatus
+	computedStatus, err := r.ComputeRequestStatus(ctx, id)
+	if err == nil {
+		status.ProgressPercent = computedStatus.ProgressPercent
 	}
 
 	return status, nil
