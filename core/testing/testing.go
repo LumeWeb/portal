@@ -4,7 +4,6 @@ package testing
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/johannesboyne/gofakes3"
@@ -314,13 +313,6 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	// Phases 2 & 3: Configuration & Initialization
 	if err := BootEnvironment(t, ctx); err != nil {
 		t.Fatalf("Failed to boot test environment: %v", err)
-	}
-
-	// Start cron service if enabled
-	if ShouldSetupCron() {
-		if err := StartCron(ctx); err != nil {
-			t.Fatalf("Failed to start cron service: %v", err)
-		}
 	}
 
 	// Run the actual test
@@ -2157,6 +2149,13 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Register workflows from all protocols
 	if err := ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
+	}
+
+	// Start cron service if enabled
+	if ShouldSetupCron() {
+		if err := StartCron(ctx); err != nil {
+			return fmt.Errorf("Failed to start cron service: %v", err)
+		}
 	}
 
 	// Fire boot complete event if enabled
