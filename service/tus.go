@@ -350,13 +350,15 @@ func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) 
 		return errors.New("invalid request data type")
 	}
 
-	proto := h.Protocol()
+	apiName := h.Protocol().Name()
 
-	if _, ok := proto.(core.ProtocolTusHandler); !ok {
-		return fmt.Errorf("Protocol %T does not implement core.ProtocolTusHandler")
+	api := core.GetAPI(apiName)
+
+	if _, ok := api.(core.APITusHandler); !ok {
+		return fmt.Errorf("API %T does not implement core.APITusHandler")
 	}
 
-	tusProto, _ := proto.(core.ProtocolTusHandler)
+	tusProto, _ := api.(core.APITusHandler)
 
 	err = tusProto.GetTusHandler().DeleteUpload(ctx, tusReq.TUSUploadID)
 	if err != nil {
