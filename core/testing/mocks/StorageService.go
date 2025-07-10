@@ -415,6 +415,114 @@ func (_c *MockStorageService_DownloadObjectWithOptions_Call) RunAndReturn(run fu
 	return _c
 }
 
+// GetTemporaryUploadDir provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) GetTemporaryUploadDir(protocol core.StorageProtocol) string {
+	ret := _mock.Called(protocol)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTemporaryUploadDir")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func(core.StorageProtocol) string); ok {
+		r0 = returnFunc(protocol)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockStorageService_GetTemporaryUploadDir_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTemporaryUploadDir'
+type MockStorageService_GetTemporaryUploadDir_Call struct {
+	*mock.Call
+}
+
+// GetTemporaryUploadDir is a helper method to define mock.On call
+//   - protocol core.StorageProtocol
+func (_e *MockStorageService_Expecter) GetTemporaryUploadDir(protocol interface{}) *MockStorageService_GetTemporaryUploadDir_Call {
+	return &MockStorageService_GetTemporaryUploadDir_Call{Call: _e.mock.On("GetTemporaryUploadDir", protocol)}
+}
+
+func (_c *MockStorageService_GetTemporaryUploadDir_Call) Run(run func(protocol core.StorageProtocol)) *MockStorageService_GetTemporaryUploadDir_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.StorageProtocol
+		if args[0] != nil {
+			arg0 = args[0].(core.StorageProtocol)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_GetTemporaryUploadDir_Call) Return(s string) *MockStorageService_GetTemporaryUploadDir_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockStorageService_GetTemporaryUploadDir_Call) RunAndReturn(run func(protocol core.StorageProtocol) string) *MockStorageService_GetTemporaryUploadDir_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetTemporaryUploadPath provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) GetTemporaryUploadPath(protocol core.StorageProtocol, uploadId string) string {
+	ret := _mock.Called(protocol, uploadId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTemporaryUploadPath")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func(core.StorageProtocol, string) string); ok {
+		r0 = returnFunc(protocol, uploadId)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockStorageService_GetTemporaryUploadPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTemporaryUploadPath'
+type MockStorageService_GetTemporaryUploadPath_Call struct {
+	*mock.Call
+}
+
+// GetTemporaryUploadPath is a helper method to define mock.On call
+//   - protocol core.StorageProtocol
+//   - uploadId string
+func (_e *MockStorageService_Expecter) GetTemporaryUploadPath(protocol interface{}, uploadId interface{}) *MockStorageService_GetTemporaryUploadPath_Call {
+	return &MockStorageService_GetTemporaryUploadPath_Call{Call: _e.mock.On("GetTemporaryUploadPath", protocol, uploadId)}
+}
+
+func (_c *MockStorageService_GetTemporaryUploadPath_Call) Run(run func(protocol core.StorageProtocol, uploadId string)) *MockStorageService_GetTemporaryUploadPath_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.StorageProtocol
+		if args[0] != nil {
+			arg0 = args[0].(core.StorageProtocol)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_GetTemporaryUploadPath_Call) Return(s string) *MockStorageService_GetTemporaryUploadPath_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockStorageService_GetTemporaryUploadPath_Call) RunAndReturn(run func(protocol core.StorageProtocol, uploadId string) string) *MockStorageService_GetTemporaryUploadPath_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ID provides a mock function for the type MockStorageService
 func (_mock *MockStorageService) ID() string {
 	ret := _mock.Called()
