@@ -21,7 +21,7 @@ type MockOperationHandler struct {
 	*mocks.MockOperationHandler
 	validateRequestFunc func(ctx context.Context, req *models.Request) error
 	executeFunc         func(ctx context.Context, req *models.Request) error
-	getStatusFunc       func(ctx context.Context, req *models.Request) (core.RequestStatus, error)
+	getStatusFunc       func(ctx context.Context, req *models.Request) (*core.RequestStatus, error)
 	cleanupFunc         func(ctx context.Context, req *models.Request) error
 }
 
@@ -143,7 +143,7 @@ func (m *MockOperationHandler) WithExecute(f func(ctx context.Context, req *mode
 }
 
 // WithGetStatus sets a custom GetStatus function for the MockOperationHandler
-func (m *MockOperationHandler) WithGetStatus(f func(ctx context.Context, req *models.Request) (core.RequestStatus, error)) *MockOperationHandler {
+func (m *MockOperationHandler) WithGetStatus(f func(ctx context.Context, req *models.Request) (*core.RequestStatus, error)) *MockOperationHandler {
 	m.getStatusFunc = f
 	return m
 }

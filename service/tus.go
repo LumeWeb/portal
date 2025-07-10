@@ -193,6 +193,23 @@ func (t *TUSServiceDefault) UploadProgress(ctx context.Context, protocol core.St
 	return t.requests.UpdateRequestData(ctx, req, upload)
 }
 
+func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+
+	if !exists {
+		return core.ErrUploadNotFound
+	}
+
+	upload.UpdatedAt = time.Now()
+	upload.Completed = true
+
+	req, err := t.requests.GetRequest(ctx, upload.RequestID)
+	if err != nil {
+		return err
+	}
+	return t.requests.UpdateRequestData(ctx, req, upload)
+}
+
 func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
 	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
@@ -316,10 +333,7 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 		return nil, errors.New("invalid request data type")
 	}
 
-	status := core.RequestStatus{
-		State:   req.Status,
-		Message: req.StatusMessage,
-	}
+	status := core.RequestStatus{}
 
 	// If completed, set progress to 100%
 	if req.Status == models.RequestStatusCompleted || tusReq.Completed {
@@ -359,6 +373,19 @@ func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) 
 	}
 
 	tusProto, _ := api.(core.APITusHandler)
+
+	tusSvc := core.GetService[core.TUSService](h.Context(), core.TUS_SERVICE)
+
+	proto := h.Protocol()
+	sproto, ok := proto.(core.StorageProtocol)
+	if !ok {
+		return fmt.Errorf("Protocol %T does not implement core.StorageProtocol")
+	}
+
+	err = tusSvc.UploadCompleted(ctx, sproto, tusReq.TUSUploadID)
+	if err != nil {
+		return err
+	}
 
 	err = tusProto.GetTusHandler().DeleteUpload(ctx, tusReq.TUSUploadID)
 	if err != nil {

@@ -97,6 +97,142 @@ func (_c *MockRequestService_CompleteRequest_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// ComputeRequestStatus provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) ComputeRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ComputeRequestStatus")
+	}
+
+	var r0 *core.RequestStatus
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.RequestStatus, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.RequestStatus); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.RequestStatus)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRequestService_ComputeRequestStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ComputeRequestStatus'
+type MockRequestService_ComputeRequestStatus_Call struct {
+	*mock.Call
+}
+
+// ComputeRequestStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uint
+func (_e *MockRequestService_Expecter) ComputeRequestStatus(ctx interface{}, id interface{}) *MockRequestService_ComputeRequestStatus_Call {
+	return &MockRequestService_ComputeRequestStatus_Call{Call: _e.mock.On("ComputeRequestStatus", ctx, id)}
+}
+
+func (_c *MockRequestService_ComputeRequestStatus_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_ComputeRequestStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_ComputeRequestStatus_Call) Return(requestStatus *core.RequestStatus, err error) *MockRequestService_ComputeRequestStatus_Call {
+	_c.Call.Return(requestStatus, err)
+	return _c
+}
+
+func (_c *MockRequestService_ComputeRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ComputeRequestStatusWithDeleted provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) ComputeRequestStatusWithDeleted(ctx context.Context, id uint) (*core.RequestStatus, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ComputeRequestStatusWithDeleted")
+	}
+
+	var r0 *core.RequestStatus
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.RequestStatus, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.RequestStatus); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.RequestStatus)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRequestService_ComputeRequestStatusWithDeleted_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ComputeRequestStatusWithDeleted'
+type MockRequestService_ComputeRequestStatusWithDeleted_Call struct {
+	*mock.Call
+}
+
+// ComputeRequestStatusWithDeleted is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uint
+func (_e *MockRequestService_Expecter) ComputeRequestStatusWithDeleted(ctx interface{}, id interface{}) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+	return &MockRequestService_ComputeRequestStatusWithDeleted_Call{Call: _e.mock.On("ComputeRequestStatusWithDeleted", ctx, id)}
+}
+
+func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Return(requestStatus *core.RequestStatus, err error) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+	_c.Call.Return(requestStatus, err)
+	return _c
+}
+
+func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) RunAndReturn(run func(ctx context.Context, id uint) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateRequest provides a mock function for the type MockRequestService
 func (_mock *MockRequestService) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
 	ret := _mock.Called(ctx, req, data)

@@ -307,6 +307,69 @@ func (_c *MockTUSService_SetHash_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
+// UploadCompleted provides a mock function for the type MockTUSService
+func (_mock *MockTUSService) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ret := _mock.Called(ctx, protocol, uploadID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UploadCompleted")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r0 = returnFunc(ctx, protocol, uploadID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockTUSService_UploadCompleted_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UploadCompleted'
+type MockTUSService_UploadCompleted_Call struct {
+	*mock.Call
+}
+
+// UploadCompleted is a helper method to define mock.On call
+//   - ctx context.Context
+//   - protocol core.StorageProtocol
+//   - uploadID string
+func (_e *MockTUSService_Expecter) UploadCompleted(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadCompleted_Call {
+	return &MockTUSService_UploadCompleted_Call{Call: _e.mock.On("UploadCompleted", ctx, protocol, uploadID)}
+}
+
+func (_c *MockTUSService_UploadCompleted_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string)) *MockTUSService_UploadCompleted_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.StorageProtocol
+		if args[1] != nil {
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTUSService_UploadCompleted_Call) Return(err error) *MockTUSService_UploadCompleted_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockTUSService_UploadCompleted_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadID string) error) *MockTUSService_UploadCompleted_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UploadExists provides a mock function for the type MockTUSService
 func (_mock *MockTUSService) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
 	ret := _mock.Called(ctx, protocol, id)

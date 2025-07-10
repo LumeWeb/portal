@@ -388,7 +388,22 @@ func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason
 }
 
 func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	req, err := r.GetRequest(ctx, id)
+	return r.computeRequestStatus(ctx, id, false)
+}
+
+func (r *RequestServiceDefault) ComputeRequestStatusWithDeleted(ctx context.Context, id uint) (*core.RequestStatus, error) {
+	return r.computeRequestStatus(ctx, id, true)
+}
+
+func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
+	var req *models.Request
+	var err error
+
+	if withDeleted {
+		req, err = r.GetRequestWithDeleted(ctx, id)
+	} else {
+		req, err = r.GetRequest(ctx, id)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -480,8 +495,13 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		status.Message = req.StatusMessage
 	}
 
-	// Get progress percentage from ComputeRequestStatus
-	computedStatus, err := r.ComputeRequestStatus(ctx, id)
+	// Get progress percentage
+	var computedStatus *core.RequestStatus
+	if withDeleted {
+		computedStatus, err = r.ComputeRequestStatusWithDeleted(ctx, id)
+	} else {
+		computedStatus, err = r.ComputeRequestStatus(ctx, id)
+	}
 	if err == nil {
 		status.ProgressPercent = computedStatus.ProgressPercent
 	}
