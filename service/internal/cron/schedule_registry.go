@@ -180,7 +180,7 @@ func (r *DefaultScheduleRegistry) createHourlyJob(def core.CronScheduleDefinitio
 
 func (r *DefaultScheduleRegistry) createOnceJob(def core.CronScheduleDefinition) (gocron.JobDefinition, error) {
 	if def.AtTime.IsZero() {
-		return nil, fmt.Errorf("once jobs require an execution time")
+		def.AtTime = time.Now().Add(10 * time.Second)
 	}
 
 	return gocron.OneTimeJob(gocron.OneTimeJobStartDateTime(def.AtTime)), nil
