@@ -188,10 +188,22 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
+	return r.getRequest(ctx, id, false)
+}
+
+func (r *RequestServiceDefault) GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error) {
+	return r.getRequest(ctx, id, true)
+}
+
+func (r *RequestServiceDefault) getRequest(ctx context.Context, id uint, withDeleted bool) (*models.Request, error) {
 	var req models.Request
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).First(&req, id)
+			query := db.WithContext(ctx)
+			if withDeleted {
+				query = query.Unscoped()
+			}
+			return query.First(&req, id)
 		})
 	})
 	if err != nil {
@@ -419,8 +431,15 @@ func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models
 	return nil
 }
 
-func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	req, err := r.GetRequest(ctx, id)
+func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
+	var req *models.Request
+	var err error
+	
+	if withDeleted {
+		req, err = r.GetRequestWithDeleted(ctx, id)
+	} else {
+		req, err = r.GetRequest(ctx, id)
+	}
 	if err != nil {
 		return nil, err
 	}

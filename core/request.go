@@ -40,11 +40,11 @@ type RequestService interface {
 	UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error
 	CompleteRequest(ctx context.Context, id uint) error
 	FailRequest(ctx context.Context, id uint, reason string) error
-	GetRequestStatus(ctx context.Context, id uint) (*RequestStatus, error)
+	GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*RequestStatus, error)
 
 	// Utility operations
 	RequestExists(ctx context.Context, id uint) (bool, error)
-
+	GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error)
 	ExecuteRequest(ctx context.Context, id uint) error
 
 	Service
