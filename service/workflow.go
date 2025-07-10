@@ -545,7 +545,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 	}
 
 	// Get detailed request status
-	reqStatus, err := w.requestSvc.GetRequestStatus(ctx, requestID)
+	reqStatus, err := w.requestSvc.GetRequestStatus(ctx, requestID, true)
 	if err != nil {
 		return nil, err
 	}

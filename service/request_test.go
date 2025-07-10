@@ -187,7 +187,7 @@ func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 2. Get the request status
-		status, err := requestService.GetRequestStatus(context.Background(), req.ID)
+		status, err := requestService.GetRequestStatus(context.Background(), req.ID, true)
 		require.NoError(tb, err)
 		assert.NotNil(tb, status)
 		assert.Equal(tb, string(req.Status), status.State)
