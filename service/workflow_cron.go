@@ -20,7 +20,7 @@ func newWorkflowStepExecutorJob() *workflowStepExecutorJob {
 			core.JobOriginCore,
 			workflowStepExecutorJobType,
 			"Workflow Step Executor",
-			nil,
+			core.NewCronScheduleDefinition(core.CronScheduleTypeOnce),
 			nil,
 		),
 	}
