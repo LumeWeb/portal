@@ -12,8 +12,8 @@ const (
 )
 
 var (
-	errorRegistry     = NewErrorRegistry()
-	errorRegistryMu   sync.RWMutex
+	errorRegistry   = NewErrorRegistry()
+	errorRegistryMu sync.RWMutex
 )
 
 var _ error = (*Error)(nil)
@@ -24,8 +24,8 @@ type ErrorType string
 
 // ErrorRegistry manages error types and their associated data.
 type ErrorRegistry struct {
-	mu                sync.RWMutex
-	namespaces        map[string]ErrorNamespace // Namespace -> ErrorNamespace
+	mu         sync.RWMutex
+	namespaces map[string]ErrorNamespace // Namespace -> ErrorNamespace
 }
 
 // ErrorNamespace holds the error definitions and HTTP status codes for a namespace.
@@ -38,16 +38,16 @@ type ErrorNamespace struct {
 type ErrorDefinition struct {
 	Key         ErrorType
 	Message     string
-	DefaultArgs []interface{} // Optional default arguments for the error message
+	DefaultArgs []any // Optional default arguments for the error message
 }
 
 // Error is the error object that will be returned.
 type Error struct {
-	Key       ErrorType     `json:"error"`     // A unique identifier for the error type
-	Message   string        `json:"message"`   // Human-readable error message
-	Err       error         `json:"-"`         // Underlying error, if any
-	Args      []interface{} `json:"-"`         // Arguments used to format the error message
-	Namespace string        `json:"namespace"` // The namespace of the error
+	Key       ErrorType `json:"error"`     // A unique identifier for the error type
+	Message   string    `json:"message"`   // Human-readable error message
+	Err       error     `json:"-"`         // Underlying error, if any
+	Args      []any     `json:"-"`         // Arguments used to format the error message
+	Namespace string    `json:"namespace"` // The namespace of the error
 }
 
 // Error implements the error interface.
@@ -81,7 +81,7 @@ func (e *Error) IsErrorType(errType ErrorType) bool {
 // NewErrorRegistry creates a new ErrorRegistry.
 func NewErrorRegistry() *ErrorRegistry {
 	return &ErrorRegistry{
-		namespaces:        make(map[string]ErrorNamespace),
+		namespaces: make(map[string]ErrorNamespace),
 	}
 }
 
@@ -173,7 +173,7 @@ func (r *ErrorRegistry) GetErrorCode(namespace string, key ErrorType) (int, bool
 }
 
 // NewError creates a new Error instance.  It formats the error message using the ErrorDefinition and provided arguments.
-func (r *ErrorRegistry) NewError(namespace string, key ErrorType, err error, args ...interface{}) *Error {
+func (r *ErrorRegistry) NewError(namespace string, key ErrorType, err error, args ...any) *Error {
 	def, ok := r.GetErrorDefinition(namespace, key)
 	if !ok {
 		// Handle the case where the error type is not registered.  This is important!
@@ -275,4 +275,12 @@ func ResetErrorRegistry() {
 	errorRegistryMu.Lock()
 	defer errorRegistryMu.Unlock()
 	errorRegistry = NewErrorRegistry()
+}
+
+// NewError creates a new Error instance using the global error registry.
+// It formats the error message using the ErrorDefinition and provided arguments.
+func NewError(namespace string, key ErrorType, err error, args ...any) *Error {
+	errorRegistryMu.RLock()
+	defer errorRegistryMu.RUnlock()
+	return errorRegistry.NewError(namespace, key, err, args...)
 }
