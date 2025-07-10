@@ -290,6 +290,7 @@ func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
 	}
 
 	store := s3store.New(t.config.Config().Core.Storage.S3.BufferBucket, s3Client)
+	store.ObjectPrefix = fmt.Sprintf("%s/%s", core.TEMPORARY_UPLOADS_PATH, t.handlerConfig.Protocol.(core.StorageProtocol).Name())
 
 	composer := handler.NewStoreComposer()
 	store.UseIn(composer)
