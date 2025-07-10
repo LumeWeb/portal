@@ -28,42 +28,33 @@ type CtxRangeKeyType string
 
 const CtxRangeKey CtxRangeKeyType = "range"
 
-type preUploadCreateCallback func(hook handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error)
-type UploadCreatedVerifyFunc func(hook handler.HookEvent, uploaderId uint) (core.StorageHash, error)
-type UploadCreatedAfterFunc func(requestId uint) error
+var _ core.TusHandler = (*TusHandlerDefault)(nil)
 
-type UploadCallbackHandler func(*TusHandler, handler.HookEvent)
-
-type TusHandler struct {
-	handlerConfig   HandlerConfig
-	ctx             core.Context
-	db              *gorm.DB
-	config          config.Manager
-	logger          *core.Logger
-	tusService      core.TUSService
-	cron            core.CronService
-	storage         core.StorageService
-	users           core.UserService
-	metadata        core.UploadService
-	requests        core.RequestService
-	tus             *handler.Handler
-	tusStore        handler.DataStore
-	s3Client        *s3.Client
-	storageProtocol core.StorageProtocol
+type TusHandlerDefault struct {
+	handlerConfig core.TUSHandlerConfig
+	ctx           core.Context
+	db            *gorm.DB
+	config        config.Manager
+	logger        *core.Logger
+	tusService    core.TUSService
+	cron          core.CronService
+	storage       core.StorageService
+	users         core.UserService
+	metadata      core.UploadService
+	requests      core.RequestService
+	tus           *handler.Handler
+	tusStore      handler.DataStore
+	s3Client      *s3.Client
 }
 
-type HandlerConfig struct {
-	BasePath                string
-	PreUpload               preUploadCreateCallback
-	CreatedUploadHandler    UploadCallbackHandler
-	UploadProgressHandler   UploadCallbackHandler
-	TerminatedUploadHandler UploadCallbackHandler
-	CompletedUploadHandler  UploadCallbackHandler
+func (t *TusHandlerDefault) GetTusHandler() *handler.Handler {
+	return t.tus
 }
 
 func NewTusHandler(
-	ctx core.Context, handlerConfig HandlerConfig) (*TusHandler, error) {
-	th := &TusHandler{
+	ctx core.Context, handlerConfig core.TUSHandlerConfig) (*TusHandlerDefault, error) {
+
+	th := &TusHandlerDefault{
 		handlerConfig: handlerConfig,
 		ctx:           ctx,
 		db:            ctx.DB(),
@@ -85,7 +76,7 @@ func NewTusHandler(
 	return th, nil
 }
 
-func (t *TusHandler) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
+func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
 	var upload handler.Upload
 
 	switch v := identifier.(type) {
@@ -140,7 +131,7 @@ func (t *TusHandler) UploadReader(ctx context.Context, identifier any, protocol 
 	return reader, nil
 }
 
-func (t *TusHandler) UploadSize(ctx context.Context, protocol core.StorageProtocol, identifier any) (uint64, error) {
+func (t *TusHandlerDefault) UploadSize(ctx context.Context, protocol core.StorageProtocol, identifier any) (uint64, error) {
 	var exists bool
 	var _upload *models.TUSRequest
 
@@ -170,7 +161,7 @@ func (t *TusHandler) UploadSize(ctx context.Context, protocol core.StorageProtoc
 	return uint64(info.Size), nil
 }
 
-func (t *TusHandler) SetupRoute(router router.Router, subdomain string, authRequired bool, twoFARequired bool, path string) error {
+func (t *TusHandlerDefault) SetupRoute(router router.Router, subdomain string, authRequired bool, twoFARequired bool, path string) error {
 	return tus.RegisterTusRoutes(
 		t.ctx,
 		router,
@@ -182,52 +173,24 @@ func (t *TusHandler) SetupRoute(router router.Router, subdomain string, authRequ
 		twoFARequired,
 	)
 }
+func (t *TusHandlerDefault) StorageProtocol() (core.StorageProtocol, error) {
+	if sp, ok := t.handlerConfig.Protocol.(core.StorageProtocol); ok {
+		return sp, nil
+	}
 
-func (t *TusHandler) SetStorageProtocol(storageProtocol core.StorageProtocol) {
-	t.storageProtocol = storageProtocol
+	if t.handlerConfig.Protocol == nil {
+		return nil, fmt.Errorf("storage protocol not initialized")
+	}
+
+	return nil, fmt.Errorf("protocol %T does not implement core.StorageProtocol", t.handlerConfig.Protocol)
 }
 
-func (t *TusHandler) StorageProtocol() core.StorageProtocol {
-	return t.storageProtocol
-}
-
-func (t *TusHandler) HandleEventResponseError(message string, httpCode int, hook handler.HookEvent) {
+func (t *TusHandlerDefault) HandleEventResponseError(message string, httpCode int, hook handler.HookEvent) {
 	resp := handler.HTTPResponse{StatusCode: httpCode, Header: nil, Body: message}
 	hook.Upload.StopUpload(resp)
 }
 
-func (t *TusHandler) CompleteUpload(ctx context.Context, protocol core.StorageProtocol, identifier any) error {
-	var exists bool
-	var _upload *models.TUSRequest
-
-	switch v := identifier.(type) {
-	case core.StorageHash:
-		exists, _upload = t.tusService.UploadHashExists(ctx, protocol, v)
-	case string:
-		exists, _upload = t.tusService.UploadExists(ctx, protocol, v)
-	default:
-		return fmt.Errorf("invalid identifier type")
-	}
-
-	if !exists {
-		return gorm.ErrRecordNotFound
-	}
-
-	err := t.tusService.UploadCompleted(ctx, protocol, _upload.TUSUploadID)
-	if err != nil {
-		return err
-	}
-
-	err = t.deleteUpload(ctx, _upload.TUSUploadID)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (t *TusHandler) FailUploadById(ctx context.Context, protocol core.StorageProtocol, id string) error {
+func (t *TusHandlerDefault) FailUploadById(ctx context.Context, protocol core.StorageProtocol, id string) error {
 	exists, upload := t.tusService.UploadExists(ctx, protocol, id)
 
 	if !exists {
@@ -244,7 +207,7 @@ func (t *TusHandler) FailUploadById(ctx context.Context, protocol core.StoragePr
 		return err
 	}
 
-	err = t.deleteUpload(ctx, id)
+	err = t.DeleteUpload(ctx, id)
 
 	if err != nil {
 		return err
@@ -253,8 +216,13 @@ func (t *TusHandler) FailUploadById(ctx context.Context, protocol core.StoragePr
 	return nil
 }
 
-func (t *TusHandler) SetHashById(ctx context.Context, id string, hash core.StorageHash) error {
-	err := t.tusService.SetHash(ctx, t.storageProtocol, id, hash)
+func (t *TusHandlerDefault) SetHashById(ctx context.Context, id string, hash core.StorageHash) error {
+	sp, err := t.StorageProtocol()
+	if err != nil {
+		return err
+	}
+
+	err = t.tusService.SetHash(ctx, sp, id, hash)
 	if err != nil {
 		return err
 	}
@@ -263,7 +231,7 @@ func (t *TusHandler) SetHashById(ctx context.Context, id string, hash core.Stora
 
 }
 
-func (t *TusHandler) deleteUpload(ctx context.Context, id string) error {
+func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 	objectId, _ := splitIds(id)
 
 	// Try both IDs for each file type
@@ -306,7 +274,16 @@ func (t *TusHandler) deleteUpload(ctx context.Context, id string) error {
 	return nil
 }
 
-func (t *TusHandler) init(handlerConfig HandlerConfig) error {
+func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
+	// Validate handler config
+	if t.handlerConfig.Protocol == nil {
+		return fmt.Errorf("handler config Protocol cannot be nil")
+	}
+
+	if _, ok := t.handlerConfig.Protocol.(core.StorageProtocol); !ok {
+		return fmt.Errorf("handler config Protocol must implement core.StorageProtocol")
+	}
+
 	s3Client, err := t.storage.S3Client(context.Background())
 	if err != nil {
 		return err
@@ -350,7 +327,7 @@ func (t *TusHandler) init(handlerConfig HandlerConfig) error {
 
 	return nil
 }
-func (t *TusHandler) worker() {
+func (t *TusHandlerDefault) worker() {
 	ctx := t.ctx
 
 	// Handle created uploads
@@ -454,8 +431,8 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 	return nil, nil
 }
 
-func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) UploadCallbackHandler {
-	return func(handlr *TusHandler, hook handler.HookEvent) {
+func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc core.TUSUploadCreatedVerifyFunc, afterFunc core.TUSUploadCreatedAfterFunc) core.TUSUploadCallbackHandler {
+	return func(handlr core.TusHandler, hook handler.HookEvent) {
 		var errMessage string
 
 		echoCtx, ok := getEchoContext(hook.Context)
@@ -490,7 +467,15 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 
 		uploaderIP := hook.HTTPRequest.RemoteAddr
 
-		req, err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, handlr.StorageProtocol())
+		sp, err := handlr.StorageProtocol()
+		if err != nil {
+			errMessage = "Failed to get storage protocol"
+			handlr.HandleEventResponseError(errMessage, http.StatusBadRequest, hook)
+			ctx.Logger().Error(errMessage, zap.Error(err))
+			return
+		}
+
+		req, err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).CreateUpload(ctx, hash, hook.Upload.ID, uploaderID, uploaderIP, sp)
 		if err != nil {
 			errMessage = "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -508,9 +493,16 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc UploadCreatedVerif
 	}
 }
 
-func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
-	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, handlr.StorageProtocol(), hook.Upload.ID)
+func DefaultUploadProgressHandler(ctx core.Context) core.TUSUploadCallbackHandler {
+	return func(handlr core.TusHandler, hook handler.HookEvent) {
+		sp, err := handlr.StorageProtocol()
+		if err != nil {
+			errMessage := "Failed to get storage protocol"
+			handlr.HandleEventResponseError(errMessage, http.StatusBadRequest, hook)
+			ctx.Logger().Error(errMessage, zap.Error(err))
+			return
+		}
+		err = core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProgress(ctx, sp, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload progress"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -519,9 +511,16 @@ func DefaultUploadProgressHandler(ctx core.Context) UploadCallbackHandler {
 	}
 }
 
-func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
-	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := handlr.FailUploadById(ctx, handlr.StorageProtocol(), hook.Upload.ID)
+func DefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackHandler {
+	return func(handlr core.TusHandler, hook handler.HookEvent) {
+		sp, err := handlr.StorageProtocol()
+		if err != nil {
+			errMessage := "Failed to get storage protocol"
+			handlr.HandleEventResponseError(errMessage, http.StatusBadRequest, hook)
+			ctx.Logger().Error(errMessage, zap.Error(err))
+			return
+		}
+		err = handlr.FailUploadById(ctx, sp, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -530,9 +529,16 @@ func DefaultUploadTerminatedHandler(ctx core.Context) UploadCallbackHandler {
 	}
 }
 
-func DefaultUploadCompletedHandler(ctx core.Context, processHandler UploadCallbackHandler) UploadCallbackHandler {
-	return func(handlr *TusHandler, hook handler.HookEvent) {
-		err := core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, handlr.StorageProtocol(), hook.Upload.ID)
+func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler) core.TUSUploadCallbackHandler {
+	return func(handlr core.TusHandler, hook handler.HookEvent) {
+		sp, err := handlr.StorageProtocol()
+		if err != nil {
+			errMessage := "Failed to get storage protocol"
+			handlr.HandleEventResponseError(errMessage, http.StatusBadRequest, hook)
+			ctx.Logger().Error(errMessage, zap.Error(err))
+			return
+		}
+		err = core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, sp, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
