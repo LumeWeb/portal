@@ -243,12 +243,12 @@ func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 		// Check main file
 		_, err := t.s3Client.HeadObject(ctx, &s3.HeadObjectInput{
 			Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-			Key:    aws.String(deleteId),
+			Key:    aws.String(t.storage.GetTemporaryUploadPath(t.handlerConfig.Protocol.(core.StorageProtocol), deleteId)),
 		})
 		if err == nil {
 			_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-				Key:    aws.String(deleteId),
+				Key:    aws.String(t.storage.GetTemporaryUploadPath(t.handlerConfig.Protocol.(core.StorageProtocol), deleteId)),
 			})
 			if err != nil {
 				t.logger.Error("failed to delete upload object", zap.Error(err))
@@ -258,12 +258,12 @@ func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 		// Check info file
 		_, err = t.s3Client.HeadObject(ctx, &s3.HeadObjectInput{
 			Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-			Key:    aws.String(deleteId + ".info"),
+			Key:    aws.String(t.storage.GetTemporaryUploadPath(t.handlerConfig.Protocol.(core.StorageProtocol), deleteId+".info")),
 		})
 		if err == nil {
 			_, err = t.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: aws.String(t.config.Config().Core.Storage.S3.BufferBucket),
-				Key:    aws.String(deleteId + ".info"),
+				Key:    aws.String(t.storage.GetTemporaryUploadPath(t.handlerConfig.Protocol.(core.StorageProtocol), deleteId+".info")),
 			})
 			if err != nil {
 				t.logger.Error("failed to delete upload metadata", zap.Error(err))
@@ -290,7 +290,7 @@ func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
 	}
 
 	store := s3store.New(t.config.Config().Core.Storage.S3.BufferBucket, s3Client)
-	store.ObjectPrefix = fmt.Sprintf("%s/%s", core.TEMPORARY_UPLOADS_PATH, t.handlerConfig.Protocol.(core.StorageProtocol).Name())
+	store.ObjectPrefix = t.storage.GetTemporaryUploadDir(t.handlerConfig.Protocol.(core.StorageProtocol))
 
 	composer := handler.NewStoreComposer()
 	store.UseIn(composer)
