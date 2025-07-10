@@ -194,7 +194,7 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 	}
 
 	if err := u.access.AssignRoleToUser(_user.ID, core.ACCESS_USER_ROLE); err != nil {
-		return nil, core.NewAccountError(core.ErrorAssigningUserRoleFailed, err)
+		return nil, core.NewAccountError(core.ErrKeyAssigningUserRoleFailed, err)
 	}
 
 	if err := u.ctx.Fire(event.EVENT_USER_CREATED, event.NewUserCreatedEvent(&_user)); err != nil {

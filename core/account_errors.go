@@ -1,134 +1,231 @@
 package core
 
 import (
-	"fmt"
 	"net/http"
 )
 
-type AccountErrorType string
+const accountErrorNamespace = "account"
+
+type AccountErrorType = ErrorType
 
 const (
 	// Account creation errors
-	ErrKeyAccountCreationFailed AccountErrorType = "ErrAccountCreationFailed"
-	ErrKeyEmailAlreadyExists    AccountErrorType = "ErrEmailAlreadyExists"
-	ErrKeyUpdatingSameEmail     AccountErrorType = "ErrUpdatingSameEmail"
-	ErrKeyPasswordHashingFailed AccountErrorType = "ErrPasswordHashingFailed"
+	ErrKeyAccountCreationFailed ErrorType = "ErrAccountCreationFailed"
+	ErrKeyEmailAlreadyExists    ErrorType = "ErrEmailAlreadyExists"
+	ErrKeyUpdatingSameEmail     ErrorType = "ErrUpdatingSameEmail"
+	ErrKeyPasswordHashingFailed ErrorType = "ErrPasswordHashingFailed"
 
 	// Account role errors
-	ErrKeyAssigningAdminRoleFailed AccountErrorType = "ErrAssigningAdminRoleFailed"
-	ErrorAssigningUserRoleFailed   AccountErrorType = "ErrorAssigningUserRoleFailed"
+	ErrKeyAssigningAdminRoleFailed ErrorType = "ErrAssigningAdminRoleFailed"
+	ErrKeyAssigningUserRoleFailed   ErrorType = "ErrAssigningUserRoleFailed"
 
 	// Account lookup and existence verification errors
-	ErrKeyUserNotFound      AccountErrorType = "ErrUserNotFound"
-	ErrKeyPublicKeyNotFound AccountErrorType = "ErrPublicKeyNotFound"
+	ErrKeyUserNotFound      ErrorType = "ErrUserNotFound"
+	ErrKeyPublicKeyNotFound ErrorType = "ErrPublicKeyNotFound"
 
 	// Account deletion errors
-	ErrKeyAccountDeletionRequestAlreadyExists AccountErrorType = "ErrAccountDeletionRequestAlreadyExists"
+	ErrKeyAccountDeletionRequestAlreadyExists ErrorType = "ErrAccountDeletionRequestAlreadyExists"
 
 	// Authentication and login errors
-	ErrKeyInvalidLogin           AccountErrorType = "ErrInvalidLogin"
-	ErrKeyInvalidPassword        AccountErrorType = "ErrInvalidPassword"
-	ErrKeyInvalidOTPCode         AccountErrorType = "ErrInvalidOTPCode"
-	ErrKeyOTPVerificationFailed  AccountErrorType = "ErrOTPVerificationFailed"
-	ErrKeyLoginFailed            AccountErrorType = "ErrLoginFailed"
-	ErrKeyHashingFailed          AccountErrorType = "ErrHashingFailed"
-	ErrKeyAccountPendingDeletion AccountErrorType = "ErrAccountPendingDeletion"
-	ErrKeyAccountNotVerified     AccountErrorType = "ErrAccountNotVerified"
+	ErrKeyInvalidLogin           ErrorType = "ErrInvalidLogin"
+	ErrKeyInvalidPassword        ErrorType = "ErrInvalidPassword"
+	ErrKeyInvalidOTPCode         ErrorType = "ErrInvalidOTPCode"
+	ErrKeyOTPVerificationFailed  ErrorType = "ErrOTPVerificationFailed"
+	ErrKeyLoginFailed            ErrorType = "ErrLoginFailed"
+	ErrKeyHashingFailed          ErrorType = "ErrHashingFailed"
+	ErrKeyAccountPendingDeletion ErrorType = "ErrAccountPendingDeletion"
+	ErrKeyAccountNotVerified     ErrorType = "ErrAccountNotVerified"
 
 	// Account update errors
-	ErrKeyAccountUpdateFailed    AccountErrorType = "ErrAccountUpdateFailed"
-	ErrKeyAccountAlreadyVerified AccountErrorType = "ErrAccountAlreadyVerified"
+	ErrKeyAccountUpdateFailed    ErrorType = "ErrAccountUpdateFailed"
+	ErrKeyAccountAlreadyVerified ErrorType = "ErrAccountAlreadyVerified"
 
 	// JWT generation errors
-	ErrKeyJWTGenerationFailed AccountErrorType = "ErrJWTGenerationFailed"
+	ErrKeyJWTGenerationFailed ErrorType = "ErrJWTGenerationFailed"
 
 	// OTP management errors
-	ErrKeyOTPGenerationFailed AccountErrorType = "ErrOTPGenerationFailed"
-	ErrKeyOTPEnableFailed     AccountErrorType = "ErrOTPEnableFailed"
-	ErrKeyOTPDisableFailed    AccountErrorType = "ErrOTPDisableFailed"
+	ErrKeyOTPGenerationFailed ErrorType = "ErrOTPGenerationFailed"
+	ErrKeyOTPEnableFailed     ErrorType = "ErrOTPEnableFailed"
+	ErrKeyOTPDisableFailed    ErrorType = "ErrOTPDisableFailed"
 
 	// Public key management errors
-	ErrKeyAddPublicKeyFailed AccountErrorType = "ErrAddPublicKeyFailed"
-	ErrKeyPublicKeyExists    AccountErrorType = "ErrPublicKeyExists"
+	ErrKeyAddPublicKeyFailed ErrorType = "ErrAddPublicKeyFailed"
+	ErrKeyPublicKeyExists    ErrorType = "ErrPublicKeyExists"
 
 	// Pin management errors
-	ErrKeyPinAddFailed        AccountErrorType = "ErrPinAddFailed"
-	ErrKeyPinDeleteFailed     AccountErrorType = "ErrPinDeleteFailed"
-	ErrKeyPinsRetrievalFailed AccountErrorType = "ErrPinsRetrievalFailed"
+	ErrKeyPinAddFailed        ErrorType = "ErrPinAddFailed"
+	ErrKeyPinDeleteFailed     ErrorType = "ErrPinDeleteFailed"
+	ErrKeyPinsRetrievalFailed ErrorType = "ErrPinsRetrievalFailed"
 
 	// General errors
-	ErrKeyDatabaseOperationFailed = "ErrDatabaseOperationFailed"
+	ErrKeyDatabaseOperationFailed ErrorType = "ErrDatabaseOperationFailed"
 
 	// Security token errors
-	ErrKeySecurityTokenExpired AccountErrorType = "ErrSecurityTokenExpired"
-	ErrKeySecurityInvalidToken AccountErrorType = "ErrSecurityInvalidToken"
+	ErrKeySecurityTokenExpired ErrorType = "ErrSecurityTokenExpired"
+	ErrKeySecurityInvalidToken ErrorType = "ErrSecurityInvalidToken"
 
 	// Internal errors
-	ErrKeyAccountSubdomainNotSet AccountErrorType = "ErrAccountSubdomainNotSet"
+	ErrKeyAccountSubdomainNotSet ErrorType = "ErrAccountSubdomainNotSet"
 )
 
-var defaultErrorMessages = map[AccountErrorType]string{
+var defaultAccountErrorMessages = map[ErrorType]ErrorDefinition{
 	// Account creation errors
-	ErrKeyAccountCreationFailed: "Account creation failed due to an internal error.",
-	ErrKeyEmailAlreadyExists:    "The email address provided is already in use.",
-	ErrKeyPasswordHashingFailed: "Failed to secure the password, please try again later.",
-	ErrKeyUpdatingSameEmail:     "The email address provided is the same as your current one.",
+	ErrKeyAccountCreationFailed: {
+		Key:     ErrKeyAccountCreationFailed,
+		Message: "Account creation failed due to an internal error.",
+	},
+	ErrKeyEmailAlreadyExists: {
+		Key:     ErrKeyEmailAlreadyExists,
+		Message: "The email address provided is already in use.",
+	},
+	ErrKeyPasswordHashingFailed: {
+		Key:     ErrKeyPasswordHashingFailed,
+		Message: "Failed to secure the password, please try again later.",
+	},
+	ErrKeyUpdatingSameEmail: {
+		Key:     ErrKeyUpdatingSameEmail,
+		Message: "The email address provided is the same as your current one.",
+	},
 
 	// Account role errors
-	ErrKeyAssigningAdminRoleFailed: "Failed to assign the admin role to the account.",
-	ErrorAssigningUserRoleFailed:   "Failed to assign the user role to the account.",
+	ErrKeyAssigningAdminRoleFailed: {
+		Key:     ErrKeyAssigningAdminRoleFailed,
+		Message: "Failed to assign the admin role to the account.",
+	},
+	ErrKeyAssigningUserRoleFailed: {
+		Key:     ErrKeyAssigningUserRoleFailed,
+		Message: "Failed to assign the user role to the account.",
+	},
 
 	// Account lookup and existence verification errors
-	ErrKeyUserNotFound:      "The requested user was not found.",
-	ErrKeyPublicKeyNotFound: "The specified public key was not found.",
-	ErrKeyHashingFailed:     "Failed to hash the password.",
+	ErrKeyUserNotFound: {
+		Key:     ErrKeyUserNotFound,
+		Message: "The requested user was not found.",
+	},
+	ErrKeyPublicKeyNotFound: {
+		Key:     ErrKeyPublicKeyNotFound,
+		Message: "The specified public key was not found.",
+	},
+	ErrKeyHashingFailed: {
+		Key:     ErrKeyHashingFailed,
+		Message: "Failed to hash the password.",
+	},
 
 	// Account deletion errors
-	ErrKeyAccountDeletionRequestAlreadyExists: "An account deletion request already exists for this account.",
+	ErrKeyAccountDeletionRequestAlreadyExists: {
+		Key:     ErrKeyAccountDeletionRequestAlreadyExists,
+		Message: "An account deletion request already exists for this account.",
+	},
 
 	// Authentication and login errors
-	ErrKeyInvalidLogin:           "The login credentials provided are invalid.",
-	ErrKeyInvalidPassword:        "The password provided is incorrect.",
-	ErrKeyInvalidOTPCode:         "The OTP code provided is invalid or expired.",
-	ErrKeyOTPVerificationFailed:  "OTP verification failed, please try again.",
-	ErrKeyLoginFailed:            "Login failed due to an internal error.",
-	ErrKeyAccountPendingDeletion: "This account is pending deletion.",
-	ErrKeyAccountNotVerified:     "The account is not verified.",
+	ErrKeyInvalidLogin: {
+		Key:     ErrKeyInvalidLogin,
+		Message: "The login credentials provided are invalid.",
+	},
+	ErrKeyInvalidPassword: {
+		Key:     ErrKeyInvalidPassword,
+		Message: "The password provided is incorrect.",
+	},
+	ErrKeyInvalidOTPCode: {
+		Key:     ErrKeyInvalidOTPCode,
+		Message: "The OTP code provided is invalid or expired.",
+	},
+	ErrKeyOTPVerificationFailed: {
+		Key:     ErrKeyOTPVerificationFailed,
+		Message: "OTP verification failed, please try again.",
+	},
+	ErrKeyLoginFailed: {
+		Key:     ErrKeyLoginFailed,
+		Message: "Login failed due to an internal error.",
+	},
+	ErrKeyAccountPendingDeletion: {
+		Key:     ErrKeyAccountPendingDeletion,
+		Message: "This account is pending deletion.",
+	},
+	ErrKeyAccountNotVerified: {
+		Key:     ErrKeyAccountNotVerified,
+		Message: "The account is not verified.",
+	},
 
 	// Account update errors
-	ErrKeyAccountUpdateFailed:    "Failed to update account information.",
-	ErrKeyAccountAlreadyVerified: "Account is already verified.",
+	ErrKeyAccountUpdateFailed: {
+		Key:     ErrKeyAccountUpdateFailed,
+		Message: "Failed to update account information.",
+	},
+	ErrKeyAccountAlreadyVerified: {
+		Key:     ErrKeyAccountAlreadyVerified,
+		Message: "Account is already verified.",
+	},
 
 	// JWT generation errors
-	ErrKeyJWTGenerationFailed: "Failed to generate a new JWT token.",
+	ErrKeyJWTGenerationFailed: {
+		Key:     ErrKeyJWTGenerationFailed,
+		Message: "Failed to generate a new JWT token.",
+	},
 
 	// OTP management errors
-	ErrKeyOTPGenerationFailed: "Failed to generate a new OTP secret.",
-	ErrKeyOTPEnableFailed:     "Enabling OTP authentication failed.",
-	ErrKeyOTPDisableFailed:    "Disabling OTP authentication failed.",
+	ErrKeyOTPGenerationFailed: {
+		Key:     ErrKeyOTPGenerationFailed,
+		Message: "Failed to generate a new OTP secret.",
+	},
+	ErrKeyOTPEnableFailed: {
+		Key:     ErrKeyOTPEnableFailed,
+		Message: "Enabling OTP authentication failed.",
+	},
+	ErrKeyOTPDisableFailed: {
+		Key:     ErrKeyOTPDisableFailed,
+		Message: "Disabling OTP authentication failed.",
+	},
 
 	// Public key management errors
-	ErrKeyAddPublicKeyFailed: "Adding the public key to the account failed.",
-	ErrKeyPublicKeyExists:    "The public key already exists for this account.",
+	ErrKeyAddPublicKeyFailed: {
+		Key:     ErrKeyAddPublicKeyFailed,
+		Message: "Adding the public key to the account failed.",
+	},
+	ErrKeyPublicKeyExists: {
+		Key:     ErrKeyPublicKeyExists,
+		Message: "The public key already exists for this account.",
+	},
 
 	// Pin management errors
-	ErrKeyPinAddFailed:        "Failed to add the pin.",
-	ErrKeyPinDeleteFailed:     "Failed to delete the pin.",
-	ErrKeyPinsRetrievalFailed: "Failed to retrieve pins.",
+	ErrKeyPinAddFailed: {
+		Key:     ErrKeyPinAddFailed,
+		Message: "Failed to add the pin.",
+	},
+	ErrKeyPinDeleteFailed: {
+		Key:     ErrKeyPinDeleteFailed,
+		Message: "Failed to delete the pin.",
+	},
+	ErrKeyPinsRetrievalFailed: {
+		Key:     ErrKeyPinsRetrievalFailed,
+		Message: "Failed to retrieve pins.",
+	},
 
 	// General errors
-	ErrKeyDatabaseOperationFailed: "A database operation failed.",
+	ErrKeyDatabaseOperationFailed: {
+		Key:     ErrKeyDatabaseOperationFailed,
+		Message: "A database operation failed.",
+	},
 
 	// Security token errors
-	ErrKeySecurityTokenExpired: "The security token has expired.",
-	ErrKeySecurityInvalidToken: "The security token is invalid.",
+	ErrKeySecurityTokenExpired: {
+		Key:     ErrKeySecurityTokenExpired,
+		Message: "The security token has expired.",
+	},
+	ErrKeySecurityInvalidToken: {
+		Key:     ErrKeySecurityInvalidToken,
+		Message: "The security token is invalid.",
+	},
 
 	// Internal errors
-	ErrKeyAccountSubdomainNotSet: "The account subdomain is not set.",
+	ErrKeyAccountSubdomainNotSet: {
+		Key:     ErrKeyAccountSubdomainNotSet,
+		Message: "The account subdomain is not set.",
+	},
 }
 
 var (
-	ErrorCodeToHttpStatus = map[AccountErrorType]int{
+	accountErrorCodeToHttpStatus = map[ErrorType]int{
 		// Account creation errors
 		ErrKeyAccountCreationFailed: http.StatusInternalServerError,
 		ErrKeyEmailAlreadyExists:    http.StatusConflict,
@@ -136,7 +233,7 @@ var (
 
 		// Account role errors
 		ErrKeyAssigningAdminRoleFailed: http.StatusInternalServerError,
-		ErrorAssigningUserRoleFailed:   http.StatusInternalServerError,
+		ErrKeyAssigningUserRoleFailed:   http.StatusInternalServerError,
 
 		// Account lookup and existence verification errors
 		ErrKeyUserNotFound:      http.StatusNotFound,
@@ -188,62 +285,23 @@ var (
 	}
 )
 
-type AccountError struct {
-	Key     AccountErrorType `json:"error"`   // A unique identifier for the error type
-	Message string           `json:"message"` // Human-readable error message
-	Err     error            `json:"-"`       // Underlying error, if any
+func init() {
+	MustRegisterNamespace(accountErrorNamespace)
+	MustRegisterDefaultErrorMessages(accountErrorNamespace, defaultAccountErrorMessages)
+	MustRegisterErrorCodes(accountErrorNamespace, accountErrorCodeToHttpStatus)
 }
 
-func (e *AccountError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("%s: %v", e.Message, e.Err)
-	}
-	return e.Message
+// NewAccountError creates a new Error instance using the core error registry.
+func NewAccountError(key ErrorType, err error, args ...interface{}) *Error {
+	return errorRegistry.NewError(accountErrorNamespace, key, err, args...)
 }
 
-func (e *AccountError) IsErrorType(key AccountErrorType) bool {
-	return e.Key == key
-}
-
-func (e *AccountError) HttpStatus() int {
-	if status, exists := ErrorCodeToHttpStatus[e.Key]; exists {
-		return status
-	}
-	return http.StatusInternalServerError
-}
-
-func NewAccountError(key AccountErrorType, err error, customMessage ...string) *AccountError {
-	message, exists := defaultErrorMessages[key]
-	if !exists {
-		message = "An unknown error occurred"
-	}
-	if len(customMessage) > 0 {
-		message = customMessage[0]
-	}
-	return &AccountError{
-		Key:     key,
-		Message: message,
-		Err:     err,
-	}
-}
-
+// IsAccountError checks if the error is an account error.
 func IsAccountError(err error) bool {
-	if err == nil {
-		return false
-	}
-	if _, ok := err.(*AccountError); ok {
-		return true
-	}
-
-	return false
+	return IsNamespaceError(err, accountErrorNamespace)
 }
 
-func AsAccountError(err error) *AccountError {
-	if err == nil {
-		return nil
-	}
-	if e, ok := err.(*AccountError); ok {
-		return e
-	}
-	return nil
+// AsAccountError casts the error to a Error if possible.
+func AsAccountError(err error) *Error {
+	return AsNamespaceError(err, accountErrorNamespace)
 }
