@@ -64,10 +64,6 @@ func (c *CronServiceDefault) initializeComponents(ctx core.Context) error {
 
 	c.monitor = cron.NewDefaultCronMonitor(ctx, c)
 
-	if err = c.loadAndValidateJobs(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -115,10 +111,10 @@ func NewCronService() (core.Service, []core.ContextBuilderOption, error) {
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			return cronService.initializeComponents(ctx)
-		}),
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			return cronService.Start()
+			cronService.ctx = ctx
+			cronService.db = ctx.DB()
+			cronService.logger = ctx.ServiceLogger(cronService)
+			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
 			return cronService.Stop()
@@ -133,11 +129,20 @@ func (c *CronServiceDefault) ID() string {
 }
 
 func (c *CronServiceDefault) Start() error {
+	err := c.initializeComponents(c.ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, service := range c.entities {
 		err := service.RegisterTasks(c)
 		if err != nil {
 			c.logger.Fatal("Failed to register tasks for service", zap.Error(err))
 		}
+	}
+
+	if err = c.loadAndValidateJobs(); err != nil {
+		return err
 	}
 
 	for _, service := range c.entities {
