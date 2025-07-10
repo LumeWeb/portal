@@ -14,12 +14,6 @@ import (
 	"time"
 )
 
-type TusHandlerConfig = tus.HandlerConfig
-type TusHandler = tus.TusHandler
-type TUSUploadCallbackHandler = tus.UploadCallbackHandler
-type TUSUploadCreatedVerifyFunc = tus.UploadCreatedVerifyFunc
-type UploadCreatedAfterFunc = tus.UploadCreatedAfterFunc
-
 var _ core.TUSService = (*TUSServiceDefault)(nil)
 
 func init() {
@@ -209,20 +203,6 @@ func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.
 	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing, "Uploading...")
 }
 
-func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
-
-	if !exists {
-		return core.ErrUploadNotFound
-	}
-
-	if upload.Request.Status == models.RequestStatusDuplicate {
-		return nil
-	}
-
-	return t.requests.CompleteRequest(ctx, upload.RequestID)
-}
-
 func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
 	exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
@@ -256,7 +236,7 @@ func (t *TUSServiceDefault) SetHash(ctx context.Context, protocol core.StoragePr
 	return nil
 }
 
-func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandler, error) {
+func CreateTusHandler(ctx core.Context, config core.TUSHandlerConfig) (*tus.TusHandlerDefault, error) {
 	handler, err := tus.NewTusHandler(ctx, config)
 	if err != nil {
 		ctx.Logger().Error("Failed to create tus handler", zap.Error(err))
@@ -265,11 +245,11 @@ func CreateTusHandler(ctx core.Context, config TusHandlerConfig) (*tus.TusHandle
 
 	return handler, nil
 }
-func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc TUSUploadCreatedVerifyFunc, afterFunc UploadCreatedAfterFunc) TUSUploadCallbackHandler {
+func TUSDefaultUploadCreatedHandler(ctx core.Context, verifyFunc core.TUSUploadCreatedVerifyFunc, afterFunc core.TUSUploadCreatedAfterFunc) core.TUSUploadCallbackHandler {
 	return tus.DefaultUploadCreatedHandler(ctx, verifyFunc, afterFunc)
 }
 
-func TUSDefaultUploadProgressHandler(ctx core.Context) TUSUploadCallbackHandler {
+func TUSDefaultUploadProgressHandler(ctx core.Context) core.TUSUploadCallbackHandler {
 	return tus.DefaultUploadProgressHandler(ctx)
 }
 
@@ -303,18 +283,18 @@ func (h *TUSOperationHandler) ValidateRequest(_ context.Context, _ *models.Reque
 
 // Execute processes a TUS upload request
 func (h *TUSOperationHandler) Execute(ctx context.Context, req *models.Request) error {
-	// Get the TUS upload data
-	data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	tusReq, ok := data.(*models.TUSRequest)
-	if !ok {
-		return errors.New("invalid request data type")
-	}
-
 	if h.handler != nil {
+		// Get the TUS upload data
+		data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		tusReq, ok := data.(*models.TUSRequest)
+		if !ok {
+			return errors.New("invalid request data type")
+		}
+
 		if err = h.handler(ctx, h.OperationHelper, req, tusReq); err != nil {
 			return err
 		}
@@ -353,14 +333,41 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 }
 
 // Cleanup handles any necessary cleanup after the operation completes or fails
-func (h *TUSOperationHandler) Cleanup(_ context.Context, _ *models.Request) error {
-	// For TUS uploads, most cleanup is handled by the TUS server
-	// This is here to satisfy the OperationHandler interface
+func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) error {
+	// Get the TUS upload data
+	data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	_, ok := data.(*models.TUSRequest)
+	if !ok {
+		return errors.New("invalid request data type")
+	}
+
+	tusReq, ok := data.(*models.TUSRequest)
+	if !ok {
+		return errors.New("invalid request data type")
+	}
+
+	proto := h.Protocol()
+
+	if _, ok := proto.(core.ProtocolTusHandler); !ok {
+		return fmt.Errorf("Protocol %T does not implement core.ProtocolTusHandler")
+	}
+
+	tusProto, _ := proto.(core.ProtocolTusHandler)
+
+	err = tusProto.GetTusHandler().DeleteUpload(ctx, tusReq.TUSUploadID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUploadCallbackHandler, workflowName string) TUSUploadCallbackHandler {
-	return func(handlr *tus.TusHandler, info tusHandler.HookEvent) {
+func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler, workflowName string) core.TUSUploadCallbackHandler {
+	return func(handlr core.TusHandler, info tusHandler.HookEvent) {
 		// Call the original handler first
 		processHandler(handlr, info)
 
@@ -421,6 +428,6 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler TUSUpload
 	}
 }
 
-func TUSDefaultUploadTerminatedHandler(ctx core.Context) TUSUploadCallbackHandler {
+func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackHandler {
 	return tus.DefaultUploadTerminatedHandler(ctx)
 }
