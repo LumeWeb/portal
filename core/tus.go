@@ -106,6 +106,9 @@ type TUSService interface {
 	// UploadProcessing marks an upload as being processed
 	UploadProcessing(ctx context.Context, protocol StorageProtocol, uploadID string) error
 
+	// UploadProcessing marks an upload as being completed
+	UploadCompleted(ctx context.Context, protocol StorageProtocol, uploadID string) error
+
 	// DeleteUpload removes an upload record
 	DeleteUpload(ctx context.Context, protocol StorageProtocol, uploadID string) error
 

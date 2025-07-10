@@ -35,7 +35,7 @@ func (oht *OperationHandlerTest) ValidateRequest(request *models.Request) error 
 }
 
 // GetStatus gets the current status of the operation.
-func (oht *OperationHandlerTest) GetStatus(request *models.Request) (core.RequestStatus, error) {
+func (oht *OperationHandlerTest) GetStatus(request *models.Request) (*core.RequestStatus, error) {
 	return oht.Handler.GetStatus(oht.Ctx, request)
 }
 
@@ -87,7 +87,7 @@ func (oht *OperationHandlerTest) ValidateAndAssertSuccess(request *models.Reques
 	oht.AssertNoError(err)
 }
 
-// ValidateAndAssertError validates and asserts error contains message  
+// ValidateAndAssertError validates and asserts error contains message
 func (oht *OperationHandlerTest) ValidateAndAssertError(request *models.Request, expectedError string) {
 	err := oht.ValidateRequest(request)
 	oht.AssertErrorContains(err, expectedError)
