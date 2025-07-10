@@ -58,7 +58,7 @@ type OperationHandler interface {
 	Execute(ctx context.Context, req *models.Request) error
 
 	// Gets current status and progress of an ongoing operation
-	GetStatus(ctx context.Context, req *models.Request) (RequestStatus, error)
+	GetStatus(ctx context.Context, req *models.Request) (*RequestStatus, error)
 
 	// Optional cleanup after operation completes or fails
 	Cleanup(ctx context.Context, req *models.Request) error

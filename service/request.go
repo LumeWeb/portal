@@ -386,22 +386,32 @@ func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uin
 	}
 
 	// Get status from handler if available
-	var status *core.RequestStatus
+	status := &core.RequestStatus{
+		State:     req.Status,
+		UpdatedAt: req.UpdatedAt,
+	}
+
 	if handler != nil {
 		detailedStatus, err := handler.GetStatus(ctx, req)
 		if err != nil {
 			r.logger.Warn("Failed to get detailed status from handler",
 				zap.Error(err), zap.Uint("requestID", req.ID))
-		} else {
-			status = &detailedStatus
-		}
-	}
-
-	// Fall back to basic status from request model if handler didn't provide status
-	if status == nil || status.State == "" {
-		status = &core.RequestStatus{
-			State:     string(req.Status),
-			UpdatedAt: req.UpdatedAt,
+		} else if detailedStatus != nil {
+			if detailedStatus.State != "" {
+				status.State = detailedStatus.State
+			}
+			if detailedStatus.Message != "" {
+				status.Message = detailedStatus.Message
+			}
+			if !detailedStatus.UpdatedAt.IsZero() {
+				status.UpdatedAt = detailedStatus.UpdatedAt
+			}
+			if detailedStatus.ProgressPercent > 0 {
+				status.ProgressPercent = detailedStatus.ProgressPercent
+			}
+			if detailedStatus.Error != nil {
+				status.Error = detailedStatus.Error
+			}
 		}
 	}
 
@@ -434,7 +444,7 @@ func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models
 func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
 	var req *models.Request
 	var err error
-	
+
 	if withDeleted {
 		req, err = r.GetRequestWithDeleted(ctx, id)
 	} else {
@@ -445,7 +455,7 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 	}
 
 	status := &core.RequestStatus{
-		State:     string(req.Status),
+		State:     req.Status,
 		UpdatedAt: req.UpdatedAt,
 	}
 

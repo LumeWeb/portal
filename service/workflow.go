@@ -355,13 +355,13 @@ func (w *WorkflowCoordinatorDefault) parseWorkflowMetadata(metadataJSON datatype
 
 func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
 	// Get current request
-	currentReq, err := w.requestSvc.GetRequest(ctx, requestID)
+	req, err := w.requestSvc.GetRequest(ctx, requestID)
 	if err != nil {
 		return err
 	}
 
 	// Parse metadata
-	metadata, err := w.parseWorkflowMetadata(currentReq.Metadata)
+	metadata, err := w.parseWorkflowMetadata(req.Metadata)
 	if err != nil {
 		return err
 	}
@@ -373,106 +373,72 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return nil
 	}
 
+	// Mark current step as completed
+	if err := w.requestSvc.CompleteRequest(ctx, requestID); err != nil {
+		return err
+	}
+
+	// Get workflow definition
 	workflow, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return err
 	}
 
-	// Mark current step complete
-	if err := w.requestSvc.CompleteRequest(ctx, requestID); err != nil {
-		return err
-	}
-
-	// Check if we're done with the workflow
+	// Check if workflow is complete
 	if metadata.CurrentStep >= len(workflow.Steps)-1 {
 		w.logger.Info("Workflow completed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
-
-		// Run cleanup for the entire workflow chain
-		if err := w.CleanupWorkflow(ctx, requestID); err != nil {
-			w.logger.Error("Failed to cleanup workflow",
-				zap.String("workflow", metadata.WorkflowName),
-				zap.Uint("requestID", requestID),
-				zap.Error(err))
-			return err
-		}
-		return nil
+		return w.CleanupWorkflow(ctx, requestID)
 	}
 
-	// Create next step
+	// Prepare next step
 	nextStepIdx := metadata.CurrentStep + 1
 	nextStep := workflow.Steps[nextStepIdx]
 
-	// Update metadata for next step
-	metadata.CurrentStep = nextStepIdx
-	metadata.PrevRequestID = requestID
-
+	// Process workflow options
 	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
 	if err != nil {
 		return err
 	}
 
-	// Create next request - copying relevant fields from current request
+	// Create next request
 	nextReq := &models.Request{
 		Operation: nextStep.Operation,
-		Protocol:  currentReq.Protocol,
+		Protocol:  req.Protocol,
 		Status:    models.RequestStatusPending,
-		UserID:    currentReq.UserID,
-		SourceIP:  currentReq.SourceIP,
-		Hash:      currentReq.Hash,
-		CIDType:   currentReq.CIDType,
+		UserID:    req.UserID,
+		SourceIP:  req.SourceIP,
+		Hash:      req.Hash,
+		CIDType:   req.CIDType,
 		Metadata:  datatypes.JSON(metadataJSON),
 	}
 
 	w.handleRequestData(processedOpts, nextReq)
 
-	// Set UserID if provided in options
-	if userID := processedOpts.UserID(); userID > 0 {
-		nextReq.UserID = &userID
-	}
-
-	// Create next request - fix CreateRequest call
-	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, processedOpts.RequestData)
+	// Create the next request
+	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, processedOpts.RequestData())
 	if err != nil {
 		return err
 	}
 
-	// Update current request's metadata with next ID
+	// Update current request's metadata with next request ID
 	metadata.NextRequestID = createdReq.ID
 	metadataJSON, err = json.Marshal(metadata)
-
 	if err != nil {
 		return err
 	}
 
-	// Update current request's metadata with next ID and save it
-	currentReq.Metadata = metadataJSON
-	if err := w.requestSvc.UpdateRequest(ctx, currentReq); err != nil {
+	req.Metadata = metadataJSON
+	if err := w.requestSvc.UpdateRequest(ctx, req); err != nil {
 		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
+	// Execute or dispatch next step
 	if nextStep.Foreground {
-		// Execute the next step directly
-		err = w.ExecuteWorkflowStep(ctx, createdReq.ID)
-		if err != nil {
-			return err
-		}
-		w.logger.Info("Advanced workflow to next step",
-			zap.String("workflow", metadata.WorkflowName),
-			zap.Int("step", nextStepIdx),
-			zap.Uint("nextRequestID", createdReq.ID))
-	} else {
-		if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
-			return err
-		}
-		w.logger.Info("Delegated workflow step to cron",
-			zap.String("workflow", metadata.WorkflowName),
-			zap.Int("step", nextStepIdx),
-			zap.Uint("nextRequestID", createdReq.ID))
+		return w.ExecuteWorkflowStep(ctx, createdReq.ID)
 	}
-
-	return nil
+	return w.dispatchToCron(ctx, createdReq.ID)
 }
 
 // FailWorkflowStep handles a step failure

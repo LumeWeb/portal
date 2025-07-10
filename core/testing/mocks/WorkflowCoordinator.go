@@ -39,6 +39,63 @@ func (_m *MockWorkflowCoordinator) EXPECT() *MockWorkflowCoordinator_Expecter {
 	return &MockWorkflowCoordinator_Expecter{mock: &_m.Mock}
 }
 
+// CleanupWorkflow provides a mock function for the type MockWorkflowCoordinator
+func (_mock *MockWorkflowCoordinator) CleanupWorkflow(ctx context.Context, requestID uint) error {
+	ret := _mock.Called(ctx, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CleanupWorkflow")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, requestID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowCoordinator_CleanupWorkflow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CleanupWorkflow'
+type MockWorkflowCoordinator_CleanupWorkflow_Call struct {
+	*mock.Call
+}
+
+// CleanupWorkflow is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+func (_e *MockWorkflowCoordinator_Expecter) CleanupWorkflow(ctx interface{}, requestID interface{}) *MockWorkflowCoordinator_CleanupWorkflow_Call {
+	return &MockWorkflowCoordinator_CleanupWorkflow_Call{Call: _e.mock.On("CleanupWorkflow", ctx, requestID)}
+}
+
+func (_c *MockWorkflowCoordinator_CleanupWorkflow_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowCoordinator_CleanupWorkflow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowCoordinator_CleanupWorkflow_Call) Return(err error) *MockWorkflowCoordinator_CleanupWorkflow_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowCoordinator_CleanupWorkflow_Call) RunAndReturn(run func(ctx context.Context, requestID uint) error) *MockWorkflowCoordinator_CleanupWorkflow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CompleteWorkflowStep provides a mock function for the type MockWorkflowCoordinator
 func (_mock *MockWorkflowCoordinator) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
 	// core.WorkflowOption
