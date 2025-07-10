@@ -411,6 +411,7 @@ func ResetState() {
 	ResetAPIs()
 	ResetServices()
 	ResetHashAlgorithms()
+	ResetErrorRegistry()
 
 	// Reset plugins
 	pluginsMu.Lock()
