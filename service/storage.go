@@ -588,7 +588,7 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
 	uploadId := uuid.NewString()
-	key := s.getTempUploadPath(protocol, uploadId)
+	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
 	defer func(data io.ReadCloser) {
 		err := data.Close()
@@ -617,7 +617,7 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 }
 
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
-	key := s.getTempUploadPath(protocol, uploadId)
+	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
 	client, err := s.S3Client(ctx)
 	if err != nil {
@@ -637,7 +637,7 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 }
 
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
-	key := s.getTempUploadPath(protocol, uploadId)
+	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
 	client, err := s.S3Client(ctx)
 	if err != nil {
@@ -660,9 +660,13 @@ func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objec
 	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), core.PROOF_EXTENSION)
 }
 
-func (s StorageServiceDefault) getTempUploadPath(protocol core.StorageProtocol, uploadId string) string {
-	return fmt.Sprintf("%s/%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name(), uploadId)
+func (s StorageServiceDefault) GetTemporaryUploadPath(protocol core.StorageProtocol, uploadId string) string {
+	return fmt.Sprintf("%s/%s", s.GetTemporaryUploadDir(protocol), uploadId)
 }
+func (s StorageServiceDefault) GetTemporaryUploadDir(protocol core.StorageProtocol) string {
+	return fmt.Sprintf("%s/%s", core.TEMPORARY_UPLOADS_PATH, protocol.Name())
+}
+
 func ensureHttpPrefix(url string) string {
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		return "http://" + url
