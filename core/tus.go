@@ -11,8 +11,8 @@ import (
 // TUS_SERVICE is the service identifier for the TUS upload service
 const TUS_SERVICE = "tus"
 
-// ProtocolTusHandler defines an interface for protocols that support TUS uploads
-type ProtocolTusHandler interface {
+// APITusHandler defines an interface for apis that support TUS uploads
+type APITusHandler interface {
 	// GetTusHandler returns the TUS handler for the protocol
 	GetTusHandler() TusHandler
 }
