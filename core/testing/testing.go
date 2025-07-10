@@ -4,6 +4,7 @@ package testing
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/johannesboyne/gofakes3"
@@ -64,6 +65,8 @@ var (
 	runDBMigrationsMu sync.RWMutex
 	setupMockDB       = false
 	setupMockDBMu     sync.RWMutex
+	setupCron         = false
+	setupCronMu       sync.RWMutex
 	testContexts      sync.Map   // map[*testing.T]TestContext
 	testMutex         sync.Mutex // Protects test execution
 )
@@ -72,6 +75,7 @@ var (
 type TestMainOpts struct {
 	WithDB         bool
 	DBMigrations   bool
+	WithCron       bool
 	CustomSetup    func()
 	CustomTeardown func()
 }
@@ -83,6 +87,10 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 		if opts.DBMigrations {
 			EnableDBMigrations()
 		}
+	}
+
+	if opts.WithCron {
+		EnableCron()
 	}
 
 	if opts.CustomSetup != nil {
@@ -98,6 +106,10 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 	if opts.WithDB {
 		DisableDBMigrations()
 		DisableMockDB()
+	}
+
+	if opts.WithCron {
+		DisableCron()
 	}
 
 	// Clear global options at the end of RunTests
@@ -304,6 +316,13 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 		t.Fatalf("Failed to boot test environment: %v", err)
 	}
 
+	// Start cron service if enabled
+	if ShouldSetupCron() {
+		if err := StartCron(ctx); err != nil {
+			t.Fatalf("Failed to start cron service: %v", err)
+		}
+	}
+
 	// Run the actual test
 	testFunc(t, ctx)
 }
@@ -399,6 +418,27 @@ func DisableMockDB() {
 	setupMockDBMu.Lock()
 	defer setupMockDBMu.Unlock()
 	setupMockDB = false
+}
+
+// EnableCron enables cron service startup during test context initialization
+func EnableCron() {
+	setupCronMu.Lock()
+	defer setupCronMu.Unlock()
+	setupCron = true
+}
+
+// DisableCron disables cron service startup during test context initialization
+func DisableCron() {
+	setupCronMu.Lock()
+	defer setupCronMu.Unlock()
+	setupCron = false
+}
+
+// ShouldSetupCron returns whether cron service should be started
+func ShouldSetupCron() bool {
+	setupCronMu.RLock()
+	defer setupCronMu.RUnlock()
+	return setupCron
 }
 
 // ShouldRunDBMigrations returns whether DB migrations should run
@@ -1019,6 +1059,26 @@ func WithMockCronService() TestContextBuilderOption {
 		})).Maybe().Return()
 		return _mock
 	})
+}
+
+func WithCron() TestContextBuilderOption {
+	return CombineOptions(func(ctx TestContext) (TestContext, error) {
+		EnableCron()
+		ctx.T().Cleanup(func() {
+			DisableCron()
+		})
+		return ctx, nil
+	}, WithConfig("core.cron.enabled", true))
+}
+
+// StartCron starts the cron service if enabled
+func StartCron(ctx TestContext) error {
+	cronSvc := ctx.Service(core.CRON_SERVICE)
+	if cronSvc == nil {
+		return fmt.Errorf("cron service not found in context")
+	}
+
+	return cronSvc.(core.CronService).Start()
 }
 
 // WithMockHTTPService adds a mock HTTPService to the test context.

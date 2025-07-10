@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	ProcessAccountDeletionRequestsJobType = "user.process_account_deletion_requests"
+	ProcessAccountDeletionRequestsJobType = "core.user.process_account_deletion_requests"
 )
 
 type ProcessAccountDeletionRequestsJob struct {
