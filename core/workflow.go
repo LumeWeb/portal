@@ -49,12 +49,26 @@ type WorkflowCoordinator interface {
 	CleanupWorkflow(ctx context.Context, requestID uint) error
 }
 
+// WorkflowInstance represents a found workflow instance
+type WorkflowInstance struct {
+	Request     *models.Request
+	Status      *WorkflowStatus
+	CurrentStep *WorkflowStepInfo
+}
+
 type WorkflowService interface {
 	Service
 	WorkflowCoordinator
 
 	// ExecuteWorkflowStep executes the operation handler for a workflow step
 	ExecuteWorkflowStep(ctx context.Context, requestID uint) error
+
+	// FindWorkflowInstances finds workflow instances matching the criteria
+	FindWorkflowInstances(
+		ctx context.Context,
+		workflowName string,
+		filter RequestFilter,
+	) ([]*WorkflowInstance, error)
 
 	// CanTransition checks if a workflow step can be transitioned from its current state
 	CanTransition(ctx context.Context, requestID uint) (bool, error)

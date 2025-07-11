@@ -886,6 +886,52 @@ func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, reques
 	return nil
 }
 
+func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
+	ctx context.Context,
+	workflowName string,
+	filter core.RequestFilter,
+) ([]*core.WorkflowInstance, error) {
+	if w.isDisabled(workflowName) {
+		return nil, nil
+	}
+
+	// Set default limit if not specified
+	if filter.Limit <= 0 {
+		filter.Limit = 100
+	}
+
+	var requests []*models.Request
+	if err := db.RetryableTransaction(w.ctx, w.db, func(g *gorm.DB) *gorm.DB {
+		return w.db.Model(&models.Request{}).
+			Clauses(datatypes.JSONQuery("metadata").Extract("workflow_name").Equals(workflowName)).
+			Scopes(applyFilters(filter)).Find(&requests)
+	}); err != nil {
+		return nil, fmt.Errorf("failed to query workflow instances: %w", err)
+	}
+
+	// Convert to result objects with additional workflow info
+	results := make([]*core.WorkflowInstance, 0, len(requests))
+	for _, req := range requests {
+		status, err := w.GetWorkflowStatus(ctx, req.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get status for request %d: %w", req.ID, err)
+		}
+
+		stepInfo, err := w.GetWorkflowStepInfo(ctx, req.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get step info for request %d: %w", req.ID, err)
+		}
+
+		results = append(results, &core.WorkflowInstance{
+			Request:     req,
+			Status:      status,
+			CurrentStep: stepInfo,
+		})
+	}
+
+	return results, nil
+}
+
 func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestID uint) error {
 	// Get current request
 	req, err := w.requestSvc.GetRequest(ctx, requestID)

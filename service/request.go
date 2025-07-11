@@ -658,14 +658,32 @@ func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any,
 // Helper functions
 func applyFilters(filter core.RequestFilter) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if filter.Protocol != "" {
-			db = db.Where("protocol = ?", filter.Protocol)
+		if filter.UserID != nil {
+			db = db.Where("user_id = ?", *filter.UserID)
 		}
-		if filter.Operation != "" {
-			db = db.Where("operation = ?", filter.Operation)
+		if filter.Status != nil {
+			db = db.Where("status = ?", *filter.Status)
 		}
-		if filter.UserID > 0 {
-			db = db.Where("user_id = ?", filter.UserID)
+		if filter.Protocol != nil {
+			db = db.Where("protocol = ?", *filter.Protocol)
+		}
+		if filter.Operation != nil {
+			db = db.Where("operation = ?", *filter.Operation)
+		}
+		if filter.SourceIP != nil {
+			db = db.Where("source_ip = ?", *filter.SourceIP)
+		}
+		if len(filter.Hash) > 0 {
+			db = db.Where("hash = ?", filter.Hash)
+		}
+		if filter.CIDType != nil {
+			db = db.Where("cid_type = ?", *filter.CIDType)
+		}
+		if filter.CreatedAfter != nil {
+			db = db.Where("created_at > ?", *filter.CreatedAfter)
+		}
+		if filter.UpdatedAfter != nil {
+			db = db.Where("updated_at > ?", *filter.UpdatedAfter)
 		}
 		if filter.Limit > 0 {
 			db = db.Limit(filter.Limit)

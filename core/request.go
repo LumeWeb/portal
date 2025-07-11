@@ -9,6 +9,21 @@ import (
 
 const REQUEST_SERVICE = "request"
 
+// RequestFilter defines filtering options for requests and workflow instances
+type RequestFilter struct {
+	UserID       *uint
+	Status       *models.RequestStatusType
+	Protocol     *string
+	Operation    *string
+	SourceIP     *string
+	Hash         []byte
+	CIDType      *string
+	CreatedAfter *time.Time
+	UpdatedAfter *time.Time
+	Limit        int
+	Offset       int
+}
+
 type RequestService interface {
 	// Request validation
 	ValidateRequest(ctx context.Context, req *models.Request) error
@@ -50,14 +65,6 @@ type RequestService interface {
 	ExecuteRequest(ctx context.Context, id uint) error
 
 	Service
-}
-
-type RequestFilter struct {
-	Protocol  string
-	Operation string
-	UserID    uint
-	Limit     int
-	Offset    int
 }
 
 type RequestStatus struct {
