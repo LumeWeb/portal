@@ -237,7 +237,7 @@ func GetCronJobSourceID(jobType string) string {
 	if len(parts) < 2 {
 		return ""
 	}
-	return parts[1]
+	return strings.Join(parts[1:], ".")
 }
 
 // IsCoreCronJob checks if a cron job is a core job based on its type.
