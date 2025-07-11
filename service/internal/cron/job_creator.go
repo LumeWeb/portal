@@ -9,7 +9,6 @@ import (
 	"go.lumeweb.com/portal/db/types"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	reflect "reflect"
 )
 
 type JobCreator struct {
@@ -57,42 +56,27 @@ func (j *JobCreator) populateJobArguments(job core.CronJob, args string, retryPo
 		if err := json.Unmarshal([]byte(retryPolicy), &policy); err != nil {
 			return fmt.Errorf("failed to unmarshal retry policy: %w", err)
 		}
-		if jobWithPolicy, ok := job.(interface{ SetRetryPolicy(policy *core.RetryPolicy) }); ok {
+		if jobWithPolicy, ok := job.(interface {
+			SetRetryPolicy(policy *core.RetryPolicy)
+		}); ok {
 			jobWithPolicy.SetRetryPolicy(&policy)
 		}
 	}
 
-	argsPtr := job.Args()
-
-	// Handle both pointer and non-pointer args
-	val := reflect.ValueOf(argsPtr)
-	var ptrVal reflect.Value
-
-	if val.Kind() != reflect.Ptr {
-		// Create new pointer to same type
-		ptrVal = reflect.New(val.Type())
-		ptrVal.Elem().Set(val)
-		argsPtr = ptrVal.Interface()
+	if len(args) == 0 {
+		// No arguments to populate
+		return nil
 	}
 
-	if err := json.Unmarshal([]byte(args), argsPtr); err != nil {
+	var argsPtr any
+	if err := json.Unmarshal([]byte(args), &argsPtr); err != nil {
 		j.logger.Error("Failed to populate job arguments",
 			zap.String("jobID", job.ID().String()),
 			zap.Error(err))
 		return fmt.Errorf("failed to populate job arguments: %w", err)
 	}
 
-	// Dereference the pointer to check type
-	derefVal := reflect.ValueOf(argsPtr).Elem().Interface()
-
-	// If it's already a reference type (map, slice, etc), use as-is
-	// Otherwise take address of the value
-	switch v := derefVal.(type) {
-	case map[string]interface{}, []interface{}:
-		job.SetArgs(derefVal)
-	default:
-		job.SetArgs(&v)
-	}
+	job.SetArgs(argsPtr)
 
 	return nil
 }

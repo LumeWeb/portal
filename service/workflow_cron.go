@@ -32,9 +32,17 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 		return fmt.Errorf("%s", "failed to get workflow service")
 	}
 
+	var args uint
+
+	rargs := j.Args()
+
 	// args represents the workflow step requestID to execute
-	args, ok := j.Args().(uint)
-	if !ok {
+	switch v := rargs.(type) {
+	case uint:
+		args = v
+	case float64:
+		args = uint(v)
+	default:
 		return fmt.Errorf("invalid job arguments type, expected uint got %T", j.Args())
 	}
 
