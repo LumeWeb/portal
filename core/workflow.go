@@ -132,6 +132,8 @@ type WorkflowOptions interface {
 	SetStorageHash(hash StorageHash)
 	UserID() uint
 	SetUserID(id uint)
+	Protocol() string
+	SetProtocol(protocol string)
 	MergeData(data WorkflowData) error
 	MergeJSON(jsonData string) error
 	MergeStruct(data any, tag string) error
@@ -147,6 +149,7 @@ type WorkflowOptionsDefault struct {
 	sourceIP    string
 	storageHash StorageHash
 	userID      uint
+	protocol    string
 	koanfCache  *koanf.Koanf
 }
 
@@ -195,6 +198,14 @@ func (o *WorkflowOptionsDefault) UserID() uint {
 
 func (o *WorkflowOptionsDefault) SetUserID(id uint) {
 	o.userID = id
+}
+
+func (o *WorkflowOptionsDefault) Protocol() string {
+	return o.protocol
+}
+
+func (o *WorkflowOptionsDefault) SetProtocol(protocol string) {
+	o.protocol = protocol
 }
 
 // MergeData merges new data into the cached koanf instance
@@ -327,6 +338,14 @@ func WithWorkflowStorageHash(hash StorageHash) WorkflowOption {
 func WithWorkflowUserID(userID uint) WorkflowOption {
 	return func(o WorkflowOptions) error {
 		o.SetUserID(userID)
+		return nil
+	}
+}
+
+// WithWorkflowProtocol returns a WorkflowOption that sets the Protocol
+func WithWorkflowProtocol(protocol string) WorkflowOption {
+	return func(o WorkflowOptions) error {
+		o.SetProtocol(protocol)
 		return nil
 	}
 }

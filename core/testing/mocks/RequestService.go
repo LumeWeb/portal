@@ -98,8 +98,8 @@ func (_c *MockRequestService_CompleteRequest_Call) RunAndReturn(run func(ctx con
 }
 
 // ComputeRequestStatus provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) ComputeRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	ret := _mock.Called(ctx, id)
+func (_mock *MockRequestService) ComputeRequestStatus(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	ret := _mock.Called(ctx, id, keepExisting)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ComputeRequestStatus")
@@ -107,18 +107,18 @@ func (_mock *MockRequestService) ComputeRequestStatus(ctx context.Context, id ui
 
 	var r0 *core.RequestStatus
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.RequestStatus, error)); ok {
-		return returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) (*core.RequestStatus, error)); ok {
+		return returnFunc(ctx, id, keepExisting)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.RequestStatus); ok {
-		r0 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) *core.RequestStatus); ok {
+		r0 = returnFunc(ctx, id, keepExisting)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*core.RequestStatus)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, bool) error); ok {
+		r1 = returnFunc(ctx, id, keepExisting)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -133,11 +133,12 @@ type MockRequestService_ComputeRequestStatus_Call struct {
 // ComputeRequestStatus is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) ComputeRequestStatus(ctx interface{}, id interface{}) *MockRequestService_ComputeRequestStatus_Call {
-	return &MockRequestService_ComputeRequestStatus_Call{Call: _e.mock.On("ComputeRequestStatus", ctx, id)}
+//   - keepExisting bool
+func (_e *MockRequestService_Expecter) ComputeRequestStatus(ctx interface{}, id interface{}, keepExisting interface{}) *MockRequestService_ComputeRequestStatus_Call {
+	return &MockRequestService_ComputeRequestStatus_Call{Call: _e.mock.On("ComputeRequestStatus", ctx, id, keepExisting)}
 }
 
-func (_c *MockRequestService_ComputeRequestStatus_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_ComputeRequestStatus_Call {
+func (_c *MockRequestService_ComputeRequestStatus_Call) Run(run func(ctx context.Context, id uint, keepExisting bool)) *MockRequestService_ComputeRequestStatus_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -147,9 +148,14 @@ func (_c *MockRequestService_ComputeRequestStatus_Call) Run(run func(ctx context
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -160,14 +166,14 @@ func (_c *MockRequestService_ComputeRequestStatus_Call) Return(requestStatus *co
 	return _c
 }
 
-func (_c *MockRequestService_ComputeRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatus_Call {
+func (_c *MockRequestService_ComputeRequestStatus_Call) RunAndReturn(run func(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatus_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ComputeRequestStatusWithDeleted provides a mock function for the type MockRequestService
-func (_mock *MockRequestService) ComputeRequestStatusWithDeleted(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	ret := _mock.Called(ctx, id)
+func (_mock *MockRequestService) ComputeRequestStatusWithDeleted(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	ret := _mock.Called(ctx, id, keepExisting)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ComputeRequestStatusWithDeleted")
@@ -175,18 +181,18 @@ func (_mock *MockRequestService) ComputeRequestStatusWithDeleted(ctx context.Con
 
 	var r0 *core.RequestStatus
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (*core.RequestStatus, error)); ok {
-		return returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) (*core.RequestStatus, error)); ok {
+		return returnFunc(ctx, id, keepExisting)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) *core.RequestStatus); ok {
-		r0 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, bool) *core.RequestStatus); ok {
+		r0 = returnFunc(ctx, id, keepExisting)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*core.RequestStatus)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, bool) error); ok {
+		r1 = returnFunc(ctx, id, keepExisting)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -201,11 +207,12 @@ type MockRequestService_ComputeRequestStatusWithDeleted_Call struct {
 // ComputeRequestStatusWithDeleted is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) ComputeRequestStatusWithDeleted(ctx interface{}, id interface{}) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
-	return &MockRequestService_ComputeRequestStatusWithDeleted_Call{Call: _e.mock.On("ComputeRequestStatusWithDeleted", ctx, id)}
+//   - keepExisting bool
+func (_e *MockRequestService_Expecter) ComputeRequestStatusWithDeleted(ctx interface{}, id interface{}, keepExisting interface{}) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+	return &MockRequestService_ComputeRequestStatusWithDeleted_Call{Call: _e.mock.On("ComputeRequestStatusWithDeleted", ctx, id, keepExisting)}
 }
 
-func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Run(run func(ctx context.Context, id uint)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Run(run func(ctx context.Context, id uint, keepExisting bool)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -215,9 +222,14 @@ func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Run(run func(
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -228,7 +240,7 @@ func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) Return(reques
 	return _c
 }
 
-func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) RunAndReturn(run func(ctx context.Context, id uint) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) RunAndReturn(run func(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error)) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
 	_c.Call.Return(run)
 	return _c
 }

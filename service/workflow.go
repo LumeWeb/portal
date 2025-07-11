@@ -61,6 +61,14 @@ func (w *WorkflowCoordinatorDefault) handleRequestData(options core.WorkflowOpti
 		target.Hash = storageHash.Multihash()
 		target.CIDType = storageHash.CIDType()
 	}
+
+	if userID := options.UserID(); userID > 0 {
+		target.UserID = &userID
+	}
+
+	if protocol := options.Protocol(); protocol != "" {
+		target.Protocol = protocol
+	}
 }
 
 // processWorkflowOptions handles workflow options and updates metadata accordingly
@@ -266,10 +274,12 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 
 	// Create and process metadata for first step
 	metadata := WorkflowMetadata{
-		WorkflowName: workflow.Name,
-		CurrentStep:  0,
-		TotalSteps:   len(workflow.Steps),
-		StartedAt:    time.Now().Unix(),
+		WorkflowName:  workflow.Name,
+		CurrentStep:   0,
+		TotalSteps:    len(workflow.Steps),
+		StartedAt:     time.Now().Unix(),
+		PrevRequestID: 0, // Explicitly initialize
+		NextRequestID: 0, // Explicitly initialize
 	}
 
 	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
@@ -292,11 +302,6 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	}
 
 	w.handleRequestData(processedOpts, req)
-
-	// Set UserID if provided in options
-	if userID := processedOpts.UserID(); userID > 0 {
-		req.UserID = &userID
-	}
 
 	// Validate the request using request service
 	if err := w.requestSvc.ValidateRequest(ctx, req); err != nil {
@@ -366,6 +371,8 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return err
 	}
 
+	nextMetadata := metadata
+
 	if w.isDisabled(metadata.WorkflowName) {
 		w.logger.Warn("Attempted to complete step in disabled workflow",
 			zap.String("workflow", metadata.WorkflowName),
@@ -393,14 +400,17 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	}
 
 	// Prepare next step
-	nextStepIdx := metadata.CurrentStep + 1
-	nextStep := workflow.Steps[nextStepIdx]
+	nextStep := workflow.Steps[metadata.CurrentStep+1]
 
-	// Process workflow options
-	processedOpts, metadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+	// Process workflow options and metadata
+	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
 	if err != nil {
 		return err
 	}
+
+	// Update metadata with next request ID and workflow data
+	nextMetadata.PrevRequestID = requestID
+	nextMetadata.Data = wfMetadataJSON
 
 	// Create next request
 	nextReq := &models.Request{
@@ -411,10 +421,18 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		SourceIP:  req.SourceIP,
 		Hash:      req.Hash,
 		CIDType:   req.CIDType,
-		Metadata:  datatypes.JSON(metadataJSON),
 	}
 
 	w.handleRequestData(processedOpts, nextReq)
+
+	// Update current request's metadata with next request ID
+	nextMetadata.CurrentStep++
+	metadataJSON, err := json.Marshal(nextMetadata)
+	if err != nil {
+		return err
+	}
+
+	nextReq.Metadata = metadataJSON
 
 	// Create the next request
 	createdReq, err := w.requestSvc.CreateRequest(ctx, nextReq, processedOpts.RequestData())
@@ -422,15 +440,20 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return err
 	}
 
-	// Update current request's metadata with next request ID
-	metadata.NextRequestID = createdReq.ID
-	metadataJSON, err = json.Marshal(metadata)
+	req, err = w.requestSvc.GetRequest(ctx, requestID)
 	if err != nil {
 		return err
 	}
 
+	metadata.NextRequestID = createdReq.ID
+
+	metadataJSON, err = json.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+	// Persist updated metadata on the current request
 	req.Metadata = metadataJSON
-	if err := w.requestSvc.UpdateRequest(ctx, req); err != nil {
+	if err = w.requestSvc.UpdateRequest(ctx, req); err != nil {
 		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
@@ -499,7 +522,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 // GetWorkflowStatus returns the current status of a workflow
 func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requestID uint) (*core.WorkflowStatus, error) {
 	// Get request
-	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
 	if err != nil {
 		return nil, err
 	}
@@ -636,7 +659,7 @@ func (w *WorkflowCoordinatorDefault) CanTransition(ctx context.Context, requestI
 // GetWorkflowStepInfo returns information about a specific workflow step
 func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, requestID uint) (*core.WorkflowStepInfo, error) {
 	// Get current request
-	req, err := w.requestSvc.GetRequest(ctx, requestID)
+	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
@@ -811,14 +834,10 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 	}
 
 	// Update the request's metadata and operation
-	req.Metadata = datatypes.JSON(metadataJSON)
+	req.Metadata = metadataJSON
 	req.Operation = workflow.Steps[startStep].Operation
 
 	w.handleRequestData(processedOpts, req)
-
-	if userID := processedOpts.UserID(); userID > 0 {
-		req.UserID = &userID
-	}
 
 	// Save the updated request
 	if err := w.requestSvc.UpdateRequest(ctx, req); err != nil {
@@ -860,7 +879,7 @@ func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, reques
 		}
 
 		// Get the request to check for previous IDs
-		req, err := w.requestSvc.GetRequest(ctx, currentReqID)
+		req, err := w.requestSvc.GetRequestWithDeleted(ctx, currentReqID)
 		if err != nil {
 			break // Stop if we can't get the request
 		}
@@ -900,30 +919,86 @@ func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
 		filter.Limit = 100
 	}
 
-	var requests []*models.Request
+	// First find all requests belonging to this workflow
+	var allRequests []*models.Request
 	if err := db.RetryableTransaction(w.ctx, w.db, func(g *gorm.DB) *gorm.DB {
 		return w.db.Model(&models.Request{}).
-			Clauses(datatypes.JSONQuery("metadata").Extract("workflow_name").Equals(workflowName)).
-			Scopes(applyFilters(filter)).Find(&requests)
+			Clauses(datatypes.JSONQuery("metadata").Equals(workflowName, "workflow_name")).
+			Scopes(applyFilters(filter)).
+			Unscoped().
+			Find(&allRequests)
 	}); err != nil {
-		return nil, fmt.Errorf("failed to query workflow instances: %w", err)
+		return nil, fmt.Errorf("failed to query workflow requests: %w", err)
 	}
 
-	// Convert to result objects with additional workflow info
-	results := make([]*core.WorkflowInstance, 0, len(requests))
-	for _, req := range requests {
-		status, err := w.GetWorkflowStatus(ctx, req.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get status for request %d: %w", req.ID, err)
+	// Group requests by workflow instance (using NextRequestID chain)
+	workflowChains := make(map[uint][]*models.Request)
+	for _, req := range allRequests {
+		var metadata WorkflowMetadata
+		if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+			continue
 		}
 
-		stepInfo, err := w.GetWorkflowStepInfo(ctx, req.ID)
+		// Find the root request ID for this workflow chain
+		rootID := req.ID
+		if metadata.PrevRequestID != 0 {
+			rootID = metadata.PrevRequestID
+			// Follow the chain backwards to find the root
+			for {
+				prevReq, err := w.requestSvc.GetRequestWithDeleted(ctx, rootID)
+				if err != nil || prevReq == nil {
+					break
+				}
+				var prevMeta WorkflowMetadata
+				if err := json.Unmarshal(prevReq.Metadata, &prevMeta); err != nil {
+					break
+				}
+				if prevMeta.PrevRequestID == 0 {
+					break
+				}
+				rootID = prevMeta.PrevRequestID
+			}
+		}
+
+		workflowChains[rootID] = append(workflowChains[rootID], req)
+	}
+
+	// For each workflow chain, find the request at the final step
+	results := make([]*core.WorkflowInstance, 0, len(workflowChains))
+	for _, chain := range workflowChains {
+		if len(chain) == 0 {
+			continue
+		}
+
+		// Find the request with CurrentStep == TotalSteps-1
+		var finalReq *models.Request
+		for _, req := range chain {
+			var meta WorkflowMetadata
+			if err := json.Unmarshal(req.Metadata, &meta); err != nil {
+				continue
+			}
+			if meta.CurrentStep == meta.TotalSteps-1 {
+				finalReq = req
+				break // Found the final request
+			}
+		}
+		
+		if finalReq == nil {
+			continue
+		}
+
+		status, err := w.GetWorkflowStatus(ctx, finalReq.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get step info for request %d: %w", req.ID, err)
+			return nil, fmt.Errorf("failed to get status for request %d: %w", finalReq.ID, err)
+		}
+
+		stepInfo, err := w.GetWorkflowStepInfo(ctx, finalReq.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get step info for request %d: %w", finalReq.ID, err)
 		}
 
 		results = append(results, &core.WorkflowInstance{
-			Request:     req,
+			Request:     finalReq,
 			Status:      status,
 			CurrentStep: stepInfo,
 		})

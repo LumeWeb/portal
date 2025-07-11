@@ -142,13 +142,17 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 	}
 
 	// Compute current status
-	status, err := r.ComputeRequestStatus(ctx, id)
+	status, err := r.ComputeRequestStatus(ctx, id, false)
 	if err != nil {
 		return err
 	}
 
+	if status.State == "" {
+		status.State = models.RequestStatusProcessing
+	}
+
 	// Update status based on computed state
-	if err := r.UpdateRequestStatus(ctx, id, models.RequestStatusType(status.State), status.Message); err != nil {
+	if err := r.UpdateRequestStatus(ctx, id, status.State, status.Message); err != nil {
 		r.logger.Error("Failed to update request status",
 			zap.Error(err), zap.Uint("requestID", id))
 		return err
@@ -178,7 +182,7 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 	}
 
 	// Recompute status after execution
-	status, err = r.ComputeRequestStatus(ctx, id)
+	status, err = r.ComputeRequestStatus(ctx, id, true)
 	if err != nil {
 		return err
 	}
@@ -349,7 +353,7 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 	}
 
 	// Get the request status to use its message
-	status, err := r.ComputeRequestStatus(ctx, id)
+	status, err := r.ComputeRequestStatus(ctx, id, false)
 	if err != nil {
 		return err
 	}
@@ -364,7 +368,7 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return err
 	}
 
-	status, err = r.ComputeRequestStatus(ctx, id)
+	status, err = r.ComputeRequestStatus(ctx, id, false)
 	if err != nil {
 		return err
 	}
@@ -387,15 +391,15 @@ func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason
 	})
 }
 
-func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	return r.computeRequestStatus(ctx, id, false)
+func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	return r.computeRequestStatus(ctx, id, keepExisting, false)
 }
 
-func (r *RequestServiceDefault) ComputeRequestStatusWithDeleted(ctx context.Context, id uint) (*core.RequestStatus, error) {
-	return r.computeRequestStatus(ctx, id, true)
+func (r *RequestServiceDefault) ComputeRequestStatusWithDeleted(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	return r.computeRequestStatus(ctx, id, keepExisting, true)
 }
 
-func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
+func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uint, keepExisting bool, withDeleted bool) (*core.RequestStatus, error) {
 	var req *models.Request
 	var err error
 
@@ -416,8 +420,11 @@ func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uin
 
 	// Get status from handler if available
 	status := &core.RequestStatus{
-		State:     req.Status,
 		UpdatedAt: req.UpdatedAt,
+	}
+
+	if keepExisting {
+		status.State = req.Status
 	}
 
 	if handler != nil {
@@ -498,9 +505,9 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 	// Get progress percentage
 	var computedStatus *core.RequestStatus
 	if withDeleted {
-		computedStatus, err = r.ComputeRequestStatusWithDeleted(ctx, id)
+		computedStatus, err = r.ComputeRequestStatusWithDeleted(ctx, id, true)
 	} else {
-		computedStatus, err = r.ComputeRequestStatus(ctx, id)
+		computedStatus, err = r.ComputeRequestStatus(ctx, id, true)
 	}
 	if err == nil {
 		status.ProgressPercent = computedStatus.ProgressPercent

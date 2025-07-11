@@ -549,6 +549,80 @@ func (_c *MockWorkflowService_FailWorkflowStep_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// FindWorkflowInstances provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) FindWorkflowInstances(ctx context.Context, workflowName string, filter core.RequestFilter) ([]*core.WorkflowInstance, error) {
+	ret := _mock.Called(ctx, workflowName, filter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindWorkflowInstances")
+	}
+
+	var r0 []*core.WorkflowInstance
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, core.RequestFilter) ([]*core.WorkflowInstance, error)); ok {
+		return returnFunc(ctx, workflowName, filter)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, core.RequestFilter) []*core.WorkflowInstance); ok {
+		r0 = returnFunc(ctx, workflowName, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*core.WorkflowInstance)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, core.RequestFilter) error); ok {
+		r1 = returnFunc(ctx, workflowName, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockWorkflowService_FindWorkflowInstances_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindWorkflowInstances'
+type MockWorkflowService_FindWorkflowInstances_Call struct {
+	*mock.Call
+}
+
+// FindWorkflowInstances is a helper method to define mock.On call
+//   - ctx context.Context
+//   - workflowName string
+//   - filter core.RequestFilter
+func (_e *MockWorkflowService_Expecter) FindWorkflowInstances(ctx interface{}, workflowName interface{}, filter interface{}) *MockWorkflowService_FindWorkflowInstances_Call {
+	return &MockWorkflowService_FindWorkflowInstances_Call{Call: _e.mock.On("FindWorkflowInstances", ctx, workflowName, filter)}
+}
+
+func (_c *MockWorkflowService_FindWorkflowInstances_Call) Run(run func(ctx context.Context, workflowName string, filter core.RequestFilter)) *MockWorkflowService_FindWorkflowInstances_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 core.RequestFilter
+		if args[2] != nil {
+			arg2 = args[2].(core.RequestFilter)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_FindWorkflowInstances_Call) Return(workflowInstances []*core.WorkflowInstance, err error) *MockWorkflowService_FindWorkflowInstances_Call {
+	_c.Call.Return(workflowInstances, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_FindWorkflowInstances_Call) RunAndReturn(run func(ctx context.Context, workflowName string, filter core.RequestFilter) ([]*core.WorkflowInstance, error)) *MockWorkflowService_FindWorkflowInstances_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWorkflow provides a mock function for the type MockWorkflowService
 func (_mock *MockWorkflowService) GetWorkflow(name string) (*core.WorkflowDefinition, error) {
 	ret := _mock.Called(name)
