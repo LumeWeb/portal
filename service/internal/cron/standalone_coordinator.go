@@ -194,6 +194,18 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 		if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
 			if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err == nil && retryPolicy != nil {
 				// Validate retry policy parameters
+				if retryPolicy.MaxRetries < 0 {
+					s.logger.Error("Invalid retry policy: MaxRetries cannot be negative",
+						zap.String("jobID", jobID.String()),
+						zap.Int("maxRetries", retryPolicy.MaxRetries))
+					return fmt.Errorf("invalid retry policy: MaxRetries cannot be negative")
+				}
+
+				// Skip delay/factor validation if retries are disabled
+				if retryPolicy.MaxRetries == 0 {
+					return nil
+				}
+
 				if retryPolicy.InitialDelay < 0 {
 					s.logger.Error("Invalid retry policy: InitialDelay cannot be negative",
 						zap.String("jobID", jobID.String()),
@@ -205,12 +217,6 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 						zap.String("jobID", jobID.String()),
 						zap.Float64("backoffFactor", retryPolicy.BackoffFactor))
 					return fmt.Errorf("invalid retry policy: BackoffFactor must be >= 1")
-				}
-				if retryPolicy.MaxRetries < 0 {
-					s.logger.Error("Invalid retry policy: MaxRetries cannot be negative",
-						zap.String("jobID", jobID.String()),
-						zap.Int("maxRetries", retryPolicy.MaxRetries))
-					return fmt.Errorf("invalid retry policy: MaxRetries cannot be negative")
 				}
 
 				delay = retryPolicy.InitialDelay * time.Duration(math.Pow(retryPolicy.BackoffFactor, float64(failures-1)))

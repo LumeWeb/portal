@@ -614,8 +614,8 @@ func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any,
 	// Get model for the operation if specified
 	var model data_models.RequestDataModel
 	var err error
-	if filter.Operation != "" {
-		model, err = r.CreateRequestModel(filter.Operation)
+	if filter.Operation != nil && *filter.Operation != "" {
+		model, err = r.CreateRequestModel(*filter.Operation)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create data model: %w", err)
 		}

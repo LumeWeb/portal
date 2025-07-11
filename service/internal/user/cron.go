@@ -19,7 +19,7 @@ func NewProcessAccountDeletionRequestsJob() *ProcessAccountDeletionRequestsJob {
 		BaseCronJob: core.NewBaseCronJob(
 			uuid.New(),
 			core.JobOriginCore,
-			ProcessAccountDeletionRequestsJobType,
+			core.GetCronJobSourceID(ProcessAccountDeletionRequestsJobType),
 			"Process Account Deletion Requests",
 			&core.CronScheduleDefinition{
 				Type: core.CronScheduleTypeDaily,

@@ -50,9 +50,9 @@ type RetryPolicy struct {
 
 // DefaultRetryPolicy provides sensible defaults for job retries
 var DefaultRetryPolicy = &RetryPolicy{
-	MaxRetries:    3,                  // Retry up to 3 times
-	InitialDelay:  5 * time.Minute,    // Start with 5 minute delay
-	BackoffFactor: 1.5,                // Exponential backoff factor
+	MaxRetries:    3,               // Retry up to 3 times
+	InitialDelay:  5 * time.Minute, // Start with 5 minute delay
+	BackoffFactor: 1.5,             // Exponential backoff factor
 }
 
 // CronScheduleDefinition defines a serializable schedule definition for cron jobs.
@@ -165,12 +165,79 @@ func ValidateCronJobType(jobType string) error {
 	return nil
 }
 
+func ValidateCronJob(job CronJob) error {
+	if job == nil {
+		return fmt.Errorf("job cannot be nil")
+	}
+
+	// Validate origin
+	switch job.Origin() {
+	case JobOriginCore:
+		// Core jobs must have non-empty source ID
+		if job.SourceID() == "" {
+			return fmt.Errorf("core jobs must specify subsystem source ID")
+		}
+	case JobOriginPlugin:
+		// Plugin jobs must reference an existing plugin
+		if job.SourceID() == "" {
+			return fmt.Errorf("plugin jobs must specify plugin ID")
+		}
+
+		if !PluginExists(job.SourceID()) {
+			return fmt.Errorf("plugin %q not found", job.SourceID())
+		}
+	default:
+		return fmt.Errorf("invalid job origin: %s", job.Origin())
+	}
+
+	jobType := job.Type()
+	if err := ValidateCronJobType(jobType); err != nil {
+		return fmt.Errorf("invalid job type: %w", err)
+	}
+
+	// Additional validation based on origin
+	switch job.Origin() {
+	case JobOriginCore:
+		if !strings.HasPrefix(jobType, JobNamespaceCore+".") {
+			return fmt.Errorf("core jobs must use core.* namespace")
+		}
+	case JobOriginPlugin:
+		if !strings.HasPrefix(jobType, JobNamespacePlugin+".") {
+			return fmt.Errorf("plugin jobs must use plugin.* namespace")
+		}
+	}
+
+	return nil
+}
+
 // GetCronJobNamespace extracts the namespace from a cron job type string.
 func GetCronJobNamespace(jobType string) string {
 	if parts := strings.Split(jobType, "."); len(parts) > 0 {
 		return parts[0]
 	}
 	return ""
+}
+
+// GetCronJobOrigin parses the origin (core/plugin) from a cron job type string.
+func GetCronJobOrigin(jobType string) string {
+	namespace := GetCronJobNamespace(jobType)
+	switch namespace {
+	case JobNamespaceCore:
+		return JobOriginCore
+	case JobNamespacePlugin:
+		return JobOriginPlugin
+	default:
+		return ""
+	}
+}
+
+// GetCronJobSourceID parses the source ID (plugin ID or subsystem) from a cron job type string.
+func GetCronJobSourceID(jobType string) string {
+	parts := strings.Split(jobType, ".")
+	if len(parts) < 2 {
+		return ""
+	}
+	return parts[1]
 }
 
 // IsCoreCronJob checks if a cron job is a core job based on its type.
