@@ -67,7 +67,7 @@ func (t *TUSServiceDefault) UploadExists(ctx context.Context, protocol core.Stor
 	opName := core.TUSUploadOperationName(protocol.Name())
 
 	req, err := t.requests.QueryRequestData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
-		Operation: opName,
+		Operation: &opName,
 	})
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -89,7 +89,7 @@ func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, protocol core.
 	opName := core.TUSUploadOperationName(protocol.Name())
 
 	req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{UploadHash: hash.Multihash()}, core.RequestFilter{
-		Operation: opName,
+		Operation: &opName,
 	})
 
 	if err != nil {
@@ -116,7 +116,7 @@ func (t *TUSServiceDefault) Uploads(ctx context.Context, protocol core.StoragePr
 	opName := core.TUSUploadOperationName(protocol.Name())
 
 	data, err := t.requests.ListRequestsByUser(ctx, uploaderID, core.RequestFilter{
-		Operation: opName,
+		Operation: &opName,
 	})
 
 	if err != nil {

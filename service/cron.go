@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	"strings"
 	"time"
 )
 
@@ -250,41 +249,8 @@ func (c *CronServiceDefault) RegisterJob(job core.CronJob, retryPolicy *core.Ret
 		return fmt.Errorf("job cannot be nil")
 	}
 
-	// Validate origin
-	switch job.Origin() {
-	case core.JobOriginCore:
-		// Core jobs must have non-empty source ID
-		if job.SourceID() == "" {
-			return fmt.Errorf("core jobs must specify subsystem source ID")
-		}
-	case core.JobOriginPlugin:
-		// Plugin jobs must reference an existing plugin
-		if job.SourceID() == "" {
-			return fmt.Errorf("plugin jobs must specify plugin ID")
-		}
-
-		if !core.PluginExists(job.SourceID()) {
-			return fmt.Errorf("plugin %q not found", job.SourceID())
-		}
-	default:
-		return fmt.Errorf("invalid job origin: %s", job.Origin())
-	}
-
-	jobType := job.Type()
-	if err := core.ValidateCronJobType(jobType); err != nil {
-		return fmt.Errorf("invalid job type: %w", err)
-	}
-
-	// Additional validation based on origin
-	switch job.Origin() {
-	case core.JobOriginCore:
-		if !strings.HasPrefix(jobType, core.JobNamespaceCore+".") {
-			return fmt.Errorf("core jobs must use core.* namespace")
-		}
-	case core.JobOriginPlugin:
-		if !strings.HasPrefix(jobType, core.JobNamespacePlugin+".") {
-			return fmt.Errorf("plugin jobs must use plugin.* namespace")
-		}
+	if err := core.ValidateCronJob(job); err != nil {
+		return err
 	}
 
 	// Check for existing job
@@ -339,7 +305,7 @@ func (c *CronServiceDefault) RegisterJob(job core.CronJob, retryPolicy *core.Ret
 		UUID:        types.FromUUID(job.ID()),
 		Origin:      job.Origin(),
 		SourceID:    job.SourceID(),
-		JobType:     jobType,
+		JobType:     job.Type(),
 		Args:        datatypes.JSON(argsBytes),
 		RetryPolicy: datatypes.JSON(retryPolicyBytes),
 		SchedDef:    datatypes.JSON(schedDefBytes),

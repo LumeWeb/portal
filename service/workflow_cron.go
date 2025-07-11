@@ -18,7 +18,7 @@ func newWorkflowStepExecutorJob() *workflowStepExecutorJob {
 		BaseCronJob: core.NewBaseCronJob(
 			uuid.New(),
 			core.JobOriginCore,
-			workflowStepExecutorJobType,
+			core.GetCronJobSourceID(workflowStepExecutorJobType),
 			"Workflow Step Executor",
 			core.NewCronScheduleDefinition(core.CronScheduleTypeOnce),
 			nil,
