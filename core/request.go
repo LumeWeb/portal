@@ -56,8 +56,8 @@ type RequestService interface {
 	CompleteRequest(ctx context.Context, id uint) error
 	FailRequest(ctx context.Context, id uint, reason string) error
 	GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*RequestStatus, error)
-	ComputeRequestStatus(ctx context.Context, id uint) (*RequestStatus, error)
-	ComputeRequestStatusWithDeleted(ctx context.Context, id uint) (*RequestStatus, error)
+	ComputeRequestStatus(ctx context.Context, id uint, keepExisting bool) (*RequestStatus, error)
+	ComputeRequestStatusWithDeleted(ctx context.Context, id uint, keepExisting bool) (*RequestStatus, error)
 
 	// Utility operations
 	RequestExists(ctx context.Context, id uint) (bool, error)
