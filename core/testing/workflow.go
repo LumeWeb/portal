@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"testing"
+	"time"
 )
 
 // WorkflowTest encapsulates common setup and assertion logic for workflow tests.
@@ -132,4 +133,32 @@ func (wt *WorkflowTest) GetRequest(requestID uint) *models.Request {
 	req, err := wt.requestSvc.GetRequest(wt.Ctx, requestID)
 	require.NoError(wt.TB, err)
 	return req
+}
+
+// FindWorkflowInstances finds workflow instances matching the criteria and fails the test if it errors
+func (wt *WorkflowTest) FindWorkflowInstances(workflowName string, filter core.RequestFilter) []*core.WorkflowInstance {
+	instances, err := wt.workflowSvc.FindWorkflowInstances(wt.Ctx, workflowName, filter)
+	require.NoError(wt.TB, err)
+	return instances
+}
+
+// FindFirstWorkflowInstance finds the first workflow instance matching the criteria and fails the test if it errors or none found
+func (wt *WorkflowTest) FindFirstWorkflowInstance(workflowName string, filter core.RequestFilter) *core.WorkflowInstance {
+	instances := wt.FindWorkflowInstances(workflowName, filter)
+	require.NotEmpty(wt.TB, instances, "no workflow instances found matching criteria")
+	return instances[0]
+}
+
+// WaitForWorkflowInstance waits for a workflow instance matching the criteria to appear, with timeout
+func (wt *WorkflowTest) WaitForWorkflowInstance(workflowName string, filter core.RequestFilter, timeout time.Duration) *core.WorkflowInstance {
+	var instance *core.WorkflowInstance
+	require.Eventually(wt.TB, func() bool {
+		instances := wt.FindWorkflowInstances(workflowName, filter)
+		if len(instances) > 0 {
+			instance = instances[0]
+			return true
+		}
+		return false
+	}, timeout, 100*time.Millisecond, "timed out waiting for workflow instance")
+	return instance
 }
