@@ -33,6 +33,7 @@ require (
 	github.com/knadh/koanf/v2 v2.2.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/looplab/fsm v1.0.3
+	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.5.0
@@ -47,11 +48,10 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.1
 	go.lumeweb.com/configmanager v0.3.16
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.9
 	go.lumeweb.com/portal-router v0.6.1
-	go.sia.tech/core v0.14.1
+	go.sia.tech/core v0.14.2
 	go.sia.tech/coreutils v0.16.4
 	go.sia.tech/renterd/v2 v2.4.0
 	go.uber.org/mock v0.5.2
@@ -183,11 +183,11 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.1 // indirect
+	go.lumeweb.com/gswagger v0.20.8 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
