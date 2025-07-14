@@ -375,7 +375,13 @@ func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
 	var decodeErr error
 
 	switch enc {
-	case multibase.Base32, multibase.Base32Upper, multibase.Base32pad, multibase.Base32padUpper:
+	case multibase.Base32, multibase.Base32Upper:
+		// Decode with multibase prefix
+		decodedBytes, decodeErr = b32.RawStdEncoding.DecodeString(s[1:])
+		if decodeErr != nil {
+			return nil, true, fmt.Errorf("failed to decode multibase Base32 string: %w", decodeErr)
+		}
+	case multibase.Base32pad, multibase.Base32padUpper:
 		// Decode with multibase prefix
 		decodedBytes, decodeErr = b32.StdEncoding.DecodeString(s[1:])
 		if decodeErr != nil {

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	b32 "github.com/multiformats/go-base32"
 	"testing"
 
 	mb "github.com/multiformats/go-multibase"
@@ -232,25 +233,25 @@ func TestParseStorageHash_Base32(t *testing.T) {
 		{
 			name: "Multibase Base32",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32) + base32.StdEncoding.EncodeToString(b)
+				return string(mb.Base32) + b32.RawStdEncoding.EncodeToString(b)
 			},
 		},
 		{
 			name: "Multibase Base32 Upper",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32Upper) + base32.StdEncoding.EncodeToString(b)
+				return string(mb.Base32Upper) + b32.RawStdEncoding.EncodeToString(b)
 			},
 		},
 		{
 			name: "Multibase Base32 Pad",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32pad) + base32.StdEncoding.EncodeToString(b)
+				return string(mb.Base32pad) + b32.StdEncoding.EncodeToString(b)
 			},
 		},
 		{
 			name: "Multibase Base32 Pad Upper",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32padUpper) + base32.StdEncoding.EncodeToString(b)
+				return string(mb.Base32padUpper) + b32.StdEncoding.EncodeToString(b)
 			},
 		},
 	}
