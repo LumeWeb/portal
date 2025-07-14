@@ -304,6 +304,7 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	// Phase 1: Registration
 	// Add test case specific options
 	if len(opts) > 0 {
+		AddTestCaseContextOptions(WithFireBootComplete(false))
 		AddTestCaseContextOptions(opts...)
 	}
 
@@ -1289,6 +1290,7 @@ func DefaultTestContextOptions(tb TB) []TestContextBuilderOption {
 		WithMockTUSService(),
 		WithMockUserService(),
 		WithMockWorkflowService(),
+		WithFireBootComplete(true),
 	)
 
 	return opts
@@ -2097,14 +2099,10 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 	return nil
 }
 
-// BootEnvironment creates and initializes a TestContext with common services and configurations.
-// It handles resetting state, creating the context, applying options, and booting the environment.
-// This function is called internally by RunTestCase and RunTestCaseWithDB.
-// WithNoFireBootCompleteEvent disables automatic firing of boot complete event
-func WithNoFireBootCompleteEvent() TestContextBuilderOption {
+func WithFireBootComplete(fire bool) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		if tctx, ok := ctx.(*testContext); ok {
-			tctx.SetFireBootComplete(false)
+			tctx.SetFireBootComplete(fire)
 		}
 		return ctx, nil
 	}
