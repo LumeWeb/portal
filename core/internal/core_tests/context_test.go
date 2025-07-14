@@ -3,7 +3,9 @@ package core_tests
 import (
 	"context"
 	"github.com/stretchr/testify/require"
+	"go.lumeweb.com/portal/build"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap/zapcore"
@@ -617,8 +619,6 @@ func TestGetService_TypeMismatch(t *testing.T) {
 	ctx, err := core.NewContext(mockConfigManager, mockLogger, core.ContextWithService("test-service", mockService), core.ContextWithLoggerOptions(flogger.Hook()))
 	assert.NoError(t, err)
 
-	ctx.WithLoggerOptions(flogger.Hook())
-
 	core.GetService[*mocks.MockAuthService](ctx, "test-service")
 	assert.True(t, flogger.FatalWasCalled(), "Expected fatal log for type mismatch")
 
@@ -630,9 +630,28 @@ func TestGetServiceConfig(t *testing.T) {
 	mockConfigManager := newMockConfigManager(t, nil)
 	mockLogger := core.NewLogger(mockConfigManager, nil)
 
-	mockConfigManager.On("GetService", "test-service").Return(mockServiceConfig).Once()
+	svc := coreMocks.NewMockService(t)
 
-	ctx, err := core.NewContext(mockConfigManager, mockLogger)
+	core.RegisterPlugin(core.PluginInfo{
+		ID:      "test",
+		Version: build.New("1.0", "", "", "", "", "", ""),
+		Services: func() ([]core.ServiceInfo, error) {
+			return []core.ServiceInfo{
+				{
+					ID: "test-service",
+					Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+						return svc, nil, nil
+					},
+				},
+			}, nil
+		},
+	})
+
+	core.RegisterServicesFromPlugins()
+
+	mockConfigManager.On("GetService", "test", "test-service").Return(mockServiceConfig).Once()
+
+	ctx, err := core.NewContext(mockConfigManager, mockLogger, core.ContextWithService("non-existent-service", svc))
 	assert.NoError(t, err)
 
 	retrievedConfig := core.GetServiceConfig[config.ServiceConfig](ctx, "test-service")
@@ -646,7 +665,6 @@ func TestGetServiceConfig_NotFound(t *testing.T) {
 	core.ResetState()
 	mockConfigManager := newMockConfigManager(t, nil)
 	mockLogger := core.NewLogger(mockConfigManager, nil)
-	mockConfigManager.On("GetService", "non-existent-service").Return(nil).Once()
 
 	flogger := NewFatalLogInterceptor()
 
@@ -664,12 +682,29 @@ func TestGetServiceConfig_TypeMismatch(t *testing.T) {
 	mockConfigManager := newMockConfigManager(t, nil)
 	mockLogger := core.NewLogger(mockConfigManager, nil)
 
+	core.RegisterPlugin(core.PluginInfo{
+		ID:      "test",
+		Version: build.New("1.0", "", "", "", "", "", ""),
+		Services: func() ([]core.ServiceInfo, error) {
+			return []core.ServiceInfo{
+				{
+					ID: "test-service",
+					Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+						return nil, nil, nil
+					},
+				},
+			}, nil
+		},
+	})
+
+	core.RegisterServicesFromPlugins()
+
 	// Create a concrete service config that implements ServiceConfig but not APIConfig
 	type testServiceConfig struct {
 		config.ServiceConfig
 	}
 	serviceCfg := &testServiceConfig{}
-	mockConfigManager.On("GetService", "test-service").Return(serviceCfg).Once()
+	mockConfigManager.EXPECT().GetService("test", "test-service").Return(serviceCfg).Once()
 
 	flogger := NewFatalLogInterceptor()
 

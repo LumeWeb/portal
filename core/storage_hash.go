@@ -1,11 +1,15 @@
 package core
 
 import (
-	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 	"github.com/ipfs/go-cid"
+	b32 "github.com/multiformats/go-base32"
+	"github.com/multiformats/go-multibase"
+	mb "github.com/multiformats/go-multibase"
 	mh "github.com/multiformats/go-multihash"
+	"slices"
+	"unicode/utf8"
 )
 
 var (
@@ -201,9 +205,8 @@ func (p *CoreBase58Parser) TryParse(s string) (StorageHash, bool, error) {
 	// If it doesn't decode cleanly, we assume it wasn't meant for this parser.
 	hash, err := mh.FromB58String(s)
 	if err != nil {
-		// Return false for recognized: We didn't positively identify it as a
-		// failed attempt *at this specific format* in the fallback context.
-		return nil, false, nil
+		// Any error from FromB58String means invalid Base58 format
+		return nil, false, ErrInvalidHashFormat
 	}
 
 	// Successfully decoded Base58, now validate multihash structure
@@ -233,9 +236,16 @@ func (p *CoreHexParser) ParserName() string { return "CoreHexMultihash" }
 
 // TryParse implements the StorageHashParser interface for Hex multihashes.
 func (p *CoreHexParser) TryParse(s string) (StorageHash, bool, error) {
-	// mh.FromHexString can be relatively permissive (e.g., regarding case).
-	// Similar to Base58, if decoding fails, we assume it wasn't intended for this parser.
-	hash, err := mh.FromHexString(s)
+	// Avoid panics on empty or too-short strings
+	if len(s) < 2 {
+		return nil, false, nil
+	}
+	if !slices.Contains([]string{string(mb.Base32hex), string(mb.Base32hexUpper), string(mb.Base32hexPad), string(mb.Base32hexPadUpper)}, string(s[0])) {
+		return nil, false, nil
+	}
+
+	// Decode the hex payload after the prefix
+	hash, err := b32.HexEncoding.DecodeString(s[1:])
 	if err != nil {
 		return nil, false, nil // Not recognized as valid hex multihash format
 	}
@@ -258,36 +268,74 @@ func (p *CoreHexParser) TryParse(s string) (StorageHash, bool, error) {
 
 // --- Fallback Base64 Parser ---
 
-// CoreBase64Parser attempts to parse strings as standard Base64 encoded multihashes.
-// Note: This uses standard Base64 (RFC 4648), not URL-safe encoding.
+// CoreBase64Parser handles parsing of Base64 encoded multihashes in both:
+// - Standard RFC 4648 format (with/without padding)
+// - Multibase-prefixed formats (Base64, Base64pad, Base64url, Base64urlPad)
+//
+// This parser supports both raw Base64 strings and those prefixed with multibase encoding indicators.
 type CoreBase64Parser struct{}
 
 // ParserName returns the identifier for this parser.
-func (p *CoreBase64Parser) ParserName() string { return "CoreBase64StdMultihash" }
+func (p *CoreBase64Parser) ParserName() string { return "CoreBase64Multihash" }
 
-// TryParse implements the StorageHashParser interface for standard Base64 multihashes.
+// TryParse implements the StorageHashParser interface for Base64 multihashes.
 func (p *CoreBase64Parser) TryParse(s string) (StorageHash, bool, error) {
-	// 1. Attempt standard Base64 decoding
+	// 1. Attempt standard Base64 decoding (RFC 4648)
 	decodedBytes, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
-		// If Base64 decoding itself fails, it definitely wasn't this format.
+		// If Base64 decoding fails, check if it might be multibase-prefixed
+		return p.tryMultibaseBase64(s)
+	}
+
+	return p.parseDecodedBytes(decodedBytes, s)
+}
+
+func (p *CoreBase64Parser) tryMultibaseBase64(s string) (StorageHash, bool, error) {
+	if len(s) == 0 {
 		return nil, false, nil
 	}
 
-	// 2. Try to interpret the decoded bytes as a multihash using Cast
-	// Cast validates the multihash structure (prefix varints).
+	r, _ := utf8.DecodeRuneInString(s)
+	enc := multibase.Encoding(r)
+
+	var decodedBytes []byte
+	var err error
+
+	switch enc {
+	case multibase.Base64:
+		decodedBytes, err = base64.StdEncoding.DecodeString(s[1:])
+	case multibase.Base64pad:
+		decodedBytes, err = base64.StdEncoding.DecodeString(s[1:])
+	case multibase.Base64url:
+		decodedBytes, err = base64.URLEncoding.DecodeString(s[1:])
+	case multibase.Base64urlPad:
+		decodedBytes, err = base64.URLEncoding.DecodeString(s[1:])
+	default:
+		// Not a recognized multibase Base64 format
+		return nil, false, nil
+	}
+
+	if err != nil {
+		return nil, true, fmt.Errorf("failed to decode multibase Base64 string: %w", err)
+	}
+
+	return p.parseDecodedBytes(decodedBytes, s)
+}
+
+func (p *CoreBase64Parser) parseDecodedBytes(decodedBytes []byte, original string) (StorageHash, bool, error) {
+	if len(decodedBytes) < 2 {
+		return nil, true, ErrInvalidHashFormat
+	}
+
+	// Try to interpret the decoded bytes as a multihash using Cast
 	hash, err := mh.Cast(decodedBytes)
 	if err != nil {
-		// It was valid Base64, but the content wasn't a valid multihash structure.
-		// Return true for recognized, with error.
 		return nil, true, fmt.Errorf("string is valid Base64 but content is not a valid multihash: %w", err)
 	}
 
-	// 3. Successfully cast, now decode fully to get components for CID type inference.
-	// This step might seem redundant after Cast, but Decode provides the structured data.
+	// Successfully cast, now decode fully to get components for CID type inference.
 	decoded, err := mh.Decode(hash)
 	if err != nil {
-		// Should be unlikely if Cast succeeded, but handle defensively.
 		return nil, true, fmt.Errorf("internal error: failed to decode multihash after successful cast (from Base64): %w", err)
 	}
 
@@ -297,31 +345,72 @@ func (p *CoreBase64Parser) TryParse(s string) (StorageHash, bool, error) {
 	// Create the StorageHash object
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
 
-	return storageHash, true, nil // Success
+	return storageHash, true, nil
 }
 
 // --- Fallback Base32 Parser ---
 
-// CoreBase32Parser attempts to parse strings as standard Base32 encoded multihashes (RFC 4648).
-// Note: This differs from the lowercase, padding-free Base32 commonly used for CIDs (multibase 'b'),
-// which should ideally be handled by protocol-specific parsers (e.g., IPFS).
+// CoreBase32Parser handles parsing of Base32 encoded multihashes in both:
+// - Standard RFC 4648 format (with/without padding)
+// - Multibase-prefixed formats (Base32, Base32Upper, Base32pad, Base32padUpper)
+//
+// This parser supports both raw Base32 strings and those prefixed with multibase encoding indicators.
+// It's designed to be flexible while maintaining strict validation of the decoded multihash structure.
 type CoreBase32Parser struct{}
 
 // ParserName returns the identifier for this parser.
-func (p *CoreBase32Parser) ParserName() string { return "CoreBase32StdMultihash" }
+func (p *CoreBase32Parser) ParserName() string { return "CoreBase32Multihash" }
 
 // TryParse implements the StorageHashParser interface for standard Base32 multihashes.
 func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
-	// 1. Attempt standard Base32 decoding (RFC 4648, includes padding)
-	// If you expect unpadded, use base32.StdEncoding.WithPadding(base32.NoPadding)
-	// If you expect lowercase, you'd need to strings.ToUpper(s) first or use a different library.
-	decodedBytes, err := base32.StdEncoding.DecodeString(s)
-	if err != nil {
-		// If Base32 decoding itself fails, it definitely wasn't this format.
+	if len(s) == 0 {
+		return nil, false, nil
+	}
+
+	// First check if it has a multibase prefix
+	r, _ := utf8.DecodeRuneInString(s)
+	enc := multibase.Encoding(r)
+
+	var decodedBytes []byte
+	var decodeErr error
+
+	switch enc {
+	case multibase.Base32, multibase.Base32Upper, multibase.Base32pad, multibase.Base32padUpper:
+		// Decode with multibase prefix
+		decodedBytes, decodeErr = b32.StdEncoding.DecodeString(s[1:])
+		if decodeErr != nil {
+			return nil, true, fmt.Errorf("failed to decode multibase Base32 string: %w", decodeErr)
+		}
+	default:
+		// Try standard Base32 decoding
+		decodedBytes, decodeErr = b32.StdEncoding.DecodeString(s)
+		if decodeErr != nil {
+			return nil, false, nil
+		}
+	}
+
+	if len(decodedBytes) < 2 {
+		return nil, true, fmt.Errorf("decoded bytes too short to be a valid multihash")
+	}
+
+	// Check if we had a multibase prefix
+	r, _ = utf8.DecodeRuneInString(s)
+	enc = multibase.Encoding(r)
+	hadMultibasePrefix := enc == multibase.Base32 || enc == multibase.Base32Upper ||
+		enc == multibase.Base32pad || enc == multibase.Base32padUpper
+
+	// If no multibase prefix and first rune is valid but not a base32 char,
+	// don't recognize as base32 format
+	if !hadMultibasePrefix && len(s) > 0 && r != utf8.RuneError &&
+		!isBase32Char(r) {
 		return nil, false, nil
 	}
 
 	// 2. Try to interpret the decoded bytes as a multihash using Cast
+	if len(decodedBytes) < 2 {
+		return nil, true, fmt.Errorf("decoded bytes too short to be a valid multihash")
+	}
+
 	hash, err := mh.Cast(decodedBytes)
 	if err != nil {
 		// It was valid Base32, but the content wasn't a valid multihash structure.
@@ -342,6 +431,10 @@ func (p *CoreBase32Parser) TryParse(s string) (StorageHash, bool, error) {
 	storageHash := NewStorageHashFromMultihash(hash, cidType, nil)
 
 	return storageHash, true, nil // Success
+}
+
+func isBase32Char(r rune) bool {
+	return (r >= 'A' && r <= 'Z') || (r >= '2' && r <= '7') || r == '='
 }
 
 // InferCIDTypeFromHashCode maps hash algorithm codes to appropriate CID types
