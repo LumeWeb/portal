@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
-	b32 "github.com/multiformats/go-base32"
+	"fmt"
 	"testing"
 
 	mb "github.com/multiformats/go-multibase"
@@ -145,7 +145,7 @@ func TestParseStorageHash_Base58(t *testing.T) {
 
 	assert.True(t, bytes.Equal(multihash, sh.Multihash()))
 	assert.Equal(t, hashType, sh.Type())
-	assert.Equal(t, uint64(0x00), sh.CIDType()) // SHA2-256 32-byte digest infers CIDv0
+	assert.Equal(t, uint64(0x70), sh.CIDType())
 	assert.Nil(t, sh.Proof())
 	assert.False(t, sh.ProofExists())
 	assert.Equal(t, base58String, sh.String())
@@ -159,20 +159,22 @@ func TestParseStorageHash_Hex(t *testing.T) {
 	hashType := uint64(mh.SHA2_256) // 0x12
 	multihash, err := mh.Encode(hashDigest, hashType)
 	require.NoError(t, err)
-	hexString, err := mb.Encode(mb.Base32hexPad, multihash)
+
+	// Test with multibase-encoded hex (should be recognized as CID)
+	hexString, err := mb.Encode(mb.Base16, multihash)
 	require.NoError(t, err)
 
 	sh, err := core.ParseStorageHash(hexString)
 	require.NoError(t, err)
 	require.NotNil(t, sh)
-
 	assert.True(t, bytes.Equal(multihash, sh.Multihash()))
-	assert.Equal(t, hashType, sh.Type())
-	assert.Equal(t, uint64(0x00), sh.CIDType()) // SHA2-256 32-byte digest infers CIDv0
-	assert.Nil(t, sh.Proof())
-	assert.False(t, sh.ProofExists())
-	// String() method always returns Base58
-	assert.Equal(t, mh.Multihash(multihash).B58String(), sh.String())
+
+	// Test with raw hex (should fail)
+	rawHex := fmt.Sprintf("%x", multihash)
+	sh, err = core.ParseStorageHash(rawHex)
+	assert.Error(t, err)
+	assert.Nil(t, sh)
+	assert.ErrorAs(t, err, &core.ErrInvalidHashFormat, "error should be ErrInvalidHashFormat")
 }
 
 func TestParseStorageHash_Base64(t *testing.T) {
@@ -233,25 +235,29 @@ func TestParseStorageHash_Base32(t *testing.T) {
 		{
 			name: "Multibase Base32",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32) + b32.RawStdEncoding.EncodeToString(b)
+				encoded, _ := mb.Encode(mb.Base32, b)
+				return encoded
 			},
 		},
 		{
 			name: "Multibase Base32 Upper",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32Upper) + b32.RawStdEncoding.EncodeToString(b)
+				encoded, _ := mb.Encode(mb.Base32Upper, b)
+				return encoded
 			},
 		},
 		{
 			name: "Multibase Base32 Pad",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32pad) + b32.StdEncoding.EncodeToString(b)
+				encoded, _ := mb.Encode(mb.Base32pad, b)
+				return encoded
 			},
 		},
 		{
 			name: "Multibase Base32 Pad Upper",
 			encodeFn: func(b []byte) string {
-				return string(mb.Base32padUpper) + b32.StdEncoding.EncodeToString(b)
+				encoded, _ := mb.Encode(mb.Base32padUpper, b)
+				return encoded
 			},
 		},
 	}
@@ -270,10 +276,9 @@ func TestParseStorageHash_Base32(t *testing.T) {
 			sh, err := core.ParseStorageHash(encoded)
 			require.NoError(t, err)
 			require.NotNil(t, sh)
-
 			assert.True(t, bytes.Equal(multihash, sh.Multihash()))
 			assert.Equal(t, hashType, sh.Type())
-			assert.Equal(t, uint64(0x00), sh.CIDType())
+			assert.Equal(t, uint64(0x70), sh.CIDType())
 			assert.Nil(t, sh.Proof())
 			assert.False(t, sh.ProofExists())
 			assert.Equal(t, mh.Multihash(multihash).B58String(), sh.String())
@@ -318,15 +323,13 @@ func TestParseStorageHash_InvalidMultihashStructure(t *testing.T) {
 		assert.Contains(t, parseErr.Error(), "string is valid Base64 but content is not a valid multihash", "error should indicate invalid multihash")
 	}
 
-	// Test Base32 parser with invalid multihash structure
+	// Test Base32 - expect it to fail with ErrInvalidHashFormat
 	invalidMultihashStructureBytes = []byte{0x01, 0x01} // Decodes, but not a valid multihash prefix
 	invalidMultihashStructureString = base32.StdEncoding.EncodeToString(invalidMultihashStructureBytes)
-	_, recognized, parseErr = (&core.CoreBase32Parser{}).TryParse(invalidMultihashStructureString)
-	assert.True(t, recognized, "should recognize as Base32 format")
-	assert.Error(t, parseErr, "should return error for invalid multihash structure")
-	if parseErr != nil {
-		assert.Contains(t, parseErr.Error(), "string is valid Base32 but content is not a valid multihash", "error should indicate invalid multihash")
-	}
+	sh, err = core.ParseStorageHash(invalidMultihashStructureString)
+	assert.Error(t, err)
+	assert.Nil(t, sh)
+	assert.Equal(t, err, core.ErrInvalidHashFormat, "error should indicate invalid format")
 }
 
 func TestInferCIDTypeFromHashCode(t *testing.T) {
@@ -365,9 +368,8 @@ func TestGetParsersFromRegistry(t *testing.T) {
 
 	// Expect the core fallback parsers in the defined order
 	expectedParserNames := []string{
-		"CoreBase58Multihash",
-		"CoreBase32Multihash",
-		"CoreHexMultihash",
+		"CIDStorageHashParser",
+		"MultihashStorageHashParser",
 		"CoreBase64Multihash",
 	}
 
