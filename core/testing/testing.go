@@ -1192,13 +1192,12 @@ func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOpt
 		// Create mock API for the target
 		mockAPI := coreMocks.NewMockAPI(tb)
 
-		cfg := config.NewMockDefaults(ctx.T())
-		cfg.EXPECT().Defaults().Maybe()
+		cfg := &mockConfigEntry{}
 
 		// Configure basic mock API expectations
 		mockAPI.On("Name").Return(targetAPI).Maybe()
 		mockAPI.On("Subdomain").Return(targetAPI).Maybe()
-		mockAPI.On("AuthTokenName").Return(targetAPI + "_token").Maybe()
+		mockAPI.On("AuthTokenName").Return(core.AUTH_TOKEN_NAME).Maybe()
 		mockAPI.On("Config").Return(cfg).Maybe()
 		mockAPI.On("OpenAPIInfo").Return(router.APIInfo()).Maybe()
 		mockAPI.On("Configure", mock.Anything, mock.Anything).Return(nil).Maybe()

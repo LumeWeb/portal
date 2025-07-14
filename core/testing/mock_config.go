@@ -3,6 +3,7 @@ package testing
 import (
 	"context"
 	"fmt"
+	z "github.com/Oudwins/zog"
 	"os"
 	"reflect"
 	"strconv"
@@ -26,6 +27,20 @@ const (
 )
 
 const mapStructureTag = "config"
+
+var _ config.Defaults = (*mockConfigEntry)(nil)
+var _ config.ConfigSchemaProvider = (*mockConfigEntry)(nil)
+
+type mockConfigEntry struct {
+}
+
+func (c mockConfigEntry) Schema() z.ZogSchema {
+	return nil
+}
+
+func (c mockConfigEntry) Defaults() map[string]any {
+	return make(map[string]any)
+}
 
 // MockConfigManager implements config.Manager for testing
 // It builds on top of the mockery-generated mock and adds state tracking
