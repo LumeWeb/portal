@@ -6,7 +6,9 @@ import (
 	"go.uber.org/zap"
 )
 
-type Defaults = source.ConfigDefaults
+type Defaults interface {
+	source.ConfigDefaults
+}
 
 type Validator interface {
 	Validate() error

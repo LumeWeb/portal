@@ -8,6 +8,7 @@ packages:
       filename: "mock_{{.InterfaceName}}.go"
     interfaces:
       Manager: {}
+      Defaults: {}
   go.lumeweb.com/portal/db/models/data_models:
     config:
       dir: ./db/mocks
