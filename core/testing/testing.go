@@ -2158,7 +2158,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Fire boot complete event if enabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err := ctx.Fire(pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
+		if err := core.Fire(ctx, pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
 		}
 	}
