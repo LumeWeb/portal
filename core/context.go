@@ -312,10 +312,13 @@ func GetService[T Service](ctx Context, id string) T {
 }
 
 func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
+
 	// Find which plugin owns this service
 	pluginID := GetPluginForService(id)
 	if pluginID == "" {
 		ctx.Logger().Fatal("service has no plugin association", zap.String("service", id))
+		var zero T
+		return zero
 	}
 
 	// Verify service belongs to plugin

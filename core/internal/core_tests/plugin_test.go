@@ -44,7 +44,7 @@ func TestRegisterPlugin_MissingComponent(t *testing.T) {
 		// No API, Protocol, Services, APIExtensions, or WebBundles
 	}
 
-	assert.PanicsWithValue(t, "plugin must have at least one of API, Protocol, Service, APIExtension, or WebBundle", func() {
+	assert.PanicsWithValue(t, "plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, or CronJob", func() {
 		core.RegisterPlugin(plugin)
 	})
 }

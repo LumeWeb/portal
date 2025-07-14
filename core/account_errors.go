@@ -17,7 +17,7 @@ const (
 
 	// Account role errors
 	ErrKeyAssigningAdminRoleFailed ErrorType = "ErrAssigningAdminRoleFailed"
-	ErrKeyAssigningUserRoleFailed   ErrorType = "ErrAssigningUserRoleFailed"
+	ErrKeyAssigningUserRoleFailed  ErrorType = "ErrAssigningUserRoleFailed"
 
 	// Account lookup and existence verification errors
 	ErrKeyUserNotFound      ErrorType = "ErrUserNotFound"
@@ -233,7 +233,7 @@ var (
 
 		// Account role errors
 		ErrKeyAssigningAdminRoleFailed: http.StatusInternalServerError,
-		ErrKeyAssigningUserRoleFailed:   http.StatusInternalServerError,
+		ErrKeyAssigningUserRoleFailed:  http.StatusInternalServerError,
 
 		// Account lookup and existence verification errors
 		ErrKeyUserNotFound:      http.StatusNotFound,
@@ -293,7 +293,7 @@ func init() {
 
 // NewAccountError creates a new Error instance using the core error registry.
 func NewAccountError(key ErrorType, err error, args ...interface{}) *Error {
-	return errorRegistry.NewError(accountErrorNamespace, key, err, args...)
+	return NewError(accountErrorNamespace, key, err, args...)
 }
 
 // IsAccountError checks if the error is an account error.
@@ -303,5 +303,18 @@ func IsAccountError(err error) bool {
 
 // AsAccountError casts the error to a Error if possible.
 func AsAccountError(err error) *Error {
-	return AsNamespaceError(err, accountErrorNamespace)
+	if err == nil {
+		return nil
+	}
+
+	e, ok := err.(*Error)
+	if !ok {
+		return nil
+	}
+
+	if !e.IsNamespace(accountErrorNamespace) {
+		return nil
+	}
+
+	return e
 }

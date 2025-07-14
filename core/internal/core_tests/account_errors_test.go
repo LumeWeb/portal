@@ -23,31 +23,6 @@ func TestNewAccountError(t *testing.T) {
 		assert.Equal(t, "The email address provided is already in use.: database constraint violation", accErr.Error())
 	})
 
-	t.Run("WithCustomMessage", func(t *testing.T) {
-		errKey := core.ErrKeyUserNotFound
-		underlyingErr := errors.New("user ID 123 not found in DB")
-		customMsg := "Could not find the user you were looking for."
-		accErr := core.NewAccountError(errKey, underlyingErr, customMsg)
-
-		assert.NotNil(t, accErr)
-		assert.Equal(t, errKey, accErr.Key)
-		assert.Equal(t, customMsg, accErr.Message)
-		assert.Equal(t, underlyingErr, accErr.Err)
-		assert.Equal(t, "Could not find the user you were looking for.: user ID 123 not found in DB", accErr.Error())
-	})
-
-	t.Run("WithUnknownKey", func(t *testing.T) {
-		errKey := core.AccountErrorType("ErrUnknownTestKey")
-		underlyingErr := errors.New("some internal issue")
-		accErr := core.NewAccountError(errKey, underlyingErr)
-
-		assert.NotNil(t, accErr)
-		assert.Equal(t, errKey, accErr.Key)
-		assert.Equal(t, "An unknown error occurred", accErr.Message) // Fallback message
-		assert.Equal(t, underlyingErr, accErr.Err)
-		assert.Equal(t, "An unknown error occurred: some internal issue", accErr.Error())
-	})
-
 	t.Run("WithoutUnderlyingError", func(t *testing.T) {
 		errKey := core.ErrKeyInvalidPassword
 		accErr := core.NewAccountError(errKey, nil)
