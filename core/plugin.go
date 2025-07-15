@@ -90,6 +90,18 @@ func RegisterPlugin(info PluginInfo) {
 	plugins[info.ID] = info
 }
 
+func UnregisterPlugin(name string) error {
+	pluginsMu.Lock()
+	defer pluginsMu.Unlock()
+
+	if _, exists := plugins[name]; !exists {
+		return fmt.Errorf("plugin %s not found", name)
+	}
+
+	delete(plugins, name)
+	return nil
+}
+
 func GetProtocol(id string) Protocol {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
