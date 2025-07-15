@@ -2133,6 +2133,8 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return fmt.Errorf("API configuration failed: %w", err)
 	}
 
+	core.RegisterServicesFromPlugins()
+
 	if err := ConfigureServices(ctx); err != nil {
 		return fmt.Errorf("service configuration failed: %w", err)
 	}
