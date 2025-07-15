@@ -7,7 +7,9 @@ import (
 
 // MockPluginBuilder is a builder for creating PluginInfo structs for testing.
 type MockPluginBuilder struct {
-	plugin core.PluginInfo
+	plugin     core.PluginInfo
+	services   []core.ServiceInfo
+	extensions []core.APIExtensionFactory
 }
 
 // NewMockPluginBuilder creates a new MockPluginBuilder with a default ID.
@@ -17,6 +19,8 @@ func NewMockPluginBuilder(id string) *MockPluginBuilder {
 			ID:      id,
 			Version: build.New("", "", "", "", "", "", ""),
 		},
+		services:   make([]core.ServiceInfo, 0),
+		extensions: make([]core.APIExtensionFactory, 0),
 	}
 }
 
@@ -44,20 +48,20 @@ func (b *MockPluginBuilder) WithProtocol(protocol core.ProtocolFactory) *MockPlu
 	return b
 }
 
-// WithServices sets the ServicesFactory of the plugin.
-func (b *MockPluginBuilder) WithServices(services core.ServicesFactory) *MockPluginBuilder {
-	b.plugin.Services = services
+// WithService adds an individual service to the plugin with its dependencies.
+func (b *MockPluginBuilder) WithService(id string, factory core.ServiceFactory, depends ...string) *MockPluginBuilder {
+	b.services = append(b.services, core.ServiceInfo{ID: id, Factory: factory, Depends: depends})
 	return b
 }
 
-// WithAPIExtensions sets the APIExtensionsFactory of the plugin.
-func (b *MockPluginBuilder) WithAPIExtensions(extensions core.APIExtensionsFactory) *MockPluginBuilder {
-	b.plugin.APIExtensions = extensions
+// WithAPIExtension adds individual API extensions to the plugin with their dependencies.
+func (b *MockPluginBuilder) WithAPIExtension(extension core.APIExtensionFactory) *MockPluginBuilder {
+	b.extensions = append(b.extensions, extension)
 	return b
 }
 
 // WithModels sets the Models of the plugin.
-func (b *MockPluginBuilder) WithModels(models []any) *MockPluginBuilder {
+func (b *MockPluginBuilder) WithModels(models ...any) *MockPluginBuilder {
 	b.plugin.Models = models
 	return b
 }
@@ -69,14 +73,14 @@ func (b *MockPluginBuilder) WithMigrations(migrations core.DBMigration) *MockPlu
 }
 
 // WithDepends sets the Depends of the plugin.
-func (b *MockPluginBuilder) WithDepends(depends []string) *MockPluginBuilder {
-	b.plugin.Depends = depends
+func (b *MockPluginBuilder) WithDepends(depends ...string) *MockPluginBuilder {
+	b.plugin.Depends = append(b.plugin.Depends, depends...)
 	return b
 }
 
 // WithCronJobs sets the CronJobs of the plugin.
-func (b *MockPluginBuilder) WithCronJobs(cronJobs []core.PluginCronJob) *MockPluginBuilder {
-	b.plugin.CronJobs = cronJobs
+func (b *MockPluginBuilder) WithCronJobs(cronJobs ...core.PluginCronJob) *MockPluginBuilder {
+	b.plugin.CronJobs = append(b.plugin.CronJobs, cronJobs...)
 	return b
 }
 
@@ -87,19 +91,31 @@ func (b *MockPluginBuilder) WithMailerTemplates(mailerTemplates core.MailerTempl
 }
 
 // WithWebBundles sets the WebBundles of the plugin.
-func (b *MockPluginBuilder) WithWebBundles(webBundles []*core.WebBundle) *MockPluginBuilder {
-	b.plugin.WebBundles = webBundles
+func (b *MockPluginBuilder) WithWebBundles(webBundles ...*core.WebBundle) *MockPluginBuilder {
+	b.plugin.WebBundles = append(b.plugin.WebBundles, webBundles...)
 	return b
 }
 
 // WithTargetApps sets the TargetApps of the plugin.
-func (b *MockPluginBuilder) WithTargetApps(targetApps []string) *MockPluginBuilder {
-	b.plugin.TargetApps = targetApps
+func (b *MockPluginBuilder) WithTargetApps(targetApps ...string) *MockPluginBuilder {
+	b.plugin.TargetApps = append(b.plugin.TargetApps, targetApps...)
 	return b
 }
 
 // Build returns the constructed PluginInfo.
 func (b *MockPluginBuilder) Build() core.PluginInfo {
+	if len(b.extensions) > 0 {
+		b.plugin.APIExtensions = func(context core.Context) ([]core.APIExtensionFactory, error) {
+			return b.extensions, nil
+		}
+	}
+
+	if len(b.services) > 0 {
+		b.plugin.Services = func() ([]core.ServiceInfo, error) {
+			return b.services, nil
+		}
+	}
+
 	return b.plugin
 }
 
