@@ -2068,7 +2068,7 @@ func ConfigureServices(ctx TestContext) error {
 //   - Modifies the test context by applying service-specific context options
 //   - Services are registered both in the test context and globally via core.RegisterService
 func ConfigurePluginServices(ctx TestContext) error {
-	for _, svcInfo := range core.GetServices() {
+	for _, svcInfo := range core.Unsafe_GetServiceMap() {
 		if core.GetPluginForService(svcInfo.ID) != "" {
 			serviceInstance, ctxOpts, err := svcInfo.Factory()
 			if err != nil {
