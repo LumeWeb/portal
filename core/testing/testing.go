@@ -2118,6 +2118,8 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return fmt.Errorf("registration phase failed: %w", err)
 	}
 
+	core.RegisterServicesFromPlugins()
+
 	// Process startup functions (DB connection, etc)
 	if err := ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
@@ -2132,9 +2134,6 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	if err != nil {
 		return fmt.Errorf("API configuration failed: %w", err)
 	}
-
-	core.RegisterServicesFromPlugins()
-
 	if err := ConfigureServices(ctx); err != nil {
 		return fmt.Errorf("service configuration failed: %w", err)
 	}
