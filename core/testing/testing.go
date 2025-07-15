@@ -2397,6 +2397,18 @@ func WithUnregisterPlugin(pluginID string) TestContextBuilderOption {
 	}
 }
 
+// WithUnregisterService creates an option that unregisters a service by ID
+func WithUnregisterService(serviceID string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Remove from test context
+		delete(ctx.(*testContext).defaultContext.services, serviceID)
+		
+		// Remove from global registry
+		core.UnregisterService(serviceID)
+		return ctx, nil
+	}
+}
+
 // ConfigureProtocolWorkflows registers all workflows from all protocols with the workflow service
 func ConfigureProtocolWorkflows(ctx core.Context) error {
 	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
