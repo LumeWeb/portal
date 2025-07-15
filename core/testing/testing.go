@@ -2156,13 +2156,13 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	core.RegisterServicesFromPlugins()
 
+	if err = ConfigurePluginServices(ctx); err != nil {
+		return fmt.Errorf("service configuration failed: %w", err)
+	}
+
 	// Process startup functions (DB connection, etc)
 	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
-	}
-
-	if err = ConfigurePluginServices(ctx); err != nil {
-		return fmt.Errorf("service configuration failed: %w", err)
 	}
 
 	// Phase 2: Configuration
