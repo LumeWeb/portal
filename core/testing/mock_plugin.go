@@ -103,7 +103,7 @@ func (b *MockPluginBuilder) WithTargetApps(targetApps ...string) *MockPluginBuil
 }
 
 // Build returns the constructed PluginInfo.
-func (b *MockPluginBuilder) Build() core.PluginInfo {
+func (b *MockPluginBuilder) Build() *MockPluginBuilder {
 	if len(b.extensions) > 0 {
 		b.plugin.APIExtensions = func(context core.Context) ([]core.APIExtensionFactory, error) {
 			return b.extensions, nil
@@ -116,12 +116,12 @@ func (b *MockPluginBuilder) Build() core.PluginInfo {
 		}
 	}
 
-	return b.plugin
+	return b
 }
 
 // PluginOption returns a ContextBuilderOption that registers the built plugin.
-func (b *MockPluginBuilder) BuilderOption() core.ContextBuilderOption {
-	return func(ctx core.Context) (core.Context, error) {
+func (b *MockPluginBuilder) BuilderOption() TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
 		core.RegisterPlugin(b.plugin)
 		return ctx, nil
 	}
