@@ -244,6 +244,23 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
 	}
 
+	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+	plugins := core.GetPlugins()
+	for _, plugin := range plugins {
+		if plugin.Workflows != nil {
+			workflows, err := plugin.Workflows(ctx)
+			if err != nil {
+				ctx.Logger().Error("Error getting workflows from plugin", zap.String("plugin", plugin.ID), zap.Error(err))
+				return nil, err
+			}
+			for _, workflow := range workflows {
+				if err = workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps, workflow.AutoTriggerFirstStep); err != nil {
+					return nil, fmt.Errorf("failed to register workflow %s for plugin %s: %w", workflow.Name, plugin.ID, err)
+				}
+			}
+		}
+	}
+
 	return ctxOpts, nil
 }
 
