@@ -2386,6 +2386,17 @@ func WithCoreEvents() TestContextBuilderOption {
 	}
 }
 
+// WithUnregisterPlugin creates an option that unregisters a plugin by ID
+func WithUnregisterPlugin(pluginID string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		err := core.UnregisterPlugin(pluginID)
+		if err != nil {
+			return nil, err
+		}
+		return ctx, nil
+	}
+}
+
 // ConfigureProtocolWorkflows registers all workflows from all protocols with the workflow service
 func ConfigureProtocolWorkflows(ctx core.Context) error {
 	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
