@@ -103,26 +103,6 @@ func GetProtocol(id string) Protocol {
 	return protocol
 }
 
-/*func UninstallPlugin(name string) error {
-	pluginsMu.Lock()
-	defer pluginsMu.Unlock()
-
-	if _, exists := plugins[name]; !exists {
-		return fmt.Errorf("plugin %s not found", name)
-	}
-
-	// Clean up plugin jobs first
-	ctx := GetContext() // Get global context
-	if cron := GetService[CronService](ctx, CRON_SERVICE); cron != nil {
-		if _, err := cron.CleanupOrphanedJobs(); err != nil {
-			return fmt.Errorf("failed to clean up plugin jobs: %w", err)
-		}
-	}
-
-	delete(plugins, name)
-	return nil
-}*/
-
 func ProtocolExists(id string) bool {
 	protocolsMu.RLock()
 	defer protocolsMu.RUnlock()
