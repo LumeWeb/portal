@@ -20,6 +20,10 @@ type ProtocolFactory func() (Protocol, []ContextBuilderOption, error)
 type ServicesFactory func() ([]ServiceInfo, error)
 type APIExtensionsFactory func(Context) ([]APIExtensionFactory, error)
 
+type WorkflowFactory func(Context) ([]WorkflowDefinition, error)
+
+type WorkflowOperationsFactory func(Context) ([]Operation, error)
+
 type PluginCronJob struct {
 	Name     string                  // Unique type identifier for the job
 	Factory  CronJobFactoryFunc      // Function to create the CronJob instance
@@ -41,6 +45,8 @@ type PluginInfo struct {
 	MailerTemplates MailerTemplates
 	WebBundles      []*WebBundle
 	TargetApps      []string
+	Operations      WorkflowOperationsFactory
+	Workflows       WorkflowFactory
 }
 
 type Configurable interface {

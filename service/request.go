@@ -27,12 +27,19 @@ func init() {
 	})
 }
 
+type operationCacheEntry struct {
+	op      core.Operation
+	handler core.OperationHandler
+}
+
 type RequestServiceDefault struct {
-	ctx    core.Context
-	logger *core.Logger
-	db     *gorm.DB
-	models map[string]data_models.RequestDataModel
-	mutex  sync.RWMutex
+	ctx      core.Context
+	logger   *core.Logger
+	db       *gorm.DB
+	models   map[string]data_models.RequestDataModel
+	mutex    sync.RWMutex
+	opCache  map[string]operationCacheEntry
+	opCacheMu sync.RWMutex
 }
 
 func (r *RequestServiceDefault) RegisterRequestModel(operation string, model data_models.RequestDataModel) {
@@ -59,7 +66,8 @@ func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_model
 
 func NewRequestService() (core.Service, []core.ContextBuilderOption, error) {
 	req := &RequestServiceDefault{
-		models: make(map[string]data_models.RequestDataModel),
+		models:  make(map[string]data_models.RequestDataModel),
+		opCache: make(map[string]operationCacheEntry),
 	}
 
 	opts := core.ContextOptions(
@@ -580,39 +588,92 @@ func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *mode
 
 // findOperationHandler locates the operation and handler for a given operation type
 func (r *RequestServiceDefault) findOperationHandler(operationType string) (core.Operation, core.OperationHandler, error) {
-	// Parse operation type to find protocol
+	// Check cache first
+	r.opCacheMu.RLock()
+	cached, exists := r.opCache[operationType]
+	r.opCacheMu.RUnlock()
+	if exists {
+		return cached.op, cached.handler, nil
+	}
+
+	// First try to find operation in registered protocols
+	op, handler, err := r.findProtocolOperation(operationType)
+	if err == nil {
+		r.cacheOperation(operationType, op, handler)
+		return op, handler, nil
+	}
+
+	// If not found in protocols, try plugins
+	op, handler, err = r.findPluginOperation(operationType)
+	if err == nil {
+		r.cacheOperation(operationType, op, handler)
+		return op, handler, nil
+	}
+
+	// Special case for content scan operation
+	if operationType == "content.scan" {
+		scanner := core.NewNoContentScanner()
+		scanOp := core.NewOperation("content.scan", core.OpTypeScan, scanner.(core.OperationHandler))
+		r.cacheOperation(operationType, scanOp, scanner.(core.OperationHandler))
+		return scanOp, scanner.(core.OperationHandler), nil
+	}
+
+	return nil, nil, fmt.Errorf("operation not found: %s", operationType)
+}
+
+func (r *RequestServiceDefault) cacheOperation(operationType string, op core.Operation, handler core.OperationHandler) {
+	r.opCacheMu.Lock()
+	defer r.opCacheMu.Unlock()
+	r.opCache[operationType] = operationCacheEntry{
+		op:      op,
+		handler: handler,
+	}
+}
+
+// findProtocolOperation searches registered protocols for the operation
+func (r *RequestServiceDefault) findProtocolOperation(operationType string) (core.Operation, core.OperationHandler, error) {
 	parts := strings.Split(operationType, ".")
 	if len(parts) < 2 {
 		return nil, nil, fmt.Errorf("invalid operation type format: %s", operationType)
 	}
 
 	protocolName := parts[0]
-
-	// Find protocol
 	protocol := core.GetProtocol(protocolName)
 	if protocol == nil {
 		return nil, nil, fmt.Errorf("protocol not found: %s", protocolName)
 	}
 
-	// Get operations from protocol
-	operations := protocol.Operations()
-
-	// Find matching operation
-	for _, op := range operations {
+	for _, op := range protocol.Operations() {
 		if op.Type() == operationType {
 			return op, op.Handler(), nil
 		}
 	}
 
-	// Check for content scan operation
-	if operationType == "content.scan" {
-		// Return no-op scanner if no scanner registered
-		scanner := core.NewNoContentScanner()
-		scanOp := core.NewOperation("content.scan", core.OpTypeScan, scanner.(core.OperationHandler))
-		return scanOp, scanner.(core.OperationHandler), nil
+	return nil, nil, fmt.Errorf("operation not found in protocol: %s", operationType)
+}
+
+// findPluginOperation searches registered plugins for the operation
+func (r *RequestServiceDefault) findPluginOperation(operationType string) (core.Operation, core.OperationHandler, error) {
+	plugins := core.GetPlugins()
+	for _, plugin := range plugins {
+		if plugin.Operations != nil {
+			ops, err := plugin.Operations(r.ctx)
+			if err != nil {
+				r.logger.Warn("Failed to get operations from plugin",
+					zap.String("plugin", plugin.ID),
+					zap.Error(err))
+				continue
+			}
+
+			for _, op := range ops {
+				if op.Type() == operationType {
+					return op, op.Handler(), nil
+				}
+			}
+		}
 	}
 
-	return nil, nil, fmt.Errorf("operation not found: %s", operationType)
+	return nil, nil, fmt.Errorf("operation not found in plugins: %s", operationType)
 }
 
 func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
