@@ -2053,6 +2053,42 @@ func ConfigureServices(ctx TestContext) error {
 	return nil
 }
 
+// ConfigurePluginServices initializes and registers all services that belong to plugins.
+// It iterates through all registered services, filters for those associated with plugins,
+// creates service instances using their factories, applies any context options they return,
+// and registers them in the test context.
+//
+// This is typically called during test environment bootstrapping after core services
+// are configured but before API routes are set up.
+//
+// Returns:
+//   - error: if any service fails to instantiate or configure, returns the first error encountered
+//
+// Note:
+//   - Modifies the test context by applying service-specific context options
+//   - Services are registered both in the test context and globally via core.RegisterService
+func ConfigurePluginServices(ctx TestContext) error {
+	for _, svcInfo := range core.GetServices() {
+		if core.GetPluginForService(svcInfo.ID) != "" {
+			serviceInstance, ctxOpts, err := svcInfo.Factory()
+			if err != nil {
+				return err
+			}
+			if serviceInstance == nil {
+				return fmt.Errorf("service factory for '%s' returned nil instance", svcInfo.ID)
+			}
+			newCtx, err := ProcessCtxOptions(ctx, WrapCoreOptions(ctxOpts)...)
+			if err != nil {
+				return err
+			}
+			ctx = newCtx
+			ctx.RegisterService(svcInfo.ID, serviceInstance)
+		}
+	}
+
+	return nil
+}
+
 func ConfigureAPIRoutes(ctx TestContext) error {
 	accessSvc := core.GetService[core.AccessService](ctx, core.ACCESS_SERVICE)
 	if accessSvc == nil {
@@ -2121,12 +2157,16 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	core.RegisterServicesFromPlugins()
 
 	// Process startup functions (DB connection, etc)
-	if err := ProcessStartupFuncs(ctx); err != nil {
+	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
 	}
 
+	if err = ConfigurePluginServices(ctx); err != nil {
+		return fmt.Errorf("service configuration failed: %w", err)
+	}
+
 	// Phase 2: Configuration
-	if err := ConfigureProtocols(ctx); err != nil {
+	if err = ConfigureProtocols(ctx); err != nil {
 		return fmt.Errorf("protocol configuration failed: %w", err)
 	}
 
@@ -2134,34 +2174,35 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	if err != nil {
 		return fmt.Errorf("API configuration failed: %w", err)
 	}
-	if err := ConfigureServices(ctx); err != nil {
+
+	if err = ConfigureServices(ctx); err != nil {
 		return fmt.Errorf("service configuration failed: %w", err)
 	}
 
 	// Phase 3: Initialization
-	if _, err := ProcessCtxOptions(ctx, apiOpts...); err != nil {
+	if _, err = ProcessCtxOptions(ctx, apiOpts...); err != nil {
 		return fmt.Errorf("API initialization failed: %w", err)
 	}
 
-	if err := ConfigureAPIRoutes(ctx); err != nil {
+	if err = ConfigureAPIRoutes(ctx); err != nil {
 		return fmt.Errorf("API route configuration failed: %w", err)
 	}
 
 	// Register workflows from all protocols
-	if err := ConfigureProtocolWorkflows(ctx); err != nil {
+	if err = ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
 	}
 
 	// Start cron service if enabled
 	if ShouldSetupCron() {
-		if err := StartCron(ctx); err != nil {
+		if err = StartCron(ctx); err != nil {
 			return fmt.Errorf("Failed to start cron service: %v", err)
 		}
 	}
 
 	// Fire boot complete event if enabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err := core.Fire(ctx, pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
 		}
 	}
