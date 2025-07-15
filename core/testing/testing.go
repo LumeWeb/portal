@@ -1408,7 +1408,7 @@ func WithService(id string, factory core.ServiceFactory) TestContextBuilderOptio
 }
 
 // RegisterService registers a Service and wraps any returned context options for test context
-func RegisterService(ctx TestContext, id string, factory core.ServiceFactory) (ctxOpts []TestContextBuilderOption, err error) {
+func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, plugin ...string) (ctxOpts []TestContextBuilderOption, err error) {
 	service, opts, err := factory()
 	if err != nil {
 		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
@@ -1420,7 +1420,7 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory) (c
 	}
 
 	// Register the instance locally and globally
-	if err := registerServiceInstance(ctx, id, service); err != nil {
+	if err := registerServiceInstance(ctx, id, service, plugin...); err != nil {
 		return nil, fmt.Errorf("failed to register service: %w", err)
 	}
 
@@ -2069,20 +2069,18 @@ func ConfigureServices(ctx TestContext) error {
 //   - Services are registered both in the test context and globally via core.RegisterService
 func ConfigurePluginServices(ctx TestContext) error {
 	for _, svcInfo := range core.Unsafe_GetServiceMap() {
-		if core.GetPluginForService(svcInfo.ID) != "" {
-			serviceInstance, ctxOpts, err := svcInfo.Factory()
+		plugin := core.GetPluginForService(svcInfo.ID)
+		if plugin != "" {
+			ctxOpts, err := RegisterService(ctx, svcInfo.ID, svcInfo.Factory, plugin)
 			if err != nil {
 				return err
 			}
-			if serviceInstance == nil {
-				return fmt.Errorf("service factory for '%s' returned nil instance", svcInfo.ID)
-			}
-			newCtx, err := ProcessCtxOptions(ctx, WrapCoreOptions(ctxOpts)...)
+
+			newCtx, err := ProcessCtxOptions(ctx, ctxOpts...)
 			if err != nil {
 				return err
 			}
 			ctx = newCtx
-			ctx.RegisterService(svcInfo.ID, serviceInstance)
 		}
 	}
 
@@ -2402,7 +2400,7 @@ func WithUnregisterService(serviceID string) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		// Remove from test context
 		delete(ctx.(*testContext).defaultContext.services, serviceID)
-		
+
 		// Remove from global registry
 		core.UnregisterService(serviceID)
 		return ctx, nil
@@ -2424,7 +2422,7 @@ func ConfigureProtocolWorkflows(ctx core.Context) error {
 
 // registerServiceInstance registers a service instance both locally in the test context
 // and globally with the core framework.
-func registerServiceInstance(ctx TestContext, id string, instance any) error {
+func registerServiceInstance(ctx TestContext, id string, instance any, plugin ...string) error {
 	if instance == nil {
 		return fmt.Errorf("service instance for '%s' is nil", id)
 	}
@@ -2440,7 +2438,7 @@ func registerServiceInstance(ctx TestContext, id string, instance any) error {
 			Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 				return svc, nil, nil
 			},
-		})
+		}, plugin...)
 	} else {
 		ctx.Logger().Warn("Service instance does not implement core.Service; global registration skipped",
 			zap.String("service", id),
