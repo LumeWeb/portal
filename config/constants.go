@@ -4,12 +4,6 @@ const (
 	//
 	ENV_PREFIX    = "PORTAL__"
 	ENV_SEPARATOR = "__"
-
-	// Configuration keys and flags
-	CLUSTER_CONFIG_KEY = "config"
-	FLAG_SYNC          = "sync"
-	FLAG_VOLATILE      = "volatile"
-
 	// File extensions and names
 	CONFIG_EXTENSION  = ".yaml"
 	CoreConfigFile    = "core" + CONFIG_EXTENSION
@@ -22,13 +16,9 @@ const (
 	APIDir     = "api.d"
 
 	// Section specifiers
-	PluginSpecifier         = "plugin.%s"
-	ProtocolSpecifier       = "plugin.%s.protocol" 
-	APISpecifier           = "plugin.%s.api"
-	ServiceSpecifier       = "plugin.%s.service.%s"
-
-	// Struct tags
-	mapStructureTag = "config"
+	ProtocolSpecifier = "plugin.%s.protocol"
+	APISpecifier      = "plugin.%s.api"
+	ServiceSpecifier  = "plugin.%s.service.%s"
 )
 
 var (
@@ -39,7 +29,7 @@ var (
 func getDefaultConfigPaths() []string {
 	return []string{
 		"/etc/lumeweb/portal",
-		"$HOME/.lumeweb/portal", 
+		"$HOME/.lumeweb/portal",
 		"./portal.yaml",
 		"./",
 	}

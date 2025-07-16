@@ -344,21 +344,40 @@ func (m *ManagerDefault) Config() *Config {
 	return cfg
 }
 
+func (m *ManagerDefault) getPluginConfigFile(pluginName, subDir string, configType string) (string, error) {
+	filePath := filepath.Join(m.configDir, PluginsDir, pluginName, subDir, SectionConfigFile)
+	configFile, err := findConfigFile(findConfigFileOptions{
+		Paths:           []string{filePath},
+		CreateIfMissing: true,
+		CheckWritable:   true,
+		fs:              m.fs,
+	}, m)
+	if err != nil {
+		return "", fmt.Errorf("failed to find/create config file for %s '%s': %w", configType, pluginName, err)
+	}
+	return configFile, nil
+}
+
 func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig) error {
 	if cfg == nil {
 		return nil
 	}
 
+	pluginName = strings.ToLower(pluginName)
 	key := fmt.Sprintf(ProtocolSpecifier, pluginName)
-	filePath := filepath.Join(m.configDir, PluginsDir, ProtoDir, pluginName+CONFIG_EXTENSION)
 
 	// Register the protocol config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
 		return fmt.Errorf("failed to register protocol config: %w", err)
 	}
 
+	configFile, err := m.getPluginConfigFile(pluginName, ProtoDir, "Protocol")
+	if err != nil {
+		return err
+	}
+
 	// Register namespace for this protocol
-	fsSource := source.NewFileSource(filePath)
+	fsSource := source.NewFileSource(configFile)
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
 
@@ -375,16 +394,21 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 		return nil
 	}
 
+	pluginName = strings.ToLower(pluginName)
 	key := fmt.Sprintf(APISpecifier, pluginName)
-	filePath := filepath.Join(m.configDir, PluginsDir, APIDir, pluginName+CONFIG_EXTENSION)
 
 	// Register the API config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
 		return fmt.Errorf("failed to register API config: %w", err)
 	}
 
+	configFile, err := m.getPluginConfigFile(pluginName, APIDir, "API")
+	if err != nil {
+		return err
+	}
+
 	// Register namespace for this API
-	fsSource := source.NewFileSource(filePath)
+	fsSource := source.NewFileSource(configFile)
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
 
@@ -401,16 +425,27 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 		return nil
 	}
 
+	pluginName = strings.ToLower(pluginName)
 	key := fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
-	filePath := filepath.Join(m.configDir, PluginsDir, ServiceDir, pluginName+"_"+serviceName+CONFIG_EXTENSION)
+	filePath := filepath.Join(m.configDir, PluginsDir, pluginName, ServiceDir, serviceName+CONFIG_EXTENSION)
 
 	// Register the service config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
 		return fmt.Errorf("failed to register service config: %w", err)
 	}
 
+	configFile, err := findConfigFile(findConfigFileOptions{
+		Paths:           []string{filePath},
+		CreateIfMissing: true,
+		CheckWritable:   true,
+		fs:              m.fs,
+	}, m)
+	if err != nil {
+		return fmt.Errorf("failed to find/create config file for Service '%s/%s': %w", pluginName, serviceName, err)
+	}
+
 	// Register namespace for this service
-	fsSource := source.NewFileSource(filePath)
+	fsSource := source.NewFileSource(configFile)
 	m.Manager.RegisterNamespace(key, fsSource)
 	m.Manager.RegisterSource(fsSource)
 
@@ -426,6 +461,7 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 }
 
 func (m *ManagerDefault) GetService(pluginName string, serviceName string) ServiceConfig {
+	pluginName = strings.ToLower(pluginName)
 	key := fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
 
 	_, cfg, err := m.Manager.Get(key)
