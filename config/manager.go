@@ -30,8 +30,13 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 	}
 
 	for _, _path := range paths {
-		// Expand environment variables in both the path and filename
-		expandedPath := path.Join(os.ExpandEnv(_path), CoreConfigFile)
+		// Expand environment variables in path
+		expandedPath := os.ExpandEnv(_path)
+		
+		// Check if path is a directory
+		if fi, err := options.fs.Stat(expandedPath); err == nil && fi.IsDir() {
+			expandedPath = path.Join(expandedPath, CoreConfigFile)
+		}
 
 		_, err := options.fs.Stat(expandedPath)
 		if err == nil {
