@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
 	"github.com/tus/tusd/v2/pkg/handler"
-	"github.com/tus/tusd/v2/pkg/redislocker"
 	"github.com/tus/tusd/v2/pkg/s3store"
 	mcontext "go.lumeweb.com/portal-middleware/context"
 	"go.lumeweb.com/portal-middleware/tus"
@@ -397,9 +396,6 @@ func getLockerMode(cm config.Manager, logger *core.Logger) string {
 	case "db":
 		return "db"
 	case "redis":
-		if cm.Config().Core.Clustered.Enabled {
-			return "redis"
-		}
 
 		return "db"
 	default:
@@ -417,16 +413,6 @@ func getLocker(cm config.Manager, db *gorm.DB, logger *core.Logger) (handler.Loc
 		return nil, nil
 	case "db":
 		return NewDbLocker(db, logger), nil
-	case "redis":
-		client, err := cm.Config().Core.Clustered.Redis.Client()
-		if err != nil {
-			return nil, err
-		}
-		locker, err := redislocker.NewWithClient(client, redislocker.WithLogger(loggerToSlog(logger)))
-		if err != nil {
-			return nil, err
-		}
-		return locker, nil
 	}
 
 	return nil, nil
