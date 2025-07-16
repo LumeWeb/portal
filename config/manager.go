@@ -239,9 +239,9 @@ func (m *ManagerDefault) Init() error {
 func (m *ManagerDefault) persistFullDefaults() error {
 	// Ensure plugin directories exist
 	dirs := []string{
-		filepath.Join(m.configDir, ProtoDir),
-		filepath.Join(m.configDir, APIDir),
-		filepath.Join(m.configDir, ServiceDir),
+		filepath.Join(m.configDir, PluginsDir, ProtoDir),
+		filepath.Join(m.configDir, PluginsDir, APIDir),
+		filepath.Join(m.configDir, PluginsDir, ServiceDir),
 	}
 	for _, dir := range dirs {
 		if err := m.fs.MkdirAll(dir, 0755); err != nil {
@@ -350,7 +350,7 @@ func (m *ManagerDefault) ConfigureProtocol(pluginName string, cfg ProtocolConfig
 	}
 
 	key := fmt.Sprintf(ProtocolSpecifier, pluginName)
-	filePath := filepath.Join(m.configDir, ProtoDir, pluginName+CONFIG_EXTENSION)
+	filePath := filepath.Join(m.configDir, PluginsDir, ProtoDir, pluginName+CONFIG_EXTENSION)
 
 	// Register the protocol config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
@@ -376,7 +376,7 @@ func (m *ManagerDefault) ConfigureAPI(pluginName string, cfg APIConfig) error {
 	}
 
 	key := fmt.Sprintf(APISpecifier, pluginName)
-	filePath := filepath.Join(m.configDir, APIDir, pluginName+CONFIG_EXTENSION)
+	filePath := filepath.Join(m.configDir, PluginsDir, APIDir, pluginName+CONFIG_EXTENSION)
 
 	// Register the API config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
@@ -402,7 +402,7 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	}
 
 	key := fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
-	filePath := filepath.Join(m.configDir, ServiceDir, pluginName+"_"+serviceName+CONFIG_EXTENSION)
+	filePath := filepath.Join(m.configDir, PluginsDir, ServiceDir, pluginName+"_"+serviceName+CONFIG_EXTENSION)
 
 	// Register the service config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
