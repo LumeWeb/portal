@@ -47,7 +47,7 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts, err = p.initServices(ctx)
+	opts, err = p.initServices()
 	if err != nil {
 		return err
 	}
@@ -71,14 +71,6 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	// Create new context with all gathered options
-	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
-	if err != nil {
-		ctx.Logger().Error("Error creating context", zap.Error(err))
-		return err
-	}
-	p.SetContext(ctx)
-
 	// Second phase: Configure components
 	if err := p.configureServices(ctx); err != nil {
 		return fmt.Errorf("failed to configure services: %w", err)
@@ -97,21 +89,24 @@ func (p *PortalImpl) Init() error {
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
 	opts, err = p.initAPIs(ctx)
 	if err != nil {
 		return err
 	}
+	ctxOpts = append(ctxOpts, opts...)
 
 	opts = p.initCron()
+	ctxOpts = append(ctxOpts, opts...)
 
-	// Apply any additional context options from initialization
-	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), opts...)
+	// Create new context with all gathered options just once
+	newCtx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 	if err != nil {
-		ctx.Logger().Error("Error updating context", zap.Error(err))
+		ctx.Logger().Error("Error creating context", zap.Error(err))
 		return err
 	}
-	p.SetContext(ctx)
+	p.SetContext(newCtx)
 
 	return nil
 }
@@ -245,7 +240,7 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 					return config.ErrInvalidServiceConfig
 				}
 
-				if err := ctx.Config().ConfigureService(plugin, svcInfo.ID, svcConfig); err != nil {
+				if err = ctx.Config().ConfigureService(plugin, svcInfo.ID, svcConfig); err != nil {
 					return fmt.Errorf("failed to configure service %q for plugin %q: %w", svcInfo.ID, plugin, err)
 				}
 			}
@@ -255,7 +250,7 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 	return nil
 }
 
-func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, err error) {
 	svcs := core.GetServices()
 
 	for _, svcInfo := range svcs {
