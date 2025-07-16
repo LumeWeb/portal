@@ -203,8 +203,6 @@ require (
 )
 
 replace (
-	github.com/go-co-op/gocron/mocks/v2 => github.com/LumeWeb/gocron/mocks/v2 v2.0.0-20250627042150-965509f062b0
-	github.com/go-co-op/gocron/v2 => github.com/LumeWeb/gocron/v2 v2.0.0-20250627042150-965509f062b0
 	github.com/go-viper/mapstructure/v2 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20241213212524-92525f5828be
 	github.com/tus/tusd/v2 => github.com/LumeWeb/tusd/v2 v2.2.3-0.20241020013555-e29b4c6c01b7
 )
