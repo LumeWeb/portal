@@ -52,7 +52,7 @@ func NewUserService() (core.Service, []core.ContextBuilderOption, error) {
 
 			_user.cron.RegisterEntity(_user)
 
-			core.Listen[*event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(e *core.CoreEvent[*event.UserServiceSubdomainSetEvent]) error {
+			core.Listen[event.UserServiceSubdomainSetEvent](ctx, event.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(e *core.CoreEvent[event.UserServiceSubdomainSetEvent]) error {
 				_user.subdomain = e.Data.Subdomain
 				return nil
 			})
