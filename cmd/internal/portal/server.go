@@ -25,15 +25,7 @@ func StartServer(cmd *cli.Command) error {
 	}
 
 	core.RegisterServicesFromPlugins()
-
-	err = cfg.Init()
-	if err != nil {
-		logger.Fatal("Failed to initialize config", zap.Error(err))
-		return err
-	}
-
-	logger.SetLevelFromConfig()
-
+	
 	portal.NewActivePortal(ctx)
 
 	err = portal.Init()
