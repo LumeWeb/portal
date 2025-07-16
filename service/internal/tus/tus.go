@@ -15,10 +15,9 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"go.uber.org/zap"
-	"go.uber.org/zap/exp/zapslog"
+	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -539,7 +538,14 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 	}
 }
 func loggerToSlog(logger *core.Logger) *slog.Logger {
-	return slog.New(zapslog.NewHandler(logger.Core()))
+	// Create a bridge
+	bridge := NewSlogBridge(logger)
+
+	// Create a handler that wraps the new slog handler but presents the old interface
+	oldHandler := bridge.Handler()
+
+	// Create an old-style logger with this handler
+	return slog.New(oldHandler)
 }
 
 func splitIds(id string) (objectId, multipartId string) {
