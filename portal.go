@@ -72,17 +72,25 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	// Second phase: Configure components
-	if err := p.configureServices(ctx); err != nil {
+	if err = p.configureServices(ctx); err != nil {
 		return fmt.Errorf("failed to configure services: %w", err)
 	}
 
-	if err := p.configureProtocols(ctx); err != nil {
+	if err = p.configureProtocols(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocols: %w", err)
 	}
 
-	if err := p.configureAPIs(ctx); err != nil {
+	if err = p.configureAPIs(ctx); err != nil {
 		return fmt.Errorf("failed to configure APIs: %w", err)
 	}
+
+	err = ctx.Config().Init()
+	if err != nil {
+		ctx.Logger().Fatal("Failed to initialize config", zap.Error(err))
+		return err
+	}
+
+	ctx.Logger().SetLevelFromConfig()
 
 	// Third phase: Initialize components
 	opts, err = p.initProtocols(ctx)
