@@ -39,15 +39,9 @@ func (p *PortalImpl) Init() error {
 	ctx.Logger().Info("Initializing portal")
 
 	// First phase: Register components and gather context options
-	dbInst, ctxOpts := db.NewDatabase(ctx)
+	var ctxOpts []core.ContextBuilderOption
 
-	opts, err := p.initModels(ctx, dbInst)
-	if err != nil {
-		return err
-	}
-	ctxOpts = append(ctxOpts, opts...)
-
-	opts, err = p.initServices()
+	opts, err := p.initServices()
 	if err != nil {
 		return err
 	}
@@ -91,6 +85,15 @@ func (p *PortalImpl) Init() error {
 	}
 
 	ctx.Logger().SetLevelFromConfig()
+
+	dbInst, dbOpts := db.NewDatabase(ctx)
+	ctxOpts = append(dbOpts, ctxOpts...)
+
+	opts, err = p.initModels(ctx, dbInst)
+	if err != nil {
+		return err
+	}
+	ctxOpts = append(opts, ctxOpts...)
 
 	// Third phase: Initialize components
 	opts, err = p.initProtocols(ctx)
