@@ -120,6 +120,10 @@ func (p *PortalImpl) Start() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Starting portal")
 
+	if err := p.registerPluginWorkflows(ctx); err != nil {
+		return err
+	}
+
 	if err := p.startStartupFuncs(ctx); err != nil {
 		return err
 	}
@@ -143,6 +147,27 @@ func (p *PortalImpl) Start() error {
 	if err := p.fireBootCompleteEvent(ctx); err != nil {
 		ctx.Logger().Error("Error firing boot complete event", zap.Error(err))
 		return err
+	}
+
+	return nil
+}
+
+func (p *PortalImpl) registerPluginWorkflows(ctx core.Context) error {
+	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+
+	for _, plugin := range core.GetPlugins() {
+		if plugin.Workflows != nil {
+			workflows, err := plugin.Workflows(ctx)
+			if err != nil {
+				ctx.Logger().Error("Error getting workflows from plugin", zap.String("plugin", plugin.ID), zap.Error(err))
+				return err
+			}
+			for _, workflow := range workflows {
+				if err = workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps, workflow.AutoTriggerFirstStep); err != nil {
+					return fmt.Errorf("failed to register workflow %s for plugin %s: %w", workflow.Name, plugin.ID, err)
+				}
+			}
+		}
 	}
 
 	return nil
@@ -242,23 +267,6 @@ func (p *PortalImpl) initServices(ctx core.Context) (ctxOpts []core.ContextBuild
 			ctxOpts = append(ctxOpts, opts...)
 		}
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
-	}
-
-	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
-	plugins := core.GetPlugins()
-	for _, plugin := range plugins {
-		if plugin.Workflows != nil {
-			workflows, err := plugin.Workflows(ctx)
-			if err != nil {
-				ctx.Logger().Error("Error getting workflows from plugin", zap.String("plugin", plugin.ID), zap.Error(err))
-				return nil, err
-			}
-			for _, workflow := range workflows {
-				if err = workflowSvc.RegisterWorkflow(workflow.Name, workflow.Steps, workflow.AutoTriggerFirstStep); err != nil {
-					return nil, fmt.Errorf("failed to register workflow %s for plugin %s: %w", workflow.Name, plugin.ID, err)
-				}
-			}
-		}
 	}
 
 	return ctxOpts, nil
