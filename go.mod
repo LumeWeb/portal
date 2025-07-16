@@ -17,7 +17,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gammazero/workerpool v1.1.3
-	github.com/go-co-op/gocron/mocks/v2 v2.0.0-00010101000000-000000000000
+	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20250516191533-4fb3b987637d
 	github.com/go-co-op/gocron/v2 v2.16.2
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-sql-driver/mysql v1.9.3
@@ -33,6 +33,7 @@ require (
 	github.com/knadh/koanf/v2 v2.2.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/looplab/fsm v1.0.3
+	github.com/multiformats/go-multibase v0.2.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.5.0
@@ -183,7 +184,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.1 // indirect
