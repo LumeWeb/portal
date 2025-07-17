@@ -312,7 +312,7 @@ func GetService[T Service](ctx Context, id string) T {
 }
 
 func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
-
+	var zero T
 	// Find which plugin owns this service
 	pluginID := GetPluginForService(id)
 	if pluginID == "" {
@@ -347,55 +347,68 @@ func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
 		}
 	}
 	if !found {
-		ctx.Logger().Fatal("service not found in plugin",
+		ctx.Logger().Error("service not found in plugin",
 			zap.String("service", id),
 			zap.String("plugin", pluginID))
+		return zero
 	}
 
 	// Get the service config from the owning plugin
 	cfg := ctx.Config().GetService(pluginID, id)
 	if cfg == nil {
-		ctx.Logger().Fatal("service config not found",
+		ctx.Logger().Error("service config not found",
 			zap.String("service", id),
 			zap.String("plugin", pluginID))
+		return zero
 	}
 
 	typedSvc, ok := cfg.(T)
 	if !ok {
-		ctx.Logger().Fatal("service type mismatch",
+		ctx.Logger().Error("service type mismatch",
 			zap.String("service", id),
 			zap.String("expected", reflect.TypeOf(*new(T)).String()),
 			zap.String("actual", reflect.TypeOf(cfg).String()))
+		return zero
 	}
 
 	return typedSvc
 }
 
 func GetAPIConfig[T config.APIConfig](ctx Context, id string) T {
+	var zero T
 	cfg := ctx.Config().GetAPI(id)
 	if cfg == nil {
-		ctx.Logger().Fatal("api not found", zap.String("api", id))
+		ctx.Logger().Error("api not found", zap.String("api", id))
+		return zero
 	}
 
 	typedSvc, ok := cfg.(T)
-
 	if !ok {
-		ctx.Logger().Fatal("api type mismatch", zap.String("api", id))
+		ctx.Logger().Error("api type mismatch", 
+			zap.String("api", id),
+			zap.String("expected", reflect.TypeOf(*new(T)).String()),
+			zap.String("actual", reflect.TypeOf(cfg).String()))
+		return zero
 	}
 
 	return typedSvc
 }
 
 func GetProtocolConfig[T config.ProtocolConfig](ctx Context, id string) T {
+	var zero T
 	cfg := ctx.Config().GetProtocol(id)
 	if cfg == nil {
-		ctx.Logger().Fatal("protocol not found", zap.String("protocol", id))
+		ctx.Logger().Error("protocol not found", zap.String("protocol", id))
+		return zero
 	}
 
 	typedSvc, ok := cfg.(T)
-
 	if !ok {
-		ctx.Logger().Fatal("protocol type mismatch", zap.String("protocol", id))
+		ctx.Logger().Error("protocol type mismatch",
+			zap.String("protocol", id),
+			zap.String("expected", reflect.TypeOf(*new(T)).String()),
+			zap.String("actual", reflect.TypeOf(cfg).String()))
+		return zero
 	}
 
 	return typedSvc
