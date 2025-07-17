@@ -38,7 +38,10 @@ func (p *PortalImpl) Init() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Initializing portal")
 
-	// First phase: Register components and gather context options
+	// Stage 1: Component Registration
+	// Register all services, protocols, APIs and extensions to make them available
+	// for configuration and initialization later. Gather context options that
+	// these components may provide.
 	var ctxOpts []core.ContextBuilderOption
 
 	opts, err := p.initServices()
@@ -65,7 +68,16 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	// Second phase: Configure components
+	// Create new context with all gathered options
+	newCtx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+	if err != nil {
+		ctx.Logger().Error("Error creating context", zap.Error(err))
+		return err
+	}
+	p.SetContext(newCtx)
+
+	// Stage 2: Component Configuration
+	// Configure all registered components with their respective configs
 	if err = p.configureServices(ctx); err != nil {
 		return fmt.Errorf("failed to configure services: %w", err)
 	}
@@ -78,6 +90,7 @@ func (p *PortalImpl) Init() error {
 		return fmt.Errorf("failed to configure APIs: %w", err)
 	}
 
+	// Initialize config system and apply log level settings
 	err = ctx.Config().Init()
 	if err != nil {
 		ctx.Logger().Fatal("Failed to initialize config", zap.Error(err))
@@ -86,6 +99,9 @@ func (p *PortalImpl) Init() error {
 
 	ctx.Logger().SetLevelFromConfig()
 
+	// Stage 3: Database & Models Setup
+	// Initialize database connection and register all data models
+	ctxOpts = make([]core.ContextBuilderOption, 0)
 	dbInst, dbOpts := db.NewDatabase(ctx)
 	ctxOpts = append(dbOpts, ctxOpts...)
 
@@ -95,7 +111,8 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(opts, ctxOpts...)
 
-	// Third phase: Initialize components
+	// Stage 4: Component Initialization
+	// Perform final initialization of protocols, APIs and other components
 	opts, err = p.initProtocols(ctx)
 	if err != nil {
 		return err
@@ -111,8 +128,8 @@ func (p *PortalImpl) Init() error {
 	opts = p.initCron()
 	ctxOpts = append(ctxOpts, opts...)
 
-	// Create new context with all gathered options just once
-	newCtx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+	// Finalize context with all gathered options
+	newCtx, err = core.ProcessCtxOptions(ctx)
 	if err != nil {
 		ctx.Logger().Error("Error creating context", zap.Error(err))
 		return err
