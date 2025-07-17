@@ -334,18 +334,13 @@ func (h *HTTPServiceDefault) storeCachedManifest(key string, manifest *web_manif
 	h.bundleCache.Store(key, manifest)
 }
 
-// getCachedFilesystem retrieves a cached filesystem if it exists
-func (h *HTTPServiceDefault) getCachedFilesystem(key string) (*ihttp.BundleFileSystem, bool) {
-	cached, ok := h.fsCache.Load(key)
-	if !ok {
-		return nil, false
-	}
-	return cached.(*ihttp.BundleFileSystem), true
-}
+// getOrCreateBundleFilesystem atomically gets or creates a cached filesystem
+func (h *HTTPServiceDefault) getOrCreateBundleFilesystem(pluginID string, bundleIndex int, bundle *core.WebBundle) *ihttp.BundleFileSystem {
+	cacheKey := fmt.Sprintf("%s-%d", pluginID, bundleIndex)
 
-// storeCachedFilesystem stores a filesystem in the cache
-func (h *HTTPServiceDefault) storeCachedFilesystem(key string, fs *ihttp.BundleFileSystem) {
-	h.fsCache.Store(key, fs)
+	// Load or store the filesystem atomically
+	actual, _ := h.fsCache.LoadOrStore(cacheKey, ihttp.NewBundleFileSystem(bundle, bundle.FSPrefix))
+	return actual.(*ihttp.BundleFileSystem)
 }
 
 func (h *HTTPServiceDefault) getWebBundleManifestName(pluginID string, bundleIndex int) string {
@@ -371,11 +366,7 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	}
 
 	// Get or create cached filesystem
-	fs, ok := h.getCachedFilesystem(cacheKey)
-	if !ok {
-		fs = ihttp.NewBundleFileSystem(bundle, bundle.FSPrefix)
-		h.storeCachedFilesystem(cacheKey, fs)
-	}
+	fs := h.getOrCreateBundleFilesystem(plugin.ID, index, bundle)
 
 	file, err := fs.Open(lo.CoalesceOrEmpty(bundle.ManifestPath, defaultManifestPath))
 	if err != nil {
@@ -432,13 +423,7 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 		return echo.NewHTTPError(http.StatusNotFound, "Bundle not found")
 	}
 
-	// Get or create cached filesystem
-	cacheKey := fmt.Sprintf("%s-%d", pluginId, bundleIndex)
-	fs, ok := h.getCachedFilesystem(cacheKey)
-	if !ok {
-		fs = ihttp.NewBundleFileSystem(bundle, bundle.FSPrefix)
-		h.storeCachedFilesystem(cacheKey, fs)
-	}
+	fs := h.getOrCreateBundleFilesystem(pluginId, bundleIndex, bundle)
 
 	// Strip the prefix from the request path
 	prefix := h.generateWebBundleURI(pluginId, bundleIndex)
