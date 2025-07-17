@@ -577,7 +577,7 @@ func (p *PortalImpl) runExitFuncs(ctx core.Context) error {
 }
 
 func (p *PortalImpl) fireBootCompleteEvent(ctx core.Context) error {
-	return ctx.Fire(event.EVENT_BOOT_COMPLETE, event.NewBootCompleteEvent(ctx))
+	return core.Fire(ctx, event.EVENT_BOOT_COMPLETE, event.NewBootCompleteEvent(ctx))
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
