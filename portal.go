@@ -129,7 +129,7 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	// Finalize context with all gathered options
-	newCtx, err = core.ProcessCtxOptions(ctx)
+	newCtx, err = core.ProcessCtxOptions(newCtx, ctxOpts...)
 	if err != nil {
 		ctx.Logger().Error("Error creating context", zap.Error(err))
 		return err
