@@ -69,12 +69,12 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	// Create new context with all gathered options
-	newCtx, err := core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 	if err != nil {
 		ctx.Logger().Error("Error creating context", zap.Error(err))
 		return err
 	}
-	p.SetContext(newCtx)
+	p.SetContext(ctx)
 
 	// Stage 2: Component Configuration
 	// Configure all registered components with their respective configs
@@ -129,12 +129,12 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	// Finalize context with all gathered options
-	newCtx, err = core.ProcessCtxOptions(newCtx, ctxOpts...)
+	ctx, err = core.ProcessCtxOptions(ctx, ctxOpts...)
 	if err != nil {
 		ctx.Logger().Error("Error creating context", zap.Error(err))
 		return err
 	}
-	p.SetContext(newCtx)
+	p.SetContext(ctx)
 
 	return nil
 }
