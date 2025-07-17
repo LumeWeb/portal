@@ -126,11 +126,11 @@ func (p *PortalImpl) Start() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Starting portal")
 
-	if err := p.registerPluginWorkflows(ctx); err != nil {
+	if err := p.startStartupFuncs(ctx); err != nil {
 		return err
 	}
 
-	if err := p.startStartupFuncs(ctx); err != nil {
+	if err := p.registerPluginWorkflows(ctx); err != nil {
 		return err
 	}
 
