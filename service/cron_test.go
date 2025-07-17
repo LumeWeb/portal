@@ -50,7 +50,7 @@ func TestCronServiceDefault_RegisterJob(t *testing.T) {
 		cronService.coordinator = mockCoordinator
 
 		// Register the job
-		err := cronService.RegisterJob(mockJob)
+		err := cronService.RegisterJob(mockJob, nil)
 		require.NoError(t, err)
 
 		// Verify that the job was created in the database
@@ -84,7 +84,7 @@ func TestCronServiceDefault_RegisterJob_InvalidOrigin(t *testing.T) {
 		mockJob.EXPECT().Origin().Return("invalid-origin")
 
 		// Register the job
-		err := cronService.RegisterJob(mockJob)
+		err := cronService.RegisterJob(mockJob, nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid job origin")
 	})

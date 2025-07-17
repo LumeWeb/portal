@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
@@ -24,7 +23,7 @@ func TestTUSService_UploadExists(t *testing.T) {
 		require.NotNil(tb, requestService)
 
 		// Setup mock expectations
-		requestService.On("RegisterRequestModel", models.RequestOperationTusUpload, &models.TUSRequest{}).Return()
+		requestService.EXPECT().RegisterRequestModel(core.TUSUploadOperationName("test"), &models.TUSRequest{}).Return()
 
 		// Create a test TUSRequest
 		tusRequest := &models.TUSRequest{
@@ -33,7 +32,7 @@ func TestTUSService_UploadExists(t *testing.T) {
 
 		// Create a test Request
 		request := &models.Request{
-			Operation: models.RequestOperationTusUpload,
+			Operation: core.TUSUploadOperationName("test"),
 		}
 
 		// Create the request in the database
@@ -47,13 +46,15 @@ func TestTUSService_UploadExists(t *testing.T) {
 		err = ctx.DB().Create(tusRequest).Error
 		require.NoError(tb, err)
 
+		mockProto := coreTesting.NewMockStorageProtocol("test")
+
 		// Test upload exists
-		exists, retrievedTUSRequest := tusService.UploadExists(context.Background(), "test_upload_id")
+		exists, retrievedTUSRequest := tusService.UploadExists(ctx, mockProto, "test_upload_id")
 		assert.True(tb, exists)
 		assert.Equal(tb, tusRequest.TUSUploadID, retrievedTUSRequest.TUSUploadID)
 
 		// Test upload does not exist
-		exists, _ = tusService.UploadExists(context.Background(), "nonexistent_upload_id")
+		exists, _ = tusService.UploadExists(ctx, mockProto, "nonexistent_upload_id")
 		assert.False(tb, exists)
 
 	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, NewTUSService),
@@ -72,7 +73,7 @@ func TestTUSService_UploadProcessing(t *testing.T) {
 
 		// Create a test Request
 		request := &models.Request{
-			Operation: models.RequestOperationTusUpload,
+			Operation: core.TUSUploadOperationName("test"),
 			Status:    models.RequestStatusPending,
 		}
 
@@ -87,8 +88,10 @@ func TestTUSService_UploadProcessing(t *testing.T) {
 		err = ctx.DB().Create(tusRequest).Error
 		require.NoError(tb, err)
 
+		mockProto := coreTesting.NewMockStorageProtocol("test")
+
 		// Test upload processing
-		err = tusService.UploadProcessing(context.Background(), "test_upload_id")
+		err = tusService.UploadProcessing(ctx, mockProto, "test_upload_id")
 		assert.NoError(tb, err)
 
 		// Verify that the request status is updated
@@ -98,7 +101,7 @@ func TestTUSService_UploadProcessing(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusProcessing, updatedRequest.Status)
 
 		// Test upload does not exist
-		err = tusService.UploadProcessing(context.Background(), "nonexistent_upload_id")
+		err = tusService.UploadProcessing(ctx, mockProto, "nonexistent_upload_id")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 
@@ -116,7 +119,7 @@ func TestTUSService_UploadCompleted(t *testing.T) {
 		require.NotNil(tb, requestService)
 
 		// Setup mock expectations
-		requestService.On("RegisterRequestModel", models.RequestOperationTusUpload, &models.TUSRequest{}).Return()
+		requestService.On("RegisterRequestModel", core.TUSUploadOperationName("test"), &models.TUSRequest{}).Return()
 
 		// Create a test TUSRequest
 		tusRequest := &models.TUSRequest{
@@ -125,7 +128,7 @@ func TestTUSService_UploadCompleted(t *testing.T) {
 
 		// Create a test Request
 		request := &models.Request{
-			Operation: models.RequestOperationTusUpload,
+			Operation: core.TUSUploadOperationName("test"),
 			Status:    models.RequestStatusProcessing,
 		}
 
@@ -140,8 +143,10 @@ func TestTUSService_UploadCompleted(t *testing.T) {
 		err = ctx.DB().Create(tusRequest).Error
 		require.NoError(tb, err)
 
+		mockProto := coreTesting.NewMockStorageProtocol("test")
+
 		// Test upload completed
-		err = tusService.UploadCompleted(context.Background(), "test_upload_id")
+		err = tusService.UploadCompleted(ctx, mockProto, "test_upload_id")
 		assert.NoError(tb, err)
 
 		// Verify that the request status is updated
@@ -151,7 +156,7 @@ func TestTUSService_UploadCompleted(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusCompleted, updatedRequest.Status)
 
 		// Test upload does not exist
-		err = tusService.UploadCompleted(context.Background(), "nonexistent_upload_id")
+		err = tusService.UploadCompleted(ctx, mockProto, "nonexistent_upload_id")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 
@@ -169,7 +174,7 @@ func TestTUSService_DeleteUpload(t *testing.T) {
 		require.NotNil(tb, requestService)
 
 		// Setup mock expectations
-		requestService.On("RegisterRequestModel", models.RequestOperationTusUpload, &models.TUSRequest{}).Return()
+		requestService.On("RegisterRequestModel", core.TUSUploadOperationName("test"), &models.TUSRequest{}).Return()
 
 		// Create a test TUSRequest
 		tusRequest := &models.TUSRequest{
@@ -178,7 +183,7 @@ func TestTUSService_DeleteUpload(t *testing.T) {
 
 		// Create a test Request
 		request := &models.Request{
-			Operation: models.RequestOperationTusUpload,
+			Operation: core.TUSUploadOperationName("test"),
 		}
 
 		// Create the request in the database
@@ -192,8 +197,10 @@ func TestTUSService_DeleteUpload(t *testing.T) {
 		err = ctx.DB().Create(tusRequest).Error
 		require.NoError(tb, err)
 
+		mockProto := coreTesting.NewMockStorageProtocol("test")
+
 		// Test delete upload
-		err = tusService.DeleteUpload(context.Background(), "test_upload_id")
+		err = tusService.DeleteUpload(ctx, mockProto, "test_upload_id")
 		assert.NoError(tb, err)
 
 		// Verify that the request is deleted
@@ -203,7 +210,7 @@ func TestTUSService_DeleteUpload(t *testing.T) {
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
 
 		// Test upload does not exist
-		err = tusService.DeleteUpload(context.Background(), "nonexistent_upload_id")
+		err = tusService.DeleteUpload(ctx, mockProto, "nonexistent_upload_id")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 

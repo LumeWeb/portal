@@ -2,13 +2,17 @@ package service
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/core/web_manifest"
+	"go.lumeweb.com/portal/service/internal/http/testdata/embed_bundle"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -96,6 +100,118 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_Integration(t *testing.
 
 		// Test with non-existent file
 		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/missing.html", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+}
+
+func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// 1. Create a test plugin with a web bundle
+		pluginID := "testplugin"
+		var manifest web_manifest.Manifest
+		manifest.MetaData.PublicPath = "/api/meta/plugin/testplugin/bundle/0/"
+		bundleContentBytes, err := json.Marshal(&manifest)
+		require.NoError(t, err)
+		bundleContent := string(bundleContentBytes)
+
+		pluginInfo := core.PluginInfo{
+			ID: pluginID,
+			WebBundles: []*core.WebBundle{
+				core.NewWebBundle(
+					testWebBundleFS,
+					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+				),
+			},
+		}
+		core.RegisterPlugin(pluginInfo)
+
+		// 2. Create a test request
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/mf-manifest.json", pluginID), nil)
+		rec := httptest.NewRecorder()
+
+		// 3. Serve the request through the router
+		httpService.Router().ServeHTTP(rec, req)
+
+		// 4. Assertions
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.Equal(tb, bundleContent, strings.Trim(rec.Body.String(), "\n"))
+		assert.Equal(tb, "public, max-age=3600", rec.Header().Get("Cache-Control"))
+
+		// Test with non-existent plugin
+		req = httptest.NewRequest(http.MethodGet, "/api/meta/plugin/nonexistent/bundle/0/mf-manifest.json", nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+		// Test with invalid bundle ID
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/invalid/mf-manifest.json", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusBadRequest, rec.Code)
+
+		// Test with non-existent file
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/mf-manifest1.json", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+}
+
+func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_EmbedBundle_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		// 1. Create a test plugin with a web bundle
+		pluginID := "testplugin"
+		var manifest web_manifest.Manifest
+		manifest.MetaData.PublicPath = "/api/meta/plugin/testplugin/bundle/0/"
+		bundleContentBytes, err := json.Marshal(&manifest)
+		require.NoError(t, err)
+		bundleContent := string(bundleContentBytes)
+		pluginInfo := core.PluginInfo{
+			ID: pluginID,
+			WebBundles: []*core.WebBundle{
+				core.NewWebBundle(
+					embed_bundle.GetFS(),
+				),
+			},
+		}
+		core.RegisterPlugin(pluginInfo)
+
+		// 2. Create a test request
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/mf-manifest.json", pluginID), nil)
+		rec := httptest.NewRecorder()
+
+		// 3. Serve the request through the router
+		httpService.Router().ServeHTTP(rec, req)
+
+		// 4. Assertions
+		assert.Equal(tb, http.StatusOK, rec.Code)
+		assert.Equal(tb, bundleContent, strings.Trim(rec.Body.String(), "\n"))
+		assert.Equal(tb, "public, max-age=3600", rec.Header().Get("Cache-Control"))
+
+		// Test with non-existent plugin
+		req = httptest.NewRequest(http.MethodGet, "/api/meta/plugin/nonexistent/bundle/0/mf-manifest.json", nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusNotFound, rec.Code)
+
+		// Test with invalid bundle ID
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/invalid/mf-manifest.json", pluginID), nil)
+		rec = httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+		assert.Equal(tb, http.StatusBadRequest, rec.Code)
+
+		// Test with non-existent file
+		req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/meta/plugin/%s/bundle/0/mf-manifest1.json", pluginID), nil)
 		rec = httptest.NewRecorder()
 		httpService.Router().ServeHTTP(rec, req)
 		assert.Equal(tb, http.StatusNotFound, rec.Code)

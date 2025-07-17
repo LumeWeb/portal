@@ -1,0 +1,32 @@
+{
+  "id" : "",
+  "name" : "",
+  "metaData" : {
+    "name" : "",
+    "type" : "",
+    "buildInfo" : {
+      "buildVersion" : "",
+      "buildName" : ""
+    },
+    "remoteEntry" : {
+      "name" : "",
+      "path" : "",
+      "type" : ""
+    },
+    "ssrRemoteEntry" : {
+      "name" : "",
+      "path" : "",
+      "type" : ""
+    },
+    "types" : {
+      "path" : "",
+      "name" : ""
+    },
+    "globalName" : "",
+    "pluginVersion" : "",
+    "publicPath" : "/api/meta/plugin/testplugin/bundle/0/"
+  },
+  "shared" : null,
+  "remotes" : null,
+  "exposes" : null
+}

@@ -195,3 +195,7 @@ func (s *testStorageHash) Type() uint64 {
 func (s *testStorageHash) String() string {
 	return string(s.hash)
 }
+
+func (s *testStorageHash) Bytes() []byte {
+	return s.hash
+}
