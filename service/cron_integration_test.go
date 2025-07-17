@@ -69,7 +69,7 @@ func TestCronServiceDefault_RegisterJob_Integration(t *testing.T) {
 		testJob := newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily}, nil)
 
 		// Register the job
-		err := cronService.RegisterJob(testJob)
+		err := cronService.RegisterJob(testJob, nil)
 		require.NoError(t, err)
 
 		// Verify that the job was created in the database
@@ -118,7 +118,7 @@ func TestCronServiceDefault_RunJob_Integration(t *testing.T) {
 		job, err := cronService.JobFactory().CreateJob(integrationTestJobType)
 		require.NoError(t, err)
 
-		err = cronService.RegisterJob(job)
+		err = cronService.RegisterJob(job, nil)
 		require.NoError(t, err)
 
 		// Start the cron service
@@ -267,7 +267,7 @@ func TestCronServiceDefault_StateMachine_Integration(t *testing.T) {
 		testJob := newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily}, nil)
 
 		// Register the job
-		err := cronService.RegisterJob(testJob)
+		err := cronService.RegisterJob(testJob, nil)
 		require.NoError(t, err)
 
 		// Get the state machine

@@ -311,27 +311,13 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 		}
 	}
 
-	ctx.Encode(metaBuilder.Build())
+	_ = ctx.Encode(metaBuilder.Build())
 
 	return nil
 }
 
 func (h *HTTPServiceDefault) generateWebBundleURI(pluginID string, bundleIndex int) string {
 	return fmt.Sprintf(webBundleBasePath, pluginID, strconv.Itoa(bundleIndex))
-}
-
-// getCachedManifest retrieves a cached manifest if it exists
-func (h *HTTPServiceDefault) getCachedManifest(key string) (*web_manifest.Manifest, bool) {
-	cached, ok := h.bundleCache.Load(key)
-	if !ok {
-		return nil, false
-	}
-	return cached.(*web_manifest.Manifest), true
-}
-
-// storeCachedManifest stores a manifest in the cache
-func (h *HTTPServiceDefault) storeCachedManifest(key string, manifest *web_manifest.Manifest) {
-	h.bundleCache.Store(key, manifest)
 }
 
 // getOrCreateBundleFilesystem atomically gets or creates a cached filesystem
@@ -359,12 +345,6 @@ func (h *HTTPServiceDefault) getWebBundleManifestName(pluginID string, bundleInd
 }
 
 func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundle *core.WebBundle, index int) (*web_manifest.Manifest, error) {
-	// Check cache first
-	cacheKey := fmt.Sprintf("%s-%d", plugin.ID, index)
-	if manifest, ok := h.getCachedManifest(cacheKey); ok {
-		return manifest, nil
-	}
-
 	// Get or create cached filesystem
 	fs := h.getOrCreateBundleFilesystem(plugin.ID, index, bundle)
 
@@ -375,7 +355,6 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	defer file.Close()
 
 	manifestData, err := io.ReadAll(file)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to read manifest: %w", err)
 	}
@@ -388,9 +367,6 @@ func (h *HTTPServiceDefault) getProcessedManifest(plugin *core.PluginInfo, bundl
 	// Update public path
 	baseURL := fmt.Sprintf(webBundleBasePath, plugin.ID, strconv.Itoa(index))
 	manifest.MetaData.PublicPath = baseURL
-
-	// Cache the processed manifest
-	h.storeCachedManifest(cacheKey, &manifest)
 
 	return &manifest, nil
 }

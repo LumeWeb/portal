@@ -369,7 +369,7 @@ func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) 
 	api := core.GetAPI(apiName)
 
 	if _, ok := api.(core.APITusHandler); !ok {
-		return fmt.Errorf("API %T does not implement core.APITusHandler")
+		return fmt.Errorf("API %T does not implement core.APITusHandler", api)
 	}
 
 	tusProto, _ := api.(core.APITusHandler)
@@ -379,7 +379,7 @@ func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) 
 	proto := h.Protocol()
 	sproto, ok := proto.(core.StorageProtocol)
 	if !ok {
-		return fmt.Errorf("Protocol %T does not implement core.StorageProtocol")
+		return fmt.Errorf("Protocol %T does not implement core.StorageProtocol", proto)
 	}
 
 	err = tusSvc.UploadCompleted(ctx, sproto, tusReq.TUSUploadID)

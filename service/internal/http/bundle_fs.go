@@ -46,6 +46,7 @@ func (fs *BundleFileSystem) Open(name string) (http.File, error) {
 
 	// Join with prefix
 	fullPath := path.Join(fs.prefix, name)
+	fullPath = strings.TrimPrefix(fullPath, "/")
 
 	file, err := fs.bundle.Files.Open(fullPath)
 	if err != nil {
