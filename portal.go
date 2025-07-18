@@ -41,15 +41,19 @@ func (p *PortalImpl) Init() error {
 	// Stage 1: Component Registration
 	// Register all services, protocols, APIs and extensions to make them available
 	// for configuration and initialization later. Gather context options that
-	// these components may provide.
+	// these components may provide. Service options are kept separate initially
+	// to ensure proper ordering of context initialization.
 	var ctxOpts []core.ContextBuilderOption
 
-	opts, err := p.initServices()
+	// Initialize services first - their options are split into direct and service-specific
+	// to allow staged initialization later
+	opts, svcOpts, err := p.initServices()
 	if err != nil {
 		return err
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
+	// Register protocols, APIs and extensions - these may depend on services being available
 	opts, err = p.registerProtocols(ctx)
 	if err != nil {
 		return err
@@ -68,7 +72,8 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	// Create new context with all gathered options
+	// Create new context with gathered options - this establishes the base context
+	// with all registered components but before any configuration is applied
 	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
 	if err != nil {
 		ctx.Logger().Error("Error creating context", zap.Error(err))
@@ -101,18 +106,22 @@ func (p *PortalImpl) Init() error {
 
 	// Stage 3: Database & Models Setup
 	// Initialize database connection and register all data models
-	ctxOpts = make([]core.ContextBuilderOption, 0)
+	// Initialize database and collect its context options
 	dbInst, dbOpts := db.NewDatabase(ctx)
-	ctxOpts = append(dbOpts, ctxOpts...)
 
+	// Initialize models and append their options to database options
 	opts, err = p.initModels(ctx, dbInst)
 	if err != nil {
 		return err
 	}
-	ctxOpts = append(opts, ctxOpts...)
+	dbOpts = append(dbOpts, opts...)
 
+	// Use database options as the base for this stage
+	ctxOpts = dbOpts
 	// Stage 4: Component Initialization
-	// Perform final initialization of protocols, APIs and other components
+	// Perform final initialization of protocols, APIs and other components.
+	// Service-specific context options are applied last to ensure all other
+	// components are properly initialized first.
 	opts, err = p.initProtocols(ctx)
 	if err != nil {
 		return err
@@ -127,6 +136,8 @@ func (p *PortalImpl) Init() error {
 
 	opts = p.initCron()
 	ctxOpts = append(ctxOpts, opts...)
+
+	ctxOpts = append(ctxOpts, svcOpts...)
 
 	// Finalize context with all gathered options
 	ctx, err = core.ProcessCtxOptions(ctx, ctxOpts...)
@@ -278,21 +289,24 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 	return nil
 }
 
-func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, err error) {
+func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, svcCtxOpts []core.ContextBuilderOption, err error) {
+	// Initialize all services and collect their context options.
+	// Returns both direct context options and service-specific options separately
+	// to allow staged initialization.
 	svcs := core.GetServices()
 
 	for _, svcInfo := range svcs {
 		svc, opts, err := svcInfo.Factory()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if opts != nil {
-			ctxOpts = append(ctxOpts, opts...)
+			svcCtxOpts = append(svcCtxOpts, opts...)
 		}
 		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
 	}
 
-	return ctxOpts, nil
+	return ctxOpts, svcCtxOpts, nil
 }
 
 func (p *PortalImpl) configureProtocols(ctx core.Context) error {
