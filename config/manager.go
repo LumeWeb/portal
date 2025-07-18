@@ -32,7 +32,7 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 	for _, _path := range paths {
 		// Expand environment variables in path
 		expandedPath := os.ExpandEnv(_path)
-		
+
 		// Check if path is a directory
 		if fi, err := options.fs.Stat(expandedPath); err == nil && fi.IsDir() {
 			expandedPath = path.Join(expandedPath, CoreConfigFile)
@@ -472,10 +472,38 @@ func (m *ManagerDefault) GetService(pluginName string, serviceName string) Servi
 	_, cfg, err := m.Manager.Get(key)
 
 	if err != nil {
+		if m.logger != nil {
+			if strings.Contains(err.Error(), "not found") {
+				m.logger.Warn("failed to get service config",
+					zap.String("plugin", pluginName),
+					zap.String("service", serviceName),
+					zap.Error(err),
+				)
+			} else {
+				m.logger.Error("failed to get service config",
+					zap.String("plugin", pluginName),
+					zap.String("service", serviceName),
+					zap.Error(err),
+				)
+			}
+		}
 		return nil
 	}
 
-	return cfg.(ServiceConfig)
+	svcCfg, ok := cfg.(ServiceConfig)
+	if !ok {
+		if m.logger != nil {
+			m.logger.Error("invalid service config type",
+				zap.String("plugin", pluginName),
+				zap.String("service", serviceName),
+				zap.String("expected", "ServiceConfig"),
+				zap.Any("actual", cfg),
+			)
+		}
+		return nil
+	}
+
+	return svcCfg
 }
 
 func (m *ManagerDefault) GetProtocol(pluginName string) ProtocolConfig {
@@ -484,10 +512,17 @@ func (m *ManagerDefault) GetProtocol(pluginName string) ProtocolConfig {
 
 	if err != nil {
 		if m.logger != nil {
-			m.logger.Error("failed to get protocol config",
-				zap.String("plugin", pluginName),
-				zap.Error(err),
-			)
+			if strings.Contains(err.Error(), "not found") {
+				m.logger.Warn("failed to get protocol config",
+					zap.String("plugin", pluginName),
+					zap.Error(err),
+				)
+			} else {
+				m.logger.Error("failed to get protocol config",
+					zap.String("plugin", pluginName),
+					zap.Error(err),
+				)
+			}
 		}
 		return nil
 	}
@@ -514,10 +549,17 @@ func (m *ManagerDefault) GetAPI(pluginName string) APIConfig {
 
 	if err != nil {
 		if m.logger != nil {
-			m.logger.Error("failed to get API config",
-				zap.String("plugin", pluginName),
-				zap.Error(err),
-			)
+			if strings.Contains(err.Error(), "not found") {
+				m.logger.Warn("failed to get API config",
+					zap.String("plugin", pluginName),
+					zap.Error(err),
+				)
+			} else {
+				m.logger.Error("failed to get API config",
+					zap.String("plugin", pluginName),
+					zap.Error(err),
+				)
+			}
 		}
 		return nil
 	}
