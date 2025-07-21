@@ -251,7 +251,6 @@ func (m *ManagerDefault) Init() error {
 func (m *ManagerDefault) persistFullDefaults() error {
 	// Ensure per-plugin directories exist
 	var dirs []string
-	m.lock.RLock()
 	for pluginName := range m.configuredPlugins {
 		dirs = append(dirs,
 			filepath.Join(m.configDir, PluginsDir, pluginName, ProtoDir),
@@ -259,7 +258,6 @@ func (m *ManagerDefault) persistFullDefaults() error {
 			filepath.Join(m.configDir, PluginsDir, pluginName, ServiceDir),
 		)
 	}
-	m.lock.RUnlock()
 
 	for _, dir := range dirs {
 		if err := m.fs.MkdirAll(dir, 0755); err != nil {
