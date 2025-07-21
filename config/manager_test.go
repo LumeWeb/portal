@@ -149,7 +149,7 @@ func TestFindConfigFile(t *testing.T) {
 			name: "No file exists",
 			options: findConfigFileOptions{
 				Paths: []string{"/etc/lumeweb/portal", "$HOME/.lumeweb/portal", "./"},
-				fs:    &MockFileSystem{},
+				FS:    &MockFileSystem{},
 			},
 			expectedError: "no valid config file found in paths: [/etc/lumeweb/portal $HOME/.lumeweb/portal ./]",
 		},
@@ -158,7 +158,7 @@ func TestFindConfigFile(t *testing.T) {
 			options: findConfigFileOptions{
 				Paths:           []string{"/tmp"},
 				CreateIfMissing: true,
-				fs:              &MockFileSystem{},
+				FS:              &MockFileSystem{},
 			},
 			expectedPath: "/tmp/core.yaml",
 		},
@@ -190,7 +190,7 @@ func TestFindConfigFile(t *testing.T) {
 				tc.setup(h)
 			}
 
-			tc.options.fs = h.fs
+			tc.options.FS = h.fs
 
 			cm, err := configmanager.NewConfigManager(
 				[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR)},
@@ -330,7 +330,7 @@ portal_name: test_portal
 			pluginName: "test_api",
 			newConfig:  func() interface{} { return newTestAPIConfig() },
 			setTestValue: func(pluginName, _ string) string {
-				return "value: test" 
+				return "value: test"
 			},
 			getKey: func(pluginName, _ string) string {
 				return fmt.Sprintf(APISpecifier, pluginName)
