@@ -249,12 +249,18 @@ func (m *ManagerDefault) Init() error {
 
 // persistFullDefaults ensures config directories exist and persists current config state
 func (m *ManagerDefault) persistFullDefaults() error {
-	// Ensure plugin directories exist
-	dirs := []string{
-		filepath.Join(m.configDir, PluginsDir, ProtoDir),
-		filepath.Join(m.configDir, PluginsDir, APIDir),
-		filepath.Join(m.configDir, PluginsDir, ServiceDir),
+	// Ensure per-plugin directories exist
+	var dirs []string
+	m.lock.RLock()
+	for pluginName := range m.configuredPlugins {
+		dirs = append(dirs,
+			filepath.Join(m.configDir, PluginsDir, pluginName, ProtoDir),
+			filepath.Join(m.configDir, PluginsDir, pluginName, APIDir),
+			filepath.Join(m.configDir, PluginsDir, pluginName, ServiceDir),
+		)
 	}
+	m.lock.RUnlock()
+
 	for _, dir := range dirs {
 		if err := m.fs.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create config directory %s: %w", dir, err)
