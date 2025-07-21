@@ -19,7 +19,8 @@ type findConfigFileOptions struct {
 	Paths           []string   // Search paths, defaults to DefaultConfigPaths if empty
 	CreateIfMissing bool       // Create a default config if not found
 	CheckWritable   bool       // Check if existing files are writable
-	fs              fileSystem // Filesystem interface for operations
+	FS              fileSystem // Filesystem interface for operations
+	Core            bool
 }
 
 // findConfigFile searches for a config file in specified locations with more robust handling
@@ -34,15 +35,15 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 		expandedPath := os.ExpandEnv(_path)
 
 		// Check if path is a directory
-		if fi, err := options.fs.Stat(expandedPath); err == nil && fi.IsDir() {
+		if options.Core {
 			expandedPath = path.Join(expandedPath, CoreConfigFile)
 		}
 
-		_, err := options.fs.Stat(expandedPath)
+		_, err := options.FS.Stat(expandedPath)
 		if err == nil {
 			// File exists
 			if options.CheckWritable {
-				file, err := options.fs.OpenFile(expandedPath, os.O_WRONLY, 0644)
+				file, err := options.FS.OpenFile(expandedPath, os.O_WRONLY, 0644)
 				if err != nil {
 					continue // Skip unwritable files
 				}
@@ -56,7 +57,7 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 
 		if os.IsNotExist(err) && options.CreateIfMissing {
 			// File doesn't exist and we should create it
-			if err := createDefaultConfig(expandedPath, cm, options.fs); err != nil {
+			if err := createDefaultConfig(expandedPath, cm, options.FS); err != nil {
 				return "", fmt.Errorf("failed to create default config at %s: %w", expandedPath, err)
 			}
 			return expandedPath, nil
@@ -195,7 +196,8 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 		Paths:           paths,
 		CreateIfMissing: true,
 		CheckWritable:   true,
-		fs:              m.fs, // Use the configured filesystem
+		FS:              m.fs, // Use the configured filesystem
+		Core:            true,
 	}, cm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find or create config file: %w", err)
@@ -226,14 +228,19 @@ func (m *ManagerDefault) Init() error {
 	if m.initialized {
 		return nil
 	}
+
+	var loadErr error
+
 	// Load configuration from all sources
-	if err := m.Manager.Load(); err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
+	loadErr = m.Manager.Load()
 
 	// Now that all plugins have registered, persist full defaults
 	if err := m.persistFullDefaults(); err != nil {
 		return fmt.Errorf("failed to persist full defaults: %w", err)
+	}
+
+	if loadErr != nil {
+		return fmt.Errorf("failed to load config: %w", loadErr)
 	}
 
 	m.initialized = true
@@ -355,7 +362,7 @@ func (m *ManagerDefault) getPluginConfigFile(pluginName, subDir string, configTy
 		Paths:           []string{filePath},
 		CreateIfMissing: true,
 		CheckWritable:   true,
-		fs:              m.fs,
+		FS:              m.fs,
 	}, m)
 	if err != nil {
 		return "", fmt.Errorf("failed to find/create config file for %s '%s': %w", configType, pluginName, err)
@@ -443,7 +450,7 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 		Paths:           []string{filePath},
 		CreateIfMissing: true,
 		CheckWritable:   true,
-		fs:              m.fs,
+		FS:              m.fs,
 	}, m)
 	if err != nil {
 		return fmt.Errorf("failed to find/create config file for Service '%s/%s': %w", pluginName, serviceName, err)

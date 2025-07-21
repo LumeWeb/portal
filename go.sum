@@ -426,8 +426,12 @@ go.etcd.io/etcd/client/pkg/v3 v3.6.2 h1:zw+HRghi/G8fKpgKdOcEKpnBTE4OO39T6MegA0Ro
 go.etcd.io/etcd/client/pkg/v3 v3.6.2/go.mod h1:sbdzr2cl3HzVmxNw//PH7aLGVtY4QySjQFuaCgcRFAI=
 go.etcd.io/etcd/client/v3 v3.6.2 h1:RgmcLJxkpHqpFvgKNwAQHX3K+wsSARMXKgjmUSpoSKQ=
 go.etcd.io/etcd/client/v3 v3.6.2/go.mod h1:PL7e5QMKzjybn0FosgiWvCUDzvdChpo5UgGR4Sk4Gzc=
-go.lumeweb.com/configmanager v0.3.16 h1:8XUyN+q3YuzOW48rHWueiaQ0vr1mD1lzlDGNw1Eb8b4=
-go.lumeweb.com/configmanager v0.3.16/go.mod h1:xWeWVDah33meQYbI8a+fEjEcTTUPnOY8dMMfrL/Bcfo=
+go.lumeweb.com/configmanager v0.3.18 h1:2oOtr6Zp6lnH/+bDgseVyLeZ3qRvFbf6Hq8pPF7o27c=
+go.lumeweb.com/configmanager v0.3.18/go.mod h1:xWeWVDah33meQYbI8a+fEjEcTTUPnOY8dMMfrL/Bcfo=
+go.lumeweb.com/configmanager v0.3.19-0.20250721120206-3d74a0ed2171 h1:02eDHlk9aF410a1BObBxbBC+2YP1pNhrn53lDOt6PAU=
+go.lumeweb.com/configmanager v0.3.19-0.20250721120206-3d74a0ed2171/go.mod h1:xWeWVDah33meQYbI8a+fEjEcTTUPnOY8dMMfrL/Bcfo=
+go.lumeweb.com/configmanager v0.3.19 h1:QhGtoQBIOFDSTi1qZExt1ccOEL4kTLdNSWZSfB/WpZA=
+go.lumeweb.com/configmanager v0.3.19/go.mod h1:xWeWVDah33meQYbI8a+fEjEcTTUPnOY8dMMfrL/Bcfo=
 go.lumeweb.com/event/v2 v2.1.0 h1:pVWRzrHAkjhXa+owzhDTtaxBHbnxrsIpDHFZwEUxKoY=
 go.lumeweb.com/event/v2 v2.1.0/go.mod h1:e1Ss7iATIrP1b2Ojwbp1wdF0VTuxFXHdI7szkAG40AI=
 go.lumeweb.com/gswagger v0.20.8 h1:BiM/iuAmd8B0QLRxoMTzmv7TvZ6I6GdoGcw8fCJPD48=
