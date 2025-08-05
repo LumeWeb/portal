@@ -30,7 +30,7 @@ require (
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/rawbytes v1.0.0
 	github.com/knadh/koanf/providers/structs v1.0.0
-	github.com/knadh/koanf/v2 v2.2.1
+	github.com/knadh/koanf/v2 v2.2.2
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/looplab/fsm v1.0.3
 	github.com/multiformats/go-multibase v0.2.0
@@ -48,7 +48,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.2
 	go.lumeweb.com/configmanager v0.3.19
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.9
 	go.lumeweb.com/portal-router v0.6.3
@@ -186,6 +185,7 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.2 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.2 // indirect
+	go.lumeweb.com/gswagger v0.20.8 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
