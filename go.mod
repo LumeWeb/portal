@@ -18,7 +18,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.9
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20250516191533-4fb3b987637d
-	github.com/go-co-op/gocron/v2 v2.16.2
+	github.com/go-co-op/gocron/v2 v2.16.3
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-viper/mapstructure/v2 v2.3.0
