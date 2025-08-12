@@ -38,7 +38,7 @@ require (
 	github.com/naucon/casbin-fs-adapter v0.2.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.24.3
-	github.com/redis/go-redis/v9 v9.11.0
+	github.com/redis/go-redis/v9 v9.12.1
 	github.com/samber/lo v1.51.0
 	github.com/spf13/afero v1.14.0
 	github.com/stretchr/testify v1.10.0
