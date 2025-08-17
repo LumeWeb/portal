@@ -115,6 +115,8 @@ func StorageDownloadWithSkipMetadataCheck(skip bool) StorageOptionFunc {
 
 type StorageService interface {
 	UploadObject(ctx context.Context, request StorageUploadRequest) (*models.Upload, error)
+	S3Upload(ctx context.Context, bucket string, key string, data io.Reader) error
+	S3Delete(ctx context.Context, bucket string, key string) error
 	UploadObjectProof(ctx context.Context, protocol StorageProtocol, data io.ReadSeeker, proof StorageHash, size uint64) error
 	DownloadObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash, start int64) (io.ReadCloser, error)
 	DownloadObjectWithOptions(ctx context.Context, protocol StorageProtocol, objectHash StorageHash, opts ...StorageOptionFunc) (io.ReadCloser, error)
@@ -122,6 +124,7 @@ type StorageService interface {
 	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	S3Client(ctx context.Context) (*s3.Client, error)
+	S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
 	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol StorageProtocol) (string, error)
 	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadCloser, error)

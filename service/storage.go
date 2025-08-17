@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"strings"
 	"context"
 	"errors"
 	"fmt"
@@ -391,6 +392,116 @@ func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol c
 	return nil
 }
 
+// S3Upload uploads an object to S3 storage.
+// bucket: The S3 bucket name
+// key: The object key/path
+// data: The data to upload
+// Returns error if upload fails
+func (s StorageServiceDefault) S3Upload(ctx context.Context, bucket string, key string, data io.Reader) error {
+	return s.s3PutObject(ctx, bucket, key, data, 0)
+}
+
+// S3Delete deletes an object from S3 storage.
+// bucket: The S3 bucket name  
+// key: The object key/path to delete
+// Returns error if deletion fails
+func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key string) error {
+	return s.s3DeleteObject(ctx, bucket, key)
+}
+
+// S3Download downloads an object from S3 storage.
+// bucket: The S3 bucket name
+// key: The object key/path to download  
+// Returns io.ReadCloser for the object data (caller must close it) and error if download fails
+func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+	return s.s3GetObject(ctx, bucket, key)
+}
+
+// s3PutObject is an internal helper for putting objects to S3 storage.
+// bucket: The S3 bucket name
+// key: The object key/path
+// data: The data to upload  
+// size: The size of the data in bytes
+// Returns error if put operation fails
+func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, key string, data io.Reader, size int64) error {
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return err
+	}
+
+	input := &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+		Body:   data,
+	}
+
+	// Set ContentLength if size is known or can be determined
+	if size > 0 {
+		input.ContentLength = aws.Int64(size)
+	} else {
+		switch r := data.(type) {
+		case *bytes.Reader:
+			input.ContentLength = aws.Int64(r.Size())
+		case *strings.Reader:
+			input.ContentLength = aws.Int64(r.Size())
+		}
+	}
+
+	// Try to detect content type if available
+	if seeker, ok := data.(io.ReadSeeker); ok {
+		if _, err := seeker.Seek(0, io.SeekStart); err == nil {
+			if mime, err := s.detectMimeType(seeker); err == nil {
+				input.ContentType = aws.String(mime.String())
+			}
+			// Reset reader position
+			_, _ = seeker.Seek(0, io.SeekStart)
+		}
+	}
+
+	_, err = client.PutObject(ctx, input)
+	return err
+}
+
+// s3GetObject is an internal helper for getting objects from S3 storage.
+// bucket: The S3 bucket name
+// key: The object key/path  
+// Returns io.ReadCloser for the object data and error if get operation fails
+func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return output.Body, nil
+}
+
+// s3DeleteObject is an internal helper for deleting objects from S3 storage.
+// bucket: The S3 bucket name
+// key: The object key/path to delete
+// Returns error if delete operation fails
+func (s StorageServiceDefault) s3DeleteObject(ctx context.Context, bucket string, key string) error {
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	return err
+}
+
+// S3Client creates and returns a new S3 client instance.
+// Returns configured *s3.Client and error if client creation fails
 func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error) {
 	cfg, err := awsConfig.LoadDefaultConfig(ctx,
 		awsConfig.WithRegion(s.config.Config().Core.Storage.S3.Region),
@@ -410,6 +521,12 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 	}), nil
 }
 
+// S3MultipartUpload performs a multipart upload to S3 storage.
+// data: The data to upload
+// bucket: The S3 bucket name
+// key: The object key/path  
+// size: The total size of the data in bytes
+// Returns error if upload fails
 func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error {
 	client, err := s.S3Client(ctx)
 	if err != nil {
@@ -538,8 +655,18 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 		eta := time.Duration(int(currentAverageDuration) * (totalParts - partNum))
 
-		s.logger.Debug("Completed part", zap.Int("partNum", partNum), zap.Int("totalParts", totalParts), zap.Uint64("partSize", partSize), zap.Int("readSize", readSize), zap.Int("size", int(size)), zap.Int("totalParts", totalParts), zap.Int("partNum", partNum), zap.String("key", key), zap.String("bucket", bucket), zap.Duration("durationMs", partDuration),
-			zap.Duration("currentAverageDurationMs", currentAverageDuration), zap.Duration("eta", eta))
+		s.logger.Debug("Completed part",
+			zap.Int("partNum", partNum),
+			zap.Int("totalParts", totalParts),
+			zap.Uint64("partSize", partSize),
+			zap.Int("readSize", readSize),
+			zap.Uint64("size", size),
+			zap.String("key", key),
+			zap.String("bucket", bucket),
+			zap.Duration("duration", partDuration),
+			zap.Duration("currentAverageDuration", currentAverageDuration),
+			zap.Duration("eta", eta),
+		)
 	}
 
 	// Ensure parts are ordered by part number before completing the upload
@@ -586,6 +713,11 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 }
 
+// S3TemporaryUpload uploads data to temporary S3 storage.
+// data: The data to upload
+// size: The size of the data in bytes  
+// protocol: The storage protocol being used
+// Returns upload ID and error if upload fails
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
 	uploadId := uuid.NewString()
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
@@ -597,18 +729,7 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 		}
 	}(data)
 
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	_, err = client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
-		Key:           aws.String(key),
-		Body:          data,
-		ContentLength: aws.Int64(int64(size)),
-	})
-
+	err := s.s3PutObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key, data, int64(size))
 	if err != nil {
 		return "", err
 	}
@@ -616,39 +737,22 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	return uploadId, nil
 }
 
+// S3GetTemporaryUpload retrieves a temporary upload from S3 storage.
+// protocol: The storage protocol being used
+// uploadId: The ID of the temporary upload
+// Returns io.ReadCloser for the upload data and error if retrieval fails  
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
-	key := s.GetTemporaryUploadPath(protocol, uploadId)
-
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
-		Key:    aws.String(key),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return output.Body, nil
+	return s.s3GetObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, s.GetTemporaryUploadPath(protocol, uploadId))
 }
 
+// S3DeleteTemporaryUpload deletes a temporary upload from S3 storage.
+// protocol: The storage protocol being used  
+// uploadId: The ID of the temporary upload to delete
+// Returns error if deletion fails
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(s.config.Config().Core.Storage.S3.BufferBucket),
-		Key:    aws.String(key),
-	})
-
+	err := s.s3DeleteObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key)
 	if err != nil {
 		return err
 	}
