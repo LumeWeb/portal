@@ -2,10 +2,16 @@ package service
 
 import (
 	"bytes"
-	"strings"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -20,12 +26,6 @@ import (
 	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"io"
-	"math"
-	"sort"
-	"strings"
-	"sync"
-	"time"
 )
 
 var _ core.StorageService = (*StorageServiceDefault)(nil)
@@ -402,7 +402,7 @@ func (s StorageServiceDefault) S3Upload(ctx context.Context, bucket string, key 
 }
 
 // S3Delete deletes an object from S3 storage.
-// bucket: The S3 bucket name  
+// bucket: The S3 bucket name
 // key: The object key/path to delete
 // Returns error if deletion fails
 func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key string) error {
@@ -411,7 +411,7 @@ func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key 
 
 // S3Download downloads an object from S3 storage.
 // bucket: The S3 bucket name
-// key: The object key/path to download  
+// key: The object key/path to download
 // Returns io.ReadCloser for the object data (caller must close it) and error if download fails
 func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
 	return s.s3GetObject(ctx, bucket, key)
@@ -420,7 +420,7 @@ func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, ke
 // s3PutObject is an internal helper for putting objects to S3 storage.
 // bucket: The S3 bucket name
 // key: The object key/path
-// data: The data to upload  
+// data: The data to upload
 // size: The size of the data in bytes
 // Returns error if put operation fails
 func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, key string, data io.Reader, size int64) error {
@@ -464,7 +464,7 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 
 // s3GetObject is an internal helper for getting objects from S3 storage.
 // bucket: The S3 bucket name
-// key: The object key/path  
+// key: The object key/path
 // Returns io.ReadCloser for the object data and error if get operation fails
 func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
 	client, err := s.S3Client(ctx)
@@ -524,7 +524,7 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 // S3MultipartUpload performs a multipart upload to S3 storage.
 // data: The data to upload
 // bucket: The S3 bucket name
-// key: The object key/path  
+// key: The object key/path
 // size: The total size of the data in bytes
 // Returns error if upload fails
 func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error {
@@ -715,7 +715,7 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 // S3TemporaryUpload uploads data to temporary S3 storage.
 // data: The data to upload
-// size: The size of the data in bytes  
+// size: The size of the data in bytes
 // protocol: The storage protocol being used
 // Returns upload ID and error if upload fails
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
@@ -740,13 +740,13 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 // S3GetTemporaryUpload retrieves a temporary upload from S3 storage.
 // protocol: The storage protocol being used
 // uploadId: The ID of the temporary upload
-// Returns io.ReadCloser for the upload data and error if retrieval fails  
+// Returns io.ReadCloser for the upload data and error if retrieval fails
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
 	return s.s3GetObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, s.GetTemporaryUploadPath(protocol, uploadId))
 }
 
 // S3DeleteTemporaryUpload deletes a temporary upload from S3 storage.
-// protocol: The storage protocol being used  
+// protocol: The storage protocol being used
 // uploadId: The ID of the temporary upload to delete
 // Returns error if deletion fails
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
