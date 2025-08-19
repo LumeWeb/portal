@@ -51,7 +51,7 @@ require (
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.10
 	go.lumeweb.com/portal-router v0.6.3
-	go.sia.tech/core v0.14.1
+	go.sia.tech/core v0.17.0
 	go.sia.tech/coreutils v0.16.5
 	go.sia.tech/renterd/v2 v2.4.0
 	go.uber.org/mock v0.5.2
