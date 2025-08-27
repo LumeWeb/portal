@@ -41,7 +41,7 @@ require (
 	github.com/redis/go-redis/v9 v9.12.1
 	github.com/samber/lo v1.51.0
 	github.com/spf13/afero v1.14.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/tus/tusd/v2 v2.8.0
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/wneessen/go-mail v0.6.2
