@@ -629,6 +629,69 @@ func (_c *MockStorageService_S3Client_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// S3Delete provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) S3Delete(ctx context.Context, bucket string, key string) error {
+	ret := _mock.Called(ctx, bucket, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for S3Delete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, bucket, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStorageService_S3Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'S3Delete'
+type MockStorageService_S3Delete_Call struct {
+	*mock.Call
+}
+
+// S3Delete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - bucket string
+//   - key string
+func (_e *MockStorageService_Expecter) S3Delete(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Delete_Call {
+	return &MockStorageService_S3Delete_Call{Call: _e.mock.On("S3Delete", ctx, bucket, key)}
+}
+
+func (_c *MockStorageService_S3Delete_Call) Run(run func(ctx context.Context, bucket string, key string)) *MockStorageService_S3Delete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_S3Delete_Call) Return(err error) *MockStorageService_S3Delete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStorageService_S3Delete_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string) error) *MockStorageService_S3Delete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // S3DeleteTemporaryUpload provides a mock function for the type MockStorageService
 func (_mock *MockStorageService) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
 	ret := _mock.Called(ctx, protocol, uploadId)
@@ -688,6 +751,152 @@ func (_c *MockStorageService_S3DeleteTemporaryUpload_Call) Return(err error) *Mo
 }
 
 func (_c *MockStorageService_S3DeleteTemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadId string) error) *MockStorageService_S3DeleteTemporaryUpload_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// S3Download provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+	ret := _mock.Called(ctx, bucket, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for S3Download")
+	}
+
+	var r0 io.ReadCloser
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadCloser, error)); ok {
+		return returnFunc(ctx, bucket, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) io.ReadCloser); ok {
+		r0 = returnFunc(ctx, bucket, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, bucket, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStorageService_S3Download_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'S3Download'
+type MockStorageService_S3Download_Call struct {
+	*mock.Call
+}
+
+// S3Download is a helper method to define mock.On call
+//   - ctx context.Context
+//   - bucket string
+//   - key string
+func (_e *MockStorageService_Expecter) S3Download(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Download_Call {
+	return &MockStorageService_S3Download_Call{Call: _e.mock.On("S3Download", ctx, bucket, key)}
+}
+
+func (_c *MockStorageService_S3Download_Call) Run(run func(ctx context.Context, bucket string, key string)) *MockStorageService_S3Download_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_S3Download_Call) Return(readCloser io.ReadCloser, err error) *MockStorageService_S3Download_Call {
+	_c.Call.Return(readCloser, err)
+	return _c
+}
+
+func (_c *MockStorageService_S3Download_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string) (io.ReadCloser, error)) *MockStorageService_S3Download_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// S3Exists provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) S3Exists(ctx context.Context, bucket string, key string) (bool, error) {
+	ret := _mock.Called(ctx, bucket, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for S3Exists")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return returnFunc(ctx, bucket, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, bucket, key)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, bucket, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStorageService_S3Exists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'S3Exists'
+type MockStorageService_S3Exists_Call struct {
+	*mock.Call
+}
+
+// S3Exists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - bucket string
+//   - key string
+func (_e *MockStorageService_Expecter) S3Exists(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Exists_Call {
+	return &MockStorageService_S3Exists_Call{Call: _e.mock.On("S3Exists", ctx, bucket, key)}
+}
+
+func (_c *MockStorageService_S3Exists_Call) Run(run func(ctx context.Context, bucket string, key string)) *MockStorageService_S3Exists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_S3Exists_Call) Return(b bool, err error) *MockStorageService_S3Exists_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStorageService_S3Exists_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string) (bool, error)) *MockStorageService_S3Exists_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -915,6 +1124,75 @@ func (_c *MockStorageService_S3TemporaryUpload_Call) Return(s string, err error)
 }
 
 func (_c *MockStorageService_S3TemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error)) *MockStorageService_S3TemporaryUpload_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// S3Upload provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) S3Upload(ctx context.Context, bucket string, key string, data io.Reader) error {
+	ret := _mock.Called(ctx, bucket, key, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for S3Upload")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, io.Reader) error); ok {
+		r0 = returnFunc(ctx, bucket, key, data)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockStorageService_S3Upload_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'S3Upload'
+type MockStorageService_S3Upload_Call struct {
+	*mock.Call
+}
+
+// S3Upload is a helper method to define mock.On call
+//   - ctx context.Context
+//   - bucket string
+//   - key string
+//   - data io.Reader
+func (_e *MockStorageService_Expecter) S3Upload(ctx interface{}, bucket interface{}, key interface{}, data interface{}) *MockStorageService_S3Upload_Call {
+	return &MockStorageService_S3Upload_Call{Call: _e.mock.On("S3Upload", ctx, bucket, key, data)}
+}
+
+func (_c *MockStorageService_S3Upload_Call) Run(run func(ctx context.Context, bucket string, key string, data io.Reader)) *MockStorageService_S3Upload_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 io.Reader
+		if args[3] != nil {
+			arg3 = args[3].(io.Reader)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_S3Upload_Call) Return(err error) *MockStorageService_S3Upload_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockStorageService_S3Upload_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string, data io.Reader) error) *MockStorageService_S3Upload_Call {
 	_c.Call.Return(run)
 	return _c
 }

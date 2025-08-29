@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/config"
@@ -749,6 +750,30 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 // protocol: The storage protocol being used
 // uploadId: The ID of the temporary upload to delete
 // Returns error if deletion fails
+func (s StorageServiceDefault) S3Exists(ctx context.Context, bucket string, key string) (bool, error) {
+	client, err := s.S3Client(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		var notFound *types.NotFound
+		var apiErr smithy.APIError
+		if errors.As(err, &notFound) || 
+			(errors.As(err, &apiErr) && 
+				(apiErr.ErrorCode() == "NotFound" || apiErr.ErrorCode() == "NoSuchKey")) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 

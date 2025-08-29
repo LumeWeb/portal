@@ -129,6 +129,7 @@ type StorageService interface {
 	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol StorageProtocol) (string, error)
 	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadCloser, error)
 	S3DeleteTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) error
+	S3Exists(ctx context.Context, bucket string, key string) (bool, error)
 	UploadStatus(ctx context.Context, protocol StorageProtocol, objectName string) (StorageUploadStatus, *time.Time, error)
 	GetTemporaryUploadDir(protocol StorageProtocol) string
 	GetTemporaryUploadPath(protocol StorageProtocol, uploadId string) string
