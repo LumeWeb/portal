@@ -6,6 +6,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
+	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/db/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -71,7 +72,7 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 	return token, user, nil
 }
 
-func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
+func (a AuthServiceDefault) LoginOTP(userId uint, code string, rememberMe bool) (string, error) {
 	valid, err := a.otp.OTPVerify(userId, code)
 
 	if err != nil {
@@ -85,15 +86,15 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string) (string, error) {
 	var user models.User
 	user.ID = userId
 
-	token, tokenErr := jwt.CreateToken(a.ctx.Config().Config().Core.Identity.PrivateKey(), a.config.Config().Core.Domain, strconv.Itoa(int(user.ID)), jwt.PurposeLogin, 0)
-	if tokenErr != nil {
+	token, err := a.doLogin(&user, "", false, rememberMe)
+	if err != nil {
 		return "", err
 	}
 
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error) {
+func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error) {
 	var model models.PublicKey
 	var rowsAffected int64
 
@@ -107,12 +108,12 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-		return "", core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+		return "", dbHelper.HandleDBError(err)
 	}
 
 	user := model.User
 
-	token, err := a.doLogin(&user, ip, true, false)
+	token, err := a.doLogin(&user, ip, true, rememberMe)
 
 	if err != nil {
 		return "", err
@@ -121,7 +122,7 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string) (string, error
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginID(id uint, ip string) (string, error) {
+func (a AuthServiceDefault) LoginID(id uint, ip string, rememberMe bool) (string, error) {
 	var user models.User
 	var rowsAffected int64
 
@@ -137,10 +138,10 @@ func (a AuthServiceDefault) LoginID(id uint, ip string) (string, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-		return "", core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+		return "", dbHelper.HandleDBError(err)
 	}
 
-	token, err := a.doLogin(&user, ip, true, false)
+	token, err := a.doLogin(&user, ip, true, rememberMe)
 
 	if err != nil {
 		return "", err
@@ -148,6 +149,7 @@ func (a AuthServiceDefault) LoginID(id uint, ip string) (string, error) {
 
 	return token, nil
 }
+
 
 func (a AuthServiceDefault) ValidLoginByUserObj(user *models.User, password string) bool {
 	return a.validPassword(user, password)
@@ -167,7 +169,7 @@ func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+		return false, nil, dbHelper.HandleDBError(err)
 	}
 
 	valid := a.ValidLoginByUserObj(&user, password)
@@ -195,7 +197,7 @@ func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+		return false, nil, dbHelper.HandleDBError(err)
 	}
 
 	valid := a.ValidLoginByUserObj(&user, password)
@@ -225,7 +227,7 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 	dur := time.Hour * 24
 
 	if rememberMe {
-		dur = time.Hour * 24 * 30
+		dur = time.Hour * 24 * time.Duration(a.config.Config().Core.Account.RememberMeTTL)
 	}
 
 	token, jwtErr := jwt.CreateToken(a.ctx.Config().Config().Core.Identity.PrivateKey(), a.config.Config().Core.Domain, strconv.Itoa(int(user.ID)), purpose, dur)

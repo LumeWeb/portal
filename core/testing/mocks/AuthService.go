@@ -81,8 +81,8 @@ func (_c *MockAuthService_ID_Call) RunAndReturn(run func() string) *MockAuthServ
 }
 
 // LoginID provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginID(id uint, ip string) (string, error) {
-	ret := _mock.Called(id, ip)
+func (_mock *MockAuthService) LoginID(id uint, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(id, ip, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginID")
@@ -90,16 +90,16 @@ func (_mock *MockAuthService) LoginID(id uint, ip string) (string, error) {
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) (string, error)); ok {
-		return returnFunc(id, ip)
+	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) (string, error)); ok {
+		return returnFunc(id, ip, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string) string); ok {
-		r0 = returnFunc(id, ip)
+	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) string); ok {
+		r0 = returnFunc(id, ip, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string) error); ok {
-		r1 = returnFunc(id, ip)
+	if returnFunc, ok := ret.Get(1).(func(uint, string, bool) error); ok {
+		r1 = returnFunc(id, ip, rememberMe)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -114,11 +114,12 @@ type MockAuthService_LoginID_Call struct {
 // LoginID is a helper method to define mock.On call
 //   - id uint
 //   - ip string
-func (_e *MockAuthService_Expecter) LoginID(id interface{}, ip interface{}) *MockAuthService_LoginID_Call {
-	return &MockAuthService_LoginID_Call{Call: _e.mock.On("LoginID", id, ip)}
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginID(id interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginID_Call {
+	return &MockAuthService_LoginID_Call{Call: _e.mock.On("LoginID", id, ip, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginID_Call) Run(run func(id uint, ip string)) *MockAuthService_LoginID_Call {
+func (_c *MockAuthService_LoginID_Call) Run(run func(id uint, ip string, rememberMe bool)) *MockAuthService_LoginID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 uint
 		if args[0] != nil {
@@ -128,9 +129,14 @@ func (_c *MockAuthService_LoginID_Call) Run(run func(id uint, ip string)) *MockA
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -141,14 +147,14 @@ func (_c *MockAuthService_LoginID_Call) Return(s string, err error) *MockAuthSer
 	return _c
 }
 
-func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(id uint, ip string) (string, error)) *MockAuthService_LoginID_Call {
+func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(id uint, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginID_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // LoginOTP provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginOTP(userId uint, code string) (string, error) {
-	ret := _mock.Called(userId, code)
+func (_mock *MockAuthService) LoginOTP(userId uint, code string, rememberMe bool) (string, error) {
+	ret := _mock.Called(userId, code, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginOTP")
@@ -156,16 +162,16 @@ func (_mock *MockAuthService) LoginOTP(userId uint, code string) (string, error)
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) (string, error)); ok {
-		return returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) (string, error)); ok {
+		return returnFunc(userId, code, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string) string); ok {
-		r0 = returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) string); ok {
+		r0 = returnFunc(userId, code, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string) error); ok {
-		r1 = returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(1).(func(uint, string, bool) error); ok {
+		r1 = returnFunc(userId, code, rememberMe)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -180,11 +186,12 @@ type MockAuthService_LoginOTP_Call struct {
 // LoginOTP is a helper method to define mock.On call
 //   - userId uint
 //   - code string
-func (_e *MockAuthService_Expecter) LoginOTP(userId interface{}, code interface{}) *MockAuthService_LoginOTP_Call {
-	return &MockAuthService_LoginOTP_Call{Call: _e.mock.On("LoginOTP", userId, code)}
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginOTP(userId interface{}, code interface{}, rememberMe interface{}) *MockAuthService_LoginOTP_Call {
+	return &MockAuthService_LoginOTP_Call{Call: _e.mock.On("LoginOTP", userId, code, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginOTP_Call) Run(run func(userId uint, code string)) *MockAuthService_LoginOTP_Call {
+func (_c *MockAuthService_LoginOTP_Call) Run(run func(userId uint, code string, rememberMe bool)) *MockAuthService_LoginOTP_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 uint
 		if args[0] != nil {
@@ -194,9 +201,14 @@ func (_c *MockAuthService_LoginOTP_Call) Run(run func(userId uint, code string))
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -207,7 +219,7 @@ func (_c *MockAuthService_LoginOTP_Call) Return(s string, err error) *MockAuthSe
 	return _c
 }
 
-func (_c *MockAuthService_LoginOTP_Call) RunAndReturn(run func(userId uint, code string) (string, error)) *MockAuthService_LoginOTP_Call {
+func (_c *MockAuthService_LoginOTP_Call) RunAndReturn(run func(userId uint, code string, rememberMe bool) (string, error)) *MockAuthService_LoginOTP_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -299,8 +311,8 @@ func (_c *MockAuthService_LoginPassword_Call) RunAndReturn(run func(email string
 }
 
 // LoginPubkey provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginPubkey(pubkey string, ip string) (string, error) {
-	ret := _mock.Called(pubkey, ip)
+func (_mock *MockAuthService) LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(pubkey, ip, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginPubkey")
@@ -308,16 +320,16 @@ func (_mock *MockAuthService) LoginPubkey(pubkey string, ip string) (string, err
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string) (string, error)); ok {
-		return returnFunc(pubkey, ip)
+	if returnFunc, ok := ret.Get(0).(func(string, string, bool) (string, error)); ok {
+		return returnFunc(pubkey, ip, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = returnFunc(pubkey, ip)
+	if returnFunc, ok := ret.Get(0).(func(string, string, bool) string); ok {
+		r0 = returnFunc(pubkey, ip, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = returnFunc(pubkey, ip)
+	if returnFunc, ok := ret.Get(1).(func(string, string, bool) error); ok {
+		r1 = returnFunc(pubkey, ip, rememberMe)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -332,11 +344,12 @@ type MockAuthService_LoginPubkey_Call struct {
 // LoginPubkey is a helper method to define mock.On call
 //   - pubkey string
 //   - ip string
-func (_e *MockAuthService_Expecter) LoginPubkey(pubkey interface{}, ip interface{}) *MockAuthService_LoginPubkey_Call {
-	return &MockAuthService_LoginPubkey_Call{Call: _e.mock.On("LoginPubkey", pubkey, ip)}
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginPubkey(pubkey interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPubkey_Call {
+	return &MockAuthService_LoginPubkey_Call{Call: _e.mock.On("LoginPubkey", pubkey, ip, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginPubkey_Call) Run(run func(pubkey string, ip string)) *MockAuthService_LoginPubkey_Call {
+func (_c *MockAuthService_LoginPubkey_Call) Run(run func(pubkey string, ip string, rememberMe bool)) *MockAuthService_LoginPubkey_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 string
 		if args[0] != nil {
@@ -346,9 +359,14 @@ func (_c *MockAuthService_LoginPubkey_Call) Run(run func(pubkey string, ip strin
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 bool
+		if args[2] != nil {
+			arg2 = args[2].(bool)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -359,7 +377,7 @@ func (_c *MockAuthService_LoginPubkey_Call) Return(s string, err error) *MockAut
 	return _c
 }
 
-func (_c *MockAuthService_LoginPubkey_Call) RunAndReturn(run func(pubkey string, ip string) (string, error)) *MockAuthService_LoginPubkey_Call {
+func (_c *MockAuthService_LoginPubkey_Call) RunAndReturn(run func(pubkey string, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginPubkey_Call {
 	_c.Call.Return(run)
 	return _c
 }
