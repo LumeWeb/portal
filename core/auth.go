@@ -30,15 +30,15 @@ type AuthService interface {
 
 	// LoginOTP authenticates a user with the provided user ID and OTP code.
 	// It returns the generated JWT token if successful.
-	LoginOTP(userId uint, code string) (string, error)
+	LoginOTP(userId uint, code string, rememberMe bool) (string, error)
 
 	// LoginPubkey authenticates a user with the provided public key.
 	// It returns the generated JWT token if successful.
-	LoginPubkey(pubkey string, ip string) (string, error)
+	LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error)
 
 	// LoginID authenticates a user with the provided user ID.
 	// It returns the generated JWT token if successful.
-	LoginID(id uint, ip string) (string, error)
+	LoginID(id uint, ip string, rememberMe bool) (string, error)
 
 	// ValidLoginByUserObj checks if the provided password is valid for the given user.
 	ValidLoginByUserObj(user *models.User, password string) bool

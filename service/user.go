@@ -3,22 +3,28 @@ package service
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/go-sql-driver/mysql"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
+	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
 	"go.lumeweb.com/portal/service/internal/user"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"net/url"
-	"time"
 )
 
 var _ core.UserService = (*UserServiceDefault)(nil)
 var _ core.Cronable = (*UserServiceDefault)(nil)
+
+func (u UserServiceDefault) getAuthService() core.AuthService {
+	return core.GetService[core.AuthService](u.ctx, core.AUTH_SERVICE)
+}
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -107,15 +113,16 @@ func (u UserServiceDefault) EmailExists(email string) (bool, *models.User, error
 	if !exists || err != nil {
 		return false, nil, err
 	}
-	return true, model.(*models.User), nil // Type assertion since `Exists` returns interface{}
+	return true, model.(*models.User), nil
 }
+
 func (u UserServiceDefault) PubkeyExists(pubkey string) (bool, *models.PublicKey, error) {
 	publicKey := &models.PublicKey{}
 	exists, model, err := u.Exists(publicKey, map[string]interface{}{"key": pubkey})
 	if !exists || err != nil {
 		return false, nil, err
 	}
-	return true, model.(*models.PublicKey), nil // Type assertion is necessary
+	return true, model.(*models.PublicKey), nil
 }
 
 func (u UserServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
@@ -124,8 +131,9 @@ func (u UserServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
 	if !exists || err != nil {
 		return false, nil, err
 	}
-	return true, model.(*models.User), nil // Ensure to assert the type correctly
+	return true, model.(*models.User), nil
 }
+
 
 func (u UserServiceDefault) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -223,7 +231,7 @@ func (u UserServiceDefault) UpdateAccountEmail(userId uint, email string, passwo
 		return core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 	}
 
-	valid, user, err := u.ValidLoginByUserID(userId, password)
+	valid, user, err := u.getAuthService().ValidLoginByUserID(userId, password)
 	if err != nil {
 		return err
 	}
@@ -242,7 +250,8 @@ func (u UserServiceDefault) UpdateAccountEmail(userId uint, email string, passwo
 }
 
 func (u UserServiceDefault) UpdateAccountPassword(userId uint, password string, newPassword string) error {
-	valid, _, err := u.ValidLoginByUserID(userId, password)
+
+	valid, _, err := u.getAuthService().ValidLoginByUserID(userId, password)
 	if err != nil {
 		return err
 	}
@@ -261,43 +270,6 @@ func (u UserServiceDefault) UpdateAccountPassword(userId uint, password string, 
 	})
 }
 
-func (u UserServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
-	var user models.User
-
-	user.ID = id
-
-	var rowsAffected int64
-
-	err := db.RetryOnLock(u.db, func(db *gorm.DB) *gorm.DB {
-		tx := db.Model(&user).Where(&user).First(&user)
-		rowsAffected = tx.RowsAffected
-
-		return tx
-	})
-
-	if rowsAffected == 0 || err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
-		}
-
-		return false, nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
-	}
-
-	valid := u.ValidLoginByUserObj(&user, password)
-
-	if !valid {
-		return false, nil, nil
-	}
-
-	return true, &user, nil
-}
-
-func (u UserServiceDefault) validPassword(user *models.User, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
-
-	return err == nil
-}
-
 func (u UserServiceDefault) UpdateAccountInfo(userId uint, info map[string]any) error {
 	var user models.User
 	user.ID = userId
@@ -311,9 +283,6 @@ func (u UserServiceDefault) UpdateAccountInfo(userId uint, info map[string]any) 
 	return nil
 }
 
-func (u UserServiceDefault) ValidLoginByUserObj(user *models.User, password string) bool {
-	return u.validPassword(user, password)
-}
 func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) error {
 	var model models.PublicKey
 
@@ -355,7 +324,7 @@ func (u UserServiceDefault) Exists(model any, conditions map[string]any) (bool, 
 		return true, model, nil
 	}
 
-	return false, model, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	return false, model, dbHelper.HandleDBError(err)
 }
 
 func (u UserServiceDefault) SendEmailVerification(userId uint) error {
@@ -395,7 +364,7 @@ func (u UserServiceDefault) SendEmailVerification(userId uint) error {
 		"FirstName":        _user.FirstName,
 		"Email":            _user.Email,
 		"VerificationLink": verifyUrl,
-		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second * 2),
+		"ExpireTime":       time.Until(verification.ExpiresAt).Round(time.Second),
 		"PortalName":       u.config.Config().Core.PortalName,
 	}
 
@@ -413,7 +382,7 @@ func (u UserServiceDefault) IsAccountVerified(userId uint) (bool, error) {
 			return false, err
 		}
 
-		return false, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+		return false, dbHelper.HandleDBError(err)
 	}
 
 	return _user.Verified, nil
@@ -488,22 +457,22 @@ func (u *UserServiceDefault) DeleteAccount(userId uint) error {
 		var _user models.User
 		if err := tx.First(&_user, userId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				_ = tx.AddError(errors.New("user not found"))
+				_ = tx.AddError(core.NewAccountError(core.ErrKeyUserNotFound, nil))
 			} else {
-				_ = tx.AddError(err)
+				_ = tx.AddError(dbHelper.HandleDBError(err))
 			}
 			return tx
 		}
 
 		// Delete associated AccountDeletion record if it exists
 		if err := tx.Where("user_id = ?", userId).Delete(&models.AccountDeletion{}).Error; err != nil {
-			_ = tx.AddError(err)
+			_ = tx.AddError(dbHelper.HandleDBError(err))
 			return tx
 		}
 
 		// Delete the user
 		if err := tx.Delete(&_user).Error; err != nil {
-			_ = tx.AddError(err)
+			_ = tx.AddError(dbHelper.HandleDBError(err))
 			return tx
 		}
 
