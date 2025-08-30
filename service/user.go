@@ -175,11 +175,7 @@ func (u UserServiceDefault) CreateAccount(email string, password string, verifyE
 	})
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
-		}
-
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+		if u.isDuplicateKeyError(err) {
 			return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 		}
 
@@ -293,7 +289,7 @@ func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) 
 		return db.Create(&model)
 
 	}); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
+		if u.isDuplicateKeyError(err) {
 			return core.NewAccountError(core.ErrKeyPublicKeyExists, err)
 		}
 
@@ -537,4 +533,23 @@ func (u *UserServiceDefault) GetAccountsPendingDeletion() ([]*models.User, error
 	}
 
 	return users, nil
+}
+
+func (u UserServiceDefault) isDuplicateKeyError(err error) bool {
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+
+	// MySQL duplicate key error
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr != nil && mysqlErr.Number == 1062 {
+		return true
+	}
+
+	// SQLite unique constraint violation
+	if errors.Is(err, gorm.ErrConstraintViolated) {
+		return true
+	}
+
+	return false
 }
