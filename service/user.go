@@ -10,9 +10,9 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
-	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
+	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/service/internal/user"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -133,7 +133,6 @@ func (u UserServiceDefault) AccountExists(id uint) (bool, *models.User, error) {
 	}
 	return true, model.(*models.User), nil
 }
-
 
 func (u UserServiceDefault) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -291,6 +290,13 @@ func (u UserServiceDefault) AddPubkeyToAccount(user models.User, pubkey string) 
 	}); err != nil {
 		if u.isDuplicateKeyError(err) {
 			return core.NewAccountError(core.ErrKeyPublicKeyExists, err)
+		}
+		
+		if u.isConstraintViolationError(err) {
+			if errors.Is(err, gorm.ErrForeignKeyViolated) {
+				return core.NewAccountError(core.ErrKeyUserNotFound, err)
+			}
+			return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 		}
 
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
@@ -546,9 +552,28 @@ func (u UserServiceDefault) isDuplicateKeyError(err error) bool {
 		return true
 	}
 
-	// SQLite unique constraint violation
-	if errors.Is(err, gorm.ErrConstraintViolated) {
+	return false
+}
+
+func (u UserServiceDefault) isConstraintViolationError(err error) bool {
+	if errors.Is(err, gorm.ErrForeignKeyViolated) || errors.Is(err, gorm.ErrCheckConstraintViolated) {
 		return true
+	}
+
+	// MySQL constraint violation errors
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr != nil {
+		// Common MySQL constraint violation error codes
+		switch mysqlErr.Number {
+		case 1452: // Cannot add or update a child row: a foreign key constraint fails
+			return true
+		case 1451: // Cannot delete or update a parent row: a foreign key constraint fails
+			return true
+		case 1264: // Out of range value
+			return true
+		case 1048: // Column cannot be null
+			return true
+		}
 	}
 
 	return false
