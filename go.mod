@@ -49,10 +49,10 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.lumeweb.com/configmanager v0.3.19
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.8
+	go.lumeweb.com/gswagger v0.20.9
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.10
-	go.lumeweb.com/portal-router v0.6.6
+	go.lumeweb.com/portal-router v0.6.7
 	go.sia.tech/core v0.14.1
 	go.sia.tech/coreutils v0.16.5
 	go.sia.tech/renterd/v2 v2.4.0

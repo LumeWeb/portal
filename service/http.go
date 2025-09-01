@@ -3,6 +3,10 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"regexp"
+	"strings"
+
 	"github.com/invopop/jsonschema"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
@@ -11,21 +15,19 @@ import (
 	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/swagger"
 	"go.lumeweb.com/portal/build"
-	"reflect"
-	"regexp"
-	"strings"
 
-	router "go.lumeweb.com/portal-router"
-	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/core/web_manifest"
-	ihttp "go.lumeweb.com/portal/service/internal/http"
-	"go.uber.org/zap"
 	"io"
 	"net"
 	"net/http"
 	"path"
 	"strconv"
 	"sync"
+
+	router "go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/core/web_manifest"
+	ihttp "go.lumeweb.com/portal/service/internal/http"
+	"go.uber.org/zap"
 )
 
 const (
@@ -142,15 +144,17 @@ func (h *HTTPServiceDefault) Init() error {
 		// Create a gswagger router wrapping the mux subrouter
 		apiInfo := api.OpenAPIInfo() // Get info from the API
 
-		// If the API didn't explicitly set a version, use the plugin's build version
-		if apiInfo.GetVersion() == "" {
-			pluginID := api.Name()
-			pluginInfo := core.GetPlugin(pluginID)
-			if pluginInfo.Version != nil {
-				apiInfo.Version(pluginInfo.Version.GetVersion())
-			} else {
-				// Fallback if plugin version is also not available
-				apiInfo.Version("unknown")
+		if apiInfo != nil {
+			// If the API didn't explicitly set a version, use the plugin's build version
+			if apiInfo.GetVersion() == "" {
+				pluginID := api.Name()
+				pluginInfo := core.GetPlugin(pluginID)
+				if pluginInfo.Version != nil {
+					apiInfo.Version(pluginInfo.Version.GetVersion())
+				} else {
+					// Fallback if plugin version is also not available
+					apiInfo.Version("unknown")
+				}
 			}
 		}
 
@@ -160,7 +164,9 @@ func (h *HTTPServiceDefault) Init() error {
 			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
 		}
 
-		router.UpdateRouterInfo(hostRouter, apiInfo)
+		if apiInfo != nil {
+			router.UpdateRouterInfo(hostRouter, apiInfo)
+		}
 
 		// Configure the main API using the gswagger router
 		err = api.Configure(hostRouter, h.access)
@@ -189,10 +195,12 @@ func (h *HTTPServiceDefault) Init() error {
 		router.GetRouter(hostRouter).OPTIONS("/api/*", func(c echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		}, echo.WrapMiddleware(cors.NewWithDefaults(corsCfg)))
-
-		// Generate and expose the OpenAPI spec for this API's router
-		if err = hostRouter.GenerateAndExposeOpenapi(); err != nil {
-			return fmt.Errorf("failed to generate openapi for API %s: %w", api.Name(), err)
+		
+		if apiInfo != nil {
+			// Generate and expose the OpenAPI spec for this API's router
+			if err = hostRouter.GenerateAndExposeOpenapi(); err != nil {
+				return fmt.Errorf("failed to generate openapi for API %s: %w", api.Name(), err)
+			}
 		}
 	}
 
