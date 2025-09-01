@@ -52,7 +52,7 @@ require (
 	go.lumeweb.com/gswagger v0.20.8
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.10
-	go.lumeweb.com/portal-router v0.6.5
+	go.lumeweb.com/portal-router v0.6.6
 	go.sia.tech/core v0.14.1
 	go.sia.tech/coreutils v0.16.5
 	go.sia.tech/renterd/v2 v2.4.0
