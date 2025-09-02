@@ -11,6 +11,7 @@ type HTTPService interface {
 	Init() error
 	Serve() error
 	APISubdomain(id string, proto bool) string
+	RegisterGlobalPath(path string) error
 
 	Service
 }

@@ -181,6 +181,57 @@ func (_c *MockHTTPService_Init_Call) RunAndReturn(run func() error) *MockHTTPSer
 	return _c
 }
 
+// RegisterGlobalPath provides a mock function for the type MockHTTPService
+func (_mock *MockHTTPService) RegisterGlobalPath(path string) error {
+	ret := _mock.Called(path)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterGlobalPath")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string) error); ok {
+		r0 = returnFunc(path)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockHTTPService_RegisterGlobalPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterGlobalPath'
+type MockHTTPService_RegisterGlobalPath_Call struct {
+	*mock.Call
+}
+
+// RegisterGlobalPath is a helper method to define mock.On call
+//   - path string
+func (_e *MockHTTPService_Expecter) RegisterGlobalPath(path interface{}) *MockHTTPService_RegisterGlobalPath_Call {
+	return &MockHTTPService_RegisterGlobalPath_Call{Call: _e.mock.On("RegisterGlobalPath", path)}
+}
+
+func (_c *MockHTTPService_RegisterGlobalPath_Call) Run(run func(path string)) *MockHTTPService_RegisterGlobalPath_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockHTTPService_RegisterGlobalPath_Call) Return(err error) *MockHTTPService_RegisterGlobalPath_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockHTTPService_RegisterGlobalPath_Call) RunAndReturn(run func(path string) error) *MockHTTPService_RegisterGlobalPath_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Router provides a mock function for the type MockHTTPService
 func (_mock *MockHTTPService) Router() router.Router {
 	ret := _mock.Called()
