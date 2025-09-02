@@ -69,6 +69,7 @@ CREATE TABLE `cron_jobs`
     `job_type`       varchar(255)    NOT NULL,
     `args`           longtext,
     `sched_def`      longtext,
+    `schedule_type`  varchar(20),
     `last_run`       datetime(3)     DEFAULT NULL,
     `failures`       bigint unsigned DEFAULT NULL,
     `state`          varchar(20)     DEFAULT 'queued',
