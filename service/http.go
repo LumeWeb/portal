@@ -40,7 +40,6 @@ const (
 
 var (
 	pluginIDRegex    = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
-	httpGlobalPaths  = []string{"/api/meta", "/swagger"}
 	genericTypeRegex = regexp.MustCompile(`^(.+?)\[(.+)]$`)
 )
 
@@ -69,13 +68,15 @@ func init() {
 }
 
 type HTTPServiceDefault struct {
-	ctx         core.Context
-	logger      *core.Logger
-	router      router.Router
-	srv         *http.Server
-	access      core.AccessService
-	bundleCache sync.Map
-	fsCache     sync.Map // Cache for bundle filesystems
+	ctx           core.Context
+	logger        *core.Logger
+	router        router.Router
+	srv           *http.Server
+	access        core.AccessService
+	bundleCache   sync.Map
+	fsCache       sync.Map // Cache for bundle filesystems
+	globalPaths   []string
+	globalPathsMu sync.RWMutex
 }
 
 func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
@@ -125,6 +126,13 @@ func (h *HTTPServiceDefault) Router() router.Router {
 }
 
 func (h *HTTPServiceDefault) Init() error {
+	// Register default global paths
+	if err := h.RegisterGlobalPath("/api/meta"); err != nil {
+		return fmt.Errorf("failed to register global path: %w", err)
+	}
+	if err := h.RegisterGlobalPath("/swagger"); err != nil {
+		return fmt.Errorf("failed to register global path: %w", err)
+	}
 
 	h.router.Use(echoMiddleware.RecoverWithConfig(echoMiddleware.RecoverConfig{
 		StackSize: 1 << 10,
@@ -471,18 +479,41 @@ func (h *HTTPServiceDefault) Serve() error {
 	return nil
 }
 
+func (h *HTTPServiceDefault) RegisterGlobalPath(path string) error {
+	h.globalPathsMu.Lock()
+	defer h.globalPathsMu.Unlock()
+
+	// Validate path
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+	if !strings.HasPrefix(path, "/") {
+		return fmt.Errorf("path must start with /")
+	}
+
+	// Check if already exists
+	if lo.Contains(h.globalPaths, path) {
+		return nil // Already registered
+	}
+
+	h.globalPaths = append(h.globalPaths, path)
+	return nil
+}
+
 func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This method is set as the CustomServeHTTPHandler on the root gswagger.Router.
 	// It is called after gswagger's standard documentation path checks.
 
 	// Prioritize global routes, which are always served by the root router
 	isGlobalPath := false
-	for _, globalPath := range httpGlobalPaths {
+	h.globalPathsMu.RLock()
+	for _, globalPath := range h.globalPaths {
 		if strings.HasPrefix(r.URL.Path, globalPath) {
 			isGlobalPath = true
 			break
 		}
 	}
+	h.globalPathsMu.RUnlock()
 	if isGlobalPath {
 		// Attempt to cast the Root gswagger Router's underlying framework router to an http.Handler
 		if handler, ok := h.router.Router().Router(true).(http.Handler); ok {
