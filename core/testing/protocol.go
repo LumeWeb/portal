@@ -2,13 +2,12 @@ package testing
 
 import (
 	"context"
+	"io"
+
+	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"gorm.io/gorm"
-	"io"
-	"testing"
-
-	mh "github.com/multiformats/go-multihash"
 )
 
 var _ core.StorageProtocol = (*MockProtocol)(nil)
@@ -22,6 +21,12 @@ type MockProtocol struct {
 	EncodeFileNameFunc func(core.StorageHash) string
 	HashFunc           func(r io.Reader, size uint64) (core.StorageHash, error)
 	PinHandlerValue    core.ProtocolPinHandler
+	tb                 TB // Store the test instance
+}
+
+// TB returns the stored test instance
+func (p *MockProtocol) TB() TB {
+	return p.tb
 }
 
 func (p *MockProtocol) Name() string {
@@ -59,7 +64,7 @@ func (p *MockProtocol) Workflows() []core.WorkflowDefinition {
 }
 
 // NewMockProtocol creates a new mock protocol with default mock implementations
-func NewMockProtocol(t testing.TB, name string) *MockProtocol {
+func NewMockProtocol(t TB, name string) *MockProtocol {
 	// Create mock pin handler with default behavior
 	pinHandler := NewMockProtocolPinHandler(t).
 		WithCreateProtocolPin(func(ctx context.Context, id uint, data any) error {
@@ -79,6 +84,7 @@ func NewMockProtocol(t testing.TB, name string) *MockProtocol {
 		})
 
 	return &MockProtocol{
+		tb:              t,
 		NameValue:       name,
 		OperationsValue: []core.Operation{},
 		WorkflowsValue:  []core.WorkflowDefinition{},
