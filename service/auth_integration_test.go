@@ -65,12 +65,12 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Equal(tb, user.ID, loggedInUser.ID)
 
 		// 4. Test LoginPubkey
-		pubkeyToken, err := authService.LoginPubkey(pubKeyBase64, "127.0.0.1")
+		pubkeyToken, err := authService.LoginPubkey(pubKeyBase64, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, pubkeyToken)
 
 		// 5. Test LoginID
-		idToken, err := authService.LoginID(user.ID, "127.0.0.1")
+		idToken, err := authService.LoginID(user.ID, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, idToken)
 
@@ -79,11 +79,11 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Error(tb, err)
 
 		// 7. Test invalid LoginPubkey
-		_, err = authService.LoginPubkey("invalidkey", "127.0.0.1")
+		_, err = authService.LoginPubkey("invalidkey", "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 8. Test invalid LoginID
-		_, err = authService.LoginID(999999, "127.0.0.1")
+		_, err = authService.LoginID(999999, "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 9. Verify valid password by user object

@@ -3,13 +3,14 @@ package testing
 import (
 	"context"
 	"fmt"
-	z "github.com/Oudwins/zog"
 	"os"
 	"reflect"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
+
+	z "github.com/Oudwins/zog"
 
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/configmanager"
@@ -26,8 +27,6 @@ const (
 	CoreKeyFormat     = "core"                 // Core configuration key
 )
 
-const mapStructureTag = "config"
-
 var _ config.Defaults = (*mockConfigEntry)(nil)
 var _ config.ConfigSchemaProvider = (*mockConfigEntry)(nil)
 
@@ -40,6 +39,11 @@ func (c mockConfigEntry) Schema() z.ZogSchema {
 
 func (c mockConfigEntry) Defaults() map[string]any {
 	return make(map[string]any)
+}
+
+// NewMockConfigEntry creates a new mock config entry
+func NewMockConfigEntry() config.Defaults {
+	return &mockConfigEntry{}
 }
 
 // MockConfigManager implements config.Manager for testing
@@ -306,7 +310,17 @@ func (m *MockConfigManager) ConfigureProtocol(pluginName string, cfg config.Prot
 	if m.MockManager != nil {
 		_, newCfg, err := m.cm.Get(key)
 		// Setup Maybe expectation for GetProtocol
-		m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(newCfg.(config.ProtocolConfig), nil)
+		if err != nil {
+			m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(nil)
+		} else if newCfg == nil {
+			m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(nil)
+		} else {
+			if cfg, ok := newCfg.(config.ProtocolConfig); ok {
+				m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(cfg)
+			} else {
+				m.MockManager.EXPECT().GetProtocol(pluginName).Maybe().Return(nil)
+			}
+		}
 		err = m.MockManager.ConfigureProtocol(pluginName, cfg)
 		if err != nil {
 			return err
@@ -338,7 +352,7 @@ func (m *MockConfigManager) ConfigureAPI(pluginName string, cfg config.APIConfig
 
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetAPI
-		m.MockManager.EXPECT().GetAPI(pluginName).Maybe().Return(cfg, nil)
+		m.MockManager.EXPECT().GetAPI(pluginName).Maybe().Return(cfg)
 		err := m.MockManager.ConfigureAPI(pluginName, cfg)
 		if err != nil {
 			return err
@@ -374,7 +388,7 @@ func (m *MockConfigManager) ConfigureService(pluginName string, serviceName stri
 
 	if m.MockManager != nil {
 		// Setup Maybe expectation for GetService
-		m.MockManager.EXPECT().GetService(pluginName, serviceName).Maybe().Return(cfg, nil)
+		m.MockManager.EXPECT().GetService(pluginName, serviceName).Maybe().Return(cfg)
 		err := m.MockManager.ConfigureService(pluginName, serviceName, cfg)
 		if err != nil {
 			return err

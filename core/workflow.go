@@ -2,16 +2,23 @@ package core
 
 import (
 	"context"
+	"errors"
+	"time"
+
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
-	"time"
 )
 
 const WORKFLOW_SERVICE = "workflow"
+
+// Predefined errors
+var (
+	ErrWorkflowHasNoSteps = errors.New("workflow has no steps")
+)
 
 // WorkflowCoordinator orchestrates multi-step operations across protocols
 type WorkflowCoordinator interface {
@@ -91,7 +98,7 @@ type WorkflowService interface {
 type WorkflowStepInfo struct {
 	Operation       string
 	FailureBehavior FailureBehavior
-	Status          string
+	Status          models.RequestStatusType
 }
 
 // OperationStep defines a single step in a workflow
@@ -104,6 +111,9 @@ type OperationStep struct {
 
 	// Whether to run the operation in the active request directly or send to the cron system
 	Foreground bool
+
+	// Unique identifier for this step
+	ID string
 }
 
 // FailureBehavior defines behavior when a step fails

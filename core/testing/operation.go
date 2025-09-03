@@ -2,6 +2,7 @@ package testing
 
 import (
 	"context"
+
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
@@ -106,7 +107,7 @@ func NewMockOperationHandler(t TB) *MockOperationHandler {
 	// Set up default expectations (optional, but good practice)
 	mockHandler.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil).Maybe()
 	mockHandler.On("Execute", mock.Anything, mock.Anything).Return(nil).Maybe()
-	mockHandler.On("GetStatus", mock.Anything, mock.Anything).Return(core.RequestStatus{}, nil).Maybe()
+	mockHandler.On("GetStatus", mock.Anything, mock.Anything).Return(&core.RequestStatus{}, nil).Maybe()
 	mockHandler.On("Cleanup", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	return handler

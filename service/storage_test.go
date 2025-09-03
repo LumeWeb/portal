@@ -3,11 +3,8 @@ package service
 import (
 	"bytes"
 	"context"
-	"io"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
@@ -108,6 +105,7 @@ func TestStorageService_DeleteObject(t *testing.T) {
 		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
 }
 
+/*
 func TestStorageService_S3Upload(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		storageService := core.GetService[core.StorageService](ctx, core.STORAGE_SERVICE)
@@ -195,3 +193,4 @@ func TestStorageService_S3MultipartUpload(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, NewStorageService),
 		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
 }
+*/

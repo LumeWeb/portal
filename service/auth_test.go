@@ -1,9 +1,10 @@
 package service
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,12 +77,12 @@ func TestAuthService_LoginOTP(t *testing.T) {
 		otpService.EXPECT().OTPVerify(uint(0x1), invalidCode).Return(false, nil)
 
 		// Test valid OTP login
-		token, err := authService.LoginOTP(user.ID, validCode)
+		token, err := authService.LoginOTP(user.ID, validCode, false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid OTP code
-		_, err = authService.LoginOTP(user.ID, invalidCode)
+		_, err = authService.LoginOTP(user.ID, invalidCode, false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
 }
@@ -177,12 +178,12 @@ func TestAuthService_LoginPubkey(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 
 		// Test valid pubkey login
-		token, err := authService.LoginPubkey("test-public-key", "127.0.0.1")
+		token, err := authService.LoginPubkey("test-public-key", "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid pubkey
-		_, err = authService.LoginPubkey("invalid-key", "127.0.0.1")
+		_, err = authService.LoginPubkey("invalid-key", "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
 }
@@ -210,12 +211,12 @@ func TestAuthService_LoginID(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 
 		// Test valid ID login
-		token, err := authService.LoginID(user.ID, "127.0.0.1")
+		token, err := authService.LoginID(user.ID, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid ID
-		_, err = authService.LoginID(999999, "127.0.0.1")
+		_, err = authService.LoginID(999999, "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
 }
