@@ -47,8 +47,9 @@ require (
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/wneessen/go-mail v0.6.2
 	go.etcd.io/etcd/client/v3 v3.6.4
-	go.lumeweb.com/configmanager v0.3.19
+	go.lumeweb.com/configmanager v0.3.20
 	go.lumeweb.com/event/v2 v2.1.0
+	go.lumeweb.com/gswagger v0.20.9
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.2.10
 	go.lumeweb.com/portal-router v0.6.7
@@ -186,7 +187,6 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.4 // indirect
-	go.lumeweb.com/gswagger v0.20.9 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
