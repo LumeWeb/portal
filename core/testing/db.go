@@ -36,25 +36,17 @@ func WithSQLite() TestContextBuilderOption {
 			return nil, fmt.Errorf("failed to set database file: %w", err)
 		}
 
-		// Register cleanup to remove temp file
-		ctx.RegisterCleanup(func() {
-			err = os.Remove(tempFile.Name())
-			if err != nil {
-				ctx.Logger().Error("Failed to remove temp SQLite file",
-					zap.String("path", tempFile.Name()),
-					zap.Error(err))
-			}
-		})
-
 		// Add a startup function that will create and connect the DB
 		startupOpt := core.ContextWithStartupFunc(func(ctx core.Context) error {
 			provider := db.NewTestSQLiteProvider(ctx)
-
+			connected := false
+			
 			// Connect to the database
 			_db, err := provider.Connect(ctx.Logger())
 			if err != nil {
 				return fmt.Errorf("failed to connect to SQLite: %w", err)
 			}
+			connected = true
 
 			// Set the DB on the context
 			if tc, ok := ctx.(TestContext); ok {
@@ -63,33 +55,16 @@ func WithSQLite() TestContextBuilderOption {
 				return fmt.Errorf("context is not TestContext")
 			}
 
-			// Register cleanup
+			// Close DB then remove temp file; always attempt removal, return close error.
 			ctx.OnExit(func(c core.Context) error {
-				return provider.Close()
+				closeErr := provider.Close()
+				if err := os.Remove(tempFile.Name()); err != nil && !os.IsNotExist(err) {
+					c.Logger().Error("Failed to remove temp SQLite file",
+						zap.String("path", tempFile.Name()),
+						zap.Error(err))
+				}
+				return closeErr
 			})
-
-			// Register temp file removal to run after provider.Close
-			if tc, ok := ctx.(TestContext); ok {
-				tc.OnExit(func(c core.Context) error {
-					err := os.Remove(tempFile.Name())
-					if err != nil {
-						ctx.Logger().Error("Failed to remove temp SQLite file",
-							zap.String("path", tempFile.Name()),
-							zap.Error(err))
-					}
-					return nil
-				})
-			} else {
-				// Fallback to RegisterCleanup if ctx is not TestContext
-				ctx.RegisterCleanup(func() {
-					err := os.Remove(tempFile.Name())
-					if err != nil {
-						ctx.Logger().Error("Failed to remove temp SQLite file",
-							zap.String("path", tempFile.Name()),
-							zap.Error(err))
-					}
-				})
-			}
 
 			return nil
 		})
