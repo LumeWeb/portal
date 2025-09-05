@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	"go.lumeweb.com/portal/service"
 	"go.uber.org/zap"
 )
 
@@ -255,6 +256,13 @@ func WithMockTUSService() TestContextBuilderOption {
 func WithMockUserService() TestContextBuilderOption {
 	return WithMockService(core.USER_SERVICE, func(tb TB, _ TestContext) any {
 		return mocks.NewMockUserService(tb)
+	})
+}
+
+// WithHTTPService adds the real HTTPService to the test context.
+func WithHTTPService() TestContextBuilderOption {
+	return WithServiceFactory(core.HTTP_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
+		return service.NewHTTPService()
 	})
 }
 
