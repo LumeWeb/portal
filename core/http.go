@@ -13,6 +13,7 @@ type HTTPService interface {
 	Stop() error
 	APISubdomain(id string, proto bool) string
 	RegisterGlobalPath(path string) error
+	Port() uint16
 
 	Service
 }

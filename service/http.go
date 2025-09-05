@@ -497,6 +497,12 @@ func (h *HTTPServiceDefault) Stop() error {
 	return err
 }
 
+func (h *HTTPServiceDefault) Port() uint16 {
+	portStr := strings.TrimPrefix(h.srv.Addr, ":")
+	port, _ := strconv.ParseUint(portStr, 10, 16)
+	return uint16(port)
+}
+
 func (h *HTTPServiceDefault) RegisterGlobalPath(path string) error {
 	h.globalPathsMu.Lock()
 	defer h.globalPathsMu.Unlock()
