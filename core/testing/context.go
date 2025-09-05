@@ -4,6 +4,7 @@ package testing
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -62,6 +63,7 @@ type testContext struct {
 	cleanupFuncs     []func()
 	apiID            string // Stores the API ID for this context
 	fireBootComplete bool   // Controls whether to fire boot complete event
+	httpDone         chan struct{} // Signals when HTTP server is done
 }
 
 // Ensure testContext implements TestContext
@@ -156,6 +158,16 @@ func (c *testContext) Teardown() {
 	// Cancel context
 	if c.cancel != nil {
 		c.cancel()
+	}
+
+	// Wait for HTTP server to stop if it was started, with timeout
+	if c.httpDone != nil {
+		select {
+		case <-c.httpDone:
+			// Normal shutdown
+		case <-time.After(5 * time.Second):
+			c.Logger().Warn("Timeout waiting for HTTP service to stop")
+		}
 	}
 
 	// Process exit functions first (e.g., provider.Close) before cleanup functions
@@ -350,6 +362,40 @@ func (c *testContext) SetAPIID(id string) {
 // FireBootComplete returns whether boot complete event should fire
 func (c *testContext) FireBootComplete() bool {
 	return c.fireBootComplete
+}
+
+// ServeHTTP starts the HTTP service in a goroutine and returns immediately.
+// Returns nil if service starts successfully, or an error if the service
+// cannot be found or started. Prevents multiple starts by returning nil
+// if already running.
+func (c *testContext) ServeHTTP() error {
+	httpSvc := c.Service(core.HTTP_SERVICE)
+	if httpSvc == nil {
+		return fmt.Errorf("HTTP service not found in context")
+	}
+
+	httpService, ok := httpSvc.(core.HTTPService)
+	if !ok {
+		return fmt.Errorf("service found but is not core.HTTPService")
+	}
+
+	// Prevent multiple starts
+	if c.httpDone != nil {
+		return fmt.Errorf("HTTP service already running")
+	}
+
+	c.httpDone = make(chan struct{})
+	go func() {
+		defer close(c.httpDone)
+		err := httpService.Serve()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			c.Logger().Error("HTTP service failed", zap.Error(err))
+		} else if err != nil {
+			c.Logger().Debug("HTTP service stopped", zap.Error(err))
+		}
+	}()
+
+	return nil
 }
 
 // SetStartupFuncs sets the startup functions for the context
@@ -639,7 +685,19 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 		WithMockAuthService(),
 		WithMockContentScannerService(),
 		WithMockCronService(),
-		WithMockHTTPService(),
+	)
+
+	// Use real HTTP service if enabled, otherwise mock
+	if ShouldSetupHTTP() {
+		opts = append(opts,
+			WithEnvConfigOrDefault("core.port", 0),
+			WithHTTPService(),
+		)
+	} else {
+		opts = append(opts, WithMockHTTPService())
+	}
+
+	opts = append(opts,
 		WithMockHashMappingService(),
 		WithMockMailerService(),
 		WithMockOTPService(),
@@ -713,6 +771,25 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		if err = StartCron(ctx); err != nil {
 			return fmt.Errorf("Failed to start cron service: %v", err)
 		}
+	}
+
+	// Start HTTP service if enabled
+	if ShouldSetupHTTP() {
+		tctx := ctx.(*testContext)
+		if err = tctx.ServeHTTP(); err != nil {
+			return fmt.Errorf("Failed to start HTTP service: %v", err)
+		}
+		// Register HTTP service stop with tb.Cleanup to ensure LIFO ordering
+		// relative to other cleanup functions
+		tctx.tb.Cleanup(func() {
+			if httpSvc := tctx.Service(core.HTTP_SERVICE); httpSvc != nil {
+				if httpService, ok := httpSvc.(core.HTTPService); ok {
+					if err := httpService.Stop(); err != nil {
+						tctx.Logger().Debug("HTTP service stop error", zap.Error(err))
+					}
+				}
+			}
+		})
 	}
 
 	// Fire boot complete event if enabled

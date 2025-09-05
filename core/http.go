@@ -10,6 +10,7 @@ type HTTPService interface {
 	Router() router.Router
 	Init() error
 	Serve() error
+	Stop() error
 	APISubdomain(id string, proto bool) string
 	RegisterGlobalPath(path string) error
 

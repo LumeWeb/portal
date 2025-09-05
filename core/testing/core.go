@@ -42,6 +42,8 @@ var (
 	setupMockDBMu     sync.RWMutex
 	setupCron         = false
 	setupCronMu       sync.RWMutex
+	setupHTTP         = false
+	setupHTTPMu       sync.RWMutex
 	testContexts      sync.Map   // map[*testing.T]TestContext
 	testMutex         sync.Mutex // Protects test execution
 )
@@ -51,6 +53,7 @@ type TestMainOpts struct {
 	WithDB         bool
 	DBMigrations   bool
 	WithCron       bool
+	WithHTTP       bool // Enable HTTP service
 	CustomSetup    func()
 	CustomTeardown func()
 }
@@ -66,6 +69,10 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 
 	if opts.WithCron {
 		EnableCron()
+	}
+
+	if opts.WithHTTP {
+		EnableHTTP()
 	}
 
 	if opts.CustomSetup != nil {
@@ -85,6 +92,10 @@ func RunTests(m *testing.M, opts TestMainOpts) int {
 
 	if opts.WithCron {
 		DisableCron()
+	}
+
+	if opts.WithHTTP {
+		DisableHTTP()
 	}
 
 	// Clear global options at the end of RunTests
@@ -240,9 +251,6 @@ func SetupTestWithDB(t TB) (TestContext, error) {
 
 	// Enable DB migrations
 	EnableDBMigrations()
-	
-	// Ensure migrations are disabled when test finishes
-	t.Cleanup(DisableDBMigrations)
 
 	// Setup test context
 	ctx, err := SetupTest(t)
@@ -264,8 +272,8 @@ func GetTestContext(t TB) (TestContext, error) {
 	return nil, fmt.Errorf("No test context found - did you call SetupTest()?")
 }
 
-// RunTestCase provides a cleaner way to run tests with automatic context setup
-func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
+// runTestCaseInternal is a helper function that contains the common logic for all RunTestCase variants
+func runTestCaseInternal(t TB, testFunc func(tb TB, ctx TestContext), enableDB bool, enableHTTP bool, opts ...TestContextBuilderOption) {
 	t.Helper()
 
 	testMutex.Lock()
@@ -275,19 +283,53 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	ResetAllState()
 	defer ResetAllState()
 
-	// Phase 1: Registration
-	// Add test case specific options
+	// Enable features as needed
+	if enableDB {
+		EnableDBMigrations()
+	}
+	if enableHTTP {
+		EnableHTTP()
+	}
+
+	// Set up cleanup functions
+	cleanupFuncs := []func(){}
+	if enableDB {
+		cleanupFuncs = append(cleanupFuncs, DisableDBMigrations)
+	}
+	if enableHTTP {
+		cleanupFuncs = append(cleanupFuncs, DisableHTTP)
+	}
+
+	// Register cleanup
+	defer func() {
+		for _, fn := range cleanupFuncs {
+			fn()
+		}
+	}()
+
+	// Add any provided options to the test case collection
 	if len(opts) > 0 {
 		AddTestCaseContextOptions(opts...)
 	}
 
-	// Create test context
-	ctx, err := SetupTest(t)
-	if err != nil {
-		t.Fatalf("Failed to setup test context: %v", err)
+	// Get or create the context
+	var ctx TestContext
+	var err error
+	if enableDB {
+		// Get or create the context (without booting the environment yet)
+		ctx, err = SetupTestWithDB(t)
+		if err != nil {
+			t.Fatalf("Failed to setup test context with DB: %v", err)
+		}
+	} else {
+		// Create test context
+		ctx, err = SetupTest(t)
+		if err != nil {
+			t.Fatalf("Failed to setup test context: %v", err)
+		}
 	}
 
-	// Phases 2 & 3: Configuration & Initialization
+	// Boot the environment
 	if err := BootEnvironment(t, ctx); err != nil {
 		t.Fatalf("Failed to boot test environment: %v", err)
 	}
@@ -296,39 +338,30 @@ func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContex
 	testFunc(t, ctx)
 }
 
+// RunTestCase provides a cleaner way to run tests with automatic context setup
+func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
+	t.Helper()
+	runTestCaseInternal(t, testFunc, false, false, opts...)
+}
+
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
 func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
+	runTestCaseInternal(t, testFunc, true, false, opts...)
+}
 
-	testMutex.Lock()
-	defer testMutex.Unlock()
+// RunTestCaseWithHTTP provides a cleaner way to run tests with automatic context setup
+// and HTTP service enabled (no DB)
+func RunTestCaseWithHTTP(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
+	t.Helper()
+	runTestCaseInternal(t, testFunc, false, true, opts...)
+}
 
-	// Reset test case state before test
-	ResetAllState()
-	defer ResetAllState()
-
-	EnableDBMigrations()
-	defer DisableDBMigrations()
-
-	// Add any provided options to the test case collection
-	if len(opts) > 0 {
-		AddTestCaseContextOptions(opts...)
-	}
-
-	// Get or create the context (without booting the environment yet)
-	ctx, err := SetupTestWithDB(t)
-	if err != nil {
-		t.Fatalf("Failed to setup test context with DB: %v", err)
-	}
-
-	// Boot the environment *after* the context is stored and before running the test function
-	if err := BootEnvironment(t, ctx); err != nil {
-		t.Fatalf("Failed to boot test environment: %v", err)
-	}
-
-	testFunc(t, ctx)
-
-	// Test case options are cleared by deferred ResetAllState
+// RunTestCaseWithDBAndHTTP provides a cleaner way to run tests with automatic context setup,
+// database support, and HTTP service enabled
+func RunTestCaseWithDBAndHTTP(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
+	t.Helper()
+	runTestCaseInternal(t, testFunc, true, true, opts...)
 }
 
 // ResetAllState resets all global state in the core package and testing package
@@ -340,8 +373,8 @@ func ResetAllState() {
 	// Reset testing state (only clears test case specific options)
 	ClearTestCaseContextOptions()
 
-	// Note: We intentionally don't reset runDBMigrations/setupMockDB here
-	// as these are package-level settings that should persist across tests
+	// Note: We intentionally don't reset runDBMigrations/setupMockDB/setupCron/setupHTTP here
+	// as these package-level settings should persist across tests within a suite.
 	// They are only reset when TestMain completes
 }
 
@@ -389,6 +422,27 @@ func DisableCron() {
 	setupCronMu.Lock()
 	defer setupCronMu.Unlock()
 	setupCron = false
+}
+
+// EnableHTTP enables HTTP service startup during test context initialization
+func EnableHTTP() {
+	setupHTTPMu.Lock()
+	defer setupHTTPMu.Unlock()
+	setupHTTP = true
+}
+
+// DisableHTTP disables HTTP service startup during test context initialization
+func DisableHTTP() {
+	setupHTTPMu.Lock()
+	defer setupHTTPMu.Unlock()
+	setupHTTP = false
+}
+
+// ShouldSetupHTTP returns whether HTTP service should be started
+func ShouldSetupHTTP() bool {
+	setupHTTPMu.RLock()
+	defer setupHTTPMu.RUnlock()
+	return setupHTTP
 }
 
 // ShouldSetupCron returns whether cron service should be started
