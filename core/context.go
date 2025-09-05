@@ -168,7 +168,11 @@ func ensureValue(payload any) any {
 	}
 	val := reflect.ValueOf(payload)
 	if val.Kind() == reflect.Ptr {
-		// If it's already a pointer, return the pointed-to value
+		// If it's a pointer, check if it's nil before dereferencing
+		if val.IsNil() {
+			return nil
+		}
+		// Return the pointed-to value
 		return val.Elem().Interface()
 	}
 	// For non-pointer values, return as-is

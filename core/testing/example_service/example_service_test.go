@@ -2,6 +2,9 @@ package example_service_test
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
@@ -9,8 +12,6 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"os"
-	"testing"
 )
 
 // TestMain is the entry point for running tests in this package.

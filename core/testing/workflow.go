@@ -3,12 +3,13 @@ package testing
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"testing"
-	"time"
 )
 
 // WorkflowTest encapsulates common setup and assertion logic for workflow tests.

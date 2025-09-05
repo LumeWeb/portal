@@ -1,15 +1,16 @@
 package example_api
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"go.lumeweb.com/portal-middleware/auth/jwt"
 	mcontext "go.lumeweb.com/portal-middleware/context"
 	"go.lumeweb.com/portal-middleware/middleware"
 	router "go.lumeweb.com/portal-router"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

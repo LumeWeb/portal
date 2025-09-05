@@ -2,6 +2,7 @@ package testing
 
 import (
 	"fmt"
+
 	"github.com/stretchr/testify/mock"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
