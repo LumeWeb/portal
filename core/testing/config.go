@@ -156,9 +156,9 @@ func WithConfig(key string, value interface{}) TestContextBuilderOption {
 }
 
 // envVarName converts a config key to an environment variable name
-// by replacing dots with double underscores
+// by replacing dots with double underscores and converting to uppercase
 func envVarName(key string) string {
-	return strings.ReplaceAll(key, ".", "__")
+	return strings.ToUpper(strings.ReplaceAll(key, ".", "__"))
 }
 
 // getEnvValue tries to get a value from environment variables in order,
@@ -167,8 +167,7 @@ func envVarName(key string) string {
 // Environment variable names are converted to uppercase before lookup.
 func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) {
 	for i, envVar := range envVars {
-		// Convert env var name to uppercase before lookup
-		value, exists := os.LookupEnv(strings.ToUpper(envVar))
+		value, exists := os.LookupEnv(envVar)
 		if exists {
 			// Return the value (even if empty) when var is present
 			return value, nil
