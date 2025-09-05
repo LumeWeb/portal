@@ -489,36 +489,6 @@ func WithPlugins(plugins ...core.PluginInfo) TestContextBuilderOption {
 				return ctx, err
 			}
 			registeredPlugins = append(registeredPlugins, plugin.ID)
-
-			var allOpts []TestContextBuilderOption
-			// Register any services from the plugin
-			if plugin.Services != nil {
-				services, err := plugin.Services()
-				if err != nil {
-					rollback()
-					return ctx, fmt.Errorf("failed to get services for plugin %s: %w", plugin.ID, err)
-				}
-
-				for _, svcInfo := range services {
-					ctxOpts, err := RegisterService(ctx, svcInfo.ID, svcInfo.Factory, plugin.ID)
-					if err != nil {
-						rollback()
-						return ctx, fmt.Errorf("failed to register service %s for plugin %s: %w", svcInfo.ID, plugin.ID, err)
-					}
-					registeredServices = append(registeredServices, svcInfo.ID)
-					allOpts = append(allOpts, ctxOpts...)
-				}
-
-			}
-
-			if len(allOpts) > 0 {
-				var err error
-				ctx, err = ProcessCtxOptions(ctx, allOpts...)
-				if err != nil {
-					rollback()
-					return ctx, err
-				}
-			}
 		}
 		return ctx, nil
 	}
