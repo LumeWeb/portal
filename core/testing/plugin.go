@@ -228,16 +228,16 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, pl
 	service, opts, err := factory()
 	if err != nil {
 		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
-		return ctx, err
+		return nil, err
 	}
 
 	if service == nil {
-		return ctx, fmt.Errorf("service factory returned nil service")
+		return nil, fmt.Errorf("service factory returned nil service")
 	}
 
 	// Register the instance locally and globally
 	if err := registerServiceInstance(ctx, id, service, plugin...); err != nil {
-		return ctx, fmt.Errorf("failed to register service: %w", err)
+		return nil, fmt.Errorf("failed to register service: %w", err)
 	}
 
 	return WrapCoreOptions(opts), nil
