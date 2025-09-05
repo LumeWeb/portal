@@ -181,6 +181,50 @@ func (_c *MockHTTPService_Init_Call) RunAndReturn(run func() error) *MockHTTPSer
 	return _c
 }
 
+// Port provides a mock function for the type MockHTTPService
+func (_mock *MockHTTPService) Port() uint16 {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Port")
+	}
+
+	var r0 uint16
+	if returnFunc, ok := ret.Get(0).(func() uint16); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(uint16)
+	}
+	return r0
+}
+
+// MockHTTPService_Port_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Port'
+type MockHTTPService_Port_Call struct {
+	*mock.Call
+}
+
+// Port is a helper method to define mock.On call
+func (_e *MockHTTPService_Expecter) Port() *MockHTTPService_Port_Call {
+	return &MockHTTPService_Port_Call{Call: _e.mock.On("Port")}
+}
+
+func (_c *MockHTTPService_Port_Call) Run(run func()) *MockHTTPService_Port_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHTTPService_Port_Call) Return(v uint16) *MockHTTPService_Port_Call {
+	_c.Call.Return(v)
+	return _c
+}
+
+func (_c *MockHTTPService_Port_Call) RunAndReturn(run func() uint16) *MockHTTPService_Port_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RegisterGlobalPath provides a mock function for the type MockHTTPService
 func (_mock *MockHTTPService) RegisterGlobalPath(path string) error {
 	ret := _mock.Called(path)
