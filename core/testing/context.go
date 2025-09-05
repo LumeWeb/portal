@@ -690,7 +690,7 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 	// Use real HTTP service if enabled, otherwise mock
 	if ShouldSetupHTTP() {
 		opts = append(opts,
-			WithEnvConfigOrDefault("core.port", 0),
+			WithEnvConfigOrDefault("core.port", "", 0),
 			WithHTTPService(),
 		)
 	} else {
