@@ -220,7 +220,7 @@ func WithEnvConfigOrDefault(key string, envVarsAndDefaults ...interface{}) TestC
 		if i%2 == 0 {
 			// Even index: environment variable name
 			if envVar, ok := arg.(string); ok && envVar != "" {
-				envVars = append(envVars, envVar)
+				envVars = append(envVars, strings.ToUpper(envVar))
 			}
 		} else {
 			// Odd index: default value
