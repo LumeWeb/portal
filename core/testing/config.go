@@ -188,11 +188,12 @@ func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) 
 	return "", fmt.Errorf("none of the environment variables %v are set", envVars)
 }
 
-// WithEnvConfig reads a configuration value from environment variable
-// and sets it in the test context. Returns error if none of the env vars are set.
-// If no envVars provided, the key will be converted to an env var name.
-// Empty values are allowed; callers that require non-empty values should validate after retrieval
-// or use WithEnvConfigOrDefault with a non-empty default.
+// WithEnvConfig reads a configuration value from environment variables
+// and sets it in the test context. If none of the env vars are set, it logs a
+// warning and leaves the config unset (no error). If no envVars provided, the key
+// will be converted to an env var name. Empty values are allowed; callers that
+// require non-empty values should validate after retrieval or use
+// WithEnvConfigOrDefault with a non-empty default.
 func WithEnvConfig(key string, envVars ...string) TestContextBuilderOption {
 	if len(envVars) == 0 {
 		envVars = []string{envVarName(key)}
@@ -219,7 +220,7 @@ func WithEnvConfigOrDefault(key string, envVarsAndDefaults ...interface{}) TestC
 	for i, arg := range envVarsAndDefaults {
 		if i%2 == 0 {
 			// Even index: environment variable name
-			if envVar, ok := arg.(string); ok {
+			if envVar, ok := arg.(string); ok && envVar != "" {
 				envVars = append(envVars, envVar)
 			}
 		} else {
@@ -228,7 +229,7 @@ func WithEnvConfigOrDefault(key string, envVarsAndDefaults ...interface{}) TestC
 		}
 	}
 
-	// If no env vars provided, compute from key
+	// If no valid env vars provided (either none or all empty), compute from key
 	if len(envVars) == 0 {
 		envVars = []string{envVarName(key)}
 	}

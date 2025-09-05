@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -22,6 +23,7 @@ import (
 	"path"
 	"strconv"
 	"sync"
+	"time"
 
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
@@ -77,6 +79,8 @@ type HTTPServiceDefault struct {
 	fsCache       sync.Map // Cache for bundle filesystems
 	globalPaths   []string
 	globalPathsMu sync.RWMutex
+	wg            sync.WaitGroup
+	stopOnce      sync.Once
 }
 
 func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
@@ -108,7 +112,7 @@ func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
 			return nil
 		}),
 		core.ContextWithExitFunc(func(ctx core.Context) error {
-			return srv.Shutdown(ctx)
+			return _http.Stop()
 		}),
 	)
 
@@ -459,24 +463,38 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 }
 
 func (h *HTTPServiceDefault) Serve() error {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	ln, err := net.Listen("tcp", h.srv.Addr)
 	if err != nil {
 		return err
 	}
 
+	h.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer h.wg.Done()
 		err := h.srv.Serve(ln)
 		if err != nil && err != http.ErrServerClosed {
 			h.logger.Fatal("Failed to serve", zap.Error(err))
 		}
 	}()
 
-	wg.Wait()
 	return nil
+}
+
+func (h *HTTPServiceDefault) Stop() error {
+	var err error
+	h.stopOnce.Do(func() {
+		if h.srv == nil {
+			return // Already stopped or never started
+		}
+
+		// Use fresh context with timeout for shutdown
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		err = h.srv.Shutdown(timeoutCtx)
+		h.wg.Wait() // Wait for server goroutine to complete
+	})
+	return err
 }
 
 func (h *HTTPServiceDefault) RegisterGlobalPath(path string) error {
