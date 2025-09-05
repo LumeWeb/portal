@@ -393,15 +393,17 @@ func (c *testContext) ServeHTTP() error {
 		} else if err != nil {
 			c.Logger().Debug("HTTP service stopped", zap.Error(err))
 		}
-		
-		// Update config with actual port after server starts
-		port := httpService.Port()
-		if port > 0 {
-			if err := c.Config().Set(c, "core.port", port); err != nil {
-				c.Logger().Error("Failed to update config with live port", zap.Error(err))
-			}
-		}
 	}()
+
+	time.Sleep(time.Second)
+
+	// Update config with actual port after server starts
+	port := httpService.Port()
+	if port > 0 {
+		if err := c.Config().Set(c, "core.port", port); err != nil {
+			c.Logger().Error("Failed to update config with live port", zap.Error(err))
+		}
+	}
 
 	return nil
 }

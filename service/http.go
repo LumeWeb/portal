@@ -207,7 +207,7 @@ func (h *HTTPServiceDefault) Init() error {
 		router.GetRouter(hostRouter).OPTIONS("/api/*", func(c echo.Context) error {
 			return c.NoContent(http.StatusOK)
 		}, echo.WrapMiddleware(cors.NewWithDefaults(corsCfg)))
-		
+
 		if apiInfo != nil {
 			// Generate and expose the OpenAPI spec for this API's router
 			if err = hostRouter.GenerateAndExposeOpenapi(); err != nil {
@@ -477,6 +477,7 @@ func (h *HTTPServiceDefault) Serve() error {
 		}
 	}()
 
+	h.wg.Wait()
 	return nil
 }
 
