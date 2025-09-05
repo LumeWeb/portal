@@ -4,6 +4,8 @@ package testing
 import (
 	"fmt"
 	"maps"
+	"os"
+	"strings"
 
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -149,5 +151,90 @@ func WithConfig(key string, value interface{}) TestContextBuilderOption {
 			_ = ctx.(*testContext).cfg.Set(ctx, key, value)
 		}
 		return ctx, nil
+	}
+}
+
+// envVarName converts a config key to an environment variable name
+// by replacing dots with double underscores
+func envVarName(key string) string {
+	return strings.ReplaceAll(key, ".", "__")
+}
+
+// getEnvValue tries to get a value from environment variables in order,
+// returning the first non-empty value found. If no env vars are provided
+// or all are empty, it returns the default value if provided.
+func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) {
+	for i, envVar := range envVars {
+		value := os.Getenv(envVar)
+		if value != "" {
+			return value, nil
+		}
+		
+		// If env var is not set, try default value
+		if i < len(defaultValues) && defaultValues[i] != nil {
+			defaultValue := defaultValues[i]
+			return fmt.Sprintf("%v", defaultValue), nil
+		}
+	}
+	
+	// If we get here, no env vars were set and no defaults were provided
+	if len(defaultValues) > 0 {
+		return "", fmt.Errorf("none of the environment variables %v are set and no valid default values provided", envVars)
+	}
+	return "", fmt.Errorf("none of the environment variables %v are set", envVars)
+}
+
+// WithEnvConfig reads a configuration value from environment variable
+// and sets it in the test context. Returns error if none of the env vars are set.
+// If no envVars provided, the key will be converted to an env var name.
+func WithEnvConfig(key string, envVars ...string) TestContextBuilderOption {
+	if len(envVars) == 0 {
+		envVars = []string{envVarName(key)}
+	}
+	return func(ctx TestContext) (TestContext, error) {
+		value, err := getEnvValue(envVars, nil)
+		if err != nil {
+			return nil, err
+		}
+		return WithConfig(key, value)(ctx)
+	}
+}
+
+// WithEnvConfigOrDefault reads a configuration value from environment variable
+// and sets it in the test context. Uses default value if none of the env vars are set.
+// If no envVars provided, the key will be converted to an env var name.
+func WithEnvConfigOrDefault(key string, envVarsAndDefaults ...interface{}) TestContextBuilderOption {
+	var envVars []string
+	var defaultValues []interface{}
+
+	// Process the variadic arguments
+	for i, arg := range envVarsAndDefaults {
+		if i%2 == 0 {
+			// Even index: environment variable name
+			if envVar, ok := arg.(string); ok {
+				envVars = append(envVars, envVar)
+			}
+		} else {
+			// Odd index: default value
+			defaultValues = append(defaultValues, arg)
+		}
+	}
+
+	// If no env vars provided, compute from key
+	if len(envVars) == 0 {
+		envVars = []string{envVarName(key)}
+	}
+
+	// Ensure defaultValues matches envVars length
+	for len(defaultValues) < len(envVars) {
+		defaultValues = append(defaultValues, nil)
+	}
+
+	return func(ctx TestContext) (TestContext, error) {
+		value, err := getEnvValue(envVars, defaultValues)
+		if err != nil {
+			return nil, err
+		}
+		return WithConfig(key, value)(ctx)
 	}
 }
