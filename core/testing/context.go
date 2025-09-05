@@ -352,6 +352,11 @@ func (c *testContext) FireBootComplete() bool {
 	return c.fireBootComplete
 }
 
+// SetStartupFuncs sets the startup functions for the context
+func (c *testContext) SetStartupFuncs(funcs []func(core.Context) error) {
+	c.startupFuncs = funcs
+}
+
 // SetFireBootComplete sets whether boot complete event should fire
 func (c *testContext) SetFireBootComplete(fire bool) {
 	c.fireBootComplete = fire
@@ -409,14 +414,52 @@ func ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption) (Te
 	return newCtx, nil
 }
 
-// CombineOptions combines multiple TestContextBuilderOptions into a single option
-func CombineOptions(opts ...TestContextBuilderOption) TestContextBuilderOption {
+// CombineOptions combines multiple TestContextBuilderOptions into a single option.
+// It accepts:
+// - Individual options (CombineOptions(opt1, opt2))
+// - A slice of options (CombineOptions([]TestContextBuilderOption{opt1, opt2}))
+// - Mixed arguments (CombineOptions(opt1, []TestContextBuilderOption{opt2, opt3}))
+// - Nested slices (CombineOptions([]any{opt1, []TestContextBuilderOption{opt2, opt3}}))
+func CombineOptions(opts ...any) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		var err error
-		for _, opt := range opts {
-			ctx, err = opt(ctx)
-			if err != nil {
-				return ctx, err
+		for i, opt := range opts {
+			if opt == nil {
+				return ctx, fmt.Errorf("option at index %d is nil", i)
+			}
+
+			switch v := opt.(type) {
+			case TestContextBuilderOption:
+				ctx, err = v(ctx)
+				if err != nil {
+					return ctx, fmt.Errorf("option at index %d failed: %w", i, err)
+				}
+
+			case []TestContextBuilderOption:
+				// Flatten slice of TestContextBuilderOption
+				flattened := make([]any, len(v))
+				for j, o := range v {
+					if o == nil {
+						return ctx, fmt.Errorf("option at index %d contains nil element at sub-index %d", i, j)
+					}
+					flattened[j] = o
+				}
+				combined := CombineOptions(flattened...)
+				ctx, err = combined(ctx)
+				if err != nil {
+					return ctx, fmt.Errorf("processing slice at index %d: %w", i, err)
+				}
+
+			case []any:
+				// Recursively flatten nested slices
+				combined := CombineOptions(v...)
+				ctx, err = combined(ctx)
+				if err != nil {
+					return ctx, fmt.Errorf("processing slice at index %d: %w", i, err)
+				}
+
+			default:
+				return ctx, fmt.Errorf("invalid option type %T at index %d, expected TestContextBuilderOption, []TestContextBuilderOption, or []any", opt, i)
 			}
 		}
 		return ctx, nil
@@ -431,11 +474,8 @@ func ProcessStartupFuncs(ctx TestContext) error {
 	startupFuncs := ctx.StartupFuncs()
 	
 	// Clear the startup functions slice to prevent re-execution
-	// Type assert to access the underlying defaultContext
-	if dc, ok := ctx.(*testContext); ok {
-		dc.startupFuncs = []func(core.Context) error{}
-	} else if dc, ok := ctx.(*defaultContext); ok {
-		dc.startupFuncs = []func(core.Context) error{}
+	if tc, ok := ctx.(*testContext); ok {
+		tc.SetStartupFuncs(nil)
 	}
 	
 	// Execute each startup function exactly once
