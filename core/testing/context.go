@@ -619,7 +619,7 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 	}
 
 	opts := []TestContextBuilderOption{
-		WithDomain("test.local"),
+		WithEnvConfigOrDefault("core.domain", "test.local"),
 		WithRandomSeedPhrase(),
 		WithCoreEvents(),
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"go.uber.org/zap"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.sia.tech/coreutils/wallet"
@@ -161,23 +162,26 @@ func envVarName(key string) string {
 }
 
 // getEnvValue tries to get a value from environment variables in order,
-// returning the first non-empty value found. If no env vars are provided
-// or all are empty, it returns the default value if provided.
+// returning the first value found (empty values are allowed).
+// If an env var is not set, the default at the same index in defaultValues is used (if non-nil).
+// Environment variable names are converted to uppercase before lookup.
 func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) {
 	for i, envVar := range envVars {
-		value := os.Getenv(envVar)
-		if value != "" {
+		// Convert env var name to uppercase before lookup
+		value, exists := os.LookupEnv(strings.ToUpper(envVar))
+		if exists {
+			// Return the value (even if empty) when var is present
 			return value, nil
 		}
 		
-		// If env var is not set, try default value
+		// Try default value if env var not set
 		if i < len(defaultValues) && defaultValues[i] != nil {
 			defaultValue := defaultValues[i]
 			return fmt.Sprintf("%v", defaultValue), nil
 		}
 	}
 	
-	// If we get here, no env vars were set and no defaults were provided
+	// If we get here, no env vars were set
 	if len(defaultValues) > 0 {
 		return "", fmt.Errorf("none of the environment variables %v are set and no valid default values provided", envVars)
 	}
@@ -187,6 +191,8 @@ func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) 
 // WithEnvConfig reads a configuration value from environment variable
 // and sets it in the test context. Returns error if none of the env vars are set.
 // If no envVars provided, the key will be converted to an env var name.
+// Empty values are allowed; callers that require non-empty values should validate after retrieval
+// or use WithEnvConfigOrDefault with a non-empty default.
 func WithEnvConfig(key string, envVars ...string) TestContextBuilderOption {
 	if len(envVars) == 0 {
 		envVars = []string{envVarName(key)}
@@ -194,7 +200,9 @@ func WithEnvConfig(key string, envVars ...string) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		value, err := getEnvValue(envVars, nil)
 		if err != nil {
-			return nil, err
+			// Don't fail if no value found—just skip setting
+			ctx.Logger().Warn("no environment variables found", zap.String("key", key), zap.Strings("envVars", envVars))
+			return ctx, nil
 		}
 		return WithConfig(key, value)(ctx)
 	}
