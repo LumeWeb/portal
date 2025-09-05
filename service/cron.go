@@ -210,7 +210,7 @@ func (c *CronServiceDefault) Monitor() core.CronMonitor {
 }
 
 func (c *CronServiceDefault) Stop() error {
-	if c.ctx.Config().Config().Core.Cron.Enabled {
+	if c.ctx.Config().Config().Core.Cron.Enabled && c.coordinator != nil {
 		return c.coordinator.Close()
 	}
 
