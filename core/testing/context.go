@@ -409,14 +409,34 @@ func ProcessCtxOptions(ctx TestContext, options ...TestContextBuilderOption) (Te
 	return newCtx, nil
 }
 
-// CombineOptions combines multiple TestContextBuilderOptions into a single option
-func CombineOptions(opts ...TestContextBuilderOption) TestContextBuilderOption {
+// CombineOptions combines multiple TestContextBuilderOptions into a single option.
+// It accepts:
+// - Individual options (CombineOptions(opt1, opt2))
+// - A slice of options (CombineOptions([]TestContextBuilderOption{opt1, opt2}...))
+// - Mixed arguments (CombineOptions(opt1, []TestContextBuilderOption{opt2, opt3}...))
+func CombineOptions(opts ...interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		var err error
 		for _, opt := range opts {
-			ctx, err = opt(ctx)
-			if err != nil {
-				return ctx, err
+			switch v := opt.(type) {
+			case TestContextBuilderOption:
+				ctx, err = v(ctx)
+				if err != nil {
+					return ctx, err
+				}
+			case []TestContextBuilderOption:
+				// Convert slice of TestContextBuilderOption to []interface{}
+				interfaceOpts := make([]interface{}, len(v))
+				for i, opt := range v {
+					interfaceOpts[i] = opt
+				}
+				combined := CombineOptions(interfaceOpts...)
+				ctx, err = combined(ctx)
+				if err != nil {
+					return ctx, err
+				}
+			default:
+				return ctx, fmt.Errorf("invalid option type %T, expected TestContextBuilderOption or []TestContextBuilderOption", opt)
 			}
 		}
 		return ctx, nil
@@ -431,11 +451,8 @@ func ProcessStartupFuncs(ctx TestContext) error {
 	startupFuncs := ctx.StartupFuncs()
 	
 	// Clear the startup functions slice to prevent re-execution
-	// Type assert to access the underlying defaultContext
-	if dc, ok := ctx.(*testContext); ok {
-		dc.startupFuncs = []func(core.Context) error{}
-	} else if dc, ok := ctx.(*defaultContext); ok {
-		dc.startupFuncs = []func(core.Context) error{}
+	if tc, ok := ctx.(interface{ SetStartupFuncs([]func(core.Context) error) }); ok {
+		tc.SetStartupFuncs([]func(core.Context) error{})
 	}
 	
 	// Execute each startup function exactly once
