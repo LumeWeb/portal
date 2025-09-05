@@ -228,16 +228,16 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, pl
 	service, opts, err := factory()
 	if err != nil {
 		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
-		return nil, err
+		return ctx, err
 	}
 
 	if service == nil {
-		return nil, fmt.Errorf("service factory returned nil service")
+		return ctx, fmt.Errorf("service factory returned nil service")
 	}
 
 	// Register the instance locally and globally
 	if err := registerServiceInstance(ctx, id, service, plugin...); err != nil {
-		return nil, fmt.Errorf("failed to register service: %w", err)
+		return ctx, fmt.Errorf("failed to register service: %w", err)
 	}
 
 	return WrapCoreOptions(opts), nil
@@ -442,6 +442,86 @@ func ConfigureProtocolWorkflows(ctx core.Context) error {
 		}
 	}
 	return nil
+}
+
+// WithPlugins registers multiple plugins for testing
+func WithPlugins(plugins ...core.PluginInfo) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Helpers
+		safeRegister := func(p core.PluginInfo) (err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("registering plugin %q panicked: %v", p.ID, r)
+				}
+			}()
+			core.RegisterPlugin(p)
+			return nil
+		}
+		unregisterServiceLocal := func(ctx TestContext, id string) {
+			if tc, ok := ctx.(*testContext); ok && tc != nil {
+				delete(tc.defaultContext.services, id)
+			}
+			core.UnregisterService(id)
+		}
+
+		registeredPlugins := make([]string, 0, len(plugins))
+		registeredServices := make([]string, 0, 8)
+
+		rollback := func() {
+			// Services first, reverse order
+			for i := len(registeredServices) - 1; i >= 0; i-- {
+				unregisterServiceLocal(ctx, registeredServices[i])
+			}
+			// Then plugins, reverse order
+			for i := len(registeredPlugins) - 1; i >= 0; i-- {
+				_ = core.UnregisterPlugin(registeredPlugins[i])
+			}
+		}
+
+		for _, plugin := range plugins {
+			// Optional pre-checks to avoid obvious panics
+			if plugin.ID == "" {
+				return ctx, fmt.Errorf("plugin ID must not be empty")
+			}
+
+			if err := safeRegister(plugin); err != nil {
+				rollback()
+				return ctx, err
+			}
+			registeredPlugins = append(registeredPlugins, plugin.ID)
+
+			var allOpts []TestContextBuilderOption
+			// Register any services from the plugin
+			if plugin.Services != nil {
+				services, err := plugin.Services()
+				if err != nil {
+					rollback()
+					return ctx, fmt.Errorf("failed to get services for plugin %s: %w", plugin.ID, err)
+				}
+
+				for _, svcInfo := range services {
+					ctxOpts, err := RegisterService(ctx, svcInfo.ID, svcInfo.Factory, plugin.ID)
+					if err != nil {
+						rollback()
+						return ctx, fmt.Errorf("failed to register service %s for plugin %s: %w", svcInfo.ID, plugin.ID, err)
+					}
+					registeredServices = append(registeredServices, svcInfo.ID)
+					allOpts = append(allOpts, ctxOpts...)
+				}
+
+			}
+
+			if len(allOpts) > 0 {
+				var err error
+				ctx, err = ProcessCtxOptions(ctx, allOpts...)
+				if err != nil {
+					rollback()
+					return ctx, err
+				}
+			}
+		}
+		return ctx, nil
+	}
 }
 
 // WithUnregisterPlugin creates an option that unregisters a plugin by ID
