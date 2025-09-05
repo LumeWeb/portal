@@ -61,8 +61,8 @@ type testContext struct {
 	*defaultContext
 	tb               TB
 	cleanupFuncs     []func()
-	apiID            string // Stores the API ID for this context
-	fireBootComplete bool   // Controls whether to fire boot complete event
+	apiID            string        // Stores the API ID for this context
+	fireBootComplete bool          // Controls whether to fire boot complete event
 	httpDone         chan struct{} // Signals when HTTP server is done
 }
 
@@ -518,12 +518,12 @@ func CombineOptions(opts ...any) TestContextBuilderOption {
 func ProcessStartupFuncs(ctx TestContext) error {
 	// Get the current slice of startup functions
 	startupFuncs := ctx.StartupFuncs()
-	
+
 	// Clear the startup functions slice to prevent re-execution
 	if tc, ok := ctx.(*testContext); ok {
 		tc.SetStartupFuncs(nil)
 	}
-	
+
 	// Execute each startup function exactly once
 	var err error
 	for _, fn := range startupFuncs {
@@ -665,7 +665,7 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 	}
 
 	opts := []TestContextBuilderOption{
-		WithEnvConfigOrDefault("core.domain", "test.local"),
+		WithEnvConfigOrDefault("core.domain", "", "test.local"),
 		WithRandomSeedPhrase(),
 		WithCoreEvents(),
 	}
@@ -750,7 +750,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	if newCtx, err = ProcessCtxOptions(ctx, apiOpts...); err != nil {
 		return fmt.Errorf("API initialization failed: %w", err)
 	}
-	
+
 	// Use updated context and run any startup functions added during API initialization
 	ctx = newCtx
 	if err = ProcessStartupFuncs(ctx); err != nil {
