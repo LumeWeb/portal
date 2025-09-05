@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -13,7 +15,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
-	"time"
 )
 
 var _ core.CronService = (*CronServiceDefault)(nil)
@@ -209,7 +210,11 @@ func (c *CronServiceDefault) Monitor() core.CronMonitor {
 }
 
 func (c *CronServiceDefault) Stop() error {
-	return c.coordinator.Close()
+	if c.ctx.Config().Config().Core.Cron.Enabled {
+		return c.coordinator.Close()
+	}
+
+	return nil
 }
 
 func (c *CronServiceDefault) GetActiveJob(jobID uuid.UUID) (core.CronJob, bool, error) {
