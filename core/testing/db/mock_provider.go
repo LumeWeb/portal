@@ -3,12 +3,13 @@ package db
 
 import (
 	"database/sql"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"go.lumeweb.com/portal/core"
 	dbCore "go.lumeweb.com/portal/db"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"testing"
 )
 
 // MockProvider implements db.Provider for testing purposes.

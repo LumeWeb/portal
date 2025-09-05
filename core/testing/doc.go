@@ -288,7 +288,7 @@
 //       - `WithDomain("test.local")`
 //       - `WithRandomSeedPhrase()`
 //       - `WithCoreEvents()`
-//       - `WithSQLite(tb)` (if `EnableMockDB()` is called, e.g., by `WithDB` helpers or `RunTestCaseWithDB`)
+//       - `WithSQLite()` (if `EnableMockDB()` is called, e.g., by `WithDB` helpers or `RunTestCaseWithDB`)
 //       - `WithMockAccessService(tb)`
 //       - `WithDefaultRouter(...)` (a default test router)
 //       - `WithMockAuthService(tb)`

@@ -2,15 +2,16 @@
 package db
 
 import (
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"go.lumeweb.com/portal/core"
 	"gorm.io/gorm"
-	"testing"
 )
 
 // NewSQLMock creates a new SQL mock for testing.
 // It returns a configured GORM DB instance and the sqlmock interface for setting expectations.
-func NewSQLMock(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
+func NewSQLMock(t testing.TB) (*gorm.DB, sqlmock.Sqlmock) {
 	t.Helper()
 
 	// Create a mock provider

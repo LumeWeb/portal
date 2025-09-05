@@ -1,12 +1,13 @@
 package testing
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
-	"testing"
 )
 
 // MockAPI implements core.API for testing

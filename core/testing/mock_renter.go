@@ -5,13 +5,14 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/renterd/v2/api"
 	"io"
 	"sync"
 	"testing"
 	"time"
+
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/models"
+	"go.sia.tech/renterd/v2/api"
 )
 
 var _ core.RenterService = (*MockRenterService)(nil)

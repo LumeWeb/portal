@@ -1,0 +1,468 @@
+// Package testing provides utilities for testing core components
+package testing
+
+import (
+	"fmt"
+	"reflect"
+
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	pkgReflect "go.lumeweb.com/portal/internal/reflect"
+	"go.uber.org/zap"
+)
+
+var (
+	serviceConfigType = pkgReflect.GetInterfaceType((*config.ServiceConfig)(nil))
+)
+
+// WithAPI creates a TestContextBuilderOption that wraps RegisterAPI
+// to register and configure an API for testing purposes.
+func WithAPI(id string, factory core.APIFactory) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		opts, err := RegisterAPI(tctx, id, factory)
+		if err != nil {
+			return tctx, err
+		}
+		return ProcessCtxOptions(tctx, opts...)
+	}
+}
+
+// registerProtocolWithHelper is a helper function to register a protocol.
+func registerProtocolWithHelper(tctx TestContext, id string, factory core.ProtocolFactory) (TestContext, error) {
+	opts, err := RegisterProtocol(tctx, id, factory)
+	if err != nil {
+		return tctx, err
+	}
+	return ProcessCtxOptions(tctx, opts...)
+}
+
+// WithProtocol creates a TestContextBuilderOption that registers and configures a Protocol.
+func WithProtocol(id string, factory core.ProtocolFactory) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		return registerProtocolWithHelper(tctx, id, factory)
+	}
+}
+
+// WithMockProtocol creates a TestContextBuilderOption that registers a mock protocol.
+// It takes a protocol name and a callback function that allows configuring the mock protocol.
+func WithMockProtocol(protocolName string, configureMock ...func(protocol *MockProtocol)) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		// Create a new mock protocol
+		mockProtocol := NewMockProtocol(tctx.T(), protocolName)
+
+		// Configure the mock using the provided callback
+		if len(configureMock) > 0 {
+			for _, v := range configureMock {
+				if v != nil {
+					v(mockProtocol)
+				}
+			}
+
+		}
+
+		// Create a protocol factory that returns the configured mock
+		protocolFactory := func() (core.Protocol, []core.ContextBuilderOption, error) {
+			return mockProtocol, nil, nil // No additional context options for mock protocols
+		}
+
+		return registerProtocolWithHelper(tctx, protocolName, protocolFactory)
+	}
+}
+
+// WithAPIExtension registers an API extension and automatically creates and registers
+// a mock version of its target API.
+func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// First create the extension to get its target API
+		ext, extOpts, err := extFactory()
+		if err != nil {
+			return ctx, fmt.Errorf("failed to create API extension: %w", err)
+		}
+
+		// Check if the extension is nil
+		if ext == nil {
+			return ctx, fmt.Errorf("API extension factory returned nil extension")
+		}
+
+		targetAPI := ext.TargetAPI()
+		tb := ctx.T()
+
+		// Create mock API for the target using the testing package's NewMockAPI
+		mockAPI := NewMockAPI(tb, targetAPI)
+
+		// Register the mock API using existing API registration mechanism
+		apiRegOpt := WithAPI(targetAPI, func() (core.API, []core.ContextBuilderOption, error) {
+			return mockAPI, nil, nil
+		})
+
+		// Process API registration first
+		ctx, err = ProcessCtxOptions(ctx, apiRegOpt)
+		if err != nil {
+			return ctx, fmt.Errorf("failed to register mock API: %w", err)
+		}
+
+		// Set the API ID in the context
+		ctx.SetAPIID(targetAPI)
+
+		// Register the extension
+		core.RegisterAPIExtension(ext)
+
+		// Process any extension options
+		if len(extOpts) > 0 {
+			wrappedOpts := WrapCoreOptions(extOpts)
+			ctx, err = ProcessCtxOptions(ctx, wrappedOpts...)
+			if err != nil {
+				return ctx, fmt.Errorf("failed to process extension options: %w", err)
+			}
+		}
+
+		return ctx, nil
+	}
+}
+
+// RegisterAPI registers an API and wraps any returned context options for test context
+func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	api, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building API", zap.String("plugin", id), zap.Error(err))
+		return nil, err
+	}
+
+	if api == nil {
+		err := fmt.Errorf("factory returned nil API for %s", id)
+		ctx.Logger().Error(err.Error(), zap.String("plugin", id))
+		return nil, err
+	}
+
+	core.RegisterAPI(id, api)
+	return WrapCoreOptions(opts), nil
+}
+
+// RegisterAPIExtension registers API extensions and wraps any returned context options
+func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	extensions, err := factory(ctx)
+	if err != nil {
+		ctx.Logger().Error("Error building API extensions", zap.Error(err))
+		return nil, err
+	}
+
+	for _, extFactory := range extensions {
+		makeExt := extFactory
+		apiExtStartup := TestContextBuilderOption(func(tctx TestContext) (TestContext, error) {
+			ext, ctxOptions, err := makeExt()
+			if err != nil {
+				tctx.Logger().Error("Error building API extension", zap.Error(err))
+				return nil, err
+			}
+
+			// Check if the extension is nil
+			if ext == nil {
+				err := fmt.Errorf("API extension factory %T returned nil extension", makeExt)
+				tctx.Logger().Error(err.Error())
+				return nil, err
+			}
+
+			tctx.Logger().Info("Registering API extension",
+				zap.String("api", ext.TargetAPI()),
+				zap.String("extension", fmt.Sprintf("%T", ext)))
+
+			core.RegisterAPIExtension(ext)
+
+			wrappedOpts := WrapCoreOptions(ctxOptions)
+			return ProcessCtxOptions(tctx, wrappedOpts...)
+		})
+		ctxOpts = append(ctxOpts, apiExtStartup)
+	}
+
+	return ctxOpts, nil
+}
+
+// RegisterProtocol registers a Protocol and wraps any returned context options for test context
+func RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory) (ctxOpts []TestContextBuilderOption, err error) {
+	proto, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building Protocol", zap.String("plugin", id), zap.Error(err))
+		return nil, err
+	}
+
+	if proto == nil {
+		err := fmt.Errorf("protocol factory for %s returned nil", id)
+		ctx.Logger().Error(err.Error(), zap.String("plugin", id))
+		return nil, err
+	}
+
+	core.RegisterProtocol(id, proto)
+	return WrapCoreOptions(opts), nil
+}
+
+// ConfigureProtocols configures all registered protocols. Unlike ConfigureAPIs,
+// protocols don't return context options during initialization.
+func ConfigureProtocols(ctx TestContext) error {
+	for name, proto := range core.GetProtocols() {
+		// Configure protocol through config manager
+		err := ctx.Config().ConfigureProtocol(name, proto.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring protocol",
+				zap.String("protocol", proto.Name()),
+				zap.Error(err))
+			return err
+		}
+
+		// Initialize protocol if it implements ProtocolInit
+		if initProto, ok := proto.(core.ProtocolInit); ok {
+			err = initProto.Init(ctx)
+			if err != nil {
+				ctx.Logger().Error("Error initializing protocol",
+					zap.String("protocol", proto.Name()),
+					zap.Error(err))
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// RegisterService registers a Service and wraps any returned context options for test context
+func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, plugin ...string) (ctxOpts []TestContextBuilderOption, err error) {
+	service, opts, err := factory()
+	if err != nil {
+		ctx.Logger().Error("Error building Service", zap.String("service", id), zap.Error(err))
+		return nil, err
+	}
+
+	if service == nil {
+		return nil, fmt.Errorf("service factory returned nil service")
+	}
+
+	// Register the instance locally and globally
+	if err := registerServiceInstance(ctx, id, service, plugin...); err != nil {
+		return nil, fmt.Errorf("failed to register service: %w", err)
+	}
+
+	return WrapCoreOptions(opts), nil
+}
+
+// configureService handles the configuration of a single service, including:
+// - Type checking and interface compliance verification
+// - Pointer/non-pointer conversion handling
+// - Plugin association validation
+// - Actual configuration through the config manager
+func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error {
+	// Detect a Config() provider
+	type serviceWithConfig interface{ Config() config.ServiceConfig }
+	provider, ok := svc.(serviceWithConfig)
+	if !ok {
+		return nil // service has no config
+	}
+
+	// Get the concrete config object from the service
+	cfgResult := provider.Config()
+
+	// Ensure the config type is compliant with ServiceConfig interface
+	// This handles cases where the service returns a non-pointer but needs pointer semantics
+	compliantCfg, isCompliant := pkgReflect.EnsureCompliantType(cfgResult, serviceConfigType)
+	if !isCompliant {
+		ctx.Logger().Error(config.ErrInvalidServiceConfig.Error()+" (type does not implement interface)",
+			zap.String("service", svcInfo.ID),
+			zap.Any("config_type", reflect.TypeOf(cfgResult)))
+		return config.ErrInvalidServiceConfig
+	}
+
+	// Log if we had to use a pointer to a copy due to non-addressable value
+	if reflect.ValueOf(cfgResult).Kind() != reflect.Pointer &&
+		reflect.ValueOf(compliantCfg).Kind() == reflect.Pointer &&
+		!reflect.ValueOf(cfgResult).CanAddr() {
+		ctx.Logger().Warn("Config value was not addressable; using pointer to a copy for configuration.",
+			zap.String("service", svcInfo.ID))
+	}
+
+	// Final type assertion after compliance check
+	svcConfig, ok := compliantCfg.(config.ServiceConfig)
+	if !ok {
+		ctx.Logger().Error("Internal error: compliant config object could not be cast to ServiceConfig",
+			zap.String("service", svcInfo.ID),
+			zap.Any("config_type", reflect.TypeOf(compliantCfg)))
+		return config.ErrInvalidServiceConfig
+	}
+
+	// Skip core services (they're configured differently)
+	if core.IsCoreService(svcInfo.ID) {
+		return nil
+	}
+
+	// Get plugin association for the service
+	pluginName := core.GetPluginForService(svcInfo.ID)
+	if pluginName == "" {
+		ctx.Logger().Error("Service has no plugin association",
+			zap.String("service", svcInfo.ID))
+		return config.ErrMissingPluginAssociation
+	}
+
+	// Actually configure the service through the config manager
+	if err := ctx.Config().ConfigureService(pluginName, svcInfo.ID, svcConfig); err != nil {
+		ctx.Logger().Error("Error configuring service",
+			zap.String("service", svcInfo.ID),
+			zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+// ConfigureServices iterates through all registered services and configures them
+// using their ServiceConfig implementations. Handles core services differently
+// from plugin services.
+func ConfigureServices(ctx TestContext) error {
+	for _, svcInfo := range core.GetServices() {
+		svc := ctx.Service(svcInfo.ID)
+		if svc == nil {
+			continue // Skip unregistered services
+		}
+
+		if err := configureService(ctx, svcInfo, svc); err != nil {
+			return err
+		}
+
+		if _, ok := svc.(core.ServiceInit); ok {
+			err := svc.(core.ServiceInit).Init()
+			if err != nil {
+				ctx.Logger().Error("Error initializing service",
+					zap.String("service", svcInfo.ID),
+					zap.Error(err))
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// ConfigureAPIs configures all registered APIs and returns any context options
+func ConfigureAPIs(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+
+	for name, api := range core.GetAPIs() {
+		// Configure API through config manager
+		err := ctx.Config().ConfigureAPI(name, api.Config())
+		if err != nil {
+			ctx.Logger().Error("Error configuring API",
+				zap.String("api", api.Name()),
+				zap.Error(err))
+			return nil, err
+		}
+
+		// Initialize API if it implements APIInit
+		if initApi, ok := api.(core.APIInit); ok {
+			apiOpts, err := initApi.Init()
+			if err != nil {
+				ctx.Logger().Error("Error initializing API",
+					zap.String("api", api.Name()),
+					zap.Error(err))
+				return nil, err
+			}
+			opts = append(opts, WrapCoreOptions(apiOpts)...)
+		}
+	}
+
+	return opts, nil
+}
+
+// ConfigureAPIRoutes configures routes for all registered APIs
+func ConfigureAPIRoutes(ctx TestContext) error {
+	accessSvc := ctx.Service(core.ACCESS_SERVICE)
+	if accessSvc == nil {
+		return fmt.Errorf("AccessService not found in context, cannot configure API routes")
+	}
+	
+	accessService, ok := accessSvc.(core.AccessService)
+	if !ok {
+		return fmt.Errorf("AccessService not found in context, cannot configure API routes")
+	}
+
+	gRouter := ctx.Router()
+
+	for _, api := range core.GetAPIs() {
+		subdomain := api.Subdomain()
+		domain := fmt.Sprintf("%s.%s", subdomain, ctx.Config().Config().Core.Domain)
+
+		if subdomain == "" {
+			domain = ctx.Config().Config().Core.Domain
+		}
+
+		// Create a subrouter for this API's domain
+		hostRouter, err := gRouter.Host(domain)
+		if err != nil {
+			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
+		}
+
+		// Configure the main API using the gswagger router
+		err = api.Configure(hostRouter, accessService)
+		if err != nil {
+			return err
+		}
+
+		// Apply any registered extensions using the *same* gswagger router
+		for _, ext := range core.GetAPIExtensions(api.Name()) {
+			ctx.Logger().Info("Applying API extension",
+				zap.String("api", ext.TargetAPI()),
+				zap.String("extension", fmt.Sprintf("%T", ext)))
+
+			// The APIExtension.Configure method signature needs to change
+			// This part seems like it might be related to a different system or a work-in-progress.
+			// For the purpose of providing the requested testing.go file, I'll keep the existing logic
+			// but note that the Configure method signature in MockAPIExtension doesn't match core.APIExtension.
+			// If this needs to be functional, the mock or the interface might need adjustment.
+			if err = ext.Configure(hostRouter, accessService); err != nil {
+				return fmt.Errorf("failed to configure API extension: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// ConfigureProtocolWorkflows registers all workflows from all protocols with the workflow service
+func ConfigureProtocolWorkflows(ctx core.Context) error {
+	workflowSvc := ctx.Service(core.WORKFLOW_SERVICE)
+	if workflowSvc == nil {
+		return fmt.Errorf("workflow service not found in context")
+	}
+
+	workflowService, ok := workflowSvc.(core.WorkflowService)
+	if !ok {
+		return fmt.Errorf("service found but is not core.WorkflowService")
+	}
+
+	for _, proto := range core.GetProtocols() {
+		for _, workflow := range proto.Workflows() {
+			if err := workflowService.RegisterWorkflow(workflow.Name, workflow.Steps, workflow.AutoTriggerFirstStep); err != nil {
+				return fmt.Errorf("failed to register workflow %s for protocol %s: %w", workflow.Name, proto.Name(), err)
+			}
+		}
+	}
+	return nil
+}
+
+// WithUnregisterPlugin creates an option that unregisters a plugin by ID
+func WithUnregisterPlugin(pluginID string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		err := core.UnregisterPlugin(pluginID)
+		if err != nil {
+			return nil, err
+		}
+		return ctx, nil
+	}
+}
+
+// WithUnregisterService creates an option that unregisters a service by ID
+func WithUnregisterService(serviceID string) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Remove from test context
+		delete(ctx.(*testContext).defaultContext.services, serviceID)
+
+		// Remove from global registry
+		core.UnregisterService(serviceID)
+		return ctx, nil
+	}
+}

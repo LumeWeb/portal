@@ -1,10 +1,11 @@
 package testing
 
 import (
+	"io"
+
 	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
-	"io"
 )
 
 var _ core.StorageHash = (*MockStorageHash)(nil)
@@ -54,7 +55,7 @@ func (s *MockStorageHash) Bytes() []byte {
 		cid := cid.NewCidV0(s.MultihashValue)
 		return cid.Bytes()
 	}
-	cid := cid.NewCidV1(s.CIDTypeValue, s.MultihashValue) 
+	cid := cid.NewCidV1(s.CIDTypeValue, s.MultihashValue)
 	return cid.Bytes()
 }
 

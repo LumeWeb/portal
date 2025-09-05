@@ -1,9 +1,10 @@
 package testing
 
 import (
+	"sync"
+
 	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal/core"
-	"sync"
 )
 
 // EventRecorder records events fired during tests

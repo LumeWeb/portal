@@ -1,9 +1,9 @@
 package testing
 
 import (
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
-	"github.com/stretchr/testify/mock"
 )
 
 // MockAccessService implements core.AccessService for testing with default expectations
@@ -40,7 +40,7 @@ func (m *MockAccessService) CheckAccess(userId uint, fqdn, path, method string) 
 	if !WasMethodCalled(&m.MockAccessService.Mock, "CheckAccess", userId, fqdn, path, method) {
 		m.On("CheckAccess", userId, fqdn, path, method).Return(true, nil)
 	}
-	
+
 	return m.MockAccessService.CheckAccess(userId, fqdn, path, method)
 }
 
@@ -50,7 +50,7 @@ func (m *MockAccessService) AssignRoleToUser(userId uint, role string) error {
 	if !WasMethodCalled(&m.MockAccessService.Mock, "AssignRoleToUser", userId, role) {
 		m.On("AssignRoleToUser", userId, role).Return(nil)
 	}
-	
+
 	return m.MockAccessService.AssignRoleToUser(userId, role)
 }
 
