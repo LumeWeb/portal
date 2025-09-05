@@ -321,3 +321,47 @@ func (_c *MockHTTPService_Serve_Call) RunAndReturn(run func() error) *MockHTTPSe
 	_c.Call.Return(run)
 	return _c
 }
+
+// Stop provides a mock function for the type MockHTTPService
+func (_mock *MockHTTPService) Stop() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Stop")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockHTTPService_Stop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Stop'
+type MockHTTPService_Stop_Call struct {
+	*mock.Call
+}
+
+// Stop is a helper method to define mock.On call
+func (_e *MockHTTPService_Expecter) Stop() *MockHTTPService_Stop_Call {
+	return &MockHTTPService_Stop_Call{Call: _e.mock.On("Stop")}
+}
+
+func (_c *MockHTTPService_Stop_Call) Run(run func()) *MockHTTPService_Stop_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHTTPService_Stop_Call) Return(err error) *MockHTTPService_Stop_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockHTTPService_Stop_Call) RunAndReturn(run func() error) *MockHTTPService_Stop_Call {
+	_c.Call.Return(run)
+	return _c
+}
