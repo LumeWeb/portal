@@ -39,14 +39,12 @@ func WithSQLite() TestContextBuilderOption {
 		// Add a startup function that will create and connect the DB
 		startupOpt := core.ContextWithStartupFunc(func(ctx core.Context) error {
 			provider := db.NewTestSQLiteProvider(ctx)
-			connected := false
-			
+
 			// Connect to the database
 			_db, err := provider.Connect(ctx.Logger())
 			if err != nil {
 				return fmt.Errorf("failed to connect to SQLite: %w", err)
 			}
-			connected = true
 
 			// Set the DB on the context
 			if tc, ok := ctx.(TestContext); ok {

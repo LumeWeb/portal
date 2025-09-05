@@ -15,7 +15,7 @@ func NewSQLMock(t testing.TB) (*gorm.DB, sqlmock.Sqlmock) {
 	t.Helper()
 
 	// Create a mock provider
-	provider, mock, err := NewMockProvider(t)
+	provider, mock, err := NewMockProvider(t.(*testing.T))
 	if err != nil {
 		t.Fatalf("failed to create mock database provider: %v", err)
 	}
