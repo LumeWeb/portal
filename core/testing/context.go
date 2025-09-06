@@ -574,7 +574,7 @@ func ProcessExitFuncs(ctx TestContext) error {
 // This function's role is now primarily to process options and run startup funcs.
 func InitContext(tb TB, ctx TestContext) error {
 	// Get all globally registered test options
-	allOpts, err := GetCombinedTestContextOptions(tb)
+	allOpts, err := GetCombinedTestContextOptions()
 	if err != nil {
 		return err
 	}
@@ -668,7 +668,7 @@ func WithCoreEvents() TestContextBuilderOption {
 
 // DefaultTestContextOptions returns the default options used for new test contexts.
 // These include mock implementations of common core services.
-func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
+func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 	_router, err := router.NewRouter(router.APIInfo().Title("Test API").Version("1.0.0"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create test router: %w", err)
@@ -678,6 +678,7 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 		WithEnvConfigOrDefault("core.domain", "", "test.local"),
 		WithRandomSeedPhrase(),
 		WithCoreEvents(),
+		WithErrorNamespaces(core.ExportAllErrorNamespaces()),
 	}
 
 	// Add DB setup first if enabled
@@ -731,25 +732,25 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 // proper initialization order and dependency resolution.
 //
 // The phases are:
-// 1. Context Initialization - Processes all context builder options (default, global and test case specific)
-//    Establishes the base context with core services and configuration
-// 2. Component Registration - Registers all components (services, APIs, protocols and extensions)
-//    Note: Service options are collected but not processed yet to allow proper ordering
-// 3. Plugin Service Registration - Registers and configures services from plugins
-//    Collects any context options they return
-// 4. Component Configuration - Configures services and protocols with their respective configs
-//    Note: APIs are configured separately in Phase 5 to ensure services are ready first
-// 5. API Configuration - Configures APIs and processes their initialization options
-//    This must complete before service options are processed (Phase 6)
-// 6. Service Option Processing - Combines all service options (main + plugin services)
-//    Processes them now that APIs are fully initialized
-// 7. Startup Functions - Runs any startup functions added during initialization
-// 8. Service Initialization - Initializes services after configuration but before API route setup
-// 9. API Route Configuration - Configures API routes after all components are initialized
-//    Applies any registered extensions using the same router
-// 10. Protocol Initialization - Initializes protocols and registers their workflows
-// 11. Protocol Workflow Configuration - Registers workflows from all protocols
-// 12. Runtime Setup - Starts cron/HTTP services if enabled and fires boot complete event
+//  1. Context Initialization - Processes all context builder options (default, global and test case specific)
+//     Establishes the base context with core services and configuration
+//  2. Component Registration - Registers all components (services, APIs, protocols and extensions)
+//     Note: Service options are collected but not processed yet to allow proper ordering
+//  3. Plugin Service Registration - Registers and configures services from plugins
+//     Collects any context options they return
+//  4. Component Configuration - Configures services and protocols with their respective configs
+//     Note: APIs are configured separately in Phase 5 to ensure services are ready first
+//  5. API Configuration - Configures APIs and processes their initialization options
+//     This must complete before service options are processed (Phase 6)
+//  6. Service Option Processing - Combines all service options (main + plugin services)
+//     Processes them now that APIs are fully initialized
+//  7. Startup Functions - Runs any startup functions added during initialization
+//  8. Service Initialization - Initializes services after configuration but before API route setup
+//  9. API Route Configuration - Configures API routes after all components are initialized
+//     Applies any registered extensions using the same router
+//  10. Protocol Initialization - Initializes protocols and registers their workflows
+//  11. Protocol Workflow Configuration - Registers workflows from all protocols
+//  12. Runtime Setup - Starts cron/HTTP services if enabled and fires boot complete event
 //     Note: HTTP service is started in a goroutine and registered for cleanup
 //
 // The function returns nil on success, or an error if any phase fails. Errors include detailed

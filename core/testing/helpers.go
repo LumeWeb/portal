@@ -49,7 +49,7 @@ func SetupTestEnvironment(tb TB) (TestContext, error) {
 	}
 
 	// Process all options (defaults + global + test case)
-	options, err := GetCombinedTestContextOptions(tb)
+	options, err := GetCombinedTestContextOptions()
 	if err != nil {
 		return ctx, fmt.Errorf("failed to get combined test context options: %w", err)
 	}
