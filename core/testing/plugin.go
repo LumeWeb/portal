@@ -512,39 +512,37 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 }
 
 // RegisterComponents registers services, APIs, protocols and extensions similar to portal boot process
-func RegisterComponents(ctx TestContext) ([]TestContextBuilderOption, error) {
-	var opts []TestContextBuilderOption
-	var svcOpts []TestContextBuilderOption
-
+// Returns:
+// - opts: Options for APIs, protocols and extensions
+// - svcOpts: Options for services (to be processed later)
+// - err: Any error encountered
+func RegisterComponents(ctx TestContext) (opts []TestContextBuilderOption, svcOpts []TestContextBuilderOption, err error) {
 	// Register services first (but collect their options separately)
-	svcOpts, err := RegisterServices(ctx)
+	svcOpts, err = RegisterServices(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Register other components
 	apiOpts, err := RegisterAPIs(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	opts = append(opts, apiOpts...)
 
 	protoOpts, err := RegisterProtocols(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	opts = append(opts, protoOpts...)
 
 	extOpts, err := RegisterAPIExtensions(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	opts = append(opts, extOpts...)
 
-	// Append service options last
-	opts = append(opts, svcOpts...)
-
-	return opts, nil
+	return opts, svcOpts, nil
 }
 
 // InitializeProtocols initializes all registered protocols that implement ProtocolInit.
