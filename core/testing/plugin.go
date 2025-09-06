@@ -189,6 +189,13 @@ func RegisterAPIExtensions(ctx TestContext) ([]TestContextBuilderOption, error) 
 						return tctx, err
 					}
 
+					if ext == nil {
+						err := fmt.Errorf("API extension factory returned nil extension for plugin %s", plugin.ID)
+						tctx.Logger().Error(err.Error(),
+							zap.String("plugin", plugin.ID))
+						return tctx, err
+					}
+
 					tctx.Logger().Info("Registering API extension",
 						zap.String("plugin", plugin.ID),
 						zap.String("target", ext.TargetAPI()))
