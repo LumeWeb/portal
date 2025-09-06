@@ -120,6 +120,32 @@ func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOpt
 	}
 }
 
+// RegisterAPIs registers all APIs from plugins similar to portal's registerAPIs
+func RegisterAPIs(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+
+	for _, plugin := range core.GetPlugins() {
+		if core.PluginHasAPI(plugin) {
+			api, apiOpts, err := plugin.API()
+			if err != nil {
+				ctx.Logger().Error("Error building API", 
+					zap.String("plugin", plugin.ID), 
+					zap.Error(err))
+				return nil, err
+			}
+
+			if api == nil {
+				continue
+			}
+
+			opts = append(opts, WrapCoreOptions(apiOpts)...)
+			core.RegisterAPI(plugin.ID, api)
+		}
+	}
+
+	return opts, nil
+}
+
 // RegisterAPI registers an API and wraps any returned context options for test context
 func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts []TestContextBuilderOption, err error) {
 	api, opts, err := factory()
@@ -136,6 +162,46 @@ func RegisterAPI(ctx TestContext, id string, factory core.APIFactory) (ctxOpts [
 
 	core.RegisterAPI(id, api)
 	return WrapCoreOptions(opts), nil
+}
+
+// RegisterAPIExtensions registers all API extensions from plugins similar to portal's registerAPIExtensions
+func RegisterAPIExtensions(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+
+	for _, plugin := range core.GetPlugins() {
+		if core.PluginHasAPIExtensions(plugin) {
+			extensions, err := plugin.APIExtensions(ctx)
+			if err != nil {
+				ctx.Logger().Error("Error building API extensions",
+					zap.String("plugin", plugin.ID),
+					zap.Error(err))
+				return nil, err
+			}
+
+			for _, extFactory := range extensions {
+				factory := extFactory
+				apiExtStartup := TestContextBuilderOption(func(tctx TestContext) (TestContext, error) {
+					ext, ctxOpts, err := factory()
+					if err != nil {
+						tctx.Logger().Error("Error building API extension",
+							zap.String("plugin", plugin.ID),
+							zap.Error(err))
+						return tctx, err
+					}
+
+					tctx.Logger().Info("Registering API extension",
+						zap.String("plugin", plugin.ID),
+						zap.String("target", ext.TargetAPI()))
+					core.RegisterAPIExtension(ext)
+
+					return ProcessCtxOptions(tctx, WrapCoreOptions(ctxOpts)...)
+				})
+				opts = append(opts, apiExtStartup)
+			}
+		}
+	}
+
+	return opts, nil
 }
 
 // RegisterAPIExtension registers API extensions and wraps any returned context options
@@ -177,6 +243,32 @@ func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (c
 	return ctxOpts, nil
 }
 
+// RegisterProtocols registers all protocols from plugins similar to portal's registerProtocols
+func RegisterProtocols(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+
+	for _, plugin := range core.GetPlugins() {
+		if core.PluginHasProtocol(plugin) {
+			proto, protoOpts, err := plugin.Protocol()
+			if err != nil {
+				ctx.Logger().Error("Error building protocol",
+					zap.String("plugin", plugin.ID),
+					zap.Error(err))
+				return nil, err
+			}
+
+			if proto == nil {
+				continue
+			}
+
+			opts = append(opts, WrapCoreOptions(protoOpts)...)
+			core.RegisterProtocol(plugin.ID, proto)
+		}
+	}
+
+	return opts, nil
+}
+
 // RegisterProtocol registers a Protocol and wraps any returned context options for test context
 func RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory) (ctxOpts []TestContextBuilderOption, err error) {
 	proto, opts, err := factory()
@@ -195,8 +287,8 @@ func RegisterProtocol(ctx TestContext, id string, factory core.ProtocolFactory) 
 	return WrapCoreOptions(opts), nil
 }
 
-// ConfigureProtocols configures all registered protocols. Unlike ConfigureAPIs,
-// protocols don't return context options during initialization.
+// ConfigureProtocols configures all registered protocols with their respective configs.
+// This only handles configuration - initialization is handled separately by InitializeProtocols.
 func ConfigureProtocols(ctx TestContext) error {
 	for name, proto := range core.GetProtocols() {
 		// Configure protocol through config manager
@@ -208,16 +300,6 @@ func ConfigureProtocols(ctx TestContext) error {
 			return err
 		}
 
-		// Initialize protocol if it implements ProtocolInit
-		if initProto, ok := proto.(core.ProtocolInit); ok {
-			err = initProto.Init(ctx)
-			if err != nil {
-				ctx.Logger().Error("Error initializing protocol",
-					zap.String("protocol", proto.Name()),
-					zap.Error(err))
-				return err
-			}
-		}
 	}
 
 	return nil
@@ -419,6 +501,48 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 		}
 	}
 
+	return nil
+}
+
+// RegisterComponents registers APIs, protocols and extensions similar to portal boot process
+func RegisterComponents(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+
+	// Register components
+	apiOpts, err := RegisterAPIs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, apiOpts...)
+
+	protoOpts, err := RegisterProtocols(ctx)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, protoOpts...)
+
+	extOpts, err := RegisterAPIExtensions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, extOpts...)
+
+	return opts, nil
+}
+
+// InitializeProtocols initializes all registered protocols that implement ProtocolInit.
+// This is called after ConfigureProtocols has configured all protocols.
+func InitializeProtocols(ctx TestContext) error {
+	for _, proto := range core.GetProtocols() {
+		if initProto, ok := proto.(core.ProtocolInit); ok {
+			if err := initProto.Init(ctx); err != nil {
+				ctx.Logger().Error("Error initializing protocol",
+					zap.String("protocol", proto.Name()),
+					zap.Error(err))
+				return fmt.Errorf("protocol initialization failed: %w", err)
+			}
+		}
+	}
 	return nil
 }
 
