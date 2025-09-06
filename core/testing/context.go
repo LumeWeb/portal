@@ -729,92 +729,92 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 // BootEnvironment initializes the test environment by processing all context options,
 // running startup functions, configuring services, and setting up APIs.
 func BootEnvironment(tb TB, ctx TestContext) error {
-	// Phase 1: Context Setup
-	// Initialize context with all options (default, global, and test case specific)
+	// Phase 1: Context Initialization
+	// Process all context builder options (default, global and test case specific)
+	// This establishes the base context with core services and configuration
 	if err := InitContext(tb, ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
 	}
 
 	// Phase 2: Component Registration
-	// Register components (APIs, protocols, extensions) and their context options
+	// Register all components (services, APIs, protocols and extensions)
 	componentOpts, err := RegisterComponents(ctx)
 	if err != nil {
 		return fmt.Errorf("component registration failed: %w", err)
 	}
 
-	// Process component options
+	// Process component options to establish context with all registered components
 	ctx, err = ProcessCtxOptions(ctx, componentOpts...)
 	if err != nil {
 		return fmt.Errorf("processing component options failed: %w", err)
 	}
 
-	// Register any services from plugins
+	// Register any plugin services and process their options
 	core.RegisterServicesFromPlugins()
 	newCtx, err := ConfigurePluginServices(ctx)
 	if err != nil {
-		return fmt.Errorf("service registration failed: %w", err)
+		return fmt.Errorf("plugin service registration failed: %w", err)
 	}
 	ctx = newCtx
 
 	// Phase 3: Component Configuration
-	// Configure protocols (no initialization)
+	// Configure all registered components with their respective configs
+	if err = ConfigureServices(ctx); err != nil {
+		return fmt.Errorf("service configuration failed: %w", err)
+	}
+
 	if err := ConfigureProtocols(ctx); err != nil {
 		return fmt.Errorf("protocol configuration failed: %w", err)
 	}
 
-	// Configure APIs and collect their initialization options
 	apiOpts, err := ConfigureAPIs(ctx)
 	if err != nil {
 		return fmt.Errorf("API configuration failed: %w", err)
 	}
 
-	// Configure services
-	if err = ConfigureServices(ctx); err != nil {
-		return fmt.Errorf("service configuration failed: %w", err)
-	}
-
 	// Phase 4: Component Initialization
-	// Process API initialization options
-	var newCtx TestContext
-	if newCtx, err = ProcessCtxOptions(ctx, apiOpts...); err != nil {
+	// Initialize APIs and process their initialization options
+	if ctx, err = ProcessCtxOptions(ctx, apiOpts...); err != nil {
 		return fmt.Errorf("API initialization failed: %w", err)
 	}
 
-	// Use updated context and run any startup functions added during API initialization
-	ctx = newCtx
+	// Run any startup functions added during API initialization
 	if err = ProcessStartupFuncs(ctx); err != nil {
-		return fmt.Errorf("API startup functions failed: %w", err)
+		return fmt.Errorf("startup functions failed: %w", err)
 	}
 
+	// Configure API routes after all components are initialized
 	if err = ConfigureAPIRoutes(ctx); err != nil {
 		return fmt.Errorf("API route configuration failed: %w", err)
 	}
 
-	// Initialize protocols
+	// Initialize protocols and register their workflows
 	if err := InitializeProtocols(ctx); err != nil {
-		return err
+		return fmt.Errorf("protocol initialization failed: %w", err)
 	}
 
-	// Register workflows from all protocols
 	if err = ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
 	}
 
+	// Phase 5: Runtime Services
 	// Start cron service if enabled
 	if ShouldSetupCron() {
 		if err = StartCron(ctx); err != nil {
-			return fmt.Errorf("Failed to start cron service: %v", err)
+			return fmt.Errorf("failed to start cron service: %w", err)
 		}
 	}
 
 	// Start HTTP service if enabled
 	if ShouldSetupHTTP() {
-		tctx := ctx.(*testContext)
-		if err = tctx.ServeHTTP(); err != nil {
-			return fmt.Errorf("Failed to start HTTP service: %v", err)
+		tctx, ok := ctx.(*testContext)
+		if !ok {
+			return fmt.Errorf("HTTP service setup requires *testContext but got %T", ctx)
 		}
-		// Register HTTP service stop with tb.Cleanup to ensure LIFO ordering
-		// relative to other cleanup functions
+		if err = tctx.ServeHTTP(); err != nil {
+			return fmt.Errorf("failed to start HTTP service: %w", err)
+		}
+		// Register HTTP service stop with tb.Cleanup to ensure proper shutdown
 		tctx.tb.Cleanup(func() {
 			if httpSvc := tctx.Service(core.HTTP_SERVICE); httpSvc != nil {
 				if httpService, ok := httpSvc.(core.HTTPService); ok {
@@ -834,6 +834,31 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	return nil
+}
+
+// RegisterServices initializes all services and collects their context options.
+// Returns both direct context options and service-specific options separately
+// to allow staged initialization.
+func RegisterServices(ctx TestContext) ([]TestContextBuilderOption, error) {
+	var opts []TestContextBuilderOption
+	svcs := core.GetServices()
+
+	for _, svcInfo := range svcs {
+		svc, svcOpts, err := svcInfo.Factory()
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize service %s: %w", svcInfo.ID, err)
+		}
+		if svcOpts != nil {
+			opts = append(opts, WrapCoreOptions(svcOpts)...)
+		}
+		if tctx, ok := ctx.(*testContext); ok {
+			tctx.RegisterService(svcInfo.ID, svc)
+		} else {
+			return nil, fmt.Errorf("expected *testContext but got %T", ctx)
+		}
+	}
+
+	return opts, nil
 }
 
 // ConfigurePluginServices initializes and registers all services that belong to plugins.
