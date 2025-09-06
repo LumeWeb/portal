@@ -511,11 +511,18 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 	return nil
 }
 
-// RegisterComponents registers APIs, protocols and extensions similar to portal boot process
+// RegisterComponents registers services, APIs, protocols and extensions similar to portal boot process
 func RegisterComponents(ctx TestContext) ([]TestContextBuilderOption, error) {
 	var opts []TestContextBuilderOption
+	var svcOpts []TestContextBuilderOption
 
-	// Register components
+	// Register services first (but collect their options separately)
+	svcOpts, err := RegisterServices(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Register other components
 	apiOpts, err := RegisterAPIs(ctx)
 	if err != nil {
 		return nil, err
@@ -533,6 +540,9 @@ func RegisterComponents(ctx TestContext) ([]TestContextBuilderOption, error) {
 		return nil, err
 	}
 	opts = append(opts, extOpts...)
+
+	// Append service options last
+	opts = append(opts, svcOpts...)
 
 	return opts, nil
 }
