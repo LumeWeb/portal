@@ -147,10 +147,10 @@ func (h *HTTPServiceDefault) Init() error {
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
 		subdomain := api.Subdomain()
-		domain := fmt.Sprintf("%s.%s", api.Subdomain(), h.ctx.Config().Config().Core.Domain)
+		domain := fmt.Sprintf("%s.%s:%d", api.Subdomain(), h.ctx.Config().Config().Core.Domain, h.ctx.Config().Config().Core.Port)
 
 		if subdomain == "" {
-			domain = h.ctx.Config().Config().Core.Domain
+			domain = fmt.Sprintf("%s:%d", h.ctx.Config().Config().Core.Domain, h.ctx.Config().Config().Core.Port)
 		}
 
 		// Create a gswagger router wrapping the mux subrouter
