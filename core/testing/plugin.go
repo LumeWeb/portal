@@ -611,23 +611,23 @@ func WithErrorNamespaces(namespaces core.ErrorNamespaces) TestContextBuilderOpti
 			return ctx, nil
 		}
 
-		// Track which namespaces we're adding
-		addedNamespaces := lo.Keys(namespaces)
-
 		// Import new namespaces
 		if err := core.ImportErrorNamespaces(namespaces); err != nil {
 			return ctx, fmt.Errorf("failed to import error namespaces: %w", err)
 		}
 
 		// Register cleanup to remove the namespaces we added
-		ctx.RegisterCleanup(func() error {
-			errorRegistryMu.Lock()
-			defer errorRegistryMu.Unlock()
+		ctx.RegisterCleanup(func() {
+			// Get current state
+			current := core.ExportAllErrorNamespaces()
 			
-			lo.ForEach(addedNamespaces, func(ns string, _ int) {
-				delete(errorRegistry.namespaces, ns)
-			})
-			return nil
+			// Remove the namespaces we added
+			for ns := range namespaces {
+				delete(current, ns)
+			}
+			
+			// Replace registry with cleaned state
+			_ = core.ReplaceAllErrorNamespaces(current)
 		})
 
 		return ctx, nil
