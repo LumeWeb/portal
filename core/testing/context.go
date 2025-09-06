@@ -851,11 +851,11 @@ func RegisterServices(ctx TestContext) ([]TestContextBuilderOption, error) {
 		if svcOpts != nil {
 			opts = append(opts, WrapCoreOptions(svcOpts)...)
 		}
-		if tctx, ok := ctx.(*testContext); ok {
-			tctx.RegisterService(svcInfo.ID, svc)
-		} else {
-			return nil, fmt.Errorf("expected *testContext but got %T", ctx)
+		tctx, ok := ctx.(*testContext)
+		if !ok {
+			return nil, fmt.Errorf("RegisterServices requires *testContext but got %T", ctx)
 		}
+		tctx.RegisterService(svcInfo.ID, svc)
 	}
 
 	return opts, nil
