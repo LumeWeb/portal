@@ -178,14 +178,14 @@ func AddTestCaseContextOptions(opts ...TestContextBuilderOption) {
 // 1. Default options
 // 2. Global options (from RunTests)
 // 3. Test case options (from RunTestCase)
-func GetCombinedTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
+func GetCombinedTestContextOptions() ([]TestContextBuilderOption, error) {
 	globalTestCtxOptsMu.RLock()
 	defer globalTestCtxOptsMu.RUnlock()
 	testCaseCtxOptsMu.RLock()
 	defer testCaseCtxOptsMu.RUnlock()
 
 	// Get defaults first
-	defaultOpts, err := DefaultTestContextOptions(tb)
+	defaultOpts, err := DefaultTestContextOptions()
 	if err != nil {
 		return nil, err
 	}

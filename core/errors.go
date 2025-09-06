@@ -5,6 +5,8 @@ import (
 	router "go.lumeweb.com/portal-router"
 	"net/http"
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 const (
@@ -28,11 +30,6 @@ type ErrorRegistry struct {
 	namespaces map[string]ErrorNamespace // Namespace -> ErrorNamespace
 }
 
-// ErrorNamespace holds the error definitions and HTTP status codes for a namespace.
-type ErrorNamespace struct {
-	errorDefinitions map[ErrorType]ErrorDefinition
-	errorCodes       map[ErrorType]int
-}
 
 // ErrorDefinition holds the data associated with an error type.  It no longer contains the HttpStatus.
 type ErrorDefinition struct {
@@ -58,6 +55,11 @@ func (e *Error) Error() string {
 	return e.Message
 }
 
+// Unwrap enables errors.Is/As to traverse the underlying cause.
+func (e *Error) Unwrap() error {
+	return e.Err
+}
+
 // HttpStatus implements the router.ResponseError interface.
 func (e *Error) HttpStatus() int {
 	errorRegistryMu.RLock()
@@ -78,11 +80,88 @@ func (e *Error) IsErrorType(errType ErrorType) bool {
 	return e.Key == errType
 }
 
+// ErrorNamespace contains all exported error namespace data
+type ErrorNamespace struct {
+	Definitions map[ErrorType]ErrorDefinition
+	Codes       map[ErrorType]int
+}
+
+// ErrorNamespaces is a map of namespace names to their ErrorNamespace data
+type ErrorNamespaces map[string]ErrorNamespace
+
 // NewErrorRegistry creates a new ErrorRegistry.
 func NewErrorRegistry() *ErrorRegistry {
 	return &ErrorRegistry{
-		namespaces: make(map[string]ErrorNamespace),
+		namespaces: make(map[string]ErrorNamespace), 
 	}
+}
+
+// ExportAllNamespaces exports all registered error namespaces with their error definitions and codes
+func (r *ErrorRegistry) ExportAllNamespaces() ErrorNamespaces {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return lo.MapValues(r.namespaces, func(ns ErrorNamespace, _ string) ErrorNamespace {
+		// Deep copy Definitions map
+		defsCopy := lo.MapValues(ns.Definitions, func(def ErrorDefinition, _ ErrorType) ErrorDefinition {
+			return ErrorDefinition{
+				Key:         def.Key,
+				Message:     def.Message,
+				DefaultArgs: append([]any(nil), def.DefaultArgs...), // Deep copy slice
+			}
+		})
+
+		// Deep copy Codes map
+		codesCopy := lo.MapValues(ns.Codes, func(code int, _ ErrorType) int {
+			return code
+		})
+
+		return ErrorNamespace{
+			Definitions: defsCopy,
+			Codes:       codesCopy,
+		}
+	})
+}
+
+// ImportNamespaces imports error namespaces with their error definitions and codes.
+// Any existing definitions/codes for the same keys will be silently overwritten.
+// Returns nil on success or an error if the import fails.
+func (r *ErrorRegistry) ImportNamespaces(importData ErrorNamespaces) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for nsName, data := range importData {
+		// Get existing namespace or create new one
+		ns, exists := r.namespaces[nsName]
+		if !exists {
+			ns = ErrorNamespace{
+				Definitions: make(map[ErrorType]ErrorDefinition),
+				Codes:       make(map[ErrorType]int),
+			}
+		} else {
+			// Ensure existing maps are initialized
+			if ns.Definitions == nil {
+				ns.Definitions = make(map[ErrorType]ErrorDefinition)
+			}
+			if ns.Codes == nil {
+				ns.Codes = make(map[ErrorType]int)
+			}
+		}
+
+		// Copy definitions
+		for key, def := range data.Definitions {
+			ns.Definitions[key] = def
+		}
+		
+		// Copy codes
+		for key, code := range data.Codes {
+			ns.Codes[key] = code
+		}
+
+		// Store the updated namespace
+		r.namespaces[nsName] = ns
+	}
+	return nil
 }
 
 // RegisterNamespace creates a new namespace in the registry.
@@ -95,8 +174,8 @@ func (r *ErrorRegistry) RegisterNamespace(namespace string) error {
 	}
 
 	r.namespaces[namespace] = ErrorNamespace{
-		errorDefinitions: make(map[ErrorType]ErrorDefinition),
-		errorCodes:       make(map[ErrorType]int),
+		Definitions: make(map[ErrorType]ErrorDefinition),
+		Codes:       make(map[ErrorType]int),
 	}
 	return nil
 }
@@ -112,10 +191,15 @@ func (r *ErrorRegistry) RegisterDefaultErrorMessages(namespace string, errorMap 
 	}
 
 	for key, def := range errorMap {
-		if _, exists := ns.errorDefinitions[key]; exists {
+		if def.Key == "" {
+			def.Key = key
+		} else if def.Key != key {
+			return fmt.Errorf("definition key mismatch: map key=%q def.Key=%q in namespace %q", key, def.Key, namespace)
+		}
+		if _, exists := ns.Definitions[key]; exists {
 			return fmt.Errorf("error type '%s' already exists in namespace '%s'", key, namespace)
 		}
-		ns.errorDefinitions[key] = def
+		ns.Definitions[key] = def
 	}
 
 	return nil
@@ -132,10 +216,13 @@ func (r *ErrorRegistry) RegisterErrorCodes(namespace string, errorCodeMap map[Er
 	}
 
 	for key, code := range errorCodeMap {
-		if _, exists := ns.errorCodes[key]; exists {
+		if code < 100 || code > 599 {
+			return fmt.Errorf("invalid HTTP status code %d for type '%s' in namespace '%s'", code, key, namespace)
+		}
+		if _, exists := ns.Codes[key]; exists {
 			return fmt.Errorf("error code for type '%s' already exists in namespace '%s'", key, namespace)
 		}
-		ns.errorCodes[key] = code
+		ns.Codes[key] = code
 	}
 
 	return nil
@@ -151,7 +238,7 @@ func (r *ErrorRegistry) GetErrorDefinition(namespace string, key ErrorType) (Err
 		return ErrorDefinition{}, false
 	}
 
-	def, exists := ns.errorDefinitions[key]
+	def, exists := ns.Definitions[key]
 	return def, exists
 }
 
@@ -165,7 +252,7 @@ func (r *ErrorRegistry) GetErrorCode(namespace string, key ErrorType) (int, bool
 		return 0, false
 	}
 
-	code, exists := ns.errorCodes[key]
+	code, exists := ns.Codes[key]
 	if !exists {
 		return http.StatusInternalServerError, false
 	}
@@ -275,6 +362,36 @@ func ResetErrorRegistry() {
 	errorRegistryMu.Lock()
 	defer errorRegistryMu.Unlock()
 	errorRegistry = NewErrorRegistry()
+}
+
+// ReplaceAllErrorNamespaces replaces all error namespaces with the provided ones
+func ReplaceAllErrorNamespaces(namespaces ErrorNamespaces) error {
+	errorRegistryMu.Lock()
+	defer errorRegistryMu.Unlock()
+	
+	// Create new registry and import namespaces
+	newRegistry := NewErrorRegistry()
+	if err := newRegistry.ImportNamespaces(namespaces); err != nil {
+		return err
+	}
+	
+	// Atomically replace the registry
+	errorRegistry = newRegistry
+	return nil
+}
+
+// ExportAllErrorNamespaces exports all error namespaces from the global error registry
+func ExportAllErrorNamespaces() ErrorNamespaces {
+	errorRegistryMu.RLock()
+	defer errorRegistryMu.RUnlock()
+	return errorRegistry.ExportAllNamespaces()
+}
+
+// ImportErrorNamespaces imports error namespaces into the global error registry
+func ImportErrorNamespaces(importData ErrorNamespaces) error {
+	errorRegistryMu.Lock()
+	defer errorRegistryMu.Unlock()
+	return errorRegistry.ImportNamespaces(importData)
 }
 
 // NewError creates a new Error instance using the global error registry.

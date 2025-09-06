@@ -603,6 +603,37 @@ func ConfigureProtocolWorkflows(ctx core.Context) error {
 	return nil
 }
 
+// WithErrorNamespaces imports error namespaces into the global error registry transactionally.
+// The imported namespaces are removed when the test context is cleaned up.
+func WithErrorNamespaces(namespaces core.ErrorNamespaces) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		if namespaces == nil {
+			return ctx, nil
+		}
+
+		// Track which namespaces we're adding
+		addedNamespaces := lo.Keys(namespaces)
+
+		// Import new namespaces
+		if err := core.ImportErrorNamespaces(namespaces); err != nil {
+			return ctx, fmt.Errorf("failed to import error namespaces: %w", err)
+		}
+
+		// Register cleanup to remove the namespaces we added
+		ctx.RegisterCleanup(func() error {
+			errorRegistryMu.Lock()
+			defer errorRegistryMu.Unlock()
+			
+			lo.ForEach(addedNamespaces, func(ns string, _ int) {
+				delete(errorRegistry.namespaces, ns)
+			})
+			return nil
+		})
+
+		return ctx, nil
+	}
+}
+
 // WithPlugins registers multiple plugins for testing
 func WithPlugins(plugins ...core.PluginInfo) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
