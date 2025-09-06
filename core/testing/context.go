@@ -726,36 +726,52 @@ func DefaultTestContextOptions(tb TB) ([]TestContextBuilderOption, error) {
 	return opts, nil
 }
 
-// BootEnvironment initializes the test environment with the following phases:
-// 1. Context Initialization - Processes all context builder options
-// 2. Component Registration - Registers services, APIs, protocols and extensions
-// 3. Component Configuration - Configures services and protocols
-// 4. API Initialization - Configures and initializes APIs
-// 5. Service Option Processing - Processes all service options after APIs are ready
-// 6. Runtime Setup - Starts cron/HTTP services and fires boot complete event
+// BootEnvironment initializes the test environment by executing a series of carefully ordered phases
+// that mirror the portal's production boot sequence. Each phase builds upon the previous one to ensure
+// proper initialization order and dependency resolution.
+//
+// The phases are:
+// 1. Context Initialization - Processes all context builder options (default, global and test case specific)
+//    Establishes the base context with core services and configuration
+// 2. Component Registration - Registers all components (services, APIs, protocols and extensions)
+//    Note: Service options are collected but not processed yet to allow proper ordering
+// 3. Plugin Service Registration - Registers and configures services from plugins
+//    Collects any context options they return
+// 4. Component Configuration - Configures services and protocols with their respective configs
+//    Note: APIs are configured separately in Phase 5 to ensure services are ready first
+// 5. API Configuration - Configures APIs and processes their initialization options
+//    This must complete before service options are processed (Phase 6)
+// 6. Service Option Processing - Combines all service options (main + plugin services)
+//    Processes them now that APIs are fully initialized
+// 7. Startup Functions - Runs any startup functions added during initialization
+// 8. Service Initialization - Initializes services after configuration but before API route setup
+// 9. API Route Configuration - Configures API routes after all components are initialized
+//    Applies any registered extensions using the same router
+// 10. Protocol Initialization - Initializes protocols and registers their workflows
+// 11. Protocol Workflow Configuration - Registers workflows from all protocols
+// 12. Runtime Setup - Starts cron/HTTP services if enabled and fires boot complete event
+//     Note: HTTP service is started in a goroutine and registered for cleanup
+//
+// The function returns nil on success, or an error if any phase fails. Errors include detailed
+// information about which phase failed.
 func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 1: Context Initialization
-	// Processes all context builder options (default, global and test case specific)
-	// Establishes the base context with core services and configuration
 	if err := InitContext(tb, ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
 	}
 
-	// Phase 2: Component Registration  
-	// Registers all components (services, APIs, protocols and extensions)
-	// Note: Service options are collected but not processed yet
+	// Phase 2: Component Registration
 	componentOpts, svcOpts, err := RegisterComponents(ctx)
 	if err != nil {
 		return fmt.Errorf("component registration failed: %w", err)
 	}
 
-	// Process non-service component options first
 	ctx, err = ProcessCtxOptions(ctx, componentOpts...)
 	if err != nil {
 		return fmt.Errorf("processing component options failed: %w", err)
 	}
 
-	// Register any plugin services and process their options
+	// Phase 3: Plugin Service Registration
 	core.RegisterServicesFromPlugins()
 	newCtx, pluginSvcOpts, err := ConfigurePluginServices(ctx)
 	if err != nil {
@@ -763,9 +779,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 	ctx = newCtx
 
-	// Phase 3: Component Configuration
-	// Configures services and protocols with their respective configs
-	// Note: APIs are configured separately in Phase 4
+	// Phase 4: Component Configuration
 	if err = ConfigureServices(ctx); err != nil {
 		return fmt.Errorf("service configuration failed: %w", err)
 	}
@@ -779,52 +793,61 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return fmt.Errorf("API configuration failed: %w", err)
 	}
 
-	// Phase 4: API Initialization
-	// Configures APIs and processes their initialization options
-	// This must complete before service options are processed
+	// Phase 5: API Configuration
 	if ctx, err = ProcessCtxOptions(ctx, apiOpts...); err != nil {
-		return fmt.Errorf("API initialization failed: %w", err)
+		return fmt.Errorf("API option processing failed: %w", err)
 	}
 
-	// Phase 5: Service Option Processing
-	// Combines all service options (main + plugin services)
+	// Phase 6: Service Option Processing
 	allSvcOpts := append(svcOpts, pluginSvcOpts...)
-
-	// Processes them now that APIs are fully initialized
 	ctx, err = ProcessCtxOptions(ctx, allSvcOpts...)
 	if err != nil {
 		return fmt.Errorf("processing service options failed: %w", err)
 	}
 
-	// Run any startup functions added during API initialization
+	// Phase 7: Startup Functions
 	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
 	}
 
-	// Configure API routes after all components are initialized
+	// Phase 8: Service Initialization
+	if err := InitializeServices(ctx); err != nil {
+		return fmt.Errorf("service initialization failed: %w", err)
+	}
+
+	// Phase 9: API Route Configuration
 	if err = ConfigureAPIRoutes(ctx); err != nil {
 		return fmt.Errorf("API route configuration failed: %w", err)
 	}
 
-	// Initialize protocols and register their workflows
+	// Phase 10: Protocol Initialization
 	if err := InitializeProtocols(ctx); err != nil {
 		return fmt.Errorf("protocol initialization failed: %w", err)
 	}
 
+	// Phase 11: Protocol Workflow Configuration
 	if err = ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
 	}
 
-	// Phase 6: Runtime Setup
-	// Starts cron/HTTP services if enabled
-	// Fires boot complete event if configured
+	// Phase 12: Runtime Setup
 	if ShouldSetupCron() {
 		if err = StartCron(ctx); err != nil {
 			return fmt.Errorf("failed to start cron service: %w", err)
 		}
+		if tctx, ok := ctx.(*testContext); ok {
+			tctx.tb.Cleanup(func() {
+				if cronSvc := tctx.Service(core.CRON_SERVICE); cronSvc != nil {
+					if stopper, ok2 := cronSvc.(interface{ Stop() error }); ok2 {
+						if err := stopper.Stop(); err != nil {
+							tctx.Logger().Debug("Cron service stop error", zap.Error(err))
+						}
+					}
+				}
+			})
+		}
 	}
 
-	// Start HTTP service if enabled
 	if ShouldSetupHTTP() {
 		tctx, ok := ctx.(*testContext)
 		if !ok {
@@ -833,7 +856,6 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		if err = tctx.ServeHTTP(); err != nil {
 			return fmt.Errorf("failed to start HTTP service: %w", err)
 		}
-		// Register HTTP service stop with tb.Cleanup to ensure proper shutdown
 		tctx.tb.Cleanup(func() {
 			if httpSvc := tctx.Service(core.HTTP_SERVICE); httpSvc != nil {
 				if httpService, ok := httpSvc.(core.HTTPService); ok {
@@ -845,7 +867,6 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		})
 	}
 
-	// Fire boot complete event if enabled
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_COMPLETE, pevent.NewBootCompleteEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)

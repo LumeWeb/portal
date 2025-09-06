@@ -399,9 +399,8 @@ func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error 
 	return nil
 }
 
-// ConfigureServices iterates through all registered services and configures them
-// using their ServiceConfig implementations. Handles core services differently
-// from plugin services.
+// ConfigureServices configures all registered services with their ServiceConfig implementations.
+// Handles core services differently from plugin services.
 func ConfigureServices(ctx TestContext) error {
 	for _, svcInfo := range core.GetServices() {
 		svc := ctx.Service(svcInfo.ID)
@@ -412,10 +411,31 @@ func ConfigureServices(ctx TestContext) error {
 		if err := configureService(ctx, svcInfo, svc); err != nil {
 			return err
 		}
+	}
 
-		if _, ok := svc.(core.ServiceInit); ok {
-			err := svc.(core.ServiceInit).Init()
-			if err != nil {
+	return nil
+}
+
+// InitializeServices initializes all services that implement ServiceInit interface
+func InitializeServices(ctx TestContext) error {
+	for _, svcInfo := range core.GetServices() {
+		svc := ctx.Service(svcInfo.ID)
+		if svc == nil {
+			continue // Skip unregistered services
+		}
+
+		if initSvc, ok := svc.(core.ServiceInit); ok {
+			if err := func() (err error) {
+				defer func() {
+					if r := recover(); r != nil {
+						ctx.Logger().Error("Service init panic",
+							zap.String("service", svcInfo.ID),
+							zap.Any("recover", r))
+						err = fmt.Errorf("panic in ServiceInit.Init for %s: %v", svcInfo.ID, r)
+					}
+				}()
+				return initSvc.Init()
+			}(); err != nil {
 				ctx.Logger().Error("Error initializing service",
 					zap.String("service", svcInfo.ID),
 					zap.Error(err))
