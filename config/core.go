@@ -16,6 +16,7 @@ var (
 type CoreConfig struct {
 	DB              DatabaseConfig `config:"db"`
 	Domain          string         `config:"domain"`
+	Secure          bool           `config:"secure"`
 	PortalName      string         `config:"portal_name"`
 	ExternalPort    uint           `config:"external_port"`
 	Identity        types.Identity `config:"identity"`
@@ -40,6 +41,7 @@ func (c CoreConfig) Schema() z.ZogSchema {
 			Required(z.Message("core.port is required")).
 			GT(0, z.Message("core.port must be greater than 0")),
 		"PostUploadLimit": ZogUInt64(),
+		"Secure":          z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*CoreConfig)
 		if !ok {
@@ -62,6 +64,7 @@ func (c CoreConfig) Defaults() map[string]any {
 		"Domain":          "",
 		"PortalName":      "",
 		"Port":            8080,
+		"Secure":          true,
 	}
 }
 
