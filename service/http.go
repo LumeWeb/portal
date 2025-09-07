@@ -580,8 +580,13 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
 	formatter := ""
 
+	protocol := "http"
+	if h.ctx.Config().Config().Core.Secure {
+		protocol = "https"
+	}
+
 	if proto {
-		formatter += "https://"
+		formatter += fmt.Sprintf("%s://", protocol)
 	}
 
 	formatter += "%s.%s"
