@@ -58,3 +58,11 @@ func (b *BinaryUUID) UnmarshalJSON(data []byte) error {
 	b.BinUUID = datatypes.BinUUID(id)
 	return nil
 }
+
+func (u BinaryUUID) Equals(other BinaryUUID) bool {
+	return u.BinUUID.Equals(other.BinUUID)
+}
+
+func (u BinaryUUID) Empty() bool {
+	return u.Equals(EmptyUUID)
+}
