@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
 )
 
@@ -213,7 +214,42 @@ func ClearTestCaseContextOptions() {
 	testCaseCtxOpts = nil
 }
 
-type TB = testing.TB
+type (
+	TB            = testing.TB
+	TestComponent = string
+)
+
+const (
+	ComponentDB   TestComponent = "db"
+	ComponentHTTP TestComponent = "http"
+	ComponentCron TestComponent = "cron"
+)
+
+// TestComponents creates a bag of test components for RunTestCaseWithComponents
+func TestComponents(components ...TestComponent) []TestComponent {
+	return components
+}
+
+// processTestComponents converts component strings to configuration flags
+func processTestComponents(components []TestComponent) RunTestCaseOpts {
+	opts := RunTestCaseOpts{
+		AutoCleanup:   true,
+		FireBootEvent: true,
+	}
+
+	for _, comp := range components {
+		switch comp {
+		case ComponentDB:
+			opts.Components = append(opts.Components, ComponentDB)
+			opts.RunMigrations = true // DB implies migrations by default
+		case ComponentHTTP:
+			opts.Components = append(opts.Components, ComponentHTTP)
+		case ComponentCron:
+			opts.Components = append(opts.Components, ComponentCron)
+		}
+	}
+	return opts
+}
 
 // SetupTest creates and manages the test context for a specific test
 // It does NOT boot the environment. BootEnvironment must be called separately.
@@ -272,8 +308,19 @@ func GetTestContext(t TB) (TestContext, error) {
 	return nil, fmt.Errorf("No test context found - did you call SetupTest()?")
 }
 
+// RunTestCaseOpts configures test case behavior
+type RunTestCaseOpts struct {
+	Components    []TestComponent // List of components to enable
+	RunMigrations bool            // Only relevant if DB component is enabled
+	CustomOptions []TestContextBuilderOption
+	// Additional flags for test behavior
+	SkipBoot      bool // Skip booting the environment
+	AutoCleanup   bool // Automatically cleanup resources (default true)
+	FireBootEvent bool // Fire boot complete event (default true)
+}
+
 // runTestCaseInternal is a helper function that contains the common logic for all RunTestCase variants
-func runTestCaseInternal(t TB, testFunc func(tb TB, ctx TestContext), enableDB bool, enableHTTP bool, opts ...TestContextBuilderOption) {
+func runTestCaseInternal(t TB, testFunc func(tb TB, ctx TestContext), opts RunTestCaseOpts) {
 	t.Helper()
 
 	testMutex.Lock()
@@ -281,87 +328,106 @@ func runTestCaseInternal(t TB, testFunc func(tb TB, ctx TestContext), enableDB b
 
 	// Reset test case state before test
 	ResetAllState()
-	defer ResetAllState()
-
-	// Enable features as needed
-	if enableDB {
-		EnableDBMigrations()
-	}
-	if enableHTTP {
-		EnableHTTP()
+	if opts.AutoCleanup {
+		defer ResetAllState()
 	}
 
-	// Set up cleanup functions
-	cleanupFuncs := []func(){}
-	if enableDB {
-		cleanupFuncs = append(cleanupFuncs, DisableDBMigrations)
-	}
-	if enableHTTP {
-		cleanupFuncs = append(cleanupFuncs, DisableHTTP)
+	// Enable requested components and get cleanup functions
+	cleanups := enableTestComponents(opts)
+	if opts.AutoCleanup {
+		defer func() {
+			for _, fn := range cleanups {
+				fn()
+			}
+		}()
 	}
 
-	// Register cleanup
-	defer func() {
-		for _, fn := range cleanupFuncs {
-			fn()
-		}
-	}()
-
-	// Add any provided options to the test case collection
-	if len(opts) > 0 {
-		AddTestCaseContextOptions(opts...)
+	// Add any custom options to the test case collection
+	if len(opts.CustomOptions) > 0 {
+		AddTestCaseContextOptions(opts.CustomOptions...)
 	}
 
 	// Get or create the context
 	var ctx TestContext
 	var err error
-	if enableDB {
-		// Get or create the context (without booting the environment yet)
+
+	if hasComponent(opts.Components, ComponentDB) {
 		ctx, err = SetupTestWithDB(t)
-		if err != nil {
-			t.Fatalf("Failed to setup test context with DB: %v", err)
-		}
 	} else {
-		// Create test context
 		ctx, err = SetupTest(t)
-		if err != nil {
-			t.Fatalf("Failed to setup test context: %v", err)
-		}
 	}
 
-	// Boot the environment
-	if err := BootEnvironment(t, ctx); err != nil {
-		t.Fatalf("Failed to boot test environment: %v", err)
+	if err != nil {
+		t.Fatalf("Failed to setup test context: %v", err)
+	}
+
+	// Boot the environment unless skipped
+	if !opts.SkipBoot {
+		if err := BootEnvironment(t, ctx); err != nil {
+			t.Fatalf("Failed to boot test environment: %v", err)
+		}
 	}
 
 	// Run the actual test
 	testFunc(t, ctx)
 }
 
+// enableTestComponents enables the requested test components
+func enableTestComponents(opts RunTestCaseOpts) []func() {
+	var cleanups []func()
+
+	if hasComponent(opts.Components, ComponentDB) {
+		if opts.RunMigrations {
+			EnableDBMigrations()
+			cleanups = append(cleanups, DisableDBMigrations)
+		}
+		EnableMockDB()
+		cleanups = append(cleanups, DisableMockDB)
+	}
+
+	if hasComponent(opts.Components, ComponentHTTP) {
+		EnableHTTP()
+		cleanups = append(cleanups, DisableHTTP)
+	}
+
+	if hasComponent(opts.Components, ComponentCron) {
+		EnableCron()
+		cleanups = append(cleanups, DisableCron)
+	}
+
+	return cleanups
+}
+
+// hasComponent checks if a component is in the list using lo.Contains
+func hasComponent(components []TestComponent, target TestComponent) bool {
+	return lo.Contains(components, target)
+}
+
 // RunTestCase provides a cleaner way to run tests with automatic context setup
 func RunTestCase(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
-	runTestCaseInternal(t, testFunc, false, false, opts...)
+	RunTestCaseWithComponents(t, testFunc, nil, opts...)
 }
 
 // RunTestCaseWithDB provides a cleaner way to run tests with automatic context setup and database support
 func RunTestCaseWithDB(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
-	runTestCaseInternal(t, testFunc, true, false, opts...)
+	RunTestCaseWithComponents(t, testFunc, TestComponents(ComponentDB), opts...)
 }
 
 // RunTestCaseWithHTTP provides a cleaner way to run tests with automatic context setup
 // and HTTP service enabled (no DB)
 func RunTestCaseWithHTTP(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
 	t.Helper()
-	runTestCaseInternal(t, testFunc, false, true, opts...)
+	RunTestCaseWithComponents(t, testFunc, TestComponents(ComponentHTTP), opts...)
 }
 
-// RunTestCaseWithDBAndHTTP provides a cleaner way to run tests with automatic context setup,
-// database support, and HTTP service enabled
-func RunTestCaseWithDBAndHTTP(t TB, testFunc func(tb TB, ctx TestContext), opts ...TestContextBuilderOption) {
+// RunTestCaseWithComponents runs a test case with specified components enabled
+func RunTestCaseWithComponents(t TB, testFunc func(tb TB, ctx TestContext), components []TestComponent, opts ...TestContextBuilderOption) {
 	t.Helper()
-	runTestCaseInternal(t, testFunc, true, true, opts...)
+	runOpts := processTestComponents(components)
+	runOpts.CustomOptions = opts
+	runTestCaseInternal(t, testFunc, runOpts)
 }
 
 // ResetAllState resets all global state in the core package and testing package
