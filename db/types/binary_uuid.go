@@ -7,6 +7,8 @@ import (
 	"gorm.io/datatypes"
 )
 
+var EmptyUUID = FromUUID(uuid.Nil)
+
 // BinaryUUID is a simple wrapper around datatypes.BinUUID with JSON support
 type BinaryUUID struct {
 	datatypes.BinUUID
