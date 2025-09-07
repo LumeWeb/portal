@@ -3,6 +3,8 @@ package db
 
 import (
 	"fmt"
+	"time"
+
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -34,7 +36,8 @@ func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	logger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: NewLogger(logger.Logger, logger.Level()),
+		Logger:  NewLogger(logger.Logger, logger.Level()),
+		NowFunc: func() time.Time { return time.Now().UTC() },
 	})
 
 	if err != nil {
