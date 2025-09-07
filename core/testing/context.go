@@ -695,8 +695,14 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 		WithRouter(_router),
 		WithMockAuthService(),
 		WithMockContentScannerService(),
-		WithMockCronService(),
 	)
+
+	// Use real cron service if enabled, otherwise mock
+	if ShouldSetupCron() {
+		opts = append(opts, WithCronService())
+	} else {
+		opts = append(opts, WithMockCronService())
+	}
 
 	// Use real HTTP service if enabled, otherwise mock
 	if ShouldSetupHTTP() {
