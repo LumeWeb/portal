@@ -1,8 +1,10 @@
 package db
 
 import (
-	"go.uber.org/zap"
 	"sync"
+	"time"
+
+	"go.uber.org/zap"
 
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -42,7 +44,8 @@ func (p *SQLiteMemoryProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	}
 
 	_db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
-		Logger: NewLogger(logger.Logger, logger.Level()),
+		Logger:  NewLogger(logger.Logger, logger.Level()),
+		NowFunc: func() time.Time { return time.Now().UTC() },
 	})
 	if err != nil {
 		return nil, err

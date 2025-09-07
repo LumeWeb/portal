@@ -2,6 +2,8 @@
 package db
 
 import (
+	"time"
+
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"gorm.io/driver/sqlite"
@@ -30,7 +32,8 @@ func (p *SQLiteProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 	}
 
 	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{
-		Logger: NewLogger(logger.Logger, logger.Level()),
+		Logger:  NewLogger(logger.Logger, logger.Level()),
+		NowFunc: func() time.Time { return time.Now().UTC() },
 	})
 
 	if err != nil {
