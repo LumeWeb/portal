@@ -135,6 +135,16 @@ func WithCron() TestContextBuilderOption {
 	}, WithConfig("core.cron.enabled", true))
 }
 
+// WithCronService adds the real CronService to the test context and enables it in config.
+func WithCronService() TestContextBuilderOption {
+	return CombineOptions(
+		WithConfig("core.cron.enabled", true),
+		WithServiceFactory(core.CRON_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
+			return service.NewCronService()
+		}),
+	)
+}
+
 // --- Modular Mock Service Setup Functions ---
 
 // WithMockAccessService adds a mock AccessService to the test context.
