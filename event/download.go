@@ -1,5 +1,7 @@
 package event
 
+import "go.lumeweb.com/portal/core"
+
 const EVENT_DOWNLOAD_COMPLETED = "download.completed"
 
 type DownloadCompletedEvent struct {
@@ -14,4 +16,12 @@ func NewDownloadCompletedEvent(uploadID uint, bytes uint64, ip string) *Download
 		Bytes:    bytes,
 		IP:       ip,
 	}
+}
+
+// OnDownloadCompleted registers a handler to run when a download is completed.
+// This is a convenience wrapper around Listen for the EVENT_DOWNLOAD_COMPLETED event.
+func OnDownloadCompleted(ctx core.Context, handler func(uint, uint64, string) error, priority ...int) {
+	core.Listen[DownloadCompletedEvent](ctx, EVENT_DOWNLOAD_COMPLETED, func(e *core.CoreEvent[DownloadCompletedEvent]) error {
+		return handler(e.Data.UploadID, e.Data.Bytes, e.Data.IP)
+	}, priority...)
 }
