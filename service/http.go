@@ -146,12 +146,7 @@ func (h *HTTPServiceDefault) Init() error {
 	}))
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
-		subdomain := api.Subdomain()
-		domain := fmt.Sprintf("%s.%s:%d", api.Subdomain(), h.ctx.Config().Config().Core.Domain, h.ctx.Config().Config().Core.Port)
-
-		if subdomain == "" {
-			domain = fmt.Sprintf("%s:%d", h.ctx.Config().Config().Core.Domain, h.ctx.Config().Config().Core.Port)
-		}
+		domain := h.getAPIDomain(api)
 
 		// Create a gswagger router wrapping the mux subrouter
 		apiInfo := api.OpenAPIInfo() // Get info from the API
@@ -553,7 +548,7 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// If not /api/meta, determine the target gswagger Router based on the Host header
 	var targetRouter router.Router
-	host := r.Host
+	host := h.normalizeHost(r.Host)
 
 	// Use GetHostRouter to find a host-specific router
 	hostRouter := h.router.GetHostRouter(host)
@@ -575,6 +570,43 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This should not happen if the router is properly configured
 	h.logger.Error("Target router does not implement http.Handler", zap.String("host", host))
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+}
+
+func (h *HTTPServiceDefault) getAPIDomain(api core.API) string {
+	domain := h.APISubdomain(api.Name(), false)
+	if domain == "" {
+		domain = h.ctx.Config().Config().Core.Domain
+	}
+	return fmt.Sprintf("%s:%d", domain, h.getActivePort())
+}
+
+func (h *HTTPServiceDefault) getActivePort() uint16 {
+	var port uint
+	port = h.ctx.Config().Config().Core.Port
+	if h.ctx.Config().Config().Core.ExternalPort != 0 {
+		port = h.ctx.Config().Config().Core.ExternalPort
+	}
+	return uint16(port)
+}
+
+func (h *HTTPServiceDefault) normalizeHost(host string) string {
+	// Handle empty host
+	if host == "" {
+		return host
+	}
+
+	// Split host and port
+	hostname, port, err := net.SplitHostPort(host)
+	if err != nil {
+		// If no port in host, add our active port
+		if strings.Contains(err.Error(), "missing port") {
+			return net.JoinHostPort(host, strconv.FormatUint(uint64(h.getActivePort()), 10))
+		}
+		return host
+	}
+
+	// Always return the original host:port if SplitHostPort succeeded
+	return net.JoinHostPort(hostname, port)
 }
 
 func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
