@@ -52,9 +52,9 @@ require (
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.3.0
 	go.lumeweb.com/portal-router v0.6.7
-	go.sia.tech/core v0.14.1
-	go.sia.tech/coreutils v0.16.5
-	go.sia.tech/renterd/v2 v2.4.0
+	go.sia.tech/core v0.17.1
+	go.sia.tech/coreutils v0.18.0
+	go.sia.tech/renterd/v2 v2.6.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.3.0
@@ -143,7 +143,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/aws/aws-sdk-go v1.55.7 // indirect
+	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
@@ -173,9 +173,9 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
-	github.com/klauspost/reedsolomon v1.12.4 // indirect
+	github.com/klauspost/reedsolomon v1.12.5 // indirect
 	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
