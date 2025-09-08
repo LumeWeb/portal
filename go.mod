@@ -16,7 +16,7 @@ require (
 	github.com/casbin/gorm-adapter/v3 v3.36.0
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/structs v1.1.0
-	github.com/gabriel-vasile/mimetype v1.4.9
+	github.com/gabriel-vasile/mimetype v1.4.10
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20250516191533-4fb3b987637d
 	github.com/go-co-op/gocron/v2 v2.16.3
@@ -49,7 +49,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.lumeweb.com/configmanager v0.3.20
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.9
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.3.0
 	go.lumeweb.com/portal-router v0.6.7
@@ -187,6 +186,7 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.4 // indirect
+	go.lumeweb.com/gswagger v0.20.9 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
