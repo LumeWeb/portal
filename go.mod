@@ -50,7 +50,7 @@ require (
 	go.lumeweb.com/configmanager v0.3.20
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.3
-	go.lumeweb.com/portal-middleware v0.3.0
+	go.lumeweb.com/portal-middleware v0.3.1
 	go.lumeweb.com/portal-router v0.6.7
 	go.sia.tech/core v0.14.1
 	go.sia.tech/coreutils v0.16.5
