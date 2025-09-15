@@ -1,9 +1,11 @@
-package service
+package service_tests
 
 import (
 	"context"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/service"
+
 	"testing"
 	"time"
 
@@ -126,7 +128,7 @@ func TestContentScannerService_Integration(t *testing.T) {
 
 		// 9. Test with no scanners registered
 		// Clear registered scanners
-		contentScannerService.(*ContentScannerServiceDefault).scanners = []core.ContentScanner{}
+		contentScannerService.(*service.ContentScannerServiceDefault).ClearScanners()
 		results, err = contentScannerService.ScanContent(context.Background(), testStorageHash)
 		assert.NoError(tb, err)
 		assert.Empty(tb, results)
@@ -163,7 +165,7 @@ func TestContentScannerService_Integration(t *testing.T) {
 		assert.Equal(tb, tempScanner.result, tempScannerResult.Passed)
 		assert.Equal(tb, tempScanner.reason, tempScannerResult.Reason)
 
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }
 
 // testStorageHash is a mock implementation of StorageHash for testing purposes.

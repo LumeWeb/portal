@@ -19,6 +19,17 @@ import (
 
 var _ core.CronService = (*CronServiceDefault)(nil)
 
+// Re-export internal cron components for testing purposes
+var (
+	NewJobFactory         = cron.NewJobFactory
+	NewScheduleRegistry   = cron.NewScheduleRegistry
+	NewCronJobStateMachine = cron.NewCronJobStateMachine
+	NewStateMachineRegistry = cron.NewStateMachineRegistry
+	NewDefaultCronMonitor  = cron.NewDefaultCronMonitor
+	NewStandaloneCoordinator = cron.NewStandaloneCoordinator
+	NewCoordinatorOptions    = cron.NewCoordinatorOptions
+)
+
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.CRON_SERVICE,
@@ -62,7 +73,9 @@ func (c *CronServiceDefault) initializeComponents(ctx core.Context) error {
 		return err
 	}
 
-	c.monitor = cron.NewDefaultCronMonitor(ctx, c)
+	if c.monitor == nil {
+		c.monitor = cron.NewDefaultCronMonitor(ctx, c)
+	}
 
 	return nil
 }
@@ -124,14 +137,61 @@ func NewCronService() (core.Service, []core.ContextBuilderOption, error) {
 	return cronService, opts, nil
 }
 
+// NewTestingCronService creates a bare-bones CronService for testing purposes
+func NewTestingCronService(
+	ctx core.Context,
+	db *gorm.DB,
+	coordinator core.CronCoordinator,
+	jobFactory core.CronJobFactory,
+	scheduleRegistry core.CronScheduleRegistry,
+	stateMachine core.CronJobStateMachine,
+	monitor core.CronMonitor,
+) core.CronService {
+	cs := &CronServiceDefault{
+		ctx:              ctx,
+		db:               db,
+		coordinator:      coordinator,
+		jobFactory:       jobFactory,
+		scheduleRegistry: scheduleRegistry,
+		stateMachine:     stateMachine,
+	}
+	cs.logger = ctx.ServiceLogger(cs)
+	if cs.scheduleRegistry == nil {
+		cs.scheduleRegistry = cron.NewScheduleRegistry()
+	}
+	if cs.jobFactory == nil {
+		cs.jobFactory = cron.NewJobFactory(cs.scheduleRegistry)
+	}
+	if cs.stateMachine == nil {
+		reg := cron.NewStateMachineRegistry(ctx)
+		cs.stateMachine = cron.NewCronJobStateMachine(ctx, reg)
+	}
+	if monitor == nil {
+		cs.monitor = cron.NewDefaultCronMonitor(ctx, cs)
+	} else {
+		cs.monitor = monitor
+	}
+	return cs
+}
+
 func (c *CronServiceDefault) ID() string {
 	return core.CRON_SERVICE
 }
 
 func (c *CronServiceDefault) Start() error {
-	err := c.initializeComponents(c.ctx)
-	if err != nil {
-		return err
+	// If testing injected a full dependency set, don't overwrite it.
+	if c.coordinator == nil || c.jobFactory == nil || c.scheduleRegistry == nil || c.stateMachine == nil || c.monitor == nil {
+		if err := c.initializeComponents(c.ctx); err != nil {
+			return err
+		}
+	} else {
+		// Ensure core fields are wired from context.
+		if c.db == nil {
+			c.db = c.ctx.DB()
+		}
+		if c.logger == nil {
+			c.logger = c.ctx.ServiceLogger(c)
+		}
 	}
 
 	for _, service := range c.entities {
@@ -141,7 +201,7 @@ func (c *CronServiceDefault) Start() error {
 		}
 	}
 
-	if err = c.loadAndValidateJobs(); err != nil {
+	if err := c.loadAndValidateJobs(); err != nil {
 		return err
 	}
 

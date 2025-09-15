@@ -1,8 +1,12 @@
-package service
+package service_tests
 
 import (
 	"context"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -11,10 +15,8 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.lumeweb.com/portal/service"
 	"go.uber.org/zap"
-	"sync"
-	"testing"
-	"time"
 )
 
 var (
@@ -83,7 +85,7 @@ func TestCronServiceDefault_RegisterJob_Integration(t *testing.T) {
 		// Clean up
 		err = cronService.Stop()
 		require.NoError(t, err)
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
 
 // TestCronServiceDefault_RunJob_Integration tests the RunJob function
@@ -136,7 +138,7 @@ func TestCronServiceDefault_RunJob_Integration(t *testing.T) {
 
 		// Assert that the job has run
 		assert.True(t, jobRan, "Job should have run")
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
 
 // TestCronServiceDefault_RegisterPluginJobs_Integration tests the registerPluginJobs function
@@ -180,7 +182,7 @@ func TestCronServiceDefault_RegisterPluginJobs_Integration(t *testing.T) {
 		jobFactory := cronService.JobFactory()
 		_, err = jobFactory.CreateJob("plugin.test.job1")
 		require.NoError(t, err)
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
 
 // TestCronServiceDefault_ScheduleRegistry_Integration tests the ScheduleRegistry function
@@ -209,7 +211,7 @@ func TestCronServiceDefault_ScheduleRegistry_Integration(t *testing.T) {
 		// Verify that the schedule type is registered
 		registeredTypes := cronService.ScheduleRegistry().GetRegisteredTypes()
 		assert.Contains(t, registeredTypes, scheduleType)
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
 
 // TestCronServiceDefault_JobFactory_Integration tests the JobFactory function
@@ -247,7 +249,7 @@ func TestCronServiceDefault_JobFactory_Integration(t *testing.T) {
 		// Verify that the job type is registered
 		_, err = factory.CreateJob(jobType)
 		require.NoError(t, err)
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
 
 // TestCronServiceDefault_StateMachine_Integration tests the StateMachine function
@@ -283,5 +285,5 @@ func TestCronServiceDefault_StateMachine_Integration(t *testing.T) {
 		result := db.First(&job, "uuid = ?", types.FromUUID(testJob.ID()))
 		require.NoError(t, result.Error)
 		assert.Equal(t, models.CronJobStateRunning, job.State)
-	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, NewCronService))
+	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }

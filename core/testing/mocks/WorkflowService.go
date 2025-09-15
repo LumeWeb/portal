@@ -11,6 +11,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil/filter"
 )
 
 // NewMockWorkflowService creates a new instance of MockWorkflowService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -685,6 +686,80 @@ func (_c *MockWorkflowService_GetWorkflow_Call) RunAndReturn(run func(name strin
 	return _c
 }
 
+// GetWorkflowInstance provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) GetWorkflowInstance(ctx context.Context, userID uint, requestID uint) (*core.WorkflowInstance, error) {
+	ret := _mock.Called(ctx, userID, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowInstance")
+	}
+
+	var r0 *core.WorkflowInstance
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, uint) (*core.WorkflowInstance, error)); ok {
+		return returnFunc(ctx, userID, requestID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, uint) *core.WorkflowInstance); ok {
+		r0 = returnFunc(ctx, userID, requestID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.WorkflowInstance)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, uint) error); ok {
+		r1 = returnFunc(ctx, userID, requestID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockWorkflowService_GetWorkflowInstance_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowInstance'
+type MockWorkflowService_GetWorkflowInstance_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowInstance is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint
+//   - requestID uint
+func (_e *MockWorkflowService_Expecter) GetWorkflowInstance(ctx interface{}, userID interface{}, requestID interface{}) *MockWorkflowService_GetWorkflowInstance_Call {
+	return &MockWorkflowService_GetWorkflowInstance_Call{Call: _e.mock.On("GetWorkflowInstance", ctx, userID, requestID)}
+}
+
+func (_c *MockWorkflowService_GetWorkflowInstance_Call) Run(run func(ctx context.Context, userID uint, requestID uint)) *MockWorkflowService_GetWorkflowInstance_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowInstance_Call) Return(workflowInstance *core.WorkflowInstance, err error) *MockWorkflowService_GetWorkflowInstance_Call {
+	_c.Call.Return(workflowInstance, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_GetWorkflowInstance_Call) RunAndReturn(run func(ctx context.Context, userID uint, requestID uint) (*core.WorkflowInstance, error)) *MockWorkflowService_GetWorkflowInstance_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetWorkflowMetadata provides a mock function for the type MockWorkflowService
 func (_mock *MockWorkflowService) GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error) {
 	ret := _mock.Called(ctx, requestID)
@@ -929,6 +1004,98 @@ func (_c *MockWorkflowService_ID_Call) Return(s string) *MockWorkflowService_ID_
 }
 
 func (_c *MockWorkflowService_ID_Call) RunAndReturn(run func() string) *MockWorkflowService_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListWorkflowInstances provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) ListWorkflowInstances(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*core.WorkflowInstance, int64, error) {
+	ret := _mock.Called(ctx, userID, filters, sorts, pagination)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListWorkflowInstances")
+	}
+
+	var r0 []*core.WorkflowInstance
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) ([]*core.WorkflowInstance, int64, error)); ok {
+		return returnFunc(ctx, userID, filters, sorts, pagination)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) []*core.WorkflowInstance); ok {
+		r0 = returnFunc(ctx, userID, filters, sorts, pagination)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*core.WorkflowInstance)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) int64); ok {
+		r1 = returnFunc(ctx, userID, filters, sorts, pagination)
+	} else {
+		r1 = ret.Get(1).(int64)
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) error); ok {
+		r2 = returnFunc(ctx, userID, filters, sorts, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockWorkflowService_ListWorkflowInstances_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWorkflowInstances'
+type MockWorkflowService_ListWorkflowInstances_Call struct {
+	*mock.Call
+}
+
+// ListWorkflowInstances is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint
+//   - filters []filter.CrudFilter
+//   - sorts []filter.Sort
+//   - pagination filter.Pagination
+func (_e *MockWorkflowService_Expecter) ListWorkflowInstances(ctx interface{}, userID interface{}, filters interface{}, sorts interface{}, pagination interface{}) *MockWorkflowService_ListWorkflowInstances_Call {
+	return &MockWorkflowService_ListWorkflowInstances_Call{Call: _e.mock.On("ListWorkflowInstances", ctx, userID, filters, sorts, pagination)}
+}
+
+func (_c *MockWorkflowService_ListWorkflowInstances_Call) Run(run func(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination)) *MockWorkflowService_ListWorkflowInstances_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 []filter.CrudFilter
+		if args[2] != nil {
+			arg2 = args[2].([]filter.CrudFilter)
+		}
+		var arg3 []filter.Sort
+		if args[3] != nil {
+			arg3 = args[3].([]filter.Sort)
+		}
+		var arg4 filter.Pagination
+		if args[4] != nil {
+			arg4 = args[4].(filter.Pagination)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_ListWorkflowInstances_Call) Return(workflowInstances []*core.WorkflowInstance, n int64, err error) *MockWorkflowService_ListWorkflowInstances_Call {
+	_c.Call.Return(workflowInstances, n, err)
+	return _c
+}
+
+func (_c *MockWorkflowService_ListWorkflowInstances_Call) RunAndReturn(run func(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*core.WorkflowInstance, int64, error)) *MockWorkflowService_ListWorkflowInstances_Call {
 	_c.Call.Return(run)
 	return _c
 }

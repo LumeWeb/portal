@@ -1,7 +1,9 @@
-package service
+package service_tests
 
 import (
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/service"
+
 	"testing"
 	"time"
 
@@ -43,7 +45,7 @@ func TestOTPService_OTPGeneration(t *testing.T) {
 		require.NoError(tb, err)
 		assert.NotEmpty(tb, secret)
 		assert.Len(tb, secret, 32) // TOTP secrets are typically 32 chars
-	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, NewOTPService))
+	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }
 
 func TestOTPService_OTPVerification(t *testing.T) {
@@ -86,7 +88,7 @@ func TestOTPService_OTPVerification(t *testing.T) {
 		valid, err = otpService.OTPVerify(user.ID, "000000")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
-	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, NewOTPService))
+	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }
 
 func TestOTPService_OTPLifecycle(t *testing.T) {
@@ -125,7 +127,7 @@ func TestOTPService_OTPLifecycle(t *testing.T) {
 		// Disable OTP
 		require.NoError(tb, otpService.OTPDisable(user.ID))
 
-	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, NewOTPService))
+	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }
 
 func TestOTPService_ErrorCases(t *testing.T) {
@@ -152,5 +154,5 @@ func TestOTPService_ErrorCases(t *testing.T) {
 
 		err = otpService.OTPDisable(invalidUserID)
 		assert.Error(t, err)
-	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, NewOTPService))
+	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }

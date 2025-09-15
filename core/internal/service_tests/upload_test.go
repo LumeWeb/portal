@@ -1,14 +1,16 @@
-package service
+package service_tests
 
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -65,7 +67,7 @@ func TestUploadService_SaveUpload(t *testing.T) {
 		assert.Equal(tb, upload.UploaderIP, updatedUpload.UploaderIP)
 		assert.Equal(tb, upload.Size, updatedUpload.Size)
 
-	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService))
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }
 
 func TestUploadService_GetUpload(t *testing.T) {
@@ -108,7 +110,7 @@ func TestUploadService_GetUpload(t *testing.T) {
 		assert.Error(tb, err)
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
 
-	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService))
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }
 
 func TestUploadService_DeleteUpload(t *testing.T) {
@@ -133,7 +135,7 @@ func TestUploadService_DeleteUpload(t *testing.T) {
 		assert.Error(tb, err)
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
 
-	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService))
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }
 
 func TestUploadService_GetAllUploads(t *testing.T) {
@@ -166,7 +168,7 @@ func TestUploadService_GetAllUploads(t *testing.T) {
 		assert.Equal(tb, upload2.Hash, uploads[1].Hash)
 		assert.Equal(tb, upload2.Protocol, uploads[1].Protocol)
 
-	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService))
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }
 
 func TestUploadService_GetUploadByID(t *testing.T) {
@@ -193,5 +195,5 @@ func TestUploadService_GetUploadByID(t *testing.T) {
 		assert.Error(tb, err)
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
 
-	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService))
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }

@@ -1,4 +1,4 @@
-package service
+package service_tests
 
 import (
 	"fmt"
@@ -10,11 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/service"
 )
 
 func TestAccessServiceDefault_RegisterRoute(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
 		subdomain := "test"
@@ -26,15 +27,15 @@ func TestAccessServiceDefault_RegisterRoute(t *testing.T) {
 		assert.NoError(tb, err)
 
 		fqdn := fmt.Sprintf("%s.%s", subdomain, ctx.Config().Config().Core.Domain)
-		enforce, err := accessService.enforcer.Enforce(role, fqdn, path, method)
+		enforce, err := accessService.GetEnforcer().Enforce(role, fqdn, path, method)
 		assert.NoError(tb, err)
 		assert.True(tb, enforce)
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }
 
 func TestAccessServiceDefault_AssignRoleToUser(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
 		userID := uint(123)
@@ -44,15 +45,15 @@ func TestAccessServiceDefault_AssignRoleToUser(t *testing.T) {
 		assert.NoError(tb, err)
 
 		userIDStr := strconv.FormatUint(uint64(userID), 10)
-		roles, err := accessService.enforcer.GetRolesForUser(userIDStr)
+		roles, err := accessService.GetEnforcer().GetRolesForUser(userIDStr)
 		assert.NoError(tb, err)
 		assert.Contains(tb, roles, role)
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }
 
 func TestAccessServiceDefault_CheckAccess(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
 		userID := uint(123)
@@ -61,7 +62,7 @@ func TestAccessServiceDefault_CheckAccess(t *testing.T) {
 		method := "GET"
 
 		// Add policy to allow access
-		_, err := accessService.enforcer.AddPolicy("testrole", fqdn, path, method)
+		_, err := accessService.GetEnforcer().AddPolicy("testrole", fqdn, path, method)
 		assert.NoError(tb, err)
 
 		// Assign role to user
@@ -77,12 +78,12 @@ func TestAccessServiceDefault_CheckAccess(t *testing.T) {
 		access, err = accessService.CheckAccess(userID, fqdn, "/wrongpath", method)
 		assert.NoError(tb, err)
 		assert.False(tb, access)
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }
 
 func TestAccessServiceDefault_ExportUserPolicy(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
 		userID := uint(123)
@@ -92,7 +93,7 @@ func TestAccessServiceDefault_ExportUserPolicy(t *testing.T) {
 		role := "testrole"
 
 		// Add policy
-		_, err := accessService.enforcer.AddPolicy(role, fqdn, path, method)
+		_, err := accessService.GetEnforcer().AddPolicy(role, fqdn, path, method)
 		assert.NoError(tb, err)
 
 		// Assign role to user
@@ -124,25 +125,25 @@ func TestAccessServiceDefault_ExportUserPolicy(t *testing.T) {
 		}
 		assert.True(tb, found, "user ID should be present in exported policies")
 
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }
 
 func TestAccessServiceDefault_init(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
-		err := accessService.init()
+		err := accessService.IInit()
 		assert.NoError(tb, err)
 
-		assert.NotNil(tb, accessService.enforcer)
-		assert.IsType(tb, &casbin.Enforcer{}, accessService.enforcer)
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+		assert.NotNil(tb, accessService.GetEnforcer())
+		assert.IsType(tb, &casbin.Enforcer{}, accessService.GetEnforcer())
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }
 
 func TestAccessServiceDefault_ExportModel(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		accessService := core.GetService[*AccessServiceDefault](ctx, core.ACCESS_SERVICE)
+		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
 		model := accessService.ExportModel()
@@ -152,5 +153,5 @@ func TestAccessServiceDefault_ExportModel(t *testing.T) {
 		assert.NotEmpty(tb, model.RoleDefinition.Value)
 		assert.NotEmpty(tb, model.PolicyEffect.Value)
 		assert.NotEmpty(tb, model.Matchers.Value)
-	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, NewAccessService))
+	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
 }

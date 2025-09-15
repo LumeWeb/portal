@@ -1,4 +1,4 @@
-package service
+package service_tests
 
 import (
 	"context"
@@ -12,6 +12,8 @@ import (
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
+	"go.lumeweb.com/queryutil"
 	"gorm.io/datatypes"
 )
 
@@ -58,8 +60,8 @@ func TestWorkflowRegistration(t *testing.T) {
 		// List all registered workflows
 		workflows := workflowService.ListWorkflows()
 		assert.Contains(tb, workflows, workflowName)
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.registration"),
 	)
 }
@@ -95,7 +97,7 @@ func TestWorkflowStart(t *testing.T) {
 		assert.Equal(tb, operationName, req.Operation)
 
 		// Verify metadata
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(req.Metadata, &metadata)
 		require.NoError(tb, err)
 		assert.Equal(tb, workflowName, metadata.WorkflowName)
@@ -114,8 +116,8 @@ func TestWorkflowStart(t *testing.T) {
 		actualJSON, err := json.Marshal(storedData)
 		require.NoError(tb, err)
 		assert.JSONEq(tb, string(expectedJSON), string(actualJSON))
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.start"),
 	)
 }
@@ -162,8 +164,8 @@ func TestSingleStepWorkflowCompletion(t *testing.T) {
 		assert.Error(tb, err) // Should be deleted
 		assert.Nil(tb, updatedReq)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.single"),
 	)
 }
@@ -222,7 +224,7 @@ func TestMultiStepWorkflowTransition(t *testing.T) {
 		assert.NotEqual(tb, req1.ID, req2.ID)
 
 		// Verify metadata chaining
-		var metadata2 WorkflowMetadata
+		var metadata2 service.WorkflowMetadata
 		err = json.Unmarshal(req2.Metadata, &metadata2)
 		require.NoError(tb, err)
 		assert.Equal(tb, req1.ID, metadata2.PrevRequestID)
@@ -244,7 +246,7 @@ func TestMultiStepWorkflowTransition(t *testing.T) {
 		assert.NotEqual(tb, req2.ID, req3.ID)
 
 		// Verify metadata chaining
-		var metadata3 WorkflowMetadata
+		var metadata3 service.WorkflowMetadata
 		err = json.Unmarshal(req3.Metadata, &metadata3)
 		require.NoError(tb, err)
 		assert.Equal(tb, req2.ID, metadata3.PrevRequestID)
@@ -264,8 +266,8 @@ func TestMultiStepWorkflowTransition(t *testing.T) {
 		require.NoError(tb, err)
 		assert.Equal(tb, int64(0), count)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.step1", "test.operation.step2", "test.operation.step3"),
 	)
 }
@@ -310,8 +312,8 @@ func TestFailWorkflowBehavior(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
 		assert.Equal(tb, failureReason, updatedReq.StatusMessage)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.fail"),
 	)
 }
@@ -368,14 +370,14 @@ func TestContinueWorkflowBehavior(t *testing.T) {
 		assert.NotEqual(tb, req1.ID, req2.ID)
 
 		// Verify metadata chaining
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(req2.Metadata, &metadata)
 		require.NoError(tb, err)
 		assert.Equal(tb, req1.ID, metadata.PrevRequestID)
 		assert.Equal(tb, "step-test.operation.continue2-1", metadata.CurrentStepID)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.continue1", "test.operation.continue2"),
 	)
 }
@@ -420,8 +422,8 @@ func TestRetryStepBehavior(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusPending, updatedReq.Status)
 		assert.Equal(tb, failureReason, updatedReq.StatusMessage)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.retry"),
 	)
 }
@@ -536,8 +538,8 @@ func TestWorkflowStatus(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusCompleted, status.Status)
 		assert.Equal(tb, 100.0, status.Progress)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.status1", "test.operation.status2", "test.operation.status3"),
 	)
 }
@@ -592,8 +594,8 @@ func TestWorkflowStepInfo(t *testing.T) {
 		assert.Equal(tb, core.ContinueWorkflow, info.FailureBehavior)
 		assert.Equal(tb, models.RequestStatusCompleted, info.Status)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.stepinfo"),
 	)
 }
@@ -668,8 +670,8 @@ func TestWorkflowCleanup(t *testing.T) {
 		require.NoError(tb, err)
 		assert.Equal(tb, int64(0), count)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.cleanup1", "test.operation.cleanup2", "test.operation.cleanup3"),
 	)
 }
@@ -716,8 +718,8 @@ func TestWorkflowDisableEnable(t *testing.T) {
 		assert.NotNil(tb, req)
 		assert.Equal(tb, operationName, req.Operation)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.disable"),
 	)
 }
@@ -776,15 +778,15 @@ func TestRequestToWorkflowConversion(t *testing.T) {
 		assert.Equal(tb, "127.0.0.1", updatedReq.SourceIP)
 
 		// Verify metadata was updated correctly
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(updatedReq.Metadata, &metadata)
 		require.NoError(tb, err)
 		assert.Equal(tb, workflowName, metadata.WorkflowName)
 		assert.Equal(tb, "step-test.operation.convert1-0", metadata.CurrentStepID)
 		assert.Equal(tb, 2, metadata.TotalSteps)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.convert1", "test.operation.convert2", "initial.request.operation"),
 	)
 }
@@ -864,8 +866,8 @@ func TestWorkflowInstanceDiscovery(t *testing.T) {
 		assert.Contains(tb, instanceIDs, req1Step2.ID)
 		assert.Contains(tb, instanceIDs, req2Step2.ID)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.discovery1", "test.operation.discovery2"),
 	)
 }
@@ -900,7 +902,7 @@ func TestWorkflowDataManagement(t *testing.T) {
 		require.NotNil(tb, req)
 
 		// Verify initial data
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(req.Metadata, &metadata)
 		require.NoError(tb, err)
 
@@ -918,7 +920,7 @@ func TestWorkflowDataManagement(t *testing.T) {
 		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
 		assert.NoError(tb, err)
 
-		var updatedMetadata WorkflowMetadata
+		var updatedMetadata service.WorkflowMetadata
 		err = json.Unmarshal(updatedReq.Metadata, &updatedMetadata)
 		require.NoError(tb, err)
 
@@ -930,8 +932,8 @@ func TestWorkflowDataManagement(t *testing.T) {
 		expectedData := map[string]interface{}{"key1": "value1", "key2": "updated_value2", "key3": "value3"}
 		assert.Equal(tb, expectedData, updatedStoredData)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.datamanagement"),
 	)
 }
@@ -1028,8 +1030,8 @@ func TestProgressCalculation(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusCompleted, status.Status)
 		assert.Equal(tb, 100.0, status.Progress)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.progress1", "test.operation.progress2", "test.operation.progress3"),
 	)
 }
@@ -1086,7 +1088,7 @@ func TestWorkflowStartWithRequestData(t *testing.T) {
 		assert.Equal(tb, uint64(1), req.CIDType)
 
 		// Verify workflow metadata was set correctly
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(req.Metadata, &metadata)
 		require.NoError(tb, err)
 		assert.Equal(tb, workflowName, metadata.WorkflowName)
@@ -1095,13 +1097,13 @@ func TestWorkflowStartWithRequestData(t *testing.T) {
 		assert.Equal(tb, uint(0), metadata.PrevRequestID)
 		assert.Equal(tb, uint(0), metadata.NextRequestID)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.requestdata"),
 	)
 }
 
-// Test 18: GetWorkflowMetadata Tests
+// Test 18: Getservice.WorkflowMetadata Tests
 func TestGetWorkflowMetadata(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
@@ -1139,8 +1141,8 @@ func TestGetWorkflowMetadata(t *testing.T) {
 		assert.Equal(tb, "value1", k.String("key1"))
 		assert.Equal(tb, "value2", k.String("nested.key2"))
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.metadata"),
 	)
 }
@@ -1192,7 +1194,7 @@ func TestUpdateWorkflowDataStruct(t *testing.T) {
 		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
 		assert.NoError(tb, err)
 
-		var metadata WorkflowMetadata
+		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(updatedReq.Metadata, &metadata)
 		require.NoError(tb, err)
 
@@ -1203,9 +1205,145 @@ func TestUpdateWorkflowDataStruct(t *testing.T) {
 		assert.Equal(tb, "testName", storedData["name"])
 		assert.Equal(tb, float64(42), storedData["value"]) // JSON numbers are float64
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService),
-		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, NewWorkflowCoordinator),
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.structdata"),
+	)
+}
+
+// Test 17: ListWorkflowInstances Tests
+func TestListWorkflowInstances(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "listInstancesTestWorkflow"
+		operationName1 := "test.operation.list1"
+		operationName2 := "test.operation.list2"
+
+		steps := []core.OperationStep{
+			{
+				Operation:  operationName1,
+				Foreground: true,
+			},
+			{
+				Operation:  operationName2,
+				Foreground: true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start multiple workflow instances for different users
+		userID1 := uint(123)
+		userID2 := uint(456)
+
+		// Start workflow for user 1
+		req1, err := workflowService.StartWorkflow(context.Background(), workflowName,
+			core.WithWorkflowUserID(userID1),
+			core.WithWorkflowData(map[string]interface{}{"instance": 1}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req1)
+
+		// Start workflow for user 2
+		req2, err := workflowService.StartWorkflow(context.Background(), workflowName,
+			core.WithWorkflowUserID(userID2),
+			core.WithWorkflowData(map[string]interface{}{"instance": 2}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req2)
+
+		// Complete first step of both workflows
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req1.ID)
+		assert.NoError(tb, err)
+		err = workflowService.CompleteWorkflowStep(context.Background(), req1.ID)
+		assert.NoError(tb, err)
+
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req2.ID)
+		assert.NoError(tb, err)
+		err = workflowService.CompleteWorkflowStep(context.Background(), req2.ID)
+		assert.NoError(tb, err)
+
+		// Find second requests for both workflows
+		var req1Step2 models.Request
+		err = ctx.DB().Model(&models.Request{}).Where("operation = ? AND user_id = ?", operationName2, userID1).First(&req1Step2).Error
+		require.NoError(tb, err)
+
+		var req2Step2 models.Request
+		err = ctx.DB().Model(&models.Request{}).Where("operation = ? AND user_id = ?", operationName2, userID2).First(&req2Step2).Error
+		require.NoError(tb, err)
+
+		// Test listing workflow instances for user 1
+		instances, totalCount, err := workflowService.ListWorkflowInstances(context.Background(), userID1, nil, nil, queryutil.Pagination{})
+		assert.NoError(tb, err)
+		assert.Len(tb, instances, 1)
+		assert.Equal(tb, int64(1), totalCount)
+		assert.Equal(tb, req1Step2.ID, instances[0].Request.ID)
+
+		// Test listing workflow instances for user 2
+		instances, totalCount, err = workflowService.ListWorkflowInstances(context.Background(), userID2, nil, nil, queryutil.Pagination{})
+		assert.NoError(tb, err)
+		assert.Len(tb, instances, 1)
+		assert.Equal(tb, int64(1), totalCount)
+		assert.Equal(tb, req2Step2.ID, instances[0].Request.ID)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		withTestProtocol("test.operation.list1", "test.operation.list2"),
+	)
+}
+
+// Test 20: GetWorkflowInstance Tests
+func TestGetWorkflowInstance(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "getInstanceTestWorkflow"
+		operationName := "test.operation.getinstance"
+
+		steps := []core.OperationStep{
+			{
+				Operation:  operationName,
+				Foreground: true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start workflow for a specific user
+		userID := uint(123)
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName,
+			core.WithWorkflowUserID(userID),
+			core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// Get workflow instance
+		instance, err := workflowService.GetWorkflowInstance(context.Background(), userID, req.ID)
+		assert.NoError(tb, err)
+		assert.NotNil(tb, instance)
+		assert.Equal(tb, req.ID, instance.Request.ID)
+		assert.Equal(tb, workflowName, instance.Status.WorkflowName)
+		assert.Equal(tb, operationName, instance.CurrentStep.Operation)
+
+		// Try to get workflow instance with wrong user ID (should fail)
+		_, err = workflowService.GetWorkflowInstance(context.Background(), uint(999), req.ID)
+		assert.Error(tb, err)
+		assert.Contains(tb, err.Error(), "request does not belong to user")
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		withTestProtocol("test.operation.getinstance"),
 	)
 }
 

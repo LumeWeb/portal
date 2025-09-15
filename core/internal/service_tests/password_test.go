@@ -1,4 +1,4 @@
-package service
+package service_tests
 
 import (
 	"errors"
@@ -7,6 +7,8 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
+
 	"testing"
 	"time"
 
@@ -21,7 +23,7 @@ func TestPasswordResetService_SendPasswordReset(t *testing.T) {
 		passwordResetService := core.GetService[core.PasswordResetService](ctx, core.PASSWORD_RESET_SERVICE)
 		require.NotNil(tb, passwordResetService)
 
-		passwordResetService.(*PasswordResetServiceDefault).subdomain = "sub.portal.com"
+		passwordResetService.(*service.PasswordResetServiceDefault).SetSubdomain("sub.portal.com")
 
 		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
 		require.NotNil(tb, userService)
@@ -75,13 +77,13 @@ func TestPasswordResetService_SendPasswordReset(t *testing.T) {
 		// This part depends on how you mock or verify the mailer service
 		// For example, if you have a mock mailer, you can check if Send was called with the correct arguments
 
-	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, NewPasswordResetService))
+	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService))
 }
 
 func TestPasswordResetService_SendPasswordReset_MissingSubdomain(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		passwordResetService := core.GetService[core.PasswordResetService](ctx, core.PASSWORD_RESET_SERVICE).(*PasswordResetServiceDefault)
-		passwordResetService.subdomain = ""
+		passwordResetService := core.GetService[core.PasswordResetService](ctx, core.PASSWORD_RESET_SERVICE).(*service.PasswordResetServiceDefault)
+		passwordResetService.SetSubdomain("")
 
 		// Create test user
 		password := "password"
@@ -98,7 +100,7 @@ func TestPasswordResetService_SendPasswordReset_MissingSubdomain(t *testing.T) {
 		err = passwordResetService.SendPasswordReset(user)
 		assert.Error(t, err)
 		assert.Equal(t, "password reset service subdomain not configured", err.Error())
-	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, NewPasswordResetService))
+	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService))
 }
 
 func TestPasswordResetService_ResetPassword(t *testing.T) {
@@ -192,7 +194,7 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeySecurityTokenExpired)
 
 	},
-		coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, NewPasswordResetService),
+		coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService),
 	)
 }
 
@@ -203,6 +205,6 @@ func TestPasswordResetServiceDefault_ID(t *testing.T) {
 
 		assert.Equal(tb, core.PASSWORD_RESET_SERVICE, passwordResetService.ID())
 	},
-		coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, NewPasswordResetService),
+		coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService),
 	)
 }

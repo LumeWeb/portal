@@ -441,6 +441,8 @@ go.lumeweb.com/portal-router v0.6.7 h1:aqdbZkEUXhuxQfWlMq8wWvDTZ90bjvqn6M84D3GJJ
 go.lumeweb.com/portal-router v0.6.7/go.mod h1:bwYA78HjpXdLo1GUQ3n6kiBPM7fcWXLJIqoTVlJK6p8=
 go.lumeweb.com/queryutil v0.3.12 h1:usfolr6PH+1qb45eApdxU6uFzlBuM9RBNSu+jWzLI+4=
 go.lumeweb.com/queryutil v0.3.12/go.mod h1:tcD4meQIXQYNjJ8i0dahCa8kpzQyks+d7PiC+qCXdNg=
+go.lumeweb.com/queryutil v0.3.14 h1:5shMSpEEUAKyrdgqpYkTIeA5FH1aXx0ZjP1ALCXo6kI=
+go.lumeweb.com/queryutil v0.3.14/go.mod h1:nLkIuXzugX8Ln24wsAbfTafvNmaTHLJhIUKWC1693G4=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.35.0 h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=

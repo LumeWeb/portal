@@ -1,11 +1,13 @@
-package service
+package service_tests
 
 import (
 	"context"
-	"go.lumeweb.com/portal/db/models"
-	"gorm.io/datatypes"
 	"testing"
 	"time"
+
+	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
+	"gorm.io/datatypes"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +65,7 @@ func TestContentScannerService_ScanContent(t *testing.T) {
 		assert.Equal(tb, "test_scanner", scanResults[0].ScannerID)
 		assert.True(tb, scanResults[0].Passed)
 
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }
 
 func TestContentScannerService_RegisterScanner(t *testing.T) {
@@ -104,7 +106,7 @@ func TestContentScannerService_RegisterScanner(t *testing.T) {
 		err = contentScannerService.RegisterScanner(nil)
 		assert.Error(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }
 
 func TestContentScannerService_GetScanResults(t *testing.T) {
@@ -144,7 +146,7 @@ func TestContentScannerService_GetScanResults(t *testing.T) {
 		assert.NotEmpty(tb, scanResults)
 		assert.Equal(tb, "test_scanner", scanResults[0].ScannerID)
 		assert.True(tb, scanResults[0].Passed)
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }
 
 func TestContentScannerService_GetScanResultById(t *testing.T) {
@@ -171,7 +173,7 @@ func TestContentScannerService_GetScanResultById(t *testing.T) {
 		assert.Equal(tb, "test_scanner", scanResult.ScannerID)
 		assert.True(tb, scanResult.Passed)
 		assert.Equal(tb, "test reason", scanResult.Reason)
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }
 
 func TestContentScannerService_RegisteredScanners(t *testing.T) {
@@ -201,5 +203,5 @@ func TestContentScannerService_RegisteredScanners(t *testing.T) {
 		assert.Len(tb, scanners, 2)
 		assert.Equal(tb, "test_scanner2", scanners[0].ID()) // Higher priority scanner should be first
 		assert.Equal(tb, "test_scanner1", scanners[1].ID())
-	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService))
+	}, coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService))
 }

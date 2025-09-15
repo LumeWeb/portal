@@ -1,22 +1,24 @@
-package service
+package service_tests
 
 import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.lumeweb.com/portal/core"
-	coreTesting "go.lumeweb.com/portal/core/testing"
-	"go.lumeweb.com/portal/core/web_manifest"
-	"go.lumeweb.com/portal/service/internal/http/testdata/embed_bundle"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/core/internal/service_tests/http/testdata/embed_bundle"
+	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/core/web_manifest"
+	"go.lumeweb.com/portal/service"
 )
 
-//go:embed internal/http/testdata/web_bundle/*
+//go:embed http/testdata/web_bundle/*
 var testWebBundleFS embed.FS
 
 func TestHTTPService_apiMetaHandler_Integration(t *testing.T) {
@@ -52,7 +54,7 @@ func TestHTTPService_apiMetaHandler_Integration(t *testing.T) {
 
 		assert.Equal(tb, http.StatusOK, rec.Code)
 		assert.NotEmpty(tb, rec.Body.String())
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService))
 }
 
 func TestHTTPService_apiPluginWebBundleFileServerHandler_Integration(t *testing.T) {
@@ -104,7 +106,7 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_Integration(t *testing.
 		httpService.Router().ServeHTTP(rec, req)
 		assert.Equal(tb, http.StatusNotFound, rec.Code)
 
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService), coreTesting.WithAPIID(""))
 }
 
 func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_Integration(t *testing.T) {
@@ -161,7 +163,7 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_Integrati
 		httpService.Router().ServeHTTP(rec, req)
 		assert.Equal(tb, http.StatusNotFound, rec.Code)
 
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService), coreTesting.WithAPIID(""))
 }
 
 func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_EmbedBundle_Integration(t *testing.T) {
@@ -216,7 +218,7 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_EmbedBund
 		httpService.Router().ServeHTTP(rec, req)
 		assert.Equal(tb, http.StatusNotFound, rec.Code)
 
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService), coreTesting.WithAPIID(""))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService), coreTesting.WithAPIID(""))
 }
 
 func TestHTTPService_ServeHTTP_Integration(t *testing.T) {
@@ -229,12 +231,12 @@ func TestHTTPService_ServeHTTP_Integration(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		// Call the ServeHTTP method
-		httpService.(*HTTPServiceDefault).ServeHTTP(rec, req)
+		httpService.(*service.HTTPServiceDefault).ServeHTTP(rec, req)
 
 		// Assertions
 		assert.Equal(tb, http.StatusOK, rec.Code)
 		assert.NotEmpty(tb, rec.Body.String())
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService))
 }
 
 func TestHTTPService_APISubdomain_Integration(t *testing.T) {
@@ -255,5 +257,5 @@ func TestHTTPService_APISubdomain_Integration(t *testing.T) {
 		// Test with non-existent API
 		subdomain = httpService.APISubdomain("nonexistent", false)
 		assert.Empty(tb, subdomain)
-	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, NewHTTPService))
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService))
 }

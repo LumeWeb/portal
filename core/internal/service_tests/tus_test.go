@@ -1,13 +1,15 @@
-package service
+package service_tests
 
 import (
 	"errors"
+	"testing"
+
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,8 +59,8 @@ func TestTUSService_UploadExists(t *testing.T) {
 		exists, _ = tusService.UploadExists(ctx, mockProto, "nonexistent_upload_id")
 		assert.False(tb, exists)
 
-	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, NewTUSService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, service.NewTUSService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestTUSService_UploadProcessing(t *testing.T) {
@@ -105,8 +107,8 @@ func TestTUSService_UploadProcessing(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 
-	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, NewTUSService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, service.NewTUSService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestTUSService_UploadCompleted(t *testing.T) {
@@ -160,8 +162,8 @@ func TestTUSService_UploadCompleted(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 
-	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, NewTUSService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, service.NewTUSService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestTUSService_DeleteUpload(t *testing.T) {
@@ -214,6 +216,6 @@ func TestTUSService_DeleteUpload(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrUploadNotFound, err)
 
-	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, NewTUSService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.TUS_SERVICE, service.NewTUSService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }

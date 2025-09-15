@@ -2,14 +2,15 @@ package service
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	_ "github.com/casbin/casbin/v2/rbac/default-role-manager"
 	"github.com/casbin/gorm-adapter/v3"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"reflect"
-	"strconv"
 )
 
 var _ core.AccessService = (*AccessServiceDefault)(nil)
@@ -32,7 +33,7 @@ func NewAccessService() (core.Service, []core.ContextBuilderOption, error) {
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			service.ctx = ctx
 
-			return service.init()
+			return service.IInit()
 		}),
 	)
 
@@ -98,7 +99,7 @@ func (a *AccessServiceDefault) ExportUserPolicy(userId uint) ([]*core.AccessPoli
 	return policies, nil
 }
 
-func (a *AccessServiceDefault) init() error {
+func (a *AccessServiceDefault) IInit() error {
 	m := model.NewModel()
 
 	// Request definition
@@ -135,6 +136,10 @@ func (a *AccessServiceDefault) init() error {
 	adapter, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &tbl, tableName)
 
 	return a.enforcer.InitWithModelAndAdapter(m, adapter)
+}
+
+func (a *AccessServiceDefault) GetEnforcer() *casbin.Enforcer {
+	return a.enforcer
 }
 
 func (a *AccessServiceDefault) ExportModel() *core.AccessModel {

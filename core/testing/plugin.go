@@ -128,8 +128,8 @@ func RegisterAPIs(ctx TestContext) ([]TestContextBuilderOption, error) {
 		if core.PluginHasAPI(plugin) {
 			api, apiOpts, err := plugin.API()
 			if err != nil {
-				ctx.Logger().Error("Error building API", 
-					zap.String("plugin", plugin.ID), 
+				ctx.Logger().Error("Error building API",
+					zap.String("plugin", plugin.ID),
 					zap.Error(err))
 				return nil, err
 			}
@@ -431,7 +431,7 @@ func InitializeServices(ctx TestContext) error {
 						ctx.Logger().Error("Service init panic",
 							zap.String("service", svcInfo.ID),
 							zap.Any("recover", r))
-						err = fmt.Errorf("panic in ServiceInit.Init for %s: %v", svcInfo.ID, r)
+						err = fmt.Errorf("panic in ServiceInit.IInit for %s: %v", svcInfo.ID, r)
 					}
 				}()
 				return initSvc.Init()
@@ -483,7 +483,7 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 	if accessSvc == nil {
 		return fmt.Errorf("AccessService not found in context, cannot configure API routes")
 	}
-	
+
 	accessService, ok := accessSvc.(core.AccessService)
 	if !ok {
 		return fmt.Errorf("AccessService not found in context, cannot configure API routes")
@@ -620,12 +620,12 @@ func WithErrorNamespaces(namespaces core.ErrorNamespaces) TestContextBuilderOpti
 		ctx.RegisterCleanup(func() {
 			// Get current state
 			current := core.ExportAllErrorNamespaces()
-			
+
 			// Remove the namespaces we added
 			for ns := range namespaces {
 				delete(current, ns)
 			}
-			
+
 			// Replace registry with cleaned state
 			_ = core.ReplaceAllErrorNamespaces(current)
 		})

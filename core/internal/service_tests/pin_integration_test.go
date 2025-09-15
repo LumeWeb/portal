@@ -1,13 +1,15 @@
-package service
+package service_tests
 
 import (
 	"context"
+	"testing"
+
 	"github.com/multiformats/go-multihash"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,9 +63,9 @@ func TestPinService_CreatePin_Integration(t *testing.T) {
 		assert.Equal(tb, pin.UploadID, dbPin.UploadID)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService),
-		coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
+		coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_GetPinsByUploadID_Integration(t *testing.T) {
@@ -111,9 +113,9 @@ func TestPinService_GetPinsByUploadID_Integration(t *testing.T) {
 		assert.Equal(tb, upload.ID, pins[1].UploadID)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService),
-		coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
+		coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_DeletePinByHash_Integration(t *testing.T) {
@@ -159,9 +161,9 @@ func TestPinService_DeletePinByHash_Integration(t *testing.T) {
 		assert.ErrorIs(tb, err, gorm.ErrRecordNotFound)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService),
-		coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
+		coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_UploadPinnedGlobal_Integration(t *testing.T) {
@@ -207,9 +209,9 @@ func TestPinService_UploadPinnedGlobal_Integration(t *testing.T) {
 		assert.False(tb, pinned)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService),
-		coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
+		coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_UploadPinnedByUser_Integration(t *testing.T) {
@@ -261,7 +263,7 @@ func TestPinService_UploadPinnedByUser_Integration(t *testing.T) {
 		assert.False(tb, pinned)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, NewMetadataService),
-		coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
+		coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
