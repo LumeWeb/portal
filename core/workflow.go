@@ -11,6 +11,7 @@ import (
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil/filter"
 )
 
 const WORKFLOW_SERVICE = "workflow"
@@ -76,6 +77,12 @@ type WorkflowService interface {
 		workflowName string,
 		filter RequestFilter,
 	) ([]*WorkflowInstance, error)
+
+	// ListWorkflowInstances lists workflow instances with filtering, sorting and pagination
+	ListWorkflowInstances(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*WorkflowInstance, int64, error)
+
+	// GetWorkflowInstance gets a specific workflow instance by request ID
+	GetWorkflowInstance(ctx context.Context, userID uint, requestID uint) (*WorkflowInstance, error)
 
 	// CanTransition checks if a workflow step can be transitioned from its current state
 	CanTransition(ctx context.Context, requestID uint) (bool, error)

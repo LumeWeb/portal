@@ -12,6 +12,7 @@ import (
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"sort"
+	"sync"
 )
 
 var _ core.ContentScannerService = (*ContentScannerServiceDefault)(nil)
@@ -29,6 +30,7 @@ type ContentScannerServiceDefault struct {
 	logger   *core.Logger
 	db       *gorm.DB
 	scanners []core.ContentScanner
+	mu       sync.RWMutex
 }
 
 func NewContentScannerService() (core.Service, []core.ContextBuilderOption, error) {
@@ -57,6 +59,9 @@ func (s *ContentScannerServiceDefault) RegisterScanner(scanner core.ContentScann
 		return errors.New("scanner cannot be nil")
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Check for duplicate ID
 	for _, existing := range s.scanners {
 		if existing.ID() == scanner.ID() {
@@ -80,14 +85,18 @@ func (s *ContentScannerServiceDefault) RegisterScanner(scanner core.ContentScann
 }
 
 func (s *ContentScannerServiceDefault) ScanContent(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error) {
-	if len(s.scanners) == 0 {
+	s.mu.RLock()
+	scanners := append([]core.ContentScanner(nil), s.scanners...)
+	s.mu.RUnlock()
+
+	if len(scanners) == 0 {
 		return nil, nil
 	}
 
 	results := make([]*core.ScanResult, 0)
 
 	// Run each scanner in priority order
-	for _, scanner := range s.scanners {
+	for _, scanner := range scanners {
 		result, err := scanner.ScanContent(ctx, hash)
 		if err != nil {
 			s.logger.Error("Scanner failed",
@@ -176,5 +185,21 @@ func (s *ContentScannerServiceDefault) storeScanResult(ctx context.Context, hash
 }
 
 func (s *ContentScannerServiceDefault) RegisteredScanners() []core.ContentScanner {
-	return s.scanners
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Create a copy to avoid exposing the internal backing array
+	if len(s.scanners) == 0 {
+		return nil
+	}
+
+	scannersCopy := make([]core.ContentScanner, len(s.scanners))
+	copy(scannersCopy, s.scanners)
+	return scannersCopy
+}
+
+func (s *ContentScannerServiceDefault) ClearScanners() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.scanners = make([]core.ContentScanner, 0)
 }

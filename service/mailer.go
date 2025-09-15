@@ -1,16 +1,19 @@
 package service
 
 import (
-	"github.com/wneessen/go-mail"
-	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/service/internal/mailer"
 	"io/fs"
 	"path"
 	"strings"
 	"text/template"
+
+	"github.com/wneessen/go-mail"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/service/internal/mailer"
 )
 
 var _ core.MailerService = (*Mailer)(nil)
+
+var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -34,6 +37,10 @@ func (m *Mailer) ID() string {
 
 func NewMailerTemplate(subject *template.Template, body *template.Template) *mailer.EmailTemplate {
 	return mailer.NewMailerTemplate(subject, body)
+}
+
+func (m *Mailer) TemplateRegistry() *mailer.TemplateRegistry {
+	return m.templateRegistry
 }
 
 func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateData, bodyVars core.MailerTemplateData, to string) error {

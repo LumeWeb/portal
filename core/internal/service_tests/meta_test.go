@@ -1,19 +1,21 @@
-package service
+package service_tests
 
 import (
 	"github.com/stretchr/testify/assert"
 	"go.lumeweb.com/portal/build"
+	"go.lumeweb.com/portal/service"
+
 	"testing"
 )
 
 func TestPortalMetaBuilder(t *testing.T) {
 	t.Run("NewBuilder", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		assert.NotNil(t, builder)
 	})
 
 	t.Run("AddFeatureFlag", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		builder = builder.AddFeatureFlag("test_flag", true)
 
 		meta := builder.Build()
@@ -21,7 +23,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("AddCoreBuildInfo", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		buildInfo := build.Info{
 			Version: "1.0.0",
 		}
@@ -32,7 +34,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("AddPlugin", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		pluginBuilder, err := builder.AddPlugin("test_plugin")
 		assert.NoError(t, err)
 		assert.NotNil(t, pluginBuilder)
@@ -42,7 +44,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("AddDuplicatePlugin", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		_, err := builder.AddPlugin("test_plugin")
 		assert.NoError(t, err)
 
@@ -51,7 +53,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("GetExistingPlugin", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		_, err := builder.AddPlugin("test_plugin")
 		assert.NoError(t, err)
 
@@ -66,7 +68,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("GetNonExistentPlugin", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		_, err := builder.Plugin("nonexistent")
 		assert.Error(t, err)
 		assert.Equal(t, "plugin nonexistent not found in meta", err.Error())
@@ -75,7 +77,7 @@ func TestPortalMetaBuilder(t *testing.T) {
 
 func TestPluginMetaBuilder(t *testing.T) {
 	t.Run("AddBuildInfo", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		pluginBuilder, _ := builder.AddPlugin("test_plugin")
 
 		buildInfo := build.Info{
@@ -89,7 +91,7 @@ func TestPluginMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("AddMeta", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		pluginBuilder, _ := builder.AddPlugin("test_plugin")
 
 		pluginBuilder = pluginBuilder.AddMeta("key", "value")
@@ -99,7 +101,7 @@ func TestPluginMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("AddWebBundle", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		pluginBuilder, _ := builder.AddPlugin("test_plugin")
 
 		pluginBuilder = pluginBuilder.AddWebBundle("/bundle/path")
@@ -109,7 +111,7 @@ func TestPluginMetaBuilder(t *testing.T) {
 	})
 
 	t.Run("Chaining", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 		pluginBuilder, _ := builder.AddPlugin("test_plugin")
 
 		pluginBuilder.
@@ -127,7 +129,7 @@ func TestPluginMetaBuilder(t *testing.T) {
 
 func TestHTTPServiceIntegration(t *testing.T) {
 	t.Run("BuildMetaForPlugins", func(t *testing.T) {
-		builder := NewPortalMetaBuilder("example.com")
+		builder := service.NewPortalMetaBuilder("example.com")
 
 		// Simulate adding core build info
 		builder = builder.AddCoreBuildInfo(build.Info{

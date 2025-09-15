@@ -1,14 +1,16 @@
-package service
+package service_tests
 
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +49,7 @@ func TestRequestServiceDefault_CreateRequest(t *testing.T) {
 		assert.Equal(tb, req.Status, dbReq.Status)
 		assert.Equal(tb, req.UserID, dbReq.UserID)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_GetRequest(t *testing.T) {
@@ -82,7 +84,7 @@ func TestRequestServiceDefault_GetRequest(t *testing.T) {
 		assert.Error(tb, err)
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_UpdateRequestStatus(t *testing.T) {
@@ -109,7 +111,7 @@ func TestRequestServiceDefault_UpdateRequestStatus(t *testing.T) {
 		require.NoError(tb, err)
 		assert.Equal(tb, newStatus, updatedReq.Status)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_CompleteRequest(t *testing.T) {
@@ -135,7 +137,7 @@ func TestRequestServiceDefault_CompleteRequest(t *testing.T) {
 		require.NoError(tb, err)
 		assert.Equal(tb, models.RequestStatusCompleted, updatedReq.Status)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_FailRequest(t *testing.T) {
@@ -163,7 +165,7 @@ func TestRequestServiceDefault_FailRequest(t *testing.T) {
 		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
 		assert.Equal(tb, failReason, updatedReq.StatusMessage)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
@@ -192,7 +194,7 @@ func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
 		assert.NotNil(tb, status)
 		assert.Equal(tb, string(req.Status), status.State)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }
 
 func TestRequestServiceDefault_RequestExists(t *testing.T) {
@@ -219,5 +221,5 @@ func TestRequestServiceDefault_RequestExists(t *testing.T) {
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
-	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, NewRequestService))
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }

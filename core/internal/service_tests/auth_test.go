@@ -1,10 +1,11 @@
-package service
+package service_tests
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
+	"go.lumeweb.com/portal/service"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,7 +50,7 @@ func TestAuthService_LoginPassword(t *testing.T) {
 		// Test non-existent user
 		_, _, err = authService.LoginPassword("nonexistent@example.com", "password", "127.0.0.1", false)
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_LoginOTP(t *testing.T) {
@@ -84,7 +85,7 @@ func TestAuthService_LoginOTP(t *testing.T) {
 		// Test invalid OTP code
 		_, err = authService.LoginOTP(user.ID, invalidCode, false)
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_ValidLoginByUserObj(t *testing.T) {
@@ -111,7 +112,7 @@ func TestAuthService_ValidLoginByUserObj(t *testing.T) {
 		// Test invalid password
 		valid = authService.ValidLoginByUserObj(user, "wrongpassword")
 		assert.False(tb, valid)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_ValidLoginByUserID(t *testing.T) {
@@ -145,7 +146,7 @@ func TestAuthService_ValidLoginByUserID(t *testing.T) {
 		// Test non-existent user
 		_, _, err = authService.ValidLoginByUserID(999999, "password")
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_LoginPubkey(t *testing.T) {
@@ -185,7 +186,7 @@ func TestAuthService_LoginPubkey(t *testing.T) {
 		// Test invalid pubkey
 		_, err = authService.LoginPubkey("invalid-key", "127.0.0.1", false)
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_LoginID(t *testing.T) {
@@ -218,7 +219,7 @@ func TestAuthService_LoginID(t *testing.T) {
 		// Test invalid ID
 		_, err = authService.LoginID(999999, "127.0.0.1", false)
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestAuthService_ValidLoginByEmail(t *testing.T) {
@@ -252,5 +253,5 @@ func TestAuthService_ValidLoginByEmail(t *testing.T) {
 		// Test non-existent email
 		_, _, err = authService.ValidLoginByEmail("nonexistent@example.com", "password")
 		assert.Error(tb, err)
-	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService))
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }

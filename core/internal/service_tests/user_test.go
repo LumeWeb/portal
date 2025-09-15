@@ -1,9 +1,10 @@
-package service
+package service_tests
 
 import (
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"golang.org/x/crypto/bcrypt"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestUserService_EmailExists(t *testing.T) {
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_AccountExists(t *testing.T) {
@@ -72,7 +73,7 @@ func TestUserService_AccountExists(t *testing.T) {
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_HashPassword(t *testing.T) {
@@ -90,7 +91,7 @@ func TestUserService_HashPassword(t *testing.T) {
 		err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 		assert.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_CreateAccount(t *testing.T) {
@@ -116,7 +117,7 @@ func TestUserService_CreateAccount(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyEmailAlreadyExists)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_UpdateAccountName(t *testing.T) {
@@ -149,7 +150,7 @@ func TestUserService_UpdateAccountName(t *testing.T) {
 		assert.Equal(tb, firstName, updatedUser.FirstName)
 		assert.Equal(tb, lastName, updatedUser.LastName)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_UpdateAccountEmail(t *testing.T) {
@@ -193,7 +194,7 @@ func TestUserService_UpdateAccountEmail(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidLogin)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_UpdateAccountPassword(t *testing.T) {
@@ -230,7 +231,7 @@ func TestUserService_UpdateAccountPassword(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidPassword)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_DeleteAccount(t *testing.T) {
@@ -260,7 +261,7 @@ func TestUserService_DeleteAccount(t *testing.T) {
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_RequestAccountDeletion(t *testing.T) {
@@ -295,7 +296,7 @@ func TestUserService_RequestAccountDeletion(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyAccountDeletionRequestAlreadyExists)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestUserService_IsAccountPendingDeletion(t *testing.T) {
@@ -330,5 +331,5 @@ func TestUserService_IsAccountPendingDeletion(t *testing.T) {
 		require.NoError(tb, err)
 		assert.True(tb, pending)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }

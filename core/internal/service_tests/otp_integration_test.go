@@ -1,7 +1,9 @@
-package service
+package service_tests
 
 import (
 	"testing"
+
+	"time"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -9,8 +11,8 @@ import (
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 func TestOTPService_Integration(t *testing.T) {
@@ -89,9 +91,9 @@ func TestOTPService_Integration(t *testing.T) {
 		assert.Error(tb, err)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService),
-		coreTesting.WithServiceFactory(core.OTP_SERVICE, NewOTPService),
-		coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, NewContentScannerService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService),
+		coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService),
+		coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService),
 	)
 }

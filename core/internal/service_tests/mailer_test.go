@@ -1,9 +1,12 @@
-package service
+package service_tests
 
 import (
 	"embed"
+
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/service"
+
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -11,15 +14,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.lumeweb.com/portal/service/internal/mailer"
 )
 
-//go:embed internal/mailer/testdata/*.tpl
+//go:embed mailer/testdata/*.tpl
 var testTemplates embed.FS
 
 func TestMailerTemplatesFromEmbed(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		templates, err := MailerTemplatesFromEmbed(&testTemplates, "internal/mailer/testdata/")
+		templates, err := service.MailerTemplatesFromEmbed(testTemplates, "mailer/testdata/")
 		require.NoError(tb, err)
 		assert.Len(tb, templates, 2)
 
@@ -60,7 +62,7 @@ func TestMailerTemplatesFromEmbed(t *testing.T) {
 
 	},
 		coreTesting.WithServiceFactory(core.MAILER_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewMailerService(NewMailerTemplateRegistry())
+			return service.NewMailerService(service.NewMailerTemplateRegistry())
 		}),
 		coreTesting.WithConfig("core.mail.host", "localhost"),
 	)
@@ -68,10 +70,10 @@ func TestMailerTemplatesFromEmbed(t *testing.T) {
 
 func TestTemplateRegistry_RegisterAndRenderTemplate(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		mailerService := core.GetService[*Mailer](ctx, core.MAILER_SERVICE)
+		mailerService := core.GetService[*service.Mailer](ctx, core.MAILER_SERVICE)
 		require.NotNil(tb, mailerService)
 
-		templateRegistry := mailerService.templateRegistry
+		templateRegistry := mailerService.TemplateRegistry()
 
 		// Create a simple template
 		subjectTmpl, err := template.New("test_subject").Parse("Subject: {{.Name}}")
@@ -79,7 +81,7 @@ func TestTemplateRegistry_RegisterAndRenderTemplate(t *testing.T) {
 		bodyTmpl, err := template.New("test_body").Parse("Body: {{.Content}}")
 		require.NoError(tb, err)
 
-		emailTemplate := NewMailerTemplate(subjectTmpl, bodyTmpl)
+		emailTemplate := service.NewMailerTemplate(subjectTmpl, bodyTmpl)
 
 		// Register the template
 		templateRegistry.RegisterTemplate("test_template", emailTemplate)
@@ -96,11 +98,11 @@ func TestTemplateRegistry_RegisterAndRenderTemplate(t *testing.T) {
 
 		// Test template not found
 		_, err = templateRegistry.RenderTemplate("nonexistent_template", subjectData, bodyData)
-		assert.ErrorIs(tb, err, mailer.ErrTemplateNotFound)
+		assert.ErrorIs(tb, err, service.ErrEmailTemplateNotFound)
 
 	},
 		coreTesting.WithServiceFactory(core.MAILER_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewMailerService(NewMailerTemplateRegistry())
+			return service.NewMailerService(service.NewMailerTemplateRegistry())
 		}),
 		coreTesting.WithConfig("core.mail.host", "localhost"))
 }
@@ -113,7 +115,7 @@ func TestMailerTemplatesFromEmbed_EmptyPrefix(t *testing.T) {
 			"templates/test_template1_body.tpl":    "Body: {{.Content}}",
 		})
 
-		templates, err := MailerTemplatesFromEmbed(testFS, "")
+		templates, err := service.MailerTemplatesFromEmbed(testFS, "")
 		require.NoError(tb, err)
 		assert.Len(tb, templates, 1)
 
@@ -137,7 +139,7 @@ func TestMailerTemplatesFromEmbed_EmptyPrefix(t *testing.T) {
 
 	},
 		coreTesting.WithServiceFactory(core.MAILER_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewMailerService(NewMailerTemplateRegistry())
+			return service.NewMailerService(service.NewMailerTemplateRegistry())
 		}),
 		coreTesting.WithConfig("core.mail.host", "localhost"))
 }
@@ -147,13 +149,13 @@ func TestMailerTemplatesFromEmbed_NoTemplates(t *testing.T) {
 		// Create a mock embed.FS with no templates
 		testFS := createTestFS(map[string]string{})
 
-		templates, err := MailerTemplatesFromEmbed(testFS, "templates/")
+		templates, err := service.MailerTemplatesFromEmbed(testFS, "templates/")
 		require.NoError(tb, err)
 		assert.Len(tb, templates, 0)
 
 	},
 		coreTesting.WithServiceFactory(core.MAILER_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
-			return NewMailerService(NewMailerTemplateRegistry())
+			return service.NewMailerService(service.NewMailerTemplateRegistry())
 		}),
 		coreTesting.WithConfig("core.mail.host", "localhost"))
 }

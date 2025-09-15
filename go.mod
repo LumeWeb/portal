@@ -124,7 +124,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.lumeweb.com/queryutil v0.3.12 // indirect
+	go.lumeweb.com/queryutil v0.3.14 // indirect
 	go.sia.tech/jape v0.14.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/time v0.12.0 // indirect

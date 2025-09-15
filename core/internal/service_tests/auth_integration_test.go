@@ -1,4 +1,4 @@
-package service
+package service_tests
 
 import (
 	"crypto/ed25519"
@@ -12,6 +12,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -112,7 +113,7 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Error(tb, err)
 
 	},
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService),
-		coreTesting.WithServiceFactory(core.AUTH_SERVICE, NewAuthService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService),
 	)
 }

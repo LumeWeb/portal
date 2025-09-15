@@ -47,9 +47,7 @@ func NewPasswordResetService() (core.Service, []core.ContextBuilderOption, error
 			passwordService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
 			passwordService.mailer = core.GetService[core.MailerService](ctx, core.MAILER_SERVICE)
 			core.Listen(ctx, pevent.EVENT_USER_SERVICE_SUBDOMAIN_SET, func(e *core.CoreEvent[pevent.UserServiceSubdomainSetEvent]) error {
-				passwordService.mu.Lock()
-				passwordService.subdomain = e.Data.Subdomain
-				passwordService.mu.Unlock()
+				passwordService.SetSubdomain(e.Data.Subdomain)
 				return nil
 			})
 			return nil
@@ -61,6 +59,12 @@ func NewPasswordResetService() (core.Service, []core.ContextBuilderOption, error
 
 func (p PasswordResetServiceDefault) ID() string {
 	return core.PASSWORD_RESET_SERVICE
+}
+
+func (p *PasswordResetServiceDefault) SetSubdomain(subdomain string) {
+	p.mu.Lock()
+	p.subdomain = subdomain
+	p.mu.Unlock()
 }
 
 func (p PasswordResetServiceDefault) SendPasswordReset(user *models.User) error {

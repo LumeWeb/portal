@@ -1,16 +1,18 @@
-package service
+package service_tests
 
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	dbMocks "go.lumeweb.com/portal/db/mocks"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +29,7 @@ func TestPinService_RegisterPinModel(t *testing.T) {
 		retrieved, exists := svc.GetPinModel(protocol)
 		assert.True(tb, exists)
 		assert.Equal(tb, model, retrieved)
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_CreatePin(t *testing.T) {
@@ -62,7 +64,7 @@ func TestPinService_CreatePin(t *testing.T) {
 		var dbPin models.Pin
 		err = ctx.DB().First(&dbPin, createdPin.ID).Error
 		require.NoError(tb, err)
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_GetPinsByUploadID(t *testing.T) {
@@ -83,7 +85,7 @@ func TestPinService_GetPinsByUploadID(t *testing.T) {
 		pins, err := svc.GetPinsByUploadID(context.Background(), upload.ID)
 		require.NoError(tb, err)
 		assert.Len(tb, pins, 2)
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_DeletePinByHash(t *testing.T) {
@@ -118,7 +120,7 @@ func TestPinService_DeletePinByHash(t *testing.T) {
 		err = ctx.DB().First(&dbPin, pin.ID).Error
 		assert.Error(tb, err)
 		assert.True(tb, errors.Is(err, gorm.ErrRecordNotFound))
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_UploadPinnedGlobal(t *testing.T) {
@@ -155,7 +157,7 @@ func TestPinService_UploadPinnedGlobal(t *testing.T) {
 		pinned, err = svc.UploadPinnedGlobal(mockHash2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }
 
 func TestPinService_UploadPinnedByUser(t *testing.T) {
@@ -184,5 +186,5 @@ func TestPinService_UploadPinnedByUser(t *testing.T) {
 		pinned, err = svc.UploadPinnedByUser(mockHash, 2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
-	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, NewPinService))
+	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))
 }

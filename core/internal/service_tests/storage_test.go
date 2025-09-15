@@ -1,4 +1,4 @@
-package service
+package service_tests
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/service"
 	"go.sia.tech/renterd/v2/api"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestStorageService_UploadObject(t *testing.T) {
 		testData := bytes.NewReader([]byte("test data"))
 
 		// Create upload request
-		uploadRequest := NewStorageUploadRequest(
+		uploadRequest := service.NewStorageUploadRequest(
 			core.StorageUploadWithProtocol(mockProtocol),
 			core.StorageUploadWithData(testData),
 			core.StorageUploadWithSize(uint64(testData.Len())),
@@ -38,8 +39,8 @@ func TestStorageService_UploadObject(t *testing.T) {
 		_, err := storageService.UploadObject(context.Background(), uploadRequest)
 		assert.Error(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, NewStorageService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, service.NewStorageService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestStorageService_DownloadObject(t *testing.T) {
@@ -78,8 +79,8 @@ func TestStorageService_DownloadObject(t *testing.T) {
 		_, err = storageService.DownloadObject(context.Background(), mockProtocol, mockStorageHash, 0)
 		assert.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, NewStorageService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, service.NewStorageService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 func TestStorageService_DeleteObject(t *testing.T) {
@@ -101,8 +102,8 @@ func TestStorageService_DeleteObject(t *testing.T) {
 		err := storageService.DeleteObject(context.Background(), mockProtocol, mockStorageHash)
 		assert.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, NewStorageService),
-		coreTesting.WithServiceFactory(core.USER_SERVICE, NewUserService))
+	}, coreTesting.WithServiceFactory(core.STORAGE_SERVICE, service.NewStorageService),
+		coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
 /*

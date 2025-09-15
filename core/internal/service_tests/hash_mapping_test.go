@@ -1,13 +1,16 @@
-package service
+package service_tests
 
 import (
 	"bytes"
 	"context"
+
 	mh "github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
+	"go.lumeweb.com/portal/service"
+
 	"testing"
 )
 
@@ -61,7 +64,7 @@ func TestHashMappingService_StoreGetMapping(t *testing.T) {
 		require.NoError(tb, err)
 		assert.Len(tb, reverseMappings, 0)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_GetMappings_NoProtocol(t *testing.T) {
@@ -115,7 +118,7 @@ func TestHashMappingService_GetMappings_NoProtocol(t *testing.T) {
 		err = hashMappingService.DeleteMappings(context.Background(), sourceHash)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_GetReverseMappings_NoProtocol(t *testing.T) {
@@ -169,7 +172,7 @@ func TestHashMappingService_GetReverseMappings_NoProtocol(t *testing.T) {
 		err = hashMappingService.DeleteMappings(context.Background(), targetHash)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_EmptyProtocol(t *testing.T) {
@@ -210,7 +213,7 @@ func TestHashMappingService_EmptyProtocol(t *testing.T) {
 		err = hashMappingService.DeleteMappings(context.Background(), sourceHash)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_InvalidHash(t *testing.T) {
@@ -248,7 +251,7 @@ func TestHashMappingService_InvalidHash(t *testing.T) {
 		err = hashMappingService.DeleteMappings(context.Background(), sourceHash)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_MarshalError(t *testing.T) {
@@ -273,7 +276,7 @@ func TestHashMappingService_MarshalError(t *testing.T) {
 		err := hashMappingService.StoreMapping(context.Background(), sourceHash, targetHash, protocol, metadata)
 		require.Error(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_NilStorageHash(t *testing.T) {
@@ -300,7 +303,7 @@ func TestHashMappingService_NilStorageHash(t *testing.T) {
 		err = hashMappingService.StoreMapping(context.Background(), sourceHash, targetHash, protocol, metadata)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
 
 func TestHashMappingService_StoreAndRetrieveMappings(t *testing.T) {
@@ -344,5 +347,5 @@ func TestHashMappingService_StoreAndRetrieveMappings(t *testing.T) {
 		err = hashMappingService.DeleteMappings(context.Background(), sourceHash)
 		require.NoError(tb, err)
 
-	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, NewHashMappingService))
+	}, coreTesting.WithServiceFactory(core.HASH_MAPPING_SERVICE, service.NewHashMappingService))
 }
