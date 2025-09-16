@@ -573,11 +573,13 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPServiceDefault) getAPIDomain(api core.API) string {
-	domain := h.APISubdomain(api.Name(), false)
-	if domain == "" {
-		domain = h.ctx.Config().Config().Core.Domain
+	root := strings.Trim(strings.ToLower(h.ctx.Config().Config().Core.Domain), ".")
+	sub := strings.Trim(strings.ToLower(strings.TrimSpace(api.Subdomain())), ".")
+	host := root
+	if sub != "" {
+		host = sub + "." + root
 	}
-	return fmt.Sprintf("%s:%d", domain, h.getActivePort())
+	return net.JoinHostPort(host, strconv.FormatUint(uint64(h.getActivePort()), 10))
 }
 
 func (h *HTTPServiceDefault) getActivePort() uint16 {
