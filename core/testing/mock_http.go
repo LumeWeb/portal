@@ -39,6 +39,10 @@ func NewMockHTTPService(t TB) *MockHTTPService {
 		Maybe().
 		Return(nil)
 
+	mockHTTPService.On("RegisterGlobalPath", mock.AnythingOfType("string")).
+		Maybe().
+		Return(nil)
+
 	mockHTTPService.On("APISubdomain", mock.AnythingOfType("string"), mock.AnythingOfType("bool")).
 		Maybe().
 		Return(httpService.apiSubdomainFunc("", false))
@@ -84,6 +88,16 @@ func (m *MockHTTPService) Init() error {
 	}
 
 	return m.MockHTTPService.Init()
+}
+
+// RegisterGlobalPath implements core.HTTPService with automatic mock setup
+func (m *MockHTTPService) RegisterGlobalPath(path string) error {
+	// Set up expectation if not already set
+	if !WasMethodCalled(&m.MockHTTPService.Mock, "RegisterGlobalPath", path) {
+		m.On("RegisterGlobalPath", path).Return(nil)
+	}
+
+	return m.MockHTTPService.RegisterGlobalPath(path)
 }
 
 // WithRouter sets the router for the mock HTTP service
