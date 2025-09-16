@@ -589,6 +589,12 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 		return nil, err
 	}
 
+	// Sanitize/clamp user-facing message (avoid leaking long internals)
+	msg := reqStatus.Message
+	if mr := []rune(msg); len(mr) > 2000 {
+		msg = string(mr[:2000])
+	}
+
 	// Build status
 	status := &core.WorkflowStatus{
 		WorkflowName:  metadata.WorkflowName,
@@ -598,6 +604,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 		CurrentStepID: req.ID,
 		StartedAt:     time.Unix(metadata.StartedAt, 0),
 		UpdatedAt:     reqStatus.UpdatedAt,
+		Message:       msg,
 	}
 
 	// Calculate progress using centralized helper

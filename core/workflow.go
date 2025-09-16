@@ -385,4 +385,5 @@ type WorkflowStatus struct {
 	PreviousSteps []uint
 	StartedAt     time.Time
 	UpdatedAt     time.Time
+	Message       string
 }
