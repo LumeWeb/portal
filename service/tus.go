@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"net/http"
 	"time"
 
@@ -482,10 +484,10 @@ func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackH
 }
 
 // TUSHashGeneratorFunc defines a function type that generates a StorageHash from TUS upload data
-type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, tusHandler core.TusHandler, protocol core.StorageProtocol) (core.StorageHash, error)
+type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, data io.Reader, size uint64) (core.StorageHash, error)
 
 // TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object
-// hashFunc: A function that generates the StorageHash from the upload data
+// hashFunc: An optional function that generates the StorageHash from the upload data. If nil, uses the storage protocol's Hash method.
 func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGeneratorFunc) core.TUSPreFinishResponseCallback {
 	return func(hook tusHandler.HookEvent) (tusHandler.HTTPResponse, error) {
 		protocol, err := handlr.StorageProtocol()
@@ -493,8 +495,37 @@ func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGenerat
 			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
 		}
 
-		// Generate and validate the StorageHash
-		storageHash, err := hashFunc(hook, handlr, protocol)
+		// Get upload size first
+		size, err := handlr.UploadSize(hook.Context, protocol, hook.Upload.ID)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get upload size for %s: %w", hook.Upload.ID, err)
+		}
+		if size > math.MaxInt64 {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("upload size %d exceeds supported limit", size)
+		}
+		// Get the upload reader
+		reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get upload reader for %s: %w", hook.Upload.ID, err)
+		}
+		defer func() {
+			if err := reader.Close(); err != nil {
+				handlr.Logger().Error("failed to close upload reader", 
+					zap.String("uploadID", hook.Upload.ID),
+					zap.Error(err))
+			}
+		}()
+		// Ensure we never read beyond the reported size
+		hashReader := io.LimitReader(reader, int64(size))
+
+		var storageHash core.StorageHash
+		if hashFunc != nil {
+			// Use custom hash function if provided
+			storageHash, err = hashFunc(hook, hashReader, size)
+		} else {
+			// Fall back to storage protocol's hash method
+			storageHash, err = protocol.Hash(hashReader, size)
+		}
 		if err != nil {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("hash generation failed for upload %s: %w", hook.Upload.ID, err)
 		}
