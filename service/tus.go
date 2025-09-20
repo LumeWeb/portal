@@ -2,8 +2,14 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/ipfs/go-cid"
+	mh "github.com/multiformats/go-multihash"
 	"github.com/samber/lo"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
@@ -11,7 +17,6 @@ import (
 	"go.lumeweb.com/portal/service/internal/tus"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"time"
 )
 
 var _ core.TUSService = (*TUSServiceDefault)(nil)
@@ -475,4 +480,40 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSU
 
 func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackHandler {
 	return tus.DefaultUploadTerminatedHandler(ctx)
+}
+
+// TUSMultihashGeneratorFunc defines a function type that generates a multihash from TUS upload data
+type TUSMultihashGeneratorFunc func(hook tusHandler.HookEvent) (mh.Multihash, error)
+
+// TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object
+// hashFunc: A function that generates the multihash from the upload data
+func TUSDefaultPreFinishResponse(hashFunc TUSMultihashGeneratorFunc) core.TUSPreFinishResponseCallback {
+	return func(hook tusHandler.HookEvent) (tusHandler.HTTPResponse, error) {
+		// Generate the multihash
+		multihash, err := hashFunc(hook)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, err
+		}
+
+		// Create CID from multihash
+		fileCID := cid.NewCidV1(cid.Raw, multihash)
+
+		// Return JSON response with CID
+		jsonBody, err := json.Marshal(struct {
+			CID string `json:"cid"`
+		}{
+			CID: fileCID.String(),
+		})
+		if err != nil {
+			return tusHandler.HTTPResponse{}, err
+		}
+
+		return tusHandler.HTTPResponse{
+			StatusCode: http.StatusOK,
+			Header: map[string]string{
+				"Content-Type": "application/json",
+			},
+			Body: string(jsonBody),
+		}, nil
+	}
 }
