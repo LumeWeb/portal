@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ipfs/go-cid"
-	mh "github.com/multiformats/go-multihash"
 	"github.com/samber/lo"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
@@ -482,27 +481,35 @@ func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackH
 	return tus.DefaultUploadTerminatedHandler(ctx)
 }
 
-// TUSMultihashGeneratorFunc defines a function type that generates a multihash from TUS upload data
-type TUSMultihashGeneratorFunc func(hook tusHandler.HookEvent) (mh.Multihash, error)
+// TUSHashGeneratorFunc defines a function type that generates a StorageHash from TUS upload data
+type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, tusHandler core.TusHandler, protocol core.StorageProtocol) (core.StorageHash, error)
 
 // TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object
-// hashFunc: A function that generates the multihash from the upload data
-func TUSDefaultPreFinishResponse(hashFunc TUSMultihashGeneratorFunc) core.TUSPreFinishResponseCallback {
+// hashFunc: A function that generates the StorageHash from the upload data
+func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGeneratorFunc) core.TUSPreFinishResponseCallback {
 	return func(hook tusHandler.HookEvent) (tusHandler.HTTPResponse, error) {
-		// Generate the multihash
-		multihash, err := hashFunc(hook)
+		protocol, err := handlr.StorageProtocol()
 		if err != nil {
-			return tusHandler.HTTPResponse{}, err
+			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
 		}
 
-		// Create CID from multihash
-		fileCID := cid.NewCidV1(cid.Raw, multihash)
+		// Generate and validate the StorageHash
+		storageHash, err := hashFunc(hook, handlr, protocol)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("hash generation failed for upload %s: %w", hook.Upload.ID, err)
+		}
+		if storageHash == nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("hash function returned nil for upload %s", hook.Upload.ID)
+		}
+		if storageHash.Multihash() == nil || len(storageHash.Multihash()) == 0 {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("empty multihash returned for upload %s", hook.Upload.ID)
+		}
 
 		// Return JSON response with CID
 		jsonBody, err := json.Marshal(struct {
 			CID string `json:"cid"`
 		}{
-			CID: fileCID.String(),
+			CID: cid.NewCidV1(storageHash.CIDType(), storageHash.Multihash()).String(),
 		})
 		if err != nil {
 			return tusHandler.HTTPResponse{}, err
