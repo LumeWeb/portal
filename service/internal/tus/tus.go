@@ -230,6 +230,10 @@ func (t *TusHandlerDefault) SetHashById(ctx context.Context, id string, hash cor
 
 }
 
+func (t *TusHandlerDefault) Logger() *core.Logger {
+	return t.logger
+}
+
 func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 	objectId, _ := splitIds(id)
 

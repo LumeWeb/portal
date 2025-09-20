@@ -46,6 +46,9 @@ type TusHandler interface {
 
 	// GetTusHandler returns the underlying TUS handler implementation
 	GetTusHandler() *handler.Handler
+
+	// Logger returns the logger instance for this handler
+	Logger() *Logger
 }
 
 // TUSUploadCallbackHandler defines the signature for upload callback handlers
