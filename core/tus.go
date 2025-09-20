@@ -61,6 +61,10 @@ type TUSUploadCreatedVerifyFunc func(hook handler.HookEvent, uploaderId uint) (S
 // TUSUploadCreatedAfterFunc defines a callback that runs after upload creation
 type TUSUploadCreatedAfterFunc func(requestId uint) error
 
+// TUSPreFinishResponseCallback defines a callback that runs before finishing an upload
+// Can modify the HTTP response before it's sent to the client
+type TUSPreFinishResponseCallback func(hook handler.HookEvent) (handler.HTTPResponse, error)
+
 // TUSHandlerConfig defines configuration for the TUS handler
 type TUSHandlerConfig struct {
 	// BasePath is the base URL path for TUS endpoints
@@ -81,6 +85,10 @@ type TUSHandlerConfig struct {
 
 	// CompletedUploadHandler handles events when uploads complete successfully
 	CompletedUploadHandler TUSUploadCallbackHandler
+
+	// PreFinishResponse is an optional callback that runs before finishing an upload
+	// Can modify the HTTP response before it's sent to the client
+	PreFinishResponse TUSPreFinishResponseCallback
 
 	// Protocol is the storage protocol this handler is associated with
 	Protocol Protocol

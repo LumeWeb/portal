@@ -3,6 +3,10 @@ package tus
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
@@ -17,9 +21,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
-	"io"
-	"net/http"
-	"strings"
 )
 
 type CtxRangeKeyType string
@@ -303,15 +304,16 @@ func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
 	}
 
 	handlr, err := handler.NewHandler(handler.Config{
-		BasePath:                handlerConfig.BasePath,
-		StoreComposer:           composer,
-		DisableDownload:         true,
-		NotifyCompleteUploads:   true,
-		NotifyTerminatedUploads: true,
-		NotifyCreatedUploads:    true,
-		RespectForwardedHeaders: true,
-		PreUploadCreateCallback: handlerConfig.PreUpload,
-		Logger:                  loggerToSlog(t.logger),
+		BasePath:                  handlerConfig.BasePath,
+		StoreComposer:             composer,
+		DisableDownload:           true,
+		NotifyCompleteUploads:     true,
+		NotifyTerminatedUploads:   true,
+		NotifyCreatedUploads:      true,
+		RespectForwardedHeaders:   true,
+		PreUploadCreateCallback:   handlerConfig.PreUpload,
+		PreFinishResponseCallback: handlerConfig.PreFinishResponse,
+		Logger:                    loggerToSlog(t.logger),
 	})
 
 	if err != nil {
