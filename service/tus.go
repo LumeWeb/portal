@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -482,7 +483,7 @@ func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackH
 }
 
 // TUSHashGeneratorFunc defines a function type that generates a StorageHash from TUS upload data
-type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, tusHandler core.TusHandler, protocol core.StorageProtocol) (core.StorageHash, error)
+type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, data io.Reader, size uint64) (core.StorageHash, error)
 
 // TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object
 // hashFunc: A function that generates the StorageHash from the upload data
@@ -493,8 +494,25 @@ func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGenerat
 			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
 		}
 
-		// Generate and validate the StorageHash
-		storageHash, err := hashFunc(hook, handlr, protocol)
+		// Get the upload reader
+		reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get upload reader for %s: %w", hook.Upload.ID, err)
+		}
+		defer func() {
+			if err := reader.Close(); err != nil {
+				handlr.HandleEventResponseError(fmt.Sprintf("failed to close upload reader: %v", err), http.StatusInternalServerError, hook)
+			}
+		}()
+
+		// Get upload size
+		size, err := handlr.UploadSize(hook.Context, protocol, hook.Upload.ID)
+		if err != nil {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get upload size for %s: %w", hook.Upload.ID, err)
+		}
+
+		// Generate and validate the StorageHash using the actual file data and hook event
+		storageHash, err := hashFunc(hook, reader, size)
 		if err != nil {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("hash generation failed for upload %s: %w", hook.Upload.ID, err)
 		}
