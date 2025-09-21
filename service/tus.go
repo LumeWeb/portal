@@ -486,10 +486,39 @@ func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackH
 // TUSHashGeneratorFunc defines a function type that generates a StorageHash from TUS upload data
 type TUSHashGeneratorFunc func(hook tusHandler.HookEvent, data io.Reader, size uint64) (core.StorageHash, error)
 
-// TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object
-// hashFunc: An optional function that generates the StorageHash from the upload data. If nil, uses the storage protocol's Hash method.
-func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGeneratorFunc) core.TUSPreFinishResponseCallback {
+// TusHandlerFactory defines a function type that creates TusHandler instances
+type TusHandlerFactory func() core.TusHandler
+
+func tusErrorResponse(hook tusHandler.HookEvent) tusHandler.HTTPResponse {
+	tusVersion := hook.HTTPRequest.Header.Get("Tus-Resumable")
+	if tusVersion == "" {
+		tusVersion = "1.0.0" // fallback to default version
+	}
+	return tusHandler.HTTPResponse{
+		StatusCode: http.StatusInternalServerError,
+		Header: map[string]string{
+			"Tus-Resumable":  tusVersion,
+			"Content-Type":   "application/json",
+		},
+		Body: `{"error":"internal server error"}`,
+	}
+}
+
+// TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object.
+// handlerFactory: Invoked per pre-finish event (may be called concurrently). Should be cheap or cache internally;
+//   if using external resources, prefer lazy retrieval tied to hook.Context.
+// hashFunc: Optional custom hash generator; if nil, the storage protocol's Hash method is used.
+func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSHashGeneratorFunc) core.TUSPreFinishResponseCallback {
 	return func(hook tusHandler.HookEvent) (tusHandler.HTTPResponse, error) {
+		if handlerFactory == nil {
+			return tusErrorResponse(hook), nil
+		}
+
+		handlr := handlerFactory()
+		if handlr == nil {
+			return tusErrorResponse(hook), nil
+		}
+
 		protocol, err := handlr.StorageProtocol()
 		if err != nil {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
@@ -510,8 +539,10 @@ func TUSDefaultPreFinishResponse(handlr core.TusHandler, hashFunc TUSHashGenerat
 		}
 		defer func() {
 			if err := reader.Close(); err != nil {
-				handlr.Logger().Error("failed to close upload reader", 
+				handlr.Logger().Error("failed to close upload reader",
 					zap.String("uploadID", hook.Upload.ID),
+					zap.String("protocol", protocol.Name()),
+					zap.Uint64("size", size),
 					zap.Error(err))
 			}
 		}()
