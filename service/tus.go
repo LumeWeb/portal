@@ -589,7 +589,6 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 		}
 
 		return tusHandler.HTTPResponse{
-			StatusCode: http.StatusOK,
 			Header: map[string]string{
 				"Content-Type": "application/json",
 			},
