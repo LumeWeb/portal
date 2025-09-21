@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"time"
 
@@ -497,8 +496,8 @@ func tusErrorResponse(hook tusHandler.HookEvent) tusHandler.HTTPResponse {
 	return tusHandler.HTTPResponse{
 		StatusCode: http.StatusInternalServerError,
 		Header: map[string]string{
-			"Tus-Resumable":  tusVersion,
-			"Content-Type":   "application/json",
+			"Tus-Resumable": tusVersion,
+			"Content-Type":  "application/json",
 		},
 		Body: `{"error":"internal server error"}`,
 	}
@@ -506,7 +505,9 @@ func tusErrorResponse(hook tusHandler.HookEvent) tusHandler.HTTPResponse {
 
 // TUSDefaultPreFinishResponse creates a default PreFinishResponse callback that returns a CID JSON object.
 // handlerFactory: Invoked per pre-finish event (may be called concurrently). Should be cheap or cache internally;
-//   if using external resources, prefer lazy retrieval tied to hook.Context.
+//
+//	if using external resources, prefer lazy retrieval tied to hook.Context.
+//
 // hashFunc: Optional custom hash generator; if nil, the storage protocol's Hash method is used.
 func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSHashGeneratorFunc) core.TUSPreFinishResponseCallback {
 	return func(hook tusHandler.HookEvent) (tusHandler.HTTPResponse, error) {
@@ -524,14 +525,6 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
 		}
 
-		// Get upload size first
-		size, err := handlr.UploadSize(hook.Context, protocol, hook.Upload.ID)
-		if err != nil {
-			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get upload size for %s: %w", hook.Upload.ID, err)
-		}
-		if size > math.MaxInt64 {
-			return tusHandler.HTTPResponse{}, fmt.Errorf("upload size %d exceeds supported limit", size)
-		}
 		// Get the upload reader
 		reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
 		if err != nil {
@@ -542,20 +535,31 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 				handlr.Logger().Error("failed to close upload reader",
 					zap.String("uploadID", hook.Upload.ID),
 					zap.String("protocol", protocol.Name()),
-					zap.Uint64("size", size),
+					zap.Int64("size", hook.Upload.Size),
+					zap.Int64("offset", hook.Upload.Offset),
+					zap.Int64("effective_size", size),
 					zap.Error(err))
 			}
 		}()
-		// Ensure we never read beyond the reported size
-		hashReader := io.LimitReader(reader, int64(size))
+		// Resolve effective size and validate (pre-finish should have final offset)
+		size := hook.Upload.Size
+		if size < 0 {
+			size = hook.Upload.Offset
+		}
+		if size < 0 {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("invalid/unknown upload size for %s: size=%d offset=%d", hook.Upload.ID, hook.Upload.Size, hook.Upload.Offset)
+		}
+		// Ensure we never read beyond the validated size and verify full read
+		lr := &io.LimitedReader{R: reader, N: size}
+		hashReader := lr
 
 		var storageHash core.StorageHash
 		if hashFunc != nil {
 			// Use custom hash function if provided
-			storageHash, err = hashFunc(hook, hashReader, size)
+			storageHash, err = hashFunc(hook, hashReader, uint64(size))
 		} else {
 			// Fall back to storage protocol's hash method
-			storageHash, err = protocol.Hash(hashReader, size)
+			storageHash, err = protocol.Hash(hashReader, uint64(size))
 		}
 		if err != nil {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("hash generation failed for upload %s: %w", hook.Upload.ID, err)
@@ -565,6 +569,9 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 		}
 		if storageHash.Multihash() == nil || len(storageHash.Multihash()) == 0 {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("empty multihash returned for upload %s", hook.Upload.ID)
+		}
+		if lr.N != 0 {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("short read while hashing: %d bytes remaining", lr.N)
 		}
 
 		// Return JSON response with CID
