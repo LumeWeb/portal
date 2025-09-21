@@ -577,9 +577,6 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 		if storageHash.Multihash() == nil || len(storageHash.Multihash()) == 0 {
 			return tusHandler.HTTPResponse{}, fmt.Errorf("empty multihash returned for upload %s", hook.Upload.ID)
 		}
-		if lr.N != 0 {
-			return tusHandler.HTTPResponse{}, fmt.Errorf("short read while hashing: %d bytes remaining", lr.N)
-		}
 
 		// Return JSON response with CID
 		jsonBody, err := json.Marshal(struct {
