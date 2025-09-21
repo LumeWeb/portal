@@ -525,6 +525,15 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 			return tusHandler.HTTPResponse{}, fmt.Errorf("failed to get storage protocol: %w", err)
 		}
 
+		// Resolve effective size and validate (pre-finish should have final offset)
+		size := hook.Upload.Size
+		if size < 0 {
+			size = hook.Upload.Offset
+		}
+		if size < 0 {
+			return tusHandler.HTTPResponse{}, fmt.Errorf("invalid/unknown upload size for %s: size=%d offset=%d", hook.Upload.ID, hook.Upload.Size, hook.Upload.Offset)
+		}
+
 		// Get the upload reader
 		reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
 		if err != nil {
@@ -541,8 +550,6 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 					zap.Error(err))
 			}
 		}()
-		// Resolve effective size and validate (pre-finish should have final offset)
-		size := hook.Upload.Size
 		if size < 0 {
 			size = hook.Upload.Offset
 		}
