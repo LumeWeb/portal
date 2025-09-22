@@ -9,7 +9,7 @@ require (
 	github.com/adjust/rmq/v5 v5.2.0
 	github.com/aws/aws-sdk-go-v2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.6
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.11
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.13
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.0
 	github.com/aws/smithy-go v1.23.0
 	github.com/casbin/casbin/v2 v2.121.0
@@ -49,7 +49,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.lumeweb.com/configmanager v0.3.20
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.3.1
 	go.lumeweb.com/portal-router v0.6.7
@@ -155,9 +154,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.29.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.29.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.4 // indirect
 	github.com/boombuler/barcode v1.0.2 // indirect
 	github.com/casbin/govaluate v1.8.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -187,6 +186,7 @@ require (
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.4 // indirect
+	go.lumeweb.com/gswagger v0.20.10 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
