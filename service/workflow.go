@@ -10,7 +10,6 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/service/internal/workflow"
 	"go.lumeweb.com/queryutil"
-	"go.lumeweb.com/queryutil/filter"
 
 	kjson "github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/rawbytes"
@@ -282,7 +281,7 @@ func (w *WorkflowCoordinatorDefault) ListWorkflows() []string {
 // StartWorkflow starts a new workflow instance
 func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
 	// Get workflow
-	workflow, err := w.GetWorkflow(name)
+	wf, err := w.GetWorkflow(name)
 	if err != nil {
 		return nil, err
 	}
@@ -297,18 +296,18 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		return nil, nil
 	}
 
-	if len(workflow.Steps) == 0 {
+	if len(wf.Steps) == 0 {
 		return nil, core.ErrWorkflowHasNoSteps
 	}
 
 	// First step
-	firstStep := workflow.Steps[0]
+	firstStep := wf.Steps[0]
 
 	// Create and process metadata for first step
 	metadata := WorkflowMetadata{
-		WorkflowName:  workflow.Name,
+		WorkflowName:  wf.Name,
 		CurrentStepID: firstStep.ID,
-		TotalSteps:    len(workflow.Steps),
+		TotalSteps:    len(wf.Steps),
 		StartedAt:     time.Now().Unix(),
 		PrevRequestID: 0, // Explicitly initialize
 		NextRequestID: 0, // Explicitly initialize
@@ -319,7 +318,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		return nil, err
 	}
 
-	metadata.Data = datatypes.JSON(wfMetadataJSON)
+	metadata.Data = wfMetadataJSON
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
@@ -347,16 +346,15 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	}
 
 	w.logger.Info("Started workflow",
-		zap.String("workflow", workflow.Name),
+		zap.String("workflow", wf.Name),
 		zap.Uint("requestID", createdReq.ID))
 
 	// Auto-trigger first step if configured
-	if workflow.AutoTriggerFirstStep {
-		firstStep = workflow.Steps[0]
+	if wf.AutoTriggerFirstStep {
 		if firstStep.Foreground {
 			if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to execute first step",
-					zap.String("workflow", workflow.Name),
+					zap.String("workflow", wf.Name),
 					zap.Uint("requestID", createdReq.ID),
 					zap.Error(err))
 				return createdReq, nil // Return request even if execution fails
@@ -364,7 +362,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 			// After execution, complete the step to advance to next step
 			if err := w.CompleteWorkflowStep(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to complete first step",
-					zap.String("workflow", workflow.Name),
+					zap.String("workflow", wf.Name),
 					zap.Uint("requestID", createdReq.ID),
 					zap.Error(err))
 				return createdReq, nil
@@ -372,7 +370,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 		} else {
 			if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to dispatch first step to cron",
-					zap.String("workflow", workflow.Name),
+					zap.String("workflow", wf.Name),
 					zap.Uint("requestID", createdReq.ID),
 					zap.Error(err))
 				return createdReq, nil // Return request even if cron dispatch fails
@@ -420,18 +418,18 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	}
 
 	// Get workflow definition
-	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return err
 	}
 
-	currentStepIndex, err := w.getStepIndexAndStep(workflow, metadata.CurrentStepID)
+	currentStepIndex, err := w.getStepIndexAndStep(wf, metadata.CurrentStepID)
 	if err != nil {
 		return err
 	}
 
 	// Check if workflow is complete
-	if currentStepIndex >= len(workflow.Steps)-1 {
+	if currentStepIndex >= len(wf.Steps)-1 {
 		w.logger.Info("Workflow completed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
@@ -439,7 +437,7 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	}
 
 	// Prepare next step
-	nextStep := workflow.Steps[currentStepIndex+1]
+	nextStep := wf.Steps[currentStepIndex+1]
 
 	// Process workflow options and metadata
 	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
@@ -528,12 +526,12 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	}
 
 	// Get workflow and current step
-	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return err
 	}
 
-	currentStep, err := w.getStepByID(workflow, metadata.CurrentStepID)
+	currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
 	if err != nil {
 		return err
 	}
@@ -664,12 +662,12 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 	}
 
 	// Get workflow and current step
-	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return err
 	}
 
-	currentStep, err := w.getStepByID(workflow, metadata.CurrentStepID)
+	currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
 	if err != nil {
 		return err
 	}
@@ -719,17 +717,17 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 		return nil, err
 	}
 
-	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return nil, err
 	}
 
-	currentStepIndex, err := w.getStepIndexAndStep(workflow, metadata.CurrentStepID)
+	currentStepIndex, err := w.getStepIndexAndStep(wf, metadata.CurrentStepID)
 	if err != nil {
 		return nil, err
 	}
 
-	currentStep := workflow.Steps[currentStepIndex]
+	currentStep := wf.Steps[currentStepIndex]
 
 	return &core.WorkflowStepInfo{
 		Operation:       currentStep.Operation,
@@ -748,7 +746,7 @@ func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, request
 
 	job.SetArgs(requestID)
 
-	if err := w.cronService.RegisterJob(job, noRetryPolicy); err != nil {
+	if err = w.cronService.RegisterJob(job, noRetryPolicy); err != nil {
 		return fmt.Errorf("failed to register workflow step job: %w", err)
 	}
 	return nil
@@ -844,20 +842,20 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 	}
 
 	// Get the workflow definition
-	workflow, err := w.GetWorkflow(workflowName)
+	wf, err := w.GetWorkflow(workflowName)
 	if err != nil {
 		return fmt.Errorf("failed to get workflow: %w", err)
 	}
 
-	if startStep < 0 || startStep >= len(workflow.Steps) {
+	if startStep < 0 || startStep >= len(wf.Steps) {
 		return fmt.Errorf("invalid start step: %d", startStep)
 	}
 
 	// Create initial metadata
 	metadata := WorkflowMetadata{
-		WorkflowName:  workflow.Name,
-		CurrentStepID: workflow.Steps[startStep].ID,
-		TotalSteps:    len(workflow.Steps),
+		WorkflowName:  wf.Name,
+		CurrentStepID: wf.Steps[startStep].ID,
+		TotalSteps:    len(wf.Steps),
 		StartedAt:     time.Now().Unix(),
 	}
 
@@ -877,7 +875,7 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 
 	// Update the request's metadata and operation
 	req.Metadata = metadataJSON
-	req.Operation = workflow.Steps[startStep].Operation
+	req.Operation = wf.Steps[startStep].Operation
 
 	w.handleRequestData(processedOpts, req)
 
@@ -1044,20 +1042,25 @@ func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
 	return results, nil
 }
 
-func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*core.WorkflowInstance, int64, error) {
+func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*core.WorkflowInstance, int64, error) {
 	// Build base query for requests belonging to the user
 	baseQuery := w.db.Model(&models.Request{}).Where(&models.Request{UserID: lo.ToPtr(userID)})
 
 	// Add filter to only include requests with workflow metadata
-	workflowFilter := filter.FieldIsNotNull("metadata")
-	allFilters := append(filters, workflowFilter)
+	// Add workflow-specific filters
+	workflowFilters := []queryutil.CrudFilter{
+		// Only include requests with workflow metadata
+		queryutil.FieldIsNotNull("metadata"),
+		// Only include requests with workflow_name set
+		queryutil.FieldIsNotNull("metadata.workflow_name"),
+		// Only include final steps in workflow chains (where next_request_id is 0 or null)
+		queryutil.Or(
+			queryutil.FieldEqual("metadata.next_request_id", 0),
+			queryutil.FieldIsNull("metadata.next_request_id"),
+		),
+	}
 
-	// Add filter to only include final steps in workflow chains (where next_request_id is 0 or null)
-	finalStepFilter := filter.Or(
-		filter.FieldEqual("metadata.next_request_id", 0),
-		filter.FieldIsNull("metadata.next_request_id"),
-	)
-	allFilters = append(allFilters, finalStepFilter)
+	allFilters := append(filters, workflowFilters...)
 
 	// Apply filters using the queryutil builder
 	filteredQuery := queryutil.ApplyFilters(baseQuery, allFilters, nil)
@@ -1111,6 +1114,26 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 	return workflowInstances, totalCount, nil
 }
 
+func (w *WorkflowCoordinatorDefault) ListDistinctWorkflowFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
+	// Create workflow-specific filters
+	workflowFilters := []queryutil.CrudFilter{
+		// Only include requests with workflow metadata
+		queryutil.FieldIsNotNull("metadata"),
+		queryutil.FieldIsNotNull("metadata.workflow_name"),
+		// Only include terminal steps in workflow chains (where next_request_id is 0 or null)
+		queryutil.Or(
+			queryutil.FieldEqual("metadata.next_request_id", 0),
+			queryutil.FieldIsNull("metadata.next_request_id"),
+		),
+	}
+
+	// Combine workflow filters with any additional filters
+	allFilters := append(workflowFilters, additionalFilters...)
+	
+	// Delegate to request service's ListDistinctRequestFilters with all filters
+	return w.requestSvc.ListDistinctRequestFilters(ctx, userID, allFilters)
+}
+
 func (w *WorkflowCoordinatorDefault) GetWorkflowInstance(ctx context.Context, userID uint, requestID uint) (*core.WorkflowInstance, error) {
 	// First verify the request exists and belongs to the user
 	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
@@ -1152,12 +1175,12 @@ func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestI
 
 // getStepIndex finds the index of a step by its ID in a workflow
 func (w *WorkflowCoordinatorDefault) getStepIndex(stepID string, workflowName string) int {
-	workflow, err := w.GetWorkflow(workflowName)
+	wf, err := w.GetWorkflow(workflowName)
 	if err != nil {
 		return -1
 	}
 
-	for i, step := range workflow.Steps {
+	for i, step := range wf.Steps {
 		if step.ID == stepID {
 			return i
 		}
@@ -1217,13 +1240,13 @@ func (w *WorkflowCoordinatorDefault) getStepByID(workflow *core.WorkflowDefiniti
 // getCurrentStepIndex gets the current step index from workflow metadata
 func (w *WorkflowCoordinatorDefault) getCurrentStepIndex(metadata WorkflowMetadata) (int, error) {
 	// Get workflow definition
-	workflow, err := w.GetWorkflow(metadata.WorkflowName)
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
 		return -1, err
 	}
 
 	// Get current step index
-	_, currentStepIndex, found := lo.FindIndexOf(workflow.Steps, func(step core.OperationStep) bool {
+	_, currentStepIndex, found := lo.FindIndexOf(wf.Steps, func(step core.OperationStep) bool {
 		return step.ID == metadata.CurrentStepID
 	})
 
