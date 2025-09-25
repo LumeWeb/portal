@@ -5,6 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/fatih/structs"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -12,10 +17,8 @@ import (
 	"go.lumeweb.com/portal/db/models/data_models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
+
+	"go.lumeweb.com/queryutil"
 )
 
 var _ core.RequestService = (*RequestServiceDefault)(nil)
@@ -33,12 +36,12 @@ type operationCacheEntry struct {
 }
 
 type RequestServiceDefault struct {
-	ctx      core.Context
-	logger   *core.Logger
-	db       *gorm.DB
-	models   map[string]data_models.RequestDataModel
-	mutex    sync.RWMutex
-	opCache  map[string]operationCacheEntry
+	ctx       core.Context
+	logger    *core.Logger
+	db        *gorm.DB
+	models    map[string]data_models.RequestDataModel
+	mutex     sync.RWMutex
+	opCache   map[string]operationCacheEntry
 	opCacheMu sync.RWMutex
 }
 
@@ -62,6 +65,47 @@ func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_model
 		return nil, fmt.Errorf("no model registered for operation: %s", operation)
 	}
 	return model.NewInstance().(data_models.RequestDataModel), nil
+}
+
+func (r *RequestServiceDefault) ListDistinctRequestFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
+	buildBaseQuery := func() *gorm.DB {
+		q := r.db.Model(&models.Request{}).Where("user_id = ?", userID)
+		if len(additionalFilters) > 0 {
+			q = queryutil.ApplyFilters(q, additionalFilters, nil)
+		}
+		return q
+	}
+
+	var (
+		statuses   []string
+		operations []string
+		protocols  []string
+	)
+
+	if err := buildBaseQuery().
+		Distinct(core.RequestFieldStatus).
+		Pluck(core.RequestFieldStatus, &statuses).Error; err != nil {
+		return nil, fmt.Errorf("failed to query distinct statuses: %w", err)
+	}
+
+	if err := buildBaseQuery().
+		Distinct(core.RequestFieldOperation).
+		Pluck(core.RequestFieldOperation, &operations).Error; err != nil {
+		return nil, fmt.Errorf("failed to query distinct operations: %w", err)
+	}
+
+	if err := buildBaseQuery().
+		Where(core.RequestFieldProtocol+" <> ''").
+		Distinct(core.RequestFieldProtocol).
+		Pluck(core.RequestFieldProtocol, &protocols).Error; err != nil {
+		return nil, fmt.Errorf("failed to query distinct protocols: %w", err)
+	}
+
+	return map[string][]string{
+		core.FilterRequestKeyStatuses:   statuses,
+		core.FilterRequestKeyOperations: operations,
+		core.FilterRequestKeyProtocols:  protocols,
+	}, nil
 }
 
 func NewRequestService() (core.Service, []core.ContextBuilderOption, error) {

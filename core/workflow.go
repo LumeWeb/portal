@@ -79,7 +79,7 @@ type WorkflowService interface {
 	) ([]*WorkflowInstance, error)
 
 	// ListWorkflowInstances lists workflow instances with filtering, sorting and pagination
-	ListWorkflowInstances(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*WorkflowInstance, int64, error)
+	ListWorkflowInstances(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*WorkflowInstance, int64, error)
 
 	// GetWorkflowInstance gets a specific workflow instance by request ID
 	GetWorkflowInstance(ctx context.Context, userID uint, requestID uint) (*WorkflowInstance, error)
@@ -93,12 +93,18 @@ type WorkflowService interface {
 	// GetWorkflowMetadata returns the workflow metadata for a request
 	GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error)
 
+
+	// ListDistinctWorkflowFilters fetches distinct filter values for workflows
+	// (statuses, operations, protocols) from the database
+	ListDistinctWorkflowFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error)
+
 	// UpdateWorkflowData updates workflow metadata with the provided data map
 	UpdateWorkflowData(ctx context.Context, requestID uint, data map[string]any) error
 
 	// UpdateWorkflowDataStruct updates workflow metadata with the provided struct
 	// using the specified struct tag (e.g. "json")
 	UpdateWorkflowDataStruct(ctx context.Context, requestID uint, data any, tag string) error
+
 }
 
 // WorkflowStepInfo provides information about a workflow step

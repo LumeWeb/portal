@@ -11,6 +11,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
+	"go.lumeweb.com/queryutil"
 )
 
 // NewMockRequestService creates a new instance of MockRequestService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -1012,6 +1013,80 @@ func (_c *MockRequestService_ID_Call) Return(s string) *MockRequestService_ID_Ca
 }
 
 func (_c *MockRequestService_ID_Call) RunAndReturn(run func() string) *MockRequestService_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListDistinctRequestFilters provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) ListDistinctRequestFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
+	ret := _mock.Called(ctx, userID, additionalFilters)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListDistinctRequestFilters")
+	}
+
+	var r0 map[string][]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter) (map[string][]string, error)); ok {
+		return returnFunc(ctx, userID, additionalFilters)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter) map[string][]string); ok {
+		r0 = returnFunc(ctx, userID, additionalFilters)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string][]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []queryutil.CrudFilter) error); ok {
+		r1 = returnFunc(ctx, userID, additionalFilters)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRequestService_ListDistinctRequestFilters_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListDistinctRequestFilters'
+type MockRequestService_ListDistinctRequestFilters_Call struct {
+	*mock.Call
+}
+
+// ListDistinctRequestFilters is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID uint
+//   - additionalFilters []queryutil.CrudFilter
+func (_e *MockRequestService_Expecter) ListDistinctRequestFilters(ctx interface{}, userID interface{}, additionalFilters interface{}) *MockRequestService_ListDistinctRequestFilters_Call {
+	return &MockRequestService_ListDistinctRequestFilters_Call{Call: _e.mock.On("ListDistinctRequestFilters", ctx, userID, additionalFilters)}
+}
+
+func (_c *MockRequestService_ListDistinctRequestFilters_Call) Run(run func(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter)) *MockRequestService_ListDistinctRequestFilters_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 []queryutil.CrudFilter
+		if args[2] != nil {
+			arg2 = args[2].([]queryutil.CrudFilter)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_ListDistinctRequestFilters_Call) Return(stringToStrings map[string][]string, err error) *MockRequestService_ListDistinctRequestFilters_Call {
+	_c.Call.Return(stringToStrings, err)
+	return _c
+}
+
+func (_c *MockRequestService_ListDistinctRequestFilters_Call) RunAndReturn(run func(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error)) *MockRequestService_ListDistinctRequestFilters_Call {
 	_c.Call.Return(run)
 	return _c
 }

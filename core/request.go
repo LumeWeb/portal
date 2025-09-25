@@ -2,9 +2,11 @@ package core
 
 import (
 	"context"
+	"time"
+
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
-	"time"
+	"go.lumeweb.com/queryutil/filter"
 )
 
 const REQUEST_SERVICE = "request"
@@ -64,15 +66,31 @@ type RequestService interface {
 	GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error)
 	ExecuteRequest(ctx context.Context, id uint) error
 
+	// ListDistinctRequestFilters fetches distinct filter values for requests
+	// (statuses, operations, protocols) from the database
+	ListDistinctRequestFilters(ctx context.Context, userID uint, additionalFilters []filter.CrudFilter) (map[string][]string, error)
+
 	Service
 }
 
+const (
+	FilterRequestKeyStatuses   = "statuses"
+	FilterRequestKeyOperations = "operations"
+	FilterRequestKeyProtocols  = "protocols"
+)
+
+const (
+	RequestFieldStatus    = "status"
+	RequestFieldOperation = "operation"
+	RequestFieldProtocol  = "protocol"
+)
+
 type RequestStatus struct {
-	State           models.RequestStatusType // e.g., "pending", "processing", "completed", "failed"
-	ProgressPercent float64                  // 0-100 completion percentage
-	Message         string                   // Human-readable status message
-	UpdatedAt       time.Time                // When status was last updated
-	Error           error                    // Error if operation failed
+	State           models.RequestStatusType `json:"state"`            // e.g., "pending", "processing", "completed", "failed"
+	ProgressPercent float64                  `json:"progress_percent"` // 0-100 completion percentage
+	Message         string                   `json:"message"`          // Human-readable status message
+	UpdatedAt       time.Time                `json:"updated_at"`       // When status was last updated
+	Error           error                    `json:"-"`                // Not serialized
 }
 
 // GetDefaultStatusMessage returns the default status message for a given request status
