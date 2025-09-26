@@ -174,6 +174,12 @@ type WorkflowOptionsDefault struct {
 	koanfCache  *koanf.Koanf
 }
 
+// GetWorkflowStatusDisplayInfo returns the human-readable display information for a given workflow status
+func GetWorkflowStatusDisplayInfo(status models.RequestStatusType) (WorkflowStatusInfo, bool) {
+	info, exists := WorkflowStatusDisplayNames[status]
+	return info, exists
+}
+
 // NewWorkflowOptions creates a new WorkflowOptions instance with initialized koanf cache
 func NewWorkflowOptions() WorkflowOptions {
 	return &WorkflowOptionsDefault{
@@ -376,6 +382,21 @@ type WorkflowDefinition struct {
 	Name                 string
 	Steps                []OperationStep
 	AutoTriggerFirstStep bool // Whether to automatically trigger first step execution
+}
+
+// WorkflowStatusInfo contains human-readable display information for workflow status
+type WorkflowStatusInfo struct {
+	Name        string `json:"name"`         // Human-readable display name
+	Description string `json:"description"`  // Detailed description of the status
+}
+
+// WorkflowStatusDisplayNames maps workflow status types to their human-readable display information
+var WorkflowStatusDisplayNames = map[models.RequestStatusType]WorkflowStatusInfo{
+	models.RequestStatusPending:   {Name: "Pending", Description: "Waiting to start"},
+	models.RequestStatusProcessing: {Name: "Processing", Description: "Currently executing"},
+	models.RequestStatusCompleted:  {Name: "Completed", Description: "Finished successfully"},
+	models.RequestStatusFailed:     {Name: "Failed", Description: "Encountered an error"},
+	models.RequestStatusDuplicate:  {Name: "Duplicate", Description: "Duplicate detected"},
 }
 
 // WorkflowStatus provides current status of a workflow instance
