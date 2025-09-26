@@ -3,7 +3,10 @@ package testing
 
 import (
 	"fmt"
+	"net"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -492,15 +495,30 @@ func ConfigureAPIRoutes(ctx TestContext) error {
 	gRouter := ctx.Router()
 
 	for _, api := range core.GetAPIs() {
-		subdomain := api.Subdomain()
-		domain := fmt.Sprintf("%s.%s", subdomain, ctx.Config().Config().Core.Domain)
-
-		if subdomain == "" {
-			domain = ctx.Config().Config().Core.Domain
+		root := strings.Trim(strings.ToLower(ctx.Config().Config().Core.Domain), ".")
+		sub := strings.Trim(strings.ToLower(strings.TrimSpace(api.Subdomain())), ".")
+		host := root
+		if sub != "" {
+			host = sub + "." + root
+		}
+		port := ctx.Config().Config().Core.Port
+		if ctx.Config().Config().Core.ExternalPort != 0 {
+			port = ctx.Config().Config().Core.ExternalPort
+		}
+		var hostWithPort string
+		if port != 0 {
+			hostWithPort = net.JoinHostPort(host, strconv.FormatUint(uint64(port), 10))
+		} else {
+			// For IPv6 addresses without port, ensure they're bracketed
+			if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
+				hostWithPort = "[" + host + "]"
+			} else {
+				hostWithPort = host
+			}
 		}
 
 		// Create a subrouter for this API's domain
-		hostRouter, err := gRouter.Host(domain)
+		hostRouter, err := gRouter.Host(hostWithPort)
 		if err != nil {
 			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
 		}
