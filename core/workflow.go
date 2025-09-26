@@ -11,7 +11,7 @@ import (
 	"github.com/knadh/koanf/providers/structs"
 	"github.com/knadh/koanf/v2"
 	"go.lumeweb.com/portal/db/models"
-	"go.lumeweb.com/queryutil/filter"
+	"go.lumeweb.com/queryutil"
 )
 
 const WORKFLOW_SERVICE = "workflow"
@@ -93,7 +93,6 @@ type WorkflowService interface {
 	// GetWorkflowMetadata returns the workflow metadata for a request
 	GetWorkflowMetadata(ctx context.Context, requestID uint) (*koanf.Koanf, error)
 
-
 	// ListDistinctWorkflowFilters fetches distinct filter values for workflows
 	// (statuses, operations, protocols) from the database
 	ListDistinctWorkflowFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error)
@@ -104,7 +103,6 @@ type WorkflowService interface {
 	// UpdateWorkflowDataStruct updates workflow metadata with the provided struct
 	// using the specified struct tag (e.g. "json")
 	UpdateWorkflowDataStruct(ctx context.Context, requestID uint, data any, tag string) error
-
 }
 
 // WorkflowStepInfo provides information about a workflow step
