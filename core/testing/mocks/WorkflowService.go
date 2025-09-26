@@ -11,7 +11,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"go.lumeweb.com/queryutil/filter"
+	"go.lumeweb.com/queryutil"
 )
 
 // NewMockWorkflowService creates a new instance of MockWorkflowService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -1009,8 +1009,8 @@ func (_c *MockWorkflowService_ID_Call) RunAndReturn(run func() string) *MockWork
 }
 
 // ListDistinctWorkflowFilters provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) ListDistinctWorkflowFilters(ctx context.Context, userID uint) (map[string][]string, error) {
-	ret := _mock.Called(ctx, userID)
+func (_mock *MockWorkflowService) ListDistinctWorkflowFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
+	ret := _mock.Called(ctx, userID, additionalFilters)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListDistinctWorkflowFilters")
@@ -1018,18 +1018,18 @@ func (_mock *MockWorkflowService) ListDistinctWorkflowFilters(ctx context.Contex
 
 	var r0 map[string][]string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (map[string][]string, error)); ok {
-		return returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter) (map[string][]string, error)); ok {
+		return returnFunc(ctx, userID, additionalFilters)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) map[string][]string); ok {
-		r0 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter) map[string][]string); ok {
+		r0 = returnFunc(ctx, userID, additionalFilters)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string][]string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []queryutil.CrudFilter) error); ok {
+		r1 = returnFunc(ctx, userID, additionalFilters)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1044,11 +1044,12 @@ type MockWorkflowService_ListDistinctWorkflowFilters_Call struct {
 // ListDistinctWorkflowFilters is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uint
-func (_e *MockWorkflowService_Expecter) ListDistinctWorkflowFilters(ctx interface{}, userID interface{}) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
-	return &MockWorkflowService_ListDistinctWorkflowFilters_Call{Call: _e.mock.On("ListDistinctWorkflowFilters", ctx, userID)}
+//   - additionalFilters []queryutil.CrudFilter
+func (_e *MockWorkflowService_Expecter) ListDistinctWorkflowFilters(ctx interface{}, userID interface{}, additionalFilters interface{}) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
+	return &MockWorkflowService_ListDistinctWorkflowFilters_Call{Call: _e.mock.On("ListDistinctWorkflowFilters", ctx, userID, additionalFilters)}
 }
 
-func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) Run(run func(ctx context.Context, userID uint)) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
+func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) Run(run func(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter)) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1058,9 +1059,14 @@ func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) Run(run func(ctx
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 []queryutil.CrudFilter
+		if args[2] != nil {
+			arg2 = args[2].([]queryutil.CrudFilter)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -1071,13 +1077,13 @@ func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) Return(stringToS
 	return _c
 }
 
-func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) RunAndReturn(run func(ctx context.Context, userID uint) (map[string][]string, error)) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
+func (_c *MockWorkflowService_ListDistinctWorkflowFilters_Call) RunAndReturn(run func(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error)) *MockWorkflowService_ListDistinctWorkflowFilters_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListWorkflowInstances provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) ListWorkflowInstances(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*core.WorkflowInstance, int64, error) {
+func (_mock *MockWorkflowService) ListWorkflowInstances(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*core.WorkflowInstance, int64, error) {
 	ret := _mock.Called(ctx, userID, filters, sorts, pagination)
 
 	if len(ret) == 0 {
@@ -1087,22 +1093,22 @@ func (_mock *MockWorkflowService) ListWorkflowInstances(ctx context.Context, use
 	var r0 []*core.WorkflowInstance
 	var r1 int64
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) ([]*core.WorkflowInstance, int64, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) ([]*core.WorkflowInstance, int64, error)); ok {
 		return returnFunc(ctx, userID, filters, sorts, pagination)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) []*core.WorkflowInstance); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) []*core.WorkflowInstance); ok {
 		r0 = returnFunc(ctx, userID, filters, sorts, pagination)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*core.WorkflowInstance)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) int64); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) int64); ok {
 		r1 = returnFunc(ctx, userID, filters, sorts, pagination)
 	} else {
 		r1 = ret.Get(1).(int64)
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, []filter.CrudFilter, []filter.Sort, filter.Pagination) error); ok {
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) error); ok {
 		r2 = returnFunc(ctx, userID, filters, sorts, pagination)
 	} else {
 		r2 = ret.Error(2)
@@ -1118,14 +1124,14 @@ type MockWorkflowService_ListWorkflowInstances_Call struct {
 // ListWorkflowInstances is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uint
-//   - filters []filter.CrudFilter
-//   - sorts []filter.Sort
-//   - pagination filter.Pagination
+//   - filters []queryutil.CrudFilter
+//   - sorts []queryutil.Sort
+//   - pagination queryutil.Pagination
 func (_e *MockWorkflowService_Expecter) ListWorkflowInstances(ctx interface{}, userID interface{}, filters interface{}, sorts interface{}, pagination interface{}) *MockWorkflowService_ListWorkflowInstances_Call {
 	return &MockWorkflowService_ListWorkflowInstances_Call{Call: _e.mock.On("ListWorkflowInstances", ctx, userID, filters, sorts, pagination)}
 }
 
-func (_c *MockWorkflowService_ListWorkflowInstances_Call) Run(run func(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination)) *MockWorkflowService_ListWorkflowInstances_Call {
+func (_c *MockWorkflowService_ListWorkflowInstances_Call) Run(run func(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination)) *MockWorkflowService_ListWorkflowInstances_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1135,17 +1141,17 @@ func (_c *MockWorkflowService_ListWorkflowInstances_Call) Run(run func(ctx conte
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
-		var arg2 []filter.CrudFilter
+		var arg2 []queryutil.CrudFilter
 		if args[2] != nil {
-			arg2 = args[2].([]filter.CrudFilter)
+			arg2 = args[2].([]queryutil.CrudFilter)
 		}
-		var arg3 []filter.Sort
+		var arg3 []queryutil.Sort
 		if args[3] != nil {
-			arg3 = args[3].([]filter.Sort)
+			arg3 = args[3].([]queryutil.Sort)
 		}
-		var arg4 filter.Pagination
+		var arg4 queryutil.Pagination
 		if args[4] != nil {
-			arg4 = args[4].(filter.Pagination)
+			arg4 = args[4].(queryutil.Pagination)
 		}
 		run(
 			arg0,
@@ -1163,7 +1169,7 @@ func (_c *MockWorkflowService_ListWorkflowInstances_Call) Return(workflowInstanc
 	return _c
 }
 
-func (_c *MockWorkflowService_ListWorkflowInstances_Call) RunAndReturn(run func(ctx context.Context, userID uint, filters []filter.CrudFilter, sorts []filter.Sort, pagination filter.Pagination) ([]*core.WorkflowInstance, int64, error)) *MockWorkflowService_ListWorkflowInstances_Call {
+func (_c *MockWorkflowService_ListWorkflowInstances_Call) RunAndReturn(run func(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*core.WorkflowInstance, int64, error)) *MockWorkflowService_ListWorkflowInstances_Call {
 	_c.Call.Return(run)
 	return _c
 }
