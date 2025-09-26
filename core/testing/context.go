@@ -711,7 +711,10 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 			WithHTTPService(),
 		)
 	} else {
-		opts = append(opts, WithMockHTTPService())
+		opts = append(opts,
+			WithMockHTTPService(),
+			WithConfig("core.port", 80),
+		)
 	}
 
 	opts = append(opts,
