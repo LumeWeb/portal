@@ -93,18 +93,31 @@ type RequestStatus struct {
 	Error           error                    `json:"-"`                // Not serialized
 }
 
+// RequestStatusInfo contains human-readable display information for a request status
+type RequestStatusInfo struct {
+	Name        string `json:"name"`         // Human-readable display name
+	Description string `json:"description"`  // Detailed description of the status
+}
+
+// RequestStatusDisplayNames maps request status types to their human-readable display information
+var RequestStatusDisplayNames = map[models.RequestStatusType]RequestStatusInfo{
+	models.RequestStatusPending:   {Name: "Pending", Description: "Waiting to be processed"},
+	models.RequestStatusProcessing: {Name: "Processing", Description: "Currently being processed"},
+	models.RequestStatusCompleted:  {Name: "Completed", Description: "Successfully completed"},
+	models.RequestStatusFailed:     {Name: "Failed", Description: "Failed to complete"},
+	models.RequestStatusDuplicate:  {Name: "Duplicate", Description: "Duplicate request"},
+}
+
+// GetRequestStatusDisplayInfo returns the human-readable display information for a given request status
+func GetRequestStatusDisplayInfo(status models.RequestStatusType) (RequestStatusInfo, bool) {
+	info, exists := RequestStatusDisplayNames[status]
+	return info, exists
+}
+
 // GetDefaultStatusMessage returns the default status message for a given request status
 func GetDefaultStatusMessage(status models.RequestStatusType) string {
-	switch status {
-	case models.RequestStatusPending:
-		return "Request is pending processing"
-	case models.RequestStatusProcessing:
-		return "Request is being processed"
-	case models.RequestStatusCompleted:
-		return "Request completed successfully"
-	case models.RequestStatusFailed:
-		return "Request failed"
-	default:
-		return ""
+	if info, exists := RequestStatusDisplayNames[status]; exists {
+		return info.Description
 	}
+	return ""
 }

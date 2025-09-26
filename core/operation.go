@@ -16,6 +16,9 @@ type operation struct {
 	handler    OperationHandler
 }
 
+// Ensure operation implements OperationDisplay
+var _ OperationDisplay = (*operation)(nil)
+
 func (o *operation) Type() string {
 	return o.opType
 }
@@ -28,7 +31,49 @@ func (o *operation) Handler() OperationHandler {
 	return o.handler
 }
 
+// DisplayName returns the human-readable display name for this operation
+func (o *operation) DisplayName() string {
+	// If this operation has a global type, use the display info from the map
+	if o.globalType != "" {
+		if info, exists := GetOperationTypeDisplayInfo(o.globalType); exists {
+			return info.Name
+		}
+	}
+	
+	// Fallback to the operation type (e.g., "ipfs.pin")
+	return o.opType
+}
+
 type OperationType string
+
+// Operation category constants
+const (
+	OperationCategoryNetwork = "network"
+	OperationCategoryStorage = "storage"
+	OperationCategoryData    = "data"
+)
+
+// OperationTypeInfo contains human-readable display information for an operation type
+type OperationTypeInfo struct {
+	Name        string `json:"name"`         // Human-readable display name
+	Description string `json:"description"`  // Detailed description of the operation
+	Category    string `json:"category"`     // Category of the operation (network, storage, data)
+}
+
+// OperationTypeDisplayNames maps operation types to their human-readable display information
+var OperationTypeDisplayNames = map[OperationType]OperationTypeInfo{
+	// Network operations
+	OpTypeRetrieve: {Name: "Retrieve", Description: "Fetch content from network", Category: OperationCategoryNetwork},
+	OpTypePublish:  {Name: "Publish", Description: "Publish content to network", Category: OperationCategoryNetwork},
+
+	// Storage operations
+	OpTypeStore:   {Name: "Store", Description: "Store content locally", Category: OperationCategoryStorage},
+	OpTypeUnstore: {Name: "Unstore", Description: "Remove local storage", Category: OperationCategoryStorage},
+
+	// Data operations
+	OpTypeUpload: {Name: "Upload", Description: "Upload new content", Category: OperationCategoryData},
+	OpTypeScan:   {Name: "Scan", Description: "Scan and validate content", Category: OperationCategoryData},
+}
 
 var (
 	// Network operations
@@ -48,6 +93,11 @@ type Operation interface {
 	Type() string              // Specific operation name (e.g., "ipfs.pin" or "ipfs.pin.car")
 	GlobalType() OperationType // Optional global type mapping (e.g., OpTypePin) or empty for custom ops
 	Handler() OperationHandler // The handler implementation
+}
+
+// OperationDisplay provides human-readable display information for operations
+type OperationDisplay interface {
+	DisplayName() string // Human-readable display name for the operation
 }
 
 type OperationHandler interface {
@@ -293,6 +343,29 @@ func (h *OperationHelperDefault) UpdateWorkflowData(requestID uint, data map[str
 // UpdateWorkflowDataStruct updates workflow metadata with the provided struct
 func (h *OperationHelperDefault) UpdateWorkflowDataStruct(requestID uint, data any) error {
 	return h.workflow.UpdateWorkflowDataStruct(h.ctx, requestID, data, h.unmarshalTag)
+}
+
+// GetOperationTypeDisplayInfo returns the human-readable display information for a given operation type
+func GetOperationTypeDisplayInfo(opType OperationType) (OperationTypeInfo, bool) {
+	info, exists := OperationTypeDisplayNames[opType]
+	return info, exists
+}
+
+// GetOperationDisplayName returns the human-readable display name for a given operation
+func GetOperationDisplayName(op Operation) string {
+	if op == nil {
+		return ""
+	}
+
+	if displayOp, ok := op.(OperationDisplay); ok {
+		return displayOp.DisplayName()
+	}
+
+	if info, ok := GetOperationTypeDisplayInfo(op.GlobalType()); ok && info.Name != "" {
+		return info.Name
+	}
+
+	return op.Type()
 }
 
 // StartWorkflow starts a new workflow with the given name and options
