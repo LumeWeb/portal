@@ -11,10 +11,12 @@ import (
 )
 
 var _ core.StorageProtocol = (*MockProtocol)(nil)
+var _ core.Protocol = (*MockProtocol)(nil)
 
 // MockProtocol implements core.Protocol for testing
 type MockProtocol struct {
 	NameValue          string
+	DisplayNameValue   string
 	ConfigValue        config.ProtocolConfig
 	OperationsValue    []core.Operation
 	WorkflowsValue     []core.WorkflowDefinition
@@ -30,6 +32,13 @@ func (p *MockProtocol) TB() TB {
 }
 
 func (p *MockProtocol) Name() string {
+	return p.NameValue
+}
+
+func (p *MockProtocol) DisplayName() string {
+	if p.DisplayNameValue != "" {
+		return p.DisplayNameValue
+	}
 	return p.NameValue
 }
 
@@ -84,11 +93,12 @@ func NewMockProtocol(t TB, name string) *MockProtocol {
 		})
 
 	return &MockProtocol{
-		tb:              t,
-		NameValue:       name,
-		OperationsValue: []core.Operation{},
-		WorkflowsValue:  []core.WorkflowDefinition{},
-		PinHandlerValue: pinHandler,
+		tb:               t,
+		NameValue:        name,
+		DisplayNameValue: name,
+		OperationsValue:  []core.Operation{},
+		WorkflowsValue:   []core.WorkflowDefinition{},
+		PinHandlerValue:  pinHandler,
 		HashFunc: func(r io.Reader, size uint64) (core.StorageHash, error) {
 			// Read all data from reader
 			data, err := io.ReadAll(r)
