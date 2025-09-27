@@ -76,12 +76,11 @@ func (of *OperationFinderDefault) FindOperationHandler(operationType string) (co
 	// Special case for content scan operation
 	if operationType == ContentScanOperation {
 		scanner := core.NewNoContentScanner()
-		handler := &contentScanAdapter{scanner: scanner}
-		scanOp := core.NewOperation(ContentScanOperation, core.OpTypeScan, handler)
+		scanOp := core.NewOperation("content.scan", core.OpTypeScan, scanner.(core.OperationHandler))
 		of.opCacheMu.Lock()
 		of.opCache[operationType] = operationCacheEntry{op: scanOp, handler: handler}
 		of.opCacheMu.Unlock()
-		return scanOp, handler, nil
+		return scanOp, scanner.(core.OperationHandler), nil
 	}
 
 	return nil, nil, fmt.Errorf("operation not found: %s", operationType)

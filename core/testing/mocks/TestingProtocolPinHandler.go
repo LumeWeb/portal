@@ -207,6 +207,50 @@ func (_c *MockTestingProtocolPinHandler_DeleteProtocolPin_Call) RunAndReturn(run
 	return _c
 }
 
+// DisplayName provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) DisplayName() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DisplayName")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_DisplayName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisplayName'
+type MockTestingProtocolPinHandler_DisplayName_Call struct {
+	*mock.Call
+}
+
+// DisplayName is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) DisplayName() *MockTestingProtocolPinHandler_DisplayName_Call {
+	return &MockTestingProtocolPinHandler_DisplayName_Call{Call: _e.mock.On("DisplayName")}
+}
+
+func (_c *MockTestingProtocolPinHandler_DisplayName_Call) Run(run func()) *MockTestingProtocolPinHandler_DisplayName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_DisplayName_Call) Return(s string) *MockTestingProtocolPinHandler_DisplayName_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_DisplayName_Call) RunAndReturn(run func() string) *MockTestingProtocolPinHandler_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetProtocolPin provides a mock function for the type MockTestingProtocolPinHandler
 func (_mock *MockTestingProtocolPinHandler) GetProtocolPin(ctx context.Context, tx *gorm.DB, id uint) (any, error) {
 	ret := _mock.Called(ctx, tx, id)

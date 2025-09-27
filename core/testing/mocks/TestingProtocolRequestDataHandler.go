@@ -263,6 +263,50 @@ func (_c *MockTestingProtocolRequestDataHandler_DeleteProtocolData_Call) RunAndR
 	return _c
 }
 
+// DisplayName provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) DisplayName() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DisplayName")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_DisplayName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisplayName'
+type MockTestingProtocolRequestDataHandler_DisplayName_Call struct {
+	*mock.Call
+}
+
+// DisplayName is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) DisplayName() *MockTestingProtocolRequestDataHandler_DisplayName_Call {
+	return &MockTestingProtocolRequestDataHandler_DisplayName_Call{Call: _e.mock.On("DisplayName")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DisplayName_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_DisplayName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DisplayName_Call) Return(s string) *MockTestingProtocolRequestDataHandler_DisplayName_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DisplayName_Call) RunAndReturn(run func() string) *MockTestingProtocolRequestDataHandler_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetProtocolData provides a mock function for the type MockTestingProtocolRequestDataHandler
 func (_mock *MockTestingProtocolRequestDataHandler) GetProtocolData(ctx context.Context, tx *gorm.DB, id uint) (any, error) {
 	ret := _mock.Called(ctx, tx, id)
