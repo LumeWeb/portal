@@ -83,6 +83,50 @@ func (_c *MockProtocol_Config_Call) RunAndReturn(run func() config.ProtocolConfi
 	return _c
 }
 
+// DisplayName provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) DisplayName() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DisplayName")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockProtocol_DisplayName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DisplayName'
+type MockProtocol_DisplayName_Call struct {
+	*mock.Call
+}
+
+// DisplayName is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) DisplayName() *MockProtocol_DisplayName_Call {
+	return &MockProtocol_DisplayName_Call{Call: _e.mock.On("DisplayName")}
+}
+
+func (_c *MockProtocol_DisplayName_Call) Run(run func()) *MockProtocol_DisplayName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_DisplayName_Call) Return(s string) *MockProtocol_DisplayName_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockProtocol_DisplayName_Call) RunAndReturn(run func() string) *MockProtocol_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Name provides a mock function for the type MockProtocol
 func (_mock *MockProtocol) Name() string {
 	ret := _mock.Called()
