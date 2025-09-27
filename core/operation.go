@@ -3,10 +3,11 @@ package core
 import (
 	"context"
 	"fmt"
-	"github.com/knadh/koanf/v2"
-	"go.lumeweb.com/portal/db/models"
 	"reflect"
 	"strings"
+
+	"github.com/knadh/koanf/v2"
+	"go.lumeweb.com/portal/db/models"
 )
 
 // Default implementation
@@ -39,7 +40,7 @@ func (o *operation) DisplayName() string {
 			return info.Name
 		}
 	}
-	
+
 	// Fallback to the operation type (e.g., "ipfs.pin")
 	return o.opType
 }
@@ -55,9 +56,9 @@ const (
 
 // OperationTypeInfo contains human-readable display information for an operation type
 type OperationTypeInfo struct {
-	Name        string `json:"name"`         // Human-readable display name
-	Description string `json:"description"`  // Detailed description of the operation
-	Category    string `json:"category"`     // Category of the operation (network, storage, data)
+	Name        string `json:"name"`        // Human-readable display name
+	Description string `json:"description"` // Detailed description of the operation
+	Category    string `json:"category"`    // Category of the operation (network, storage, data)
 }
 
 // OperationTypeDisplayNames maps operation types to their human-readable display information
@@ -212,6 +213,16 @@ func NewUnstoreOperation(protocol string, handler OperationHandler) Operation {
 		OpTypeUnstore,
 		handler,
 	)
+}
+
+// OperationFinder provides methods for finding operations by type
+type OperationFinder interface {
+	// FindOperationHandler finds an operation handler by full operation type (e.g. "ipfs.pin")
+	FindOperationHandler(operationType string) (Operation, OperationHandler, error)
+	// FindProtocolOperation finds an operation handler for a protocol operation
+	FindProtocolOperation(operationType string) (Operation, OperationHandler, error)
+	// FindPluginOperation finds an operation handler for a plugin operation
+	FindPluginOperation(operationType string) (Operation, OperationHandler, error)
 }
 
 // OperationHelper provides helper methods for working with operations
