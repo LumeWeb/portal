@@ -17,6 +17,7 @@ var (
 
 type Protocol interface {
 	Name() string
+	DisplayName() string
 	Config() config.ProtocolConfig
 	Operations() []Operation
 	Workflows() []WorkflowDefinition
