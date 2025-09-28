@@ -60,5 +60,19 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 	}
 
 	// Execute the workflow step
-	return workflowSvc.ExecuteWorkflowStep(ctx, args)
+	err = workflowSvc.ExecuteWorkflowStep(ctx, args)
+	if err != nil {
+		return fmt.Errorf("failed to execute workflow step: %w", err)
+	}
+
+	// If execution was successful, advance to the next step
+	err = workflowSvc.CompleteWorkflowStep(ctx, args)
+	if err != nil {
+		ctx.Logger().Error("Failed to complete workflow step after successful execution",
+			zap.Uint("requestID", args),
+			zap.Error(err))
+		return fmt.Errorf("failed to complete workflow step: %w", err)
+	}
+
+	return nil
 }
