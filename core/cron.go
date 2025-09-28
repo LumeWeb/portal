@@ -497,6 +497,9 @@ type CronCoordinator interface {
 	Start() error
 	// Close closes the coordinator.
 	Close() error
+
+	// RemoveJob removes a job from the scheduler.
+	RemoveJob(jobID uuid.UUID) error
 }
 
 // CronJobFactoryFunc defines a function signature for creating CronJob instances.
