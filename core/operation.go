@@ -151,6 +151,10 @@ func TUSUploadOperationName(protocol string) string {
 	return tusOperationName(protocol, OpTypeUpload)
 }
 
+func PostUploadOperationName(protocol string) string {
+	return postOperationName(protocol, OpTypeUpload)
+}
+
 func ScanOperationName(protocol string) string {
 	return operationName(protocol, OpTypeScan)
 }
