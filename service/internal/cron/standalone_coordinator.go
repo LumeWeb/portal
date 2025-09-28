@@ -235,10 +235,15 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 
 	// Define the before job runs event listener
 	beforeJobRuns := func(jobID uuid.UUID, jobName string) {
-		s.logger.Debug("Before job runs", zap.String("jobID", jobID.String()), zap.String("jobName", jobName))
+		s.logger.Debug("Before job runs", 
+			zap.String("jobID", jobID.String()), 
+			zap.String("jobName", jobName))
+		
 		// Perform any pre-execution tasks here
 		if err := s.SetupJob(jobID); err != nil {
-			s.logger.Error("Failed to setup job", zap.String("jobID", jobID.String()), zap.Error(err))
+			s.logger.Error("Failed to setup job", 
+				zap.String("jobID", jobID.String()), 
+				zap.Error(err))
 		}
 	}
 
@@ -407,21 +412,35 @@ func (s *StandaloneCoordinator) getOrCreateJobContext(jobID uuid.UUID) (context.
 }
 
 func (s *StandaloneCoordinator) SetupJob(jobID uuid.UUID) error {
+	// Get current job state for defensive logging
+	dbJob, err := s.getJobRecord(jobID)
+	if err != nil {
+		return fmt.Errorf("failed to get job record: %w", err)
+	}
+
+	if dbJob.State == models.CronJobStateCompleted {
+		s.logger.Debug("SetupJob called on completed job - this should not happen normally", 
+			zap.String("jobID", jobID.String()),
+			zap.String("currentState", string(dbJob.State)))
+	}
+
 	ctx, err := s.getOrCreateJobContext(jobID)
 	if err != nil {
 		return fmt.Errorf("failed to create job context: %w", err)
 	}
 
-	// Setup job state to Running
-	if err := s.cronService.StateMachine().Transition(
-		ctx,
-		jobID,
-		models.CronJobStateRunning,
-		core.WithCronHeartbeat(),
-		core.WithCronLastRun(),
-	); err != nil {
-		s.cancelJobContext(jobID)
-		return fmt.Errorf("failed to transition job to running state: %w", err)
+	// Only transition to running if currently queued
+	if dbJob.State == models.CronJobStateQueued {
+		if err := s.cronService.StateMachine().Transition(
+			ctx,
+			jobID,
+			models.CronJobStateRunning,
+			core.WithCronHeartbeat(),
+			core.WithCronLastRun(),
+		); err != nil {
+			s.cancelJobContext(jobID)
+			return fmt.Errorf("failed to transition job to running state: %w", err)
+		}
 	}
 
 	// Start heartbeat monitoring
@@ -444,6 +463,18 @@ func (s *StandaloneCoordinator) cancelJobContext(jobID uuid.UUID) {
 }
 
 func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
+	// Get current job state for defensive logging
+	dbJob, err := s.getJobRecord(jobID)
+	if err != nil {
+		return fmt.Errorf("failed to get job record: %w", err)
+	}
+
+	if dbJob.State == models.CronJobStateCompleted {
+		s.logger.Debug("CleanupJob called on already completed job - this should not happen normally", 
+			zap.String("jobID", jobID.String()),
+			zap.String("currentState", string(dbJob.State)))
+	}
+
 	s.cronService.Monitor().StopHeartbeat(jobID)
 	s.cancelJobContext(jobID)
 
@@ -452,13 +483,24 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 	delete(s.failureCounts, jobID)
 	s.failureMu.Unlock()
 
-	// Success case
-	if err := s.cronService.StateMachine().Transition(
-		context.Background(),
-		jobID,
-		models.CronJobStateCompleted,
-	); err != nil {
-		return fmt.Errorf("failed to transition job to completed state: %w", err)
+	// Only transition to completed if currently running
+	if dbJob.State == models.CronJobStateRunning {
+		if err := s.cronService.StateMachine().Transition(
+			context.Background(),
+			jobID,
+			models.CronJobStateCompleted,
+		); err != nil {
+			return fmt.Errorf("failed to transition job to completed state: %w", err)
+		}
+	}
+
+	// Remove completed job from scheduler
+	if dbJob.State == models.CronJobStateCompleted {
+		if err := s.scheduler.RemoveJob(jobID); err != nil {
+			s.logger.Warn("Failed to remove completed job from scheduler",
+				zap.String("jobID", jobID.String()),
+				zap.Error(err))
+		}
 	}
 
 	s.logger.Debug("Finished job execution",
@@ -486,6 +528,10 @@ func (s *StandaloneCoordinator) Jobs() []gocron.Job {
 
 func (s *StandaloneCoordinator) Close() error {
 	return s.scheduler.Shutdown()
+}
+
+func (s *StandaloneCoordinator) RemoveJob(jobID uuid.UUID) error {
+	return s.scheduler.RemoveJob(jobID)
 }
 
 func (s *StandaloneCoordinator) JobContext(jobID uuid.UUID) context.Context {
