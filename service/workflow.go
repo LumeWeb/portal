@@ -351,6 +351,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 
 	// Auto-trigger first step if configured
 	if wf.AutoTriggerFirstStep {
+		firstStep = wf.Steps[0]
 		if firstStep.Foreground {
 			if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to execute first step",
@@ -368,7 +369,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 				return createdReq, nil
 			}
 		} else {
-			if err := w.dispatchToCron(ctx, createdReq.ID); err != nil {
+			if err := w.DispatchWorkflowStep(ctx, createdReq.ID); err != nil {
 				w.logger.Error("Failed to dispatch first step to cron",
 					zap.String("workflow", wf.Name),
 					zap.Uint("requestID", createdReq.ID),
@@ -507,7 +508,7 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		}
 		return nil
 	}
-	return w.dispatchToCron(ctx, createdReq.ID)
+	return w.DispatchWorkflowStep(ctx, createdReq.ID)
 }
 
 // FailWorkflowStep handles a step failure
@@ -1129,7 +1130,7 @@ func (w *WorkflowCoordinatorDefault) ListDistinctWorkflowFilters(ctx context.Con
 
 	// Combine workflow filters with any additional filters
 	allFilters := append(workflowFilters, additionalFilters...)
-	
+
 	// Delegate to request service's ListDistinctRequestFilters with all filters
 	return w.requestSvc.ListDistinctRequestFilters(ctx, userID, allFilters)
 }
@@ -1215,8 +1216,8 @@ func (w *WorkflowCoordinatorDefault) findWorkflowChainRoot(ctx context.Context, 
 }
 
 // getStepIndexAndStep finds both the index and step by its ID in a workflow definition
-func (w *WorkflowCoordinatorDefault) getStepIndexAndStep(workflow *core.WorkflowDefinition, stepID string) (int, error) {
-	_, currentStepIndex, found := lo.FindIndexOf(workflow.Steps, func(step core.OperationStep) bool {
+func (w *WorkflowCoordinatorDefault) getStepIndexAndStep(wf *core.WorkflowDefinition, stepID string) (int, error) {
+	_, currentStepIndex, found := lo.FindIndexOf(wf.Steps, func(step core.OperationStep) bool {
 		return step.ID == stepID
 	})
 
@@ -1228,13 +1229,46 @@ func (w *WorkflowCoordinatorDefault) getStepIndexAndStep(workflow *core.Workflow
 }
 
 // getStepByID finds a step by its ID in a workflow definition
-func (w *WorkflowCoordinatorDefault) getStepByID(workflow *core.WorkflowDefinition, stepID string) (core.OperationStep, error) {
-	currentStepIndex, err := w.getStepIndexAndStep(workflow, stepID)
+func (w *WorkflowCoordinatorDefault) getStepByID(wf *core.WorkflowDefinition, stepID string) (core.OperationStep, error) {
+	currentStepIndex, err := w.getStepIndexAndStep(wf, stepID)
 	if err != nil {
 		return core.OperationStep{}, err
 	}
 
-	return workflow.Steps[currentStepIndex], nil
+	return wf.Steps[currentStepIndex], nil
+}
+
+// DispatchWorkflowStep runs the current step inline when marked foreground, or schedules it via cron otherwise
+func (w *WorkflowCoordinatorDefault) DispatchWorkflowStep(ctx context.Context, requestID uint) error {
+	// Get current request and parse metadata
+	_, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+	if err != nil {
+		return err
+	}
+
+	if w.isDisabled(metadata.WorkflowName) {
+		w.logger.Warn("Attempted to dispatch step in disabled workflow",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID))
+		return nil
+	}
+
+	// Get workflow and current step
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
+	if err != nil {
+		return err
+	}
+
+	currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
+	if err != nil {
+		return err
+	}
+
+	// Execute or dispatch based on step configuration
+	if currentStep.Foreground {
+		return w.ExecuteWorkflowStep(ctx, requestID)
+	}
+	return w.dispatchToCron(ctx, requestID)
 }
 
 // getCurrentStepIndex gets the current step index from workflow metadata
