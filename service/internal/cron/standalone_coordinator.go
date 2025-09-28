@@ -496,12 +496,15 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 		state = models.CronJobStateCompleted
 	}
 
-	// Remove completed job from scheduler
+	// Remove completed job from scheduler only if it's a one-shot job
 	if state == models.CronJobStateCompleted {
-		if err := s.scheduler.RemoveJob(jobID); err != nil {
-			s.logger.Warn("Failed to remove completed job from scheduler",
-				zap.String("jobID", jobID.String()),
-				zap.Error(err))
+		// Check if this is a "once" job that should be removed from scheduler
+		if dbJob.ScheduleType == string(core.CronScheduleTypeOnce) {
+			if err := s.scheduler.RemoveJob(jobID); err != nil {
+				s.logger.Warn("Failed to remove completed job from scheduler",
+					zap.String("jobID", jobID.String()),
+					zap.Error(err))
+			}
 		}
 	}
 
