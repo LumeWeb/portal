@@ -484,7 +484,8 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 	s.failureMu.Unlock()
 
 	// Only transition to completed if currently running
-	if dbJob.State == models.CronJobStateRunning {
+	state := dbJob.State
+	if state == models.CronJobStateRunning {
 		if err := s.cronService.StateMachine().Transition(
 			context.Background(),
 			jobID,
@@ -492,10 +493,11 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 		); err != nil {
 			return fmt.Errorf("failed to transition job to completed state: %w", err)
 		}
+		state = models.CronJobStateCompleted
 	}
 
 	// Remove completed job from scheduler
-	if dbJob.State == models.CronJobStateCompleted {
+	if state == models.CronJobStateCompleted {
 		if err := s.scheduler.RemoveJob(jobID); err != nil {
 			s.logger.Warn("Failed to remove completed job from scheduler",
 				zap.String("jobID", jobID.String()),
