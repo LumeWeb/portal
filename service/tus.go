@@ -465,11 +465,12 @@ func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSU
 			return
 		}
 
-		err = workflowSvc.ExecuteWorkflowStep(ctx, tusReq.RequestID)
+		// Dispatch the first workflow step using the public interface
+		err = workflowSvc.DispatchWorkflowStep(ctx, tusReq.RequestID)
 		if err != nil {
-			ctx.Logger().Error("Failed to execute workflow step", zap.Error(err))
+			ctx.Logger().Error("Failed to dispatch workflow step", zap.Error(err))
 			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID,
-				fmt.Sprintf("Workflow execution failed: %v", err)); updateErr != nil {
+				fmt.Sprintf("Workflow dispatch failed: %v", err)); updateErr != nil {
 				ctx.Logger().Error("Failed to update request status",
 					zap.Error(updateErr),
 					zap.Uint("requestID", tusReq.RequestID))

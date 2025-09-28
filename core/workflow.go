@@ -55,6 +55,9 @@ type WorkflowCoordinator interface {
 
 	// Cleanup all requests in a workflow
 	CleanupWorkflow(ctx context.Context, requestID uint) error
+
+	// DispatchWorkflowStep runs the current step inline when marked foreground, or schedules it via cron otherwise
+	DispatchWorkflowStep(ctx context.Context, requestID uint) error
 }
 
 // WorkflowInstance represents a found workflow instance
