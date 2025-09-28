@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/db/models"
 )
 
@@ -116,11 +117,11 @@ type OperationHandler interface {
 }
 
 func operationName(protocol string, opType OperationType) string {
-	return fmt.Sprintf("%s.%s", protocol, strings.ToLower(string(opType)))
+	return formatOperationName(protocol, strings.ToLower(string(opType)))
 }
 
 func prefixedOperationName(protocol string, prefix string, opType OperationType) string {
-	return fmt.Sprintf("%s.%s.%s", protocol, prefix, strings.ToLower(string(opType)))
+	return formatOperationName(protocol, prefix, strings.ToLower(string(opType)))
 }
 
 func tusOperationName(protocol string, opType OperationType) string {
@@ -161,6 +162,27 @@ func ScanOperationName(protocol string) string {
 
 func UnstoreOperationName(protocol string) string {
 	return operationName(protocol, OpTypeUnstore)
+}
+
+// OperationName creates an operation name by joining the protocol with additional parts
+func OperationName(protocol string, parts ...string) string {
+	allParts := append([]string{protocol}, parts...)
+	return formatOperationName(allParts...)
+}
+
+// stringArgsToInterface converts a slice of strings to a slice of interfaces
+// formatOperationName creates a format string with "%s.%s.%s..." pattern based on the number of arguments
+func formatOperationName(parts ...string) string {
+	// Filter out empty parts
+	filteredParts := lo.Filter(parts, func(part string, _ int) bool {
+		return part != ""
+	})
+	
+	if len(filteredParts) == 0 {
+		return ""
+	}
+	
+	return strings.Join(filteredParts, ".")
 }
 
 func NewOperation(opType string, globalType OperationType, handler OperationHandler) Operation {

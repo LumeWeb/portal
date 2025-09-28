@@ -84,14 +84,15 @@ func TestGetAPIExtensions_MultipleExtensions(t *testing.T) {
 }
 
 func TestResetEvents(t *testing.T) {
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 	recorder := coreTesting.NewEventRecorder()
 
 	// Listen to test events
 	recorder.Listen(ctx, "test-event-1", "test-event-2")
 
 	// Fire some events
-	err := ctx.Fire("test-event-1", nil)
+	err = ctx.Fire("test-event-1", nil)
 	assert.NoError(t, err)
 	err = ctx.Fire("test-event-2", nil)
 	assert.NoError(t, err)

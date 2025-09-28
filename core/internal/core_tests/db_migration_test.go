@@ -1,12 +1,12 @@
 package core_tests
 
 import (
-	"errors"
+	"testing"
+	"testing/fstest"
+
 	"go.lumeweb.com/portal"
 	mockMigrations "go.lumeweb.com/portal/core/internal/core_tests/fixtures/migrations"
 	coreTesting "go.lumeweb.com/portal/core/testing"
-	"testing"
-	"testing/fstest"
 )
 
 func TestMigrationManager_RunMigrations(t *testing.T) {
@@ -33,7 +33,7 @@ func TestMigrationManager_RunMigrations(t *testing.T) {
 		if !tableExists {
 			t.Error("Migrations table 'goose_db_version' does not exist")
 		}
-	}, coreTesting.WithSQLite(t))
+	}, coreTesting.WithSQLite())
 }
 
 func TestMigrationManager_RunMigrations_NoCluster(t *testing.T) {
@@ -66,10 +66,10 @@ func TestMigrationManager_RunMigrations_NoCluster(t *testing.T) {
 		if !tableExists {
 			t.Error("Migrations table 'goose_db_version' does not exist")
 		}
-	}, coreTesting.WithSQLite(t))
+	}, coreTesting.WithSQLite())
 }
 
-func TestMigrationManager_RunMigrations_LockAcquireFailed(t *testing.T) {
+func TestMigrationManager_RunMigrations_ClusterMode(t *testing.T) {
 	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		// Enable cluster mode
 		err := ctx.Config().Set(ctx, "core.clustered.enabled", true)
@@ -86,7 +86,7 @@ func TestMigrationManager_RunMigrations_LockAcquireFailed(t *testing.T) {
 		// Run migrations
 		db := ctx.DB()
 		err = migrationManager.RunMigrations(db)
-		if err != nil && !errors.Is(err, portal.ErrLockAcquireFailed) {
+		if err != nil {
 			t.Fatalf("RunMigrations failed: %v", err)
 		}
 
@@ -99,7 +99,7 @@ func TestMigrationManager_RunMigrations_LockAcquireFailed(t *testing.T) {
 		if !tableExists {
 			t.Error("Migrations table 'goose_db_version' does not exist")
 		}
-	}, coreTesting.WithSQLite(t))
+	}, coreTesting.WithSQLite())
 }
 
 func TestMigrationManager_executeMigrations(t *testing.T) {
@@ -136,7 +136,7 @@ func TestMigrationManager_executeMigrations(t *testing.T) {
 		if !tableExists {
 			t.Error("Table 'test_table' does not exist after migrations")
 		}
-	}, coreTesting.WithSQLite(t), coreTesting.WithSQLitePluginMigrations(pluginID, migrationsFS))
+	}, coreTesting.WithSQLite(), coreTesting.WithSQLitePluginMigrations(pluginID, migrationsFS))
 }
 
 func TestMigrationManager_executeMigrations_GoMigration(t *testing.T) {
@@ -166,5 +166,5 @@ func TestMigrationManager_executeMigrations_GoMigration(t *testing.T) {
 		if !tableExists {
 			t.Error("Table 'test_table' does not exist after migrations")
 		}
-	}, coreTesting.WithSQLite(t), coreTesting.WithSQLitePluginMigrations(pluginID, mockMigrations.GetSQLite()))
+	}, coreTesting.WithSQLite(), coreTesting.WithSQLitePluginMigrations(pluginID, mockMigrations.GetSQLite()))
 }

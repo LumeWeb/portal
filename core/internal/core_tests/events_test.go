@@ -192,13 +192,14 @@ func withTestListener[P any](t *testing.T, ctx core.Context, eventName string, e
 
 func TestFire(t *testing.T) {
 	// Create test context
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 
 	// Setup listener
 	wg, called := withTestListener(t, ctx, "test.event", "test data", false)
 
 	// Fire event
-	err := core.FireByValue[string](ctx, "test.event", "test data")
+	err = core.FireByValue[string](ctx, "test.event", "test data")
 	assert.NoError(t, err)
 
 	// Wait and verify
@@ -213,7 +214,8 @@ func TestFire_WithStruct(t *testing.T) {
 	}
 
 	// Create test context
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 
 	// Setup expected payload
 	expected := TestPayload{
@@ -225,7 +227,7 @@ func TestFire_WithStruct(t *testing.T) {
 	wg, called := withTestListener(t, ctx, "test.struct", expected, false)
 
 	// Fire event with struct payload
-	err := core.Fire(ctx, "test.struct", &expected)
+	err = core.Fire(ctx, "test.struct", &expected)
 	assert.NoError(t, err)
 
 	// Wait and verify
@@ -235,12 +237,13 @@ func TestFire_WithStruct(t *testing.T) {
 
 func TestMustFire(t *testing.T) {
 	// Create test context
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 
 	// Test successful case (no error)
 	wg, _ := withTestListener(t, ctx, "test.event", "test data", false)
 	assert.NotPanics(t, func() {
-		core.MustFire(ctx, "test.event", lo.ToPtr("test data")) 
+		core.MustFire(ctx, "test.event", lo.ToPtr("test data"))
 	})
 	wg.Wait()
 
@@ -255,7 +258,8 @@ func TestMustFire(t *testing.T) {
 
 func TestFireAsync(t *testing.T) {
 	// Create test context
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 
 	// Setup listener
 	wg, called := withTestListener(t, ctx, "test.event", "test data", false)
@@ -270,7 +274,8 @@ func TestFireAsync(t *testing.T) {
 
 func TestListen(t *testing.T) {
 	// Create test context
-	ctx := coreTesting.NewTestContext(t)
+	ctx, err := coreTesting.NewTestContext(t)
+	assert.NoError(t, err)
 
 	// Setup handler
 	var handlerCalled bool
@@ -287,7 +292,7 @@ func TestListen(t *testing.T) {
 	core.Listen(ctx, "test.event", handler)
 
 	// Fire event
-	err := core.Fire(ctx, "test.event", lo.ToPtr("test data"))
+	err = core.Fire(ctx, "test.event", lo.ToPtr("test data"))
 	if err != nil {
 		t.Error(err)
 	}
