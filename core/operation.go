@@ -119,8 +119,16 @@ func operationName(protocol string, opType OperationType) string {
 	return fmt.Sprintf("%s.%s", protocol, strings.ToLower(string(opType)))
 }
 
+func prefixedOperationName(protocol string, prefix string, opType OperationType) string {
+	return fmt.Sprintf("%s.%s.%s", protocol, prefix, strings.ToLower(string(opType)))
+}
+
 func tusOperationName(protocol string, opType OperationType) string {
-	return fmt.Sprintf("%s.tus.%s", protocol, strings.ToLower(string(opType)))
+	return prefixedOperationName(protocol, "tus", opType)
+}
+
+func postOperationName(protocol string, opType OperationType) string {
+	return prefixedOperationName(protocol, "post", opType)
 }
 
 func StoreOperationName(protocol string) string {
@@ -194,6 +202,14 @@ func NewUploadOperation(protocol string, handler OperationHandler) Operation {
 func NewTUSUploadOperation(protocol string, handler OperationHandler) Operation {
 	return NewOperation(
 		TUSUploadOperationName(protocol),
+		OpTypeUpload,
+		handler,
+	)
+}
+
+func NewPostUploadOperation(protocol string, handler OperationHandler) Operation {
+	return NewOperation(
+		postOperationName(protocol, OpTypeUpload),
 		OpTypeUpload,
 		handler,
 	)
