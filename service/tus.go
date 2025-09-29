@@ -247,10 +247,15 @@ func (t *TUSServiceDefault) SetHash(ctx context.Context, protocol core.StoragePr
 		return core.ErrUploadNotFound
 	}
 
-	upload.Request.Hash = hash.Multihash()
-	upload.Request.CIDType = hash.CIDType()
+	req, err := t.requests.GetRequest(ctx, upload.RequestID)
+	if err != nil {
+		return err
+	}
 
-	err := t.requests.UpdateRequest(ctx, &upload.Request)
+	req.Hash = hash.Multihash()
+	req.CIDType = hash.CIDType()
+
+	err = t.requests.UpdateRequest(ctx, req)
 	if err != nil {
 		return err
 	}
