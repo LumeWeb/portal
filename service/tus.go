@@ -400,83 +400,8 @@ func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) 
 	return nil
 }
 
-func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler, workflowName string) core.TUSUploadCallbackHandler {
-	return func(handlr core.TusHandler, info tusHandler.HookEvent) {
-		// Call the original handler first
-		processHandler(handlr, info)
-
-		// Get services
-		requestSvc := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
-		tusService := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
-		workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
-
-		storageProtoMissing := false
-
-		// Get storage protocol first
-		sproto, err := handlr.StorageProtocol()
-		if err != nil {
-			storageProtoMissing = true
-		}
-
-		// Check if this upload exists
-		exists, tusReq := tusService.UploadExists(ctx, sproto, info.Upload.ID)
-		if !exists {
-			return // Not our upload, nothing to do
-		}
-
-		// Verify request exists
-		exists, err = requestSvc.RequestExists(ctx, tusReq.RequestID)
-		if !exists || err != nil {
-			ctx.Logger().Error("Failed to get request", zap.Error(err))
-			return
-		}
-
-		if workflowSvc == nil {
-			ctx.Logger().Error("Workflow service not available")
-			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID, "Workflow service unavailable"); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status",
-					zap.Error(updateErr),
-					zap.Uint("requestID", tusReq.RequestID))
-			}
-			return
-		}
-
-		if storageProtoMissing {
-			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID, "Storage protocol missing"); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status",
-					zap.Error(updateErr),
-					zap.Uint("requestID", tusReq.RequestID))
-			} else {
-				ctx.Logger().Error("Failed to get storage protocol", zap.Error(err), zap.Uint("requestID", tusReq.RequestID))
-			}
-
-		}
-
-		// Convert and execute workflow
-		err = workflowSvc.ConvertRequestToWorkflow(ctx, tusReq.RequestID, workflowName, 0)
-		if err != nil {
-			ctx.Logger().Error("Failed to convert request to workflow", zap.Error(err))
-			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID,
-				fmt.Sprintf("Workflow conversion failed: %v", err)); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status",
-					zap.Error(updateErr),
-					zap.Uint("requestID", tusReq.RequestID))
-			}
-			return
-		}
-
-		// Dispatch the first workflow step using the public interface
-		err = workflowSvc.DispatchWorkflowStep(ctx, tusReq.RequestID)
-		if err != nil {
-			ctx.Logger().Error("Failed to dispatch workflow step", zap.Error(err))
-			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID,
-				fmt.Sprintf("Workflow dispatch failed: %v", err)); updateErr != nil {
-				ctx.Logger().Error("Failed to update request status",
-					zap.Error(updateErr),
-					zap.Uint("requestID", tusReq.RequestID))
-			}
-		}
-	}
+func TUSDefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler, workflowName string, hashCallback core.TUSUploadCompletedHashFunc) core.TUSUploadCallbackHandler {
+	return tus.DefaultUploadCompletedHandler(ctx, processHandler, hashCallback, workflowName)
 }
 
 func TUSDefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackHandler {

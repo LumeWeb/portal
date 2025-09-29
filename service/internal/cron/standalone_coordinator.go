@@ -264,57 +264,13 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 			zap.Error(err))
 
 		s.failureMu.Lock()
-		defer s.failureMu.Unlock()
-
 		// Increment failure count
 		s.failureCounts[jobID]++
+		failures := s.failureCounts[jobID]
+		s.failureMu.Unlock()
 
-		var retryPolicy *core.RetryPolicy
-		if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
-			if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err != nil {
-				s.logger.Error("Failed to parse retry policy",
-					zap.String("jobID", jobID.String()),
-					zap.Error(err))
-			}
-		}
-
-		maxFailures := s.maxFailures
-		if retryPolicy != nil && retryPolicy.MaxRetries > 0 {
-			maxFailures = retryPolicy.MaxRetries
-		}
-
-		if s.failureCounts[jobID] >= maxFailures {
-			s.logger.Error("Job exceeded maximum failure threshold - marking as permanently failed",
-				zap.String("jobID", jobID.String()),
-				zap.Int("failures", s.failureCounts[jobID]))
-
-			// Transition to permanent failure state
-			if err := s.stateMachine.Transition(
-				context.Background(),
-				jobID,
-				models.CronJobStateFailed,
-				core.WithCronFailures(s.failureCounts[jobID]),
-			); err != nil {
-				s.logger.Error("Failed to transition job to failed state",
-					zap.String("jobID", jobID.String()),
-					zap.Error(err))
-			}
-
-			// Remove from scheduler
-			if err := s.scheduler.RemoveJob(jobID); err != nil {
-				s.logger.Error("Failed to remove failed job from scheduler",
-					zap.String("jobID", jobID.String()),
-					zap.Error(err))
-			}
-
-			// Clean up resources
-			delete(s.failureCounts, jobID)
-			s.cancelJobContext(jobID)
-			return
-		}
-
-		// Standard failure handling
-		if err := s.HandleFailedJob(jobID, uint(s.failureCounts[jobID])); err != nil {
+		// Handle all failure transitions through HandleFailedJob
+		if err := s.HandleFailedJob(jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
@@ -328,14 +284,15 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 			zap.String("jobName", jobName),
 			zap.Any("recoverData", recoverData))
 
-		// Attempt to handle the failed job (e.g., requeue)
-		var currentJob models.CronJob
-		err = s.db.Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&currentJob).Error
-		if err != nil {
-			s.logger.Error("Failed to get job failure count", zap.String("jobID", jobID.String()), zap.Error(err))
-			return
-		}
-		if err = s.HandleFailedJob(jobID, currentJob.Failures+1); err != nil {
+		s.failureMu.Lock()
+		// Increment failure count
+		s.failureCounts[jobID]++
+		failures := s.failureCounts[jobID]
+		s.failureMu.Unlock()
+
+		// Handle all failure transitions through HandleFailedJob
+		// For panic recovery, we'll treat it as a retryable failure (not permanent)
+		if err := s.HandleFailedJob(jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job", zap.String("jobID", jobID.String()), zap.Error(err))
 		}
 	}
@@ -367,6 +324,9 @@ func (s *StandaloneCoordinator) HandleFailedJob(jobID uuid.UUID, failures uint) 
 	// Cancel any existing context first
 	s.cancelJobContext(jobID)
 
+	// Stop heartbeat monitoring
+	s.cronService.Monitor().StopHeartbeat(jobID)
+
 	// Update job state to failed and increment failures
 	ctx, cancel := context.WithCancel(s.ctx)
 	defer cancel()
@@ -380,7 +340,33 @@ func (s *StandaloneCoordinator) HandleFailedJob(jobID uuid.UUID, failures uint) 
 		return fmt.Errorf("failed to update job status: %w", err)
 	}
 
-	// Requeue the job
+	// Determine if this is a permanent failure based on retry policy
+	var retryPolicy *core.RetryPolicy
+	if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
+		if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err != nil {
+			s.logger.Error("Failed to parse retry policy",
+				zap.String("jobID", jobID.String()),
+				zap.Error(err))
+		}
+	}
+
+	maxFailures := s.maxFailures
+	if retryPolicy != nil && retryPolicy.MaxRetries > 0 {
+		maxFailures = retryPolicy.MaxRetries
+	}
+
+	permanent := int(failures) >= maxFailures
+
+	// If this is a permanent failure, don't requeue
+	if permanent {
+		s.logger.Error("Job exceeded maximum failure threshold - marking as permanently failed",
+			zap.String("jobID", jobID.String()),
+			zap.Uint("failures", failures),
+			zap.Int("maxFailures", maxFailures))
+		return nil
+	}
+
+	// Requeue the job for retry
 	if err := s.EnqueueJob(jobID); err != nil {
 		return fmt.Errorf("failed to requeue job: %w", err)
 	}

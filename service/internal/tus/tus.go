@@ -521,7 +521,7 @@ func DefaultUploadTerminatedHandler(ctx core.Context) core.TUSUploadCallbackHand
 	}
 }
 
-func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler) core.TUSUploadCallbackHandler {
+func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUploadCallbackHandler, hashCallback core.TUSUploadCompletedHashFunc, workflowName string) core.TUSUploadCallbackHandler {
 	return func(handlr core.TusHandler, hook handler.HookEvent) {
 		sp, err := handlr.StorageProtocol()
 		if err != nil {
@@ -530,6 +530,30 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			ctx.Logger().Error(errMessage, zap.Error(err))
 			return
 		}
+
+		// Compute hash if callback is provided
+		var computedHash core.StorageHash
+		if hashCallback != nil {
+			computedHash, err = hashCallback(handlr, hook)
+			if err != nil {
+				errMessage := "Failed to compute hash"
+				handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
+				ctx.Logger().Error(errMessage, zap.Error(err))
+				return
+			}
+
+			// Update the request with the computed hash using TUS service
+			if computedHash != nil {
+				err = handlr.SetHashById(ctx, hook.Upload.ID, computedHash)
+				if err != nil {
+					errMessage := "Failed to update request with computed hash"
+					handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
+					ctx.Logger().Error(errMessage, zap.Error(err))
+					return
+				}
+			}
+		}
+
 		err = core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, sp, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
@@ -540,6 +564,49 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 
 		if processHandler != nil {
 			processHandler(handlr, hook)
+		}
+
+		// Get services for workflow processing
+		requestSvc := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		tusService := core.GetService[core.TUSService](ctx, core.TUS_SERVICE)
+		workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+
+		// Check if this upload exists
+		exists, tusReq := tusService.UploadExists(ctx, sp, hook.Upload.ID)
+		if !exists {
+			return // Not our upload, nothing to do
+		}
+
+		// Verify request exists
+		exists, err = requestSvc.RequestExists(ctx, tusReq.RequestID)
+		if !exists || err != nil {
+			ctx.Logger().Error("Failed to get request", zap.Error(err))
+			return
+		}
+
+		// Convert and execute workflow
+		err = workflowSvc.ConvertRequestToWorkflow(ctx, tusReq.RequestID, workflowName, 0)
+		if err != nil {
+			ctx.Logger().Error("Failed to convert request to workflow", zap.Error(err))
+			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID,
+				fmt.Sprintf("Workflow conversion failed: %v", err)); updateErr != nil {
+				ctx.Logger().Error("Failed to update request status",
+					zap.Error(updateErr),
+					zap.Uint("requestID", tusReq.RequestID))
+			}
+			return
+		}
+
+		// Dispatch the first workflow step using the public interface
+		err = workflowSvc.DispatchWorkflowStep(ctx, tusReq.RequestID)
+		if err != nil {
+			ctx.Logger().Error("Failed to dispatch workflow step", zap.Error(err))
+			if updateErr := requestSvc.FailRequest(ctx, tusReq.RequestID,
+				fmt.Sprintf("Workflow dispatch failed: %v", err)); updateErr != nil {
+				ctx.Logger().Error("Failed to update request status",
+					zap.Error(updateErr),
+					zap.Uint("requestID", tusReq.RequestID))
+			}
 		}
 	}
 }
