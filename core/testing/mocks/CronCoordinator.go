@@ -515,6 +515,57 @@ func (_c *MockCronCoordinator_Jobs_Call) RunAndReturn(run func() []gocron.Job) *
 	return _c
 }
 
+// RemoveJob provides a mock function for the type MockCronCoordinator
+func (_mock *MockCronCoordinator) RemoveJob(jobID uuid.UUID) error {
+	ret := _mock.Called(jobID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveJob")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
+		r0 = returnFunc(jobID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockCronCoordinator_RemoveJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveJob'
+type MockCronCoordinator_RemoveJob_Call struct {
+	*mock.Call
+}
+
+// RemoveJob is a helper method to define mock.On call
+//   - jobID uuid.UUID
+func (_e *MockCronCoordinator_Expecter) RemoveJob(jobID interface{}) *MockCronCoordinator_RemoveJob_Call {
+	return &MockCronCoordinator_RemoveJob_Call{Call: _e.mock.On("RemoveJob", jobID)}
+}
+
+func (_c *MockCronCoordinator_RemoveJob_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_RemoveJob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 uuid.UUID
+		if args[0] != nil {
+			arg0 = args[0].(uuid.UUID)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronCoordinator_RemoveJob_Call) Return(err error) *MockCronCoordinator_RemoveJob_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockCronCoordinator_RemoveJob_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_RemoveJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetHeartbeat provides a mock function for the type MockCronCoordinator
 func (_mock *MockCronCoordinator) SetHeartbeat(jobID uuid.UUID) error {
 	ret := _mock.Called(jobID)

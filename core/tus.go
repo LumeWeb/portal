@@ -64,6 +64,9 @@ type TUSUploadCreatedVerifyFunc func(hook handler.HookEvent, uploaderId uint) (S
 // TUSUploadCreatedAfterFunc defines a callback that runs after upload creation
 type TUSUploadCreatedAfterFunc func(requestId uint) error
 
+// TUSUploadCompletedHashFunc defines a callback that computes and returns the multihash for a completed upload
+type TUSUploadCompletedHashFunc func(handlr TusHandler, hook handler.HookEvent) (StorageHash, error)
+
 // TUSPreFinishResponseCallback defines a callback that runs before finishing an upload
 // Can modify the HTTP response before it's sent to the client
 type TUSPreFinishResponseCallback func(hook handler.HookEvent) (handler.HTTPResponse, error)

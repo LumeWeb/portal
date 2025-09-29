@@ -379,6 +379,63 @@ func (_c *MockWorkflowService_DisableWorkflow_Call) RunAndReturn(run func(name s
 	return _c
 }
 
+// DispatchWorkflowStep provides a mock function for the type MockWorkflowService
+func (_mock *MockWorkflowService) DispatchWorkflowStep(ctx context.Context, requestID uint) error {
+	ret := _mock.Called(ctx, requestID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DispatchWorkflowStep")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, requestID)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockWorkflowService_DispatchWorkflowStep_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DispatchWorkflowStep'
+type MockWorkflowService_DispatchWorkflowStep_Call struct {
+	*mock.Call
+}
+
+// DispatchWorkflowStep is a helper method to define mock.On call
+//   - ctx context.Context
+//   - requestID uint
+func (_e *MockWorkflowService_Expecter) DispatchWorkflowStep(ctx interface{}, requestID interface{}) *MockWorkflowService_DispatchWorkflowStep_Call {
+	return &MockWorkflowService_DispatchWorkflowStep_Call{Call: _e.mock.On("DispatchWorkflowStep", ctx, requestID)}
+}
+
+func (_c *MockWorkflowService_DispatchWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint)) *MockWorkflowService_DispatchWorkflowStep_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockWorkflowService_DispatchWorkflowStep_Call) Return(err error) *MockWorkflowService_DispatchWorkflowStep_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockWorkflowService_DispatchWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint) error) *MockWorkflowService_DispatchWorkflowStep_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EnableWorkflow provides a mock function for the type MockWorkflowService
 func (_mock *MockWorkflowService) EnableWorkflow(name string) error {
 	ret := _mock.Called(name)
