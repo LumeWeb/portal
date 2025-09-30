@@ -491,6 +491,14 @@ func CombineOptions(opts ...any) TestContextBuilderOption {
 					return ctx, fmt.Errorf("option at index %d failed: %w", i, err)
 				}
 
+			case func(TestContext) (TestContext, error):
+				// Handle functions that match the TestContextBuilderOption signature
+				// This includes functions returned by CombineOptions itself
+				ctx, err = v(ctx)
+				if err != nil {
+					return ctx, fmt.Errorf("option at index %d failed: %w", i, err)
+				}
+
 			case []TestContextBuilderOption:
 				// Flatten slice of TestContextBuilderOption
 				flattened := make([]any, len(v))
@@ -816,8 +824,22 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 7: Startup Functions
+	// Fire EVENT_BOOT_STARTUP_FUNCS before running startup functions
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS, pevent.NewBootStartupFuncsEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot startup funcs event: %w", err)
+		}
+	}
+	
 	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
+	}
+	
+	// Fire EVENT_BOOT_STARTUP_FUNCS_COMPLETED after running startup functions
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, pevent.NewBootStartupFuncsCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot startup funcs completed event: %w", err)
+		}
 	}
 
 	// Phase 8: Service Initialization
@@ -831,21 +853,67 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 10: Protocol Initialization
+	// Fire EVENT_BOOT_PROTOCOL_WORKFLOWS and EVENT_BOOT_PROTOCOLS before initializing protocols
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS, pevent.NewBootProtocolWorkflowsEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot protocol workflows event: %w", err)
+		}
+		
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS, pevent.NewBootProtocolsEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot protocols event: %w", err)
+		}
+	}
+	
 	if err := InitializeProtocols(ctx); err != nil {
 		return fmt.Errorf("protocol initialization failed: %w", err)
 	}
+	
+	// Fire EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED and EVENT_BOOT_PROTOCOLS_COMPLETED after initializing protocols
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, pevent.NewBootProtocolWorkflowsCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot protocol workflows completed event: %w", err)
+		}
+		
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS_COMPLETED, pevent.NewBootProtocolsCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot protocols completed event: %w", err)
+		}
+	}
 
 	// Phase 11: Protocol Workflow Configuration
+	// Fire EVENT_BOOT_PLUGIN_WORKFLOWS before configuring protocol workflows
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS, pevent.NewBootPluginWorkflowsEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot plugin workflows event: %w", err)
+		}
+	}
+	
 	if err = ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
 	}
+	
+	// Fire EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED after configuring protocol workflows
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, pevent.NewBootPluginWorkflowsCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot plugin workflows completed event: %w", err)
+		}
+	}
 
 	// Phase 12: Runtime Setup
-	if ShouldSetupCron() {
-		if err = StartCron(ctx); err != nil {
-			return fmt.Errorf("failed to start cron service: %w", err)
+	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		// Fire EVENT_BOOT_START at the very beginning of runtime setup
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_START, pevent.NewBootStartEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot start event: %w", err)
 		}
-		if tctx, ok := ctx.(*testContext); ok {
+
+		// Fire EVENT_BOOT_CRON before starting cron
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON, pevent.NewBootCronEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot cron event: %w", err)
+		}
+
+		if ShouldSetupCron() {
+			if err = StartCron(ctx); err != nil {
+				return fmt.Errorf("failed to start cron service: %w", err)
+			}
 			tctx.tb.Cleanup(func() {
 				if cronSvc := tctx.Service(core.CRON_SERVICE); cronSvc != nil {
 					if stopper, ok2 := cronSvc.(interface{ Stop() error }); ok2 {
@@ -856,28 +924,52 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 				}
 			})
 		}
-	}
 
-	if ShouldSetupHTTP() {
-		tctx, ok := ctx.(*testContext)
-		if !ok {
-			return fmt.Errorf("HTTP service setup requires *testContext but got %T", ctx)
+		// Fire EVENT_BOOT_CRON_COMPLETED after starting cron
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON_COMPLETED, pevent.NewBootCronCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot cron completed event: %w", err)
 		}
-		if err = tctx.ServeHTTP(); err != nil {
-			return fmt.Errorf("failed to start HTTP service: %w", err)
+
+		// Fire EVENT_BOOT_HTTP before starting HTTP
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP, pevent.NewBootHTTPEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot http event: %w", err)
 		}
-		tctx.tb.Cleanup(func() {
-			if httpSvc := tctx.Service(core.HTTP_SERVICE); httpSvc != nil {
-				if httpService, ok := httpSvc.(core.HTTPService); ok {
-					if err := httpService.Stop(); err != nil {
-						tctx.Logger().Debug("HTTP service stop error", zap.Error(err))
+
+		if ShouldSetupHTTP() {
+			tctx, ok := ctx.(*testContext)
+			if !ok {
+				return fmt.Errorf("HTTP service setup requires *testContext but got %T", ctx)
+			}
+			if err = tctx.ServeHTTP(); err != nil {
+				return fmt.Errorf("failed to start HTTP service: %w", err)
+			}
+			tctx.tb.Cleanup(func() {
+				if httpSvc := tctx.Service(core.HTTP_SERVICE); httpSvc != nil {
+					if httpService, ok := httpSvc.(core.HTTPService); ok {
+						if err := httpService.Stop(); err != nil {
+							tctx.Logger().Debug("HTTP service stop error", zap.Error(err))
+						}
 					}
 				}
-			}
-		})
-	}
+			})
+		}
 
-	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
+		// Fire EVENT_BOOT_HTTP_COMPLETED after starting HTTP
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP_COMPLETED, pevent.NewBootHTTPCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot http completed event: %w", err)
+		}
+
+		// Fire EVENT_BOOT_MAILER (even though we don't start mailer in tests)
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER, pevent.NewBootMailerEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot mailer event: %w", err)
+		}
+
+		// Fire EVENT_BOOT_MAILER_COMPLETED
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER_COMPLETED, pevent.NewBootMailerCompletedEvent(ctx)); err != nil {
+			return fmt.Errorf("failed to fire boot mailer completed event: %w", err)
+		}
+
+		// Fire EVENT_BOOT_COMPLETED at the very end
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_COMPLETED, pevent.NewBootCompletedEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
 		}
