@@ -38,15 +38,6 @@ func (o *operation) Name() string {
 	if o.name != "" {
 		return o.name
 	}
-	return o.DisplayName()
-}
-
-// DisplayName returns the human-readable display name for this operation
-func (o *operation) DisplayName() string {
-	// If this operation has a custom name, use it
-	if o.name != "" {
-		return o.name
-	}
 
 	// If this operation has a global type, use the display info from the map
 	if o.globalType != "" {
@@ -57,6 +48,11 @@ func (o *operation) DisplayName() string {
 
 	// Fallback to the operation type (e.g., "ipfs.pin")
 	return o.opType
+}
+
+// DisplayName returns the human-readable display name for this operation
+func (o *operation) DisplayName() string {
+	return o.Name()
 }
 
 type OperationType string
