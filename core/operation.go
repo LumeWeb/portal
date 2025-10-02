@@ -16,6 +16,7 @@ type operation struct {
 	opType     string
 	globalType OperationType
 	handler    OperationHandler
+	name       string
 }
 
 // Ensure operation implements OperationDisplay
@@ -33,8 +34,20 @@ func (o *operation) Handler() OperationHandler {
 	return o.handler
 }
 
+func (o *operation) Name() string {
+	if o.name != "" {
+		return o.name
+	}
+	return o.DisplayName()
+}
+
 // DisplayName returns the human-readable display name for this operation
 func (o *operation) DisplayName() string {
+	// If this operation has a custom name, use it
+	if o.name != "" {
+		return o.name
+	}
+
 	// If this operation has a global type, use the display info from the map
 	if o.globalType != "" {
 		if info, exists := GetOperationTypeDisplayInfo(o.globalType); exists {
@@ -95,6 +108,7 @@ type Operation interface {
 	Type() string              // Specific operation name (e.g., "ipfs.pin" or "ipfs.pin.car")
 	GlobalType() OperationType // Optional global type mapping (e.g., OpTypePin) or empty for custom ops
 	Handler() OperationHandler // The handler implementation
+	Name() string             // Custom name for the operation
 }
 
 // OperationDisplay provides human-readable display information for operations
@@ -186,10 +200,15 @@ func formatOperationName(parts ...string) string {
 }
 
 func NewOperation(opType string, globalType OperationType, handler OperationHandler) Operation {
+	return NewNamedOperation(opType, globalType, handler, "")
+}
+
+func NewNamedOperation(opType string, globalType OperationType, handler OperationHandler, name string) Operation {
 	return &operation{
 		opType:     opType,
 		globalType: globalType,
 		handler:    handler,
+		name:       name,
 	}
 }
 
