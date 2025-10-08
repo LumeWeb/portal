@@ -49,13 +49,12 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.lumeweb.com/configmanager v0.3.20
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.3
 	go.lumeweb.com/portal-middleware v0.3.1
 	go.lumeweb.com/portal-router v0.6.8
-	go.sia.tech/core v0.14.1
-	go.sia.tech/coreutils v0.16.5
-	go.sia.tech/renterd/v2 v2.4.0
+	go.sia.tech/core v0.17.5
+	go.sia.tech/coreutils v0.18.5
+	go.sia.tech/renterd/v2 v2.7.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.3.0
@@ -111,9 +110,9 @@ require (
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.21.1 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.63.0 // indirect
+	github.com/prometheus/client_golang v1.23.2 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/cors v1.11.1 // indirect
@@ -126,11 +125,11 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.lumeweb.com/queryutil v0.3.14
-	go.sia.tech/jape v0.14.0 // indirect
+	go.sia.tech/jape v0.14.1 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/time v0.12.0 // indirect
+	golang.org/x/time v0.13.0 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
 	gorm.io/driver/sqlserver v1.6.0 // indirect
@@ -144,7 +143,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/aws/aws-sdk-go v1.55.7 // indirect
+	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.9 // indirect
@@ -168,17 +167,17 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/gotd/contrib v0.21.0 // indirect
+	github.com/gotd/contrib v0.21.1 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
-	github.com/klauspost/reedsolomon v1.12.4 // indirect
+	github.com/klauspost/reedsolomon v1.12.5 // indirect
 	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
@@ -194,14 +193,16 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.4 // indirect
+	go.lumeweb.com/gswagger v0.20.10 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.29.0 // indirect
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	lukechampine.com/frand v1.5.1 // indirect
