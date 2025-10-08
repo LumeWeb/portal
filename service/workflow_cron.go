@@ -7,7 +7,9 @@ import (
 	"go.uber.org/zap"
 )
 
-const workflowStepExecutorJobType = "core.workflow.step_executor"
+const (
+	workflowStepExecutorJobType = "core.workflow.step_executor"
+)
 
 type workflowStepExecutorJob struct {
 	*core.BaseCronJob
@@ -62,6 +64,14 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 	// Execute the workflow step
 	err = workflowSvc.ExecuteWorkflowStep(ctx, args)
 	if err != nil {
+		// Check if this was a retried error (which is expected behavior)
+		if core.IsWorkflowErrorType(err, core.ErrKeyWorkflowStepRetried) {
+			// Log the retry but don't fail the cron job
+			ctx.Logger().Info("Workflow step retried",
+				zap.Uint("requestID", args),
+				zap.Error(err))
+			return nil
+		}
 		return fmt.Errorf("failed to execute workflow step: %w", err)
 	}
 
