@@ -672,11 +672,30 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 		return nil
 	}
 
+	// Get workflow and current step to check failure behavior
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
+	if err != nil {
+		return err
+	}
+
+	currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
+	if err != nil {
+		return err
+	}
+
 	// Delegate execution to RequestService which will lookup the handler
 	err = w.requestSvc.ExecuteRequest(ctx, requestID)
 	if err != nil {
 		// Always call FailWorkflowStep to handle failure according to step's behavior
-		return w.FailWorkflowStep(ctx, requestID, err.Error())
+		failErr := w.FailWorkflowStep(ctx, requestID, err.Error())
+		
+		// If the step is configured to continue on failure, return nil to prevent
+		// the caller from also calling CompleteWorkflowStep
+		if currentStep.FailureBehavior == core.ContinueWorkflow {
+			return nil
+		}
+		
+		return failErr
 	}
 
 	// Execution succeeded - do not automatically complete

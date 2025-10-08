@@ -77,19 +77,28 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 		if workflowErr := core.AsWorkflowError(err); workflowErr != nil {
 			ctx.Logger().Error("Workflow step execution failed",
 				zap.Uint("requestID", args),
-				zap.String("errorKey", string(workflowErr.Key())),
+				zap.String("errorKey", string(workflowErr.Key)),
 				zap.Error(err))
 		}
 		return err
 	}
 
-	// If execution was successful, advance to the next step
-	err = workflowSvc.CompleteWorkflowStep(ctx, args)
+	// Check if the step can still be transitioned (may have been completed by ExecuteWorkflowStep)
+	canTransition, err = workflowSvc.CanTransition(ctx, args)
 	if err != nil {
-		ctx.Logger().Error("Failed to complete workflow step after successful execution",
-			zap.Uint("requestID", args),
-			zap.Error(err))
-		return fmt.Errorf("failed to complete workflow step: %w", err)
+		return fmt.Errorf("failed to check transition status after execution: %w", err)
+	}
+
+	// Only complete the step if it's still pending and can be transitioned
+	if canTransition {
+		// If execution was successful, advance to the next step
+		err = workflowSvc.CompleteWorkflowStep(ctx, args)
+		if err != nil {
+			ctx.Logger().Error("Failed to complete workflow step after successful execution",
+				zap.Uint("requestID", args),
+				zap.Error(err))
+			return fmt.Errorf("failed to complete workflow step: %w", err)
+		}
 	}
 
 	return nil
