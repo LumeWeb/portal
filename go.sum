@@ -475,8 +475,8 @@ go.opentelemetry.io/otel/trace v1.35.0 h1:dPpEfJu1sDIqruz7BHFG3c7528f6ddfSWfFDVt
 go.opentelemetry.io/otel/trace v1.35.0/go.mod h1:WUk7DtFp1Aw2MkvqGdwiXYDZZNvA/1J8o6xRXLrIkyc=
 go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d h1:Ns9kd1Rwzw7t0BR8XMphenji4SmIoNZPn8zhYmaVKP8=
 go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d/go.mod h1:92Uoe3l++MlthCm+koNi0tcUCX3anayogF0Pa/sp24k=
-go.sia.tech/core v0.14.1 h1:4MvZBjuZiz0IQk9eqU/NL8mTK5BAMca3L3lUzszGHqs=
-go.sia.tech/core v0.14.1/go.mod h1:Uhrw7JKxtDCr5ZW2homCKrRPKTgZBy9t35vfBWWFMxc=
+go.sia.tech/core v0.17.5 h1:ZZqdJEar9n41dHCKrru/IByJDQKx3W63ZSBa8CbXGQQ=
+go.sia.tech/core v0.17.5/go.mod h1:K63SSC1Wz0mPDj7zqEuzwH2/BiYlyGgnoAG8bD784iI=
 go.sia.tech/coreutils v0.16.5 h1:IgXsid6NiswiRmCiq9I+NWxIapsWwEKheNHAEUgvq3Y=
 go.sia.tech/coreutils v0.16.5/go.mod h1:XHCKZPfZ9622VkpRTrLXxDtG4ytpnDOC6y7ZxfYizT0=
 go.sia.tech/jape v0.14.0 h1:hyocTKqvcji+rC1vDE1djINlpErQQVDS6zoLMmxW3Xs=
