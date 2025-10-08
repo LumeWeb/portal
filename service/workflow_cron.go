@@ -72,7 +72,15 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 				zap.Error(err))
 			return nil
 		}
-		return fmt.Errorf("failed to execute workflow step: %w", err)
+		
+		// Log the error key before wrapping to preserve context
+		if workflowErr := core.AsWorkflowError(err); workflowErr != nil {
+			ctx.Logger().Error("Workflow step execution failed",
+				zap.Uint("requestID", args),
+				zap.String("errorKey", string(workflowErr.Key())),
+				zap.Error(err))
+		}
+		return err
 	}
 
 	// If execution was successful, advance to the next step

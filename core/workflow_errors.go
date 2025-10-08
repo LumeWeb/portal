@@ -29,7 +29,7 @@ const (
 	ErrKeyWorkflowMetadataInvalid   WorkflowErrorType = "ErrWorkflowMetadataInvalid"
 )
 
-var defaultWorkflowErrorMessages = map[ErrorType]ErrorDefinition{
+var defaultWorkflowErrorMessages = map[WorkflowErrorType]ErrorDefinition{
 	// Workflow execution errors
 	ErrKeyWorkflowStepRetried: {
 		Key:     ErrKeyWorkflowStepRetried,
@@ -84,7 +84,7 @@ var defaultWorkflowErrorMessages = map[ErrorType]ErrorDefinition{
 }
 
 var (
-	workflowErrorCodeToHttpStatus = map[ErrorType]int{
+	workflowErrorCodeToHttpStatus = map[WorkflowErrorType]int{
 		// Workflow execution errors
 		ErrKeyWorkflowStepRetried:      http.StatusOK,      // Retries are expected behavior
 		ErrKeyWorkflowExecutionFailed: http.StatusInternalServerError,

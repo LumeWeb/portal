@@ -31,7 +31,7 @@ var (
 )
 
 // NewWorkflowError creates a new workflow error
-func NewWorkflowError(key core.WorkflowErrorType, message string, err error) *core.Error {
+func NewWorkflowError(key core.WorkflowErrorType, err error) *core.Error {
 	return core.NewWorkflowError(key, err)
 }
 
@@ -288,7 +288,7 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 	// Get workflow
 	wf, err := w.GetWorkflow(name)
 	if err != nil {
-		return nil, err
+		return nil, core.NewWorkflowError(core.ErrKeyWorkflowNotFound, fmt.Errorf("workflow '%s' not found: %w", name, err))
 	}
 
 	w.workflowsMu.RLock()
@@ -397,7 +397,7 @@ func (w *WorkflowCoordinatorDefault) isDisabled(name string) bool {
 func (w *WorkflowCoordinatorDefault) parseWorkflowMetadata(metadataJSON datatypes.JSON) (WorkflowMetadata, error) {
 	var metadata WorkflowMetadata
 	if err := json.Unmarshal(metadataJSON, &metadata); err != nil {
-		return metadata, core.NewWorkflowError(core.ErrKeyWorkflowMetadataInvalid, fmt.Errorf("invalid workflow meta %w", err))
+		return metadata, core.NewWorkflowError(core.ErrKeyWorkflowMetadataInvalid, fmt.Errorf("invalid workflow meta: %w", err))
 	}
 	return metadata, nil
 }
@@ -458,7 +458,7 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 	if len(wfMetadataJSON) == 0 {
 		nextMetadata.Data = datatypes.JSON("{}") // Default to empty JSON object
 	} else if !json.Valid(wfMetadataJSON) {
-		return core.NewWorkflowError(core.ErrKeyWorkflowMetadataInvalid, fmt.Errorf("invalid JSON data for workflow metadata"))
+		return core.NewWorkflowError(core.ErrKeyWorkflowMetadataInvalid, fmt.Errorf("invalid JSON data for workflow metadata: %s", string(wfMetadataJSON)))
 	} else {
 		nextMetadata.Data = datatypes.JSON(wfMetadataJSON)
 	}
@@ -845,7 +845,7 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 	}
 
 	if startStep < 0 || startStep >= len(wf.Steps) {
-		return core.NewWorkflowError(core.ErrKeyWorkflowStepNotFound, fmt.Errorf("invalid start step: %d", startStep))
+		return core.NewWorkflowError(core.ErrKeyWorkflowStepNotFound, fmt.Errorf("invalid start step %d for workflow %s", startStep, workflowName))
 	}
 
 	// Create initial metadata
@@ -1163,7 +1163,8 @@ func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestI
 		return tx.Model(&models.Request{}).
 			Where("id = ?", req.ID).
 			Updates(map[string]interface{}{
-				"status": models.RequestStatusPending,
+				"status":         models.RequestStatusPending,
+				"status_message": nil,
 			})
 	})
 	if err != nil {
@@ -1222,7 +1223,7 @@ func (w *WorkflowCoordinatorDefault) getStepIndexAndStep(wf *core.WorkflowDefini
 	})
 
 	if !found {
-		return -1, core.NewWorkflowError(core.ErrKeyWorkflowStepNotFound, fmt.Errorf("current step ID '%s' not found in workflow", stepID))
+		return -1, core.NewWorkflowError(core.ErrKeyWorkflowStepNotFound, fmt.Errorf("current step ID '%s' not found in workflow '%s'", stepID, wf.Name))
 	}
 
 	return currentStepIndex, nil
