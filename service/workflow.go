@@ -689,10 +689,12 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 		// Always call FailWorkflowStep to handle failure according to step's behavior
 		failErr := w.FailWorkflowStep(ctx, requestID, err.Error())
 		
-		// If the step is configured to continue on failure, return nil to prevent
-		// the caller from also calling CompleteWorkflowStep
+		// If the step is configured to continue on failure, return the original error
+		// to indicate that execution failed, but the workflow should continue.
+		// The caller will decide whether to call CompleteWorkflowStep based on the
+		// failure behavior.
 		if currentStep.FailureBehavior == core.ContinueWorkflow {
-			return nil
+			return err
 		}
 		
 		return failErr

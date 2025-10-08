@@ -73,14 +73,27 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 			return nil
 		}
 		
-		// Log the error key before wrapping to preserve context
-		if workflowErr := core.AsWorkflowError(err); workflowErr != nil {
-			ctx.Logger().Error("Workflow step execution failed",
-				zap.Uint("requestID", args),
-				zap.String("errorKey", string(workflowErr.Key)),
-				zap.Error(err))
+		// Check if step is configured to continue on failure
+		stepInfo, stepErr := workflowSvc.GetWorkflowStepInfo(ctx, args)
+		if stepErr != nil {
+			return fmt.Errorf("failed to get workflow step info: %w", stepErr)
 		}
-		return err
+		
+		// If the step is configured to continue on failure, we should still advance to the next step
+		if stepInfo.FailureBehavior == core.ContinueWorkflow {
+			ctx.Logger().Info("Workflow step failed but configured to continue",
+				zap.Uint("requestID", args),
+				zap.Error(err))
+		} else {
+			// Log the error key before wrapping to preserve context
+			if workflowErr := core.AsWorkflowError(err); workflowErr != nil {
+				ctx.Logger().Error("Workflow step execution failed",
+					zap.Uint("requestID", args),
+					zap.String("errorKey", string(workflowErr.Key)),
+					zap.Error(err))
+			}
+			return err
+		}
 	}
 
 	// Check if the step can still be transitioned (may have been completed by ExecuteWorkflowStep)
@@ -91,10 +104,10 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 
 	// Only complete the step if it's still pending and can be transitioned
 	if canTransition {
-		// If execution was successful, advance to the next step
+		// If execution was successful (or we're continuing despite failure), advance to the next step
 		err = workflowSvc.CompleteWorkflowStep(ctx, args)
 		if err != nil {
-			ctx.Logger().Error("Failed to complete workflow step after successful execution",
+			ctx.Logger().Error("Failed to complete workflow step after execution",
 				zap.Uint("requestID", args),
 				zap.Error(err))
 			return fmt.Errorf("failed to complete workflow step: %w", err)
