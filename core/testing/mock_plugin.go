@@ -1,15 +1,33 @@
 package testing
 
 import (
+	"fmt"
+	"reflect"
+
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/core"
 )
 
+type mockServiceEntry struct {
+	id      string
+	factory func(tb TB, ctx TestContext) any
+	depends []string
+}
+
+type mockServiceFactoryEntry struct {
+	id      string
+	factory interface{}
+	depends []string
+}
+
 // MockPluginBuilder is a builder for creating PluginInfo structs for testing.
 type MockPluginBuilder struct {
-	plugin     core.PluginInfo
-	services   []core.ServiceInfo
-	extensions []core.APIExtensionFactory
+	plugin               core.PluginInfo
+	services             []core.ServiceInfo
+	extensions           []core.APIExtensionFactory
+	mockServices         []mockServiceEntry
+	mockServiceFactories []mockServiceFactoryEntry
+	ctx                  TestContext
 }
 
 // NewMockPluginBuilder creates a new MockPluginBuilder with a default ID.
@@ -19,8 +37,10 @@ func NewMockPluginBuilder(id string) *MockPluginBuilder {
 			ID:      id,
 			Version: build.New("", "", "", "", "", "", ""),
 		},
-		services:   make([]core.ServiceInfo, 0),
-		extensions: make([]core.APIExtensionFactory, 0),
+		services:             make([]core.ServiceInfo, 0),
+		extensions:           make([]core.APIExtensionFactory, 0),
+		mockServices:         make([]mockServiceEntry, 0),
+		mockServiceFactories: make([]mockServiceFactoryEntry, 0),
 	}
 }
 
@@ -51,6 +71,18 @@ func (b *MockPluginBuilder) WithProtocol(protocol core.ProtocolFactory) *MockPlu
 // WithService adds an individual service to the plugin with its dependencies.
 func (b *MockPluginBuilder) WithService(id string, factory core.ServiceFactory, depends ...string) *MockPluginBuilder {
 	b.services = append(b.services, core.ServiceInfo{ID: id, Factory: factory, Depends: depends})
+	return b
+}
+
+// WithMockService adds a mock service to the plugin with its dependencies.
+func (b *MockPluginBuilder) WithMockService(id string, factory func(tb TB, ctx TestContext) any, depends ...string) *MockPluginBuilder {
+	b.mockServices = append(b.mockServices, mockServiceEntry{id: id, factory: factory, depends: depends})
+	return b
+}
+
+// WithMockServiceFactory adds a mock service factory to the plugin with its dependencies.
+func (b *MockPluginBuilder) WithMockServiceFactory(id string, factory interface{}, depends ...string) *MockPluginBuilder {
+	b.mockServiceFactories = append(b.mockServiceFactories, mockServiceFactoryEntry{id: id, factory: factory, depends: depends})
 	return b
 }
 
@@ -103,25 +135,86 @@ func (b *MockPluginBuilder) WithTargetApps(targetApps ...string) *MockPluginBuil
 }
 
 // Build returns the constructed PluginInfo.
-func (b *MockPluginBuilder) Build() *MockPluginBuilder {
+func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, error) {
 	if len(b.extensions) > 0 {
 		b.plugin.APIExtensions = func(context core.Context) ([]core.APIExtensionFactory, error) {
 			return b.extensions, nil
 		}
 	}
 
-	if len(b.services) > 0 {
+	if len(b.services) > 0 || len(b.mockServices) > 0 || len(b.mockServiceFactories) > 0 {
+		allServices := make([]core.ServiceInfo, 0, len(b.services)+len(b.mockServices)+len(b.mockServiceFactories))
+		allServices = append(allServices, b.services...)
+
+		// Process mock services - add to services list with no-op factories
+		for _, mockSvc := range b.mockServices {
+			id := mockSvc.id
+			factory := mockSvc.factory
+			depends := mockSvc.depends
+
+			// Create the mock instance immediately using stored context
+			mockInstance := factory(b.ctx.T(), b.ctx)
+			if mockInstance == nil {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
+			}
+
+			// Add to services list with a no-op factory
+			allServices = append(allServices, core.ServiceInfo{
+				ID: id,
+				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+					return nil, nil, nil
+				},
+				Depends: depends,
+			})
+		}
+
+		// Process mock service factories - add to services list with no-op factories
+		for _, mockSvcFactory := range b.mockServiceFactories {
+			id := mockSvcFactory.id
+			factory := mockSvcFactory.factory
+			depends := mockSvcFactory.depends
+
+			// Call the factory function immediately with stored context's TB
+			factoryValue := reflect.ValueOf(factory)
+			tbValue := reflect.ValueOf(b.ctx.T())
+			results := factoryValue.Call([]reflect.Value{tbValue})
+
+			// Get the mock instance from the results
+			if len(results) == 0 {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' returned no values", id)
+			}
+
+			mockInstance := results[0].Interface()
+			if mockInstance == nil {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
+			}
+
+			// Add to services list with a no-op factory
+			allServices = append(allServices, core.ServiceInfo{
+				ID: id,
+				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+					return mockInstance.(core.Service), nil, nil
+				},
+				Depends: depends,
+			})
+		}
+
 		b.plugin.Services = func() ([]core.ServiceInfo, error) {
-			return b.services, nil
+			return allServices, nil
 		}
 	}
 
-	return b
+	return nil, []core.ContextBuilderOption{}, nil
 }
 
 // PluginOption returns a ContextBuilderOption that registers the built plugin.
 func (b *MockPluginBuilder) BuilderOption() TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
+		b.ctx = ctx // Store the context
+		_, _, err := b.Build()
+		if err != nil {
+			return ctx, err
+		}
 		core.RegisterPlugin(b.plugin)
 		return ctx, nil
 	}
