@@ -3,7 +3,7 @@ package testing
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -64,8 +64,6 @@ func NewMockAPI(t testing.TB, name string) *MockAPI {
 	}
 
 	apiInfo := router.APIInfo().Title("Test").Version("0.1.0")
-	_router, err := router.NewRouter(apiInfo)
-	require.NoError(t, err)
 
 	mockAPI.openAPIInfoValue = apiInfo
 
@@ -75,7 +73,9 @@ func NewMockAPI(t testing.TB, name string) *MockAPI {
 	mockAPI.EXPECT().Subdomain().Return("").Maybe()
 	mockAPI.EXPECT().AuthTokenName().Return("").Maybe()
 	mockAPI.EXPECT().OpenAPIInfo().Return(apiInfo).Maybe()
-	mockAPI.EXPECT().Configure(_router, new(core.AccessService)).Return(nil).Maybe()
+	routerType := "*swagger.Router[github.com/labstack/echo/v4.HandlerFunc,github.com/labstack/echo/v4.MiddlewareFunc,*github.com/labstack/echo/v4.Route]"
+	mockAPI.EXPECT().Configure(mock.AnythingOfType(routerType), mock.AnythingOfType("core.AccessService")).Return(nil).Maybe()
+	mockAPI.EXPECT().Configure(mock.AnythingOfType(routerType), mock.AnythingOfType("*testing.MockAccessService")).Return(nil).Maybe()
 
 	return mockAPI
 }
