@@ -181,10 +181,40 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 			factory := mockSvcFactory.factory
 			depends := mockSvcFactory.depends
 
-			// Call the factory function immediately with stored context's TB
+			// Validate factory is a function with correct signature
 			factoryValue := reflect.ValueOf(factory)
+			if factoryValue.Kind() != reflect.Func {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' is not a function", id)
+			}
+
+			factoryType := factoryValue.Type()
+			if factoryType.NumIn() != 1 {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' does not have exactly 1 input parameter", id)
+			}
+
+			expectedType := reflect.TypeOf(b.ctx.T())
+			if !factoryType.In(0).AssignableTo(expectedType) {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' first parameter is not assignable from %v", id, expectedType)
+			}
+
+			// Call the factory function immediately with stored context's TB
 			tbValue := reflect.ValueOf(b.ctx.T())
-			results := factoryValue.Call([]reflect.Value{tbValue})
+			
+			// Wrap the call in a recover to prevent panics from crashing the process
+			var results []reflect.Value
+			var callErr error
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						callErr = fmt.Errorf("mock service factory for '%s' panicked: %v", id, r)
+					}
+				}()
+				results = factoryValue.Call([]reflect.Value{tbValue})
+			}()
+			
+			if callErr != nil {
+				return nil, nil, callErr
+			}
 
 			// Get the mock instance from the results
 			if len(results) == 0 {
@@ -196,14 +226,17 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
 			}
 
-			// Capture the mock instance in the closure
-			mockInst := mockInstance
+			// Validate that mockInstance implements core.Service
+			mockInst, ok := mockInstance.(core.Service)
+			if !ok {
+				return nil, nil, fmt.Errorf("mock service factory for '%s' did not return a core.Service implementation", id)
+			}
 
 			// Add to services list with a factory that returns the mock instance
 			allServices = append(allServices, core.ServiceInfo{
 				ID: id,
 				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-					return mockInst.(core.Service), nil, nil
+					return mockInst, nil, nil
 				},
 				Depends: depends,
 			})
