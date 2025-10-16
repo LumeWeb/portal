@@ -136,6 +136,10 @@ func (b *MockPluginBuilder) WithTargetApps(targetApps ...string) *MockPluginBuil
 
 // Build returns the constructed PluginInfo.
 func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, error) {
+	if b.ctx == nil {
+		return nil, nil, fmt.Errorf("test context is nil - Build() requires a non-nil context")
+	}
+
 	if len(b.extensions) > 0 {
 		b.plugin.APIExtensions = func(context core.Context) ([]core.APIExtensionFactory, error) {
 			return b.extensions, nil
@@ -158,11 +162,14 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
 			}
 
-			// Add to services list with a no-op factory
+			// Capture the mock instance in the closure
+			mockInst := mockInstance
+
+			// Add to services list with a factory that returns the mock instance
 			allServices = append(allServices, core.ServiceInfo{
 				ID: id,
 				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-					return nil, nil, nil
+					return mockInst.(core.Service), nil, nil
 				},
 				Depends: depends,
 			})
@@ -189,11 +196,14 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
 			}
 
-			// Add to services list with a no-op factory
+			// Capture the mock instance in the closure
+			mockInst := mockInstance
+
+			// Add to services list with a factory that returns the mock instance
 			allServices = append(allServices, core.ServiceInfo{
 				ID: id,
 				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-					return mockInstance.(core.Service), nil, nil
+					return mockInst.(core.Service), nil, nil
 				},
 				Depends: depends,
 			})
