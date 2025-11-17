@@ -106,6 +106,12 @@ func (wt *WorkflowTest) ExecuteWorkflowStep(req *models.Request) {
 	require.NoError(wt.TB, err)
 }
 
+// CompleteWorkflowStep completes the current workflow step and advances to the next step.
+func (wt *WorkflowTest) CompleteWorkflowStep(req *models.Request, opts ...core.WorkflowOption) {
+	err := wt.workflowSvc.CompleteWorkflowStep(wt.Ctx, req.ID, opts...)
+	require.NoError(wt.TB, err)
+}
+
 // DisableWorkflow disables the workflow with the given name.
 func (wt *WorkflowTest) DisableWorkflow(workflowName string) {
 	err := wt.workflowSvc.DisableWorkflow(workflowName)
