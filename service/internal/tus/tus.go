@@ -75,9 +75,8 @@ func NewTusHandler(
 	return th, nil
 }
 
-func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
-	var upload handler.Upload
-
+// getUploadByIdentifier retrieves upload by identifier (hash or string ID)
+func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifier any, protocol core.StorageProtocol) (handler.Upload, error) {
 	switch v := identifier.(type) {
 	case core.StorageHash:
 		exists, _upload := t.tusService.UploadHashExists(ctx, protocol, v)
@@ -86,12 +85,7 @@ func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, pr
 			return nil, gorm.ErrRecordNotFound
 		}
 
-		meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
-		if err != nil {
-			return nil, err
-		}
-
-		upload = meta
+		return t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
 	case string:
 		exists, _upload := t.tusService.UploadExists(ctx, protocol, v)
 
@@ -99,16 +93,17 @@ func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, pr
 			return nil, gorm.ErrRecordNotFound
 		}
 
-		meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
-
-		if err != nil {
-			return nil, err
-		}
-
-		upload = meta
+		return t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
 
 	default:
 		return nil, fmt.Errorf("invalid identifier type")
+	}
+}
+
+func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
+	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
+	if err != nil {
+		return nil, err
 	}
 
 	info, err := upload.GetInfo(ctx)
@@ -131,28 +126,12 @@ func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, pr
 }
 
 func (t *TusHandlerDefault) UploadSize(ctx context.Context, protocol core.StorageProtocol, identifier any) (uint64, error) {
-	var exists bool
-	var _upload *models.TUSRequest
-
-	switch v := identifier.(type) {
-	case core.StorageHash:
-		exists, _upload = t.tusService.UploadHashExists(ctx, protocol, v)
-	case string:
-		exists, _upload = t.tusService.UploadExists(ctx, protocol, v)
-	default:
-		return 0, fmt.Errorf("invalid identifier type")
-	}
-
-	if !exists {
-		return 0, gorm.ErrRecordNotFound
-	}
-
-	meta, err := t.tusStore.GetUpload(ctx, _upload.TUSUploadID)
+	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
 	if err != nil {
 		return 0, err
 	}
 
-	info, err := meta.GetInfo(ctx)
+	info, err := upload.GetInfo(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -232,6 +211,21 @@ func (t *TusHandlerDefault) SetHashById(ctx context.Context, id string, hash cor
 
 func (t *TusHandlerDefault) Logger() *core.Logger {
 	return t.logger
+}
+
+func (t *TusHandlerDefault) GetUploadMetadata(ctx context.Context, protocol core.StorageProtocol, identifier any) (map[string]string, error) {
+	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := upload.GetInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the upload metadata from TUS info
+	return info.MetaData, nil
 }
 
 func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
