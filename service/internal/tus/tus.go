@@ -81,7 +81,7 @@ func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifie
 	case core.StorageHash:
 		exists, _upload := t.tusService.UploadHashExists(ctx, protocol, v)
 
-		if !exists {
+		if !exists || _upload == nil {
 			return nil, gorm.ErrRecordNotFound
 		}
 
@@ -89,7 +89,7 @@ func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifie
 	case string:
 		exists, _upload := t.tusService.UploadExists(ctx, protocol, v)
 
-		if !exists {
+		if !exists || _upload == nil {
 			return nil, gorm.ErrRecordNotFound
 		}
 
