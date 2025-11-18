@@ -49,6 +49,9 @@ type TusHandler interface {
 
 	// Logger returns the logger instance for this handler
 	Logger() *Logger
+
+	// GetUploadMetadata gets metadata for an upload by ID
+	GetUploadMetadata(ctx context.Context, protocol StorageProtocol, identifier any) (map[string]string, error)
 }
 
 // TUSUploadCallbackHandler defines the signature for upload callback handlers
