@@ -720,8 +720,16 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 // data: The data to upload
 // size: The size of the data in bytes
 // protocol: The storage protocol being used
-// opts: Optional configuration functions (e.g., WithUploadID)
+// opts: Optional configuration functions (e.g., WithS3TempUploadID)
 // Returns upload ID and error if upload fails
+// validateUploadID checks if uploadId contains path traversal sequences
+func validateUploadID(uploadId string) error {
+	if strings.Contains(uploadId, "..") || strings.Contains(uploadId, "\\") {
+		return fmt.Errorf("invalid upload ID: must not contain path separators or traversal sequences")
+	}
+	return nil
+}
+
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error) {
 	options := &core.S3TempUploadOptions{}
 	for _, opt := range opts {
@@ -729,6 +737,12 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	}
 
 	uploadId := options.UploadID
+	// Validate custom uploadId to prevent path traversal
+	if uploadId != "" {
+		if err := validateUploadID(uploadId); err != nil {
+			return "", err
+		}
+	}
 	if uploadId == "" {
 		uploadId = uuid.NewString()
 	}
@@ -755,6 +769,10 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 // uploadId: The ID of the temporary upload
 // Returns io.ReadCloser for the upload data and error if retrieval fails
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
+	// Validate uploadId to prevent path traversal
+	if err := validateUploadID(uploadId); err != nil {
+		return nil, err
+	}
 	return s.s3GetObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, s.GetTemporaryUploadPath(protocol, uploadId))
 }
 
@@ -787,6 +805,10 @@ func (s StorageServiceDefault) S3Exists(ctx context.Context, bucket string, key 
 }
 
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
+	// Validate uploadId to prevent path traversal
+	if err := validateUploadID(uploadId); err != nil {
+		return err
+	}
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
 	err := s.s3DeleteObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key)
