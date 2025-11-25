@@ -24,6 +24,18 @@ const (
 	StorageUploadStatusActive     StorageUploadStatus = "completed"
 )
 
+// S3TempUploadOptions represents options for S3 temporary uploads
+type S3TempUploadOptions struct {
+	UploadID string
+}
+
+// WithS3TempUploadID sets a custom upload ID for the temporary upload
+func WithS3TempUploadID(id string) func(*S3TempUploadOptions) {
+	return func(opts *S3TempUploadOptions) {
+		opts.UploadID = id
+	}
+}
+
 var (
 	ErrProofNotSupported = errors.New("protocol does not support proofs")
 	ErrInvalidHashFormat = errors.New("could not parse hash string: not a valid multihash format")
@@ -126,7 +138,7 @@ type StorageService interface {
 	S3Client(ctx context.Context) (*s3.Client, error)
 	S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
-	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol StorageProtocol) (string, error)
+	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol StorageProtocol, opts ...func(*S3TempUploadOptions)) (string, error)
 	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadCloser, error)
 	S3DeleteTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) error
 	S3Exists(ctx context.Context, bucket string, key string) (bool, error)
