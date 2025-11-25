@@ -714,13 +714,25 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 }
 
+
+
 // S3TemporaryUpload uploads data to temporary S3 storage.
 // data: The data to upload
 // size: The size of the data in bytes
 // protocol: The storage protocol being used
+// opts: Optional configuration functions (e.g., WithUploadID)
 // Returns upload ID and error if upload fails
-func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
-	uploadId := uuid.NewString()
+func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error) {
+	options := &core.S3TempUploadOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	uploadId := options.UploadID
+	if uploadId == "" {
+		uploadId = uuid.NewString()
+	}
+
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
 	defer func(data io.ReadCloser) {
