@@ -725,7 +725,7 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 // validateUploadID checks if uploadId contains path traversal sequences
 func validateUploadID(uploadId string) error {
 	if strings.Contains(uploadId, "..") || strings.Contains(uploadId, "\\") {
-		return fmt.Errorf("invalid upload ID: must not contain path separators or traversal sequences")
+		return fmt.Errorf("invalid upload ID: must not contain path traversal sequences or backslashes")
 	}
 	return nil
 }
