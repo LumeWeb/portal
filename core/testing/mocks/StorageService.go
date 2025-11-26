@@ -1051,8 +1051,16 @@ func (_c *MockStorageService_S3MultipartUpload_Call) RunAndReturn(run func(ctx c
 }
 
 // S3TemporaryUpload provides a mock function for the type MockStorageService
-func (_mock *MockStorageService) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error) {
-	ret := _mock.Called(ctx, data, size, protocol)
+func (_mock *MockStorageService) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error) {
+	// func(*core.S3TempUploadOptions)
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, data, size, protocol)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for S3TemporaryUpload")
@@ -1060,16 +1068,16 @@ func (_mock *MockStorageService) S3TemporaryUpload(ctx context.Context, data io.
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol) (string, error)); ok {
-		return returnFunc(ctx, data, size, protocol)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol, ...func(*core.S3TempUploadOptions)) (string, error)); ok {
+		return returnFunc(ctx, data, size, protocol, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol) string); ok {
-		r0 = returnFunc(ctx, data, size, protocol)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol, ...func(*core.S3TempUploadOptions)) string); ok {
+		r0 = returnFunc(ctx, data, size, protocol, opts...)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol) error); ok {
-		r1 = returnFunc(ctx, data, size, protocol)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, io.ReadCloser, uint64, core.StorageProtocol, ...func(*core.S3TempUploadOptions)) error); ok {
+		r1 = returnFunc(ctx, data, size, protocol, opts...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1086,11 +1094,13 @@ type MockStorageService_S3TemporaryUpload_Call struct {
 //   - data io.ReadCloser
 //   - size uint64
 //   - protocol core.StorageProtocol
-func (_e *MockStorageService_Expecter) S3TemporaryUpload(ctx interface{}, data interface{}, size interface{}, protocol interface{}) *MockStorageService_S3TemporaryUpload_Call {
-	return &MockStorageService_S3TemporaryUpload_Call{Call: _e.mock.On("S3TemporaryUpload", ctx, data, size, protocol)}
+//   - opts ...func(*core.S3TempUploadOptions)
+func (_e *MockStorageService_Expecter) S3TemporaryUpload(ctx interface{}, data interface{}, size interface{}, protocol interface{}, opts ...interface{}) *MockStorageService_S3TemporaryUpload_Call {
+	return &MockStorageService_S3TemporaryUpload_Call{Call: _e.mock.On("S3TemporaryUpload",
+		append([]interface{}{ctx, data, size, protocol}, opts...)...)}
 }
 
-func (_c *MockStorageService_S3TemporaryUpload_Call) Run(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol)) *MockStorageService_S3TemporaryUpload_Call {
+func (_c *MockStorageService_S3TemporaryUpload_Call) Run(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions))) *MockStorageService_S3TemporaryUpload_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1108,11 +1118,20 @@ func (_c *MockStorageService_S3TemporaryUpload_Call) Run(run func(ctx context.Co
 		if args[3] != nil {
 			arg3 = args[3].(core.StorageProtocol)
 		}
+		var arg4 []func(*core.S3TempUploadOptions)
+		variadicArgs := make([]func(*core.S3TempUploadOptions), len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*core.S3TempUploadOptions))
+			}
+		}
+		arg4 = variadicArgs
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4...,
 		)
 	})
 	return _c
@@ -1123,7 +1142,7 @@ func (_c *MockStorageService_S3TemporaryUpload_Call) Return(s string, err error)
 	return _c
 }
 
-func (_c *MockStorageService_S3TemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol) (string, error)) *MockStorageService_S3TemporaryUpload_Call {
+func (_c *MockStorageService_S3TemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error)) *MockStorageService_S3TemporaryUpload_Call {
 	_c.Call.Return(run)
 	return _c
 }
