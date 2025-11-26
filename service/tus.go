@@ -14,6 +14,7 @@ import (
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/portal/event"
 	"go.lumeweb.com/portal/service/internal/tus"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -46,11 +47,14 @@ func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {
 			storage.logger = ctx.ServiceLogger(storage)
 			storage.requests = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 
-			for _, proto := range core.GetProtocolList() {
-				if sproto, ok := proto.(core.StorageProtocol); ok {
-					storage.requests.RegisterRequestModel(core.TUSUploadOperationName(sproto.Name()), &models.TUSRequest{})
+			event.OnBootCompleted(ctx, func(c core.Context) error {
+				for _, proto := range core.GetProtocolList() {
+					if sproto, ok := proto.(core.StorageProtocol); ok {
+						storage.requests.RegisterRequestModel(core.TUSUploadOperationName(sproto.Name()), &models.TUSRequest{})
+					}
 				}
-			}
+				return nil
+			})
 
 			return nil
 		}),
