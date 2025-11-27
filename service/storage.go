@@ -819,6 +819,20 @@ func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, prot
 	return nil
 }
 
+// S3TemporaryUploadExists checks if a temporary upload exists in S3 storage.
+// protocol: The storage protocol being used
+// uploadId: The ID of the temporary upload to check
+// Returns true if the upload exists, false otherwise, and error if check fails
+func (s StorageServiceDefault) S3TemporaryUploadExists(ctx context.Context, protocol core.StorageProtocol, uploadId string) (bool, error) {
+	// Validate uploadId to prevent path traversal
+	if err := validateUploadID(uploadId); err != nil {
+		return false, err
+	}
+	key := s.GetTemporaryUploadPath(protocol, uploadId)
+
+	return s.S3Exists(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key)
+}
+
 func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {
 	return fmt.Sprintf("%s%s", protocol.EncodeFileName(objectHash), core.PROOF_EXTENSION)
 }
