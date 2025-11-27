@@ -1147,6 +1147,78 @@ func (_c *MockStorageService_S3TemporaryUpload_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// S3TemporaryUploadExists provides a mock function for the type MockStorageService
+func (_mock *MockStorageService) S3TemporaryUploadExists(ctx context.Context, protocol core.StorageProtocol, uploadId string) (bool, error) {
+	ret := _mock.Called(ctx, protocol, uploadId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for S3TemporaryUploadExists")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) (bool, error)); ok {
+		return returnFunc(ctx, protocol, uploadId)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) bool); ok {
+		r0 = returnFunc(ctx, protocol, uploadId)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageProtocol, string) error); ok {
+		r1 = returnFunc(ctx, protocol, uploadId)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockStorageService_S3TemporaryUploadExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'S3TemporaryUploadExists'
+type MockStorageService_S3TemporaryUploadExists_Call struct {
+	*mock.Call
+}
+
+// S3TemporaryUploadExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - protocol core.StorageProtocol
+//   - uploadId string
+func (_e *MockStorageService_Expecter) S3TemporaryUploadExists(ctx interface{}, protocol interface{}, uploadId interface{}) *MockStorageService_S3TemporaryUploadExists_Call {
+	return &MockStorageService_S3TemporaryUploadExists_Call{Call: _e.mock.On("S3TemporaryUploadExists", ctx, protocol, uploadId)}
+}
+
+func (_c *MockStorageService_S3TemporaryUploadExists_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, uploadId string)) *MockStorageService_S3TemporaryUploadExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.StorageProtocol
+		if args[1] != nil {
+			arg1 = args[1].(core.StorageProtocol)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockStorageService_S3TemporaryUploadExists_Call) Return(b bool, err error) *MockStorageService_S3TemporaryUploadExists_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockStorageService_S3TemporaryUploadExists_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadId string) (bool, error)) *MockStorageService_S3TemporaryUploadExists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // S3Upload provides a mock function for the type MockStorageService
 func (_mock *MockStorageService) S3Upload(ctx context.Context, bucket string, key string, data io.Reader) error {
 	ret := _mock.Called(ctx, bucket, key, data)
