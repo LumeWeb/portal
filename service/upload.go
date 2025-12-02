@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
@@ -76,7 +77,13 @@ func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Up
 			existingUpload.Size = upload.Size
 		}
 
-		return tx.Save(existingUpload)
+		save := tx.Save(existingUpload)
+
+		if err = save.Error; err == nil {
+			upload.ID = existingUpload.ID
+		}
+
+		return save
 	})
 }
 
