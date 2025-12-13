@@ -141,7 +141,7 @@ func WithMockS3() TestContextBuilderOption {
 		}
 
 		// Set the S3 config in the test context
-		mockConfig := GetMockConfig(ctx)
+		mockConfig := GetRealConfig(ctx)
 		configValues := map[string]interface{}{
 			"core.storage.s3.buffer_bucket": s3Config.BufferBucket,
 			"core.storage.s3.endpoint":      s3Config.Endpoint,
