@@ -82,7 +82,7 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 		return err
 	}
 	// Create a new config manager instance
-	manager, err := config.NewManager(cmd)
+	manager, err := config.NewManager()
 	if err != nil {
 		return fmt.Errorf("failed to create config manager: %w", err)
 	}

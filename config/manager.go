@@ -158,8 +158,14 @@ func WithConfigPaths(paths []string) ManagerOption {
 	}
 }
 
-func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error) {
-	// First create a basic ConfigManager with just env source
+func WithConfigManager(cm configmanager.Manager) ManagerOption {
+	return func(m *ManagerDefault) {
+		m.Manager = cm
+	}
+}
+
+// createDefaultConfigManager creates a default config manager with basic setup
+func createDefaultConfigManager() (configmanager.Manager, error) {
 	cm, err := configmanager.NewConfigManager(
 		[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR, source.WithEnvSourceGlobal())},
 		configmanager.WithLogger(zap.NewNop()),
@@ -173,8 +179,26 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 		return nil, fmt.Errorf("failed to register core config struct: %w", err)
 	}
 
-	// Initialize ManagerDefault with basic values
-	m := newManagerDefault(cm, cmd)
+	return cm, nil
+}
+
+func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
+	// Initialize ManagerDefault with nil config manager initially
+	m := newManagerDefault(nil, nil)
+
+	// Apply options which may provide a config manager
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	// If no config manager was provided, create a default one
+	if m.Manager == nil {
+		cm, err := createDefaultConfigManager()
+		if err != nil {
+			return nil, err
+		}
+		m.Manager = cm
+	}
 
 	// Apply options which may override defaults
 	for _, opt := range opts {
@@ -198,7 +222,7 @@ func NewManager(cmd *cli.Command, opts ...ManagerOption) (*ManagerDefault, error
 		CheckWritable:   true,
 		FS:              m.fs, // Use the configured filesystem
 		Core:            true,
-	}, cm)
+	}, m.Manager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find or create config file: %w", err)
 	}

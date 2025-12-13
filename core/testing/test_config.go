@@ -20,25 +20,25 @@ const (
 )
 
 // NewTestConfigManager creates a config manager for testing based on specified mode
-func NewTestConfigManager(t *testing.T, mode ConfigMode) config.Manager {
+func NewTestConfigManager(tb testing.TB, mode ConfigMode) config.Manager {
 	switch mode {
 	case ConfigModeReal:
-		return newRealTestConfig(t)
+		return newRealTestConfig(tb)
 	case ConfigModeMock:
-		return config.NewMockManager(t)
+		return config.NewMockManager(tb)
 	default:
 		panic("unknown config mode")
 	}
 }
 
 // newRealTestConfig creates a real config manager with temp directories for testing
-func newRealTestConfig(t *testing.T) config.Manager {
+func newRealTestConfig(tb testing.TB) config.Manager {
 	// Create temp directory for test isolation
 	tempDir, err := os.MkdirTemp("", "portal-test-")
 	if err != nil {
 		panic(fmt.Sprintf("failed to create temp dir: %v", err))
 	}
-	t.Cleanup(func() {
+	tb.Cleanup(func() {
 		_ = os.RemoveAll(tempDir)
 	})
 
@@ -74,8 +74,8 @@ func newRealTestConfig(t *testing.T) config.Manager {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	// Create real manager using the same logic as production
-	manager, err := config.NewManager(nil)
+	// Create real manager using the prepared config manager
+	manager, err := config.NewManager(config.WithConfigManager(cm))
 	if err != nil {
 		panic(fmt.Sprintf("failed to create manager: %v", err))
 	}

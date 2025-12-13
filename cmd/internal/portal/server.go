@@ -11,7 +11,7 @@ import (
 
 func StartServer(cmd *cli.Command) error {
 	// Continue with normal portal initialization
-	cfg, err := config.NewManager(cmd)
+	cfg, err := config.NewManager()
 	logger := core.NewLogger(cfg)
 	if err != nil {
 		logger.Fatal("Failed to load config", zap.Error(err))
