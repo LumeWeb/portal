@@ -431,10 +431,16 @@ func RunTestCaseWithComponents(t TB, testFunc func(tb TB, ctx TestContext), comp
 }
 
 // ResetAllState resets all global state in the core package and testing package
-// while preserving package-level configuration like DB settings
+// while preserving package-level configuration like DB settings and error namespaces
 func ResetAllState() {
-	// Reset core state
+	// Save current error namespaces before reset
+	savedNamespaces := core.ExportAllErrorNamespaces()
+	
+	// Reset core state (including error registry)
 	core.ResetState()
+	
+	// Restore error namespaces to preserve them across test isolation
+	_ = core.ReplaceAllErrorNamespaces(savedNamespaces)
 
 	// Reset testing state (only clears test case specific options)
 	ClearTestCaseContextOptions()
@@ -530,4 +536,54 @@ func ShouldSetupMockDB() bool {
 	setupMockDBMu.RLock()
 	defer setupMockDBMu.RUnlock()
 	return setupMockDB
+}
+
+// TestMainOption is a callback function that receives a TestContext and returns TestContextBuilderOptions.
+// This allows creating options that need access to the test context during TestMain setup.
+type TestMainOption func(ctx TestContext) ([]TestContextBuilderOption, error)
+
+// WithTestMainContext creates a TestContextBuilderOption that executes a callback with access to the test context.
+// This is useful in TestMain when you need to build options that depend on the test context.
+//
+// Example usage in TestMain:
+//
+//	func TestMain(m *testing.M) {
+//		coreTesting.RunTests(m, coreTesting.TestMainOpts{
+//			WithDB: true,
+//			CustomSetup: func() {
+//				coreTesting.AddGlobalTestContextOptions(
+//					coreTesting.WithTestMainContext(func(ctx coreTesting.TestContext) ([]coreTesting.TestContextBuilderOption, error) {
+//						// Now you have access to the test context
+//						db := ctx.DB()
+//						if db != nil {
+//							// Create options based on the database connection
+//							return []coreTesting.TestContextBuilderOption{
+//								coreTesting.WithConfig("custom.db.setting", "value"),
+//							}, nil
+//						}
+//						return nil, nil
+//					}),
+//				)
+//			},
+//		})
+//	}
+func WithTestMainContext(callback TestMainOption) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		// Execute the callback with the current test context
+		options, err := callback(ctx)
+		if err != nil {
+			return ctx, fmt.Errorf("TestMain callback failed: %w", err)
+		}
+
+		// Apply all returned options using the existing ProcessCtxOptions function
+		return ProcessCtxOptions(ctx, options...)
+	}
+}
+
+// WithTestMainContextSimple is a convenience function that doesn't return an error.
+// Use this when your callback logic cannot fail.
+func WithTestMainContextSimple(callback func(ctx TestContext) []TestContextBuilderOption) TestContextBuilderOption {
+	return WithTestMainContext(func(ctx TestContext) ([]TestContextBuilderOption, error) {
+		return callback(ctx), nil
+	})
 }
