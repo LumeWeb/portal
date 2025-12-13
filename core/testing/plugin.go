@@ -634,20 +634,6 @@ func WithErrorNamespaces(namespaces core.ErrorNamespaces) TestContextBuilderOpti
 			return ctx, fmt.Errorf("failed to import error namespaces: %w", err)
 		}
 
-		// Register cleanup to remove the namespaces we added
-		ctx.RegisterCleanup(func() {
-			// Get current state
-			current := core.ExportAllErrorNamespaces()
-
-			// Remove the namespaces we added
-			for ns := range namespaces {
-				delete(current, ns)
-			}
-
-			// Replace registry with cleaned state
-			_ = core.ReplaceAllErrorNamespaces(current)
-		})
-
 		return ctx, nil
 	}
 }
