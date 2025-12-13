@@ -261,7 +261,7 @@ portal_name: "test_portal"
 	require.NoError(t, err)
 
 	// Create manager with real filesystem
-	m, err := NewManager(&cli.Command{}, WithConfigPaths([]string{tempDir}))
+	m, err := NewManager(WithConfigPaths([]string{tempDir}))
 	require.NoError(t, err)
 
 	// Initialize
@@ -360,7 +360,7 @@ portal_name: test_portal
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create manager with real filesystem
-			m, err := NewManager(&cli.Command{}, WithConfigPaths([]string{tempDir}))
+			m, err := NewManager(WithConfigPaths([]string{tempDir}))
 			require.NoError(t, err)
 
 			// Create test config
@@ -531,7 +531,7 @@ func (h *testHelper) newManager(opts ...ManagerOption) *ManagerDefault {
 	}
 	baseOpts = append(baseOpts, opts...)
 
-	m, err := NewManager(h.cmd, baseOpts...)
+	m, err := NewManager(baseOpts...)
 	require.NoError(h.t, err)
 	return m
 }
