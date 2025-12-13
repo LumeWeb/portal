@@ -824,6 +824,11 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		}
 	}
 	
+	// Load configuration before running startup functions
+	if err = ctx.Config().Load(); err != nil {
+		return fmt.Errorf("configuration load failed: %w", err)
+	}
+	
 	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
 	}
