@@ -80,7 +80,7 @@ func NewTestContextWithConfig(tb TB, configMode ConfigMode, opts ...TestContextB
 	tb.Helper()
 
 	// Create config manager based on mode
-	cfg := NewTestConfigManager(tb.(*testing.T), configMode)
+	cfg := NewTestConfigManager(tb, configMode)
 
 	// Default to firing boot complete event
 	fireBootComplete := false
