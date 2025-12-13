@@ -342,14 +342,20 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, pl
 // - Actual configuration through the config manager
 func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error {
 	// Detect a Config() provider
-	type serviceWithConfig interface{ Config() config.ServiceConfig }
+	type serviceWithConfig interface{ Config() (any, error) }
 	provider, ok := svc.(serviceWithConfig)
 	if !ok {
 		return nil // service has no config
 	}
 
 	// Get the concrete config object from the service
-	cfgResult := provider.Config()
+	cfgResult, err := provider.Config()
+	if err != nil {
+		ctx.Logger().Error("Error getting service config",
+			zap.String("service", svcInfo.ID),
+			zap.Error(err))
+		return err
+	}
 
 	// Ensure the config type is compliant with ServiceConfig interface
 	// This handles cases where the service returns a non-pointer but needs pointer semantics
