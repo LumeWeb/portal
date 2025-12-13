@@ -58,21 +58,29 @@ func (c *genericConfig) Defaults() map[string]any {
 
 // GetMockConfig returns the mock config manager from the context for testing
 // Panics if the config manager is not a mock
-func GetMockConfig(ctx core.Context) *MockConfigManager {
-	mockConfig, ok := ctx.Config().(*MockConfigManager)
+func GetMockConfig(ctx core.Context) *config.MockManager {
+	mockConfig, ok := ctx.Config().(*config.MockManager)
 	if !ok {
-		panic("config manager is not a mock - use NewTestContext() for testing")
+		panic("config manager is not a mock - use NewTestContextWithConfig() with ConfigModeMock")
 	}
 	return mockConfig
 }
 
-// WithAPIConfig sets an expectation on the mock ConfigManager
-// to return the provided config when GetAPI is called with the given ID.
-// The expectation is set to Maybe() to allow but not require the call.
+// GetRealConfig returns the real config manager from the context for testing
+// Panics if the config manager is not a real config
+func GetRealConfig(ctx core.Context) *config.ManagerDefault {
+	realConfig, ok := ctx.Config().(*config.ManagerDefault)
+	if !ok {
+		panic("config manager is not real - use NewTestContext() or NewTestContextWithConfig() with ConfigModeReal")
+	}
+	return realConfig
+}
+
+// WithAPIConfig configures an API with the given config using the config manager
 func WithAPIConfig(apiID string, apiConfig config.APIConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		mockConfig := GetMockConfig(ctx)
-		err := mockConfig.ConfigureAPI(apiID, apiConfig)
+		cfg := ctx.Config()
+		err := cfg.ConfigureAPI(apiID, apiConfig)
 		if err != nil {
 			return ctx, fmt.Errorf("failed to configure API %s: %w", apiID, err)
 		}
@@ -88,8 +96,8 @@ func WithCustomAPIConfig(apiID string, builder *ConfigBuilder) TestContextBuilde
 // WithProtocolConfig configures a protocol with the given config using the config manager
 func WithProtocolConfig(protocolID string, protocolConfig config.ProtocolConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		mockConfig := GetMockConfig(ctx)
-		err := mockConfig.ConfigureProtocol(protocolID, protocolConfig)
+		cfg := ctx.Config()
+		err := cfg.ConfigureProtocol(protocolID, protocolConfig)
 		if err != nil {
 			return ctx, fmt.Errorf("failed to configure protocol %s: %w", protocolID, err)
 		}
@@ -105,8 +113,8 @@ func WithCustomProtocolConfig(protocolID string, builder *ConfigBuilder) TestCon
 // WithServiceConfig configures a service with the given config using the config manager
 func WithServiceConfig(pluginName string, serviceName string, serviceConfig config.ServiceConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		mockConfig := GetMockConfig(ctx)
-		err := mockConfig.ConfigureService(pluginName, serviceName, serviceConfig)
+		cfg := ctx.Config()
+		err := cfg.ConfigureService(pluginName, serviceName, serviceConfig)
 		if err != nil {
 			return ctx, fmt.Errorf("failed to configure service %s for plugin %s: %w", serviceName, pluginName, err)
 		}
