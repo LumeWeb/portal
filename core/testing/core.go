@@ -3,6 +3,7 @@ package testing
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"sync"
 	"testing"
@@ -440,7 +441,9 @@ func ResetAllState() {
 	core.ResetState()
 	
 	// Restore error namespaces to preserve them across test isolation
-	_ = core.ReplaceAllErrorNamespaces(savedNamespaces)
+	if err := core.ReplaceAllErrorNamespaces(savedNamespaces); err != nil {
+		log.Fatalf("failed to restore error namespaces: %v", err)
+	}
 
 	// Reset testing state (only clears test case specific options)
 	ClearTestCaseContextOptions()
