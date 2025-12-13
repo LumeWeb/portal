@@ -1664,6 +1664,50 @@ func (_c *MockManager_Load_Call) RunAndReturn(run func() error) *MockManager_Loa
 	return _c
 }
 
+// LoadAll provides a mock function for the type MockManager
+func (_mock *MockManager) LoadAll() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoadAll")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockManager_LoadAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoadAll'
+type MockManager_LoadAll_Call struct {
+	*mock.Call
+}
+
+// LoadAll is a helper method to define mock.On call
+func (_e *MockManager_Expecter) LoadAll() *MockManager_LoadAll_Call {
+	return &MockManager_LoadAll_Call{Call: _e.mock.On("LoadAll")}
+}
+
+func (_c *MockManager_LoadAll_Call) Run(run func()) *MockManager_LoadAll_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_LoadAll_Call) Return(err error) *MockManager_LoadAll_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockManager_LoadAll_Call) RunAndReturn(run func() error) *MockManager_LoadAll_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LoadNamespace provides a mock function for the type MockManager
 func (_mock *MockManager) LoadNamespace(namespace string) error {
 	ret := _mock.Called(namespace)
