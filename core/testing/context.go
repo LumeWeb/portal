@@ -72,25 +72,18 @@ var _ TestContext = (*testContext)(nil)
 // NewTestContext creates a new Context suitable for testing with either *testing.T or *testing.B
 // It does NOT process the options immediately. Options are processed during BootEnvironment.
 func NewTestContext(tb TB, opts ...TestContextBuilderOption) (TestContext, error) {
+	return NewTestContextWithConfig(tb, ConfigModeReal, opts...)
+}
+
+// NewTestContextWithConfig creates a new Context with specified config mode
+func NewTestContextWithConfig(tb TB, configMode ConfigMode, opts ...TestContextBuilderOption) (TestContext, error) {
 	tb.Helper()
 
-	// Create a mock config manager
-	var mockConfig *MockConfigManager
+	// Create config manager based on mode
+	cfg := NewTestConfigManager(tb.(*testing.T), configMode)
 
 	// Default to firing boot complete event
 	fireBootComplete := false
-
-	// Handle different types of test runners
-	if t, ok := tb.(*testing.T); ok {
-		// If it's a *testing.T, use it directly
-		mockConfig = NewMockConfigManager(t)
-	} else {
-		// For benchmarks or other test types, create a simple wrapper around the MockConfigManager
-		// that doesn't depend on expectations being verified
-		mockConfig = &MockConfigManager{
-			cfg: &config.Config{},
-		}
-	}
 
 	// Create a test logger based on the test type
 	var zapLogger *zap.Logger
@@ -103,12 +96,12 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) (TestContext, error
 		zapLogger = zap.NewNop()
 	}
 
-	logger := core.NewLogger(mockConfig)
+	logger := core.NewLogger(cfg)
 	// Replace the underlying zap logger
 	logger.Logger = zapLogger
 
-	// Set the logger on the mock config
-	mockConfig.SetLogger(zapLogger)
+	// Set the logger on the config
+	cfg.SetLogger(zapLogger)
 
 	// Create context with cancel
 	baseCtx, cancel := context.WithCancel(context.Background())
@@ -118,7 +111,7 @@ func NewTestContext(tb TB, opts ...TestContextBuilderOption) (TestContext, error
 		defaultContext: &defaultContext{
 			Context:      baseCtx,
 			services:     make(map[string]any),
-			cfg:          mockConfig,
+			cfg:          cfg,
 			logger:       logger,
 			event:        event.NewM(""),
 			cancel:       cancel,
