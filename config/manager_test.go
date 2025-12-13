@@ -229,7 +229,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 	testPath := "/tmp/test_config.yaml"
 
 	// Execute createDefaultConfig
-	err = createDefaultConfig(testPath, cm, fs)
+	err = createDefaultConfig(testPath, fs)
 	require.NoError(t, err)
 
 	// Verify that the file was created in the mock file system

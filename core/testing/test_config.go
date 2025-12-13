@@ -65,6 +65,12 @@ func newRealTestConfig(tb testing.TB) config.Manager {
 
 	// Create file source for temp directory
 	configFile := filepath.Join(tempDir, "core.yaml")
+	
+	// Create the config file using the exported function
+	if err := config.CreateDefaultConfig(configFile, config.OSFS); err != nil {
+		panic(fmt.Sprintf("failed to create config file: %v", err))
+	}
+	
 	fileSource := source.NewFileSource(configFile)
 	cm.RegisterSource(fileSource)
 	cm.RegisterNamespace("core", fileSource)

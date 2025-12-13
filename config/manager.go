@@ -18,7 +18,7 @@ type findConfigFileOptions struct {
 	Paths           []string   // Search paths, defaults to DefaultConfigPaths if empty
 	CreateIfMissing bool       // Create a default config if not found
 	CheckWritable   bool       // Check if existing files are writable
-	FS              fileSystem // Filesystem interface for operations
+	FS              FileSystem // Filesystem interface for operations
 	Core            bool
 }
 
@@ -56,7 +56,7 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 
 		if os.IsNotExist(err) && options.CreateIfMissing {
 			// File doesn't exist and we should create it
-			if err := createDefaultConfig(expandedPath, cm, options.FS); err != nil {
+			if err := CreateDefaultConfig(expandedPath, options.FS); err != nil {
 				return "", fmt.Errorf("failed to create default config at %s: %w", expandedPath, err)
 			}
 			return expandedPath, nil
@@ -66,8 +66,8 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 	return "", fmt.Errorf("no valid config file found in paths: %v", paths)
 }
 
-// createDefaultConfig creates an empty config file at the specified path
-func createDefaultConfig(path string, cm configmanager.Manager, fs fileSystem) error {
+// CreateDefaultConfig creates an empty config file at the specified path
+func CreateDefaultConfig(path string, fs FileSystem) error {
 	// Create parent directories if they don't exist
 	if err := fs.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
@@ -81,7 +81,8 @@ func createDefaultConfig(path string, cm configmanager.Manager, fs fileSystem) e
 	return file.Close()
 }
 
-type fileSystem interface {
+// FileSystem provides filesystem operations for config management
+type FileSystem interface {
 	Stat(name string) (os.FileInfo, error)
 	MkdirAll(path string, perm os.FileMode) error
 	OpenFile(name string, flag int, perm os.FileMode) (*os.File, error)
@@ -89,6 +90,9 @@ type fileSystem interface {
 }
 
 type osFS struct{}
+
+// OSFS provides an implementation of FileSystem using the standard os package
+var OSFS FileSystem = osFS{}
 
 func (osFS) Stat(name string) (os.FileInfo, error)        { return os.Stat(name) }
 func (osFS) MkdirAll(path string, perm os.FileMode) error { return os.MkdirAll(path, perm) }
@@ -105,7 +109,7 @@ type ManagerDefault struct {
 	configPaths []string
 
 	syncEnabled bool
-	fs          fileSystem
+	fs          FileSystem
 	initialized bool
 
 	// Tracking fields
@@ -142,7 +146,7 @@ type ManagerConfig struct {
 	ConfigManager configmanager.Manager
 	Logger        *zap.Logger
 	ConfigPaths   []string
-	FS            fileSystem
+	FS            FileSystem
 }
 
 // newManagerConfig creates a new ManagerConfig with defaults
@@ -191,7 +195,7 @@ func WithConfigPaths(paths []string) ManagerOption {
 	}
 }
 
-func withFileSystem(fs fileSystem) ManagerOption {
+func withFileSystem(fs FileSystem) ManagerOption {
 	return func(c *ManagerConfig) {
 		c.FS = fs
 	}
