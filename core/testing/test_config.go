@@ -71,9 +71,7 @@ func newRealTestConfig(tb testing.TB) config.Manager {
 		panic(fmt.Sprintf("failed to create config file: %v", err))
 	}
 	
-	fileSource := source.NewFileSource(configFile)
-	cm.RegisterSource(fileSource)
-	cm.RegisterNamespace("core", fileSource)
+
 	cm.RegisterSource(source.NewDefaultConfigSource(cm, source.WithDefaultSourceGlobal()))
 
 	if err := cm.Load(); err != nil {
