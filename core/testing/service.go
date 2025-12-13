@@ -63,12 +63,19 @@ func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T], ser
 			return ctx, fmt.Errorf("mock service factory for '%s' returned nil", id)
 		}
 
-		// Set up Config() expectation if service config is provided
-		if len(serviceConfig) > 0 && serviceConfig[0] != nil {
-			// Try to set up Config() expectation if the mock supports it
-			if mockWithOn, ok := any(serviceInstance).(mockWithOn); ok {
-				mockWithOn.On("Config").Return(serviceConfig[0], nil)
+		switch len(serviceConfig) {
+		case 0:
+			// no-op
+		case 1:
+			onMock, ok := any(serviceInstance).(mockWithOn)
+			if !ok {
+				return ctx, fmt.Errorf("mock service '%s' does not support On(); cannot auto-configure Config()", id)
 			}
+			// Consider whether Config() should be required or optional when provided.
+			// If optional, keep Maybe(); if required, drop it (or set Once()).
+			onMock.On("Config").Return(serviceConfig[0], nil).Maybe()
+		default:
+			return ctx, fmt.Errorf("WithMockServiceFactory('%s') expected at most 1 serviceConfig value, got %d", id, len(serviceConfig))
 		}
 
 		// Register the created service using the shared helper
