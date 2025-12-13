@@ -80,8 +80,11 @@ func newRealTestConfig(tb testing.TB) config.Manager {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	// Create real manager using the prepared config manager
-	manager, err := config.NewManager(config.WithConfigManager(cm))
+	// Create real manager using the prepared config manager with temp directory path
+	manager, err := config.NewManager(
+		config.WithConfigManager(cm),
+		config.WithConfigPaths([]string{tempDir}),
+	)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create manager: %v", err))
 	}
