@@ -47,7 +47,7 @@ require (
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/wneessen/go-mail v0.7.2
 	go.etcd.io/etcd/client/v3 v3.6.4
-	go.lumeweb.com/configmanager v0.3.20
+	go.lumeweb.com/configmanager v0.3.21
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.3
