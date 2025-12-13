@@ -2,16 +2,15 @@ package config
 
 import (
 	"fmt"
-	"go.lumeweb.com/configmanager"
-	"go.lumeweb.com/configmanager/source"
-	"go.uber.org/zap"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	
+	"go.lumeweb.com/configmanager"
+	"go.lumeweb.com/configmanager/source"
+	"go.uber.org/zap"
 )
 
 // findConfigFileOptions defines options for finding configuration files
@@ -104,7 +103,7 @@ type ManagerDefault struct {
 	configFile  string
 	configDir   string
 	configPaths []string
-	
+
 	syncEnabled bool
 	fs          fileSystem
 	initialized bool
@@ -145,33 +144,9 @@ type ManagerConfig struct {
 	FS            fileSystem
 }
 
-// NewManagerConfig creates a new ManagerConfig with defaults
-func NewManagerConfig() *ManagerConfig {
+// newManagerConfig creates a new ManagerConfig with defaults
+func newManagerConfig() *ManagerConfig {
 	return &ManagerConfig{}
-}
-
-// WithConfigManager sets the config manager
-func (c *ManagerConfig) WithConfigManager(cm configmanager.Manager) *ManagerConfig {
-	c.ConfigManager = cm
-	return c
-}
-
-// WithLogger sets the logger
-func (c *ManagerConfig) WithLogger(logger *zap.Logger) *ManagerConfig {
-	c.Logger = logger
-	return c
-}
-
-// WithConfigPaths sets the config paths
-func (c *ManagerConfig) WithConfigPaths(paths []string) *ManagerConfig {
-	c.ConfigPaths = paths
-	return c
-}
-
-// withFileSystem sets the file system (internal use)
-func (c *ManagerConfig) withFileSystem(fs fileSystem) *ManagerConfig {
-	c.FS = fs
-	return c
 }
 
 // createDefaultConfigManager creates a default config manager with basic setup
@@ -220,7 +195,7 @@ func withFileSystem(fs fileSystem) ManagerOption {
 
 func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
 	// Create config with defaults and apply options
-	config := NewManagerConfig()
+	config := newManagerConfig()
 	for _, opt := range opts {
 		opt(config)
 	}
