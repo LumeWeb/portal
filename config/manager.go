@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/urfave/cli/v3"
+	
 )
 
 // findConfigFileOptions defines options for finding configuration files
@@ -104,7 +104,7 @@ type ManagerDefault struct {
 	configFile  string
 	configDir   string
 	configPaths []string
-	cmd         *cli.Command
+	
 	syncEnabled bool
 	fs          fileSystem
 	initialized bool
@@ -117,11 +117,10 @@ type ManagerDefault struct {
 	lock                sync.RWMutex
 }
 
-func newManagerDefault(cm configmanager.Manager, cmd *cli.Command) *ManagerDefault {
+func newManagerDefault(cm configmanager.Manager) *ManagerDefault {
 	return &ManagerDefault{
 		Manager:             cm,
 		logger:              zap.NewNop(),
-		cmd:                 cmd,
 		fs:                  osFS{}, // Default to OS filesystem
 		configuredPlugins:   make(map[string]bool),
 		configuredAPIs:      make(map[string]bool),
@@ -138,30 +137,41 @@ func (m *ManagerDefault) setConfigPaths(configFile string) {
 
 var _ Manager = (*ManagerDefault)(nil)
 
-type ManagerOption func(*ManagerDefault)
-
-func withFileSystem(fs fileSystem) ManagerOption {
-	return func(m *ManagerDefault) {
-		m.fs = fs
-	}
+// ManagerConfig holds configuration options for creating a Manager
+type ManagerConfig struct {
+	ConfigManager configmanager.Manager
+	Logger        *zap.Logger
+	ConfigPaths   []string
+	FS            fileSystem
 }
 
-func WithLogger(logger *zap.Logger) ManagerOption {
-	return func(m *ManagerDefault) {
-		m.logger = logger
-	}
+// NewManagerConfig creates a new ManagerConfig with defaults
+func NewManagerConfig() *ManagerConfig {
+	return &ManagerConfig{}
 }
 
-func WithConfigPaths(paths []string) ManagerOption {
-	return func(m *ManagerDefault) {
-		m.configPaths = paths
-	}
+// WithConfigManager sets the config manager
+func (c *ManagerConfig) WithConfigManager(cm configmanager.Manager) *ManagerConfig {
+	c.ConfigManager = cm
+	return c
 }
 
-func WithConfigManager(cm configmanager.Manager) ManagerOption {
-	return func(m *ManagerDefault) {
-		m.Manager = cm
-	}
+// WithLogger sets the logger
+func (c *ManagerConfig) WithLogger(logger *zap.Logger) *ManagerConfig {
+	c.Logger = logger
+	return c
+}
+
+// WithConfigPaths sets the config paths
+func (c *ManagerConfig) WithConfigPaths(paths []string) *ManagerConfig {
+	c.ConfigPaths = paths
+	return c
+}
+
+// withFileSystem sets the file system (internal use)
+func (c *ManagerConfig) withFileSystem(fs fileSystem) *ManagerConfig {
+	c.FS = fs
+	return c
 }
 
 // createDefaultConfigManager creates a default config manager with basic setup
@@ -182,27 +192,63 @@ func createDefaultConfigManager() (configmanager.Manager, error) {
 	return cm, nil
 }
 
-func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
-	// Initialize ManagerDefault with nil config manager initially
-	m := newManagerDefault(nil, nil)
+type ManagerOption func(*ManagerConfig)
 
-	// Apply options which may provide a config manager
+func WithConfigManager(cm configmanager.Manager) ManagerOption {
+	return func(c *ManagerConfig) {
+		c.ConfigManager = cm
+	}
+}
+
+func WithLogger(logger *zap.Logger) ManagerOption {
+	return func(c *ManagerConfig) {
+		c.Logger = logger
+	}
+}
+
+func WithConfigPaths(paths []string) ManagerOption {
+	return func(c *ManagerConfig) {
+		c.ConfigPaths = paths
+	}
+}
+
+func withFileSystem(fs fileSystem) ManagerOption {
+	return func(c *ManagerConfig) {
+		c.FS = fs
+	}
+}
+
+func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
+	// Create config with defaults and apply options
+	config := NewManagerConfig()
 	for _, opt := range opts {
-		opt(m)
+		opt(config)
 	}
 
-	// If no config manager was provided, create a default one
-	if m.Manager == nil {
-		cm, err := createDefaultConfigManager()
+	// Use provided config manager or create default one
+	var cm configmanager.Manager
+	if config.ConfigManager != nil {
+		cm = config.ConfigManager
+	} else {
+		var err error
+		cm, err = createDefaultConfigManager()
 		if err != nil {
 			return nil, err
 		}
-		m.Manager = cm
 	}
 
-	// Apply options which may override defaults
-	for _, opt := range opts {
-		opt(m)
+	// Initialize ManagerDefault with config manager
+	m := newManagerDefault(cm)
+
+	// Apply additional configuration
+	if config.Logger != nil {
+		m.logger = config.Logger
+	}
+	if config.ConfigPaths != nil {
+		m.configPaths = config.ConfigPaths
+	}
+	if config.FS != nil {
+		m.fs = config.FS
 	}
 
 	// Determine config file and directory
