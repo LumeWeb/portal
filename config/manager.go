@@ -124,7 +124,7 @@ func newManagerDefault(cm configmanager.Manager) *ManagerDefault {
 	return &ManagerDefault{
 		Manager:             cm,
 		logger:              zap.NewNop(),
-		fs:                  osFS{}, // Default to OS filesystem
+		fs:                  OSFS, // Default to OS filesystem
 		configuredPlugins:   make(map[string]bool),
 		configuredAPIs:      make(map[string]bool),
 		configuredProtocols: make(map[string]bool),
