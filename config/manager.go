@@ -136,7 +136,8 @@ func (m *ManagerDefault) setConfigPaths(configFile string) {
 
 var _ Manager = (*ManagerDefault)(nil)
 
-// ManagerConfig holds configuration options for creating a Manager
+// ManagerConfig holds dependencies and options required to construct a Manager, including the ConfigManager for
+// configuration management, Logger for logging, ConfigPaths for configuration file locations, and FS for file system operations.
 type ManagerConfig struct {
 	ConfigManager configmanager.Manager
 	Logger        *zap.Logger
@@ -169,18 +170,21 @@ func createDefaultConfigManager() (configmanager.Manager, error) {
 
 type ManagerOption func(*ManagerConfig)
 
+// WithConfigManager sets the ManagerConfig.ConfigManager to the provided configmanager.Manager.
 func WithConfigManager(cm configmanager.Manager) ManagerOption {
 	return func(c *ManagerConfig) {
 		c.ConfigManager = cm
 	}
 }
 
+// WithLogger sets the ManagerConfig.Logger to the provided zap.Logger.
 func WithLogger(logger *zap.Logger) ManagerOption {
 	return func(c *ManagerConfig) {
 		c.Logger = logger
 	}
 }
 
+// WithConfigPaths sets the ManagerConfig.ConfigPaths to the provided slice of configuration file paths.
 func WithConfigPaths(paths []string) ManagerOption {
 	return func(c *ManagerConfig) {
 		c.ConfigPaths = paths
