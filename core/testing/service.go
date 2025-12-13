@@ -12,6 +12,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// Private interface types for mock configuration
+
+// mockWithOn represents a mock that has the On method for setting up expectations
+type mockWithOn interface {
+	On(methodName string, arguments ...any) *mock.Call
+}
+
 // WithMockService adds a mock service to the test context by calling the mock constructor
 // during the test context's BootEnvironment phase.
 func WithMockService(id string, mockConstructor func(tb TB, ctx TestContext) any) TestContextBuilderOption {
@@ -45,7 +52,8 @@ type MockServiceFactory[T any] func(interface {
 // by calling a factory function immediately during the ProcessCtxOptions phase.
 // This allows mocks that require the testing.TB instance to be created with the
 // correct TB for each individual test run.
-func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T]) TestContextBuilderOption {
+// Optional service config can be provided to set up Config() expectations on the mock.
+func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T], serviceConfig ...any) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		// Create the mock instance immediately using the test's TB
 		serviceInstance := factory(ctx.T())
@@ -53,6 +61,14 @@ func WithMockServiceFactory[T any](id string, factory MockServiceFactory[T]) Tes
 		// Ensure the created instance is not nil
 		if serviceInstance == nil {
 			return ctx, fmt.Errorf("mock service factory for '%s' returned nil", id)
+		}
+
+		// Set up Config() expectation if service config is provided
+		if len(serviceConfig) > 0 && serviceConfig[0] != nil {
+			// Try to set up Config() expectation if the mock supports it
+			if mockWithOn, ok := any(serviceInstance).(mockWithOn); ok {
+				mockWithOn.On("Config").Return(serviceConfig[0], nil)
+			}
 		}
 
 		// Register the created service using the shared helper
@@ -296,12 +312,12 @@ func getMock[T any](ctx core.Context, id string) *T {
 	if svc == nil {
 		panic(fmt.Sprintf("%s service not found in context", id))
 	}
-	
+
 	mockSvc, ok := svc.(*T)
 	if !ok {
 		panic(fmt.Sprintf("%s service is not a mock - expected *%T, got %T", id, mockSvc, svc))
 	}
-	
+
 	return mockSvc
 }
 
