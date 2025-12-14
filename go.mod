@@ -16,7 +16,7 @@ require (
 	github.com/casbin/gorm-adapter/v3 v3.36.0
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/structs v1.1.0
-	github.com/gabriel-vasile/mimetype v1.4.10
+	github.com/gabriel-vasile/mimetype v1.4.12
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20250516191533-4fb3b987637d
 	github.com/go-co-op/gocron/v2 v2.16.3
