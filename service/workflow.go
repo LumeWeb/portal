@@ -517,7 +517,7 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 }
 
 // FailWorkflowStep handles a step failure
-func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, requestID uint, reason string) error {
+func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, requestID uint, err error) error {
 	// Get current request and parse metadata
 	currentReq, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
@@ -543,7 +543,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	}
 
 	// Mark current step failed using RequestService
-	if err = w.requestSvc.FailRequest(ctx, currentReq.ID, reason); err != nil {
+	if err = w.requestSvc.FailRequest(ctx, currentReq.ID, err.Error()); err != nil {
 		return err
 	}
 
@@ -553,7 +553,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 		w.logger.Info("Workflow failed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID),
-			zap.String("reason", reason))
+			zap.Error(err))
 		return nil
 
 	case core.ContinueWorkflow:
@@ -561,10 +561,19 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 		return w.CompleteWorkflowStep(ctx, requestID)
 
 	case core.RetryStep:
+		// Check if the failure is a quota error - if so, do not retry
+		if core.IsQuotaExceededError(err) {
+			w.logger.Info("Skipping retry due to quota exceeded error",
+				zap.String("workflow", metadata.WorkflowName),
+				zap.Uint("requestID", requestID),
+				zap.Error(err))
+			return nil
+		}
+
 		// Schedule retry with backoff
-		err := w.scheduleRetry(ctx, requestID)
-		if err != nil {
-			return err
+		retryErr := w.scheduleRetry(ctx, requestID)
+		if retryErr != nil {
+			return retryErr
 		}
 		// Return a retried error to indicate this was a retry
 		return core.NewWorkflowError(core.ErrKeyWorkflowStepRetried, nil)
@@ -687,8 +696,8 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 	err = w.requestSvc.ExecuteRequest(ctx, requestID)
 	if err != nil {
 		// Always call FailWorkflowStep to handle failure according to step's behavior
-		failErr := w.FailWorkflowStep(ctx, requestID, err.Error())
-		
+		failErr := w.FailWorkflowStep(ctx, requestID, err)
+
 		// If the step is configured to continue on failure, return the original error
 		// to indicate that execution failed, but the workflow should continue.
 		// The caller will decide whether to call CompleteWorkflowStep based on the
@@ -696,7 +705,7 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 		if currentStep.FailureBehavior == core.ContinueWorkflow {
 			return err
 		}
-		
+
 		return failErr
 	}
 

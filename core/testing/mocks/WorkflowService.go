@@ -545,16 +545,16 @@ func (_c *MockWorkflowService_ExecuteWorkflowStep_Call) RunAndReturn(run func(ct
 }
 
 // FailWorkflowStep provides a mock function for the type MockWorkflowService
-func (_mock *MockWorkflowService) FailWorkflowStep(ctx context.Context, requestID uint, reason string) error {
-	ret := _mock.Called(ctx, requestID, reason)
+func (_mock *MockWorkflowService) FailWorkflowStep(ctx context.Context, requestID uint, err error) error {
+	ret := _mock.Called(ctx, requestID, err)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FailWorkflowStep")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) error); ok {
-		r0 = returnFunc(ctx, requestID, reason)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, error) error); ok {
+		r0 = returnFunc(ctx, requestID, err)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -569,12 +569,12 @@ type MockWorkflowService_FailWorkflowStep_Call struct {
 // FailWorkflowStep is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-//   - reason string
-func (_e *MockWorkflowService_Expecter) FailWorkflowStep(ctx interface{}, requestID interface{}, reason interface{}) *MockWorkflowService_FailWorkflowStep_Call {
-	return &MockWorkflowService_FailWorkflowStep_Call{Call: _e.mock.On("FailWorkflowStep", ctx, requestID, reason)}
+//   - err error
+func (_e *MockWorkflowService_Expecter) FailWorkflowStep(ctx interface{}, requestID interface{}, err interface{}) *MockWorkflowService_FailWorkflowStep_Call {
+	return &MockWorkflowService_FailWorkflowStep_Call{Call: _e.mock.On("FailWorkflowStep", ctx, requestID, err)}
 }
 
-func (_c *MockWorkflowService_FailWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint, reason string)) *MockWorkflowService_FailWorkflowStep_Call {
+func (_c *MockWorkflowService_FailWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint, err error)) *MockWorkflowService_FailWorkflowStep_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -584,9 +584,9 @@ func (_c *MockWorkflowService_FailWorkflowStep_Call) Run(run func(ctx context.Co
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
-		var arg2 string
+		var arg2 error
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(error)
 		}
 		run(
 			arg0,
@@ -597,12 +597,12 @@ func (_c *MockWorkflowService_FailWorkflowStep_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockWorkflowService_FailWorkflowStep_Call) Return(err error) *MockWorkflowService_FailWorkflowStep_Call {
-	_c.Call.Return(err)
+func (_c *MockWorkflowService_FailWorkflowStep_Call) Return(err1 error) *MockWorkflowService_FailWorkflowStep_Call {
+	_c.Call.Return(err1)
 	return _c
 }
 
-func (_c *MockWorkflowService_FailWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint, reason string) error) *MockWorkflowService_FailWorkflowStep_Call {
+func (_c *MockWorkflowService_FailWorkflowStep_Call) RunAndReturn(run func(ctx context.Context, requestID uint, err error) error) *MockWorkflowService_FailWorkflowStep_Call {
 	_c.Call.Return(run)
 	return _c
 }
