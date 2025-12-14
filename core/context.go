@@ -300,40 +300,58 @@ func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
 	return options
 }
 
-// GetServiceOptional returns a service if available, zero value otherwise
-func GetServiceOptional[T Service](ctx Context, id string) T {
+// ServiceResult encapsulates the result of service retrieval with detailed status
+type ServiceResult[T Service] struct {
+	Service T
+	Found   bool   // true if service exists in context
+	TypeOK  bool   // true if service exists and type matches T
+}
+
+// getServiceTyped is the core service retrieval logic shared by all public helpers
+func getServiceTyped[T Service](ctx Context, id string) ServiceResult[T] {
 	var zero T
 	svc := ctx.Service(id)
 	if svc == nil {
-		return zero
+		return ServiceResult[T]{Service: zero, Found: false, TypeOK: false}
 	}
 
 	typedSvc, ok := svc.(T)
-	if !ok {
-		return zero
+	return ServiceResult[T]{
+		Service: typedSvc,
+		Found:   true,
+		TypeOK:  ok,
 	}
+}
 
-	return typedSvc
+// GetServiceOptional returns a service if available, zero value otherwise
+func GetServiceOptional[T Service](ctx Context, id string) T {
+	result := getServiceTyped[T](ctx, id)
+	return result.Service
 }
 
 // WithService executes a function with the service if available
 func WithService[T Service](ctx Context, id string, fn func(T) error) error {
-	if svc := GetServiceOptional[T](ctx, id); svc != nil {
-		if err := fn(svc); err != nil {
-			return err
-		}
+	result := getServiceTyped[T](ctx, id)
+	if !result.TypeOK {
+		return nil
 	}
-	return nil
+	
+	return fn(result.Service)
 }
 
 func GetService[T Service](ctx Context, id string) T {
-	svc := GetServiceOptional[T](ctx, id)
-	if svc == nil {
+	result := getServiceTyped[T](ctx, id)
+	if !result.TypeOK {
 		var zero T
-		ctx.Logger().Fatal("service not found", zap.String("service", id))
+		if !result.Found {
+			ctx.Logger().Fatal("service not found", zap.String("service", id))
+		} else {
+			ctx.Logger().Fatal("service type mismatch", zap.String("service", id))
+		}
 		return zero
 	}
-	return svc
+	
+	return result.Service
 }
 
 func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
