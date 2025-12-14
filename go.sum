@@ -24,6 +24,8 @@ github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2/go.mod h1:wP83
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
 github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
+github.com/LumeWeb/mapstructure/v2 v2.0.0-20241118124956-8101c0bc3534 h1:XoNR6hMiZxDckYsptJiSATt3L4PuJijDWj2KQ50+BE4=
+github.com/LumeWeb/mapstructure/v2 v2.0.0-20241118124956-8101c0bc3534/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20241213212524-92525f5828be h1:oDjPBdoa6QBvAAo7AGPHPEVpTIX1DWGYhKKJsmZhX7o=
 github.com/LumeWeb/mapstructure/v2 v2.0.0-20241213212524-92525f5828be/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/Oudwins/zog v0.21.6 h1:3JVJA66fr59k2x72RojCB7v5XkVmtVsnp1YO/np595k=
