@@ -326,6 +326,9 @@ func getServiceTyped[T Service](ctx Context, id string) ServiceResult[T] {
 // GetServiceOptional returns a service if available, zero value otherwise
 func GetServiceOptional[T Service](ctx Context, id string) T {
 	result := getServiceTyped[T](ctx, id)
+	if result.Found && !result.TypeOK {
+		ctx.Logger().Debug("service type mismatch in optional lookup", zap.String("service", id))
+	}
 	return result.Service
 }
 
@@ -333,6 +336,9 @@ func GetServiceOptional[T Service](ctx Context, id string) T {
 func WithService[T Service](ctx Context, id string, fn func(T) error) error {
 	result := getServiceTyped[T](ctx, id)
 	if !result.TypeOK {
+		if result.Found {
+			ctx.Logger().Debug("service type mismatch, skipping callback", zap.String("service", id))
+		}
 		return nil
 	}
 	
