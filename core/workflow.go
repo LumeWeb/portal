@@ -48,6 +48,7 @@ type WorkflowCoordinator interface {
 	CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...WorkflowOption) error
 
 	// Handle failure in workflow step
+	// err must be non-nil - implementations should defensively handle nil values
 	FailWorkflowStep(ctx context.Context, requestID uint, err error) error
 
 	// Get current status of workflow
