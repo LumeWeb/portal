@@ -300,19 +300,40 @@ func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
 	return options
 }
 
-func GetService[T Service](ctx Context, id string) T {
+// GetServiceOptional returns a service if available, zero value otherwise
+func GetServiceOptional[T Service](ctx Context, id string) T {
+	var zero T
 	svc := ctx.Service(id)
 	if svc == nil {
-		ctx.Logger().Fatal("service not found", zap.String("service", id))
+		return zero
 	}
 
 	typedSvc, ok := svc.(T)
-
 	if !ok {
-		ctx.Logger().Fatal("service type mismatch", zap.String("service", id))
+		return zero
 	}
 
 	return typedSvc
+}
+
+// WithService executes a function with the service if available
+func WithService[T Service](ctx Context, id string, fn func(T) error) error {
+	if svc := GetServiceOptional[T](ctx, id); svc != nil {
+		if err := fn(svc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func GetService[T Service](ctx Context, id string) T {
+	svc := GetServiceOptional[T](ctx, id)
+	if svc == nil {
+		var zero T
+		ctx.Logger().Fatal("service not found", zap.String("service", id))
+		return zero
+	}
+	return svc
 }
 
 func GetServiceConfig[T config.ServiceConfig](ctx Context, id string) T {
@@ -388,7 +409,7 @@ func GetAPIConfig[T config.APIConfig](ctx Context, id string) T {
 
 	typedSvc, ok := cfg.(T)
 	if !ok {
-		ctx.Logger().Error("api type mismatch", 
+		ctx.Logger().Error("api type mismatch",
 			zap.String("api", id),
 			zap.String("expected", reflect.TypeOf(*new(T)).String()),
 			zap.String("actual", reflect.TypeOf(cfg).String()))
