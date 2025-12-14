@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -28,6 +29,9 @@ var _ core.Cronable = (*WorkflowCoordinatorDefault)(nil)
 
 var (
 	noRetryPolicy = &core.RetryPolicy{MaxRetries: 0}
+	
+	// ErrUnknownError is used when a nil error is passed to FailWorkflowStep
+	ErrUnknownError = errors.New("unknown error")
 )
 
 // NewWorkflowError creates a new workflow error
@@ -518,6 +522,11 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 
 // FailWorkflowStep handles a step failure
 func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, requestID uint, err error) error {
+	// Defensively handle nil error parameter
+	if err == nil {
+		err = ErrUnknownError
+	}
+
 	// Get current request and parse metadata
 	currentReq, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
