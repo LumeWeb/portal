@@ -48,7 +48,7 @@ type WorkflowCoordinator interface {
 	CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...WorkflowOption) error
 
 	// Handle failure in workflow step
-	FailWorkflowStep(ctx context.Context, requestID uint, reason string) error
+	FailWorkflowStep(ctx context.Context, requestID uint, err error) error
 
 	// Get current status of workflow
 	GetWorkflowStatus(ctx context.Context, requestID uint) (*WorkflowStatus, error)

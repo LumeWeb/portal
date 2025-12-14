@@ -3,6 +3,7 @@ package service_tests
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/multiformats/go-multihash"
@@ -303,7 +304,7 @@ func TestFailWorkflowBehavior(t *testing.T) {
 		require.NotNil(tb, req)
 
 		// Fail the workflow step
-		err = workflowService.FailWorkflowStep(context.Background(), req.ID, failureReason)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, fmt.Errorf(failureReason))
 		assert.NoError(tb, err)
 
 		// Verify request is marked as failed
@@ -354,7 +355,7 @@ func TestContinueWorkflowBehavior(t *testing.T) {
 		require.NotNil(tb, req1)
 
 		// Fail first step with ContinueWorkflow behavior
-		err = workflowService.FailWorkflowStep(context.Background(), req1.ID, failureReason)
+		err = workflowService.FailWorkflowStep(context.Background(), req1.ID, fmt.Errorf(failureReason))
 		assert.NoError(tb, err)
 
 		// Verify first request is marked as failed
@@ -413,7 +414,7 @@ func TestRetryStepBehavior(t *testing.T) {
 		require.NotNil(tb, req)
 
 		// Fail step with RetryStep behavior
-		err = workflowService.FailWorkflowStep(context.Background(), req.ID, failureReason)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, fmt.Errorf(failureReason))
 		assert.NoError(tb, err)
 
 		// Verify request status is reset to pending for retry
