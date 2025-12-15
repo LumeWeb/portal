@@ -1,12 +1,14 @@
 package testing
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	gjwt "github.com/golang-jwt/jwt/v5"
 	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal/config"
-	"strconv"
-	"time"
 )
 
 // JWTHelper provides high-level helper functions for JWT token testing.
@@ -107,7 +109,7 @@ func (h *JWTHelper) IsTokenValid(token string) bool {
 func (h *JWTHelper) IsTokenExpired(token string) bool {
 	claims, err := h.ValidateToken(token)
 	if err != nil {
-		return err.Error() == "token is expired" || err.Error() == "Token is expired"
+		return errors.Is(err, gjwt.ErrTokenExpired)
 	}
 	if claims.ExpiresAt == nil {
 		return false
