@@ -60,7 +60,7 @@ func (m *MockStorageService) S3Client(ctx context.Context) (*s3.Client, error) {
 
 	// Use the stored core context to get config
 	if m.ctx == nil {
-		return nil, fmt.Errorf("mock storage service not initialized with context - use NewMockStorageServiceWithContext")
+		return nil, fmt.Errorf("mock storage service not initialized with context - use NewMockStorageService")
 	}
 
 	// Create S3 client using the same logic as the real storage service
