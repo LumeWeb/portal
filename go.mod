@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/AfterShip/email-verifier v1.4.1
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/Oudwins/zog v0.21.6
+	github.com/Oudwins/zog v0.22.0
 	github.com/adjust/rmq/v5 v5.2.0
 	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.6
