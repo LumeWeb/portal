@@ -1,13 +1,13 @@
 package testing
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
 )
 
 // MockWorkflowService provides high-level helper functions for workflow testing.
@@ -41,7 +41,7 @@ func (m *MockWorkflowService) ExpectStartWorkflowWithMinArgs(workflowName string
 	for i := 0; i < optionCount; i++ {
 		args = append(args, mock.Anything)
 	}
-	return m.EXPECT().StartWorkflow(args...).Return(request, err)
+	return m.EXPECT().StartWorkflow(args[0], args[1], args[2:]...).Return(request, err)
 }
 
 // SetupSimpleWorkflow creates a simple workflow mock setup for common API testing scenarios.
@@ -80,34 +80,31 @@ func (m *MockWorkflowService) SetupOperationWorkflowFailing(operationName string
 // CreateTestRequest creates a test request object for use in workflow mocks.
 func (m *MockWorkflowService) CreateTestRequest(operationName string, userID uint) *models.Request {
 	return &models.Request{
-		Model:          models.Model{ID: 1},
-		Operation:      operationName,
-		State:          models.RequestStatusPending,
-		ProgressPercent: 0.0,
-		UserID:         userID,
+		Model:   gorm.Model{ID: 1},
+		Operation: operationName,
+		Status:   models.RequestStatusPending,
+		UserID:   &userID,
 	}
 }
 
 // CreateCompletedTestRequest creates a completed test request object.
 func (m *MockWorkflowService) CreateCompletedTestRequest(operationName string, userID uint) *models.Request {
 	return &models.Request{
-		Model:          models.Model{ID: 1},
-		Operation:      operationName,
-		State:          models.RequestStatusCompleted,
-		ProgressPercent: 100.0,
-		UserID:         userID,
+		Model:   gorm.Model{ID: 1},
+		Operation: operationName,
+		Status:   models.RequestStatusCompleted,
+		UserID:   &userID,
 	}
 }
 
 // CreateFailedTestRequest creates a failed test request object.
 func (m *MockWorkflowService) CreateFailedTestRequest(operationName string, userID uint, errorMessage string) *models.Request {
 	return &models.Request{
-		Model:          models.Model{ID: 1},
-		Operation:      operationName,
-		State:          models.RequestStatusFailed,
-		ProgressPercent: 0.0,
-		UserID:         userID,
-		Error:          errorMessage,
+		Model:         gorm.Model{ID: 1},
+		Operation:     operationName,
+		Status:        models.RequestStatusFailed,
+		StatusMessage: errorMessage,
+		UserID:        &userID,
 	}
 }
 
@@ -117,12 +114,10 @@ func (m *MockWorkflowService) ExpectGetWorkflowStatus(requestID uint, status *co
 }
 
 // CreateTestWorkflowStatus creates a test workflow status object.
-func (m *MockWorkflowService) CreateTestWorkflowStatus(currentStep string, state models.RequestStatusType) *core.WorkflowStatus {
+func (m *MockWorkflowService) CreateTestWorkflowStatus(currentStep int, state models.RequestStatusType) *core.WorkflowStatus {
 	return &core.WorkflowStatus{
 		CurrentStep: currentStep,
-		State:       state,
-		Completed:   state == models.RequestStatusCompleted,
-		Failed:      state == models.RequestStatusFailed,
+		Status:      state,
 	}
 }
 
@@ -133,7 +128,7 @@ func (m *MockWorkflowService) SetupCompleteWorkflowScenario(workflowName string,
 	m.SetupSimpleWorkflow(workflowName, request)
 
 	// Setup status check
-	status := m.CreateTestWorkflowStatus("", models.RequestStatusCompleted)
+	status := m.CreateTestWorkflowStatus(0, models.RequestStatusCompleted)
 	m.ExpectGetWorkflowStatus(request.ID, status, nil)
 }
 
@@ -142,8 +137,9 @@ func (m *MockWorkflowService) SetupFailingWorkflowScenario(workflowName string, 
 	// Setup workflow start
 	m.SetupSimpleWorkflow(workflowName, request)
 
-	// Setup status check
-	status := m.CreateTestWorkflowStatus("", models.RequestStatusFailed)
+	// Setup status check with error message
+	status := m.CreateTestWorkflowStatus(0, models.RequestStatusFailed)
+	status.Message = errorMessage
 	m.ExpectGetWorkflowStatus(request.ID, status, nil)
 }
 
