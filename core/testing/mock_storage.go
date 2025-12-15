@@ -29,15 +29,15 @@ type MockStorageService struct {
 
 // NewMockStorageService creates a new MockStorageService with a core context.
 func NewMockStorageService(t TB, ctx core.Context) *MockStorageService {
-	mock := &MockStorageService{
+	m := &MockStorageService{
 		MockStorageService: mocks.NewMockStorageService(t),
 		ctx:                ctx,
 	}
-	
+
 	// Auto-wire common expectations
-	mock.MockStorageService.EXPECT().GetTemporaryUploadDir(mock.Anything()).Return("/tmp").Maybe()
-	
-	return mock
+	m.MockStorageService.EXPECT().GetTemporaryUploadDir(mock.Anything).Return("/tmp").Maybe()
+
+	return m
 }
 
 // ID returns the service ID.
