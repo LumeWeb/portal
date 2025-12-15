@@ -113,6 +113,8 @@ github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx2
 github.com/casbin/casbin/v2 v2.57.0/go.mod h1:vByNa/Fchek0KZUgG5wEsl7iFsiviAYKRtgrQfcJqHg=
 github.com/casbin/casbin/v2 v2.127.0 h1:UGK3uO/8cOslnNqFUJ4xzm/bh+N+o45U7cSolaFk38c=
 github.com/casbin/casbin/v2 v2.127.0/go.mod h1:n4uZK8+tCMvcD6EVQZI90zKAok8iHAvEypcMJVKhGF0=
+github.com/casbin/casbin/v2 v2.135.0 h1:6BLkMQiGotYyS5yYeWgW19vxqugUlvHFkFiLnLR/bxk=
+github.com/casbin/casbin/v2 v2.135.0/go.mod h1:FmcfntdXLTcYXv/hxgNntcRPqAbwOG9xsism0yXT+18=
 github.com/casbin/gorm-adapter/v3 v3.36.0 h1:CeW9R9SeWTnf7JZQ4zlOWBXKcspT1VoSf4ojeFX2IbM=
 github.com/casbin/gorm-adapter/v3 v3.36.0/go.mod h1:BbCzTy5CLP/vA8S9KA5e4rPpJQGTt4COzukmKq6KHFA=
 github.com/casbin/govaluate v1.3.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
