@@ -10,6 +10,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 )
@@ -28,10 +29,15 @@ type MockStorageService struct {
 
 // NewMockStorageService creates a new MockStorageService with a core context.
 func NewMockStorageService(t TB, ctx core.Context) *MockStorageService {
-	return &MockStorageService{
+	mock := &MockStorageService{
 		MockStorageService: mocks.NewMockStorageService(t),
 		ctx:                ctx,
 	}
+	
+	// Auto-wire common expectations
+	mock.MockStorageService.EXPECT().GetTemporaryUploadDir(mock.Anything()).Return("/tmp").Maybe()
+	
+	return mock
 }
 
 // ID returns the service ID.
