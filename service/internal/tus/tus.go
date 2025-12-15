@@ -421,7 +421,7 @@ func DefaultUploadCreatedHandler(ctx core.Context, verifyFunc core.TUSUploadCrea
 	return func(handlr core.TusHandler, hook handler.HookEvent) {
 		var errMessage string
 
-		echoCtx, ok := getEchoContext(hook.Context)
+		echoCtx, ok := GetEchoContext(hook.Context)
 		if !ok {
 			errMessage = "Failed to get echo context"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
@@ -641,7 +641,7 @@ func wrapContextHandler(h http.Handler) echo.HandlerFunc {
 	}
 }
 
-func getEchoContext(ctx context.Context) (echo.Context, bool) {
+func GetEchoContext(ctx context.Context) (echo.Context, bool) {
 	c, ok := ctx.Value(echoContextKey).(echo.Context)
 	return c, ok
 }

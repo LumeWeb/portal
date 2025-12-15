@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-cid"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	tusHandler "github.com/tus/tusd/v2/pkg/handler"
 	"go.lumeweb.com/portal/core"
@@ -530,4 +531,8 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 			Body: string(jsonBody),
 		}, nil
 	}
+}
+
+func TusGetEchoContext(ctx context.Context) (echo.Context, bool) {
+	return tus.GetEchoContext(ctx)
 }
