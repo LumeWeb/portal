@@ -597,6 +597,11 @@ func InitContext(ctx TestContext) error {
 
 // ProcessGlobalOptions processes only global options (from RunTests)
 // This should be called after InitContext to apply global configurations
+//
+// Note: All TestContextBuilderOption implementations mutate the context in place.
+// The returned TestContext is the same instance and is returned only for API symmetry
+// with ProcessCtxOptions and future-proofing. The function could return just error,
+// but keeping the (TestContext, error) signature maintains consistency.
 func ProcessGlobalOptions(ctx TestContext) (TestContext, error) {
 	globalOpts := getGlobalTestContextOptions()
 
@@ -613,6 +618,11 @@ func ProcessGlobalOptions(ctx TestContext) (TestContext, error) {
 
 // ProcessTestCaseOptions processes only test case specific options
 // This should be called after InitContext to apply test case specific configurations
+//
+// Note: All TestContextBuilderOption implementations mutate the context in place.
+// The returned TestContext is the same instance and is returned only for API symmetry
+// with ProcessCtxOptions and future-proofing. The function could return just error,
+// but keeping the (TestContext, error) signature maintains consistency.
 func ProcessTestCaseOptions(ctx TestContext) (TestContext, error) {
 	testCaseOpts := getTestCaseTestContextOptions()
 
@@ -865,6 +875,8 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 7: Startup Functions
+	// Note: Core/default startup functions are executed during InitContext (Phase 1).
+	// This phase runs startup functions registered during later phases (components, plugins, options, etc.).
 	// Fire EVENT_BOOT_STARTUP_FUNCS before running startup functions
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS, pevent.NewBootStartupFuncsEvent(ctx)); err != nil {
