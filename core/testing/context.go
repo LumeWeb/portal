@@ -595,34 +595,34 @@ func InitContext(ctx TestContext) error {
 
 // ProcessGlobalOptions processes only global options (from RunTests)
 // This should be called after InitContext to apply global configurations
-func ProcessGlobalOptions(ctx TestContext) error {
+func ProcessGlobalOptions(ctx TestContext) (TestContext, error) {
 	globalOpts := getGlobalTestContextOptions()
 
 	if len(globalOpts) > 0 {
 		var err error
 		ctx, err = ProcessCtxOptions(ctx, globalOpts...)
 		if err != nil {
-			return fmt.Errorf("failed to process global options: %w", err)
+			return ctx, fmt.Errorf("failed to process global options: %w", err)
 		}
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // ProcessTestCaseOptions processes only test case specific options
 // This should be called after InitContext to apply test case specific configurations
-func ProcessTestCaseOptions(ctx TestContext) error {
+func ProcessTestCaseOptions(ctx TestContext) (TestContext, error) {
 	testCaseOpts := getTestCaseTestContextOptions()
 
 	if len(testCaseOpts) > 0 {
 		var err error
 		ctx, err = ProcessCtxOptions(ctx, testCaseOpts...)
 		if err != nil {
-			return fmt.Errorf("failed to process test case options: %w", err)
+			return ctx, fmt.Errorf("failed to process test case options: %w", err)
 		}
 	}
 
-	return nil
+	return ctx, nil
 }
 
 // WrapCoreOption converts a core.ContextBuilderOption to a TestContextBuilderOption
@@ -802,12 +802,14 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 1.5: Global Options Processing
-	if err := ProcessGlobalOptions(ctx); err != nil {
+	ctx, err = ProcessGlobalOptions(ctx)
+	if err != nil {
 		return fmt.Errorf("global options processing failed: %w", err)
 	}
 
 	// Phase 1.6: Test Case Options Processing
-	if err := ProcessTestCaseOptions(ctx); err != nil {
+	ctx, err = ProcessTestCaseOptions(ctx)
+	if err != nil {
 		return fmt.Errorf("test case options processing failed: %w", err)
 	}
 
