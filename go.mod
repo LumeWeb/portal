@@ -44,7 +44,7 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tus/tusd/v2 v2.8.0
-	github.com/urfave/cli/v3 v3.4.1
+	github.com/urfave/cli/v3 v3.6.1
 	github.com/wneessen/go-mail v0.7.2
 	go.etcd.io/etcd/client/v3 v3.6.4
 	go.lumeweb.com/configmanager v0.3.21
