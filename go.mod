@@ -12,7 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.93.2
 	github.com/aws/smithy-go v1.24.0
-	github.com/casbin/casbin/v2 v2.135.0
+	github.com/casbin/casbin/v2 v2.123.0
+	github.com/casbin/casbin/v3 v3.1.0
 	github.com/casbin/gorm-adapter/v3 v3.39.0
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/structs v1.1.0
@@ -83,7 +84,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/swag v0.23.1 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
