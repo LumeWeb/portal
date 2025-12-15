@@ -565,24 +565,61 @@ func ProcessExitFuncs(ctx TestContext) error {
 }
 
 // InitContext partially initializes a TestContext by:
-// 1. Processing all ContextBuilderOptions (both from parameters and global test options)
+// 1. Processing only core ContextBuilderOptions (defaults + global options only)
 // 2. Setting up the context for later startup function execution
 // Returns the first error encountered at any step.
 // NOTE: This function is now primarily used internally by BootEnvironment.
 // For most test cases, use SetupTest or RunTestCase helpers.
-// This function's role is to process context options only - startup functions
-// are executed later in BootEnvironment Phase 7 after all configuration is complete.
+// This function's role is to process core options only - startup functions
+// are executed later in BootEnvironment after all configuration is complete.
 func InitContext(ctx TestContext) error {
-	// Get all globally registered test options
-	allOpts, err := GetCombinedTestContextOptions()
+	// Process only default options
+	defaultOpts, err := DefaultTestContextOptions()
 	if err != nil {
 		return err
 	}
 
-	// Process all context options
-	ctx, err = ProcessCtxOptions(ctx, allOpts...)
+	ctx, err = ProcessCtxOptions(ctx, defaultOpts...)
 	if err != nil {
 		return err
+	}
+
+	// Process core startup functions
+	err = ProcessStartupFuncs(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ProcessGlobalOptions processes only global options (from RunTests)
+// This should be called after InitContext to apply global configurations
+func ProcessGlobalOptions(ctx TestContext) error {
+	globalOpts := getGlobalTestContextOptions()
+
+	if len(globalOpts) > 0 {
+		var err error
+		ctx, err = ProcessCtxOptions(ctx, globalOpts...)
+		if err != nil {
+			return fmt.Errorf("failed to process global options: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ProcessTestCaseOptions processes only test case specific options
+// This should be called after InitContext to apply test case specific configurations
+func ProcessTestCaseOptions(ctx TestContext) error {
+	testCaseOpts := getTestCaseTestContextOptions()
+
+	if len(testCaseOpts) > 0 {
+		var err error
+		ctx, err = ProcessCtxOptions(ctx, testCaseOpts...)
+		if err != nil {
+			return fmt.Errorf("failed to process test case options: %w", err)
+		}
 	}
 
 	return nil
@@ -762,6 +799,16 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 1: Context Initialization
 	if err := InitContext(ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
+	}
+
+	// Phase 1.5: Global Options Processing
+	if err := ProcessGlobalOptions(ctx); err != nil {
+		return fmt.Errorf("global options processing failed: %w", err)
+	}
+
+	// Phase 1.6: Test Case Options Processing
+	if err := ProcessTestCaseOptions(ctx); err != nil {
+		return fmt.Errorf("test case options processing failed: %w", err)
 	}
 
 	// Phase 2: Component Registration

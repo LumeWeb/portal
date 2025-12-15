@@ -176,27 +176,48 @@ func AddTestCaseContextOptions(opts ...TestContextBuilderOption) {
 	testCaseCtxOpts = append(testCaseCtxOpts, opts...)
 }
 
+
+
+// getGlobalTestContextOptions returns the global options (from RunTests)
+func getGlobalTestContextOptions() []TestContextBuilderOption {
+	globalTestCtxOptsMu.RLock()
+	defer globalTestCtxOptsMu.RUnlock()
+	
+	opts := make([]TestContextBuilderOption, len(globalTestCtxOpts))
+	copy(opts, globalTestCtxOpts)
+	return opts
+}
+
+// getTestCaseTestContextOptions returns the test case options (from RunTestCase)
+func getTestCaseTestContextOptions() []TestContextBuilderOption {
+	testCaseCtxOptsMu.RLock()
+	defer testCaseCtxOptsMu.RUnlock()
+	
+	opts := make([]TestContextBuilderOption, len(testCaseCtxOpts))
+	copy(opts, testCaseCtxOpts)
+	return opts
+}
+
 // GetCombinedTestContextOptions returns all applicable options in order:
 // 1. Default options
 // 2. Global options (from RunTests)
 // 3. Test case options (from RunTestCase)
 func GetCombinedTestContextOptions() ([]TestContextBuilderOption, error) {
-	globalTestCtxOptsMu.RLock()
-	defer globalTestCtxOptsMu.RUnlock()
-	testCaseCtxOptsMu.RLock()
-	defer testCaseCtxOptsMu.RUnlock()
-
 	// Get defaults first
 	defaultOpts, err := DefaultTestContextOptions()
 	if err != nil {
 		return nil, err
 	}
 
-	// Combine with global and test case options
-	opts := make([]TestContextBuilderOption, 0, len(defaultOpts)+len(globalTestCtxOpts)+len(testCaseCtxOpts))
+	// Get global and test case options
+	globalOpts := getGlobalTestContextOptions()
+	testCaseOpts := getTestCaseTestContextOptions()
+
+	// Combine all options
+	opts := make([]TestContextBuilderOption, 0, len(defaultOpts)+len(globalOpts)+len(testCaseOpts))
 	opts = append(opts, defaultOpts...)
-	opts = append(opts, globalTestCtxOpts...)
-	opts = append(opts, testCaseCtxOpts...)
+	opts = append(opts, globalOpts...)
+	opts = append(opts, testCaseOpts...)
 
 	return opts, nil
 }
