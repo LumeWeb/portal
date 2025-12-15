@@ -28,7 +28,7 @@ func NewMockWorkflowService(ctx TestContext) *MockWorkflowService {
 
 // MockWorkflowStandardOptionCount represents the typical number of workflow options used in mock tests.
 // Update this constant if the StartWorkflow signature pattern changes.
-const MockWorkflowStandardOptionCount = 5
+const MockWorkflowStandardOptionCount = 1
 
 // ExpectStartWorkflow sets up a mock expectation for StartWorkflow with the standard option count.
 // This handles the variadic WorkflowOption arguments that cause test failures.
