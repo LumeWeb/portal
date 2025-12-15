@@ -179,7 +179,7 @@ func WithMockAccessService() TestContextBuilderOption {
 
 // WithMockAuthService adds a mock AuthService to the test context.
 func WithMockAuthService() TestContextBuilderOption {
-	return WithMockService(core.AUTH_SERVICE, func(tb TB, ctx TestContext) any {
+	return WithMockService(core.AUTH_SERVICE, func(_ TB, ctx TestContext) any {
 		return NewMockAuthService(ctx)
 	})
 }
@@ -233,7 +233,7 @@ func WithMockMailerService() TestContextBuilderOption {
 
 // WithMockOTPService adds a mock OTPService to the test context.
 func WithMockOTPService() TestContextBuilderOption {
-	return WithMockService(core.OTP_SERVICE, func(tb TB, ctx TestContext) any {
+	return WithMockService(core.OTP_SERVICE, func(_ TB, ctx TestContext) any {
 		return NewMockOTPService(ctx)
 	})
 }
@@ -289,7 +289,7 @@ func WithMockTUSService() TestContextBuilderOption {
 
 // WithMockUserService adds a mock UserService to the test context.
 func WithMockUserService() TestContextBuilderOption {
-	return WithMockService(core.USER_SERVICE, func(tb TB, ctx TestContext) any {
+	return WithMockService(core.USER_SERVICE, func(_ TB, ctx TestContext) any {
 		return NewMockUserService(ctx)
 	})
 }

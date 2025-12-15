@@ -64,8 +64,7 @@ func (m *MockOTPService) VerifyOTPFails(userID uint, code string) (bool, error) 
 }
 
 // CreateOTPUser creates a user with OTP enabled with automatic mock setup.
-func (m *MockOTPService) CreateOTPUser(email, password string) (*models.User, string, string, error) {
-	userID := uint(1)
+func (m *MockOTPService) CreateOTPUser(userID uint, email, password string) (*models.User, string, string, error) {
 	// Generate OTP secret and auth URL
 	secret, err := m.GenerateSecret(userID)
 	if err != nil {
@@ -79,7 +78,7 @@ func (m *MockOTPService) CreateOTPUser(email, password string) (*models.User, st
 
 	// Create user with OTP
 	user := &models.User{
-		Model:        gorm.Model{ID: 1},
+		Model:        gorm.Model{ID: userID},
 		Email:        email,
 		PasswordHash: m.hashPassword(password),
 		Verified:     true,
@@ -133,7 +132,7 @@ func (m *MockOTPService) DisableOTPForUser(userID uint) error {
 // TestOTPLoginWorkflow tests a complete OTP login workflow with automatic mock setup.
 func (m *MockOTPService) TestOTPLoginWorkflow(email, password string) (string, *models.User, error) {
 	// Create user with OTP
-	user, _, _, err := m.CreateOTPUser(email, password)
+	user, _, _, err := m.CreateOTPUser(1, email, password)
 	if err != nil {
 		return "", nil, err
 	}
@@ -175,7 +174,7 @@ func (m *MockOTPService) TestOTPSetupWorkflow(email, password string) (string, s
 // TestOTPDisableWorkflow tests disabling OTP for a user with automatic mock setup.
 func (m *MockOTPService) TestOTPDisableWorkflow(email, password string) error {
 	// Create user with OTP
-	user, _, _, err := m.CreateOTPUser(email, password)
+	user, _, _, err := m.CreateOTPUser(1, email, password)
 	if err != nil {
 		return err
 	}

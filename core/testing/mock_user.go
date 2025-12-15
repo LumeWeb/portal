@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// MockUserService provides high-level helper functions that embed MockUserService.
+// MockUserService provides high-level helper functions that embed mocks.MockUserService.
 // It automatically sets up mock expectations and provides convenient methods for common user operations.
 type MockUserService struct {
 	*mocks.MockUserService

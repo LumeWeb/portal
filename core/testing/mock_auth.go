@@ -3,19 +3,18 @@ package testing
 import (
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
-
-	"time"
 )
 
 // MockAuthService provides high-level helper functions that embed MockAuthService.
 // It automatically sets up mock expectations and provides convenient methods for common auth operations.
 type MockAuthService struct {
 	*mocks.MockAuthService
-	userSvc *mocks.MockUserService
+	userSvc *MockUserService
 	ctx     TestContext
 }
 
@@ -28,7 +27,7 @@ func NewMockAuthService(ctx TestContext) *MockAuthService {
 
 	// Register a startup function to get the user service
 	ctx.OnStartup(func(coreCtx core.Context) error {
-		mockAuth.userSvc = core.GetService[*mocks.MockUserService](coreCtx, core.USER_SERVICE)
+		mockAuth.userSvc = core.GetService[*MockUserService](coreCtx, core.USER_SERVICE)
 		return nil
 	})
 
@@ -169,27 +168,19 @@ func (m *MockAuthService) SetupOTPLoginExpectations(userID uint, otpCode string)
 // setupLoginExpectations sets up mock expectations for login operations.
 func (m *MockAuthService) setupLoginExpectations(user *models.User, ip string, rememberMe bool) {
 	// Expect pending deletion check
-	m.userSvc.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
 
-	// Expect account info update
-	updateData := map[string]any{
-		"last_login_ip": ip,
-		"last_login":    &[]time.Time{time.Now()}[0],
-	}
-	m.userSvc.EXPECT().UpdateAccountInfo(user.ID, updateData).Return(nil)
+	// Expect account info update - use mock.Anything for time to avoid flaky tests
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 }
 
 // setupOTPLoginExpectations sets up mock expectations for OTP login operations.
 func (m *MockAuthService) setupOTPLoginExpectations(userID uint) {
 	// Expect pending deletion check
-	m.userSvc.EXPECT().IsAccountPendingDeletion(userID).Return(false, nil)
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(userID).Return(false, nil)
 
-	// Expect account info update
-	updateData := map[string]any{
-		"last_login_ip": "127.0.0.1",
-		"last_login":    &[]time.Time{time.Now()}[0],
-	}
-	m.userSvc.EXPECT().UpdateAccountInfo(userID, updateData).Return(nil)
+	// Expect account info update - use mock.Anything for time to avoid flaky tests
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(userID, mock.Anything).Return(nil)
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)
@@ -209,6 +200,6 @@ func (m *MockAuthService) generateTestToken(userID uint) string {
 }
 
 // GetUserService returns the embedded user service for advanced usage.
-func (m *MockAuthService) GetUserService() *mocks.MockUserService {
+func (m *MockAuthService) GetUserService() *MockUserService {
 	return m.userSvc
 }

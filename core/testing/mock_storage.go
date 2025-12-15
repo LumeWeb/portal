@@ -26,7 +26,7 @@ type MockStorageService struct {
 	s3ClientMu sync.RWMutex
 }
 
-// NewMockStorageServiceWithContext creates a new MockStorageService with a core context.
+// NewMockStorageService creates a new MockStorageService with a core context.
 func NewMockStorageService(t TB, ctx core.Context) *MockStorageService {
 	return &MockStorageService{
 		MockStorageService: mocks.NewMockStorageService(t),
