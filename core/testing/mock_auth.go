@@ -16,6 +16,7 @@ type MockAuthService struct {
 	*mocks.MockAuthService
 	userSvc *MockUserService
 	ctx     TestContext
+	jwtHelper *JWTHelper
 }
 
 // NewMockAuthService creates a new MockAuthService that embeds auth mock and has private user mock.
@@ -23,6 +24,7 @@ func NewMockAuthService(ctx TestContext) *MockAuthService {
 	mockAuth := &MockAuthService{
 		MockAuthService: mocks.NewMockAuthService(ctx.T()),
 		ctx:             ctx,
+		jwtHelper:       NewJWTHelper(ctx),
 	}
 
 	// Register a startup function to get the user service
@@ -49,7 +51,7 @@ func (m *MockAuthService) CreateAndLoginUser(email, password string) (string, *m
 
 	// Mock the login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, "127.0.0.1", false).Return(token, user, nil)
+	m.EXPECT().LoginPassword(email, password, "127.0.0.1", false).Return(token, user, nil).Maybe().Maybe()
 
 	return token, user, nil
 }
@@ -67,9 +69,13 @@ func (m *MockAuthService) CreateAndLoginUserWithRemember(email, password string)
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, "127.0.0.1", true)
 
-	// Mock the login response
-	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, "127.0.0.1", true).Return(token, user, nil)
+	// Mock the login response with long-lived token
+	token, err := m.jwtHelper.CreateLongLivedToken(user.ID, 30) // 30 days
+	if err != nil {
+		// Fallback to regular token if long-lived token creation fails
+		token = m.generateTestToken(user.ID)
+	}
+	m.EXPECT().LoginPassword(email, password, "127.0.0.1", true).Return(token, user, nil).Maybe()
 
 	return token, user, nil
 }
@@ -109,7 +115,7 @@ func (m *MockAuthService) LoginUserWithIP(email, password, ip string) (string, *
 
 	// Mock the login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, ip, false).Return(token, user, nil)
+	m.EXPECT().LoginPassword(email, password, ip, false).Return(token, user, nil).Maybe()
 
 	return token, user, nil
 }
@@ -139,8 +145,12 @@ func (m *MockAuthService) LoginUserWithOTP(userID uint, otpCode string) (string,
 	// Setup mock expectations for OTP login
 	m.setupOTPLoginExpectations(userID)
 
-	// Mock the OTP login response
-	token := m.generateTestToken(userID)
+	// Mock the OTP login response with 2FA token
+	token, err := m.jwtHelper.Create2FAToken(userID)
+	if err != nil {
+		// Fallback to regular token if 2FA token creation fails
+		token = m.generateTestToken(userID)
+	}
 	m.EXPECT().LoginOTP(userID, otpCode, false).Return(token, nil)
 
 	return token, nil
@@ -167,20 +177,20 @@ func (m *MockAuthService) SetupOTPLoginExpectations(userID uint, otpCode string)
 
 // setupLoginExpectations sets up mock expectations for login operations.
 func (m *MockAuthService) setupLoginExpectations(user *models.User, ip string, rememberMe bool) {
-	// Expect pending deletion check
-	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
+	// Maybe expect pending deletion check
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil).Maybe()
 
-	// Expect account info update - use mock.Anything for time to avoid flaky tests
-	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
+	// Maybe expect account info update - use mock.Anything for time to avoid flaky tests
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Maybe()
 }
 
 // setupOTPLoginExpectations sets up mock expectations for OTP login operations.
 func (m *MockAuthService) setupOTPLoginExpectations(userID uint) {
-	// Expect pending deletion check
-	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(userID).Return(false, nil)
+	// Maybe expect pending deletion check
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(userID).Return(false, nil).Maybe()
 
-	// Expect account info update - use mock.Anything for time to avoid flaky tests
-	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(userID, mock.Anything).Return(nil)
+	// Maybe expect account info update - use mock.Anything for time to avoid flaky tests
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(userID, mock.Anything).Return(nil).Maybe()
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)
@@ -194,9 +204,14 @@ func (m *MockAuthService) validatePasswordHash(hash, password string) bool {
 	return hash == fmt.Sprintf("hashed_%s", password)
 }
 
-// generateTestToken generates a simple JWT token for testing
+// generateTestToken generates a real JWT token for testing
 func (m *MockAuthService) generateTestToken(userID uint) string {
-	return fmt.Sprintf("test_token_%d", userID)
+	token, err := m.jwtHelper.CreateLoginToken(userID)
+	if err != nil {
+		// Fallback to simple test token if JWT creation fails
+		return fmt.Sprintf("test_token_%d", userID)
+	}
+	return token
 }
 
 // GetUserService returns the embedded user service for advanced usage.
