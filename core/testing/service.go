@@ -179,8 +179,8 @@ func WithMockAccessService() TestContextBuilderOption {
 
 // WithMockAuthService adds a mock AuthService to the test context.
 func WithMockAuthService() TestContextBuilderOption {
-	return WithMockService(core.AUTH_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockAuthService(tb)
+	return WithMockService(core.AUTH_SERVICE, func(tb TB, ctx TestContext) any {
+		return NewMockAuthService(ctx)
 	})
 }
 
@@ -215,6 +215,8 @@ func WithMockHTTPService() TestContextBuilderOption {
 	})
 }
 
+
+
 // WithMockHashMappingService adds a mock HashMappingService to the test context.
 func WithMockHashMappingService() TestContextBuilderOption {
 	return WithMockService(core.HASH_MAPPING_SERVICE, func(tb TB, _ TestContext) any {
@@ -231,8 +233,8 @@ func WithMockMailerService() TestContextBuilderOption {
 
 // WithMockOTPService adds a mock OTPService to the test context.
 func WithMockOTPService() TestContextBuilderOption {
-	return WithMockService(core.OTP_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockOTPService(tb)
+	return WithMockService(core.OTP_SERVICE, func(tb TB, ctx TestContext) any {
+		return NewMockOTPService(ctx)
 	})
 }
 
@@ -273,8 +275,8 @@ func WithStatefulMockRenterService() TestContextBuilderOption {
 
 // WithMockStorageService adds a mock StorageService to the test context.
 func WithMockStorageService() TestContextBuilderOption {
-	return WithMockService(core.STORAGE_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockStorageService(tb)
+	return WithMockService(core.STORAGE_SERVICE, func(tb TB, ctx TestContext) any {
+		return NewMockStorageService(tb, ctx)
 	})
 }
 
@@ -287,8 +289,8 @@ func WithMockTUSService() TestContextBuilderOption {
 
 // WithMockUserService adds a mock UserService to the test context.
 func WithMockUserService() TestContextBuilderOption {
-	return WithMockService(core.USER_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockUserService(tb)
+	return WithMockService(core.USER_SERVICE, func(tb TB, ctx TestContext) any {
+		return NewMockUserService(ctx)
 	})
 }
 
@@ -336,8 +338,8 @@ func GetMockAccessService(ctx core.Context) *MockAccessService {
 
 // GetMockAuthService returns the mock auth service from the context for testing
 // Panics if the auth service is not a mock
-func GetMockAuthService(ctx core.Context) *mocks.MockAuthService {
-	return getMock[mocks.MockAuthService](ctx, core.AUTH_SERVICE)
+func GetMockAuthService(ctx core.Context) *MockAuthService {
+	return getMock[MockAuthService](ctx, core.AUTH_SERVICE)
 }
 
 // GetMockContentScannerService returns the mock content scanner service from the context for testing
@@ -372,8 +374,8 @@ func GetMockMailerService(ctx core.Context) *mocks.MockMailerService {
 
 // GetMockOTPService returns the mock otp service from the context for testing
 // Panics if the otp service is not a mock
-func GetMockOTPService(ctx core.Context) *mocks.MockOTPService {
-	return getMock[mocks.MockOTPService](ctx, core.OTP_SERVICE)
+func GetMockOTPService(ctx core.Context) *MockOTPService {
+	return getMock[MockOTPService](ctx, core.OTP_SERVICE)
 }
 
 // GetMockPasswordResetService returns the mock password reset service from the context for testing
@@ -402,8 +404,8 @@ func GetMockRenterService(ctx core.Context) *mocks.MockRenterService {
 
 // GetMockStorageService returns the mock storage service from the context for testing
 // Panics if the storage service is not a mock
-func GetMockStorageService(ctx core.Context) *mocks.MockStorageService {
-	return getMock[mocks.MockStorageService](ctx, core.STORAGE_SERVICE)
+func GetMockStorageService(ctx core.Context) *MockStorageService {
+	return getMock[MockStorageService](ctx, core.STORAGE_SERVICE)
 }
 
 // GetMockTUSService returns the mock tus service from the context for testing
@@ -414,8 +416,8 @@ func GetMockTUSService(ctx core.Context) *mocks.MockTUSService {
 
 // GetMockUserService returns the mock user service from the context for testing
 // Panics if the user service is not a mock
-func GetMockUserService(ctx core.Context) *mocks.MockUserService {
-	return getMock[mocks.MockUserService](ctx, core.USER_SERVICE)
+func GetMockUserService(ctx core.Context) *MockUserService {
+	return getMock[MockUserService](ctx, core.USER_SERVICE)
 }
 
 // GetMockWorkflowService returns the mock workflow service from the context for testing
