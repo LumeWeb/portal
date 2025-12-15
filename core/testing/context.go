@@ -564,16 +564,15 @@ func ProcessExitFuncs(ctx TestContext) error {
 	return nil
 }
 
-// InitContext fully initializes a TestContext by:
+// InitContext partially initializes a TestContext by:
 // 1. Processing all ContextBuilderOptions (both from parameters and global test options)
-// 2. Running all startup functions
-// 3. Registering all exit functions
+// 2. Setting up the context for later startup function execution
 // Returns the first error encountered at any step.
-// This provides a complete initialization sequence for testing scenarios.
 // NOTE: This function is now primarily used internally by BootEnvironment.
 // For most test cases, use SetupTest or RunTestCase helpers.
-// This function's role is now primarily to process options and run startup funcs.
-func InitContext(tb TB, ctx TestContext) error {
+// This function's role is to process context options only - startup functions
+// are executed later in BootEnvironment Phase 7 after all configuration is complete.
+func InitContext(ctx TestContext) error {
 	// Get all globally registered test options
 	allOpts, err := GetCombinedTestContextOptions()
 	if err != nil {
@@ -582,12 +581,6 @@ func InitContext(tb TB, ctx TestContext) error {
 
 	// Process all context options
 	ctx, err = ProcessCtxOptions(ctx, allOpts...)
-	if err != nil {
-		return err
-	}
-
-	// Process startup functions
-	err = ProcessStartupFuncs(ctx)
 	if err != nil {
 		return err
 	}
@@ -767,7 +760,7 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 // information about which phase failed.
 func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 1: Context Initialization
-	if err := InitContext(tb, ctx); err != nil {
+	if err := InitContext(ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
 	}
 
@@ -823,16 +816,16 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 			return fmt.Errorf("failed to fire boot startup funcs event: %w", err)
 		}
 	}
-	
+
 	// Load configuration before running startup functions
 	if err = ctx.Config().Load(); err != nil {
 		return fmt.Errorf("configuration load failed: %w", err)
 	}
-	
+
 	if err = ProcessStartupFuncs(ctx); err != nil {
 		return fmt.Errorf("startup functions failed: %w", err)
 	}
-	
+
 	// Fire EVENT_BOOT_STARTUP_FUNCS_COMPLETED after running startup functions
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, pevent.NewBootStartupFuncsCompletedEvent(ctx)); err != nil {
@@ -856,22 +849,22 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS, pevent.NewBootProtocolWorkflowsEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot protocol workflows event: %w", err)
 		}
-		
+
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS, pevent.NewBootProtocolsEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot protocols event: %w", err)
 		}
 	}
-	
+
 	if err := InitializeProtocols(ctx); err != nil {
 		return fmt.Errorf("protocol initialization failed: %w", err)
 	}
-	
+
 	// Fire EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED and EVENT_BOOT_PROTOCOLS_COMPLETED after initializing protocols
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, pevent.NewBootProtocolWorkflowsCompletedEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot protocol workflows completed event: %w", err)
 		}
-		
+
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS_COMPLETED, pevent.NewBootProtocolsCompletedEvent(ctx)); err != nil {
 			return fmt.Errorf("failed to fire boot protocols completed event: %w", err)
 		}
@@ -884,11 +877,11 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 			return fmt.Errorf("failed to fire boot plugin workflows event: %w", err)
 		}
 	}
-	
+
 	if err = ConfigureProtocolWorkflows(ctx); err != nil {
 		return fmt.Errorf("failed to configure protocol workflows: %w", err)
 	}
-	
+
 	// Fire EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED after configuring protocol workflows
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, pevent.NewBootPluginWorkflowsCompletedEvent(ctx)); err != nil {
