@@ -136,6 +136,14 @@ func (p *PinServiceDefault) DeletePinByHash(hash core.StorageHash, userId uint) 
 	return p.DeletePin(ctx, pin.ID)
 }
 
+func (p *PinServiceDefault) GetPinByHash(hash core.StorageHash, userId uint) (*models.Pin, error) {
+	ctx := context.Background()
+	return p.QueryPin(ctx, nil, core.PinFilter{
+		Hash:   hash,
+		UserID: userId,
+	})
+}
+
 func (p *PinServiceDefault) PinByHash(hash core.StorageHash, userId uint, protocolData any) error {
 	ctx := context.Background()
 	upload, err := p.metadata.GetUpload(ctx, hash)

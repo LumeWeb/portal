@@ -28,6 +28,9 @@ type PinService interface {
 	// DeletePinByHash deletes the pin associated with the given hash and user ID.
 	DeletePinByHash(hash StorageHash, userId uint) error
 
+	// GetPinByHash retrieves the pin associated with the given hash and user ID.
+	GetPinByHash(hash StorageHash, userId uint) (*models.Pin, error)
+
 	// PinByHash creates a new pin for the given hash and user ID if it doesn't exist.
 	PinByHash(hash StorageHash, userId uint, protocolData any) error
 

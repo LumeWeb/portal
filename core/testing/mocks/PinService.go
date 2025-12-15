@@ -488,6 +488,74 @@ func (_c *MockPinService_GetPin_Call) RunAndReturn(run func(ctx context.Context,
 	return _c
 }
 
+// GetPinByHash provides a mock function for the type MockPinService
+func (_mock *MockPinService) GetPinByHash(hash core.StorageHash, userId uint) (*models.Pin, error) {
+	ret := _mock.Called(hash, userId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPinByHash")
+	}
+
+	var r0 *models.Pin
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) (*models.Pin, error)); ok {
+		return returnFunc(hash, userId)
+	}
+	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) *models.Pin); ok {
+		r0 = returnFunc(hash, userId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.Pin)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(core.StorageHash, uint) error); ok {
+		r1 = returnFunc(hash, userId)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockPinService_GetPinByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPinByHash'
+type MockPinService_GetPinByHash_Call struct {
+	*mock.Call
+}
+
+// GetPinByHash is a helper method to define mock.On call
+//   - hash core.StorageHash
+//   - userId uint
+func (_e *MockPinService_Expecter) GetPinByHash(hash interface{}, userId interface{}) *MockPinService_GetPinByHash_Call {
+	return &MockPinService_GetPinByHash_Call{Call: _e.mock.On("GetPinByHash", hash, userId)}
+}
+
+func (_c *MockPinService_GetPinByHash_Call) Run(run func(hash core.StorageHash, userId uint)) *MockPinService_GetPinByHash_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.StorageHash
+		if args[0] != nil {
+			arg0 = args[0].(core.StorageHash)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_GetPinByHash_Call) Return(pin *models.Pin, err error) *MockPinService_GetPinByHash_Call {
+	_c.Call.Return(pin, err)
+	return _c
+}
+
+func (_c *MockPinService_GetPinByHash_Call) RunAndReturn(run func(hash core.StorageHash, userId uint) (*models.Pin, error)) *MockPinService_GetPinByHash_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPinData provides a mock function for the type MockPinService
 func (_mock *MockPinService) GetPinData(ctx context.Context, pin *models.Pin) (interface{}, error) {
 	ret := _mock.Called(ctx, pin)
