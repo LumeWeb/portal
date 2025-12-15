@@ -26,16 +26,19 @@ func NewMockWorkflowService(ctx TestContext) *MockWorkflowService {
 	}
 }
 
-// ExpectStartWorkflow sets up a mock expectation for StartWorkflow with flexible argument matching.
+// MockWorkflowStandardOptionCount represents the typical number of workflow options used in mock tests.
+// Update this constant if the StartWorkflow signature pattern changes.
+const MockWorkflowStandardOptionCount = 5
+
+// ExpectStartWorkflow sets up a mock expectation for StartWorkflow with the standard option count.
 // This handles the variadic WorkflowOption arguments that cause test failures.
 func (m *MockWorkflowService) ExpectStartWorkflow(workflowName string, request *models.Request, err error) *mocks.MockWorkflowService_StartWorkflow_Call {
-	// Use mock.Anything for context and variadic options to match any call signature
-	return m.EXPECT().StartWorkflow(mock.Anything, workflowName, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(request, err)
+	return m.ExpectStartWorkflowWithExactArgs(workflowName, request, err, MockWorkflowStandardOptionCount)
 }
 
-// ExpectStartWorkflowWithMinArgs sets up a mock expectation for StartWorkflow with minimum arguments.
+// ExpectStartWorkflowWithExactArgs sets up a mock expectation for StartWorkflow with an exact number of workflow options.
 // Use this when you know exactly how many workflow options will be passed.
-func (m *MockWorkflowService) ExpectStartWorkflowWithMinArgs(workflowName string, request *models.Request, err error, optionCount int) *mocks.MockWorkflowService_StartWorkflow_Call {
+func (m *MockWorkflowService) ExpectStartWorkflowWithExactArgs(workflowName string, request *models.Request, err error, optionCount int) *mocks.MockWorkflowService_StartWorkflow_Call {
 	// Build the argument list with the exact number of options
 	args := []interface{}{mock.Anything, workflowName}
 	for i := 0; i < optionCount; i++ {
