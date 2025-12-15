@@ -564,14 +564,14 @@ func ProcessExitFuncs(ctx TestContext) error {
 	return nil
 }
 
-// InitContext partially initializes a TestContext by:
-// 1. Processing only core ContextBuilderOptions (defaults + global options only)
-// 2. Setting up the context for later startup function execution
+// InitContext initializes a TestContext by:
+// 1. Processing default test context options
+// 2. Executing startup functions registered by those defaults
 // Returns the first error encountered at any step.
 // NOTE: This function is now primarily used internally by BootEnvironment.
 // For most test cases, use SetupTest or RunTestCase helpers.
-// This function's role is to process core options only - startup functions
-// are executed later in BootEnvironment after all configuration is complete.
+// Global and test-case specific options are processed separately by
+// ProcessGlobalOptions and ProcessTestCaseOptions in BootEnvironment.
 func InitContext(ctx TestContext) error {
 	// Process only default options
 	defaultOpts, err := DefaultTestContextOptions()
