@@ -573,6 +573,8 @@ func ProcessExitFuncs(ctx TestContext) error {
 // Global and test-case specific options are processed separately by
 // ProcessGlobalOptions and ProcessTestCaseOptions in BootEnvironment.
 func InitContext(ctx TestContext) error {
+	var err error
+	
 	// Process only default options
 	defaultOpts, err := DefaultTestContextOptions()
 	if err != nil {
@@ -772,8 +774,10 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 // proper initialization order and dependency resolution.
 //
 // The phases are:
-//  1. Context Initialization - Processes all context builder options (default, global and test case specific)
+//  1. Context Initialization - Processes default context options only
 //     Establishes the base context with core services and configuration
+//  1.5. Global Options Processing - Processes global options from RunTests
+//  1.6. Test Case Options Processing - Processes test case specific options
 //  2. Component Registration - Registers all components (services, APIs, protocols and extensions)
 //     Note: Service options are collected but not processed yet to allow proper ordering
 //  3. Plugin Service Registration - Registers and configures services from plugins
@@ -796,8 +800,10 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 // The function returns nil on success, or an error if any phase fails. Errors include detailed
 // information about which phase failed.
 func BootEnvironment(tb TB, ctx TestContext) error {
+	var err error
+	
 	// Phase 1: Context Initialization
-	if err := InitContext(ctx); err != nil {
+	if err = InitContext(ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
 	}
 
