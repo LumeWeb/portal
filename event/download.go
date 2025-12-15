@@ -4,8 +4,10 @@ import "go.lumeweb.com/portal/core"
 
 const EVENT_DOWNLOAD_COMPLETED = "download.completed"
 
+// DownloadCompletedEvent represents a completed download event.
+// UserID is optional - nil indicates an anonymous download (no associated user).
 type DownloadCompletedEvent struct {
-	UserID   *uint
+	UserID   *uint // Optional user ID; nil means anonymous download
 	UploadID uint
 	Bytes    uint64
 	IP       string
