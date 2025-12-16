@@ -215,8 +215,6 @@ func WithMockHTTPService() TestContextBuilderOption {
 	})
 }
 
-
-
 // WithMockHashMappingService adds a mock HashMappingService to the test context.
 func WithMockHashMappingService() TestContextBuilderOption {
 	return WithMockService(core.HASH_MAPPING_SERVICE, func(tb TB, _ TestContext) any {
@@ -303,8 +301,8 @@ func WithHTTPService() TestContextBuilderOption {
 
 // WithMockWorkflowService adds a mock WorkflowService to the test context.
 func WithMockWorkflowService() TestContextBuilderOption {
-	return WithMockService(core.WORKFLOW_SERVICE, func(tb TB, _ TestContext) any {
-		return mocks.NewMockWorkflowService(tb)
+	return WithMockService(core.WORKFLOW_SERVICE, func(tb TB, ctx TestContext) any {
+		return NewMockWorkflowService(ctx)
 	})
 }
 
