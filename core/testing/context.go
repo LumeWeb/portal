@@ -709,6 +709,23 @@ func WithCoreEvents() TestContextBuilderOption {
 	}
 }
 
+// SetupDatabaseOptions creates and returns database-related test context options
+// based on the current mock DB and migration settings. This helper centralizes
+// the database setup logic that was previously embedded in DefaultTestContextOptions.
+func SetupDatabaseOptions() []TestContextBuilderOption {
+	var opts []TestContextBuilderOption
+	
+	// Add DB setup first if enabled
+	if ShouldSetupMockDB() {
+		opts = append(opts, WithSQLite())
+		if ShouldRunDBMigrations() {
+			opts = append(opts, WithDBMigrations())
+		}
+	}
+	
+	return opts
+}
+
 // DefaultTestContextOptions returns the default options used for new test contexts.
 // These include mock implementations of common core services.
 func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
@@ -722,14 +739,6 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 		WithRandomSeedPhrase(),
 		WithCoreEvents(),
 		WithErrorNamespaces(core.ExportAllErrorNamespaces()),
-	}
-
-	// Add DB setup first if enabled
-	if ShouldSetupMockDB() {
-		opts = append(opts, WithSQLite())
-		if ShouldRunDBMigrations() {
-			opts = append(opts, WithDBMigrations())
-		}
 	}
 
 	// Add remaining mock services
@@ -827,6 +836,15 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	ctx, err = ProcessTestCaseOptions(ctx)
 	if err != nil {
 		return fmt.Errorf("test case options processing failed: %w", err)
+	}
+
+	// Add DB setup first if enabled
+	dbOpts := SetupDatabaseOptions()
+	if len(dbOpts) > 0 {
+		ctx, err = ProcessCtxOptions(ctx, dbOpts...)
+		if err != nil {
+			return fmt.Errorf("database setup failed: %w", err)
+		}
 	}
 
 	// Phase 2: Component Registration

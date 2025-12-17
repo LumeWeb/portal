@@ -72,6 +72,19 @@ func WithMockProtocol(protocolName string, configureMock ...func(protocol *MockP
 	}
 }
 
+// WithCustomMockProtocol creates a TestContextBuilderOption that registers a mock protocol
+// using a custom callback function that returns a core.Protocol implementation.
+// This allows for more flexible mock protocol creation beyond the standard MockProtocol.
+func WithCustomMockProtocol(protocolName string, protocolFactory func(TestContext) core.Protocol) TestContextBuilderOption {
+	return func(tctx TestContext) (TestContext, error) {
+		// Create a protocol factory that passes the context to the user's callback
+		factory := func() (core.Protocol, []core.ContextBuilderOption, error) {
+			return protocolFactory(tctx), nil, nil
+		}
+		return registerProtocolWithHelper(tctx, protocolName, factory)
+	}
+}
+
 // WithAPIExtension registers an API extension and automatically creates and registers
 // a mock version of its target API.
 func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOption {
