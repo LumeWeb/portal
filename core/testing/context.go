@@ -709,18 +709,28 @@ func WithCoreEvents() TestContextBuilderOption {
 	}
 }
 
-// SetupDatabaseOptions creates and returns database-related test context options
-// based on the current mock DB and migration settings. This helper centralizes
-// the database setup logic that was previously embedded in DefaultTestContextOptions.
+// SetupDatabaseOptions creates and returns database setup test context options
+// (without migrations). This helper centralizes the database setup logic.
 func SetupDatabaseOptions() []TestContextBuilderOption {
 	var opts []TestContextBuilderOption
 	
-	// Add DB setup first if enabled
+	// Add DB setup if enabled
 	if ShouldSetupMockDB() {
 		opts = append(opts, WithSQLite())
-		if ShouldRunDBMigrations() {
-			opts = append(opts, WithDBMigrations())
-		}
+	}
+	
+	return opts
+}
+
+// SetupMigrationOptions creates and returns migration test context options
+// based on the current migration settings. This helper centralizes
+// the migration logic separately from database setup.
+func SetupMigrationOptions() []TestContextBuilderOption {
+	var opts []TestContextBuilderOption
+	
+	// Add migrations if enabled
+	if ShouldSetupMockDB() && ShouldRunDBMigrations() {
+		opts = append(opts, WithDBMigrations())
 	}
 	
 	return opts
@@ -832,18 +842,27 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		return fmt.Errorf("global options processing failed: %w", err)
 	}
 
-	// Phase 1.6: Test Case Options Processing
-	ctx, err = ProcessTestCaseOptions(ctx)
-	if err != nil {
-		return fmt.Errorf("test case options processing failed: %w", err)
-	}
-
-	// Add DB setup first if enabled
+	// Phase 1.6: Database Setup (before test options)
 	dbOpts := SetupDatabaseOptions()
 	if len(dbOpts) > 0 {
 		ctx, err = ProcessCtxOptions(ctx, dbOpts...)
 		if err != nil {
 			return fmt.Errorf("database setup failed: %w", err)
+		}
+	}
+
+	// Phase 1.7: Test Case Options Processing
+	ctx, err = ProcessTestCaseOptions(ctx)
+	if err != nil {
+		return fmt.Errorf("test case options processing failed: %w", err)
+	}
+
+	// Phase 1.8: Migration Setup (after test options, before component registration)
+	migrationOpts := SetupMigrationOptions()
+	if len(migrationOpts) > 0 {
+		ctx, err = ProcessCtxOptions(ctx, migrationOpts...)
+		if err != nil {
+			return fmt.Errorf("migration setup failed: %w", err)
 		}
 	}
 
