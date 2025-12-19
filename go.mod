@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.94.0
 	github.com/aws/smithy-go v1.24.0
-	github.com/casbin/casbin/v3 v3.1.0
-	github.com/casbin/casbin/v3 v3.1.0
+	github.com/casbin/casbin/v2 v2.123.0
+	github.com/casbin/casbin/v3 v3.2.0
 	github.com/casbin/gorm-adapter/v3 v3.39.0
 	github.com/docker/go-units v0.5.0
 	github.com/fatih/structs v1.1.0
