@@ -80,8 +80,16 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 
 	switch whence {
 	case io.SeekCurrent:
-		discardBytes = int(offset)
-		s.offset += offset
+		if offset < 0 {
+			// seeking backwards, reset connection to start at new offset
+			s.logger.Debug("seeking backwards from current position, resetting connection")
+			s.reset()
+			s.offset += offset
+			discardBytes = 0
+		} else {
+			discardBytes = int(offset)
+			s.offset += offset
+		}
 	case io.SeekStart:
 		// seeking backwards results in dropping current http body.
 		// since http body reader can read only forwards.
@@ -95,7 +103,10 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 		if offset > 0 {
 			return 0, errors.New("cannot seek beyond end")
 		}
-		size := s.getSize()
+		size, err := s.getSize()
+		if err != nil {
+			return 0, fmt.Errorf("failed to get object size for seeking: %w", err)
+		}
 		noffset := int64(size) + offset
 		discardBytes = int(noffset - s.offset)
 		s.offset = noffset
@@ -111,6 +122,13 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 
 	if discardBytes > 0 {
 		// not seeking
+		if s.r == nil {
+			// reader is nil, establish it first
+			if err := s.fetch(s.chunkSizePolicy.ChunkSize()); err != nil {
+				s.logger.Debug("failed to establish reader during seek", zap.Error(err))
+				return 0, err
+			}
+		}
 		if discardBytes > len(s.sink) {
 			s.sink = make([]byte, discardBytes)
 		}
@@ -159,7 +177,12 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 
 	if err != nil && errors.Is(err, io.EOF) {
 		s.logger.Debug("EOF reached, fetching next chunk")
-		return n, s.fetch(s.chunkSizePolicy.ChunkSize())
+		// If we read bytes, return them without error
+		if n > 0 {
+			return n, nil
+		}
+		// No bytes read, fetch next chunk and return result
+		return 0, s.fetch(s.chunkSizePolicy.ChunkSize())
 	}
 
 	return n, err
@@ -176,9 +199,9 @@ func (s *S3Reader) reset() {
 	s.logger.Debug("reader reset")
 }
 
-func (s *S3Reader) getSize() int {
+func (s *S3Reader) getSize() (int, error) {
 	if s.size > 0 {
-		return int(s.size)
+		return int(s.size), nil
 	}
 
 	s.logger.Debug("getting object size",
@@ -195,7 +218,7 @@ func (s *S3Reader) getSize() int {
 			zap.String("bucket", s.bucket),
 			zap.String("key", s.key),
 			zap.Error(err))
-		return 0
+		return 0, err
 	}
 	s.size = *resp.ContentLength
 
@@ -204,13 +227,17 @@ func (s *S3Reader) getSize() int {
 		zap.String("key", s.key),
 		zap.Int64("size", s.size))
 
-	return int(s.size)
+	return int(s.size), nil
 }
 
 func (s *S3Reader) fetch(n int) error {
 	s.reset()
 
-	n = min(n, s.getSize()-int(s.offset))
+	size, err := s.getSize()
+	if err != nil {
+		return fmt.Errorf("failed to get object size for fetching: %w", err)
+	}
+	n = min(n, size-int(s.offset))
 	if n <= 0 {
 		s.logger.Debug("no more data to fetch", zap.Int64("offset", s.offset))
 		return io.EOF
