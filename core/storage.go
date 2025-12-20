@@ -136,10 +136,10 @@ type StorageService interface {
 	DeleteObject(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	DeleteObjectProof(ctx context.Context, protocol StorageProtocol, objectHash StorageHash) error
 	S3Client(ctx context.Context) (*s3.Client, error)
-	S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
+	S3Download(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error)
 	S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error
 	S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol StorageProtocol, opts ...func(*S3TempUploadOptions)) (string, error)
-	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadCloser, error)
+	S3GetTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) (io.ReadSeekCloser, error)
 	S3DeleteTemporaryUpload(ctx context.Context, protocol StorageProtocol, uploadId string) error
 	S3TemporaryUploadExists(ctx context.Context, protocol StorageProtocol, uploadId string) (bool, error)
 	S3Exists(ctx context.Context, bucket string, key string) (bool, error)

@@ -24,6 +24,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	storageInternal "go.lumeweb.com/portal/service/internal/storage"
 	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -413,8 +414,8 @@ func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key 
 // S3Download downloads an object from S3 storage.
 // bucket: The S3 bucket name
 // key: The object key/path to download
-// Returns io.ReadCloser for the object data (caller must close it) and error if download fails
-func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+// Returns io.ReadSeekCloser for the object data (caller must close it) and error if download fails
+func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
 	return s.s3GetObject(ctx, bucket, key)
 }
 
@@ -466,22 +467,18 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 // s3GetObject is an internal helper for getting objects from S3 storage.
 // bucket: The S3 bucket name
 // key: The object key/path
-// Returns io.ReadCloser for the object data and error if get operation fails
-func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+// Returns io.ReadSeekCloser for the object data and error if get operation fails
+func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
 	client, err := s.S3Client(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		return nil, err
-	}
+	// Create S3Reader with fixed chunk size policy
+	chunkPolicy := &storageInternal.FixedChunkSizePolicy{Size: 1024 * 1024} // 1MB chunks
+	reader := storageInternal.NewS3Reader(ctx, s.logger, client, bucket, key, chunkPolicy)
 
-	return output.Body, nil
+	return reader, nil
 }
 
 // s3DeleteObject is an internal helper for deleting objects from S3 storage.
@@ -767,8 +764,8 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 // S3GetTemporaryUpload retrieves a temporary upload from S3 storage.
 // protocol: The storage protocol being used
 // uploadId: The ID of the temporary upload
-// Returns io.ReadCloser for the upload data and error if retrieval fails
-func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
+// Returns io.ReadSeekCloser for the upload data and error if retrieval fails
+func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadSeekCloser, error) {
 	// Validate uploadId to prevent path traversal
 	if err := validateUploadID(uploadId); err != nil {
 		return nil, err

@@ -756,23 +756,23 @@ func (_c *MockStorageService_S3DeleteTemporaryUpload_Call) RunAndReturn(run func
 }
 
 // S3Download provides a mock function for the type MockStorageService
-func (_mock *MockStorageService) S3Download(ctx context.Context, bucket string, key string) (io.ReadCloser, error) {
+func (_mock *MockStorageService) S3Download(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
 	ret := _mock.Called(ctx, bucket, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for S3Download")
 	}
 
-	var r0 io.ReadCloser
+	var r0 io.ReadSeekCloser
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadSeekCloser, error)); ok {
 		return returnFunc(ctx, bucket, key)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) io.ReadSeekCloser); ok {
 		r0 = returnFunc(ctx, bucket, key)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(io.ReadSeekCloser)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
@@ -819,12 +819,12 @@ func (_c *MockStorageService_S3Download_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *MockStorageService_S3Download_Call) Return(readCloser io.ReadCloser, err error) *MockStorageService_S3Download_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *MockStorageService_S3Download_Call) Return(readSeekCloser io.ReadSeekCloser, err error) *MockStorageService_S3Download_Call {
+	_c.Call.Return(readSeekCloser, err)
 	return _c
 }
 
-func (_c *MockStorageService_S3Download_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string) (io.ReadCloser, error)) *MockStorageService_S3Download_Call {
+func (_c *MockStorageService_S3Download_Call) RunAndReturn(run func(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error)) *MockStorageService_S3Download_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -902,23 +902,23 @@ func (_c *MockStorageService_S3Exists_Call) RunAndReturn(run func(ctx context.Co
 }
 
 // S3GetTemporaryUpload provides a mock function for the type MockStorageService
-func (_mock *MockStorageService) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error) {
+func (_mock *MockStorageService) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadSeekCloser, error) {
 	ret := _mock.Called(ctx, protocol, uploadId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for S3GetTemporaryUpload")
 	}
 
-	var r0 io.ReadCloser
+	var r0 io.ReadSeekCloser
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) (io.ReadCloser, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) (io.ReadSeekCloser, error)); ok {
 		return returnFunc(ctx, protocol, uploadId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) io.ReadCloser); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageProtocol, string) io.ReadSeekCloser); ok {
 		r0 = returnFunc(ctx, protocol, uploadId)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(io.ReadCloser)
+			r0 = ret.Get(0).(io.ReadSeekCloser)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageProtocol, string) error); ok {
@@ -965,12 +965,12 @@ func (_c *MockStorageService_S3GetTemporaryUpload_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockStorageService_S3GetTemporaryUpload_Call) Return(readCloser io.ReadCloser, err error) *MockStorageService_S3GetTemporaryUpload_Call {
-	_c.Call.Return(readCloser, err)
+func (_c *MockStorageService_S3GetTemporaryUpload_Call) Return(readSeekCloser io.ReadSeekCloser, err error) *MockStorageService_S3GetTemporaryUpload_Call {
+	_c.Call.Return(readSeekCloser, err)
 	return _c
 }
 
-func (_c *MockStorageService_S3GetTemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadCloser, error)) *MockStorageService_S3GetTemporaryUpload_Call {
+func (_c *MockStorageService_S3GetTemporaryUpload_Call) RunAndReturn(run func(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadSeekCloser, error)) *MockStorageService_S3GetTemporaryUpload_Call {
 	_c.Call.Return(run)
 	return _c
 }
