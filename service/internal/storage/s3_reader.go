@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2023 Nikolay Dubina - https://github.com/nikolaydubina/aws-s3-reader
+
 package storage
 
 // Copied from https://github.com/nikolaydubina/aws-s3-reader
@@ -57,7 +60,23 @@ func NewS3Reader(
 	bucket string,
 	key string,
 	chunkSizePolicy ChunkSizePolicy,
-) *S3Reader {
+) (*S3Reader, error) {
+	if logger == nil {
+		return nil, errors.New("logger cannot be nil")
+	}
+	if s3client == nil {
+		return nil, errors.New("s3client cannot be nil")
+	}
+	if chunkSizePolicy == nil {
+		return nil, errors.New("chunkSizePolicy cannot be nil")
+	}
+	if bucket == "" {
+		return nil, errors.New("bucket cannot be empty")
+	}
+	if key == "" {
+		return nil, errors.New("key cannot be empty")
+	}
+
 	return &S3Reader{
 		ctx:             ctx,
 		logger:          logger,
@@ -65,7 +84,7 @@ func NewS3Reader(
 		bucket:          bucket,
 		key:             key,
 		chunkSizePolicy: chunkSizePolicy,
-	}
+	}, nil
 }
 
 // Seek assumes always can seek to position in S3 object.
@@ -173,9 +192,23 @@ func (s *S3Reader) Close() error {
 }
 
 func (s *S3Reader) Read(b []byte) (int, error) {
+	// Check for context cancellation before acquiring lock
+	select {
+	case <-s.ctx.Done():
+		return 0, s.ctx.Err()
+	default:
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	
+	// Check for context cancellation after acquiring lock
+	select {
+	case <-s.ctx.Done():
+		return 0, s.ctx.Err()
+	default:
+	}
+
 	if s.r == nil {
 		s.logger.Debug("initializing fetch for read",
 			zap.String("bucket", s.bucket),
@@ -183,6 +216,14 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 			zap.Int("buffer_size", len(b)),
 			zap.Int("chunk_size", s.chunkSizePolicy.ChunkSize()),
 		)
+		
+		// Check for context cancellation before fetch
+		select {
+		case <-s.ctx.Done():
+			return 0, s.ctx.Err()
+		default:
+		}
+		
 		if err := s.fetch(s.chunkSizePolicy.ChunkSize()); err != nil {
 			return 0, err
 		}
@@ -197,8 +238,23 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 		if n > 0 {
 			return n, nil
 		}
+		
+		// Check for context cancellation before fetching next chunk
+		select {
+		case <-s.ctx.Done():
+			return 0, s.ctx.Err()
+		default:
+		}
+		
 		// No bytes read, fetch next chunk and return result
 		return 0, s.fetch(s.chunkSizePolicy.ChunkSize())
+	}
+
+	// Final context cancellation check before returning
+	select {
+	case <-s.ctx.Done():
+		return 0, s.ctx.Err()
+	default:
 	}
 
 	return n, err
