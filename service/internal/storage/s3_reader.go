@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -33,7 +34,9 @@ func (s FixedChunkSizePolicy) ChunkSize() int { return s.Size }
 // It uses early HTTP Body termination, if seeks are beyond current HTTP Body.
 // It uses adaptive policy for chunk size fetching.
 // This is useful for iterating over very large S3 Objects.
+// The reader is safe for concurrent access.
 type S3Reader struct {
+	mu              sync.RWMutex
 	ctx             context.Context
 	logger          *core.Logger
 	s3client        *s3.Client
@@ -68,6 +71,9 @@ func NewS3Reader(
 // Seek assumes always can seek to position in S3 object.
 // Seeking beyond S3 file size will result failures in Read calls.
 func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	s.logger.Debug("seeking",
 		zap.String("bucket", s.bucket),
 		zap.String("key", s.key),
@@ -97,8 +103,9 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 			s.logger.Debug("seeking backwards, resetting connection")
 			s.reset()
 		}
+		oldOffset := s.offset
 		s.offset = offset
-		discardBytes = int(offset - s.offset)
+		discardBytes = int(offset - oldOffset)
 		if discardBytes < 0 {
 			discardBytes = 0
 		}
@@ -147,6 +154,9 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 }
 
 func (s *S3Reader) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	s.logger.Debug("closing S3 reader",
 		zap.String("bucket", s.bucket),
 		zap.String("key", s.key),
@@ -163,6 +173,9 @@ func (s *S3Reader) Close() error {
 }
 
 func (s *S3Reader) Read(b []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
 	if s.r == nil {
 		s.logger.Debug("initializing fetch for read",
 			zap.String("bucket", s.bucket),
@@ -203,6 +216,7 @@ func (s *S3Reader) reset() {
 }
 
 func (s *S3Reader) getSize() (int, error) {
+	// Note: This method should be called with mutex lock held by caller
 	if s.size > 0 {
 		return int(s.size), nil
 	}
