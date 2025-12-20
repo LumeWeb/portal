@@ -39,6 +39,7 @@ type TestContext interface {
 	SetAPIID(id string)                                           // Set the API ID
 	SetFireBootComplete(fire bool)                                // Set whether boot complete event should fire
 	FireBootComplete() bool                                       // Get whether boot complete event should fire
+	SetStartupFuncs(funcs []func(core.Context) error)             // Set the startup functions for the context
 }
 
 // defaultContext is a copy of core.defaultContext for testing
@@ -574,7 +575,7 @@ func ProcessExitFuncs(ctx TestContext) error {
 // ProcessGlobalOptions and ProcessTestCaseOptions in BootEnvironment.
 func InitContext(ctx TestContext) error {
 	var err error
-	
+
 	// Process only default options
 	defaultOpts, err := DefaultTestContextOptions()
 	if err != nil {
@@ -713,12 +714,12 @@ func WithCoreEvents() TestContextBuilderOption {
 // (without migrations). This helper centralizes the database setup logic.
 func SetupDatabaseOptions() []TestContextBuilderOption {
 	var opts []TestContextBuilderOption
-	
+
 	// Add DB setup if enabled
 	if ShouldSetupMockDB() {
 		opts = append(opts, WithSQLite())
 	}
-	
+
 	return opts
 }
 
@@ -727,12 +728,12 @@ func SetupDatabaseOptions() []TestContextBuilderOption {
 // the migration logic separately from database setup.
 func SetupMigrationOptions() []TestContextBuilderOption {
 	var opts []TestContextBuilderOption
-	
+
 	// Add migrations if enabled
 	if ShouldSetupMockDB() && ShouldRunDBMigrations() {
 		opts = append(opts, WithDBMigrations())
 	}
-	
+
 	return opts
 }
 
@@ -805,8 +806,8 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 // The phases are:
 //  1. Context Initialization - Processes default context options only
 //     Establishes the base context with core services and configuration
-//  1.5. Global Options Processing - Processes global options from RunTests
-//  1.6. Test Case Options Processing - Processes test case specific options
+//     1.5. Global Options Processing - Processes global options from RunTests
+//     1.6. Test Case Options Processing - Processes test case specific options
 //  2. Component Registration - Registers all components (services, APIs, protocols and extensions)
 //     Note: Service options are collected but not processed yet to allow proper ordering
 //  3. Plugin Service Registration - Registers and configures services from plugins
@@ -830,7 +831,7 @@ func DefaultTestContextOptions() ([]TestContextBuilderOption, error) {
 // information about which phase failed.
 func BootEnvironment(tb TB, ctx TestContext) error {
 	var err error
-	
+
 	// Phase 1: Context Initialization
 	if err = InitContext(ctx); err != nil {
 		return fmt.Errorf("context initialization failed: %w", err)
@@ -843,13 +844,24 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 1.6: Database Setup (before test options)
+	// Backup existing startup functions before DB setup
+	originalStartupFuncs := ctx.StartupFuncs()
+	// Clear startup functions temporarily during DB setup
+	ctx.SetStartupFuncs(nil)
+
 	dbOpts := SetupDatabaseOptions()
 	if len(dbOpts) > 0 {
 		ctx, err = ProcessCtxOptions(ctx, dbOpts...)
 		if err != nil {
 			return fmt.Errorf("database setup failed: %w", err)
 		}
+		if err = ProcessStartupFuncs(ctx); err != nil {
+			return fmt.Errorf("startup functions failed: %w", err)
+		}
 	}
+
+	// Restore original startup functions after DB setup
+	ctx.SetStartupFuncs(originalStartupFuncs)
 
 	// Phase 1.7: Test Case Options Processing
 	ctx, err = ProcessTestCaseOptions(ctx)
