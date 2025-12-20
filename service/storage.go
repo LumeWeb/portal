@@ -476,7 +476,10 @@ func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, k
 
 	// Create S3Reader with fixed chunk size policy
 	chunkPolicy := &storageInternal.FixedChunkSizePolicy{Size: 1024 * 1024} // 1MB chunks
-	reader := storageInternal.NewS3Reader(ctx, s.logger, client, bucket, key, chunkPolicy)
+	reader, err := storageInternal.NewS3Reader(ctx, s.logger, client, bucket, key, chunkPolicy)
+	if err != nil {
+		return nil, err
+	}
 
 	return reader, nil
 }
