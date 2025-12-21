@@ -527,6 +527,9 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 		err = ErrUnknownError
 	}
 
+	// Store the original error for later use
+	originalErr := err
+
 	// Get current request and parse metadata
 	currentReq, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
@@ -552,8 +555,8 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	}
 
 	// Mark current step failed using RequestService
-	if err = w.requestSvc.FailRequest(ctx, currentReq.ID, err.Error()); err != nil {
-		return err
+	if failErr := w.requestSvc.FailRequest(ctx, currentReq.ID, originalErr.Error()); failErr != nil {
+		return failErr
 	}
 
 	// Handle according to failure behavior
@@ -562,7 +565,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 		w.logger.Info("Workflow failed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID),
-			zap.Error(err))
+			zap.Error(originalErr))
 		return nil
 
 	case core.ContinueWorkflow:
@@ -571,11 +574,11 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 
 	case core.RetryStep:
 		// Check if the failure is a quota error - if so, do not retry
-		if core.IsQuotaExceededError(err) {
+		if core.IsQuotaExceededError(originalErr) {
 			w.logger.Info("Skipping retry due to quota exceeded error",
 				zap.String("workflow", metadata.WorkflowName),
 				zap.Uint("requestID", requestID),
-				zap.Error(err))
+				zap.Error(originalErr))
 			return nil
 		}
 
