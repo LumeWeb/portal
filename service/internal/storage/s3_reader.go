@@ -92,7 +92,7 @@ func NewS3Reader(
 func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.logger.Debug("seeking",
 		zap.String("bucket", s.bucket),
 		zap.String("key", s.key),
@@ -175,7 +175,7 @@ func (s *S3Reader) Seek(offset int64, whence int) (int64, error) {
 func (s *S3Reader) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.logger.Debug("closing S3 reader",
 		zap.String("bucket", s.bucket),
 		zap.String("key", s.key),
@@ -201,7 +201,7 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// Check for context cancellation after acquiring lock
 	select {
 	case <-s.ctx.Done():
@@ -216,14 +216,14 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 			zap.Int("buffer_size", len(b)),
 			zap.Int("chunk_size", s.chunkSizePolicy.ChunkSize()),
 		)
-		
+
 		// Check for context cancellation before fetch
 		select {
 		case <-s.ctx.Done():
 			return 0, s.ctx.Err()
 		default:
 		}
-		
+
 		if err := s.fetch(s.chunkSizePolicy.ChunkSize()); err != nil {
 			return 0, err
 		}
@@ -238,16 +238,35 @@ func (s *S3Reader) Read(b []byte) (int, error) {
 		if n > 0 {
 			return n, nil
 		}
-		
+
+		// No bytes read but EOF - need to advance to next chunk
+		// The offset should be at lastByte + 1, but ensure it
+		if s.offset <= s.lastByte {
+			s.offset = s.lastByte + 1
+		}
+
+		// Check if we've reached the end of the file
+		if s.offset >= s.size {
+			return 0, io.EOF
+		}
+
 		// Check for context cancellation before fetching next chunk
 		select {
 		case <-s.ctx.Done():
 			return 0, s.ctx.Err()
 		default:
 		}
-		
-		// No bytes read, fetch next chunk and return result
-		return 0, s.fetch(s.chunkSizePolicy.ChunkSize())
+
+		// Try to fetch next chunk (context is checked inside fetch)
+		if fetchErr := s.fetch(s.chunkSizePolicy.ChunkSize()); fetchErr != nil {
+			if errors.Is(fetchErr, io.EOF) {
+				return 0, io.EOF
+			}
+			return 0, fetchErr
+		}
+
+		// After fetching next chunk, try to read from it
+		return s.r.Read(b)
 	}
 
 	// Final context cancellation check before returning
@@ -304,6 +323,13 @@ func (s *S3Reader) getSize() (int, error) {
 }
 
 func (s *S3Reader) fetch(n int) error {
+	// Check context before doing any work
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	default:
+	}
+
 	s.reset()
 
 	size, err := s.getSize()
