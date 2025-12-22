@@ -22,7 +22,6 @@ type TUSUploadReader struct {
 	upload         handler.Upload
 	servableUpload handler.ServableUpload
 	info           handler.FileInfo
-	offset         int64
 	position       int64
 	closed         bool
 }
@@ -62,7 +61,6 @@ func NewTUSUploadReader(
 		upload:         upload,
 		servableUpload: servableUpload,
 		info:           info,
-		offset:         startOffset,
 		position:       startOffset,
 	}
 
@@ -97,12 +95,8 @@ func (r *TUSUploadReader) Read(p []byte) (n int, err error) {
 		maxRead = remainingBytes
 	}
 
-	// Calculate range for this read request
+	// Calculate range for this read request (maxRead is already constrained by remainingBytes)
 	rangeEnd := r.position + maxRead - 1
-	// Don't read beyond the file size
-	if rangeEnd >= r.info.Size {
-		rangeEnd = r.info.Size - 1
-	}
 
 	// Create HTTP request for range
 	req, err := http.NewRequest("GET", "/", nil)
@@ -206,7 +200,7 @@ type responseRecorder struct {
 // newResponseRecorder creates a new responseRecorder instance
 func newResponseRecorder() *responseRecorder {
 	return &responseRecorder{
-		statusCode: 0,
+		statusCode: http.StatusOK, // Default to 200, matching http.ResponseWriter behavior
 		headers:    make(http.Header),
 		buffer:     bytes.NewBuffer(nil),
 	}
