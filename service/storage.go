@@ -519,6 +519,8 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 	return s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(ensureHttpPrefix(s.config.Config().Core.Storage.S3.Endpoint))
 		o.UsePathStyle = true
+		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
+		o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
 	}), nil
 }
 
@@ -714,8 +716,6 @@ func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.S
 
 }
 
-
-
 // S3TemporaryUpload uploads data to temporary S3 storage.
 // data: The data to upload
 // size: The size of the data in bytes
@@ -793,8 +793,8 @@ func (s StorageServiceDefault) S3Exists(ctx context.Context, bucket string, key 
 	if err != nil {
 		var notFound *types.NotFound
 		var apiErr smithy.APIError
-		if errors.As(err, &notFound) || 
-			(errors.As(err, &apiErr) && 
+		if errors.As(err, &notFound) ||
+			(errors.As(err, &apiErr) &&
 				(apiErr.ErrorCode() == "NotFound" || apiErr.ErrorCode() == "NoSuchKey")) {
 			return false, nil
 		}
