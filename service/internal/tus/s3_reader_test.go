@@ -59,13 +59,10 @@ func setupS3(t *testing.T) (*s3.Client, string) {
 
 	// Cleanup function
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer func() {
-			cancel()
-			require.NoError(t, server.Shutdown(ctx))
-			require.NoError(t, os.RemoveAll(tempDir))
-		}()
-
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		require.NoError(t, server.Shutdown(ctx))
+		cancel()
+		require.NoError(t, os.RemoveAll(tempDir))
 	})
 
 	// Create S3 client with explicit credentials for gofakes3
@@ -130,11 +127,9 @@ func setupTUSServer(t *testing.T) (*handler.Handler, *s3store.S3Store, *s3.Clien
 
 	// Cleanup function
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer func() {
-			cancel()
-			require.NoError(t, server.Shutdown(ctx))
-		}()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		require.NoError(t, server.Shutdown(ctx))
+		cancel()
 	})
 
 	return tusHandler, &store, client, bucket, serverURL
@@ -326,6 +321,60 @@ func TestTUSUploadReader_SeekOperations(t *testing.T) {
 	assert.Equal(t, 15, n)
 	assert.Equal(t, testData[len(testData)-15:], buf[:n])
 	defer require.NoError(t, reader.Close())
+}
+
+func TestTUSUploadReader_BufferTruncation(t *testing.T) {
+	// Setup TUS server with HTTP endpoint for real client uploads
+	_, store, _, _, serverURL := setupTUSServer(t)
+	ctx := context.Background()
+
+	// Create test data
+	testData := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+	// Upload data using real TUS client with HTTP (this will use chunks/multipart)
+	uploadURL := uploadWithTusClient(t, serverURL, testData, store)
+
+	// Get the upload from the store
+	upload, err := getUploadFromStore(store, uploadURL)
+	require.NoError(t, err)
+
+	info, err := upload.GetInfo(ctx)
+	require.NoError(t, err)
+
+	reader, err := NewTUSUploadReader(ctx, &core.Logger{Logger: zap.NewNop()}, upload, info, 0)
+	require.NoError(t, err)
+
+	// Test reading with small buffer that truncates data
+	smallBuf := make([]byte, 10)
+
+	// First read - should get first 10 bytes
+	n, err := reader.Read(smallBuf)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, n)
+	assert.Equal(t, []byte("0123456789"), smallBuf)
+
+	// Second read - should get next 10 bytes
+	n, err = reader.Read(smallBuf)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, n)
+	assert.Equal(t, []byte("ABCDEFGHIJ"), smallBuf)
+
+	// Seek to middle and read with truncating buffer
+	_, err = reader.Seek(30, io.SeekStart)
+	assert.NoError(t, err)
+
+	n, err = reader.Read(smallBuf)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, n)
+	assert.Equal(t, []byte("UVWXYZabcd"), smallBuf)
+
+	// Verify position tracking is correct after truncation
+	pos, err := reader.Seek(0, io.SeekCurrent)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(40), pos)
+
+	// Close reader manually at the end
+	require.NoError(t, reader.Close())
 }
 
 func TestTUSUploadReader_LargeFileRanges(t *testing.T) {

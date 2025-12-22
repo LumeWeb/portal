@@ -126,15 +126,16 @@ func (r *TUSUploadReader) Read(p []byte) (n int, err error) {
 	// Handle partial content responses
 	if recorder.statusCode == http.StatusPartialContent || recorder.statusCode == http.StatusOK {
 		data := recorder.buffer.Bytes()
-		n = len(data)
-		r.position += int64(n)
 
-		// Copy data into the provided buffer, but don't exceed buffer size
-		if n > len(p) {
-			n = len(p)
-		}
-		copy(p[:n], data[:n])
+		// Calculate how many bytes will actually be copied
+		copied := min(len(data), len(p))
+		copy(p[:copied], data[:copied])
 
+		// Advance position only by bytes actually copied
+		r.position += int64(copied)
+		n = copied
+
+		// Check for EOF after position update
 		if recorder.statusCode == http.StatusOK && r.position >= r.info.Size {
 			return n, io.EOF
 		}
