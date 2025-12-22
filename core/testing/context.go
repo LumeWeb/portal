@@ -870,13 +870,24 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	}
 
 	// Phase 1.8: Migration Setup (after test options, before component registration)
+	// Backup existing startup functions before migration setup
+	originalStartupFuncs = ctx.StartupFuncs()
+	// Clear startup functions temporarily during migration setup
+	ctx.SetStartupFuncs(nil)
+
 	migrationOpts := SetupMigrationOptions()
 	if len(migrationOpts) > 0 {
 		ctx, err = ProcessCtxOptions(ctx, migrationOpts...)
 		if err != nil {
 			return fmt.Errorf("migration setup failed: %w", err)
 		}
+		if err = ProcessStartupFuncs(ctx); err != nil {
+			return fmt.Errorf("startup functions failed: %w", err)
+		}
 	}
+
+	// Restore original startup functions after migration setup
+	ctx.SetStartupFuncs(originalStartupFuncs)
 
 	// Phase 2: Component Registration
 	componentOpts, svcOpts, err := RegisterComponents(ctx)
