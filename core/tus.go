@@ -20,7 +20,7 @@ type APITusHandler interface {
 // TusHandler defines the interface for handling TUS protocol uploads
 type TusHandler interface {
 	// UploadReader gets a reader for an upload with optional byte range
-	UploadReader(ctx context.Context, identifier any, protocol StorageProtocol, start int64) (io.ReadCloser, error)
+	UploadReader(ctx context.Context, identifier any, protocol StorageProtocol, start int64) (io.ReadSeekCloser, error)
 
 	// UploadSize gets the size of an upload
 	UploadSize(ctx context.Context, protocol StorageProtocol, identifier any) (uint64, error)

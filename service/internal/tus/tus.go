@@ -100,7 +100,7 @@ func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifie
 	}
 }
 
-func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadCloser, error) {
+func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadSeekCloser, error) {
 	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
 	if err != nil {
 		return nil, err
@@ -111,13 +111,8 @@ func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, pr
 		return nil, err
 	}
 
-	if start > 0 {
-		endPosition := start + info.Size - 1
-		rangeHeader := fmt.Sprintf("bytes=%d-%d", start, endPosition)
-		ctx = context.WithValue(ctx, CtxRangeKey, rangeHeader)
-	}
-
-	reader, err := upload.GetReader(ctx)
+	// Create a TUS upload reader that implements ReadSeekCloser
+	reader, err := NewTUSUploadReader(ctx, t.logger, upload, info, start)
 	if err != nil {
 		return nil, err
 	}
