@@ -4,6 +4,7 @@ package testing
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/fatih/structs"
@@ -257,9 +258,9 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 			return true
 		}
 
-		// Filter out values that match defaults (not explicitly set)
+		// Filter out values that match defaults
 		if defaultValue, exists := flatDefaults[key]; exists {
-			return value == defaultValue
+			return reflect.DeepEqual(value, defaultValue)
 		}
 
 		return false
