@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
+	"github.com/kenshaw/snaker"
 	"github.com/knadh/koanf/maps"
 	"github.com/samber/lo"
-	"go.uber.org/zap"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.sia.tech/coreutils/wallet"
+	"go.uber.org/zap"
 )
 
 // ConfigBuilder is a generic builder for any config type that implements
@@ -201,32 +202,39 @@ func WithConfigMap(configs map[string]any) TestContextBuilderOption {
 	}
 }
 
-// flattenConfigMap converts a struct implementing config.Defaults to a flattened map[string]any.
-// It uses fatih/structs to convert struct to a map, then uses knadh/koanf/maps
-// to flatten nested maps with dot notation delimiters.
+// flattenAndSnakeCase converts a map to a flattened map[string]any with snake_case keys.
+// It uses knadh/koanf/maps to flatten nested maps with dot notation delimiters.
+// Keys are converted from CamelCase to snake_case using snaker.CamelToSnake.
 // Returns a single flattened map and any error from the flattening operation.
-func flattenConfigMap(cfg config.Defaults) (map[string]any, error) {
-	// Convert struct to map using fatih/structs
-	structMap := structs.Map(cfg)
-
+func flattenAndSnakeCase(inputMap map[string]any) (map[string]any, error) {
 	// Flatten the nested map structure
-	flatMap, err := maps.Flatten(structMap, nil, ".")
+	flatMap, err := maps.Flatten(inputMap, nil, ".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to flatten config map: %w", err)
 	}
 
-	// Convert []map[string]any to map[string]any
+	// Convert []map[string]any to map[string]any and convert keys to snake_case
 	result := make(map[string]any, len(flatMap))
 	for key, value := range flatMap {
-		result[key] = value
+		snakeKey := snaker.CamelToSnake(key)
+		result[snakeKey] = value
 	}
 
 	return result, nil
 }
 
+// flattenConfigMap converts a struct implementing config.Defaults to a flattened map[string]any.
+// It uses fatih/structs to convert struct to a map, then calls flattenAndSnakeCase.
+// Returns a single flattened map and any error from the flattening operation.
+func flattenConfigMap(cfg config.Defaults) (map[string]any, error) {
+	// Convert struct to map using fatih/structs
+	structMap := structs.Map(cfg)
+	return flattenAndSnakeCase(structMap)
+}
+
 // ApplyConfig flattens a config struct and applies all values to the test context.
 // It converts the config struct to a flattened map using flattenConfigMap,
-// then calls setConfigValue for each key-value pair.
+// then filters out nil values and keys that match defaults (unchanged values).
 // The prefix is prepended to each key (e.g., "plugin.myservice.service.").
 // Returns an error if flattening fails or any config value fails to set.
 func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
@@ -234,6 +242,29 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 	if err != nil {
 		return err
 	}
+
+	// Get defaults to filter out unchanged values
+	defaultsMap := cfg.Defaults()
+	flatDefaults, err := flattenAndSnakeCase(defaultsMap)
+	if err != nil {
+		return err
+	}
+
+	// Filter out nil values and values that match defaults
+	flatConfig = lo.OmitBy(flatConfig, func(key string, value any) bool {
+		// Filter out nil values
+		if value == nil {
+			return true
+		}
+
+		// Filter out values that match defaults (not explicitly set)
+		if defaultValue, exists := flatDefaults[key]; exists {
+			return value == defaultValue
+		}
+
+		return false
+	})
+
 	for key, value := range flatConfig {
 		fullKey := prefix + key
 		if err := setConfigValue(ctx, fullKey, value); err != nil {
@@ -260,14 +291,14 @@ func getEnvValue(envVars []string, defaultValues []interface{}) (string, error) 
 			// Return the value (even if empty) when var is present
 			return value, nil
 		}
-		
+
 		// Try default value if env var not set
 		if i < len(defaultValues) && defaultValues[i] != nil {
 			defaultValue := defaultValues[i]
 			return fmt.Sprintf("%v", defaultValue), nil
 		}
 	}
-	
+
 	// If we get here, no env vars were set
 	if len(defaultValues) > 0 {
 		return "", fmt.Errorf("none of the environment variables %v are set and no valid default values provided", envVars)
