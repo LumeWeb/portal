@@ -3,10 +3,12 @@ package testing
 
 import (
 	"fmt"
-	"maps"
 	"os"
 	"strings"
 
+	"github.com/fatih/structs"
+	"github.com/knadh/koanf/maps"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -35,7 +37,7 @@ func (b *ConfigBuilder) With(key string, value any) *ConfigBuilder {
 // Build creates a config object implementing the Defaults interface
 func (b *ConfigBuilder) Build() config.Defaults {
 	// Create a copy to avoid shared reference issues
-	return &genericConfig{values: maps.Clone(b.values)}
+	return &genericConfig{values: maps.Copy(b.values)}
 }
 
 // AsOptions converts the ConfigBuilder's values into TestContextBuilderOption functions
@@ -80,9 +82,12 @@ func GetRealConfig(ctx core.Context) *config.ManagerDefault {
 func WithAPIConfig(apiID string, apiConfig config.APIConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		cfg := ctx.Config()
-		err := cfg.ConfigureAPI(apiID, apiConfig)
-		if err != nil {
+		if err := cfg.ConfigureAPI(apiID, apiConfig); err != nil {
 			return ctx, fmt.Errorf("failed to configure API %s: %w", apiID, err)
+		}
+		prefix := fmt.Sprintf(config.APISpecifier, apiID)
+		if err := ApplyConfig(ctx, prefix, apiConfig); err != nil {
+			return ctx, err
 		}
 		return ctx, nil
 	}
@@ -97,9 +102,12 @@ func WithCustomAPIConfig(apiID string, builder *ConfigBuilder) TestContextBuilde
 func WithProtocolConfig(protocolID string, protocolConfig config.ProtocolConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		cfg := ctx.Config()
-		err := cfg.ConfigureProtocol(protocolID, protocolConfig)
-		if err != nil {
+		if err := cfg.ConfigureProtocol(protocolID, protocolConfig); err != nil {
 			return ctx, fmt.Errorf("failed to configure protocol %s: %w", protocolID, err)
+		}
+		prefix := fmt.Sprintf(config.ProtocolSpecifier, protocolID)
+		if err := ApplyConfig(ctx, prefix, protocolConfig); err != nil {
+			return ctx, err
 		}
 		return ctx, nil
 	}
@@ -114,9 +122,12 @@ func WithCustomProtocolConfig(protocolID string, builder *ConfigBuilder) TestCon
 func WithServiceConfig(pluginName string, serviceName string, serviceConfig config.ServiceConfig) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
 		cfg := ctx.Config()
-		err := cfg.ConfigureService(pluginName, serviceName, serviceConfig)
-		if err != nil {
+		if err := cfg.ConfigureService(pluginName, serviceName, serviceConfig); err != nil {
 			return ctx, fmt.Errorf("failed to configure service %s for plugin %s: %w", serviceName, pluginName, err)
+		}
+		prefix := fmt.Sprintf(config.ServiceSpecifier, pluginName, serviceName)
+		if err := ApplyConfig(ctx, prefix, serviceConfig); err != nil {
+			return ctx, err
 		}
 		return ctx, nil
 	}
@@ -152,15 +163,75 @@ func WithRandomSeedPhrase() TestContextBuilderOption {
 	return WithSeedPhrase(wallet.NewSeedPhrase())
 }
 
+// setConfigValue is a private helper that sets a configuration value on the test context.
+// It safely checks if the config manager exists before setting the value.
+func setConfigValue(ctx TestContext, key string, value interface{}) error {
+	if tctx, ok := ctx.(*testContext); ok && tctx.cfg != nil {
+		return tctx.cfg.Set(ctx, key, value)
+	}
+	return nil
+}
+
 // WithConfig sets a configuration value
 func WithConfig(key string, value interface{}) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		if ctx.(*testContext).cfg != nil {
-			// Use Update method from config.Manager interface
-			_ = ctx.(*testContext).cfg.Set(ctx, key, value)
+		if err := setConfigValue(ctx, key, value); err != nil {
+			return ctx, err
 		}
 		return ctx, nil
 	}
+}
+
+// WithConfigMap applies multiple configuration values from a slice of map[string]any objects.
+// Each map should contain a single key-value pair where the key is the config path
+// (e.g., "my.service.setting") and the value is the config value.
+// This is useful for applying flattened configuration structs.
+func WithConfigMap(configs []map[string]any) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		for _, cfg := range configs {
+			for key, value := range cfg {
+				if err := setConfigValue(ctx, key, value); err != nil {
+					return ctx, err
+				}
+			}
+		}
+		return ctx, nil
+	}
+}
+
+// flattenConfigMap converts a struct implementing config.Defaults to a flattened []map[string]any.
+// It uses fatih/structs to convert struct to a map, then uses knadh/koanf/maps
+// to flatten nested maps with dot notation delimiters.
+// Returns a slice of key-value pairs as map[string]any objects.
+func flattenConfigMap(cfg config.Defaults) []map[string]any {
+	// Convert struct to map using fatih/structs
+	structMap := structs.Map(cfg)
+
+	// Flatten the nested map structure
+	flatMap, _ := maps.Flatten(structMap, nil, ".")
+
+	// Convert to slice of map[string]any objects using samber/lo
+	return lo.Map(lo.Entries(flatMap), func(entry lo.Entry[string, any], _ int) map[string]any {
+		return map[string]any{entry.Key: entry.Value}
+	})
+}
+
+// ApplyConfig flattens a config struct and applies all values to the test context.
+// It converts the config struct to a flattened map using flattenConfigMap,
+// then calls setConfigValue for each key-value pair.
+// The prefix is prepended to each key (e.g., "plugin.myservice.service.").
+// Returns an error if any config value fails to set.
+func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
+	flatConfigs := flattenConfigMap(cfg)
+	for _, flatCfg := range flatConfigs {
+		for key, value := range flatCfg {
+			fullKey := prefix + key
+			if err := setConfigValue(ctx, fullKey, value); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // envVarName converts a config key to an environment variable name

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/build"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 )
 
@@ -27,6 +29,7 @@ type MockPluginBuilder struct {
 	extensions           []core.APIExtensionFactory
 	mockServices         []mockServiceEntry
 	mockServiceFactories []mockServiceFactoryEntry
+	serviceConfigs       map[string]any
 	ctx                  TestContext
 }
 
@@ -84,6 +87,35 @@ func (b *MockPluginBuilder) WithMockService(id string, factory func(tb TB, ctx T
 func (b *MockPluginBuilder) WithMockServiceFactory(id string, factory interface{}, depends ...string) *MockPluginBuilder {
 	b.mockServiceFactories = append(b.mockServiceFactories, mockServiceFactoryEntry{id: id, factory: factory, depends: depends})
 	return b
+}
+
+// WithServiceConfig adds a config expectation for a mock service's Config() method.
+// The provided config will be set up as a "Maybe" expectation, allowing the mock
+// to return the config when Config() is called, or not to be called at all.
+func (b *MockPluginBuilder) WithServiceConfig(id string, config any) *MockPluginBuilder {
+	if b.serviceConfigs == nil {
+		b.serviceConfigs = make(map[string]any)
+	}
+	b.serviceConfigs[id] = config
+	return b
+}
+
+// applyServiceConfig applies configuration to a mock instance.
+func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) error {
+	if cfg, hasConfig := b.serviceConfigs[id]; hasConfig {
+		onMock, ok := mockInstance.(interface {
+			On(methodName string, arguments ...any) *mock.Call
+		})
+		if ok {
+			onMock.On("Config").Return(cfg, nil).Maybe()
+		}
+		cfgDefaults, ok := cfg.(config.Defaults)
+		if ok {
+			prefix := fmt.Sprintf(config.ServiceSpecifier, b.plugin.ID, id)
+			return ApplyConfig(b.ctx, prefix, cfgDefaults)
+		}
+	}
+	return nil
 }
 
 // WithAPIExtension adds individual API extensions to the plugin with their dependencies.
@@ -162,6 +194,11 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
 			}
 
+			// Apply config if provided for this service
+			if err := b.applyServiceConfig(id, mockInstance); err != nil {
+				return nil, nil, err
+			}
+
 			// Capture the mock instance in the closure
 			mockInst := mockInstance
 
@@ -203,7 +240,7 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 
 			// Call the factory function immediately with stored context's TB
 			tbValue := reflect.ValueOf(b.ctx.T())
-			
+
 			// Wrap the call in a recover to prevent panics from crashing the process
 			var results []reflect.Value
 			var callErr error
@@ -215,7 +252,7 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 				}()
 				results = factoryValue.Call([]reflect.Value{tbValue})
 			}()
-			
+
 			if callErr != nil {
 				return nil, nil, callErr
 			}
@@ -228,6 +265,11 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 			mockInstance := results[0].Interface()
 			if mockInstance == nil {
 				return nil, nil, fmt.Errorf("mock service factory for '%s' returned nil", id)
+			}
+
+			// Apply config if provided for this service
+			if err := b.applyServiceConfig(id, mockInstance); err != nil {
+				return nil, nil, err
 			}
 
 			// Validate that mockInstance implements core.Service
