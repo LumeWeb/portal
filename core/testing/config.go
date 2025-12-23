@@ -164,12 +164,17 @@ func WithRandomSeedPhrase() TestContextBuilderOption {
 }
 
 // setConfigValue is a private helper that sets a configuration value on the test context.
-// It safely checks if the config manager exists before setting the value.
+// It returns an error if the config manager is not available, ensuring test setup
+// issues are not silently ignored.
 func setConfigValue(ctx TestContext, key string, value interface{}) error {
-	if tctx, ok := ctx.(*testContext); ok && tctx.cfg != nil {
-		return tctx.cfg.Set(ctx, key, value)
+	tctx, ok := ctx.(*testContext)
+	if !ok {
+		return fmt.Errorf("test context is not a *testContext instance")
 	}
-	return nil
+	if tctx.cfg == nil {
+		return fmt.Errorf("no config manager on test context")
+	}
+	return tctx.cfg.Set(ctx, key, value)
 }
 
 // WithConfig sets a configuration value
@@ -182,53 +187,57 @@ func WithConfig(key string, value interface{}) TestContextBuilderOption {
 	}
 }
 
-// WithConfigMap applies multiple configuration values from a slice of map[string]any objects.
-// Each map should contain a single key-value pair where the key is the config path
-// (e.g., "my.service.setting") and the value is the config value.
+// WithConfigMap applies multiple configuration values from a single map[string]any.
+// The keys are config paths (e.g., "my.service.setting") and values are config values.
 // This is useful for applying flattened configuration structs.
-func WithConfigMap(configs []map[string]any) TestContextBuilderOption {
+func WithConfigMap(configs map[string]any) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
-		for _, cfg := range configs {
-			for key, value := range cfg {
-				if err := setConfigValue(ctx, key, value); err != nil {
-					return ctx, err
-				}
+		for key, value := range configs {
+			if err := setConfigValue(ctx, key, value); err != nil {
+				return ctx, err
 			}
 		}
 		return ctx, nil
 	}
 }
 
-// flattenConfigMap converts a struct implementing config.Defaults to a flattened []map[string]any.
+// flattenConfigMap converts a struct implementing config.Defaults to a flattened map[string]any.
 // It uses fatih/structs to convert struct to a map, then uses knadh/koanf/maps
 // to flatten nested maps with dot notation delimiters.
-// Returns a slice of key-value pairs as map[string]any objects.
-func flattenConfigMap(cfg config.Defaults) []map[string]any {
+// Returns a single flattened map and any error from the flattening operation.
+func flattenConfigMap(cfg config.Defaults) (map[string]any, error) {
 	// Convert struct to map using fatih/structs
 	structMap := structs.Map(cfg)
 
 	// Flatten the nested map structure
-	flatMap, _ := maps.Flatten(structMap, nil, ".")
+	flatMap, err := maps.Flatten(structMap, nil, ".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to flatten config map: %w", err)
+	}
 
-	// Convert to slice of map[string]any objects using samber/lo
-	return lo.Map(lo.Entries(flatMap), func(entry lo.Entry[string, any], _ int) map[string]any {
-		return map[string]any{entry.Key: entry.Value}
-	})
+	// Convert []map[string]any to map[string]any
+	result := make(map[string]any, len(flatMap))
+	for key, value := range flatMap {
+		result[key] = value
+	}
+
+	return result, nil
 }
 
 // ApplyConfig flattens a config struct and applies all values to the test context.
 // It converts the config struct to a flattened map using flattenConfigMap,
 // then calls setConfigValue for each key-value pair.
 // The prefix is prepended to each key (e.g., "plugin.myservice.service.").
-// Returns an error if any config value fails to set.
+// Returns an error if flattening fails or any config value fails to set.
 func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
-	flatConfigs := flattenConfigMap(cfg)
-	for _, flatCfg := range flatConfigs {
-		for key, value := range flatCfg {
-			fullKey := prefix + key
-			if err := setConfigValue(ctx, fullKey, value); err != nil {
-				return err
-			}
+	flatConfig, err := flattenConfigMap(cfg)
+	if err != nil {
+		return err
+	}
+	for key, value := range flatConfig {
+		fullKey := prefix + key
+		if err := setConfigValue(ctx, fullKey, value); err != nil {
+			return err
 		}
 	}
 	return nil
