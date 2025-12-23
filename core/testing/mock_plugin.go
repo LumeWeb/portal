@@ -107,7 +107,7 @@ func (b *MockPluginBuilder) WithServiceConfig(id string, config any) *MockPlugin
 func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) error {
 	if cfg, hasConfig := b.serviceConfigs[id]; hasConfig {
 		// Check if mockInstance implements core.Configurable interface
-		configurable, ok := mockInstance.(core.Configurable)
+		_, ok := mockInstance.(core.Configurable)
 		if !ok {
 			return fmt.Errorf("mock service '%s' does not implement core.Configurable interface (Config() (any, error))", id)
 		}
@@ -117,7 +117,7 @@ func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) erro
 			On(methodName string, arguments ...any) *mock.Call
 		})
 		if ok {
-			onMock.On("Config").Return(configurable.Config).Maybe()
+			onMock.On("Config").Return(cfg, nil).Maybe()
 		}
 
 		cfgDefaults, ok := cfg.(config.Defaults)
