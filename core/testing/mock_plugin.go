@@ -169,7 +169,11 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 			allServices = append(allServices, core.ServiceInfo{
 				ID: id,
 				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
-					return mockInst.(core.Service), nil, nil
+					svc, ok := mockInst.(core.Service)
+					if !ok {
+						return nil, nil, fmt.Errorf("mock service instance for '%s' does not implement core.Service", id)
+					}
+					return svc, nil, nil
 				},
 				Depends: depends,
 			})
