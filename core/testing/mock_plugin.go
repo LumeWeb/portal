@@ -101,14 +101,25 @@ func (b *MockPluginBuilder) WithServiceConfig(id string, config any) *MockPlugin
 }
 
 // applyServiceConfig applies configuration to a mock instance.
+// It first checks if mockInstance implements the Configurable interface before
+// setting mock expectations. If the mock doesn't implement Configurable, it
+// returns a descriptive error so the mismatch fails early.
 func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) error {
 	if cfg, hasConfig := b.serviceConfigs[id]; hasConfig {
+		// Check if mockInstance implements core.Configurable interface
+		configurable, ok := mockInstance.(core.Configurable)
+		if !ok {
+			return fmt.Errorf("mock service '%s' does not implement core.Configurable interface (Config() (any, error))", id)
+		}
+
+		// Now we can safely set up the mock Config() expectation
 		onMock, ok := mockInstance.(interface {
 			On(methodName string, arguments ...any) *mock.Call
 		})
 		if ok {
-			onMock.On("Config").Return(cfg, nil).Maybe()
+			onMock.On("Config").Return(configurable.Config).Maybe()
 		}
+
 		cfgDefaults, ok := cfg.(config.Defaults)
 		if ok {
 			prefix := fmt.Sprintf(config.ServiceSpecifier, b.plugin.ID, id)
