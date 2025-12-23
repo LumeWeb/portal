@@ -206,13 +206,10 @@ func WithConfigMap(configs map[string]any) TestContextBuilderOption {
 // flattenAndSnakeCase converts a map to a flattened map[string]any with snake_case keys.
 // It uses knadh/koanf/maps to flatten nested maps with dot notation delimiters.
 // Keys are converted from CamelCase to snake_case using snaker.CamelToSnake.
-// Returns a single flattened map and any error from the flattening operation.
-func flattenAndSnakeCase(inputMap map[string]any) (map[string]any, error) {
+// Returns a single flattened map.
+func flattenAndSnakeCase(inputMap map[string]any) map[string]any {
 	// Flatten the nested map structure
-	flatMap, err := maps.Flatten(inputMap, nil, ".")
-	if err != nil {
-		return nil, fmt.Errorf("failed to flatten config map: %w", err)
-	}
+	flatMap, _ := maps.Flatten(inputMap, nil, ".")
 
 	// Convert []map[string]any to map[string]any and convert keys to snake_case
 	result := make(map[string]any, len(flatMap))
@@ -221,13 +218,13 @@ func flattenAndSnakeCase(inputMap map[string]any) (map[string]any, error) {
 		result[snakeKey] = value
 	}
 
-	return result, nil
+	return result
 }
 
 // flattenConfigMap converts a struct implementing config.Defaults to a flattened map[string]any.
 // It uses fatih/structs to convert struct to a map, then calls flattenAndSnakeCase.
-// Returns a single flattened map and any error from the flattening operation.
-func flattenConfigMap(cfg config.Defaults) (map[string]any, error) {
+// Returns a single flattened map.
+func flattenConfigMap(cfg config.Defaults) map[string]any {
 	// Convert struct to map using fatih/structs
 	structMap := structs.Map(cfg)
 	return flattenAndSnakeCase(structMap)
@@ -236,22 +233,19 @@ func flattenConfigMap(cfg config.Defaults) (map[string]any, error) {
 // ApplyConfig flattens a config struct and applies all values to the test context.
 // It converts the config struct to a flattened map using flattenConfigMap,
 // then filters out nil values and keys that match defaults (unchanged values).
+// Additionally, it uses a heuristic to filter out empty values where the default is non-empty,
+// as these likely represent unset fields in the config struct.
 // The prefix is prepended to each key (e.g., "plugin.myservice.service.").
 // Returns an error if flattening fails or any config value fails to set.
 func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
-	flatConfig, err := flattenConfigMap(cfg)
-	if err != nil {
-		return err
-	}
+	flatConfig := flattenConfigMap(cfg)
 
 	// Get defaults to filter out unchanged values
 	defaultsMap := cfg.Defaults()
-	flatDefaults, err := flattenAndSnakeCase(defaultsMap)
-	if err != nil {
-		return err
-	}
+	flatDefaults := flattenAndSnakeCase(defaultsMap)
 
 	// Filter out nil values and values that match defaults
+	// Heuristic: also filter out empty values where the default is non-empty
 	flatConfig = lo.OmitBy(flatConfig, func(key string, value any) bool {
 		// Filter out nil values
 		if value == nil {
@@ -260,7 +254,14 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 
 		// Filter out values that match defaults
 		if defaultValue, exists := flatDefaults[key]; exists {
-			return reflect.DeepEqual(value, defaultValue)
+			if reflect.DeepEqual(value, defaultValue) {
+				return true
+			}
+			// Heuristic: if current value is empty but default is non-empty,
+			// this field likely wasn't set in the config struct (skip it)
+			if lo.IsEmpty(value) && lo.IsNotEmpty(defaultValue) {
+				return true
+			}
 		}
 
 		return false
