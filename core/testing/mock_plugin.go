@@ -193,7 +193,7 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 			}
 
 			expectedType := reflect.TypeOf(b.ctx.T())
-			if !factoryType.In(0).AssignableTo(expectedType) {
+			if !expectedType.AssignableTo(factoryType.In(0)) {
 				return nil, nil, fmt.Errorf("mock service factory for '%s' first parameter is not assignable from %v", id, expectedType)
 			}
 
