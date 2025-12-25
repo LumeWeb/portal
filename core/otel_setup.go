@@ -125,9 +125,9 @@ func newTracerProvider(ctx Context) (*trace.TracerProvider, error) {
 func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
 	cfg := ctx.Config().Config().Core.Observability.Logging
 
-	// Create the OTLP HTTP exporter if endpoint is configured
+	// Create the OTLP HTTP exporter if exporter is configured as otlp
 	var logExporter log.Exporter
-	if cfg.OTLPEndpoint != "" {
+	if cfg.Exporter == config.ExporterOTLP {
 		var err error
 		opts := []otlploghttp.Option{
 			otlploghttp.WithEndpoint(cfg.OTLPEndpoint),

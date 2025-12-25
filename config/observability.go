@@ -119,6 +119,7 @@ func (m MetricsConfig) Defaults() map[string]any {
 type LoggingConfig struct {
 	Enabled      bool   `config:"enabled"`
 	Level        string `config:"level"`
+	Exporter     string `config:"exporter"`      // otlp, none
 	OTLPEndpoint string `config:"otlp_endpoint"`
 	Insecure     bool   `config:"insecure"` // use insecure connection (no TLS) for OTLP
 }
@@ -128,6 +129,8 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 		"Enabled": z.Bool(),
 		"Level": z.String().
 			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")),
+		"Exporter": z.String().
+			OneOf([]string{ExporterOTLP, ExporterNone}, z.Message("exporter must be one of: otlp, none")),
 		"OTLPEndpoint": z.String(),
 		"Insecure":     z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
@@ -136,9 +139,9 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 			return true
 		}
 
-		// Validate otlp_endpoint is required when logging is enabled
-		if c.Enabled && c.OTLPEndpoint == "" {
-			ctx.AddIssue(ctx.Issue().SetMessage("otlp_endpoint is required when logging is enabled"))
+		// Validate otlp_endpoint is required when exporter is otlp
+		if c.Exporter == ExporterOTLP && c.OTLPEndpoint == "" {
+			ctx.AddIssue(ctx.Issue().SetMessage("otlp_endpoint is required when exporter is 'otlp'"))
 			return false
 		}
 
@@ -150,6 +153,7 @@ func (l LoggingConfig) Defaults() map[string]any {
 	return map[string]any{
 		"Enabled":      true,
 		"Level":        "info",
+		"Exporter":     ExporterOTLP,
 		"OTLPEndpoint": DefaultOTLPEndpoint,
 		"Insecure":     true,
 	}
