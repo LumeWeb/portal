@@ -147,12 +147,12 @@ func TestOTPService_ErrorCases(t *testing.T) {
 		assert.Error(tb, err)
 
 		_, err = otpService.OTPVerify(nil, invalidUserID, "123456")
-		assert.Error(t, err)
+		assert.Error(tb, err)
 
 		err = otpService.OTPEnable(nil, invalidUserID, "123456")
-		assert.Error(t, err)
+		assert.Error(tb, err)
 
 		err = otpService.OTPDisable(nil, invalidUserID)
-		assert.Error(t, err)
+		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }

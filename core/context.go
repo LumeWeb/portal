@@ -276,11 +276,14 @@ func (ctx *DefaultContext) withNewContext(newCtx context.Context) Context {
 	return &DefaultContext{
 		Context:      newCtx,
 		services:     ctx.services,
+		cfg:          ctx.cfg,
+		db:           ctx.db,
 		exitCode:     ctx.exitCode,
 		exitFuncs:    ctx.exitFuncs,
 		startupFuncs: ctx.startupFuncs,
 		event:        ctx.event,
 		logger:       ctx.logger,
+		cancel:       ctx.cancel,
 	}
 }
 

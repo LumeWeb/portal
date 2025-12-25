@@ -60,7 +60,7 @@ func TestPasswordResetService_SendPasswordReset(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Send password reset email
-		err = passwordResetService.SendPasswordReset(nil, user)
+		err = passwordResetService.SendPasswordReset(context.Background(), user)
 		require.NoError(tb, err)
 
 		// Verify mock expectations
@@ -97,7 +97,7 @@ func TestPasswordResetService_SendPasswordReset_MissingSubdomain(t *testing.T) {
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		err = passwordResetService.SendPasswordReset(nil, user)
+		err = passwordResetService.SendPasswordReset(context.Background(), user)
 		assert.Error(t, err)
 		assert.Equal(t, "password reset service subdomain not configured", err.Error())
 	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService))

@@ -179,11 +179,11 @@ func TestPinService_UploadPinnedByUser(t *testing.T) {
 		mockHash := coreMocks.NewMockStorageHash(t)
 		mockHash.On("Multihash").Return(upload.Hash)
 
-		pinned, err := svc.UploadPinnedByUser(nil, mockHash, userID)
+		pinned, err := svc.UploadPinnedByUser(context.Background(), mockHash, userID)
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
-		pinned, err = svc.UploadPinnedByUser(nil, mockHash, 2)
+		pinned, err = svc.UploadPinnedByUser(context.Background(), mockHash, 2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))

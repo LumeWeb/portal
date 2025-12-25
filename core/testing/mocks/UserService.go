@@ -1438,16 +1438,16 @@ func (_c *MockUserService_UpdateAccountInfo_Call) RunAndReturn(run func(ctx cont
 }
 
 // UpdateAccountName provides a mock function for the type MockUserService
-func (_mock *MockUserService) UpdateAccountName(userId uint, ctx context.Context, firstName string, lastName string) error {
-	ret := _mock.Called(userId, ctx, firstName, lastName)
+func (_mock *MockUserService) UpdateAccountName(ctx context.Context, userId uint, firstName string, lastName string) error {
+	ret := _mock.Called(ctx, userId, firstName, lastName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAccountName")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, context.Context, string, string) error); ok {
-		r0 = returnFunc(userId, ctx, firstName, lastName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string) error); ok {
+		r0 = returnFunc(ctx, userId, firstName, lastName)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1460,23 +1460,23 @@ type MockUserService_UpdateAccountName_Call struct {
 }
 
 // UpdateAccountName is a helper method to define mock.On call
-//   - userId uint
 //   - ctx context.Context
+//   - userId uint
 //   - firstName string
 //   - lastName string
-func (_e *MockUserService_Expecter) UpdateAccountName(userId interface{}, ctx interface{}, firstName interface{}, lastName interface{}) *MockUserService_UpdateAccountName_Call {
-	return &MockUserService_UpdateAccountName_Call{Call: _e.mock.On("UpdateAccountName", userId, ctx, firstName, lastName)}
+func (_e *MockUserService_Expecter) UpdateAccountName(ctx interface{}, userId interface{}, firstName interface{}, lastName interface{}) *MockUserService_UpdateAccountName_Call {
+	return &MockUserService_UpdateAccountName_Call{Call: _e.mock.On("UpdateAccountName", ctx, userId, firstName, lastName)}
 }
 
-func (_c *MockUserService_UpdateAccountName_Call) Run(run func(userId uint, ctx context.Context, firstName string, lastName string)) *MockUserService_UpdateAccountName_Call {
+func (_c *MockUserService_UpdateAccountName_Call) Run(run func(ctx context.Context, userId uint, firstName string, lastName string)) *MockUserService_UpdateAccountName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 context.Context
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(context.Context)
+			arg1 = args[1].(uint)
 		}
 		var arg2 string
 		if args[2] != nil {
@@ -1501,7 +1501,7 @@ func (_c *MockUserService_UpdateAccountName_Call) Return(err error) *MockUserSer
 	return _c
 }
 
-func (_c *MockUserService_UpdateAccountName_Call) RunAndReturn(run func(userId uint, ctx context.Context, firstName string, lastName string) error) *MockUserService_UpdateAccountName_Call {
+func (_c *MockUserService_UpdateAccountName_Call) RunAndReturn(run func(ctx context.Context, userId uint, firstName string, lastName string) error) *MockUserService_UpdateAccountName_Call {
 	_c.Call.Return(run)
 	return _c
 }

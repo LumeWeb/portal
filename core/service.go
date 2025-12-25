@@ -13,7 +13,6 @@ type ServiceFactory func() (Service, []ContextBuilderOption, error)
 
 type Service interface {
 	Component
-	ID() string
 }
 
 type ServiceInit interface {

@@ -33,11 +33,18 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 	provider := global.GetLoggerProvider()
 	if provider != nil {
 		// Use OTEL-enabled core if provider is available
-		core = otelzap.NewCore(
+		otelCore := otelzap.NewCore(
 			DefaultTracerService,
 			otelzap.WithAttributes(),
 			otelzap.WithLoggerProvider(provider),
 		)
+		// Compose with standard zap core that enforces atomicLevel for runtime level changes
+		zapCore := zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+			zapcore.Lock(os.Stdout),
+			atomicLevel,
+		)
+		core = zapcore.NewTee(otelCore, zapCore)
 	} else {
 		// Use standard zap core
 		core = zapcore.NewCore(

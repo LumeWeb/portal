@@ -87,7 +87,7 @@ func (m *MockUserService) CreateAdminUser(email, password string) (*models.User,
 // UpdateUserName updates user's first and last name with automatic mock setup.
 func (m *MockUserService) UpdateUserName(userID uint, firstName, lastName string) error {
 	// Mock of UpdateAccountName response
-	m.EXPECT().UpdateAccountName(userID, mock.Anything, firstName, lastName).Return(nil)
+	m.EXPECT().UpdateAccountName(mock.Anything, userID, firstName, lastName).Return(nil)
 
 	return nil
 }
@@ -165,7 +165,7 @@ func (m *MockUserService) EmailDoesNotExist(email string) (bool, *models.User, e
 // IsUserVerified checks if user is verified with automatic mock setup.
 func (m *MockUserService) IsUserVerified(userID uint) (bool, error) {
 	// Mock of IsAccountVerified response
-	m.EXPECT().IsAccountVerified(userID, mock.Anything).Return(true, nil)
+	m.EXPECT().IsAccountVerified(mock.Anything, userID).Return(true, nil)
 
 	return true, nil
 }
@@ -173,7 +173,7 @@ func (m *MockUserService) IsUserVerified(userID uint) (bool, error) {
 // IsUserUnverified checks if user is not verified with automatic mock setup.
 func (m *MockUserService) IsUserUnverified(userID uint) (bool, error) {
 	// Mock of IsAccountVerified response
-	m.EXPECT().IsAccountVerified(userID, mock.Anything).Return(false, nil)
+	m.EXPECT().IsAccountVerified(mock.Anything, userID).Return(false, nil)
 
 	return false, nil
 }

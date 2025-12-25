@@ -141,7 +141,7 @@ func TestUserService_UpdateAccountName(t *testing.T) {
 		// Test update account name
 		firstName := "John"
 		lastName := "Doe"
-		err = userService.UpdateAccountName(user.ID, nil, firstName, lastName)
+		err = userService.UpdateAccountName(nil, user.ID, firstName, lastName)
 		require.NoError(tb, err)
 
 		// Verify account name

@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -77,8 +76,9 @@ func GatherMetricsByID(ctx Context, identifier string) ([]*dto.MetricFamily, err
 	}
 
 	// Handle plugin-specific metrics with "plugin." prefix
-	if len(identifier) > 7 && identifier[:7] == MetricsIdentifierPluginPrefix {
-		pluginID := identifier[7:]
+	prefixLen := len(MetricsIdentifierPluginPrefix)
+	if len(identifier) > prefixLen && identifier[:prefixLen] == MetricsIdentifierPluginPrefix {
+		pluginID := identifier[prefixLen:]
 		return PluginMetricsRegistry(pluginID).Gather()
 	}
 
@@ -255,9 +255,11 @@ func MetricTrackGauge[T any](gauge prometheus.Gauge, histogram prometheus.Histog
 }
 
 // MetricTrackCache tracks duration, errors, and cache hits/misses.
-// Base implementation - cannot be composed from MetricTrackResult without calling f() twice.
+// Uses prometheus.NewTimer for idiomatic timing with Observer interface.
 func MetricTrackCache[T any](duration prometheus.Histogram, errors, hits, misses prometheus.Counter, f func() (T, bool, error)) (T, error) {
-	start := time.Now()
+	timer := prometheus.NewTimer(duration)
+	defer timer.ObserveDuration()
+
 	result, hit, err := f()
 
 	if err != nil {
@@ -268,7 +270,6 @@ func MetricTrackCache[T any](duration prometheus.Histogram, errors, hits, misses
 		misses.Inc()
 	}
 
-	duration.Observe(time.Since(start).Seconds())
 	return result, err
 }
 

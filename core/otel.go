@@ -206,7 +206,7 @@ func TraceMethod(ctx context.Context, name string, opts ...SpanOption) (context.
 //
 //	func (s *MyService) VoidMethod(ctx context.Context, params MyParams) {
 //		ctx, end := TraceMethodVoid(ctx, "my-service.VoidMethod")
-//		defer end(err)
+//		defer end(nil)
 //
 //		// method implementation
 //	}

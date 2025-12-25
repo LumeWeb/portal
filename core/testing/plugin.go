@@ -321,6 +321,7 @@ func RegisterProtocols(ctx TestContext) ([]TestContextBuilderOption, error) {
 
 			ctxOpts := append([]core.ContextBuilderOption{}, core.ContextOptions(core.ContextWithStartupComponent(proto))...)
 			ctxOpts = append(ctxOpts, protoOpts...)
+			opts = append(opts, WrapCoreOptions(ctxOpts)...)
 			core.RegisterProtocol(plugin.ID, proto)
 		}
 	}

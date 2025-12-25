@@ -85,7 +85,7 @@ func NewMockAPI(t testing.TB, name string) *MockAPI {
 // WithConfig sets the config for the mock API
 func (m *MockAPI) WithConfig(cfg config.APIConfig) *MockAPI {
 	m.configValue = cfg
-	m.MockAPI.On("Config").Return(cfg).Maybe()
+	m.MockAPI.On("GetConfig").Return(cfg).Maybe()
 	return m
 }
 
