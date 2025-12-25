@@ -45,6 +45,7 @@ type TracingConfig struct {
 	SamplerRatio float64 `config:"sampler_ratio"` // 0.0-1.0, only for traceidratio
 	Exporter     string  `config:"exporter"`      // otlp, none
 	OTLPEndpoint string  `config:"otlp_endpoint"`
+	Insecure     bool    `config:"insecure"`      // use insecure connection (no TLS) for OTLP
 }
 
 func (t TracingConfig) Schema() z.ZogSchema {
@@ -59,6 +60,7 @@ func (t TracingConfig) Schema() z.ZogSchema {
 		"Exporter": z.String().
 			OneOf([]string{ExporterOTLP, ExporterNone}, z.Message("exporter must be one of: otlp, none")),
 		"OTLPEndpoint": z.String(),
+		"Insecure":   z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*TracingConfig)
 		if !ok {
@@ -89,6 +91,7 @@ func (t TracingConfig) Defaults() map[string]any {
 		"SamplerRatio": 1.0,
 		"Exporter":     ExporterOTLP,
 		"OTLPEndpoint": DefaultOTLPEndpoint,
+		"Insecure":     true,
 	}
 }
 
@@ -111,7 +114,7 @@ func (m MetricsConfig) Defaults() map[string]any {
 	return map[string]any{
 		"Enabled":         true,
 		"Path":            DefaultMetricsPath,
-		"RefreshInterval": uint32(15),
+		"RefreshInterval": uint(15),
 	}
 }
 
@@ -119,6 +122,7 @@ type LoggingConfig struct {
 	Enabled      bool   `config:"enabled"`
 	Level        string `config:"level"`
 	OTLPEndpoint string `config:"otlp_endpoint"`
+	Insecure     bool   `config:"insecure"` // use insecure connection (no TLS) for OTLP
 }
 
 func (l LoggingConfig) Schema() z.ZogSchema {
@@ -128,6 +132,7 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")).
 			Default("info"),
 		"OTLPEndpoint": z.String(),
+		"Insecure":   z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*LoggingConfig)
 		if !ok {
@@ -149,6 +154,7 @@ func (l LoggingConfig) Defaults() map[string]any {
 		"Enabled":      true,
 		"Level":        "info",
 		"OTLPEndpoint": DefaultOTLPEndpoint,
+		"Insecure":     true,
 	}
 }
 

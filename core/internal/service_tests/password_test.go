@@ -1,6 +1,7 @@
 package service_tests
 
 import (
+	"context"
 	"errors"
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
@@ -189,7 +190,7 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		err = ctx.DB().Create(&expiredReset).Error
 		require.NoError(tb, err)
 
-		err = passwordResetService.ResetPassword(nil, user.Email, expiredToken, newPassword)
+		err = passwordResetService.ResetPassword(context.Background(), user.Email, expiredToken, newPassword)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeySecurityTokenExpired)
 
