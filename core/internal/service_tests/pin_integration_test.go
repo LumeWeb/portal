@@ -248,17 +248,17 @@ func TestPinService_UploadPinnedByUser_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Check if the upload is pinned by the user
-		pinned, err := pinService.UploadPinnedByUser(nil, &testStorageHash{mh: upload.Hash, hash: testData}, userID)
+		pinned, err := pinService.UploadPinnedByUser(context.Background(), &testStorageHash{mh: upload.Hash, hash: testData}, userID)
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
 		// 4. Check if the upload is pinned by a different user
-		pinned, err = pinService.UploadPinnedByUser(nil, &testStorageHash{mh: upload.Hash, hash: testData}, 2)
+		pinned, err = pinService.UploadPinnedByUser(context.Background(), &testStorageHash{mh: upload.Hash, hash: testData}, 2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 
 		// 5. Check if a non-existent upload is pinned by the user
-		pinned, err = pinService.UploadPinnedByUser(nil, &testStorageHash{hash: []byte("nonexistent_hash")}, userID)
+		pinned, err = pinService.UploadPinnedByUser(context.Background(), &testStorageHash{hash: []byte("nonexistent_hash")}, userID)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 

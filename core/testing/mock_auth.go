@@ -53,7 +53,7 @@ func (m *MockAuthService) CreateAndLoginUser(email, password string) (string, *m
 
 	// Mock of login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(mock.Anything, email, password, "127.0.0.1", false).Return(token, user, nil).Maybe().Maybe()
+	m.EXPECT().LoginPassword(mock.Anything, email, password, "127.0.0.1", false).Return(token, user, nil)
 
 	return token, user, nil
 }

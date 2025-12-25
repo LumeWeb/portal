@@ -49,7 +49,7 @@ func ContextWithTelemetry() ContextBuilderOption {
 			return nil
 		})
 
-		// Set up logger provider if metrics are enabled
+		// Set up logger provider if logging is enabled
 		if cfg.Logging.Enabled {
 			loggerProvider, err := newLoggerProvider(ctx)
 			if err != nil {
@@ -120,7 +120,7 @@ func newTracerProvider(ctx Context) (*trace.TracerProvider, error) {
 }
 
 func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
-	cfg := ctx.Config().Config().Core.Observability.Tracing
+	cfg := ctx.Config().Config().Core.Observability.Logging
 
 	// Create the OTLP HTTP exporter if endpoint is configured
 	var logExporter log.Exporter

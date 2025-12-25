@@ -73,7 +73,7 @@ func TestUserService(t *testing.T) {
 		password := "password123"
 
 		// Test create user account using the real service
-		createdUser, err := userSvc.CreateAccount(nil, email, password, false)
+		createdUser, err := userSvc.CreateAccount(context.Background(), email, password, false)
 		require.NoError(t, err)
 		assert.Equal(t, email, createdUser.Email)
 		assert.NotZero(t, createdUser.ID)

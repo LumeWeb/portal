@@ -73,7 +73,8 @@ type TestingProtocolPinHandler interface {
 }
 
 // registerProtocol is a private helper that implements the core registration logic
-// with proper duplicate checking and mutex handling
+// with proper duplicate checking and mutex handling.
+// This wrapper exists to allow for future validation or logging extensions if needed.
 func registerProtocol(id string, protocol Protocol) {
 	protocolsMu.Lock()
 	defer protocolsMu.Unlock()

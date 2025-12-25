@@ -283,7 +283,7 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 	return result, err
 }
 
-func (u UserServiceDefault) UpdateAccountName(userId uint, ctx context.Context, firstName string, lastName string) error {
+func (u UserServiceDefault) UpdateAccountName(ctx context.Context, userId uint, firstName string, lastName string) error {
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpUpdate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpUpdate),

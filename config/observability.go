@@ -43,7 +43,7 @@ type TracingConfig struct {
 	ServiceName  string  `config:"service_name"`
 	Sampler      string  `config:"sampler"`       // always, never, traceidratio
 	SamplerRatio float64 `config:"sampler_ratio"` // 0.0-1.0, only for traceidratio
-	Exporter     string  `config:"exporter"`      // otlp, stdout, none
+	Exporter     string  `config:"exporter"`      // otlp, none
 	OTLPEndpoint string  `config:"otlp_endpoint"`
 }
 
@@ -116,8 +116,9 @@ func (m MetricsConfig) Defaults() map[string]any {
 }
 
 type LoggingConfig struct {
-	Enabled bool   `config:"enabled"`
-	Level   string `config:"level"`
+	Enabled      bool   `config:"enabled"`
+	Level        string `config:"level"`
+	OTLPEndpoint string `config:"otlp_endpoint"`
 }
 
 func (l LoggingConfig) Schema() z.ZogSchema {
@@ -131,8 +132,9 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 
 func (l LoggingConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled": true,
-		"Level":   "info",
+		"Enabled":      true,
+		"Level":        "info",
+		"OTLPEndpoint": DefaultOTLPEndpoint,
 	}
 }
 

@@ -71,7 +71,7 @@ func TestCronServiceDefault_RegisterJob_Integration(t *testing.T) {
 		testJob := newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily}, nil)
 
 		// Register the job
-		err := cronService.RegisterJob(nil, testJob, nil)
+		err := cronService.RegisterJob(context.Background(), testJob, nil)
 		require.NoError(t, err)
 
 		// Verify that the job was created in the database

@@ -23,7 +23,8 @@ var (
 )
 
 // registerAPIExtension is a private helper that implements the core registration logic
-// with proper mutex handling for appending to the extension slice map
+// with proper mutex handling for appending to the extension slice map.
+// This wrapper exists to allow for future validation or logging extensions if needed.
 func registerAPIExtension(ext APIExtension) {
 	apiExtensionsMu.Lock()
 	defer apiExtensionsMu.Unlock()

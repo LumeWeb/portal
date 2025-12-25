@@ -78,12 +78,12 @@ func TestAuthService_LoginOTP(t *testing.T) {
 		otpService.EXPECT().OTPVerify(uint(0x1), invalidCode).Return(false, nil)
 
 		// Test valid OTP login
-		token, err := authService.LoginOTP(nil, user.ID, validCode, false)
+		token, err := authService.LoginOTP(context.Background(), user.ID, validCode, false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid OTP code
-		_, err = authService.LoginOTP(nil, user.ID, invalidCode, false)
+		_, err = authService.LoginOTP(context.Background(), user.ID, invalidCode, false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }

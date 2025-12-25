@@ -31,7 +31,7 @@ type UserService interface {
 	UpdateAccountInfo(ctx context.Context, userId uint, info map[string]any) error
 
 	// UpdateAccountName updates the first and last name of the user with the given ID.
-	UpdateAccountName(userId uint, ctx context.Context, firstName string, lastName string) error
+	UpdateAccountName(ctx context.Context, userId uint, firstName string, lastName string) error
 
 	// UpdateAccountEmail updates the email of the user with the given ID after verifying the password.
 	UpdateAccountEmail(ctx context.Context, userId uint, email string, password string) error
