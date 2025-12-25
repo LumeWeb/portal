@@ -136,11 +136,11 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 			FirstName:    "Test",
 		}
 
-		userService.EXPECT().EmailExists(user.Email).Return(true, user2, nil).Times(3)
-		userService.EXPECT().EmailExists("invalid@example.com").Return(false, nil, nil).Once()
-		userService.EXPECT().AccountExists(user.ID).Return(true, user2, nil).Once()
+		userService.EXPECT().EmailExists(mock.Anything, user.Email).Return(true, user2, nil).Times(3)
+		userService.EXPECT().EmailExists(mock.Anything, "invalid@example.com").Return(false, nil, nil).Once()
+		userService.EXPECT().AccountExists(mock.Anything, user.ID).Return(true, user2, nil).Once()
 		userService.EXPECT().HashPassword(newPassword).Return(string(newHashedPassword), nil).Once()
-		userService.EXPECT().UpdateAccountInfo(user.ID, map[string]interface{}{
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, map[string]interface{}{
 			"password_hash": string(newHashedPassword),
 		}).Return(nil).Once()
 
