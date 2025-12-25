@@ -1,6 +1,7 @@
 package example_service_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"

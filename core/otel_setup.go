@@ -92,10 +92,13 @@ func newTracerProvider(ctx Context) (*trace.TracerProvider, error) {
 
 	// Check if we should use OTLP exporter
 	if cfg.Exporter == config.ExporterOTLP {
-		traceExporter, err := otlptracehttp.New(ctx,
+		opts := []otlptracehttp.Option{
 			otlptracehttp.WithEndpoint(cfg.OTLPEndpoint),
-			otlptracehttp.WithInsecure(),
-		)
+		}
+		if cfg.Insecure {
+			opts = append(opts, otlptracehttp.WithInsecure())
+		}
+		traceExporter, err := otlptracehttp.New(ctx, opts...)
 
 		if err != nil {
 			return nil, err
@@ -126,10 +129,13 @@ func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
 	var logExporter log.Exporter
 	if cfg.OTLPEndpoint != "" {
 		var err error
-		logExporter, err = otlploghttp.New(ctx,
+		opts := []otlploghttp.Option{
 			otlploghttp.WithEndpoint(cfg.OTLPEndpoint),
-			otlploghttp.WithInsecure(),
-		)
+		}
+		if cfg.Insecure {
+			opts = append(opts, otlploghttp.WithInsecure())
+		}
+		logExporter, err = otlploghttp.New(ctx, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -140,10 +146,14 @@ func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
 		processor = log.NewBatchProcessor(logExporter)
 	}
 
-	loggerProvider := log.NewLoggerProvider(
-		log.WithProcessor(processor),
+	opts := []log.LoggerProviderOption{
 		log.WithResource(newResource(ctx)),
-	)
+	}
+	if processor != nil {
+		opts = append(opts, log.WithProcessor(processor))
+	}
+
+	loggerProvider := log.NewLoggerProvider(opts...)
 	return loggerProvider, nil
 }
 func newResource(ctx Context) *resource.Resource {
