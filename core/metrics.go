@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -86,6 +87,30 @@ func GatherMetricsByID(ctx Context, identifier string) ([]*dto.MetricFamily, err
 	return gatherMetricByName(ctx, identifier)
 }
 
+// sanitizePrometheusID sanitizes an ID to be Prometheus-compatible
+// It replaces any character not in [A-Za-z0-9_:] with '_'
+// and ensures the first character is in [A-Za-z_:] by prefixing '_' if needed
+func sanitizePrometheusID(id string) string {
+	if id == "" {
+		return "_"
+	}
+
+	// Replace invalid characters with underscore
+	result := strings.Map(func(r rune) rune {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == ':' {
+			return r
+		}
+		return '_'
+	}, id)
+
+	// Ensure first character is not a digit
+	if result[0] >= '0' && result[0] <= '9' {
+		result = "_" + result
+	}
+
+	return result
+}
+
 // gatherMetricByName collects a specific metric name from all registries
 // It prefixes plugin metrics with the plugin ID for namespace separation
 func gatherMetricByName(ctx Context, metricName string) ([]*dto.MetricFamily, error) {
@@ -122,8 +147,10 @@ func gatherMetricByName(ctx Context, metricName string) ([]*dto.MetricFamily, er
 		for _, mf := range pluginMetrics {
 			if mf.GetName() == metricName {
 				// Clone and namespace the metric family
+				// Sanitize pluginID for Prometheus metric name compliance
+				sanitizedID := sanitizePrometheusID(pluginID)
 				namespaced := &dto.MetricFamily{
-					Name:   lo.ToPtr(pluginID + "_" + mf.GetName()),
+					Name:   lo.ToPtr(sanitizedID + "_" + mf.GetName()),
 					Help:   mf.Help,
 					Type:   mf.Type,
 					Metric: mf.Metric,
@@ -232,18 +259,20 @@ func MetricTrackResult[T any](observer prometheus.Observer, errors prometheus.Co
 
 // MetricTrackWithBytes tracks duration, errors, and byte counts.
 // Composes MetricTrack with bytes tracking.
-func MetricTrackWithBytes[T any](histogram prometheus.Histogram, bytesCounter prometheus.Counter, errors prometheus.Counter, f func() (T, uint64)) T {
-	return MetricTrack(histogram, errors, func() T {
-		result, size := f()
-		var err error
-		if e, ok := any(result).(error); ok {
-			err = e
-		}
-		if err == nil {
-			bytesCounter.Add(float64(size))
-		}
-		return result
-	})
+// The function f returns (T, uint64, error) where error is explicitly tracked.
+func MetricTrackWithBytes[T any](histogram prometheus.Histogram, bytesCounter prometheus.Counter, errors prometheus.Counter, f func() (T, uint64, error)) T {
+	timer := prometheus.NewTimer(histogram)
+	defer timer.ObserveDuration()
+
+	result, size, err := f()
+
+	if err != nil {
+		errors.Inc()
+	} else {
+		bytesCounter.Add(float64(size))
+	}
+
+	return result
 }
 
 // MetricTrackGauge tracks duration, errors, and manages a gauge counter.
@@ -275,12 +304,11 @@ func MetricTrackCache[T any](duration prometheus.Histogram, errors, hits, misses
 
 // MetricTrackGaugeWithBytes tracks duration, errors, gauge, and bytes.
 // Composes MetricTrackGauge with MetricTrackWithBytes.
-func MetricTrackGaugeWithBytes[T any](gauge prometheus.Gauge, histogram prometheus.Histogram, bytesCounter prometheus.Counter, errors prometheus.Counter, size uint64, f func() T) T {
+// The function f returns (T, error) where error is explicitly tracked.
+func MetricTrackGaugeWithBytes[T any](gauge prometheus.Gauge, histogram prometheus.Histogram, bytesCounter prometheus.Counter, errors prometheus.Counter, f func() (T, uint64, error)) T {
 	gauge.Inc()
 	defer gauge.Dec()
-	return MetricTrackWithBytes(histogram, bytesCounter, errors, func() (T, uint64) {
-		return f(), size
-	})
+	return MetricTrackWithBytes(histogram, bytesCounter, errors, f)
 }
 
 
