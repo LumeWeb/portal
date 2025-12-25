@@ -113,7 +113,7 @@ func TestPinService_DeletePinByHash(t *testing.T) {
 		mockHash := coreMocks.NewMockStorageHash(t)
 		mockHash.On("Multihash").Return(upload.Hash)
 
-		err = svc.DeletePinByHash(nil, mockHash, pin.UserID)
+		err = svc.DeletePinByHash(context.Background(), mockHash, pin.UserID)
 		require.NoError(tb, err)
 
 		var dbPin models.Pin
@@ -146,7 +146,7 @@ func TestPinService_UploadPinnedGlobal(t *testing.T) {
 
 		uploadSvc.EXPECT().GetUpload(mock.Anything, mockHash).Return(upload, nil)
 
-		pinned, err := svc.UploadPinnedGlobal(nil, mockHash)
+		pinned, err := svc.UploadPinnedGlobal(context.Background(), mockHash)
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
@@ -154,7 +154,7 @@ func TestPinService_UploadPinnedGlobal(t *testing.T) {
 		mockHash2.On("String").Return("")
 		mockHash2.EXPECT().Multihash().Return([]byte("nonexistent"))
 
-		pinned, err = svc.UploadPinnedGlobal(nil, mockHash2)
+		pinned, err = svc.UploadPinnedGlobal(context.Background(), mockHash2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 	}, coreTesting.WithServiceFactory(core.PIN_SERVICE, service.NewPinService))

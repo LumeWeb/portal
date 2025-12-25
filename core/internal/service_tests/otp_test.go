@@ -41,7 +41,7 @@ func TestOTPService_OTPGeneration(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Once()
 
 		// Generate OTP secret
-		secret, err := otpService.OTPGenerate(nil, user.ID)
+		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
 		require.NoError(tb, err)
 		assert.NotEmpty(tb, secret)
 		assert.Len(tb, secret, 32) // TOTP secrets are typically 32 chars
@@ -71,7 +71,7 @@ func TestOTPService_OTPVerification(t *testing.T) {
 		userService.EXPECT().AccountExists(user.ID).Return(true, user, nil).Times(3)
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Once()
 
-		secret, err := otpService.OTPGenerate(nil, user.ID)
+		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
 		require.NoError(tb, err)
 
 		user.OTPSecret = secret
@@ -80,12 +80,12 @@ func TestOTPService_OTPVerification(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Valid code
-		valid, err := otpService.OTPVerify(nil, user.ID, code)
+		valid, err := otpService.OTPVerify(context.Background(), user.ID, code)
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 
 		// Invalid code
-		valid, err = otpService.OTPVerify(nil, user.ID, "000000")
+		valid, err = otpService.OTPVerify(context.Background(), user.ID, "000000")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
@@ -113,7 +113,7 @@ func TestOTPService_OTPLifecycle(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 
 		// Generate OTP secret
-		secret, err := otpService.OTPGenerate(nil, user.ID)
+		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
 		require.NoError(tb, err)
 
 		user.OTPSecret = secret
@@ -122,10 +122,10 @@ func TestOTPService_OTPLifecycle(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Enable OTP
-		require.NoError(tb, otpService.OTPEnable(nil, user.ID, code))
+		require.NoError(tb, otpService.OTPEnable(context.Background(), user.ID, code))
 
 		// Disable OTP
-		require.NoError(tb, otpService.OTPDisable(nil, user.ID))
+		require.NoError(tb, otpService.OTPDisable(context.Background(), user.ID))
 
 	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }
@@ -143,16 +143,16 @@ func TestOTPService_ErrorCases(t *testing.T) {
 		userService.EXPECT().AccountExists(invalidUserID).Return(false, nil, nil).Times(4)
 
 		// Invalid user
-		_, err := otpService.OTPGenerate(nil, invalidUserID)
+		_, err := otpService.OTPGenerate(context.Background(), invalidUserID)
 		assert.Error(tb, err)
 
-		_, err = otpService.OTPVerify(nil, invalidUserID, "123456")
+		_, err = otpService.OTPVerify(context.Background(), invalidUserID, "123456")
 		assert.Error(tb, err)
 
-		err = otpService.OTPEnable(nil, invalidUserID, "123456")
+		err = otpService.OTPEnable(context.Background(), invalidUserID, "123456")
 		assert.Error(tb, err)
 
-		err = otpService.OTPDisable(nil, invalidUserID)
+		err = otpService.OTPDisable(context.Background(), invalidUserID)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.OTP_SERVICE, service.NewOTPService))
 }

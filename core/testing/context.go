@@ -1238,5 +1238,5 @@ func StartCron(ctx TestContext) error {
 		return fmt.Errorf("service found but is not core.CronService")
 	}
 
-	return svc.Start(nil)
+	return svc.Start(ctx.GetContext())
 }

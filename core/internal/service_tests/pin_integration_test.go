@@ -151,7 +151,7 @@ func TestPinService_DeletePinByHash_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Delete the pin by hash
-		err = pinService.DeletePinByHash(nil, &testStorageHash{mh: upload.Hash, hash: testData}, pin.UserID)
+		err = pinService.DeletePinByHash(context.Background(), &testStorageHash{mh: upload.Hash, hash: testData}, pin.UserID)
 		require.NoError(tb, err)
 
 		// 4. Verify the pin is deleted
@@ -199,12 +199,12 @@ func TestPinService_UploadPinnedGlobal_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Check if the upload is pinned globally
-		pinned, err := pinService.UploadPinnedGlobal(nil, &testStorageHash{mh: upload.Hash, hash: testData})
+		pinned, err := pinService.UploadPinnedGlobal(context.Background(), &testStorageHash{mh: upload.Hash, hash: testData})
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
 		// 4. Check if a non-existent upload is pinned globally
-		pinned, err = pinService.UploadPinnedGlobal(nil, &testStorageHash{hash: []byte("nonexistent_hash")})
+		pinned, err = pinService.UploadPinnedGlobal(context.Background(), &testStorageHash{hash: []byte("nonexistent_hash")})
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 

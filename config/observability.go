@@ -127,6 +127,20 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 		"Level": z.String().
 			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")).
 			Default("info"),
+		"OTLPEndpoint": z.String(),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		c, ok := data.(*LoggingConfig)
+		if !ok {
+			return true
+		}
+
+		// Validate otlp_endpoint is required when logging is enabled
+		if c.Enabled && c.OTLPEndpoint == "" {
+			ctx.AddIssue(ctx.Issue().SetMessage("otlp_endpoint is required when logging is enabled"))
+			return false
+		}
+
+		return true
 	})
 }
 

@@ -135,8 +135,13 @@ func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
 		}
 	}
 
+	var processor log.Processor
+	if logExporter != nil {
+		processor = log.NewBatchProcessor(logExporter)
+	}
+
 	loggerProvider := log.NewLoggerProvider(
-		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+		log.WithProcessor(processor),
 		log.WithResource(newResource(ctx)),
 	)
 	return loggerProvider, nil
