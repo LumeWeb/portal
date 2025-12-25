@@ -14,6 +14,7 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
+	requestMetrics "go.lumeweb.com/portal/service/internal/request"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -26,23 +27,22 @@ func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.REQUEST_SERVICE,
 		Factory: NewRequestService,
+		Metrics: requestMetrics.GetCollectors(),
 	})
 }
 
 type RequestServiceDefault struct {
-	ctx    core.Context
-	logger *core.Logger
-	db     *gorm.DB
 	models map[string]data_models.RequestDataModel
 	mutex  sync.RWMutex
 	ops    core.OperationFinder
+	core.Service
 }
 
 func (r *RequestServiceDefault) RegisterRequestModel(operation string, model data_models.RequestDataModel) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.models[operation] = model
-	r.logger.Debug("Registered request model", zap.String("operation", operation))
+	r.Logger().Debug("Registered request model", zap.String("operation", operation))
 }
 
 func (r *RequestServiceDefault) GetRequestModel(operation string) (data_models.RequestDataModel, bool) {
@@ -62,7 +62,7 @@ func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_model
 
 func (r *RequestServiceDefault) ListDistinctRequestFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
 	buildBaseQuery := func() *gorm.DB {
-		q := r.db.Model(&models.Request{}).Where("user_id = ?", userID)
+		q := r.DB().Model(&models.Request{}).Where("user_id = ?", userID)
 		if len(additionalFilters) > 0 {
 			q = queryutil.ApplyFilters(q, additionalFilters, nil)
 		}
@@ -106,17 +106,7 @@ func NewRequestService() (core.Service, []core.ContextBuilderOption, error) {
 		models: make(map[string]data_models.RequestDataModel),
 	}
 
-	opts := core.ContextOptions(
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			req.ctx = ctx
-			req.logger = ctx.ServiceLogger(req)
-			req.db = ctx.DB()
-			req.ops = NewOperationFinder(ctx)
-			return nil
-		}),
-	)
-
-	return req, opts, nil
+	return req, nil, nil
 }
 
 func (r *RequestServiceDefault) ID() string {
@@ -124,60 +114,87 @@ func (r *RequestServiceDefault) ID() string {
 }
 
 func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
-	// Validate the request
-	if err := r.ValidateRequest(ctx, req); err != nil {
-		return nil, fmt.Errorf("request validation failed: %w", err)
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
+	}
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationUnknown
 	}
 
-	// Set default values if not specified
-	if req.Status == "" {
-		req.Status = models.RequestStatusPending
-	}
-
-	// Create the request
-	var newReq models.Request
-	if err := db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.WithContext(ctx).Create(req).Scan(&newReq)
-	}); err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// If custom data provided, store it in the protocol-specific table
-	if data != nil {
-		// Get model for this operation
-		model, err := r.CreateRequestModel(req.Operation)
-		if err != nil {
-			r.logger.Warn("No model registered for operation",
-				zap.String("operation", req.Operation))
-		} else {
-			// Copy data from provided struct to model
-			dataBytes, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
+	return core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() (*models.Request, error) {
+			// Validate the request
+			if err := r.ValidateRequest(ctx, req); err != nil {
+				requestMetrics.RequestsValidationFailed.WithLabelValues(protocol, operation).Inc()
+				return nil, fmt.Errorf("request validation failed: %w", err)
 			}
 
-			err = json.Unmarshal(dataBytes, model)
-			if err != nil {
-				return nil, err
+			// Set default values if not specified
+			if req.Status == "" {
+				req.Status = models.RequestStatusPending
+			} else if req.Status == models.RequestStatusDuplicate {
+				requestMetrics.RequestsDuplicate.WithLabelValues(protocol, operation).Inc()
 			}
 
-			// Set request ID
-			model.SetRequestID(newReq.ID)
-			model.SetRequest(newReq)
-
-			// Validate
-			if err := model.Validate(); err != nil {
-				return &newReq, fmt.Errorf("data validation failed: %w", err)
+			// Create the request
+			var newReq models.Request
+			if err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Create(req).Scan(&newReq)
+			}); err != nil {
+				return nil, fmt.Errorf("failed to create request: %w", err)
 			}
 
-			// Store in database
-			if err := r.db.Create(model).Error; err != nil {
-				return &newReq, fmt.Errorf("failed to store protocol  %w", err)
-			}
-		}
-	}
+			// If custom data provided, store it in the protocol-specific table
+			if data != nil {
+				// Get model for this operation
+				model, err := r.CreateRequestModel(req.Operation)
+				if err != nil {
+					r.Logger().Warn("No model registered for operation",
+						zap.String("operation", req.Operation))
+				} else {
+					// Copy data from provided struct to model
+					dataBytes, err := json.Marshal(data)
+					if err != nil {
+						return nil, err
+					}
 
-	return &newReq, nil
+					err = json.Unmarshal(dataBytes, model)
+					if err != nil {
+						return nil, err
+					}
+
+					// Set request ID
+					model.SetRequestID(newReq.ID)
+					model.SetRequest(newReq)
+
+					// Validate
+					if err = model.Validate(); err != nil {
+						return &newReq, fmt.Errorf("data validation failed: %w", err)
+					}
+
+					// Store in database
+					if err = db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+						return tx.Create(model)
+					}); err != nil {
+						return &newReq, fmt.Errorf("failed to store protocol  %w", err)
+					}
+				}
+			}
+
+			requestMetrics.RequestsCreated.WithLabelValues(protocol, operation).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(newReq.Status)).Inc()
+			requestMetrics.RequestsByOperation.WithLabelValues(operation).Inc()
+			if protocol != requestMetrics.LabelProtocolUnknown {
+				requestMetrics.RequestsByProtocol.WithLabelValues(protocol).Inc()
+			}
+
+			return &newReq, nil
+		},
+	)
 }
 
 func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) error {
@@ -186,74 +203,108 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 		return err
 	}
 
-	// Compute current status
-	status, err := r.ComputeRequestStatus(ctx, id, false)
-	if err != nil {
-		return err
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationExecute
 	}
 
-	if status.State == "" {
-		status.State = models.RequestStatusProcessing
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
 	}
 
-	// Update status based on computed state
-	if err := r.UpdateRequestStatus(ctx, id, status.State, status.Message); err != nil {
-		r.logger.Error("Failed to update request status",
-			zap.Error(err), zap.Uint("requestID", id))
-		return err
-	}
+	return core.MetricTrack(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() error {
+			// Compute current status
+			status, err := r.ComputeRequestStatus(ctx, id, false)
+			if err != nil {
+				return err
+			}
 
-	// Find the operation handler
-	_, handler, err := r.ops.FindOperationHandler(req.Operation)
-	if err != nil {
-		return err
-	}
+			if status.State == "" {
+				status.State = models.RequestStatusProcessing
+			}
 
-	if handler == nil {
-		return nil // No handler means nothing to execute
-	}
+			// Update status based on computed state
+			if err := r.UpdateRequestStatus(ctx, id, status.State, status.Message); err != nil {
+				r.Logger().Error("Failed to update request status",
+					zap.Error(err), zap.Uint("requestID", id))
+				return err
+			}
 
-	// Execute the operation
-	if err := handler.Execute(ctx, req); err != nil {
-		r.logger.Error("Request execution failed",
-			zap.Error(err), zap.Uint("requestID", id))
+			// Find the operation handler
+			_, handler, err := r.ops.FindOperationHandler(req.Operation)
+			if err != nil {
+				return err
+			}
 
-		failErr := r.FailRequest(ctx, id, err.Error())
-		if failErr != nil {
-			r.logger.Error("Failed to mark request as failed",
-				zap.Error(failErr), zap.Uint("requestID", id))
-		}
-		return err
-	}
+			if handler == nil {
+				return nil // No handler means nothing to execute
+			}
 
-	// Recompute status after execution
-	status, err = r.ComputeRequestStatus(ctx, id, true)
-	if err != nil {
-		return err
-	}
+			// Execute the operation
+			if err := handler.Execute(ctx, req); err != nil {
+				r.Logger().Error("Request execution failed",
+					zap.Error(err), zap.Uint("requestID", id))
 
-	// Update final status
-	return r.UpdateRequestStatus(ctx, id, status.State, status.Message)
+				failErr := r.FailRequest(ctx, id, err.Error())
+				if failErr != nil {
+					r.Logger().Error("Failed to mark request as failed",
+						zap.Error(failErr), zap.Uint("requestID", id))
+				}
+				return err
+			}
+
+			// Recompute status after execution
+			status, err = r.ComputeRequestStatus(ctx, id, true)
+			if err != nil {
+				return err
+			}
+
+			// Update final status
+			return r.UpdateRequestStatus(ctx, id, status.State, status.Message)
+		},
+	)
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
-	return r.getRequest(ctx, id, false)
+	return core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeGet),
+		nil,
+		func() (*models.Request, error) {
+			result, err := r.getRequest(ctx, id, false)
+			if err == nil {
+				requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeGet).Inc()
+			}
+			return result, err
+		},
+	)
 }
 
 func (r *RequestServiceDefault) GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error) {
-	return r.getRequest(ctx, id, true)
+	return core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeGet),
+		nil,
+		func() (*models.Request, error) {
+			result, err := r.getRequest(ctx, id, true)
+			if err == nil {
+				requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeGet).Inc()
+			}
+			return result, err
+		},
+	)
 }
 
 func (r *RequestServiceDefault) getRequest(ctx context.Context, id uint, withDeleted bool) (*models.Request, error) {
 	var req models.Request
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			query := db.WithContext(ctx)
-			if withDeleted {
-				query = query.Unscoped()
-			}
-			return query.First(&req, id)
-		})
+	err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+		query := tx.WithContext(ctx)
+		if withDeleted {
+			query = query.Unscoped()
+		}
+		return query.First(&req, id)
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -265,11 +316,32 @@ func (r *RequestServiceDefault) getRequest(ctx context.Context, id uint, withDel
 }
 
 func (r *RequestServiceDefault) UpdateRequest(ctx context.Context, req *models.Request) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Save(req)
-		})
-	})
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
+	}
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationUnknown
+	}
+
+	return core.MetricTrack(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() error {
+			err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Save(req)
+			})
+
+			if err != nil {
+				return err
+			}
+
+			requestMetrics.RequestsUpdated.WithLabelValues(protocol, operation).Inc()
+
+			return nil
+		},
+	)
 }
 
 func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) error {
@@ -278,66 +350,106 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 		return err
 	}
 
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
+	}
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationUnknown
+	}
+
 	_, handler, err := r.ops.FindOperationHandler(req.Operation)
 	if err != nil {
-		r.logger.Warn("Could not find operation handler for cleanup",
+		r.Logger().Warn("Could not find operation handler for cleanup",
 			zap.Error(err), zap.String("operation", req.Operation))
 	} else if handler != nil {
 		if err := handler.Cleanup(ctx, req); err != nil {
-			r.logger.Warn("Cleanup failed but continuing with deletion",
+			r.Logger().Warn("Cleanup failed but continuing with deletion",
 				zap.Error(err), zap.Uint("requestID", req.ID))
 		}
 	}
 
-	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.WithContext(ctx).Delete(&models.Request{}, id)
-	})
+	return core.MetricTrack(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() error {
+			err = db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Delete(&models.Request{}, id)
+			})
+
+			if err != nil {
+				return err
+			}
+
+			requestMetrics.RequestsDeleted.WithLabelValues(protocol, operation).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(req.Status)).Dec()
+			requestMetrics.RequestsByOperation.WithLabelValues(operation).Dec()
+			if protocol != requestMetrics.LabelProtocolUnknown {
+				requestMetrics.RequestsByProtocol.WithLabelValues(protocol).Dec()
+			}
+
+			return nil
+		},
+	)
 }
 
 func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx := db.WithContext(ctx)
-			if query != nil {
-				tx = tx.Where(query)
-			}
+	result, err := core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeQuery),
+		nil,
+		func() (*models.Request, error) {
+			err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				tx = tx.WithContext(ctx)
+				if query != nil {
+					tx = tx.Where(query)
+				}
 
-			return tx.Scopes(
-				applyFilters(filter),
-			).First(&req)
-		})
-	})
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("request not found: %w", err)
-		}
-		return nil, fmt.Errorf("query failed: %w", err)
-	}
-	return &req, nil
+				return tx.Scopes(
+					applyFilters(filter),
+				).First(&req)
+			})
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, fmt.Errorf("request not found: %w", err)
+				}
+				return nil, fmt.Errorf("query failed: %w", err)
+			}
+			requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeQuery).Inc()
+			return &req, nil
+		},
+	)
+	return result, err
 }
 
 func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
 	var req models.Request
 	req.Hash = hash.Multihash()
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).
-				Scopes(
-					applyFilters(filter),
-				).
-				Where(&req).First(&req)
-		})
-	})
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("request with hash not found: %w", err)
-		}
-		return nil, fmt.Errorf("failed to get request: %w", err)
-	}
-	return &req, nil
+	result, err := core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeByHash),
+		nil,
+		func() (*models.Request, error) {
+			err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).
+					Scopes(
+						applyFilters(filter),
+					).
+					Where(&req).First(&req)
+			})
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, fmt.Errorf("request with hash not found: %w", err)
+				}
+				return nil, fmt.Errorf("failed to get request: %w", err)
+			}
+			requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeByHash).Inc()
+			return &req, nil
+		},
+	)
+	return result, err
 }
 
 func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID uint, filter core.RequestFilter) ([]*models.Request, error) {
@@ -345,37 +457,51 @@ func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID u
 
 	var req models.Request
 	req.UserID = &userID
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Where(&req).Scopes(
-				applyFilters(filter),
-			).Find(&requests)
-		})
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list requests: %w", err)
-	}
-	return requests, nil
+
+	result, err := core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeByUser),
+		nil,
+		func() ([]*models.Request, error) {
+			err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Where(&req).Scopes(
+					applyFilters(filter),
+				).Find(&requests)
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to list requests: %w", err)
+			}
+			requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeByUser).Inc()
+			return requests, nil
+		},
+	)
+	return result, err
 }
 
 func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status string, filter core.RequestFilter) ([]*models.Request, error) {
 	var requests []*models.Request
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).Where("status = ?", status).
-				Scopes(
-					applyFilters(filter),
-				).Find(&requests)
-		})
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list requests: %w", err)
-	}
-	return requests, nil
+
+	result, err := core.MetricTrackResult(
+		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeByStatus),
+		nil,
+		func() ([]*models.Request, error) {
+			err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Where("status = ?", status).
+					Scopes(
+						applyFilters(filter),
+					).Find(&requests)
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to list requests: %w", err)
+			}
+			requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeByStatus).Inc()
+			return requests, nil
+		},
+	)
+	return result, err
 }
 
 func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error {
-	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
+	return db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.Request{}).
 			Where("id = ?", id).
 			Updates(map[string]interface{}{
@@ -397,43 +523,109 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 		return nil
 	}
 
-	// Get the request status to use its message
-	status, err := r.ComputeRequestStatus(ctx, id, false)
-	if err != nil {
-		return err
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
+	}
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationUnknown
 	}
 
-	message := "Request completed successfully"
-	if status.Message != "" {
-		message = status.Message
-	}
+	return core.MetricTrack(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() error {
+			// Get the request status to use its message
+			status, err := r.ComputeRequestStatus(ctx, id, false)
+			if err != nil {
+				return err
+			}
 
-	err = r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
-	if err != nil {
-		return err
-	}
+			message := "Request completed successfully"
+			if status.Message != "" {
+				message = status.Message
+			}
 
-	status, err = r.ComputeRequestStatus(ctx, id, false)
-	if err != nil {
-		return err
-	}
+			err = r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
+			if err != nil {
+				return err
+			}
 
-	if status.Message != "" {
-		message = status.Message
-	}
+			status, err = r.ComputeRequestStatus(ctx, id, false)
+			if err != nil {
+				return err
+			}
 
-	return r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message)
+			if status.Message != "" {
+				message = status.Message
+			}
+
+			if err = r.UpdateRequestStatus(ctx, id, models.RequestStatusCompleted, message); err != nil {
+				return err
+			}
+
+			requestMetrics.RequestsCompleted.WithLabelValues(protocol, operation).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(models.RequestStatusCompleted)).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(req.Status)).Dec()
+			requestMetrics.RequestsByOperation.WithLabelValues(operation).Inc()
+			if protocol != requestMetrics.LabelProtocolUnknown {
+				requestMetrics.RequestsByProtocol.WithLabelValues(protocol).Inc()
+			}
+
+			return nil
+		},
+	)
 }
 
 func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason string) error {
-	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&models.Request{}).
-			Where("id = ?", id).
-			Updates(map[string]interface{}{
-				"status":         models.RequestStatusFailed,
-				"status_message": reason,
+	req, err := r.GetRequest(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Don't fail if already completed or failed
+	if req.Status == models.RequestStatusCompleted || req.Status == models.RequestStatusFailed {
+		return nil
+	}
+
+	protocol := req.Protocol
+	if protocol == "" {
+		protocol = requestMetrics.LabelProtocolUnknown
+	}
+	operation := req.Operation
+	if operation == "" {
+		operation = requestMetrics.LabelOperationUnknown
+	}
+
+	return core.MetricTrack(
+		requestMetrics.RequestDuration.WithLabelValues(operation),
+		requestMetrics.RequestsFailed.WithLabelValues(protocol, operation),
+		func() error {
+			err = db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Model(&models.Request{}).
+					Where("id = ?", id).
+					Updates(map[string]interface{}{
+						"status":         models.RequestStatusFailed,
+						"status_message": reason,
+					})
 			})
-	})
+
+			if err != nil {
+				return err
+			}
+
+			requestMetrics.RequestsFailed.WithLabelValues(protocol, operation).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(models.RequestStatusFailed)).Inc()
+			requestMetrics.RequestsByStatus.WithLabelValues(string(req.Status)).Dec()
+			requestMetrics.RequestsByOperation.WithLabelValues(operation).Inc()
+			if protocol != requestMetrics.LabelProtocolUnknown {
+				requestMetrics.RequestsByProtocol.WithLabelValues(protocol).Inc()
+			}
+
+			return nil
+		},
+	)
 }
 
 func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
@@ -475,7 +667,7 @@ func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uin
 	if handler != nil {
 		detailedStatus, err := handler.GetStatus(ctx, req)
 		if err != nil {
-			r.logger.Warn("Failed to get detailed status from handler",
+			r.Logger().Warn("Failed to get detailed status from handler",
 				zap.Error(err), zap.Uint("requestID", req.ID))
 		} else if detailedStatus != nil {
 			if detailedStatus.State != "" {
@@ -535,6 +727,8 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		return nil, err
 	}
 
+	requestMetrics.RequestsQueryTotal.WithLabelValues(requestMetrics.LabelQueryTypeGetStatus).Inc()
+
 	status := &core.RequestStatus{
 		State:     req.Status,
 		UpdatedAt: req.UpdatedAt,
@@ -563,14 +757,12 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 
 func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (bool, error) {
 	var exists bool
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.WithContext(ctx).
-				Model(&models.Request{}).
-				Select("count(*) > 0").
-				Where("id = ?", id).
-				Find(&exists)
-		})
+	err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.WithContext(ctx).
+			Model(&models.Request{}).
+			Select("count(*) > 0").
+			Where("id = ?", id).
+			Find(&exists)
 	})
 	return exists, err
 }
@@ -581,9 +773,11 @@ func (r *RequestServiceDefault) GetRequestData(ctx context.Context, req *models.
 	if err != nil {
 		return nil, err
 	}
-
 	// Query the database
-	if err := r.db.Where("request_id = ?", req.ID).First(model).Error; err != nil {
+
+	if err = db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("request_id = ?", req.ID).First(model)
+	}); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // No data found, but not an error
 		}
@@ -615,12 +809,13 @@ func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *mode
 	model.SetRequest(req)
 
 	// Validate
-	if err := model.Validate(); err != nil {
+	if err = model.Validate(); err != nil {
 		return fmt.Errorf("data validation failed: %w", err)
 	}
 
-	// Store in database
-	return r.db.Where("request_id = ?", req.ID).Save(model).Error
+	return db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("request_id = ?", req.ID).Save(model)
+	})
 }
 
 func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
@@ -636,29 +831,27 @@ func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any,
 		}
 	}
 
-	err = r.db.Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			tx := db.WithContext(ctx).Model(&req)
+	err = db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Model(&req)
 
-			// Join with data model if operation was specified
-			if model != nil {
-				tx = tx.Joins(
-					"INNER JOIN ? as data ON data.request_id = requests.id",
-					gorm.Expr(model.TableName()),
-				)
+		// Join with data model if operation was specified
+		if model != nil {
+			tx = tx.Joins(
+				"INNER JOIN ? as data ON data.request_id = requests.id",
+				gorm.Expr(model.TableName()),
+			)
+		}
+
+		if query != nil {
+			queryMap := requestModelToMap(query)
+			for column, value := range queryMap {
+				tx = tx.Where("data."+column+" = ?", value)
 			}
+		}
 
-			if query != nil {
-				queryMap := requestModelToMap(query)
-				for column, value := range queryMap {
-					tx = tx.Where("data."+column+" = ?", value)
-				}
-			}
-
-			return tx.Scopes(
-				applyFilters(filter),
-			).First(&req)
-		})
+		return tx.Scopes(
+			applyFilters(filter),
+		).First(&req)
 	})
 
 	if err != nil {

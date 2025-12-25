@@ -53,7 +53,7 @@ func TestStandaloneCoordinator_SetHeartbeat(t *testing.T) {
 		require.NoError(t, err)
 
 		// Execute
-		err = coordinator.SetHeartbeat(jobID)
+		err = coordinator.SetHeartbeat(nil, jobID)
 		require.NoError(t, err)
 
 		// Assert that Transition was called
@@ -92,7 +92,7 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 		)
 
 		// Execute
-		alive, err := coordinator.CheckHeartbeat(jobID)
+		alive, err := coordinator.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.True(t, alive)
 
@@ -102,13 +102,13 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 		db.Save(&job)
 
 		// Execute
-		alive, err = coordinator.CheckHeartbeat(jobID)
+		alive, err = coordinator.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.False(t, alive)
 
 		// Test when job doesn't exist
 		nonExistentID := uuid.New()
-		alive, err = coordinator.CheckHeartbeat(nonExistentID)
+		alive, err = coordinator.CheckHeartbeat(nil, nonExistentID)
 		assert.Error(t, err)
 		assert.False(t, alive)
 	})
@@ -146,7 +146,7 @@ func TestStandaloneCoordinator_CreateJobFromDB(t *testing.T) {
 		require.NoError(t, err)
 
 		// Execute
-		job, err := coordinator.CreateJobFromDB(jobID)
+		job, err := coordinator.CreateJobFromDB(nil, jobID)
 		require.NoError(tb, err)
 		require.NotNil(tb, job)
 
@@ -209,7 +209,7 @@ func TestStandaloneCoordinator_EnqueueJob(t *testing.T) {
 		require.NoError(t, err)
 
 		// Execute
-		err = coordinator.EnqueueJob(jobID)
+		err = coordinator.EnqueueJob(nil, jobID)
 		require.NoError(t, err)
 
 		// Assert that Create was called

@@ -8,7 +8,9 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockContentScannerService creates a new instance of MockContentScannerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -36,6 +38,144 @@ type MockContentScannerService_Expecter struct {
 
 func (_m *MockContentScannerService) EXPECT() *MockContentScannerService_Expecter {
 	return &MockContentScannerService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockContentScannerService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockContentScannerService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockContentScannerService_Expecter) Config() *MockContentScannerService_Config_Call {
+	return &MockContentScannerService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockContentScannerService_Config_Call) Run(run func()) *MockContentScannerService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_Config_Call) Return(manager config.Manager) *MockContentScannerService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockContentScannerService_Config_Call) RunAndReturn(run func() config.Manager) *MockContentScannerService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContentScannerService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockContentScannerService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockContentScannerService_Expecter) Context() *MockContentScannerService_Context_Call {
+	return &MockContentScannerService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockContentScannerService_Context_Call) Run(run func()) *MockContentScannerService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_Context_Call) Return(context core.Context) *MockContentScannerService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockContentScannerService_Context_Call) RunAndReturn(run func() core.Context) *MockContentScannerService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockContentScannerService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockContentScannerService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockContentScannerService_Expecter) DB() *MockContentScannerService_DB_Call {
+	return &MockContentScannerService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockContentScannerService_DB_Call) Run(run func()) *MockContentScannerService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_DB_Call) Return(dB *gorm.DB) *MockContentScannerService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockContentScannerService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockContentScannerService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetScanResultById provides a mock function for the type MockContentScannerService
@@ -218,6 +358,52 @@ func (_c *MockContentScannerService_ID_Call) RunAndReturn(run func() string) *Mo
 	return _c
 }
 
+// Logger provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockContentScannerService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockContentScannerService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockContentScannerService_Expecter) Logger() *MockContentScannerService_Logger_Call {
+	return &MockContentScannerService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockContentScannerService_Logger_Call) Run(run func()) *MockContentScannerService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_Logger_Call) Return(logger *core.Logger) *MockContentScannerService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockContentScannerService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockContentScannerService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RegisterScanner provides a mock function for the type MockContentScannerService
 func (_mock *MockContentScannerService) RegisterScanner(scanner core.ContentScanner) error {
 	ret := _mock.Called(scanner)
@@ -380,5 +566,165 @@ func (_c *MockContentScannerService_ScanContent_Call) Return(scanResults []*core
 
 func (_c *MockContentScannerService_ScanContent_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error)) *MockContentScannerService_ScanContent_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockContentScannerService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockContentScannerService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockContentScannerService_Expecter) SetConfig(cfg interface{}) *MockContentScannerService_SetConfig_Call {
+	return &MockContentScannerService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockContentScannerService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockContentScannerService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_SetConfig_Call) Return() *MockContentScannerService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContentScannerService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockContentScannerService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockContentScannerService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockContentScannerService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockContentScannerService_Expecter) SetContext(ctx interface{}) *MockContentScannerService_SetContext_Call {
+	return &MockContentScannerService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockContentScannerService_SetContext_Call) Run(run func(ctx core.Context)) *MockContentScannerService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_SetContext_Call) Return() *MockContentScannerService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContentScannerService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockContentScannerService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockContentScannerService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockContentScannerService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockContentScannerService_Expecter) SetDB(db interface{}) *MockContentScannerService_SetDB_Call {
+	return &MockContentScannerService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockContentScannerService_SetDB_Call) Run(run func(db *gorm.DB)) *MockContentScannerService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_SetDB_Call) Return() *MockContentScannerService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContentScannerService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockContentScannerService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockContentScannerService
+func (_mock *MockContentScannerService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockContentScannerService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockContentScannerService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockContentScannerService_Expecter) SetLogger(logger interface{}) *MockContentScannerService_SetLogger_Call {
+	return &MockContentScannerService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockContentScannerService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockContentScannerService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContentScannerService_SetLogger_Call) Return() *MockContentScannerService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContentScannerService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockContentScannerService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }

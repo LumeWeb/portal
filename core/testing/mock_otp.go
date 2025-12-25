@@ -3,6 +3,9 @@ package testing
 import (
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
@@ -12,7 +15,11 @@ import (
 // It automatically sets up mock expectations and provides convenient methods for common OTP operations.
 type MockOTPService struct {
 	*mocks.MockOTPService
-	ctx TestContext
+	componentConfig config.Manager
+	componentContext core.Context
+	componentLogger  *core.Logger
+	componentDB       *gorm.DB
+	ctx              TestContext
 }
 
 // NewMockOTPService creates a new MockOTPService that embeds OTP mock service.
@@ -27,16 +34,16 @@ func NewMockOTPService(ctx TestContext) *MockOTPService {
 func (m *MockOTPService) GenerateSecret(userID uint) (string, error) {
 	secret := "test_otp_secret_12345"
 
-	// Mock the OTPGenerate response
-	m.EXPECT().OTPGenerate(userID).Return(secret, nil)
+	// Mock of OTPGenerate response
+	m.EXPECT().OTPGenerate(mock.Anything, userID).Return(secret, nil)
 
 	return secret, nil
 }
 
 // GenerateSecretFails simulates OTP secret generation failure with automatic mock setup.
 func (m *MockOTPService) GenerateSecretFails(userID uint) (string, error) {
-	// Mock the OTPGenerate response with error
-	m.EXPECT().OTPGenerate(userID).Return("", fmt.Errorf("generation failed"))
+	// Mock of OTPGenerate response with error
+	m.EXPECT().OTPGenerate(mock.Anything, userID).Return("", fmt.Errorf("generation failed"))
 
 	return "", fmt.Errorf("generation failed")
 }
@@ -48,17 +55,17 @@ func (m *MockOTPService) GenerateAuthURL(secret, accountName string) (string, er
 
 // VerifyOTP verifies an OTP code for a user with automatic mock setup.
 func (m *MockOTPService) VerifyOTP(userID uint, code string) (bool, error) {
-	// Mock the OTPVerify response
+	// Mock of OTPVerify response
 	isValid := code == "123456" // Accept test code "123456"
-	m.EXPECT().OTPVerify(userID, code).Return(isValid, nil)
+	m.EXPECT().OTPVerify(mock.Anything, userID, code).Return(isValid, nil)
 
 	return isValid, nil
 }
 
 // VerifyOTPFails simulates OTP verification failure with automatic mock setup.
 func (m *MockOTPService) VerifyOTPFails(userID uint, code string) (bool, error) {
-	// Mock the OTPVerify response with error
-	m.EXPECT().OTPVerify(userID, code).Return(false, fmt.Errorf("verification failed"))
+	// Mock of OTPVerify response with error
+	m.EXPECT().OTPVerify(mock.Anything, userID, code).Return(false, fmt.Errorf("verification failed"))
 
 	return false, fmt.Errorf("verification failed")
 }
@@ -162,7 +169,7 @@ func (m *MockOTPService) TestOTPSetupWorkflow(email, password string) (string, s
 		Verified:     true,
 	}
 
-	// Setup OTP for the user
+	// Setup OTP for user
 	secret, authURL, err := m.EnableOTPForUser(user.ID, email)
 	if err != nil {
 		return "", "", err
@@ -210,17 +217,57 @@ func (m *MockOTPService) GetOTPStatus(user *models.User) map[string]interface{} 
 // SetupOTPExpectations manually sets up OTP expectations for testing.
 func (m *MockOTPService) SetupOTPExpectations(userID uint, validCode string, invalidCode string) {
 	// Setup expectations for valid and invalid codes
-	m.EXPECT().OTPVerify(userID, validCode).Return(true, nil)
-	m.EXPECT().OTPVerify(userID, invalidCode).Return(false, nil)
+	m.EXPECT().OTPVerify(mock.Anything, userID, validCode).Return(true, nil)
+	m.EXPECT().OTPVerify(mock.Anything, userID, invalidCode).Return(false, nil)
 }
 
 // SetupOTPGenerationExpectations manually sets up OTP generation expectations.
 func (m *MockOTPService) SetupOTPGenerationExpectations(userID uint, secret string, err error) {
-	m.EXPECT().OTPGenerate(userID).Return(secret, err)
+	m.EXPECT().OTPGenerate(mock.Anything, userID).Return(secret, err)
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)
 func (m *MockOTPService) hashPassword(password string) string {
 	// Simple hash for testing - in real implementation would use bcrypt
 	return fmt.Sprintf("hashed_%s", password)
+}
+
+// Config implements core.Component
+func (m *MockOTPService) Config() config.Manager {
+	return m.componentConfig
+}
+
+// SetConfig implements core.Component
+func (m *MockOTPService) SetConfig(cfg config.Manager) {
+	m.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (m *MockOTPService) Context() core.Context {
+	return m.componentContext
+}
+
+// SetContext implements core.Component
+func (m *MockOTPService) SetContext(ctx core.Context) {
+	m.componentContext = ctx
+}
+
+// Logger implements core.Component
+func (m *MockOTPService) Logger() *core.Logger {
+	return m.componentLogger
+}
+
+// SetLogger implements core.Component
+func (m *MockOTPService) SetLogger(logger *core.Logger) {
+	m.componentLogger = logger
+}
+
+// DB implements core.Component
+func (m *MockOTPService) DB() *gorm.DB {
+	return m.componentDB
+}
+
+// SetDB implements core.Component
+func (m *MockOTPService) SetDB(db *gorm.DB) {
+	m.componentDB = db
 }

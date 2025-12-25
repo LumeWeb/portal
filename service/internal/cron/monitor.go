@@ -1,11 +1,14 @@
 package cron
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"go.lumeweb.com/portal/db"
+	"gorm.io/gorm"
 
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -37,7 +40,7 @@ func NewDefaultCronMonitor(ctx core.Context, cron core.CronService) *DefaultCron
 	}
 }
 
-func (m *DefaultCronMonitor) CleanupOrphanedJobs() (int, error) {
+func (m *DefaultCronMonitor) CleanupOrphanedJobs(ctx context.Context) (int, error) {
 	var count int
 	var jobs []models.CronJob
 	var toRemove []uuid.UUID
@@ -66,14 +69,14 @@ func (m *DefaultCronMonitor) CleanupOrphanedJobs() (int, error) {
 	if err == nil {
 		// Clean up state machines after successful transaction
 		for _, jobID := range toRemove {
-			m.cron.StateMachine().RemoveStateMachine(jobID)
+			m.cron.StateMachine().RemoveStateMachine(ctx, jobID)
 		}
 	}
 
 	return count, err
 }
 
-func (m *DefaultCronMonitor) RequeueStuckJobs() error {
+func (m *DefaultCronMonitor) RequeueStuckJobs(ctx context.Context) error {
 	// Get all jobs that appear dead based on database state
 	var potentialDeadJobs []models.CronJob
 	heartbeatCutoff := time.Now().Add(-5 * time.Minute)
@@ -82,9 +85,12 @@ func (m *DefaultCronMonitor) RequeueStuckJobs() error {
 		State: models.CronJobStateRunning,
 	}
 
-	err := m.db.Model(query).Where(query).
-		Where("last_heartbeat < ?", heartbeatCutoff).
-		Find(&potentialDeadJobs).Error
+	err := db.RetryableTransaction(ctx, m.db, func(tx *gorm.DB) *gorm.DB {
+		return m.db.Model(query).Where(query).
+			Where("last_heartbeat < ?", heartbeatCutoff).
+			Find(&potentialDeadJobs)
+	})
+
 	if err != nil {
 		return fmt.Errorf("failed to query potential dead jobs: %w", err)
 	}
@@ -94,7 +100,7 @@ func (m *DefaultCronMonitor) RequeueStuckJobs() error {
 
 		// The database is our source of truth - if it says the job is dead, we treat it as dead
 		// Get job instance for logging
-		jobInstance, err := m.cron.JobFactory().CreateJob(job.JobType)
+		jobInstance, err := m.cron.JobFactory().CreateJob(ctx, job.JobType)
 		if err != nil {
 			m.logger.Error("Failed to create job instance for logging",
 				zap.String("jobID", jobID.String()),
@@ -115,7 +121,7 @@ func (m *DefaultCronMonitor) RequeueStuckJobs() error {
 
 		m.logger.Warn("Detected dead job from database, requeuing", logFields...)
 
-		if err := m.cron.Coordinator().HandleFailedJob(jobID, job.Failures+1); err != nil {
+		if err := m.cron.Coordinator().HandleFailedJob(ctx, jobID, job.Failures+1); err != nil {
 			m.logger.Error("Failed to handle dead job",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
@@ -125,7 +131,7 @@ func (m *DefaultCronMonitor) RequeueStuckJobs() error {
 	return nil
 }
 
-func (m *DefaultCronMonitor) CleanupCompletedJobs() error {
+func (m *DefaultCronMonitor) CleanupCompletedJobs(context.Context) error {
 	err := m.db.
 		Where(&models.CronJob{
 			State:        models.CronJobStateCompleted,
@@ -141,13 +147,13 @@ func (m *DefaultCronMonitor) CleanupCompletedJobs() error {
 	return nil
 }
 
-func (m *DefaultCronMonitor) StartMonitoring() error {
+func (m *DefaultCronMonitor) StartMonitoring(context.Context) error {
 	m.stopChan = make(chan struct{})
 	go m.maintenanceLoop()
 	return nil
 }
 
-func (m *DefaultCronMonitor) StartHeartbeat(jobID uuid.UUID) {
+func (m *DefaultCronMonitor) StartHeartbeat(ctx context.Context, jobID uuid.UUID) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -159,11 +165,11 @@ func (m *DefaultCronMonitor) StartHeartbeat(jobID uuid.UUID) {
 	stopChan := make(chan struct{})
 	m.heartbeats[jobID] = stopChan
 
-	go m.heartbeatLoop(jobID, stopChan)
+	go m.heartbeatLoop(ctx, jobID, stopChan)
 	m.logger.Debug("Started heartbeat for job", zap.String("jobID", jobID.String()))
 }
 
-func (m *DefaultCronMonitor) StopHeartbeat(jobID uuid.UUID) {
+func (m *DefaultCronMonitor) StopHeartbeat(ctx context.Context, jobID uuid.UUID) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -178,9 +184,9 @@ func (m *DefaultCronMonitor) StopHeartbeat(jobID uuid.UUID) {
 	m.logger.Debug("Stopped heartbeat for job", zap.String("jobID", jobID.String()))
 }
 
-func (m *DefaultCronMonitor) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
+func (m *DefaultCronMonitor) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
 	// Always check coordinator first
-	alive, err := m.cron.Coordinator().CheckHeartbeat(jobID)
+	alive, err := m.cron.Coordinator().CheckHeartbeat(ctx, jobID)
 	if err != nil {
 		return false, err
 	}
@@ -197,14 +203,14 @@ func (m *DefaultCronMonitor) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
 	return alive, nil
 }
 
-func (m *DefaultCronMonitor) heartbeatLoop(jobID uuid.UUID, stopChan <-chan struct{}) {
+func (m *DefaultCronMonitor) heartbeatLoop(ctx context.Context, jobID uuid.UUID, stopChan <-chan struct{}) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := m.cron.Coordinator().SetHeartbeat(jobID); err != nil {
+			if err := m.cron.Coordinator().SetHeartbeat(ctx, jobID); err != nil {
 				m.logger.Error("Failed to send heartbeat",
 					zap.String("jobID", jobID.String()),
 					zap.Error(err))
@@ -215,7 +221,7 @@ func (m *DefaultCronMonitor) heartbeatLoop(jobID uuid.UUID, stopChan <-chan stru
 	}
 }
 
-func (m *DefaultCronMonitor) StopMonitoring() error {
+func (m *DefaultCronMonitor) StopMonitoring(context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -236,10 +242,10 @@ func (m *DefaultCronMonitor) StopMonitoring() error {
 }
 
 func (m *DefaultCronMonitor) performMaintenance() error {
-	if _, err := m.CleanupOrphanedJobs(); err != nil {
+	if _, err := m.CleanupOrphanedJobs(nil); err != nil {
 		return fmt.Errorf("failed to cleanup orphaned jobs: %w", err)
 	}
-	if err := m.RequeueStuckJobs(); err != nil {
+	if err := m.RequeueStuckJobs(nil); err != nil {
 		return fmt.Errorf("failed to requeue stuck jobs: %w", err)
 	}
 	return nil
@@ -260,7 +266,7 @@ func (m *DefaultCronMonitor) maintenanceLoop() {
 }
 
 // SignalMaintenance sends a signal to the maintenance loop
-func (m *DefaultCronMonitor) SignalMaintenance() {
+func (m *DefaultCronMonitor) SignalMaintenance(context.Context) {
 	select {
 	case m.maintenanceCh <- struct{}{}: // Send signal (non-blocking)
 	default:

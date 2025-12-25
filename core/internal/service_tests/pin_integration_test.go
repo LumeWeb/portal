@@ -151,7 +151,7 @@ func TestPinService_DeletePinByHash_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Delete the pin by hash
-		err = pinService.DeletePinByHash(&testStorageHash{mh: upload.Hash, hash: testData}, pin.UserID)
+		err = pinService.DeletePinByHash(nil, &testStorageHash{mh: upload.Hash, hash: testData}, pin.UserID)
 		require.NoError(tb, err)
 
 		// 4. Verify the pin is deleted
@@ -199,12 +199,12 @@ func TestPinService_UploadPinnedGlobal_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Check if the upload is pinned globally
-		pinned, err := pinService.UploadPinnedGlobal(&testStorageHash{mh: upload.Hash, hash: testData})
+		pinned, err := pinService.UploadPinnedGlobal(nil, &testStorageHash{mh: upload.Hash, hash: testData})
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
 		// 4. Check if a non-existent upload is pinned globally
-		pinned, err = pinService.UploadPinnedGlobal(&testStorageHash{hash: []byte("nonexistent_hash")})
+		pinned, err = pinService.UploadPinnedGlobal(nil, &testStorageHash{hash: []byte("nonexistent_hash")})
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 
@@ -248,17 +248,17 @@ func TestPinService_UploadPinnedByUser_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Check if the upload is pinned by the user
-		pinned, err := pinService.UploadPinnedByUser(&testStorageHash{mh: upload.Hash, hash: testData}, userID)
+		pinned, err := pinService.UploadPinnedByUser(nil, &testStorageHash{mh: upload.Hash, hash: testData}, userID)
 		require.NoError(tb, err)
 		assert.True(tb, pinned)
 
 		// 4. Check if the upload is pinned by a different user
-		pinned, err = pinService.UploadPinnedByUser(&testStorageHash{mh: upload.Hash, hash: testData}, 2)
+		pinned, err = pinService.UploadPinnedByUser(nil, &testStorageHash{mh: upload.Hash, hash: testData}, 2)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 
 		// 5. Check if a non-existent upload is pinned by the user
-		pinned, err = pinService.UploadPinnedByUser(&testStorageHash{hash: []byte("nonexistent_hash")}, userID)
+		pinned, err = pinService.UploadPinnedByUser(nil, &testStorageHash{hash: []byte("nonexistent_hash")}, userID)
 		require.NoError(tb, err)
 		assert.False(tb, pinned)
 

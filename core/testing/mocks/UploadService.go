@@ -8,8 +8,10 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
 )
 
 // NewMockUploadService creates a new instance of MockUploadService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -37,6 +39,144 @@ type MockUploadService_Expecter struct {
 
 func (_m *MockUploadService) EXPECT() *MockUploadService_Expecter {
 	return &MockUploadService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockUploadService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockUploadService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockUploadService_Expecter) Config() *MockUploadService_Config_Call {
+	return &MockUploadService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockUploadService_Config_Call) Run(run func()) *MockUploadService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUploadService_Config_Call) Return(manager config.Manager) *MockUploadService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockUploadService_Config_Call) RunAndReturn(run func() config.Manager) *MockUploadService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockUploadService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockUploadService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockUploadService_Expecter) Context() *MockUploadService_Context_Call {
+	return &MockUploadService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockUploadService_Context_Call) Run(run func()) *MockUploadService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUploadService_Context_Call) Return(context core.Context) *MockUploadService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockUploadService_Context_Call) RunAndReturn(run func() core.Context) *MockUploadService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockUploadService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockUploadService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockUploadService_Expecter) DB() *MockUploadService_DB_Call {
+	return &MockUploadService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockUploadService_DB_Call) Run(run func()) *MockUploadService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUploadService_DB_Call) Return(dB *gorm.DB) *MockUploadService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockUploadService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockUploadService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteUpload provides a mock function for the type MockUploadService
@@ -338,6 +478,52 @@ func (_c *MockUploadService_ID_Call) RunAndReturn(run func() string) *MockUpload
 	return _c
 }
 
+// Logger provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockUploadService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockUploadService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockUploadService_Expecter) Logger() *MockUploadService_Logger_Call {
+	return &MockUploadService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockUploadService_Logger_Call) Run(run func()) *MockUploadService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUploadService_Logger_Call) Return(logger *core.Logger) *MockUploadService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockUploadService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockUploadService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SaveUpload provides a mock function for the type MockUploadService
 func (_mock *MockUploadService) SaveUpload(ctx context.Context, upload *models.Upload) error {
 	ret := _mock.Called(ctx, upload)
@@ -392,5 +578,165 @@ func (_c *MockUploadService_SaveUpload_Call) Return(err error) *MockUploadServic
 
 func (_c *MockUploadService_SaveUpload_Call) RunAndReturn(run func(ctx context.Context, upload *models.Upload) error) *MockUploadService_SaveUpload_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockUploadService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockUploadService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockUploadService_Expecter) SetConfig(cfg interface{}) *MockUploadService_SetConfig_Call {
+	return &MockUploadService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockUploadService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockUploadService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUploadService_SetConfig_Call) Return() *MockUploadService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUploadService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockUploadService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockUploadService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockUploadService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockUploadService_Expecter) SetContext(ctx interface{}) *MockUploadService_SetContext_Call {
+	return &MockUploadService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockUploadService_SetContext_Call) Run(run func(ctx core.Context)) *MockUploadService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUploadService_SetContext_Call) Return() *MockUploadService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUploadService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockUploadService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockUploadService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockUploadService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockUploadService_Expecter) SetDB(db interface{}) *MockUploadService_SetDB_Call {
+	return &MockUploadService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockUploadService_SetDB_Call) Run(run func(db *gorm.DB)) *MockUploadService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUploadService_SetDB_Call) Return() *MockUploadService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUploadService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockUploadService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockUploadService
+func (_mock *MockUploadService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockUploadService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockUploadService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockUploadService_Expecter) SetLogger(logger interface{}) *MockUploadService_SetLogger_Call {
+	return &MockUploadService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockUploadService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockUploadService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUploadService_SetLogger_Call) Return() *MockUploadService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUploadService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockUploadService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }

@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/service/internal/workflow"
+	workflowPkg "go.lumeweb.com/portal/service/internal/workflow"
+	workflowMetrics "go.lumeweb.com/portal/service/internal/workflow"
 	"go.lumeweb.com/queryutil"
 
 	kjson "github.com/knadh/koanf/parsers/json"
@@ -29,7 +30,7 @@ var _ core.Cronable = (*WorkflowCoordinatorDefault)(nil)
 
 var (
 	noRetryPolicy = &core.RetryPolicy{MaxRetries: 0}
-	
+
 	// ErrUnknownError is used when a nil error is passed to FailWorkflowStep
 	ErrUnknownError = errors.New("unknown error")
 )
@@ -45,6 +46,7 @@ func init() {
 		ID:      core.WORKFLOW_SERVICE,
 		Factory: NewWorkflowCoordinator,
 		Depends: []string{core.REQUEST_SERVICE, core.CRON_SERVICE},
+		Metrics: workflowMetrics.GetCollectors(),
 	})
 }
 
@@ -148,18 +150,16 @@ type WorkflowMetadata struct {
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
 type WorkflowCoordinatorDefault struct {
-	ctx         core.Context
-	logger      *core.Logger
 	requestSvc  core.RequestService
 	cronService core.CronService
-	db          *gorm.DB
 	workflows   map[string]*core.WorkflowDefinition
 	disabled    map[string]bool
 	workflowsMu sync.RWMutex
+	core.Service
 }
 
-func (w *WorkflowCoordinatorDefault) RegisterTasks(cron core.CronService) error {
-	err := cron.RegisterJobType(workflowStepExecutorJobType, func() (core.CronJob, error) {
+func (w *WorkflowCoordinatorDefault) RegisterTasks(ctx context.Context, cron core.CronService) error {
+	err := cron.RegisterJobType(ctx, workflowStepExecutorJobType, func() (core.CronJob, error) {
 		return newWorkflowStepExecutorJob(), nil
 	}, nil)
 	if err != nil {
@@ -169,7 +169,7 @@ func (w *WorkflowCoordinatorDefault) RegisterTasks(cron core.CronService) error 
 	return nil
 }
 
-func (w *WorkflowCoordinatorDefault) ScheduleJobs(_ core.CronService) error {
+func (w *WorkflowCoordinatorDefault) ScheduleJobs(ctx context.Context, cron core.CronService) error {
 	return nil
 }
 
@@ -182,11 +182,8 @@ func NewWorkflowCoordinator() (core.Service, []core.ContextBuilderOption, error)
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			coordinator.ctx = ctx
-			coordinator.logger = ctx.ServiceLogger(coordinator)
 			coordinator.requestSvc = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 			coordinator.cronService = core.GetService[core.CronService](ctx, core.CRON_SERVICE)
-			coordinator.db = ctx.DB()
 
 			coordinator.cronService.RegisterEntity(coordinator)
 			return nil
@@ -227,7 +224,10 @@ func (w *WorkflowCoordinatorDefault) RegisterWorkflow(name string, steps []core.
 		AutoTriggerFirstStep: autoTriggerFirstStep,
 	}
 
-	w.logger.Debug("Registered workflow",
+	// Update total workflows gauge
+	workflowMetrics.WorkflowsTotal.WithLabelValues().Set(float64(len(w.workflows)))
+
+	w.Logger().Debug("Registered workflow",
 		zap.String("name", name),
 		zap.Int("steps", len(steps)),
 		zap.Bool("autoTriggerFirstStep", autoTriggerFirstStep))
@@ -257,7 +257,7 @@ func (w *WorkflowCoordinatorDefault) DisableWorkflow(name string) error {
 	}
 
 	w.disabled[name] = true
-	w.logger.Debug("Disabled workflow", zap.String("name", name))
+	w.Logger().Debug("Disabled workflow", zap.String("name", name))
 	return nil
 }
 
@@ -270,7 +270,7 @@ func (w *WorkflowCoordinatorDefault) EnableWorkflow(name string) error {
 	}
 
 	delete(w.disabled, name)
-	w.logger.Debug("Enabled workflow", zap.String("name", name))
+	w.Logger().Debug("Enabled workflow", zap.String("name", name))
 	return nil
 }
 
@@ -289,106 +289,120 @@ func (w *WorkflowCoordinatorDefault) ListWorkflows() []string {
 
 // StartWorkflow starts a new workflow instance
 func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
-	// Get workflow
-	wf, err := w.GetWorkflow(name)
-	if err != nil {
-		return nil, core.NewWorkflowError(core.ErrKeyWorkflowNotFound, fmt.Errorf("workflow '%s' not found: %w", name, err))
-	}
-
-	w.workflowsMu.RLock()
-	disabled := w.disabled[name]
-	w.workflowsMu.RUnlock()
-
-	if disabled {
-		w.logger.Warn("Attempted to start disabled workflow",
-			zap.String("workflow", name))
-		return nil, nil
-	}
-
-	if len(wf.Steps) == 0 {
-		return nil, core.ErrWorkflowHasNoSteps
-	}
-
-	// First step
-	firstStep := wf.Steps[0]
-
-	// Create and process metadata for first step
-	metadata := WorkflowMetadata{
-		WorkflowName:  wf.Name,
-		CurrentStepID: firstStep.ID,
-		TotalSteps:    len(wf.Steps),
-		StartedAt:     time.Now().Unix(),
-		PrevRequestID: 0, // Explicitly initialize
-		NextRequestID: 0, // Explicitly initialize
-	}
-
-	processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata.Data = wfMetadataJSON
-
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create initial request
-	req := &models.Request{
-		Operation: firstStep.Operation,
-		Status:    models.RequestStatusPending,
-		Metadata:  datatypes.JSON(metadataJSON),
-	}
-
-	w.handleRequestData(processedOpts, req)
-
-	// Validate the request using request service
-	if err := w.requestSvc.ValidateRequest(ctx, req); err != nil {
-		return nil, err
-	}
-
-	// Create the request
-	createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData())
-	if err != nil {
-		return nil, err
-	}
-
-	w.logger.Info("Started workflow",
-		zap.String("workflow", wf.Name),
-		zap.Uint("requestID", createdReq.ID))
-
-	// Auto-trigger first step if configured
-	if wf.AutoTriggerFirstStep {
-		firstStep = wf.Steps[0]
-		if firstStep.Foreground {
-			if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
-				w.logger.Error("Failed to execute first step",
-					zap.String("workflow", wf.Name),
-					zap.Uint("requestID", createdReq.ID),
-					zap.Error(err))
-				return createdReq, nil // Return request even if execution fails
+	return core.MetricTrackResult(
+		workflowMetrics.WorkflowDuration.WithLabelValues(workflowMetrics.LabelOperationStart),
+		workflowMetrics.WorkflowsFailed.WithLabelValues(workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelFailureBehaviorFail),
+		func() (*models.Request, error) {
+			// Get workflow
+			wf, err := w.GetWorkflow(name)
+			if err != nil {
+				return nil, core.NewWorkflowError(core.ErrKeyWorkflowNotFound, fmt.Errorf("workflow '%s' not found: %w", name, err))
 			}
-			// After execution, complete the step to advance to next step
-			if err := w.CompleteWorkflowStep(ctx, createdReq.ID); err != nil {
-				w.logger.Error("Failed to complete first step",
-					zap.String("workflow", wf.Name),
-					zap.Uint("requestID", createdReq.ID),
-					zap.Error(err))
-				return createdReq, nil
+
+			w.workflowsMu.RLock()
+			disabled := w.disabled[name]
+			w.workflowsMu.RUnlock()
+
+			if disabled {
+				w.Logger().Warn("Attempted to start disabled workflow",
+					zap.String("workflow", name))
+				return nil, nil
 			}
-		} else {
-			if err := w.DispatchWorkflowStep(ctx, createdReq.ID); err != nil {
-				w.logger.Error("Failed to dispatch first step to cron",
-					zap.String("workflow", wf.Name),
-					zap.Uint("requestID", createdReq.ID),
-					zap.Error(err))
-				return createdReq, nil // Return request even if cron dispatch fails
+
+			if len(wf.Steps) == 0 {
+				return nil, core.ErrWorkflowHasNoSteps
+			}
+
+		// First step
+		firstStep := wf.Steps[0]
+
+		// Create and process metadata for first step
+		metadata := WorkflowMetadata{
+			WorkflowName:  wf.Name,
+			CurrentStepID: firstStep.ID,
+			TotalSteps:    len(wf.Steps),
+			StartedAt:     time.Now().Unix(),
+			PrevRequestID: 0, // Explicitly initialize
+			NextRequestID: 0, // Explicitly initialize
+		}
+
+		processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		metadata.Data = wfMetadataJSON
+
+		metadataJSON, err := json.Marshal(metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create initial request
+		req := &models.Request{
+			Operation: firstStep.Operation,
+			Status:    models.RequestStatusPending,
+			Metadata:  datatypes.JSON(metadataJSON),
+		}
+
+		w.handleRequestData(processedOpts, req)
+
+		// Validate the request using request service
+		if err := w.requestSvc.ValidateRequest(ctx, req); err != nil {
+			return nil, err
+		}
+
+		// Create the request
+		createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData())
+		if err != nil {
+			return nil, err
+		}
+
+		// Record workflow started metric
+		protocol := createdReq.Protocol
+		if protocol == "" {
+			protocol = workflowMetrics.LabelWorkflowUnknown
+		}
+		workflowMetrics.WorkflowsStarted.WithLabelValues(wf.Name, protocol).Inc()
+		workflowMetrics.WorkflowsActive.WithLabelValues(string(models.RequestStatusPending)).Inc()
+
+		w.Logger().Info("Started workflow",
+			zap.String("workflow", wf.Name),
+			zap.Uint("requestID", createdReq.ID))
+
+		// Auto-trigger first step if configured
+		if wf.AutoTriggerFirstStep {
+			firstStep = wf.Steps[0]
+			if firstStep.Foreground {
+				if err := w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
+					w.Logger().Error("Failed to execute first step",
+						zap.String("workflow", wf.Name),
+						zap.Uint("requestID", createdReq.ID),
+						zap.Error(err))
+					return createdReq, nil // Return request even if execution fails
+				}
+				// After execution, complete the step to advance to next step
+				if err := w.CompleteWorkflowStep(ctx, createdReq.ID); err != nil {
+					w.Logger().Error("Failed to complete first step",
+						zap.String("workflow", wf.Name),
+						zap.Uint("requestID", createdReq.ID),
+						zap.Error(err))
+					return createdReq, nil
+				}
+			} else {
+				if err := w.DispatchWorkflowStep(ctx, createdReq.ID); err != nil {
+					w.Logger().Error("Failed to dispatch first step to cron",
+						zap.String("workflow", wf.Name),
+						zap.Uint("requestID", createdReq.ID),
+						zap.Error(err))
+					return createdReq, nil // Return request even if cron dispatch fails
+				}
 			}
 		}
-	}
 
-	return createdReq, nil
+		return createdReq, nil
+		},
+	)
 }
 
 // CompleteWorkflowStep completes the current step and advances to the next
@@ -407,42 +421,63 @@ func (w *WorkflowCoordinatorDefault) parseWorkflowMetadata(metadataJSON datatype
 }
 
 func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
-	// Get current request and parse metadata
-	req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
-	if err != nil {
-		return err
-	}
+	return core.MetricTrack(
+		workflowMetrics.WorkflowDuration.WithLabelValues(workflowMetrics.LabelOperationComplete),
+		workflowMetrics.WorkflowsFailed.WithLabelValues(workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelFailureBehaviorFail),
+		func() error {
+			// Get current request and parse metadata
+			req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+			if err != nil {
+				return err
+			}
 
-	nextMetadata := metadata
+			nextMetadata := metadata
 
-	if w.isDisabled(metadata.WorkflowName) {
-		w.logger.Warn("Attempted to complete step in disabled workflow",
-			zap.String("workflow", metadata.WorkflowName),
-			zap.Uint("requestID", requestID))
-		return nil
-	}
+			if w.isDisabled(metadata.WorkflowName) {
+				w.Logger().Warn("Attempted to complete step in disabled workflow",
+					zap.String("workflow", metadata.WorkflowName),
+					zap.Uint("requestID", requestID))
+				return nil
+			}
 
-	// Mark current step as completed
-	if err := w.requestSvc.CompleteRequest(ctx, requestID); err != nil {
-		return err
-	}
+			// Mark current step as completed
+			if err := w.requestSvc.CompleteRequest(ctx, requestID); err != nil {
+				return err
+			}
 
-	// Get workflow definition
-	wf, err := w.GetWorkflow(metadata.WorkflowName)
-	if err != nil {
-		return err
-	}
+			// Get workflow definition
+			wf, err := w.GetWorkflow(metadata.WorkflowName)
+			if err != nil {
+				return err
+			}
 
-	currentStepIndex, err := w.getStepIndexAndStep(wf, metadata.CurrentStepID)
-	if err != nil {
-		return err
-	}
+			currentStepIndex, err := w.getStepIndexAndStep(wf, metadata.CurrentStepID)
+			if err != nil {
+				return err
+			}
+
+			// Get current step for metrics
+			currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
+			if err != nil {
+				return err
+			}
+
+			// Record step completed metric
+			workflowMetrics.WorkflowStepsCompleted.WithLabelValues(wf.Name, currentStep.Operation).Inc()
 
 	// Check if workflow is complete
 	if currentStepIndex >= len(wf.Steps)-1 {
-		w.logger.Info("Workflow completed",
+		w.Logger().Info("Workflow completed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
+		
+		// Record workflow completed metric
+		protocol := req.Protocol
+		if protocol == "" {
+			protocol = workflowMetrics.LabelWorkflowUnknown
+		}
+		workflowMetrics.WorkflowsCompleted.WithLabelValues(wf.Name, protocol).Inc()
+		
 		return w.CleanupWorkflow(ctx, requestID)
 	}
 
@@ -510,14 +545,16 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 		return fmt.Errorf("failed to update current request metadata: %w", err)
 	}
 
-	// Execute or dispatch next step
-	if nextStep.Foreground {
-		if err = w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
-			return err
+			// Execute or dispatch next step
+		if nextStep.Foreground {
+			if err = w.ExecuteWorkflowStep(ctx, createdReq.ID); err != nil {
+				return err
+			}
+			return nil
 		}
-		return nil
-	}
-	return w.DispatchWorkflowStep(ctx, createdReq.ID)
+		return w.DispatchWorkflowStep(ctx, createdReq.ID)
+		},
+	)
 }
 
 // FailWorkflowStep handles a step failure
@@ -537,7 +574,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	}
 
 	if w.isDisabled(metadata.WorkflowName) {
-		w.logger.Warn("Attempted to fail step in disabled workflow",
+		w.Logger().Warn("Attempted to fail step in disabled workflow",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
 		return nil
@@ -562,7 +599,7 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	// Handle according to failure behavior
 	switch currentStep.FailureBehavior {
 	case core.FailWorkflow:
-		w.logger.Info("Workflow failed",
+		w.Logger().Info("Workflow failed",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID),
 			zap.Error(originalErr))
@@ -575,12 +612,15 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 	case core.RetryStep:
 		// Check if the failure is a quota error - if so, do not retry
 		if core.IsQuotaExceededError(originalErr) {
-			w.logger.Info("Skipping retry due to quota exceeded error",
+			w.Logger().Info("Skipping retry due to quota exceeded error",
 				zap.String("workflow", metadata.WorkflowName),
 				zap.Uint("requestID", requestID),
 				zap.Error(originalErr))
 			return nil
 		}
+
+		// Record step retried metric
+		workflowMetrics.WorkflowStepsRetried.WithLabelValues(wf.Name, currentStep.Operation).Inc()
 
 		// Schedule retry with backoff
 		retryErr := w.scheduleRetry(ctx, requestID)
@@ -596,11 +636,15 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 
 // GetWorkflowStatus returns the current status of a workflow
 func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requestID uint) (*core.WorkflowStatus, error) {
-	// Get request
-	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
-	if err != nil {
-		return nil, err
-	}
+	return core.MetricTrackResult(
+		workflowMetrics.WorkflowDuration.WithLabelValues(workflowMetrics.LabelOperationGetStatus),
+		workflowMetrics.WorkflowsFailed.WithLabelValues(workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelFailureBehaviorFail),
+		func() (*core.WorkflowStatus, error) {
+			// Get request
+			req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
+			if err != nil {
+				return nil, err
+			}
 
 	// Parse metadata
 	metadata, err := w.parseWorkflowMetadata(req.Metadata)
@@ -638,9 +682,9 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 	}
 
 	// Calculate progress using centralized helper
-	status.Progress = workflow.CalculateWorkflowStatusProgress(status, reqStatus)
+	status.Progress = workflowPkg.CalculateWorkflowStatusProgress(status, reqStatus)
 	currentStepProgress := reqStatus.ProgressPercent / 100.0
-	w.logger.Debug("Calculated workflow progress",
+	w.Logger().Debug("Calculated workflow progress",
 		zap.String("workflow", status.WorkflowName),
 		zap.Int("totalSteps", metadata.TotalSteps),
 		zap.Int("currentStepIndex", currentStepIndex),
@@ -656,7 +700,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 
 		prevReq, err := w.requestSvc.GetRequest(ctx, prevID)
 		if err != nil {
-			w.logger.Warn("Previous request not found in workflow chain",
+			w.Logger().Warn("Previous request not found in workflow chain",
 				zap.Uint("requestID", prevID),
 				zap.Error(err))
 			break
@@ -664,7 +708,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 
 		var prevMetadata WorkflowMetadata
 		if err := json.Unmarshal(prevReq.Metadata, &prevMetadata); err != nil {
-			w.logger.Warn("Failed to parse metadata for previous request",
+			w.Logger().Warn("Failed to parse metadata for previous request",
 				zap.Uint("requestID", prevID),
 				zap.Error(err))
 			break
@@ -673,21 +717,23 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 		prevID = prevMetadata.PrevRequestID
 	}
 
-	status.PreviousSteps = previousSteps
+		status.PreviousSteps = previousSteps
 
-	return status, nil
+		return status, nil
+		},
+	)
 }
 
 // ExecuteWorkflowStep executes the operation handler for a workflow step
 func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, requestID uint) error {
-	// Get current request and parse metadata
+	// Get current request and parse metadata first to get workflow info for metrics
 	_, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
 		return err
 	}
 
 	if w.isDisabled(metadata.WorkflowName) {
-		w.logger.Warn("Attempted to execute step in disabled workflow",
+		w.Logger().Warn("Attempted to execute step in disabled workflow",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
 		return nil
@@ -704,26 +750,51 @@ func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, re
 		return err
 	}
 
-	// Delegate execution to RequestService which will lookup the handler
-	err = w.requestSvc.ExecuteRequest(ctx, requestID)
-	if err != nil {
-		// Always call FailWorkflowStep to handle failure according to step's behavior
-		failErr := w.FailWorkflowStep(ctx, requestID, err)
-
-		// If the step is configured to continue on failure, return the original error
-		// to indicate that execution failed, but the workflow should continue.
-		// The caller will decide whether to call CompleteWorkflowStep based on the
-		// failure behavior.
-		if currentStep.FailureBehavior == core.ContinueWorkflow {
-			return err
-		}
-
-		return failErr
+	// Determine execution type for metrics
+	executionType := workflowMetrics.LabelStepExecutionBackground
+	if currentStep.Foreground {
+		executionType = workflowMetrics.LabelStepExecutionForeground
 	}
 
-	// Execution succeeded - do not automatically complete
-	// Let the caller decide when to advance to the next step
-	return nil
+	return core.MetricTrack(
+		workflowMetrics.WorkflowStepDuration.WithLabelValues(wf.Name, currentStep.Operation),
+		workflowMetrics.WorkflowStepsFailed.WithLabelValues(wf.Name, currentStep.Operation, workflowMetrics.LabelFailureBehaviorFail),
+		func() error {
+			// Delegate execution to RequestService which will lookup the handler
+			err = w.requestSvc.ExecuteRequest(ctx, requestID)
+			if err != nil {
+				// Record step failed metric
+				failureBehavior := workflowMetrics.LabelFailureBehaviorFail
+				switch currentStep.FailureBehavior {
+				case core.ContinueWorkflow:
+					failureBehavior = workflowMetrics.LabelFailureBehaviorContinue
+				case core.RetryStep:
+					failureBehavior = workflowMetrics.LabelFailureBehaviorRetry
+				}
+				workflowMetrics.WorkflowStepsFailed.WithLabelValues(wf.Name, currentStep.Operation, failureBehavior).Inc()
+
+				// Always call FailWorkflowStep to handle failure according to step's behavior
+				failErr := w.FailWorkflowStep(ctx, requestID, err)
+
+				// If the step is configured to continue on failure, return the original error
+				// to indicate that execution failed, but the workflow should continue.
+				// The caller will decide whether to call CompleteWorkflowStep based on the
+				// failure behavior.
+				if currentStep.FailureBehavior == core.ContinueWorkflow {
+					return err
+				}
+
+				return failErr
+			}
+
+			// Record step executed metric
+			workflowMetrics.WorkflowStepsExecuted.WithLabelValues(wf.Name, currentStep.Operation, executionType).Inc()
+
+			// Execution succeeded - do not automatically complete
+			// Let the caller decide when to advance to the next step
+			return nil
+		},
+	)
 }
 
 // CanTransition checks if a workflow step can be transitioned from its current state
@@ -778,14 +849,14 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 // dispatchToCron registers a background step for async execution via cron
 func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, requestID uint) error {
 	// Create and register the workflow step executor job
-	job, err := w.cronService.JobFactory().CreateJob(workflowStepExecutorJobType)
+	job, err := w.cronService.JobFactory().CreateJob(ctx, workflowStepExecutorJobType)
 	if err != nil {
 		return fmt.Errorf("failed to create job instance: %w", err)
 	}
 
 	job.SetArgs(requestID)
 
-	if err = w.cronService.RegisterJob(job, noRetryPolicy); err != nil {
+	if err = w.cronService.RegisterJob(ctx, job, noRetryPolicy); err != nil {
 		return fmt.Errorf("failed to register workflow step job: %w", err)
 	}
 	return nil
@@ -868,7 +939,7 @@ func (w *WorkflowCoordinatorDefault) jsonToKoanf(jsonStr string) (*koanf.Koanf, 
 
 func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
 	if w.isDisabled(workflowName) {
-		w.logger.Warn("Attempted to convert request to disabled workflow",
+		w.Logger().Warn("Attempted to convert request to disabled workflow",
 			zap.String("workflow", workflowName),
 			zap.Uint("requestID", requestID))
 		return nil
@@ -928,16 +999,32 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 
 func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, requestID uint) error {
 	// Get the initial request and parse metadata
-	_, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+	req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
 		return err
 	}
 
 	if w.isDisabled(metadata.WorkflowName) {
-		w.logger.Warn("Attempted to cleanup disabled workflow",
+		w.Logger().Warn("Attempted to cleanup disabled workflow",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
 		return nil
+	}
+
+	// Update active workflows gauge based on final status
+	if req.Status == models.RequestStatusCompleted {
+		workflowMetrics.WorkflowsActive.WithLabelValues(string(models.RequestStatusProcessing)).Dec()
+		workflowMetrics.WorkflowsActive.WithLabelValues(string(models.RequestStatusCompleted)).Inc()
+	} else if req.Status == models.RequestStatusFailed {
+		workflowMetrics.WorkflowsActive.WithLabelValues(string(models.RequestStatusProcessing)).Dec()
+		workflowMetrics.WorkflowsActive.WithLabelValues(string(models.RequestStatusFailed)).Inc()
+		
+		// Record workflow failed metric for final failure
+		protocol := req.Protocol
+		if protocol == "" {
+			protocol = workflowMetrics.LabelWorkflowUnknown
+		}
+		workflowMetrics.WorkflowsFailed.WithLabelValues(metadata.WorkflowName, protocol, workflowMetrics.LabelFailureBehaviorFail).Inc()
 	}
 
 	// Iterate through all requests in the workflow
@@ -946,7 +1033,7 @@ func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, reques
 		// Delete the request through RequestService which handles cleanup
 		err = w.requestSvc.DeleteRequest(ctx, currentReqID)
 		if err != nil {
-			w.logger.Warn("Failed to delete request during cleanup",
+			w.Logger().Warn("Failed to delete request during cleanup",
 				zap.Uint("requestID", currentReqID),
 				zap.Error(err))
 		}
@@ -960,7 +1047,7 @@ func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, reques
 		// Parse metadata to find the previous request
 		metadata, err = w.parseWorkflowMetadata(req.Metadata)
 		if err != nil {
-			w.logger.Warn("Failed to parse metadata during cleanup",
+			w.Logger().Warn("Failed to parse metadata during cleanup",
 				zap.Uint("requestID", currentReqID),
 				zap.Error(err))
 			break
@@ -1012,8 +1099,8 @@ func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
 
 	// First find all requests belonging to this workflow
 	var allRequests []*models.Request
-	if err := db.RetryableTransaction(w.ctx, w.db, func(g *gorm.DB) *gorm.DB {
-		return w.db.Model(&models.Request{}).
+	if err := db.RetryableComponentTransaction(w, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.Request{}).
 			Clauses(datatypes.JSONQuery("metadata").Equals(workflowName, "workflow_name")).
 			Scopes(applyFilters(filter)).
 			Unscoped().
@@ -1054,7 +1141,7 @@ func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
 			// Find the step index for this request
 			stepIndex := w.getStepIndex(meta.CurrentStepID, workflowName)
 			if stepIndex == -1 {
-				w.logger.Warn("Unknown step ID in workflow chain",
+				w.Logger().Warn("Unknown step ID in workflow chain",
 					zap.String("workflow", workflowName),
 					zap.String("stepID", meta.CurrentStepID),
 					zap.Uint("requestID", req.ID))
@@ -1083,7 +1170,7 @@ func (w *WorkflowCoordinatorDefault) FindWorkflowInstances(
 
 func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*core.WorkflowInstance, int64, error) {
 	// Build base query for requests belonging to the user
-	baseQuery := w.db.Model(&models.Request{}).Where(&models.Request{UserID: lo.ToPtr(userID)})
+	baseQuery := w.DB().WithContext(ctx).Model(&models.Request{}).Where(&models.Request{UserID: lo.ToPtr(userID)})
 
 	// Add filter to only include requests with workflow metadata
 	// Add workflow-specific filters
@@ -1121,7 +1208,7 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 	for _, req := range requests {
 		var metadata WorkflowMetadata
 		if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
-			w.logger.Warn("Failed to parse metadata for request",
+			w.Logger().Warn("Failed to parse metadata for request",
 				zap.Uint("requestID", req.ID),
 				zap.Error(err))
 			continue
@@ -1134,7 +1221,7 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 
 		instance, err := w.buildWorkflowInstance(ctx, req)
 		if err != nil {
-			w.logger.Warn("Failed to build workflow instance for request",
+			w.Logger().Warn("Failed to build workflow instance for request",
 				zap.Uint("requestID", req.ID),
 				zap.Error(err))
 			continue
@@ -1201,7 +1288,7 @@ func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestI
 	}
 
 	// Reset status to pending to allow retry
-	err = db.RetryableTransaction(w.ctx, w.db, func(tx *gorm.DB) *gorm.DB {
+	err = db.RetryableComponentTransaction(w, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.Request{}).
 			Where("id = ?", req.ID).
 			Updates(map[string]interface{}{
@@ -1290,7 +1377,7 @@ func (w *WorkflowCoordinatorDefault) DispatchWorkflowStep(ctx context.Context, r
 	}
 
 	if w.isDisabled(metadata.WorkflowName) {
-		w.logger.Warn("Attempted to dispatch step in disabled workflow",
+		w.Logger().Warn("Attempted to dispatch step in disabled workflow",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID))
 		return nil

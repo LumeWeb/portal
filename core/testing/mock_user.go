@@ -1,18 +1,26 @@
 package testing
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"gorm.io/gorm"
 )
 
-// MockUserService provides high-level helper functions that embed mocks.MockUserService.
+// MockUserService provides high-level helper functions that embeds mocks.MockUserService.
 // It automatically sets up mock expectations and provides convenient methods for common user operations.
 type MockUserService struct {
 	*mocks.MockUserService
-	ctx TestContext
+	componentConfig  config.Manager
+	componentContext core.Context
+	componentLogger  *core.Logger
+	componentDB       *gorm.DB
+	ctx              TestContext
 }
 
 // NewMockUserService creates a new MockUserService that embeds user mock service.
@@ -33,8 +41,8 @@ func (m *MockUserService) CreateTestUser(email, password string) (*models.User, 
 		Verified:     true,
 	}
 
-	// Mock the CreateAccount response
-	m.EXPECT().CreateAccount(email, password, true).Return(user, nil)
+	// Mock of CreateAccount response
+	m.EXPECT().CreateAccount(mock.Anything, email, password, true).Return(user, nil)
 
 	return user, nil
 }
@@ -49,8 +57,8 @@ func (m *MockUserService) CreateUnverifiedUser(email, password string) (*models.
 		Verified:     false,
 	}
 
-	// Mock the CreateAccount response
-	m.EXPECT().CreateAccount(email, password, false).Return(user, nil)
+	// Mock of CreateAccount response
+	m.EXPECT().CreateAccount(mock.Anything, email, password, false).Return(user, nil)
 
 	return user, nil
 }
@@ -66,44 +74,44 @@ func (m *MockUserService) CreateAdminUser(email, password string) (*models.User,
 		Role:         "admin",
 	}
 
-	// Mock the CreateAccount response
-	m.EXPECT().CreateAccount(email, password, true).Return(user, nil)
+	// Mock of CreateAccount response
+	m.EXPECT().CreateAccount(mock.Anything, email, password, true).Return(user, nil)
 
-	// Mock the UpdateAccountInfo response for role change
+	// Mock of UpdateAccountInfo response for role change
 	updateData := map[string]any{"role": "admin"}
-	m.EXPECT().UpdateAccountInfo(user.ID, updateData).Return(nil)
+	m.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, updateData).Return(nil)
 
 	return user, nil
 }
 
 // UpdateUserName updates user's first and last name with automatic mock setup.
 func (m *MockUserService) UpdateUserName(userID uint, firstName, lastName string) error {
-	// Mock the UpdateAccountName response
-	m.EXPECT().UpdateAccountName(userID, firstName, lastName).Return(nil)
+	// Mock of UpdateAccountName response
+	m.EXPECT().UpdateAccountName(userID, mock.Anything, firstName, lastName).Return(nil)
 
 	return nil
 }
 
 // UpdateUserEmail updates user's email with automatic mock setup.
 func (m *MockUserService) UpdateUserEmail(userID uint, newEmail, password string) error {
-	// Mock the UpdateAccountEmail response
-	m.EXPECT().UpdateAccountEmail(userID, newEmail, password).Return(nil)
+	// Mock of UpdateAccountEmail response
+	m.EXPECT().UpdateAccountEmail(mock.Anything, userID, newEmail, password).Return(nil)
 
 	return nil
 }
 
 // UpdateUserPassword updates user's password with automatic mock setup.
 func (m *MockUserService) UpdateUserPassword(userID uint, currentPassword, newPassword string) error {
-	// Mock the UpdateAccountPassword response
-	m.EXPECT().UpdateAccountPassword(userID, currentPassword, newPassword).Return(nil)
+	// Mock of UpdateAccountPassword response
+	m.EXPECT().UpdateAccountPassword(mock.Anything, userID, currentPassword, newPassword).Return(nil)
 
 	return nil
 }
 
 // DeleteUser deletes a user account with automatic mock setup.
 func (m *MockUserService) DeleteUser(userID uint) error {
-	// Mock the DeleteAccount response
-	m.EXPECT().DeleteAccount(userID).Return(nil)
+	// Mock of DeleteAccount response
+	m.EXPECT().DeleteAccount(mock.Anything, userID).Return(nil)
 
 	return nil
 }
@@ -117,22 +125,22 @@ func (m *MockUserService) UserExists(userID uint) (bool, *models.User, error) {
 		Verified: true,
 	}
 
-	// Mock the AccountExists response
-	m.EXPECT().AccountExists(userID).Return(true, user, nil)
+	// Mock of AccountExists response
+	m.EXPECT().AccountExists(mock.Anything, userID).Return(true, user, nil)
 
 	return true, user, nil
 }
 
 // UserDoesNotExist checks if user does not exist by ID with automatic mock setup.
 func (m *MockUserService) UserDoesNotExist(userID uint) (bool, *models.User, error) {
-	// Mock the AccountExists response for not found
-	m.EXPECT().AccountExists(userID).Return(false, nil, nil)
+	// Mock of AccountExists response for not found
+	m.EXPECT().AccountExists(mock.Anything, userID).Return(false, nil, nil)
 
 	return false, nil, nil
 }
 
 // EmailExists checks if email exists with automatic mock setup.
-func (m *MockUserService) EmailExists(email string) (bool, *models.User, error) {
+func (m *MockUserService) EmailExists(ctx context.Context, email string) (bool, *models.User, error) {
 	// Create test user object
 	user := &models.User{
 		Model:    gorm.Model{ID: 1},
@@ -140,64 +148,64 @@ func (m *MockUserService) EmailExists(email string) (bool, *models.User, error) 
 		Verified: true,
 	}
 
-	// Mock the EmailExists response
-	m.EXPECT().EmailExists(email).Return(true, user, nil)
+	// Mock of EmailExists response
+	m.EXPECT().EmailExists(mock.Anything, email).Return(true, user, nil)
 
 	return true, user, nil
 }
 
 // EmailDoesNotExist checks if email does not exist with automatic mock setup.
 func (m *MockUserService) EmailDoesNotExist(email string) (bool, *models.User, error) {
-	// Mock the EmailExists response for not found
-	m.EXPECT().EmailExists(email).Return(false, nil, nil)
+	// Mock of EmailExists response for not found
+	m.EXPECT().EmailExists(mock.Anything, email).Return(false, nil, nil)
 
 	return false, nil, nil
 }
 
 // IsUserVerified checks if user is verified with automatic mock setup.
 func (m *MockUserService) IsUserVerified(userID uint) (bool, error) {
-	// Mock the IsAccountVerified response
-	m.EXPECT().IsAccountVerified(userID).Return(true, nil)
+	// Mock of IsAccountVerified response
+	m.EXPECT().IsAccountVerified(userID, mock.Anything).Return(true, nil)
 
 	return true, nil
 }
 
 // IsUserUnverified checks if user is not verified with automatic mock setup.
 func (m *MockUserService) IsUserUnverified(userID uint) (bool, error) {
-	// Mock the IsAccountVerified response
-	m.EXPECT().IsAccountVerified(userID).Return(false, nil)
+	// Mock of IsAccountVerified response
+	m.EXPECT().IsAccountVerified(userID, mock.Anything).Return(false, nil)
 
 	return false, nil
 }
 
 // VerifyUserEmail verifies user's email with automatic mock setup.
 func (m *MockUserService) VerifyUserEmail(email string) error {
-	// Mock the VerifyEmail response
-	m.EXPECT().VerifyEmail(email, "test_verification_token").Return(nil)
+	// Mock of VerifyEmail response
+	m.EXPECT().VerifyEmail(mock.Anything, email, "test_verification_token").Return(nil)
 
 	return nil
 }
 
 // VerifyUserEmailFails simulates email verification failure with automatic mock setup.
 func (m *MockUserService) VerifyUserEmailFails(email string) error {
-	// Mock the VerifyEmail response with error
-	m.EXPECT().VerifyEmail(email, "test_verification_token").Return(fmt.Errorf("verification failed"))
+	// Mock of VerifyEmail response with error
+	m.EXPECT().VerifyEmail(mock.Anything, email, "test_verification_token").Return(fmt.Errorf("verification failed"))
 
 	return fmt.Errorf("verification failed")
 }
 
 // AddPublicKey adds public key to user account with automatic mock setup.
 func (m *MockUserService) AddPublicKey(user *models.User, publicKey string) error {
-	// Mock the AddPubkeyToAccount response
-	m.EXPECT().AddPubkeyToAccount(*user, publicKey).Return(nil)
+	// Mock of AddPubkeyToAccount response
+	m.EXPECT().AddPubkeyToAccount(mock.Anything, *user, publicKey).Return(nil)
 
 	return nil
 }
 
 // AddPublicKeyFails simulates public key addition failure with automatic mock setup.
 func (m *MockUserService) AddPublicKeyFails(user *models.User, publicKey string) error {
-	// Mock the AddPubkeyToAccount response with error
-	m.EXPECT().AddPubkeyToAccount(*user, publicKey).Return(fmt.Errorf("key already exists"))
+	// Mock of AddPubkeyToAccount response with error
+	m.EXPECT().AddPubkeyToAccount(mock.Anything, *user, publicKey).Return(fmt.Errorf("key already exists"))
 
 	return fmt.Errorf("key already exists")
 }
@@ -206,7 +214,7 @@ func (m *MockUserService) AddPublicKeyFails(user *models.User, publicKey string)
 func (m *MockUserService) HashPassword(password string) (string, error) {
 	hash := m.hashPassword(password)
 
-	// Mock the HashPassword response
+	// Mock of HashPassword response
 	m.EXPECT().HashPassword(password).Return(hash, nil)
 
 	return hash, nil
@@ -214,7 +222,7 @@ func (m *MockUserService) HashPassword(password string) (string, error) {
 
 // HashPasswordFails simulates password hashing failure with automatic mock setup.
 func (m *MockUserService) HashPasswordFails(password string) (string, error) {
-	// Mock the HashPassword response with error
+	// Mock of HashPassword response with error
 	m.EXPECT().HashPassword(password).Return("", fmt.Errorf("hashing failed"))
 
 	return "", fmt.Errorf("hashing failed")
@@ -222,21 +230,61 @@ func (m *MockUserService) HashPasswordFails(password string) (string, error) {
 
 // SetupUserExistsExpectation sets up user existence expectation.
 func (m *MockUserService) SetupUserExistsExpectation(userID uint, exists bool, user *models.User, err error) {
-	m.EXPECT().AccountExists(userID).Return(exists, user, err)
+	m.EXPECT().AccountExists(mock.Anything, userID).Return(exists, user, err)
 }
 
 // SetupEmailExistsExpectation sets up email existence expectation.
 func (m *MockUserService) SetupEmailExistsExpectation(email string, exists bool, user *models.User, err error) {
-	m.EXPECT().EmailExists(email).Return(exists, user, err)
+	m.EXPECT().EmailExists(mock.Anything, email).Return(exists, user, err)
 }
 
 // SetupUpdateAccountInfoExpectation sets up account info update expectation.
 func (m *MockUserService) SetupUpdateAccountInfoExpectation(userID uint, updateData map[string]any, err error) {
-	m.EXPECT().UpdateAccountInfo(userID, updateData).Return(err)
+	m.EXPECT().UpdateAccountInfo(mock.Anything, userID, updateData).Return(err)
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)
 func (m *MockUserService) hashPassword(password string) string {
 	// Simple hash for testing - in real implementation would use bcrypt
 	return fmt.Sprintf("hashed_%s", password)
+}
+
+// Config implements core.Component
+func (m *MockUserService) Config() config.Manager {
+	return m.componentConfig
+}
+
+// SetConfig implements core.Component
+func (m *MockUserService) SetConfig(cfg config.Manager) {
+	m.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (m *MockUserService) Context() core.Context {
+	return m.componentContext
+}
+
+// SetContext implements core.Component
+func (m *MockUserService) SetContext(ctx core.Context) {
+	m.componentContext = ctx
+}
+
+// Logger implements core.Component
+func (m *MockUserService) Logger() *core.Logger {
+	return m.componentLogger
+}
+
+// SetLogger implements core.Component
+func (m *MockUserService) SetLogger(logger *core.Logger) {
+	m.componentLogger = logger
+}
+
+// DB implements core.Component
+func (m *MockUserService) DB() *gorm.DB {
+	return m.componentDB
+}
+
+// SetDB implements core.Component
+func (m *MockUserService) SetDB(db *gorm.DB) {
+	m.componentDB = db
 }

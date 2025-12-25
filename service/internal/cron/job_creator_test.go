@@ -39,7 +39,7 @@ func TestJobCreator_CreateFromDB_Success(t *testing.T) {
 		creator := NewJobCreator(db, mockFactory, ctx.Logger())
 
 		// Execute
-		job, err := creator.CreateFromDB(testJobID)
+		job, err := creator.CreateFromDB(nil, testJobID)
 
 		// Verify
 		require.NoError(tb, err)
@@ -61,7 +61,7 @@ func TestJobCreator_CreateFromDB_NotFound(t *testing.T) {
 		creator := NewJobCreator(db, mockFactory, ctx.Logger())
 
 		// Execute
-		job, err := creator.CreateFromDB(nonExistentID)
+		job, err := creator.CreateFromDB(nil, nonExistentID)
 
 		// Verify
 		require.Error(tb, err)

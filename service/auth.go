@@ -1,17 +1,18 @@
 package service
 
 import (
+	"context"
 	"errors"
-	"go.lumeweb.com/portal-middleware/auth/jwt"
-	"go.lumeweb.com/portal/config"
-	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db"
-	dbHelper "go.lumeweb.com/portal/service/internal/db"
-	"go.lumeweb.com/portal/db/models"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"strconv"
 	"time"
+
+	"go.lumeweb.com/portal-middleware/auth/jwt"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
+	"go.lumeweb.com/portal/db/models"
+	dbHelper "go.lumeweb.com/portal/service/internal/db"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var _ core.AuthService = (*AuthServiceDefault)(nil)
@@ -25,20 +26,16 @@ func init() {
 }
 
 type AuthServiceDefault struct {
-	ctx    core.Context
-	config config.Manager
-	db     *gorm.DB
-	user   core.UserService
-	otp    core.OTPService
+	db   *gorm.DB
+	user core.UserService
+	otp  core.OTPService
+	core.Service
 }
 
 func NewAuthService() (core.Service, []core.ContextBuilderOption, error) {
 	authService := &AuthServiceDefault{}
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			authService.ctx = ctx
-			authService.config = ctx.Config()
-			authService.db = ctx.DB()
 			authService.user = core.GetService[core.UserService](ctx, core.USER_SERVICE)
 			authService.otp = core.GetService[core.OTPService](ctx, core.OTP_SERVICE)
 			return nil
@@ -52,8 +49,8 @@ func (a AuthServiceDefault) ID() string {
 	return core.AUTH_SERVICE
 }
 
-func (a AuthServiceDefault) LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
-	valid, user, err := a.ValidLoginByEmail(email, password)
+func (a AuthServiceDefault) LoginPassword(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+	valid, user, err := a.ValidLoginByEmail(ctx, email, password)
 
 	if err != nil {
 		return "", nil, err
@@ -63,7 +60,7 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 		return "", nil, core.NewAccountError(core.ErrKeyInvalidPassword, nil)
 	}
 
-	token, err := a.doLogin(user, ip, false, rememberMe)
+	token, err := a.doLogin(ctx, user, ip, false, rememberMe)
 
 	if err != nil {
 		return "", nil, err
@@ -72,8 +69,8 @@ func (a AuthServiceDefault) LoginPassword(email string, password string, ip stri
 	return token, user, nil
 }
 
-func (a AuthServiceDefault) LoginOTP(userId uint, code string, rememberMe bool) (string, error) {
-	valid, err := a.otp.OTPVerify(userId, code)
+func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error) {
+	valid, err := a.otp.OTPVerify(ctx, userId, code)
 
 	if err != nil {
 		return "", err
@@ -86,7 +83,7 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string, rememberMe bool) 
 	var user models.User
 	user.ID = userId
 
-	token, err := a.doLogin(&user, "", false, rememberMe)
+	token, err := a.doLogin(ctx, &user, "", false, rememberMe)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +91,7 @@ func (a AuthServiceDefault) LoginOTP(userId uint, code string, rememberMe bool) 
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error) {
+func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
 	var model models.PublicKey
 	var rowsAffected int64
 
@@ -113,7 +110,7 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string, rememberMe boo
 
 	user := model.User
 
-	token, err := a.doLogin(&user, ip, true, rememberMe)
+	token, err := a.doLogin(ctx, &user, ip, true, rememberMe)
 
 	if err != nil {
 		return "", err
@@ -122,7 +119,7 @@ func (a AuthServiceDefault) LoginPubkey(pubkey string, ip string, rememberMe boo
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginID(id uint, ip string, rememberMe bool) (string, error) {
+func (a AuthServiceDefault) LoginID(ctx context.Context, id uint, ip string, rememberMe bool) (string, error) {
 	var user models.User
 	var rowsAffected int64
 
@@ -141,7 +138,7 @@ func (a AuthServiceDefault) LoginID(id uint, ip string, rememberMe bool) (string
 		return "", dbHelper.HandleDBError(err)
 	}
 
-	token, err := a.doLogin(&user, ip, true, rememberMe)
+	token, err := a.doLogin(ctx, &user, ip, true, rememberMe)
 
 	if err != nil {
 		return "", err
@@ -150,12 +147,11 @@ func (a AuthServiceDefault) LoginID(id uint, ip string, rememberMe bool) (string
 	return token, nil
 }
 
-
-func (a AuthServiceDefault) ValidLoginByUserObj(user *models.User, password string) bool {
+func (a AuthServiceDefault) ValidLoginByUserObj(ctx context.Context, user *models.User, password string) bool {
 	return a.validPassword(user, password)
 }
 
-func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bool, *models.User, error) {
+func (a AuthServiceDefault) ValidLoginByEmail(ctx context.Context, email string, password string) (bool, *models.User, error) {
 	var user models.User
 	var rowsAffected int64
 
@@ -172,7 +168,7 @@ func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bo
 		return false, nil, dbHelper.HandleDBError(err)
 	}
 
-	valid := a.ValidLoginByUserObj(&user, password)
+	valid := a.ValidLoginByUserObj(ctx, &user, password)
 
 	if !valid {
 		return false, nil, nil
@@ -181,13 +177,13 @@ func (a AuthServiceDefault) ValidLoginByEmail(email string, password string) (bo
 	return true, &user, nil
 }
 
-func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
+func (a AuthServiceDefault) ValidLoginByUserID(ctx context.Context, id uint, password string) (bool, *models.User, error) {
 	var user models.User
 	var rowsAffected int64
 
 	user.ID = id
 
-	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
+	err := db.RetryableComponentTransaction(a, ctx, func(db *gorm.DB) *gorm.DB {
 		tx := db.Model(&user).Where(&user).First(&user)
 		rowsAffected = tx.RowsAffected
 		return tx
@@ -200,7 +196,7 @@ func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 		return false, nil, dbHelper.HandleDBError(err)
 	}
 
-	valid := a.ValidLoginByUserObj(&user, password)
+	valid := a.ValidLoginByUserObj(ctx, &user, password)
 
 	if !valid {
 		return false, nil, nil
@@ -208,14 +204,14 @@ func (a AuthServiceDefault) ValidLoginByUserID(id uint, password string) (bool, 
 
 	return true, &user, nil
 }
-func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity bool, rememberMe bool) (string, error) {
+func (a AuthServiceDefault) doLogin(ctx context.Context, user *models.User, ip string, bypassSecurity bool, rememberMe bool) (string, error) {
 	purpose := jwt.PurposeLogin
 
 	if user.OTPEnabled && !bypassSecurity {
 		purpose = jwt.Purpose2FA
 	}
 
-	deletionPending, err := a.user.IsAccountPendingDeletion(user.ID)
+	deletionPending, err := a.user.IsAccountPendingDeletion(ctx, user.ID)
 	if err != nil {
 		return "", err
 	}
@@ -227,17 +223,17 @@ func (a AuthServiceDefault) doLogin(user *models.User, ip string, bypassSecurity
 	dur := time.Hour * 24
 
 	if rememberMe {
-		dur = time.Hour * 24 * time.Duration(a.config.Config().Core.Account.RememberMeTTL)
+		dur = time.Hour * 24 * time.Duration(a.Config().Config().Core.Account.RememberMeTTL)
 	}
 
-	token, jwtErr := jwt.CreateToken(a.ctx.Config().Config().Core.Identity.PrivateKey(), a.config.Config().Core.Domain, strconv.Itoa(int(user.ID)), purpose, dur)
+	token, jwtErr := jwt.CreateToken(a.Config().Config().Core.Identity.PrivateKey(), a.Config().Config().Core.Domain, strconv.Itoa(int(user.ID)), purpose, dur)
 	if jwtErr != nil {
 		return "", core.NewAccountError(core.ErrKeyJWTGenerationFailed, jwtErr)
 	}
 
 	now := time.Now()
 
-	err = a.user.UpdateAccountInfo(user.ID, map[string]any{"last_login_ip": ip, "last_login": &now})
+	err = a.user.UpdateAccountInfo(ctx, user.ID, map[string]any{"last_login_ip": ip, "last_login": &now})
 	if err != nil {
 		return "", err
 	}

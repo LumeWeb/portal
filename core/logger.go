@@ -1,10 +1,13 @@
 package core
 
 import (
+	"os"
+
 	"go.lumeweb.com/portal/config"
+	"go.opentelemetry.io/contrib/bridges/otelzap"
+	"go.opentelemetry.io/otel/log/global"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 type Logger struct {
@@ -25,11 +28,26 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 	}
 
 	// Create the logger with the atomic level
-	zapLogger := zap.New(zapcore.NewCore(
-		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-		zapcore.Lock(os.Stdout),
-		atomicLevel,
-	), zap.AddCaller())
+	// Check if OTEL logger provider is available and use it
+	var core zapcore.Core
+	provider := global.GetLoggerProvider()
+	if provider != nil {
+		// Use OTEL-enabled core if provider is available
+		core = otelzap.NewCore(
+			DefaultTracerService,
+			otelzap.WithAttributes(),
+			otelzap.WithLoggerProvider(provider),
+		)
+	} else {
+		// Use standard zap core
+		core = zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+			zapcore.Lock(os.Stdout),
+			atomicLevel,
+		)
+	}
+
+	zapLogger := zap.New(core, zap.AddCaller())
 
 	logger := &Logger{
 		Logger: zapLogger,
@@ -66,6 +84,14 @@ func (l *Logger) SetLevelFromConfig() {
 
 func (l *Logger) Level() *zap.AtomicLevel {
 	return l.level
+}
+
+func (l *Logger) wrap(logger *zap.Logger) *Logger {
+	return &Logger{
+		Logger: logger,
+		level:  l.level,
+		cm:     l.cm,
+	}
 }
 
 func mapLogLevel(level string) zapcore.Level {

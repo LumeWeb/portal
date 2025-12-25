@@ -5,7 +5,12 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockOTPService creates a new instance of MockOTPService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -33,6 +38,144 @@ type MockOTPService_Expecter struct {
 
 func (_m *MockOTPService) EXPECT() *MockOTPService_Expecter {
 	return &MockOTPService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockOTPService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockOTPService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockOTPService_Expecter) Config() *MockOTPService_Config_Call {
+	return &MockOTPService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockOTPService_Config_Call) Run(run func()) *MockOTPService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockOTPService_Config_Call) Return(manager config.Manager) *MockOTPService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockOTPService_Config_Call) RunAndReturn(run func() config.Manager) *MockOTPService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockOTPService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockOTPService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockOTPService_Expecter) Context() *MockOTPService_Context_Call {
+	return &MockOTPService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockOTPService_Context_Call) Run(run func()) *MockOTPService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockOTPService_Context_Call) Return(context core.Context) *MockOTPService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockOTPService_Context_Call) RunAndReturn(run func() core.Context) *MockOTPService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockOTPService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockOTPService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockOTPService_Expecter) DB() *MockOTPService_DB_Call {
+	return &MockOTPService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockOTPService_DB_Call) Run(run func()) *MockOTPService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockOTPService_DB_Call) Return(dB *gorm.DB) *MockOTPService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockOTPService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockOTPService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ID provides a mock function for the type MockOTPService
@@ -79,17 +222,63 @@ func (_c *MockOTPService_ID_Call) RunAndReturn(run func() string) *MockOTPServic
 	return _c
 }
 
+// Logger provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockOTPService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockOTPService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockOTPService_Expecter) Logger() *MockOTPService_Logger_Call {
+	return &MockOTPService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockOTPService_Logger_Call) Run(run func()) *MockOTPService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockOTPService_Logger_Call) Return(logger *core.Logger) *MockOTPService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockOTPService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockOTPService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // OTPDisable provides a mock function for the type MockOTPService
-func (_mock *MockOTPService) OTPDisable(userId uint) error {
-	ret := _mock.Called(userId)
+func (_mock *MockOTPService) OTPDisable(ctx context.Context, userId uint) error {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OTPDisable")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint) error); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -102,19 +291,25 @@ type MockOTPService_OTPDisable_Call struct {
 }
 
 // OTPDisable is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockOTPService_Expecter) OTPDisable(userId interface{}) *MockOTPService_OTPDisable_Call {
-	return &MockOTPService_OTPDisable_Call{Call: _e.mock.On("OTPDisable", userId)}
+func (_e *MockOTPService_Expecter) OTPDisable(ctx interface{}, userId interface{}) *MockOTPService_OTPDisable_Call {
+	return &MockOTPService_OTPDisable_Call{Call: _e.mock.On("OTPDisable", ctx, userId)}
 }
 
-func (_c *MockOTPService_OTPDisable_Call) Run(run func(userId uint)) *MockOTPService_OTPDisable_Call {
+func (_c *MockOTPService_OTPDisable_Call) Run(run func(ctx context.Context, userId uint)) *MockOTPService_OTPDisable_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -125,22 +320,22 @@ func (_c *MockOTPService_OTPDisable_Call) Return(err error) *MockOTPService_OTPD
 	return _c
 }
 
-func (_c *MockOTPService_OTPDisable_Call) RunAndReturn(run func(userId uint) error) *MockOTPService_OTPDisable_Call {
+func (_c *MockOTPService_OTPDisable_Call) RunAndReturn(run func(ctx context.Context, userId uint) error) *MockOTPService_OTPDisable_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // OTPEnable provides a mock function for the type MockOTPService
-func (_mock *MockOTPService) OTPEnable(userId uint, code string) error {
-	ret := _mock.Called(userId, code)
+func (_mock *MockOTPService) OTPEnable(ctx context.Context, userId uint, code string) error {
+	ret := _mock.Called(ctx, userId, code)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OTPEnable")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) error); ok {
-		r0 = returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) error); ok {
+		r0 = returnFunc(ctx, userId, code)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -153,25 +348,31 @@ type MockOTPService_OTPEnable_Call struct {
 }
 
 // OTPEnable is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - code string
-func (_e *MockOTPService_Expecter) OTPEnable(userId interface{}, code interface{}) *MockOTPService_OTPEnable_Call {
-	return &MockOTPService_OTPEnable_Call{Call: _e.mock.On("OTPEnable", userId, code)}
+func (_e *MockOTPService_Expecter) OTPEnable(ctx interface{}, userId interface{}, code interface{}) *MockOTPService_OTPEnable_Call {
+	return &MockOTPService_OTPEnable_Call{Call: _e.mock.On("OTPEnable", ctx, userId, code)}
 }
 
-func (_c *MockOTPService_OTPEnable_Call) Run(run func(userId uint, code string)) *MockOTPService_OTPEnable_Call {
+func (_c *MockOTPService_OTPEnable_Call) Run(run func(ctx context.Context, userId uint, code string)) *MockOTPService_OTPEnable_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -182,14 +383,14 @@ func (_c *MockOTPService_OTPEnable_Call) Return(err error) *MockOTPService_OTPEn
 	return _c
 }
 
-func (_c *MockOTPService_OTPEnable_Call) RunAndReturn(run func(userId uint, code string) error) *MockOTPService_OTPEnable_Call {
+func (_c *MockOTPService_OTPEnable_Call) RunAndReturn(run func(ctx context.Context, userId uint, code string) error) *MockOTPService_OTPEnable_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // OTPGenerate provides a mock function for the type MockOTPService
-func (_mock *MockOTPService) OTPGenerate(userId uint) (string, error) {
-	ret := _mock.Called(userId)
+func (_mock *MockOTPService) OTPGenerate(ctx context.Context, userId uint) (string, error) {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OTPGenerate")
@@ -197,16 +398,16 @@ func (_mock *MockOTPService) OTPGenerate(userId uint) (string, error) {
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint) (string, error)); ok {
-		return returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (string, error)); ok {
+		return returnFunc(ctx, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) string); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) string); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) error); ok {
-		r1 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -219,19 +420,25 @@ type MockOTPService_OTPGenerate_Call struct {
 }
 
 // OTPGenerate is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockOTPService_Expecter) OTPGenerate(userId interface{}) *MockOTPService_OTPGenerate_Call {
-	return &MockOTPService_OTPGenerate_Call{Call: _e.mock.On("OTPGenerate", userId)}
+func (_e *MockOTPService_Expecter) OTPGenerate(ctx interface{}, userId interface{}) *MockOTPService_OTPGenerate_Call {
+	return &MockOTPService_OTPGenerate_Call{Call: _e.mock.On("OTPGenerate", ctx, userId)}
 }
 
-func (_c *MockOTPService_OTPGenerate_Call) Run(run func(userId uint)) *MockOTPService_OTPGenerate_Call {
+func (_c *MockOTPService_OTPGenerate_Call) Run(run func(ctx context.Context, userId uint)) *MockOTPService_OTPGenerate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -242,14 +449,14 @@ func (_c *MockOTPService_OTPGenerate_Call) Return(s string, err error) *MockOTPS
 	return _c
 }
 
-func (_c *MockOTPService_OTPGenerate_Call) RunAndReturn(run func(userId uint) (string, error)) *MockOTPService_OTPGenerate_Call {
+func (_c *MockOTPService_OTPGenerate_Call) RunAndReturn(run func(ctx context.Context, userId uint) (string, error)) *MockOTPService_OTPGenerate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // OTPVerify provides a mock function for the type MockOTPService
-func (_mock *MockOTPService) OTPVerify(userId uint, code string) (bool, error) {
-	ret := _mock.Called(userId, code)
+func (_mock *MockOTPService) OTPVerify(ctx context.Context, userId uint, code string) (bool, error) {
+	ret := _mock.Called(ctx, userId, code)
 
 	if len(ret) == 0 {
 		panic("no return value specified for OTPVerify")
@@ -257,16 +464,16 @@ func (_mock *MockOTPService) OTPVerify(userId uint, code string) (bool, error) {
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) (bool, error)); ok {
-		return returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) (bool, error)); ok {
+		return returnFunc(ctx, userId, code)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string) bool); ok {
-		r0 = returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) bool); ok {
+		r0 = returnFunc(ctx, userId, code)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string) error); ok {
-		r1 = returnFunc(userId, code)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, string) error); ok {
+		r1 = returnFunc(ctx, userId, code)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -279,25 +486,31 @@ type MockOTPService_OTPVerify_Call struct {
 }
 
 // OTPVerify is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - code string
-func (_e *MockOTPService_Expecter) OTPVerify(userId interface{}, code interface{}) *MockOTPService_OTPVerify_Call {
-	return &MockOTPService_OTPVerify_Call{Call: _e.mock.On("OTPVerify", userId, code)}
+func (_e *MockOTPService_Expecter) OTPVerify(ctx interface{}, userId interface{}, code interface{}) *MockOTPService_OTPVerify_Call {
+	return &MockOTPService_OTPVerify_Call{Call: _e.mock.On("OTPVerify", ctx, userId, code)}
 }
 
-func (_c *MockOTPService_OTPVerify_Call) Run(run func(userId uint, code string)) *MockOTPService_OTPVerify_Call {
+func (_c *MockOTPService_OTPVerify_Call) Run(run func(ctx context.Context, userId uint, code string)) *MockOTPService_OTPVerify_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -308,7 +521,167 @@ func (_c *MockOTPService_OTPVerify_Call) Return(b bool, err error) *MockOTPServi
 	return _c
 }
 
-func (_c *MockOTPService_OTPVerify_Call) RunAndReturn(run func(userId uint, code string) (bool, error)) *MockOTPService_OTPVerify_Call {
+func (_c *MockOTPService_OTPVerify_Call) RunAndReturn(run func(ctx context.Context, userId uint, code string) (bool, error)) *MockOTPService_OTPVerify_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockOTPService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockOTPService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockOTPService_Expecter) SetConfig(cfg interface{}) *MockOTPService_SetConfig_Call {
+	return &MockOTPService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockOTPService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockOTPService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOTPService_SetConfig_Call) Return() *MockOTPService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockOTPService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockOTPService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockOTPService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockOTPService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockOTPService_Expecter) SetContext(ctx interface{}) *MockOTPService_SetContext_Call {
+	return &MockOTPService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockOTPService_SetContext_Call) Run(run func(ctx core.Context)) *MockOTPService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOTPService_SetContext_Call) Return() *MockOTPService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockOTPService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockOTPService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockOTPService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockOTPService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockOTPService_Expecter) SetDB(db interface{}) *MockOTPService_SetDB_Call {
+	return &MockOTPService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockOTPService_SetDB_Call) Run(run func(db *gorm.DB)) *MockOTPService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOTPService_SetDB_Call) Return() *MockOTPService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockOTPService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockOTPService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockOTPService
+func (_mock *MockOTPService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockOTPService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockOTPService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockOTPService_Expecter) SetLogger(logger interface{}) *MockOTPService_SetLogger_Call {
+	return &MockOTPService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockOTPService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockOTPService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOTPService_SetLogger_Call) Return() *MockOTPService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockOTPService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockOTPService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }

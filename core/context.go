@@ -3,11 +3,13 @@ package core
 import (
 	"context"
 	"fmt"
+	"reflect"
+
 	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal/config"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"reflect"
 )
 
 var _ Context = (*DefaultContext)(nil)
@@ -32,6 +34,7 @@ type Context interface {
 	WithLoggerLazy(opts ...zap.Field) *Logger
 	WithLogger(opts ...zap.Field) *Logger
 	Config() config.Manager
+	ReplaceLogger(logger *Logger)
 	Cancel()
 	ExitCode() int
 	Event() event.EventManager[any]
@@ -43,6 +46,24 @@ type Context interface {
 	MustFire(eventName string, payload any)
 	FireAsync(eventName string, payload any)
 	ResetEvents()
+
+	// Tracer helpers
+	WithTracer(service, subsystem string) Context
+	WithTracerService(service string) Context
+	WithTracerSubsystem(subsystem string) Context
+	TraceMethod(name string, opts ...SpanOption) (context.Context, trace.Span)
+
+	// Dedicated component tracer helpers
+	WithProtocolTracer(protocolName string) Context
+	WithAPITracer(apiName string) Context
+	WithAPIExtensionTracer(extensionName string) Context
+	WithServiceTracer(serviceName string) Context
+
+	// Subcomponent tracer helpers
+	WithProtocolSubcomponent(protocolName, subcomponentName string) Context
+	WithAPISubcomponent(apiName, subcomponentName string) Context
+	WithAPIExtensionSubcomponent(extensionName, subcomponentName string) Context
+	WithServiceSubcomponent(serviceName, subcomponentName string) Context
 }
 
 // DefaultContext struct implementing the Context interface
@@ -64,6 +85,9 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 	// Create a new context with cancel
 	baseCtx, cancel := context.WithCancel(context.Background())
 
+	// Set up default tracer service
+	baseCtx = WithTracerService(baseCtx, DefaultTracerService)
+
 	newCtx := &DefaultContext{
 		Context:  baseCtx,
 		services: make(map[string]any),
@@ -73,7 +97,7 @@ func NewContext(config config.Manager, logger *Logger, options ...ContextBuilder
 		cancel:   cancel,
 	}
 
-	options = append(options, ContextWithExitFunc(func(ctx Context) error {
+	options = append(options, ContextWithTelemetry(), ContextWithExitFunc(func(ctx Context) error {
 		return ctx.Event().CloseWait()
 	}))
 
@@ -132,6 +156,10 @@ func (ctx *DefaultContext) DB() *gorm.DB {
 
 func (ctx *DefaultContext) Logger() *Logger {
 	return ctx.logger
+}
+
+func (ctx *DefaultContext) ReplaceLogger(logger *Logger) {
+	ctx.logger = logger
 }
 
 func (ctx *DefaultContext) Config() config.Manager {
@@ -211,35 +239,83 @@ func (ctx *DefaultContext) ServiceLogger(service Service) *Logger {
 }
 
 func (ctx *DefaultContext) NamedLogger(name string) *Logger {
-	return &Logger{
-		Logger: ctx.logger.Logger.Named(name),
-		level:  ctx.logger.level,
-		cm:     ctx.logger.cm,
-	}
+	return ctx.logger.wrap(ctx.logger.Logger.Named(name))
 }
 
 func (ctx *DefaultContext) WithLoggerOptions(opts ...zap.Option) *Logger {
-	return &Logger{
-		Logger: ctx.logger.Logger.WithOptions(opts...),
-		level:  ctx.logger.level,
-		cm:     ctx.logger.cm,
-	}
+	return ctx.logger.wrap(ctx.logger.Logger.WithOptions(opts...))
 }
 
 func (ctx *DefaultContext) WithLoggerLazy(opts ...zap.Field) *Logger {
-	return &Logger{
-		Logger: ctx.logger.Logger.WithLazy(opts...),
-		level:  ctx.logger.level,
-		cm:     ctx.logger.cm,
-	}
+	return ctx.logger.wrap(ctx.logger.Logger.WithLazy(opts...))
 }
 
 func (ctx *DefaultContext) WithLogger(opts ...zap.Field) *Logger {
-	return &Logger{
-		Logger: ctx.logger.Logger.With(opts...),
-		level:  ctx.logger.level,
-		cm:     ctx.logger.cm,
+	return ctx.logger.wrap(ctx.logger.Logger.With(opts...))
+}
+
+// Tracer helpers implementation
+func (ctx *DefaultContext) WithTracer(service, subsystem string) Context {
+	return ctx.withNewContext(WithTracerInfo(ctx.Context, service, subsystem))
+}
+
+func (ctx *DefaultContext) WithTracerService(service string) Context {
+	return ctx.WithTracer(service, GetTracerSubsystem(ctx.Context))
+}
+
+func (ctx *DefaultContext) WithTracerSubsystem(subsystem string) Context {
+	return ctx.WithTracer(GetTracerService(ctx.Context), subsystem)
+}
+
+func (ctx *DefaultContext) TraceMethod(name string, opts ...SpanOption) (context.Context, trace.Span) {
+	return TraceMethod(ctx.Context, name, opts...)
+}
+
+// Helper function to create a new DefaultContext with modified context
+func (ctx *DefaultContext) withNewContext(newCtx context.Context) Context {
+	return &DefaultContext{
+		Context:      newCtx,
+		services:     ctx.services,
+		exitCode:     ctx.exitCode,
+		exitFuncs:    ctx.exitFuncs,
+		startupFuncs: ctx.startupFuncs,
+		event:        ctx.event,
+		logger:       ctx.logger,
 	}
+}
+
+// Dedicated component tracer helpers implementation
+func (ctx *DefaultContext) WithProtocolTracer(protocolName string) Context {
+	return ctx.withNewContext(WithProtocolTracer(ctx.Context, protocolName))
+}
+
+func (ctx *DefaultContext) WithAPITracer(apiName string) Context {
+	return ctx.withNewContext(WithAPITracer(ctx.Context, apiName))
+}
+
+func (ctx *DefaultContext) WithAPIExtensionTracer(extensionName string) Context {
+	return ctx.withNewContext(WithAPIExtensionTracer(ctx.Context, extensionName))
+}
+
+func (ctx *DefaultContext) WithServiceTracer(serviceName string) Context {
+	return ctx.withNewContext(WithServiceTracer(ctx.Context, serviceName))
+}
+
+// Subcomponent tracer helpers implementation
+func (ctx *DefaultContext) WithProtocolSubcomponent(protocolName, subcomponentName string) Context {
+	return ctx.withNewContext(WithProtocolSubcomponent(ctx.Context, protocolName, subcomponentName))
+}
+
+func (ctx *DefaultContext) WithAPISubcomponent(apiName, subcomponentName string) Context {
+	return ctx.withNewContext(WithAPISubcomponent(ctx.Context, apiName, subcomponentName))
+}
+
+func (ctx *DefaultContext) WithAPIExtensionSubcomponent(extensionName, subcomponentName string) Context {
+	return ctx.withNewContext(WithAPIExtensionSubcomponent(ctx.Context, extensionName, subcomponentName))
+}
+
+func (ctx *DefaultContext) WithServiceSubcomponent(serviceName, subcomponentName string) Context {
+	return ctx.withNewContext(WithServiceSubcomponent(ctx.Context, serviceName, subcomponentName))
 }
 
 // ContextBuilderOption and related functions
@@ -258,6 +334,44 @@ func ContextWithService(id string, svc Service) ContextBuilderOption {
 func ContextWithStartupFunc(f LifecycleFunc) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(f)
+		return ctx, nil
+	}
+}
+
+func ContextWithStartupComponent(component Component) ContextBuilderOption {
+	return func(ctx Context) (Context, error) {
+		ctx.OnStartup(func(startupCtx Context) error {
+			// Wire up the component with database and config
+			component.SetDB(startupCtx.DB())
+			component.SetConfig(startupCtx.Config())
+
+			// Wire up the tracer and logger based on component type
+			switch c := component.(type) {
+			case Service:
+				tracedCtx := startupCtx.WithServiceTracer(c.ID())
+				component.SetLogger(startupCtx.ServiceLogger(c))
+				component.SetContext(tracedCtx)
+			case Protocol:
+				tracedCtx := startupCtx.WithProtocolTracer(c.Name())
+				component.SetLogger(startupCtx.ProtocolLogger(c))
+				component.SetContext(tracedCtx)
+			case API:
+				tracedCtx := startupCtx.WithAPITracer(c.Name())
+				component.SetLogger(startupCtx.APILogger(c))
+				component.SetContext(tracedCtx)
+			case APIExtension:
+				tracedCtx := startupCtx.WithAPIExtensionTracer(c.TargetAPI() + "-" + component.ID())
+				component.SetLogger(startupCtx.Logger())
+				component.SetContext(tracedCtx)
+			default:
+				tracedCtx := startupCtx.WithTracerSubsystem(component.ID())
+				component.SetLogger(startupCtx.Logger())
+				component.SetContext(tracedCtx)
+			}
+
+			return nil
+		})
+
 		return ctx, nil
 	}
 }
@@ -303,8 +417,8 @@ func ContextOptions(options ...ContextBuilderOption) []ContextBuilderOption {
 // ServiceResult encapsulates the result of service retrieval with detailed status
 type ServiceResult[T Service] struct {
 	Service T
-	Found   bool   // true if service exists in context
-	TypeOK  bool   // true if service exists and type matches T
+	Found   bool // true if service exists in context
+	TypeOK  bool // true if service exists and type matches T
 }
 
 // getServiceTyped is the core service retrieval logic shared by all public helpers
@@ -341,7 +455,7 @@ func WithService[T Service](ctx Context, id string, fn func(T) error) error {
 		}
 		return nil
 	}
-	
+
 	return fn(result.Service)
 }
 
@@ -356,7 +470,7 @@ func GetService[T Service](ctx Context, id string) T {
 		}
 		return zero
 	}
-	
+
 	return result.Service
 }
 

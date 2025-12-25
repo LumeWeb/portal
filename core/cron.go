@@ -37,9 +37,9 @@ const (
 // Cronable is an interface for entities that can register and schedule cron jobs.
 type Cronable interface {
 	// RegisterTasks registers cron tasks with the CronService.
-	RegisterTasks(cron CronService) error
+	RegisterTasks(ctx context.Context, cron CronService) error
 	// ScheduleJobs schedules cron jobs with the CronService.
-	ScheduleJobs(cron CronService) error
+	ScheduleJobs(ctx context.Context, cron CronService) error
 }
 
 type RetryPolicy struct {
@@ -425,28 +425,28 @@ func JobLogField(job CronJob) zap.Field {
 // CronService defines the interface for managing cron jobs.
 type CronService interface {
 	// Start starts the scheduler.
-	Start() error
+	Start(ctx context.Context) error
 	// Stop stops the scheduler.
-	Stop() error
+	Stop(ctx context.Context) error
 
 	// RegisterEntity registers a Cronable entity (like a service) that has cron jobs to register.
 	// The entity must implement both RegisterTasks() and ScheduleJobs() methods.
 	RegisterEntity(entity Cronable)
 
 	// RegisterJobType registers a job type with optional default schedule.
-	RegisterJobType(jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
+	RegisterJobType(ctx context.Context, jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
 
 	// RegisterJob registers a fully configured job instance.
-	RegisterJob(job CronJob, retryPolicy *RetryPolicy) error
+	RegisterJob(ctx context.Context, job CronJob, retryPolicy *RetryPolicy) error
 
 	// RegisterPluginJobs registers all cron jobs from a plugin.
-	RegisterPluginJobs(plugin PluginInfo) error
+	RegisterPluginJobs(ctx context.Context, plugin PluginInfo) error
 
 	// RunJob manually triggers a job by its ID.
-	RunJob(id uuid.UUID) error
+	RunJob(ctx context.Context, id uuid.UUID) error
 
 	// GetActiveJob returns an active cron job by its UUID if it exists.
-	GetActiveJob(jobID uuid.UUID) (CronJob, bool, error)
+	GetActiveJob(ctx context.Context, jobID uuid.UUID) (CronJob, bool, error)
 
 	// GetScheduleRegistry provides access to schedule registry.
 	ScheduleRegistry() CronScheduleRegistry
@@ -470,25 +470,25 @@ type CronService interface {
 // CronCoordinator handles all cron coordination regardless of mode.
 type CronCoordinator interface {
 	// SetHeartbeat sets the heartbeat for a job.
-	SetHeartbeat(jobID uuid.UUID) error
+	SetHeartbeat(ctx context.Context, jobID uuid.UUID) error
 	// CheckHeartbeat checks the heartbeat for a job.
-	CheckHeartbeat(jobID uuid.UUID) (bool, error)
+	CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error)
 
 	// EnqueueJob enqueues a job for execution.
-	EnqueueJob(jobID uuid.UUID) error
+	EnqueueJob(ctx context.Context, jobID uuid.UUID) error
 	// CreateJobFromDB creates a CronJob instance from the database.
-	CreateJobFromDB(jobID uuid.UUID) (CronJob, error)
+	CreateJobFromDB(ctx context.Context, jobID uuid.UUID) (CronJob, error)
 	// HandleFailedJob handles a failed job.
-	HandleFailedJob(jobID uuid.UUID, failures uint) error
+	HandleFailedJob(ctx context.Context, jobID uuid.UUID, failures uint) error
 
 	// SetupJob performs setup tasks for a job.
-	SetupJob(jobID uuid.UUID) error
+	SetupJob(ctx context.Context, jobID uuid.UUID) error
 	// CleanupJob performs cleanup tasks for a job.
-	CleanupJob(jobID uuid.UUID) error
+	CleanupJob(ctx context.Context, jobID uuid.UUID) error
 	// ExecuteJob executes a job.
-	ExecuteJob(jobID uuid.UUID) error
+	ExecuteJob(ctx context.Context, jobID uuid.UUID) error
 	// JobContext returns the context for a job.
-	JobContext(jobID uuid.UUID) context.Context
+	JobContext(ctx context.Context, jobID uuid.UUID) context.Context
 
 	// Jobs returns all scheduled jobs.
 	Jobs() []gocron.Job
@@ -508,11 +508,11 @@ type CronJobFactoryFunc func() (CronJob, error)
 // CronJobFactory defines a factory for creating CronJob instances based on their type.
 type CronJobFactory interface {
 	// CreateJob creates a new CronJob instance of the specified type.
-	CreateJob(jobType string) (CronJob, error)
+	CreateJob(ctx context.Context, jobType string) (CronJob, error)
 	// RegisterFactory registers a factory function for a given job type.
-	RegisterFactory(jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
+	RegisterFactory(ctx context.Context, jobType string, factory CronJobFactoryFunc, defaultSchedule *CronScheduleDefinition) error
 	// GetDefaultSchedule retrieves the default schedule for a given job type.
-	GetDefaultSchedule(jobType string) (*CronScheduleDefinition, bool)
+	GetDefaultSchedule(ctx context.Context, jobType string) (*CronScheduleDefinition, bool)
 }
 
 // CronJobTriggerTransport handles distributing job triggers in cluster mode.
@@ -606,31 +606,31 @@ func WithCronHeartbeat() CronStateOption {
 // CronMonitor defines the interface for monitoring cron jobs.
 type CronMonitor interface {
 	// CleanupOrphanedJobs removes jobs from plugins that no longer exist.
-	CleanupOrphanedJobs() (int, error)
+	CleanupOrphanedJobs(ctx context.Context) (int, error)
 
 	// ProcessDeadJobs detects and handles jobs that appear to be dead/stuck.
-	RequeueStuckJobs() error
+	RequeueStuckJobs(ctx context.Context) error
 
 	// CleanupCompletedJobs removes old completed one-time jobs.
-	CleanupCompletedJobs() error
+	CleanupCompletedJobs(ctx context.Context) error
 
 	// StartMonitoring begins monitoring cron jobs.
-	StartMonitoring() error
+	StartMonitoring(ctx context.Context) error
 
 	// StopMonitoring stops all monitoring activities.
-	StopMonitoring() error
+	StopMonitoring(ctx context.Context) error
 
 	// SignalMaintenance signals the monitor to perform maintenance tasks.
-	SignalMaintenance()
+	SignalMaintenance(ctx context.Context)
 
 	// StartHeartbeat starts periodic heartbeats for a job.
-	StartHeartbeat(jobID uuid.UUID)
+	StartHeartbeat(ctx context.Context, jobID uuid.UUID)
 
 	// StopHeartbeat stops heartbeats for a job.
-	StopHeartbeat(jobID uuid.UUID)
+	StopHeartbeat(ctx context.Context, jobID uuid.UUID)
 
 	// CheckHeartbeat verifies if a job's heartbeat is still active.
-	CheckHeartbeat(jobID uuid.UUID) (bool, error)
+	CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error)
 }
 
 // CronJobStateMachine handles state transitions for cron jobs.
@@ -639,19 +639,19 @@ type CronJobStateMachine interface {
 	Transition(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...CronStateOption) error
 
 	// IsValidTransition checks if a state transition is valid.
-	IsValidTransition(current, new models.CronJobState) bool
+	IsValidTransition(ctx context.Context, current, new models.CronJobState) bool
 
 	// RemoveStateMachine removes the state machine for a job.
-	RemoveStateMachine(jobID uuid.UUID)
+	RemoveStateMachine(ctx context.Context, jobID uuid.UUID)
 }
 
 // CronJobStateMachineRegistry manages FSM instances for cron jobs.
 type CronJobStateMachineRegistry interface {
 	// GetOrCreate gets or creates an FSM instance for a job.
-	GetOrCreate(jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error)
+	GetOrCreate(ctx context.Context, jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error)
 
 	// Remove removes an FSM instance for a job.
-	Remove(jobID uuid.UUID)
+	Remove(ctx context.Context, jobID uuid.UUID)
 }
 
 // PluginHasCron checks if a plugin has cron jobs.

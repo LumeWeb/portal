@@ -42,3 +42,4 @@ Thumbs.db
 .nx/cache
 pnpm-lock.yaml
 .aider*
+etc

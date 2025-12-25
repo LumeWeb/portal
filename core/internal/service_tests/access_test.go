@@ -23,7 +23,7 @@ func TestAccessServiceDefault_RegisterRoute(t *testing.T) {
 		method := "GET"
 		role := "testrole"
 
-		err := accessService.RegisterRoute(subdomain, path, method, role)
+		err := accessService.RegisterRoute(nil, subdomain, path, method, role)
 		assert.NoError(tb, err)
 
 		fqdn := fmt.Sprintf("%s.%s", subdomain, ctx.Config().Config().Core.Domain)
@@ -41,7 +41,7 @@ func TestAccessServiceDefault_AssignRoleToUser(t *testing.T) {
 		userID := uint(123)
 		role := "testrole"
 
-		err := accessService.AssignRoleToUser(userID, role)
+		err := accessService.AssignRoleToUser(nil, userID, role)
 		assert.NoError(tb, err)
 
 		userIDStr := strconv.FormatUint(uint64(userID), 10)
@@ -66,16 +66,16 @@ func TestAccessServiceDefault_CheckAccess(t *testing.T) {
 		assert.NoError(tb, err)
 
 		// Assign role to user
-		err = accessService.AssignRoleToUser(userID, "testrole")
+		err = accessService.AssignRoleToUser(nil, userID, "testrole")
 		assert.NoError(tb, err)
 
 		// Check access
-		access, err := accessService.CheckAccess(userID, fqdn, path, method)
+		access, err := accessService.CheckAccess(nil, userID, fqdn, path, method)
 		assert.NoError(tb, err)
 		assert.True(tb, access)
 
 		// Check access with incorrect parameters
-		access, err = accessService.CheckAccess(userID, fqdn, "/wrongpath", method)
+		access, err = accessService.CheckAccess(nil, userID, fqdn, "/wrongpath", method)
 		assert.NoError(tb, err)
 		assert.False(tb, access)
 	}, coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService))
@@ -97,11 +97,11 @@ func TestAccessServiceDefault_ExportUserPolicy(t *testing.T) {
 		assert.NoError(tb, err)
 
 		// Assign role to user
-		err = accessService.AssignRoleToUser(userID, role)
+		err = accessService.AssignRoleToUser(nil, userID, role)
 		assert.NoError(tb, err)
 
 		// Export user policy
-		policies, err := accessService.ExportUserPolicy(userID)
+		policies, err := accessService.ExportUserPolicy(nil, userID)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, policies)
 
@@ -146,7 +146,7 @@ func TestAccessServiceDefault_ExportModel(t *testing.T) {
 		accessService := core.GetService[*service.AccessServiceDefault](ctx, core.ACCESS_SERVICE)
 		require.NotNil(tb, accessService)
 
-		model := accessService.ExportModel()
+		model := accessService.ExportModel(nil)
 		assert.NotNil(tb, model)
 		assert.NotEmpty(tb, model.RequestDefinition.Value)
 		assert.NotEmpty(tb, model.PolicyDefinition.Value)

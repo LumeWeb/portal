@@ -3,6 +3,8 @@ package cron
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/looplab/fsm"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +13,6 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
-	"testing"
 )
 
 func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
@@ -23,7 +24,7 @@ func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
 		registry := NewStateMachineRegistry(ctx)
 
 		// Test creating new machine
-		job, machine, err := registry.GetOrCreate(jobID)
+		job, machine, err := registry.GetOrCreate(ctx, jobID)
 		assert.Error(t, err) // Should error since job doesn't exist yet
 		assert.Nil(t, job)
 		assert.Nil(t, machine)
@@ -37,7 +38,7 @@ func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
 		require.NoError(t, db.Create(job).Error)
 
 		// Test getting existing machine
-		job, machine, err = registry.GetOrCreate(jobID)
+		job, machine, err = registry.GetOrCreate(ctx, jobID)
 		assert.NoError(t, err)
 		assert.NotNil(t, job)
 		assert.NotNil(t, machine)
@@ -62,7 +63,7 @@ func TestStateMachineRegistry_Transition(t *testing.T) {
 		require.NoError(t, db.Create(job).Error)
 
 		// Get state machine
-		_, _fsm, err := registry.GetOrCreate(jobID)
+		_, _fsm, err := registry.GetOrCreate(ctx, jobID)
 		require.NoError(t, err)
 
 		// Transition to running state with last run option
@@ -125,7 +126,7 @@ func TestStateMachineRegistry_Remove(t *testing.T) {
 		)
 
 		// Test removal
-		registry.Remove(jobID)
+		registry.Remove(nil, jobID)
 		_, exists := registry.machines[jobID]
 		assert.False(t, exists)
 	})

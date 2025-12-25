@@ -10,7 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/prometheuscollector"
 	"github.com/tus/tusd/v2/pkg/s3store"
 	mcontext "go.lumeweb.com/portal-middleware/context"
 	"go.lumeweb.com/portal-middleware/tus"
@@ -67,7 +69,7 @@ func NewTusHandler(
 		requests:      core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE),
 	}
 
-	err := th.init(handlerConfig)
+	err := th.init(ctx, handlerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +268,7 @@ func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 	return nil
 }
 
-func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
+func (t *TusHandlerDefault) init(ctx context.Context, handlerConfig core.TUSHandlerConfig) error {
 	// Validate handler config
 	if t.handlerConfig.Protocol == nil {
 		return fmt.Errorf("handler config Protocol cannot be nil")
@@ -276,7 +278,7 @@ func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
 		return fmt.Errorf("handler config Protocol must implement core.StorageProtocol")
 	}
 
-	s3Client, err := t.storage.S3Client(context.Background())
+	s3Client, err := t.storage.S3Client(ctx)
 	if err != nil {
 		return err
 	}
@@ -309,6 +311,11 @@ func (t *TusHandlerDefault) init(handlerConfig core.TUSHandlerConfig) error {
 		Logger:                    loggerToSlog(t.logger),
 	})
 
+	if err != nil {
+		return err
+	}
+
+	err = core.RegisterServiceMetrics(core.TUS_SERVICE, []prometheus.Collector{prometheuscollector.New(handlr.Metrics)})
 	if err != nil {
 		return err
 	}

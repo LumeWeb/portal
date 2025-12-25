@@ -2,14 +2,15 @@ package core
 
 import (
 	"fmt"
-	"github.com/invopop/jsonschema"
-	"go.lumeweb.com/portal-middleware/cors"
-	"go.lumeweb.com/portal-router"
-	"go.lumeweb.com/portal/config"
 	"net/http"
 	"reflect"
 	"sort"
 	"sync"
+
+	"github.com/invopop/jsonschema"
+	"go.lumeweb.com/portal-middleware/cors"
+	"go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/config"
 )
 
 var (
@@ -18,11 +19,12 @@ var (
 )
 
 type API interface {
+	Component
 	Name() string
 	Subdomain() string
 	Configure(router router.Router, accessSvc AccessService) error
 	AuthTokenName() string
-	Config() config.APIConfig
+	GetConfig() config.APIConfig
 	OpenAPIInfo() router.APIInfoDefinition
 }
 

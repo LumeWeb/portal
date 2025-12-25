@@ -36,7 +36,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context) error {
 	requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 
 	// Get all deletion requests
-	requests, err := userService.GetAccountsPendingDeletion()
+	requests, err := userService.GetAccountsPendingDeletion(nil)
 	if err != nil {
 		logger.Error("Failed to get account deletion requests", zap.Error(err))
 		return err
@@ -58,7 +58,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context) error {
 			}
 		}
 
-		pins, err := pinService.AllAccountPins(request.ID)
+		pins, err := pinService.AllAccountPins(ctx, request.ID)
 		if err != nil {
 			logger.Error("Failed to get account pins",
 				zap.Uint("user_id", request.ID),
@@ -76,7 +76,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context) error {
 			}
 		}
 
-		err = userService.DeleteAccount(request.ID)
+		err = userService.DeleteAccount(ctx, request.ID)
 		if err != nil {
 			logger.Error("Failed to delete account",
 				zap.Uint("user_id", request.ID),

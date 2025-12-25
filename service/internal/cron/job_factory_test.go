@@ -16,7 +16,7 @@ func TestDefaultJobFactory_RegisterFactory(t *testing.T) {
 	jobType := IntegrationTestJobType
 	var defaultSchedule *core.CronScheduleDefinition
 
-	err := factory.RegisterFactory(jobType, func() (core.CronJob, error) {
+	err := factory.RegisterFactory(nil, jobType, func() (core.CronJob, error) {
 		return nil, nil
 	}, defaultSchedule)
 	require.NoError(t, err)
@@ -38,7 +38,7 @@ func TestDefaultJobFactory_RegisterFactory_WithDefaultSchedule(t *testing.T) {
 		Type: core.CronScheduleTypeDaily,
 	}
 
-	err := factory.RegisterFactory(jobType, func() (core.CronJob, error) {
+	err := factory.RegisterFactory(nil, jobType, func() (core.CronJob, error) {
 		return nil, nil
 	}, defaultSchedule)
 	require.NoError(t, err)
@@ -58,12 +58,12 @@ func TestDefaultJobFactory_CreateJob(t *testing.T) {
 	factory := NewJobFactory(mockRegistry)
 	jobType := "core.test.job"
 
-	err := factory.RegisterFactory(jobType, func() (core.CronJob, error) {
+	err := factory.RegisterFactory(nil, jobType, func() (core.CronJob, error) {
 		return mocks.NewMockCronJob(t), nil
 	}, nil)
 	require.NoError(t, err)
 
-	job, err := factory.CreateJob(jobType)
+	job, err := factory.CreateJob(nil, jobType)
 	assert.NoError(t, err, "CreateJob should not return an error")
 	assert.NotNil(t, job, "CreateJob should return a job")
 	assert.IsType(t, mocks.NewMockCronJob(t), job, "CreateJob should return a mockCronJob")
@@ -74,7 +74,7 @@ func TestDefaultJobFactory_CreateJob_UnknownType(t *testing.T) {
 	factory := NewJobFactory(mockRegistry)
 	jobType := "core.unknown.job"
 
-	job, err := factory.CreateJob(jobType)
+	job, err := factory.CreateJob(nil, jobType)
 	assert.Error(t, err, "CreateJob should return an error")
 	assert.Nil(t, job, "CreateJob should return nil")
 	assert.Equal(t, fmt.Sprintf("unknown job type: %s", jobType), err.Error(), "Error message should match")
@@ -88,12 +88,12 @@ func TestDefaultJobFactory_GetDefaultSchedule(t *testing.T) {
 		Type: core.CronScheduleTypeDaily,
 	}
 
-	err := factory.RegisterFactory(jobType, func() (core.CronJob, error) {
+	err := factory.RegisterFactory(nil, jobType, func() (core.CronJob, error) {
 		return nil, nil
 	}, defaultSchedule)
 	require.NoError(t, err)
 
-	sched, ok := factory.GetDefaultSchedule(jobType)
+	sched, ok := factory.GetDefaultSchedule(nil, jobType)
 	assert.True(t, ok, "GetDefaultSchedule should return true")
 	assert.Equal(t, defaultSchedule, sched, "GetDefaultSchedule should return the default schedule")
 }
@@ -103,7 +103,7 @@ func TestDefaultJobFactory_GetDefaultSchedule_NotFound(t *testing.T) {
 	factory := NewJobFactory(mockRegistry)
 	jobType := "core.unknown.job"
 
-	sched, ok := factory.GetDefaultSchedule(jobType)
+	sched, ok := factory.GetDefaultSchedule(nil, jobType)
 	assert.False(t, ok, "GetDefaultSchedule should return false")
 	assert.Nil(t, sched, "GetDefaultSchedule should return nil")
 }

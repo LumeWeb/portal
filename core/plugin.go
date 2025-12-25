@@ -3,6 +3,8 @@ package core
 import (
 	"errors"
 	"fmt"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"go.lumeweb.com/portal/build"
 	_ "go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/internal"
@@ -47,6 +49,7 @@ type PluginInfo struct {
 	TargetApps      []string
 	Operations      WorkflowOperationsFactory
 	Workflows       WorkflowFactory
+	Metrics         []prometheus.Collector
 }
 
 type Configurable interface {

@@ -28,14 +28,13 @@ func init() {
 		ID:      core.TUS_SERVICE,
 		Factory: NewTUSService,
 		Depends: []string{core.REQUEST_SERVICE},
+		Metrics: tus.GetCollectors(),
 	})
 }
 
 type TUSServiceDefault struct {
-	ctx      core.Context
-	db       *gorm.DB
-	logger   *core.Logger
 	requests core.RequestService
+	core.Service
 }
 
 func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {
@@ -43,12 +42,9 @@ func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			storage.ctx = ctx
-			storage.db = ctx.DB()
-			storage.logger = ctx.ServiceLogger(storage)
 			storage.requests = core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 
-			event.OnBootCompleted(ctx, func(c core.Context) error {
+			event.OnBootCompleted(ctx, func(c core.Context, _ context.Context) error {
 				for _, proto := range core.GetProtocolList() {
 					if sproto, ok := proto.(core.StorageProtocol); ok {
 						storage.requests.RegisterRequestModel(core.TUSUploadOperationName(sproto.Name()), &models.TUSRequest{})
@@ -76,196 +72,288 @@ func (t *TUSServiceDefault) Name() string {
 func (t *TUSServiceDefault) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
 	opName := core.TUSUploadOperationName(protocol.Name())
 
-	req, err := t.requests.QueryRequestData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
-		Operation: &opName,
-	})
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			t.logger.Error("Failed to query request", zap.Error(err))
-		}
+	result, err := core.MetricTrackResult(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpExists),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpExists),
+		func() (*uploadExistsResult, error) {
+			req, err := t.requests.QueryRequestData(ctx, &models.TUSRequest{TUSUploadID: id}, core.RequestFilter{
+				Operation: &opName,
+			})
+			if err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					t.Logger().Error("Failed to query request", zap.Error(err))
+				}
+				return nil, err
+			}
+
+			data, err := t.requests.GetRequestData(ctx, req)
+			if err != nil {
+				t.Logger().Error("Failed to get request data", zap.Error(err))
+				return nil, err
+			}
+
+			return &uploadExistsResult{
+				exists: true,
+				data:   data.(*models.TUSRequest),
+			}, nil
+		},
+	)
+
+	if err == nil && result != nil {
+		tus.UploadsQueried.WithLabelValues(tus.LabelOpExists).Inc()
+	}
+	if result == nil {
 		return false, nil
 	}
+	return result.exists, result.data
+}
 
-	data, err := t.requests.GetRequestData(ctx, req)
-	if err != nil {
-		t.logger.Error("Failed to get request data", zap.Error(err))
-		return false, nil
-	}
-
-	return true, data.(*models.TUSRequest)
+type uploadExistsResult struct {
+	exists bool
+	data   *models.TUSRequest
 }
 
 func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash) (bool, *models.TUSRequest) {
 	opName := core.TUSUploadOperationName(protocol.Name())
 
-	req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{UploadHash: hash.Multihash()}, core.RequestFilter{
-		Operation: &opName,
-	})
+	result, err := core.MetricTrackResult(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpHashExists),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpHashExists),
+		func() (*uploadExistsResult, error) {
+			req, err := t.requests.QueryRequest(ctx, &models.TUSRequest{UploadHash: hash.Multihash()}, core.RequestFilter{
+				Operation: &opName,
+			})
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, err
+				}
+				return nil, err
+			}
+
+			data, err := t.requests.GetRequestData(ctx, req)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, err
+				}
+				return nil, err
+			}
+
+			return &uploadExistsResult{
+				exists: true,
+				data:   data.(*models.TUSRequest),
+			}, nil
+		},
+	)
+
+	if err == nil && result != nil {
+		tus.UploadsQueried.WithLabelValues(tus.LabelOpHashExists).Inc()
+	}
+	if result == nil {
 		return false, nil
 	}
-
-	data, err := t.requests.GetRequestData(ctx, req)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
-		return false, nil
-	}
-
-	return true, data.(*models.TUSRequest)
+	return result.exists, result.data
 }
 
 func (t *TUSServiceDefault) Uploads(ctx context.Context, protocol core.StorageProtocol, uploaderID uint) ([]*models.TUSRequest, error) {
-	var uploads []*models.TUSRequest
+	result, err := core.MetricTrackResult(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpList),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpList),
+		func() ([]*models.TUSRequest, error) {
+			var uploads []*models.TUSRequest
 
-	opName := core.TUSUploadOperationName(protocol.Name())
+			opName := core.TUSUploadOperationName(protocol.Name())
 
-	data, err := t.requests.ListRequestsByUser(ctx, uploaderID, core.RequestFilter{
-		Operation: &opName,
-	})
+			data, err := t.requests.ListRequestsByUser(ctx, uploaderID, core.RequestFilter{
+				Operation: &opName,
+			})
 
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
-		}
-		return nil, err
-	}
-
-	for _, req := range data {
-		uploadData, err := t.requests.GetRequestData(ctx, req)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, err
+				}
 				return nil, err
 			}
-			return nil, err
-		}
-		uploads = append(uploads, uploadData.(*models.TUSRequest))
-	}
 
-	return uploads, nil
+			for _, req := range data {
+				uploadData, err := t.requests.GetRequestData(ctx, req)
+				if err != nil {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
+						return nil, err
+					}
+					return nil, err
+				}
+				uploads = append(uploads, uploadData.(*models.TUSRequest))
+			}
+
+			return uploads, nil
+		},
+	)
+
+	if err == nil {
+		tus.UploadsListed.WithLabelValues(tus.LabelOpList).Inc()
+	}
+	return result, err
 }
 
 func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol) (*models.TUSRequest, error) {
-	var hashBytes []byte
+	result, err := core.MetricTrackResult(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpCreate),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpCreate),
+		func() (*models.TUSRequest, error) {
+			var hashBytes []byte
 
-	if hash != nil {
-		hashBytes = hash.Multihash()
+			if hash != nil {
+				hashBytes = hash.Multihash()
+			}
+
+			opName := core.TUSUploadOperationName(protocol.Name())
+
+			upload := &models.Request{
+				Hash:      hashBytes,
+				Protocol:  protocol.Name(),
+				Operation: opName,
+				Status:    models.RequestStatusPending,
+				UserID:    lo.ToPtr(uploaderID),
+				SourceIP:  uploaderIP,
+			}
+
+			if hash != nil {
+				upload.CIDType = hash.CIDType()
+			}
+
+			tusData := &models.TUSRequest{TUSUploadID: uploadID}
+			request, err := t.requests.CreateRequest(ctx, upload, tusData)
+			if err != nil {
+				return nil, err
+			}
+
+			dataReq, err := t.requests.GetRequestData(ctx, request)
+
+			if err != nil {
+				return nil, err
+			}
+
+			return dataReq.(*models.TUSRequest), nil
+		},
+	)
+
+	if err == nil {
+		tus.UploadsCreated.WithLabelValues(tus.LabelOpCreate).Inc()
 	}
-
-	opName := core.TUSUploadOperationName(protocol.Name())
-
-	upload := &models.Request{
-		Hash:      hashBytes,
-		Protocol:  protocol.Name(),
-		Operation: opName,
-		Status:    models.RequestStatusPending,
-		UserID:    lo.ToPtr(uploaderID),
-		SourceIP:  uploaderIP,
-	}
-
-	if hash != nil {
-		upload.CIDType = hash.CIDType()
-	}
-
-	tusData := &models.TUSRequest{TUSUploadID: uploadID}
-	request, err := t.requests.CreateRequest(ctx, upload, tusData)
-	if err != nil {
-		return nil, err
-	}
-
-	dataReq, err := t.requests.GetRequestData(ctx, request)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return dataReq.(*models.TUSRequest), nil
+	return result, err
 }
 
 func (t *TUSServiceDefault) UploadProgress(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+	return core.MetricTrack(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpProgress),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpProgress),
+		func() error {
+			exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
-	if !exists {
-		return core.ErrUploadNotFound
-	}
+			if !exists {
+				return core.ErrUploadNotFound
+			}
 
-	upload.UpdatedAt = time.Now()
+			upload.UpdatedAt = time.Now()
 
-	req, err := t.requests.GetRequest(ctx, upload.RequestID)
-	if err != nil {
-		return err
-	}
-	return t.requests.UpdateRequestData(ctx, req, upload)
+			req, err := t.requests.GetRequest(ctx, upload.RequestID)
+			if err != nil {
+				return err
+			}
+			return t.requests.UpdateRequestData(ctx, req, upload)
+		},
+	)
 }
 
 func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+	return core.MetricTrack(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpCompleted),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpCompleted),
+		func() error {
+			exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
-	if !exists {
-		return core.ErrUploadNotFound
-	}
+			if !exists {
+				return core.ErrUploadNotFound
+			}
 
-	upload.UpdatedAt = time.Now()
-	upload.Completed = true
+			upload.UpdatedAt = time.Now()
+			upload.Completed = true
 
-	req, err := t.requests.GetRequest(ctx, upload.RequestID)
-	if err != nil {
-		return err
-	}
-	return t.requests.UpdateRequestData(ctx, req, upload)
+			req, err := t.requests.GetRequest(ctx, upload.RequestID)
+			if err != nil {
+				return err
+			}
+			return t.requests.UpdateRequestData(ctx, req, upload)
+		},
+	)
 }
 
 func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+	return core.MetricTrack(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpProcessing),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpProcessing),
+		func() error {
+			exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
-	if !exists {
-		return core.ErrUploadNotFound
-	}
+			if !exists {
+				return core.ErrUploadNotFound
+			}
 
-	return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing, "Uploading...")
+			return t.requests.UpdateRequestStatus(ctx, upload.RequestID, models.RequestStatusProcessing, "Uploading...")
+		},
+	)
 }
 
 func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+	return core.MetricTrack(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpDelete),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpDelete),
+		func() error {
+			exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
-	if !exists {
-		return core.ErrUploadNotFound
-	}
+			if !exists {
+				return core.ErrUploadNotFound
+			}
 
-	err := t.requests.DeleteRequest(ctx, upload.RequestID)
-	if err != nil {
-		return err
-	}
+			err := t.requests.DeleteRequest(ctx, upload.RequestID)
+			if err != nil {
+				return err
+			}
 
-	return nil
+			tus.UploadsDeleted.WithLabelValues(tus.LabelOpDelete).Inc()
+			return nil
+		},
+	)
 }
 
 func (t *TUSServiceDefault) SetHash(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash) error {
-	exists, upload := t.UploadExists(ctx, protocol, uploadID)
+	return core.MetricTrack(
+		tus.UploadDuration.WithLabelValues(tus.LabelOpSetHash),
+		tus.UploadFailed.WithLabelValues(tus.LabelOpSetHash),
+		func() error {
+			exists, upload := t.UploadExists(ctx, protocol, uploadID)
 
-	if !exists {
-		return core.ErrUploadNotFound
-	}
+			if !exists {
+				return core.ErrUploadNotFound
+			}
 
-	req, err := t.requests.GetRequest(ctx, upload.RequestID)
-	if err != nil {
-		return err
-	}
+			req, err := t.requests.GetRequest(ctx, upload.RequestID)
+			if err != nil {
+				return err
+			}
 
-	req.Hash = hash.Multihash()
-	req.CIDType = hash.CIDType()
+			req.Hash = hash.Multihash()
+			req.CIDType = hash.CIDType()
 
-	err = t.requests.UpdateRequest(ctx, req)
-	if err != nil {
-		return err
-	}
+			err = t.requests.UpdateRequest(ctx, req)
+			if err != nil {
+				return err
+			}
 
-	return nil
+			return nil
+		},
+	)
 }
 
 func CreateTusHandler(ctx core.Context, config core.TUSHandlerConfig) (*tus.TusHandlerDefault, error) {

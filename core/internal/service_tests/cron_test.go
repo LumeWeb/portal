@@ -47,7 +47,7 @@ func TestCronServiceDefault_RegisterJob(t *testing.T) {
 		)
 
 		// Register the job
-		err := cronService.RegisterJob(mockJob, nil)
+		err := cronService.RegisterJob(nil, mockJob, nil)
 		require.NoError(t, err)
 
 		// Verify that the job was created in the database
@@ -81,7 +81,7 @@ func TestCronServiceDefault_RegisterJob_InvalidOrigin(t *testing.T) {
 		mockJob.EXPECT().Origin().Return("invalid-origin")
 
 		// Register the job
-		err := cronService.RegisterJob(mockJob, nil)
+		err := cronService.RegisterJob(nil, mockJob, nil)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid job origin")
 	})
@@ -109,7 +109,7 @@ func TestCronServiceDefault_RunJob(t *testing.T) {
 		)
 
 		// Run the job
-		err := cronService.RunJob(jobID)
+		err := cronService.RunJob(nil, jobID)
 		require.NoError(t, err)
 
 		// Assert that EnqueueJob was called
@@ -153,7 +153,7 @@ func TestCronServiceDefault_RegisterJobType(t *testing.T) {
 		)
 
 		// Register the job type
-		err := cronService.RegisterJobType(jobType, jobFactory, defaultSchedule)
+		err := cronService.RegisterJobType(nil, jobType, jobFactory, defaultSchedule)
 		require.NoError(t, err)
 
 		// Assert that RegisterFactory was called
@@ -308,7 +308,7 @@ func TestCronServiceDefault_RegisterPluginJobs(t *testing.T) {
 		)
 
 		// Register the plugin jobs
-		err := cronService.RegisterPluginJobs(pluginInfo)
+		err := cronService.RegisterPluginJobs(nil, pluginInfo)
 		require.NoError(t, err)
 
 		// Assert that RegisterFactory was called for each job
@@ -355,11 +355,11 @@ func TestCronServiceDefault_StartStop(t *testing.T) {
 		mockScheduler.EXPECT().Shutdown().Return(nil).Times(1)
 
 		// Start the cron service
-		err = cronService.Start()
+		err = cronService.Start(nil)
 		require.NoError(t, err)
 
 		// Stop the cron service
-		err = cronService.Stop()
+		err = cronService.Stop(nil)
 		require.NoError(t, err)
 
 		// Assert that Start and Shutdown were called

@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -37,8 +39,8 @@ func (_m *MockCronMonitor) EXPECT() *MockCronMonitor_Expecter {
 }
 
 // CheckHeartbeat provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronMonitor) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckHeartbeat")
@@ -46,16 +48,16 @@ func (_mock *MockCronMonitor) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (bool, error)); ok {
-		return returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (bool, error)); ok {
+		return returnFunc(ctx, jobID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) bool); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) bool); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) error); ok {
-		r1 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, jobID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -68,19 +70,25 @@ type MockCronMonitor_CheckHeartbeat_Call struct {
 }
 
 // CheckHeartbeat is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) CheckHeartbeat(jobID interface{}) *MockCronMonitor_CheckHeartbeat_Call {
-	return &MockCronMonitor_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", jobID)}
+func (_e *MockCronMonitor_Expecter) CheckHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_CheckHeartbeat_Call {
+	return &MockCronMonitor_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", ctx, jobID)}
 }
 
-func (_c *MockCronMonitor_CheckHeartbeat_Call) Run(run func(jobID uuid.UUID)) *MockCronMonitor_CheckHeartbeat_Call {
+func (_c *MockCronMonitor_CheckHeartbeat_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronMonitor_CheckHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -91,22 +99,22 @@ func (_c *MockCronMonitor_CheckHeartbeat_Call) Return(b bool, err error) *MockCr
 	return _c
 }
 
-func (_c *MockCronMonitor_CheckHeartbeat_Call) RunAndReturn(run func(jobID uuid.UUID) (bool, error)) *MockCronMonitor_CheckHeartbeat_Call {
+func (_c *MockCronMonitor_CheckHeartbeat_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) (bool, error)) *MockCronMonitor_CheckHeartbeat_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CleanupCompletedJobs provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) CleanupCompletedJobs() error {
-	ret := _mock.Called()
+func (_mock *MockCronMonitor) CleanupCompletedJobs(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CleanupCompletedJobs")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -119,13 +127,20 @@ type MockCronMonitor_CleanupCompletedJobs_Call struct {
 }
 
 // CleanupCompletedJobs is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) CleanupCompletedJobs() *MockCronMonitor_CleanupCompletedJobs_Call {
-	return &MockCronMonitor_CleanupCompletedJobs_Call{Call: _e.mock.On("CleanupCompletedJobs")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) CleanupCompletedJobs(ctx interface{}) *MockCronMonitor_CleanupCompletedJobs_Call {
+	return &MockCronMonitor_CleanupCompletedJobs_Call{Call: _e.mock.On("CleanupCompletedJobs", ctx)}
 }
 
-func (_c *MockCronMonitor_CleanupCompletedJobs_Call) Run(run func()) *MockCronMonitor_CleanupCompletedJobs_Call {
+func (_c *MockCronMonitor_CleanupCompletedJobs_Call) Run(run func(ctx context.Context)) *MockCronMonitor_CleanupCompletedJobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -135,14 +150,14 @@ func (_c *MockCronMonitor_CleanupCompletedJobs_Call) Return(err error) *MockCron
 	return _c
 }
 
-func (_c *MockCronMonitor_CleanupCompletedJobs_Call) RunAndReturn(run func() error) *MockCronMonitor_CleanupCompletedJobs_Call {
+func (_c *MockCronMonitor_CleanupCompletedJobs_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronMonitor_CleanupCompletedJobs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CleanupOrphanedJobs provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) CleanupOrphanedJobs() (int, error) {
-	ret := _mock.Called()
+func (_mock *MockCronMonitor) CleanupOrphanedJobs(ctx context.Context) (int, error) {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CleanupOrphanedJobs")
@@ -150,16 +165,16 @@ func (_mock *MockCronMonitor) CleanupOrphanedJobs() (int, error) {
 
 	var r0 int
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func() (int, error)); ok {
-		return returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) (int, error)); ok {
+		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func() int); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) int); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
-	if returnFunc, ok := ret.Get(1).(func() error); ok {
-		r1 = returnFunc()
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -172,13 +187,20 @@ type MockCronMonitor_CleanupOrphanedJobs_Call struct {
 }
 
 // CleanupOrphanedJobs is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) CleanupOrphanedJobs() *MockCronMonitor_CleanupOrphanedJobs_Call {
-	return &MockCronMonitor_CleanupOrphanedJobs_Call{Call: _e.mock.On("CleanupOrphanedJobs")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) CleanupOrphanedJobs(ctx interface{}) *MockCronMonitor_CleanupOrphanedJobs_Call {
+	return &MockCronMonitor_CleanupOrphanedJobs_Call{Call: _e.mock.On("CleanupOrphanedJobs", ctx)}
 }
 
-func (_c *MockCronMonitor_CleanupOrphanedJobs_Call) Run(run func()) *MockCronMonitor_CleanupOrphanedJobs_Call {
+func (_c *MockCronMonitor_CleanupOrphanedJobs_Call) Run(run func(ctx context.Context)) *MockCronMonitor_CleanupOrphanedJobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -188,22 +210,22 @@ func (_c *MockCronMonitor_CleanupOrphanedJobs_Call) Return(n int, err error) *Mo
 	return _c
 }
 
-func (_c *MockCronMonitor_CleanupOrphanedJobs_Call) RunAndReturn(run func() (int, error)) *MockCronMonitor_CleanupOrphanedJobs_Call {
+func (_c *MockCronMonitor_CleanupOrphanedJobs_Call) RunAndReturn(run func(ctx context.Context) (int, error)) *MockCronMonitor_CleanupOrphanedJobs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RequeueStuckJobs provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) RequeueStuckJobs() error {
-	ret := _mock.Called()
+func (_mock *MockCronMonitor) RequeueStuckJobs(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RequeueStuckJobs")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -216,13 +238,20 @@ type MockCronMonitor_RequeueStuckJobs_Call struct {
 }
 
 // RequeueStuckJobs is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) RequeueStuckJobs() *MockCronMonitor_RequeueStuckJobs_Call {
-	return &MockCronMonitor_RequeueStuckJobs_Call{Call: _e.mock.On("RequeueStuckJobs")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) RequeueStuckJobs(ctx interface{}) *MockCronMonitor_RequeueStuckJobs_Call {
+	return &MockCronMonitor_RequeueStuckJobs_Call{Call: _e.mock.On("RequeueStuckJobs", ctx)}
 }
 
-func (_c *MockCronMonitor_RequeueStuckJobs_Call) Run(run func()) *MockCronMonitor_RequeueStuckJobs_Call {
+func (_c *MockCronMonitor_RequeueStuckJobs_Call) Run(run func(ctx context.Context)) *MockCronMonitor_RequeueStuckJobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -232,14 +261,14 @@ func (_c *MockCronMonitor_RequeueStuckJobs_Call) Return(err error) *MockCronMoni
 	return _c
 }
 
-func (_c *MockCronMonitor_RequeueStuckJobs_Call) RunAndReturn(run func() error) *MockCronMonitor_RequeueStuckJobs_Call {
+func (_c *MockCronMonitor_RequeueStuckJobs_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronMonitor_RequeueStuckJobs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SignalMaintenance provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) SignalMaintenance() {
-	_mock.Called()
+func (_mock *MockCronMonitor) SignalMaintenance(ctx context.Context) {
+	_mock.Called(ctx)
 	return
 }
 
@@ -249,13 +278,20 @@ type MockCronMonitor_SignalMaintenance_Call struct {
 }
 
 // SignalMaintenance is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) SignalMaintenance() *MockCronMonitor_SignalMaintenance_Call {
-	return &MockCronMonitor_SignalMaintenance_Call{Call: _e.mock.On("SignalMaintenance")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) SignalMaintenance(ctx interface{}) *MockCronMonitor_SignalMaintenance_Call {
+	return &MockCronMonitor_SignalMaintenance_Call{Call: _e.mock.On("SignalMaintenance", ctx)}
 }
 
-func (_c *MockCronMonitor_SignalMaintenance_Call) Run(run func()) *MockCronMonitor_SignalMaintenance_Call {
+func (_c *MockCronMonitor_SignalMaintenance_Call) Run(run func(ctx context.Context)) *MockCronMonitor_SignalMaintenance_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -265,14 +301,14 @@ func (_c *MockCronMonitor_SignalMaintenance_Call) Return() *MockCronMonitor_Sign
 	return _c
 }
 
-func (_c *MockCronMonitor_SignalMaintenance_Call) RunAndReturn(run func()) *MockCronMonitor_SignalMaintenance_Call {
+func (_c *MockCronMonitor_SignalMaintenance_Call) RunAndReturn(run func(ctx context.Context)) *MockCronMonitor_SignalMaintenance_Call {
 	_c.Run(run)
 	return _c
 }
 
 // StartHeartbeat provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) StartHeartbeat(jobID uuid.UUID) {
-	_mock.Called(jobID)
+func (_mock *MockCronMonitor) StartHeartbeat(ctx context.Context, jobID uuid.UUID) {
+	_mock.Called(ctx, jobID)
 	return
 }
 
@@ -282,19 +318,25 @@ type MockCronMonitor_StartHeartbeat_Call struct {
 }
 
 // StartHeartbeat is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) StartHeartbeat(jobID interface{}) *MockCronMonitor_StartHeartbeat_Call {
-	return &MockCronMonitor_StartHeartbeat_Call{Call: _e.mock.On("StartHeartbeat", jobID)}
+func (_e *MockCronMonitor_Expecter) StartHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_StartHeartbeat_Call {
+	return &MockCronMonitor_StartHeartbeat_Call{Call: _e.mock.On("StartHeartbeat", ctx, jobID)}
 }
 
-func (_c *MockCronMonitor_StartHeartbeat_Call) Run(run func(jobID uuid.UUID)) *MockCronMonitor_StartHeartbeat_Call {
+func (_c *MockCronMonitor_StartHeartbeat_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronMonitor_StartHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -305,22 +347,22 @@ func (_c *MockCronMonitor_StartHeartbeat_Call) Return() *MockCronMonitor_StartHe
 	return _c
 }
 
-func (_c *MockCronMonitor_StartHeartbeat_Call) RunAndReturn(run func(jobID uuid.UUID)) *MockCronMonitor_StartHeartbeat_Call {
+func (_c *MockCronMonitor_StartHeartbeat_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID)) *MockCronMonitor_StartHeartbeat_Call {
 	_c.Run(run)
 	return _c
 }
 
 // StartMonitoring provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) StartMonitoring() error {
-	ret := _mock.Called()
+func (_mock *MockCronMonitor) StartMonitoring(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StartMonitoring")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -333,13 +375,20 @@ type MockCronMonitor_StartMonitoring_Call struct {
 }
 
 // StartMonitoring is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) StartMonitoring() *MockCronMonitor_StartMonitoring_Call {
-	return &MockCronMonitor_StartMonitoring_Call{Call: _e.mock.On("StartMonitoring")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) StartMonitoring(ctx interface{}) *MockCronMonitor_StartMonitoring_Call {
+	return &MockCronMonitor_StartMonitoring_Call{Call: _e.mock.On("StartMonitoring", ctx)}
 }
 
-func (_c *MockCronMonitor_StartMonitoring_Call) Run(run func()) *MockCronMonitor_StartMonitoring_Call {
+func (_c *MockCronMonitor_StartMonitoring_Call) Run(run func(ctx context.Context)) *MockCronMonitor_StartMonitoring_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -349,14 +398,14 @@ func (_c *MockCronMonitor_StartMonitoring_Call) Return(err error) *MockCronMonit
 	return _c
 }
 
-func (_c *MockCronMonitor_StartMonitoring_Call) RunAndReturn(run func() error) *MockCronMonitor_StartMonitoring_Call {
+func (_c *MockCronMonitor_StartMonitoring_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronMonitor_StartMonitoring_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // StopHeartbeat provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) StopHeartbeat(jobID uuid.UUID) {
-	_mock.Called(jobID)
+func (_mock *MockCronMonitor) StopHeartbeat(ctx context.Context, jobID uuid.UUID) {
+	_mock.Called(ctx, jobID)
 	return
 }
 
@@ -366,19 +415,25 @@ type MockCronMonitor_StopHeartbeat_Call struct {
 }
 
 // StopHeartbeat is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) StopHeartbeat(jobID interface{}) *MockCronMonitor_StopHeartbeat_Call {
-	return &MockCronMonitor_StopHeartbeat_Call{Call: _e.mock.On("StopHeartbeat", jobID)}
+func (_e *MockCronMonitor_Expecter) StopHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_StopHeartbeat_Call {
+	return &MockCronMonitor_StopHeartbeat_Call{Call: _e.mock.On("StopHeartbeat", ctx, jobID)}
 }
 
-func (_c *MockCronMonitor_StopHeartbeat_Call) Run(run func(jobID uuid.UUID)) *MockCronMonitor_StopHeartbeat_Call {
+func (_c *MockCronMonitor_StopHeartbeat_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronMonitor_StopHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -389,22 +444,22 @@ func (_c *MockCronMonitor_StopHeartbeat_Call) Return() *MockCronMonitor_StopHear
 	return _c
 }
 
-func (_c *MockCronMonitor_StopHeartbeat_Call) RunAndReturn(run func(jobID uuid.UUID)) *MockCronMonitor_StopHeartbeat_Call {
+func (_c *MockCronMonitor_StopHeartbeat_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID)) *MockCronMonitor_StopHeartbeat_Call {
 	_c.Run(run)
 	return _c
 }
 
 // StopMonitoring provides a mock function for the type MockCronMonitor
-func (_mock *MockCronMonitor) StopMonitoring() error {
-	ret := _mock.Called()
+func (_mock *MockCronMonitor) StopMonitoring(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for StopMonitoring")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -417,13 +472,20 @@ type MockCronMonitor_StopMonitoring_Call struct {
 }
 
 // StopMonitoring is a helper method to define mock.On call
-func (_e *MockCronMonitor_Expecter) StopMonitoring() *MockCronMonitor_StopMonitoring_Call {
-	return &MockCronMonitor_StopMonitoring_Call{Call: _e.mock.On("StopMonitoring")}
+//   - ctx context.Context
+func (_e *MockCronMonitor_Expecter) StopMonitoring(ctx interface{}) *MockCronMonitor_StopMonitoring_Call {
+	return &MockCronMonitor_StopMonitoring_Call{Call: _e.mock.On("StopMonitoring", ctx)}
 }
 
-func (_c *MockCronMonitor_StopMonitoring_Call) Run(run func()) *MockCronMonitor_StopMonitoring_Call {
+func (_c *MockCronMonitor_StopMonitoring_Call) Run(run func(ctx context.Context)) *MockCronMonitor_StopMonitoring_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -433,7 +495,7 @@ func (_c *MockCronMonitor_StopMonitoring_Call) Return(err error) *MockCronMonito
 	return _c
 }
 
-func (_c *MockCronMonitor_StopMonitoring_Call) RunAndReturn(run func() error) *MockCronMonitor_StopMonitoring_Call {
+func (_c *MockCronMonitor_StopMonitoring_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronMonitor_StopMonitoring_Call {
 	_c.Call.Return(run)
 	return _c
 }

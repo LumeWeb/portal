@@ -41,8 +41,8 @@ func (_m *MockCronCoordinator) EXPECT() *MockCronCoordinator_Expecter {
 }
 
 // CheckHeartbeat provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckHeartbeat")
@@ -50,16 +50,16 @@ func (_mock *MockCronCoordinator) CheckHeartbeat(jobID uuid.UUID) (bool, error) 
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (bool, error)); ok {
-		return returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (bool, error)); ok {
+		return returnFunc(ctx, jobID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) bool); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) bool); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) error); ok {
-		r1 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, jobID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -72,19 +72,25 @@ type MockCronCoordinator_CheckHeartbeat_Call struct {
 }
 
 // CheckHeartbeat is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CheckHeartbeat(jobID interface{}) *MockCronCoordinator_CheckHeartbeat_Call {
-	return &MockCronCoordinator_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", jobID)}
+func (_e *MockCronCoordinator_Expecter) CheckHeartbeat(ctx interface{}, jobID interface{}) *MockCronCoordinator_CheckHeartbeat_Call {
+	return &MockCronCoordinator_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_CheckHeartbeat_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_CheckHeartbeat_Call {
+func (_c *MockCronCoordinator_CheckHeartbeat_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_CheckHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -95,22 +101,22 @@ func (_c *MockCronCoordinator_CheckHeartbeat_Call) Return(b bool, err error) *Mo
 	return _c
 }
 
-func (_c *MockCronCoordinator_CheckHeartbeat_Call) RunAndReturn(run func(jobID uuid.UUID) (bool, error)) *MockCronCoordinator_CheckHeartbeat_Call {
+func (_c *MockCronCoordinator_CheckHeartbeat_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) (bool, error)) *MockCronCoordinator_CheckHeartbeat_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CleanupJob provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) CleanupJob(jobID uuid.UUID) error {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID) error {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CleanupJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -123,19 +129,25 @@ type MockCronCoordinator_CleanupJob_Call struct {
 }
 
 // CleanupJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CleanupJob(jobID interface{}) *MockCronCoordinator_CleanupJob_Call {
-	return &MockCronCoordinator_CleanupJob_Call{Call: _e.mock.On("CleanupJob", jobID)}
+func (_e *MockCronCoordinator_Expecter) CleanupJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_CleanupJob_Call {
+	return &MockCronCoordinator_CleanupJob_Call{Call: _e.mock.On("CleanupJob", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_CleanupJob_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_CleanupJob_Call {
+func (_c *MockCronCoordinator_CleanupJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_CleanupJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -146,7 +158,7 @@ func (_c *MockCronCoordinator_CleanupJob_Call) Return(err error) *MockCronCoordi
 	return _c
 }
 
-func (_c *MockCronCoordinator_CleanupJob_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_CleanupJob_Call {
+func (_c *MockCronCoordinator_CleanupJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) error) *MockCronCoordinator_CleanupJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -196,8 +208,8 @@ func (_c *MockCronCoordinator_Close_Call) RunAndReturn(run func() error) *MockCr
 }
 
 // CreateJobFromDB provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) CreateJobFromDB(jobID uuid.UUID) (core.CronJob, error) {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) CreateJobFromDB(ctx context.Context, jobID uuid.UUID) (core.CronJob, error) {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateJobFromDB")
@@ -205,18 +217,18 @@ func (_mock *MockCronCoordinator) CreateJobFromDB(jobID uuid.UUID) (core.CronJob
 
 	var r0 core.CronJob
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (core.CronJob, error)); ok {
-		return returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (core.CronJob, error)); ok {
+		return returnFunc(ctx, jobID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) core.CronJob); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) core.CronJob); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(core.CronJob)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) error); ok {
-		r1 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = returnFunc(ctx, jobID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -229,19 +241,25 @@ type MockCronCoordinator_CreateJobFromDB_Call struct {
 }
 
 // CreateJobFromDB is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CreateJobFromDB(jobID interface{}) *MockCronCoordinator_CreateJobFromDB_Call {
-	return &MockCronCoordinator_CreateJobFromDB_Call{Call: _e.mock.On("CreateJobFromDB", jobID)}
+func (_e *MockCronCoordinator_Expecter) CreateJobFromDB(ctx interface{}, jobID interface{}) *MockCronCoordinator_CreateJobFromDB_Call {
+	return &MockCronCoordinator_CreateJobFromDB_Call{Call: _e.mock.On("CreateJobFromDB", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_CreateJobFromDB_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_CreateJobFromDB_Call {
+func (_c *MockCronCoordinator_CreateJobFromDB_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_CreateJobFromDB_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -252,22 +270,22 @@ func (_c *MockCronCoordinator_CreateJobFromDB_Call) Return(cronJob core.CronJob,
 	return _c
 }
 
-func (_c *MockCronCoordinator_CreateJobFromDB_Call) RunAndReturn(run func(jobID uuid.UUID) (core.CronJob, error)) *MockCronCoordinator_CreateJobFromDB_Call {
+func (_c *MockCronCoordinator_CreateJobFromDB_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) (core.CronJob, error)) *MockCronCoordinator_CreateJobFromDB_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // EnqueueJob provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) EnqueueJob(jobID uuid.UUID) error {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID) error {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for EnqueueJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -280,19 +298,25 @@ type MockCronCoordinator_EnqueueJob_Call struct {
 }
 
 // EnqueueJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) EnqueueJob(jobID interface{}) *MockCronCoordinator_EnqueueJob_Call {
-	return &MockCronCoordinator_EnqueueJob_Call{Call: _e.mock.On("EnqueueJob", jobID)}
+func (_e *MockCronCoordinator_Expecter) EnqueueJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_EnqueueJob_Call {
+	return &MockCronCoordinator_EnqueueJob_Call{Call: _e.mock.On("EnqueueJob", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_EnqueueJob_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_EnqueueJob_Call {
+func (_c *MockCronCoordinator_EnqueueJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_EnqueueJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -303,22 +327,22 @@ func (_c *MockCronCoordinator_EnqueueJob_Call) Return(err error) *MockCronCoordi
 	return _c
 }
 
-func (_c *MockCronCoordinator_EnqueueJob_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_EnqueueJob_Call {
+func (_c *MockCronCoordinator_EnqueueJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) error) *MockCronCoordinator_EnqueueJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ExecuteJob provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) ExecuteJob(jobID uuid.UUID) error {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExecuteJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -331,19 +355,25 @@ type MockCronCoordinator_ExecuteJob_Call struct {
 }
 
 // ExecuteJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) ExecuteJob(jobID interface{}) *MockCronCoordinator_ExecuteJob_Call {
-	return &MockCronCoordinator_ExecuteJob_Call{Call: _e.mock.On("ExecuteJob", jobID)}
+func (_e *MockCronCoordinator_Expecter) ExecuteJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_ExecuteJob_Call {
+	return &MockCronCoordinator_ExecuteJob_Call{Call: _e.mock.On("ExecuteJob", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_ExecuteJob_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_ExecuteJob_Call {
+func (_c *MockCronCoordinator_ExecuteJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_ExecuteJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -354,22 +384,22 @@ func (_c *MockCronCoordinator_ExecuteJob_Call) Return(err error) *MockCronCoordi
 	return _c
 }
 
-func (_c *MockCronCoordinator_ExecuteJob_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_ExecuteJob_Call {
+func (_c *MockCronCoordinator_ExecuteJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) error) *MockCronCoordinator_ExecuteJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // HandleFailedJob provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) HandleFailedJob(jobID uuid.UUID, failures uint) error {
-	ret := _mock.Called(jobID, failures)
+func (_mock *MockCronCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.UUID, failures uint) error {
+	ret := _mock.Called(ctx, jobID, failures)
 
 	if len(ret) == 0 {
 		panic("no return value specified for HandleFailedJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID, uint) error); ok {
-		r0 = returnFunc(jobID, failures)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID, uint) error); ok {
+		r0 = returnFunc(ctx, jobID, failures)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -382,25 +412,31 @@ type MockCronCoordinator_HandleFailedJob_Call struct {
 }
 
 // HandleFailedJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
 //   - failures uint
-func (_e *MockCronCoordinator_Expecter) HandleFailedJob(jobID interface{}, failures interface{}) *MockCronCoordinator_HandleFailedJob_Call {
-	return &MockCronCoordinator_HandleFailedJob_Call{Call: _e.mock.On("HandleFailedJob", jobID, failures)}
+func (_e *MockCronCoordinator_Expecter) HandleFailedJob(ctx interface{}, jobID interface{}, failures interface{}) *MockCronCoordinator_HandleFailedJob_Call {
+	return &MockCronCoordinator_HandleFailedJob_Call{Call: _e.mock.On("HandleFailedJob", ctx, jobID, failures)}
 }
 
-func (_c *MockCronCoordinator_HandleFailedJob_Call) Run(run func(jobID uuid.UUID, failures uint)) *MockCronCoordinator_HandleFailedJob_Call {
+func (_c *MockCronCoordinator_HandleFailedJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID, failures uint)) *MockCronCoordinator_HandleFailedJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 uuid.UUID
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(uuid.UUID)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -411,22 +447,22 @@ func (_c *MockCronCoordinator_HandleFailedJob_Call) Return(err error) *MockCronC
 	return _c
 }
 
-func (_c *MockCronCoordinator_HandleFailedJob_Call) RunAndReturn(run func(jobID uuid.UUID, failures uint) error) *MockCronCoordinator_HandleFailedJob_Call {
+func (_c *MockCronCoordinator_HandleFailedJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID, failures uint) error) *MockCronCoordinator_HandleFailedJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // JobContext provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) JobContext(jobID uuid.UUID) context.Context {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) JobContext(ctx context.Context, jobID uuid.UUID) context.Context {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for JobContext")
 	}
 
 	var r0 context.Context
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) context.Context); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) context.Context); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(context.Context)
@@ -441,19 +477,25 @@ type MockCronCoordinator_JobContext_Call struct {
 }
 
 // JobContext is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) JobContext(jobID interface{}) *MockCronCoordinator_JobContext_Call {
-	return &MockCronCoordinator_JobContext_Call{Call: _e.mock.On("JobContext", jobID)}
+func (_e *MockCronCoordinator_Expecter) JobContext(ctx interface{}, jobID interface{}) *MockCronCoordinator_JobContext_Call {
+	return &MockCronCoordinator_JobContext_Call{Call: _e.mock.On("JobContext", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_JobContext_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_JobContext_Call {
+func (_c *MockCronCoordinator_JobContext_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_JobContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -464,7 +506,7 @@ func (_c *MockCronCoordinator_JobContext_Call) Return(context1 context.Context) 
 	return _c
 }
 
-func (_c *MockCronCoordinator_JobContext_Call) RunAndReturn(run func(jobID uuid.UUID) context.Context) *MockCronCoordinator_JobContext_Call {
+func (_c *MockCronCoordinator_JobContext_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) context.Context) *MockCronCoordinator_JobContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -567,16 +609,16 @@ func (_c *MockCronCoordinator_RemoveJob_Call) RunAndReturn(run func(jobID uuid.U
 }
 
 // SetHeartbeat provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) SetHeartbeat(jobID uuid.UUID) error {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) SetHeartbeat(ctx context.Context, jobID uuid.UUID) error {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetHeartbeat")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -589,19 +631,25 @@ type MockCronCoordinator_SetHeartbeat_Call struct {
 }
 
 // SetHeartbeat is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) SetHeartbeat(jobID interface{}) *MockCronCoordinator_SetHeartbeat_Call {
-	return &MockCronCoordinator_SetHeartbeat_Call{Call: _e.mock.On("SetHeartbeat", jobID)}
+func (_e *MockCronCoordinator_Expecter) SetHeartbeat(ctx interface{}, jobID interface{}) *MockCronCoordinator_SetHeartbeat_Call {
+	return &MockCronCoordinator_SetHeartbeat_Call{Call: _e.mock.On("SetHeartbeat", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_SetHeartbeat_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_SetHeartbeat_Call {
+func (_c *MockCronCoordinator_SetHeartbeat_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_SetHeartbeat_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -612,22 +660,22 @@ func (_c *MockCronCoordinator_SetHeartbeat_Call) Return(err error) *MockCronCoor
 	return _c
 }
 
-func (_c *MockCronCoordinator_SetHeartbeat_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_SetHeartbeat_Call {
+func (_c *MockCronCoordinator_SetHeartbeat_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) error) *MockCronCoordinator_SetHeartbeat_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SetupJob provides a mock function for the type MockCronCoordinator
-func (_mock *MockCronCoordinator) SetupJob(jobID uuid.UUID) error {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronCoordinator) SetupJob(ctx context.Context, jobID uuid.UUID) error {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetupJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -640,19 +688,25 @@ type MockCronCoordinator_SetupJob_Call struct {
 }
 
 // SetupJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) SetupJob(jobID interface{}) *MockCronCoordinator_SetupJob_Call {
-	return &MockCronCoordinator_SetupJob_Call{Call: _e.mock.On("SetupJob", jobID)}
+func (_e *MockCronCoordinator_Expecter) SetupJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_SetupJob_Call {
+	return &MockCronCoordinator_SetupJob_Call{Call: _e.mock.On("SetupJob", ctx, jobID)}
 }
 
-func (_c *MockCronCoordinator_SetupJob_Call) Run(run func(jobID uuid.UUID)) *MockCronCoordinator_SetupJob_Call {
+func (_c *MockCronCoordinator_SetupJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronCoordinator_SetupJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -663,7 +717,7 @@ func (_c *MockCronCoordinator_SetupJob_Call) Return(err error) *MockCronCoordina
 	return _c
 }
 
-func (_c *MockCronCoordinator_SetupJob_Call) RunAndReturn(run func(jobID uuid.UUID) error) *MockCronCoordinator_SetupJob_Call {
+func (_c *MockCronCoordinator_SetupJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) error) *MockCronCoordinator_SetupJob_Call {
 	_c.Call.Return(run)
 	return _c
 }

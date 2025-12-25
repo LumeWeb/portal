@@ -42,19 +42,19 @@ func (_m *MockTestingProtocolPinHandler) EXPECT() *MockTestingProtocolPinHandler
 }
 
 // Config provides a mock function for the type MockTestingProtocolPinHandler
-func (_mock *MockTestingProtocolPinHandler) Config() config.ProtocolConfig {
+func (_mock *MockTestingProtocolPinHandler) Config() config.Manager {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Config")
 	}
 
-	var r0 config.ProtocolConfig
-	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(config.ProtocolConfig)
+			r0 = ret.Get(0).(config.Manager)
 		}
 	}
 	return r0
@@ -77,12 +77,58 @@ func (_c *MockTestingProtocolPinHandler_Config_Call) Run(run func()) *MockTestin
 	return _c
 }
 
-func (_c *MockTestingProtocolPinHandler_Config_Call) Return(protocolConfig config.ProtocolConfig) *MockTestingProtocolPinHandler_Config_Call {
-	_c.Call.Return(protocolConfig)
+func (_c *MockTestingProtocolPinHandler_Config_Call) Return(manager config.Manager) *MockTestingProtocolPinHandler_Config_Call {
+	_c.Call.Return(manager)
 	return _c
 }
 
-func (_c *MockTestingProtocolPinHandler_Config_Call) RunAndReturn(run func() config.ProtocolConfig) *MockTestingProtocolPinHandler_Config_Call {
+func (_c *MockTestingProtocolPinHandler_Config_Call) RunAndReturn(run func() config.Manager) *MockTestingProtocolPinHandler_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockTestingProtocolPinHandler_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) Context() *MockTestingProtocolPinHandler_Context_Call {
+	return &MockTestingProtocolPinHandler_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockTestingProtocolPinHandler_Context_Call) Run(run func()) *MockTestingProtocolPinHandler_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_Context_Call) Return(context core.Context) *MockTestingProtocolPinHandler_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_Context_Call) RunAndReturn(run func() core.Context) *MockTestingProtocolPinHandler_Context_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -146,6 +192,52 @@ func (_c *MockTestingProtocolPinHandler_CreateProtocolPin_Call) Return(err error
 }
 
 func (_c *MockTestingProtocolPinHandler_CreateProtocolPin_Call) RunAndReturn(run func(ctx context.Context, id uint, data any) error) *MockTestingProtocolPinHandler_CreateProtocolPin_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockTestingProtocolPinHandler_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) DB() *MockTestingProtocolPinHandler_DB_Call {
+	return &MockTestingProtocolPinHandler_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockTestingProtocolPinHandler_DB_Call) Run(run func()) *MockTestingProtocolPinHandler_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_DB_Call) Return(dB *gorm.DB) *MockTestingProtocolPinHandler_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_DB_Call) RunAndReturn(run func() *gorm.DB) *MockTestingProtocolPinHandler_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -247,6 +339,52 @@ func (_c *MockTestingProtocolPinHandler_DisplayName_Call) Return(s string) *Mock
 }
 
 func (_c *MockTestingProtocolPinHandler_DisplayName_Call) RunAndReturn(run func() string) *MockTestingProtocolPinHandler_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetConfig provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) GetConfig() config.ProtocolConfig {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetConfig")
+	}
+
+	var r0 config.ProtocolConfig
+	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.ProtocolConfig)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_GetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetConfig'
+type MockTestingProtocolPinHandler_GetConfig_Call struct {
+	*mock.Call
+}
+
+// GetConfig is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) GetConfig() *MockTestingProtocolPinHandler_GetConfig_Call {
+	return &MockTestingProtocolPinHandler_GetConfig_Call{Call: _e.mock.On("GetConfig")}
+}
+
+func (_c *MockTestingProtocolPinHandler_GetConfig_Call) Run(run func()) *MockTestingProtocolPinHandler_GetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_GetConfig_Call) Return(protocolConfig config.ProtocolConfig) *MockTestingProtocolPinHandler_GetConfig_Call {
+	_c.Call.Return(protocolConfig)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_GetConfig_Call) RunAndReturn(run func() config.ProtocolConfig) *MockTestingProtocolPinHandler_GetConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -367,6 +505,96 @@ func (_c *MockTestingProtocolPinHandler_GetProtocolPinModel_Call) Return(pinData
 }
 
 func (_c *MockTestingProtocolPinHandler_GetProtocolPinModel_Call) RunAndReturn(run func() data_models.PinDataModel) *MockTestingProtocolPinHandler_GetProtocolPinModel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ID provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) ID() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_ID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ID'
+type MockTestingProtocolPinHandler_ID_Call struct {
+	*mock.Call
+}
+
+// ID is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) ID() *MockTestingProtocolPinHandler_ID_Call {
+	return &MockTestingProtocolPinHandler_ID_Call{Call: _e.mock.On("ID")}
+}
+
+func (_c *MockTestingProtocolPinHandler_ID_Call) Run(run func()) *MockTestingProtocolPinHandler_ID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_ID_Call) Return(s string) *MockTestingProtocolPinHandler_ID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_ID_Call) RunAndReturn(run func() string) *MockTestingProtocolPinHandler_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolPinHandler_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockTestingProtocolPinHandler_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockTestingProtocolPinHandler_Expecter) Logger() *MockTestingProtocolPinHandler_Logger_Call {
+	return &MockTestingProtocolPinHandler_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockTestingProtocolPinHandler_Logger_Call) Run(run func()) *MockTestingProtocolPinHandler_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_Logger_Call) Return(logger *core.Logger) *MockTestingProtocolPinHandler_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_Logger_Call) RunAndReturn(run func() *core.Logger) *MockTestingProtocolPinHandler_Logger_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -517,6 +745,166 @@ func (_c *MockTestingProtocolPinHandler_QueryProtocolPin_Call) Return(dB *gorm.D
 
 func (_c *MockTestingProtocolPinHandler_QueryProtocolPin_Call) RunAndReturn(run func(ctx context.Context, query any) *gorm.DB) *MockTestingProtocolPinHandler_QueryProtocolPin_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockTestingProtocolPinHandler_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockTestingProtocolPinHandler_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockTestingProtocolPinHandler_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolPinHandler_SetConfig_Call {
+	return &MockTestingProtocolPinHandler_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockTestingProtocolPinHandler_SetConfig_Call) Run(run func(cfg config.Manager)) *MockTestingProtocolPinHandler_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetConfig_Call) Return() *MockTestingProtocolPinHandler_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockTestingProtocolPinHandler_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockTestingProtocolPinHandler_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockTestingProtocolPinHandler_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockTestingProtocolPinHandler_Expecter) SetContext(ctx interface{}) *MockTestingProtocolPinHandler_SetContext_Call {
+	return &MockTestingProtocolPinHandler_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockTestingProtocolPinHandler_SetContext_Call) Run(run func(ctx core.Context)) *MockTestingProtocolPinHandler_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetContext_Call) Return() *MockTestingProtocolPinHandler_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockTestingProtocolPinHandler_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockTestingProtocolPinHandler_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockTestingProtocolPinHandler_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockTestingProtocolPinHandler_Expecter) SetDB(db interface{}) *MockTestingProtocolPinHandler_SetDB_Call {
+	return &MockTestingProtocolPinHandler_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockTestingProtocolPinHandler_SetDB_Call) Run(run func(db *gorm.DB)) *MockTestingProtocolPinHandler_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetDB_Call) Return() *MockTestingProtocolPinHandler_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockTestingProtocolPinHandler_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockTestingProtocolPinHandler
+func (_mock *MockTestingProtocolPinHandler) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockTestingProtocolPinHandler_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockTestingProtocolPinHandler_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockTestingProtocolPinHandler_Expecter) SetLogger(logger interface{}) *MockTestingProtocolPinHandler_SetLogger_Call {
+	return &MockTestingProtocolPinHandler_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockTestingProtocolPinHandler_SetLogger_Call) Run(run func(logger *core.Logger)) *MockTestingProtocolPinHandler_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetLogger_Call) Return() *MockTestingProtocolPinHandler_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolPinHandler_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockTestingProtocolPinHandler_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

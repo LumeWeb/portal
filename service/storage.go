@@ -20,11 +20,10 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
-	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
-	storageInternal "go.lumeweb.com/portal/service/internal/storage"
+	storageMetrics "go.lumeweb.com/portal/service/internal/storage"
 	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -38,6 +37,7 @@ func init() {
 		ID:      core.STORAGE_SERVICE,
 		Factory: NewStorageService,
 		Depends: []string{core.RENTER_SERVICE, core.UPLOAD_SERVICE},
+		Metrics: storageMetrics.GetCollectors(),
 	})
 }
 
@@ -117,12 +117,9 @@ func NewStorageUploadRequest(options ...core.StorageUploadOption) core.StorageUp
 }
 
 type StorageServiceDefault struct {
-	ctx      core.Context
-	config   config.Manager
-	db       *gorm.DB
 	renter   core.RenterService
 	metadata core.UploadService
-	logger   *core.Logger
+	core.Service
 }
 
 func NewStorageService() (core.Service, []core.ContextBuilderOption, error) {
@@ -130,12 +127,8 @@ func NewStorageService() (core.Service, []core.ContextBuilderOption, error) {
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			storage.ctx = ctx
-			storage.config = ctx.Config()
-			storage.db = ctx.DB()
 			storage.renter = core.GetService[core.RenterService](ctx, core.RENTER_SERVICE)
 			storage.metadata = core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
-			storage.logger = ctx.ServiceLogger(storage)
 			return nil
 		}),
 	)
@@ -201,7 +194,11 @@ func (rp *readerPool) Close() {
 }
 
 func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*models.Upload, error) {
-	rp := newReaderPool(s.logger)
+	startTime := time.Now()
+	storageMetrics.ActiveUploads.Inc()
+	defer storageMetrics.ActiveUploads.Dec()
+
+	rp := newReaderPool(s.Logger())
 	defer rp.Close()
 
 	getReader := func() (io.Reader, error) {
@@ -216,31 +213,38 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 	} else {
 		reader, err := getReader()
 		if err != nil {
+			storageMetrics.UploadErrors.Inc()
 			return nil, err
 		}
 		hash, err = s.getObjectProof(request.Protocol(), reader, request.Size())
 		if err != nil {
+			storageMetrics.UploadErrors.Inc()
 			return nil, err
 		}
 	}
 
 	meta, err := s.metadata.GetUpload(ctx, hash)
 	if err == nil {
+		storageMetrics.UploadDuration.Observe(time.Since(startTime).Seconds())
+		storageMetrics.StorageCacheHits.Inc()
 		return meta, nil
 	}
 
 	reader, err := getReader()
 	if err != nil {
+		storageMetrics.UploadErrors.Inc()
 		return nil, err
 	}
 
 	mimeType, err := s.detectMimeType(reader)
 	if err != nil {
+		storageMetrics.UploadErrors.Inc()
 		return nil, err
 	}
 
 	protocolName := request.Protocol().Name()
 	if err := s.renter.CreateBucketIfNotExists(protocolName); err != nil {
+		storageMetrics.UploadErrors.Inc()
 		return nil, err
 	}
 
@@ -248,6 +252,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 
 	if hash.ProofExists() {
 		if err := s.UploadObjectProof(ctx, request.Protocol(), nil, hash, request.Size()); err != nil {
+			storageMetrics.UploadErrors.Inc()
 			return nil, err
 		}
 	}
@@ -264,15 +269,29 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 		params.FileName = filename
 		params.Bucket = protocolName
 		params.Size = request.Size()
-		return uploadMeta, s.renter.UploadObjectMultipart(ctx, params)
+		if err := s.renter.UploadObjectMultipart(ctx, params); err != nil {
+			storageMetrics.UploadErrors.Inc()
+			return uploadMeta, err
+		}
+		storageMetrics.UploadDuration.Observe(time.Since(startTime).Seconds())
+		storageMetrics.UploadBytes.Add(float64(request.Size()))
+		return uploadMeta, nil
 	}
 
 	reader, err = getReader()
 	if err != nil {
+		storageMetrics.UploadErrors.Inc()
 		return nil, err
 	}
 
-	return uploadMeta, s.renter.UploadObject(ctx, reader, protocolName, filename)
+	if err := s.renter.UploadObject(ctx, reader, protocolName, filename); err != nil {
+		storageMetrics.UploadErrors.Inc()
+		return uploadMeta, err
+	}
+
+	storageMetrics.UploadDuration.Observe(time.Since(startTime).Seconds())
+	storageMetrics.UploadBytes.Add(float64(request.Size()))
+	return uploadMeta, nil
 }
 
 func (s StorageServiceDefault) detectMimeType(reader io.Reader) (*mimetype.MIME, error) {
@@ -342,12 +361,15 @@ func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core
 }
 
 func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc) (io.ReadCloser, error) {
+	startTime := time.Now()
+
 	var partialRange *api.DownloadRange = nil
 	options := s.applyStorageOptions(opts)
 
 	if !options.SkipMetadataCheck {
 		upload, err := s.metadata.GetUpload(ctx, objectHash)
 		if err != nil {
+			storageMetrics.DownloadErrors.Inc()
 			return nil, err
 		}
 
@@ -361,8 +383,11 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 
 	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: partialRange})
 	if err != nil {
+		storageMetrics.DownloadErrors.Inc()
 		return nil, err
 	}
+
+	storageMetrics.DownloadDuration.Observe(time.Since(startTime).Seconds())
 
 	return object.Content, nil
 }
@@ -377,21 +402,15 @@ func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol
 }
 
 func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
-	err := s.renter.DeleteObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
+		return s.renter.DeleteObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash))
+	})
 }
 
 func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
-	err := s.renter.DeleteObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
+		return s.renter.DeleteObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash))
+	})
 }
 
 // S3Upload uploads an object to S3 storage.
@@ -426,42 +445,51 @@ func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, ke
 // size: The size of the data in bytes
 // Returns error if put operation fails
 func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, key string, data io.Reader, size int64) error {
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return err
-	}
-
-	input := &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-		Body:   data,
-	}
-
-	// Set ContentLength if size is known or can be determined
+	var uploadSize uint64
 	if size > 0 {
-		input.ContentLength = aws.Int64(size)
-	} else {
-		switch r := data.(type) {
-		case *bytes.Reader:
-			input.ContentLength = aws.Int64(r.Size())
-		case *strings.Reader:
-			input.ContentLength = aws.Int64(r.Size())
-		}
+		uploadSize = uint64(size)
 	}
 
-	// Try to detect content type if available
-	if seeker, ok := data.(io.ReadSeeker); ok {
-		if _, err := seeker.Seek(0, io.SeekStart); err == nil {
-			if mime, err := s.detectMimeType(seeker); err == nil {
-				input.ContentType = aws.String(mime.String())
+	return core.MetricTrackWithBytes(storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, func() (error, uint64) {
+		client, err := s.S3Client(ctx)
+		if err != nil {
+			return err, uploadSize
+		}
+
+		input := &s3.PutObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+			Body:   data,
+		}
+
+		// Set ContentLength if size is known or can be determined
+		if size > 0 {
+			input.ContentLength = aws.Int64(size)
+		} else {
+			switch r := data.(type) {
+			case *bytes.Reader:
+				input.ContentLength = aws.Int64(r.Size())
+				uploadSize = uint64(r.Size())
+			case *strings.Reader:
+				input.ContentLength = aws.Int64(r.Size())
+				uploadSize = uint64(r.Size())
 			}
-			// Reset reader position
-			_, _ = seeker.Seek(0, io.SeekStart)
 		}
-	}
 
-	_, err = client.PutObject(ctx, input)
-	return err
+		// Try to detect content type if available
+		if seeker, ok := data.(io.ReadSeeker); ok {
+			if _, err := seeker.Seek(0, io.SeekStart); err == nil {
+				if mime, err := s.detectMimeType(seeker); err == nil {
+					input.ContentType = aws.String(mime.String())
+				}
+				// Reset reader position
+				_, _ = seeker.Seek(0, io.SeekStart)
+			}
+		}
+
+		_, err = client.PutObject(ctx, input)
+		return err, uploadSize
+	})
 }
 
 // s3GetObject is an internal helper for getting objects from S3 storage.
@@ -469,19 +497,16 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 // key: The object key/path
 // Returns io.ReadSeekCloser for the object data and error if get operation fails
 func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return nil, err
-	}
+	return core.MetricTrackResult(storageMetrics.S3DownloadDuration, storageMetrics.S3DownloadErrors, func() (io.ReadSeekCloser, error) {
+		client, err := s.S3Client(ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	// Create S3Reader with fixed chunk size policy
-	chunkPolicy := &storageInternal.FixedChunkSizePolicy{Size: 1024 * 1024} // 1MB chunks
-	reader, err := storageInternal.NewS3Reader(ctx, s.logger, client, bucket, key, chunkPolicy)
-	if err != nil {
-		return nil, err
-	}
-
-	return reader, nil
+		// Create S3Reader with fixed chunk size policy
+		chunkPolicy := &storageMetrics.FixedChunkSizePolicy{Size: 1024 * 1024} // 1MB chunks
+		return storageMetrics.NewS3Reader(ctx, s.Logger(), client, bucket, key, chunkPolicy)
+	})
 }
 
 // s3DeleteObject is an internal helper for deleting objects from S3 storage.
@@ -489,26 +514,28 @@ func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, k
 // key: The object key/path to delete
 // Returns error if delete operation fails
 func (s StorageServiceDefault) s3DeleteObject(ctx context.Context, bucket string, key string) error {
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return err
-	}
+	return core.MetricTrack(storageMetrics.S3DeleteDuration, storageMetrics.S3DeleteErrors, func() error {
+		client, err := s.S3Client(ctx)
+		if err != nil {
+			return err
+		}
 
-	_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		_, err = client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		return err
 	})
-	return err
 }
 
 // S3Client creates and returns a new S3 client instance.
 // Returns configured *s3.Client and error if client creation fails
 func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error) {
 	cfg, err := awsConfig.LoadDefaultConfig(ctx,
-		awsConfig.WithRegion(s.config.Config().Core.Storage.S3.Region),
+		awsConfig.WithRegion(s.Config().Config().Core.Storage.S3.Region),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			s.config.Config().Core.Storage.S3.AccessKey,
-			s.config.Config().Core.Storage.S3.SecretKey,
+			s.Config().Config().Core.Storage.S3.AccessKey,
+			s.Config().Config().Core.Storage.S3.SecretKey,
 			"",
 		)),
 	)
@@ -517,7 +544,7 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 	}
 
 	return s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(ensureHttpPrefix(s.config.Config().Core.Storage.S3.Endpoint))
+		o.BaseEndpoint = aws.String(ensureHttpPrefix(s.Config().Config().Core.Storage.S3.Endpoint))
 		o.UsePathStyle = true
 		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 		o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
@@ -531,174 +558,178 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 // size: The total size of the data in bytes
 // Returns error if upload fails
 func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error {
-	client, err := s.S3Client(ctx)
-	if err != nil {
-		return err
-	}
-
-	var uploadId string
-	var lastPartNumber int32
-
-	partSize := core.S3_MULTIPART_MIN_PART_SIZE
-	totalParts := int(math.Ceil(float64(size) / float64(partSize)))
-	if totalParts > core.S3_MULTIPART_MAX_PARTS {
-		partSize = size / core.S3_MULTIPART_MAX_PARTS
-		totalParts = core.S3_MULTIPART_MAX_PARTS
-	}
-
-	var completedParts []types.CompletedPart
-
-	var s3Upload models.S3Upload
-
-	s3Upload.Bucket = bucket
-	s3Upload.Key = key
-
-	err = s.renter.CreateBucketIfNotExists(bucket)
-	if err != nil {
-		return err
-	}
-
-	startTime := time.Now()
-	var totalUploadDuration time.Duration
-	var currentAverageDuration time.Duration
-
-	if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
-		return db.Model(&s3Upload).First(&s3Upload)
-	}); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-	} else {
-		uploadId = s3Upload.UploadID
-	}
-
-	if len(uploadId) > 0 {
-		parts, err := client.ListParts(ctx, &s3.ListPartsInput{
-			Bucket:   aws.String(bucket),
-			Key:      aws.String(key),
-			UploadId: aws.String(uploadId),
-		})
-
-		if err != nil {
-			uploadId = ""
-		} else {
-			for _, part := range parts.Parts {
-				if uint64(*part.Size) == partSize {
-					if *part.PartNumber > lastPartNumber {
-						lastPartNumber = *part.PartNumber
-						completedParts = append(completedParts, types.CompletedPart{
-							ETag:       part.ETag,
-							PartNumber: part.PartNumber,
-						})
-					}
-				}
-			}
-		}
-	}
-
-	if uploadId == "" {
-		mu, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
-		})
+	return core.MetricTrackGaugeWithBytes(storageMetrics.ActiveUploads, storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, size, func() error {
+		client, err := s.S3Client(ctx)
 		if err != nil {
 			return err
 		}
 
-		uploadId = *mu.UploadId
+		var uploadId string
+		var lastPartNumber int32
 
-		s3Upload.UploadID = uploadId
-		if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
-			return db.Create(&s3Upload)
+		partSize := core.S3_MULTIPART_MIN_PART_SIZE
+		totalParts := int(math.Ceil(float64(size) / float64(partSize)))
+		if totalParts > core.S3_MULTIPART_MAX_PARTS {
+			partSize = size / core.S3_MULTIPART_MAX_PARTS
+			totalParts = core.S3_MULTIPART_MAX_PARTS
+		}
+
+		var completedParts []types.CompletedPart
+
+		var s3Upload models.S3Upload
+
+		s3Upload.Bucket = bucket
+		s3Upload.Key = key
+
+		err = s.renter.CreateBucketIfNotExists(bucket)
+		if err != nil {
+			return err
+		}
+
+		var totalUploadDuration time.Duration
+		var currentAverageDuration time.Duration
+
+		if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
+			return db.Model(&s3Upload).First(&s3Upload)
 		}); err != nil {
-			return err
-		}
-	}
-
-	for partNum := 1; partNum <= totalParts; partNum++ {
-		partStartTime := time.Now()
-		partData := make([]byte, partSize)
-		readSize, err := data.Read(partData)
-		if err != nil && err != io.EOF {
-			return err
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+		} else {
+			uploadId = s3Upload.UploadID
 		}
 
-		if partNum <= int(lastPartNumber) {
-			continue
-		}
-		uploadPartOutput, err := client.UploadPart(ctx, &s3.UploadPartInput{
-			Bucket:     aws.String(bucket),
-			Key:        aws.String(key),
-			PartNumber: aws.Int32(int32(partNum)),
-			UploadId:   aws.String(uploadId),
-			Body:       bytes.NewReader(partData[:readSize]),
-		})
-		if err != nil {
-			// Abort the multipart upload in case of error
-			_, abortErr := client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		if len(uploadId) > 0 {
+			parts, err := client.ListParts(ctx, &s3.ListPartsInput{
 				Bucket:   aws.String(bucket),
 				Key:      aws.String(key),
 				UploadId: aws.String(uploadId),
 			})
-			if abortErr != nil {
-				s.logger.Error("error aborting multipart upload", zap.Error(abortErr))
+
+			if err != nil {
+				uploadId = ""
+			} else {
+				for _, part := range parts.Parts {
+					if uint64(*part.Size) == partSize {
+						if *part.PartNumber > lastPartNumber {
+							lastPartNumber = *part.PartNumber
+							completedParts = append(completedParts, types.CompletedPart{
+								ETag:       part.ETag,
+								PartNumber: part.PartNumber,
+							})
+						}
+					}
+				}
 			}
+		}
+
+		if uploadId == "" {
+			mu, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(key),
+			})
+			if err != nil {
+				return err
+			}
+
+			uploadId = *mu.UploadId
+
+			s3Upload.UploadID = uploadId
+			if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
+				return db.Create(&s3Upload)
+			}); err != nil {
+				return err
+			}
+		}
+
+		for partNum := 1; partNum <= totalParts; partNum++ {
+			partStartTime := time.Now()
+			partData := make([]byte, partSize)
+			readSize, err := data.Read(partData)
+			if err != nil && err != io.EOF {
+				return err
+			}
+
+			if partNum <= int(lastPartNumber) {
+				continue
+			}
+			uploadPartOutput, err := client.UploadPart(ctx, &s3.UploadPartInput{
+				Bucket:     aws.String(bucket),
+				Key:        aws.String(key),
+				PartNumber: aws.Int32(int32(partNum)),
+				UploadId:   aws.String(uploadId),
+				Body:       bytes.NewReader(partData[:readSize]),
+			})
+			if err != nil {
+				storageMetrics.MultipartUploadErrors.Inc()
+				// Abort the multipart upload in case of error
+				_, abortErr := client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+					Bucket:   aws.String(bucket),
+					Key:      aws.String(key),
+					UploadId: aws.String(uploadId),
+				})
+				if abortErr != nil {
+					s.Logger().Error("error aborting multipart upload", zap.Error(abortErr))
+				}
+				return err
+			}
+
+			completedParts = append(completedParts, types.CompletedPart{
+				ETag:       uploadPartOutput.ETag,
+				PartNumber: aws.Int32(int32(partNum)),
+			})
+
+			storageMetrics.MultipartUploadParts.Inc()
+
+			partDuration := time.Since(partStartTime)
+			totalUploadDuration += partDuration
+
+			currentAverageDuration = totalUploadDuration / time.Duration(partNum)
+
+			eta := time.Duration(int(currentAverageDuration) * (totalParts - partNum))
+
+			s.Logger().Debug("Completed part",
+				zap.Int("partNum", partNum),
+				zap.Int("totalParts", totalParts),
+				zap.Uint64("partSize", partSize),
+				zap.Int("readSize", readSize),
+				zap.Uint64("size", size),
+				zap.String("key", key),
+				zap.String("bucket", bucket),
+				zap.Duration("duration", partDuration),
+				zap.Duration("currentAverageDuration", currentAverageDuration),
+				zap.Duration("eta", eta),
+			)
+		}
+
+		// Ensure parts are ordered by part number before completing the upload
+		sort.Slice(completedParts, func(i, j int) bool {
+			return *completedParts[i].PartNumber < *completedParts[j].PartNumber
+		})
+
+		_, err = client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(key),
+			UploadId: aws.String(uploadId),
+			MultipartUpload: &types.CompletedMultipartUpload{
+				Parts: completedParts,
+			},
+		})
+		if err != nil {
+			storageMetrics.MultipartUploadErrors.Inc()
 			return err
 		}
 
-		completedParts = append(completedParts, types.CompletedPart{
-			ETag:       uploadPartOutput.ETag,
-			PartNumber: aws.Int32(int32(partNum)),
-		})
+		if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
+			return db.Delete(&s3Upload)
+		}); err != nil {
+			return err
+		}
 
-		partDuration := time.Since(partStartTime)
-		totalUploadDuration += partDuration
+		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
 
-		currentAverageDuration = totalUploadDuration / time.Duration(partNum)
-
-		eta := time.Duration(int(currentAverageDuration) * (totalParts - partNum))
-
-		s.logger.Debug("Completed part",
-			zap.Int("partNum", partNum),
-			zap.Int("totalParts", totalParts),
-			zap.Uint64("partSize", partSize),
-			zap.Int("readSize", readSize),
-			zap.Uint64("size", size),
-			zap.String("key", key),
-			zap.String("bucket", bucket),
-			zap.Duration("duration", partDuration),
-			zap.Duration("currentAverageDuration", currentAverageDuration),
-			zap.Duration("eta", eta),
-		)
-	}
-
-	// Ensure parts are ordered by part number before completing the upload
-	sort.Slice(completedParts, func(i, j int) bool {
-		return *completedParts[i].PartNumber < *completedParts[j].PartNumber
+		return nil
 	})
-
-	_, err = client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
-		Bucket:   aws.String(bucket),
-		Key:      aws.String(key),
-		UploadId: aws.String(uploadId),
-		MultipartUpload: &types.CompletedMultipartUpload{
-			Parts: completedParts,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	if err = db.RetryOnLock(s.db, func(db *gorm.DB) *gorm.DB {
-		return db.Delete(&s3Upload)
-	}); err != nil {
-		return err
-	}
-
-	endTime := time.Now()
-	s.logger.Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket), zap.Duration("duration", endTime.Sub(startTime)))
-
-	return nil
 }
 
 func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, *time.Time, error) {
@@ -752,11 +783,11 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 	defer func(data io.ReadCloser) {
 		err := data.Close()
 		if err != nil {
-			s.logger.Error("error closing data", zap.Error(err))
+			s.Logger().Error("error closing data", zap.Error(err))
 		}
 	}(data)
 
-	err := s.s3PutObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key, data, int64(size))
+	err := s.s3PutObject(ctx, s.Config().Config().Core.Storage.S3.BufferBucket, key, data, int64(size))
 	if err != nil {
 		return "", err
 	}
@@ -773,7 +804,7 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 	if err := validateUploadID(uploadId); err != nil {
 		return nil, err
 	}
-	return s.s3GetObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, s.GetTemporaryUploadPath(protocol, uploadId))
+	return s.s3GetObject(ctx, s.Config().Config().Core.Storage.S3.BufferBucket, s.GetTemporaryUploadPath(protocol, uploadId))
 }
 
 // S3DeleteTemporaryUpload deletes a temporary upload from S3 storage.
@@ -811,7 +842,7 @@ func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, prot
 	}
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
-	err := s.s3DeleteObject(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key)
+	err := s.s3DeleteObject(ctx, s.Config().Config().Core.Storage.S3.BufferBucket, key)
 	if err != nil {
 		return err
 	}
@@ -830,7 +861,7 @@ func (s StorageServiceDefault) S3TemporaryUploadExists(ctx context.Context, prot
 	}
 	key := s.GetTemporaryUploadPath(protocol, uploadId)
 
-	return s.S3Exists(ctx, s.config.Config().Core.Storage.S3.BufferBucket, key)
+	return s.S3Exists(ctx, s.Config().Config().Core.Storage.S3.BufferBucket, key)
 }
 
 func (s StorageServiceDefault) getProofPath(protocol core.StorageProtocol, objectHash core.StorageHash) string {

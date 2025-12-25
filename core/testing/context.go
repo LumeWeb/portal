@@ -16,6 +16,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	pevent "go.lumeweb.com/portal/event"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
@@ -69,6 +70,7 @@ type testContext struct {
 
 // Ensure testContext implements TestContext
 var _ TestContext = (*testContext)(nil)
+var _ core.Context = (*testContext)(nil)
 
 // NewTestContext creates a new Context suitable for testing with either *testing.T or *testing.B
 // It does NOT process the options immediately. Options are processed during BootEnvironment.
@@ -225,6 +227,10 @@ func (ctx *testContext) Logger() *core.Logger {
 	return ctx.logger
 }
 
+func (ctx *testContext) ReplaceLogger(logger *core.Logger) {
+	ctx.logger = logger
+}
+
 func (ctx *testContext) ProtocolLogger(protocol core.Protocol) *core.Logger {
 	return ctx.NamedLogger("protocol-" + protocol.Name())
 }
@@ -249,12 +255,79 @@ func (ctx *testContext) WithLogger(opts ...zap.Field) *core.Logger {
 	return core.NewLogger(ctx.Config(), ctx.logger.Logger.With(opts...))
 }
 
+func (ctx *testContext) TraceMethod(name string, opts ...core.SpanOption) (context.Context, trace.Span) {
+	return core.TraceMethod(ctx.Context, name, opts...)
+}
+
 func (ctx *testContext) NamedLogger(name string) *core.Logger {
 	return core.NewLogger(ctx.Config(), ctx.logger.Logger.Named(name))
 }
 
+func (ctx *testContext) WithTracer(service, subsystem string) core.Context {
+	return &testContext{
+		defaultContext: &defaultContext{
+			Context:      core.WithTracerInfo(ctx.Context, service, subsystem),
+			services:     ctx.services,
+			exitCode:     ctx.exitCode,
+			exitFuncs:    ctx.exitFuncs,
+			startupFuncs: ctx.startupFuncs,
+			event:        ctx.event,
+			logger:       ctx.logger,
+			router:       ctx.router,
+		},
+		tb:               ctx.tb,
+		cleanupFuncs:     ctx.cleanupFuncs,
+		apiID:            ctx.apiID,
+		fireBootComplete: ctx.fireBootComplete,
+	}
+}
+
+func (ctx *testContext) WithTracerService(service string) core.Context {
+	return ctx.WithTracer(service, core.GetTracerSubsystem(ctx.Context))
+}
+
+func (ctx *testContext) WithTracerSubsystem(subsystem string) core.Context {
+	return ctx.WithTracer(core.GetTracerService(ctx.Context), subsystem)
+}
+
+func (ctx *testContext) WithProtocolTracer(protocolName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "protocol-"+protocolName)
+}
+
+func (ctx *testContext) WithAPITracer(apiName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "api-"+apiName)
+}
+
+func (ctx *testContext) WithAPIExtensionTracer(extensionName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "apiext-"+extensionName)
+}
+
+func (ctx *testContext) WithServiceTracer(serviceName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "service-"+serviceName)
+}
+
+func (ctx *testContext) WithProtocolSubcomponent(protocolName, subcomponentName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "protocol-"+protocolName+"."+subcomponentName)
+}
+
+func (ctx *testContext) WithAPISubcomponent(apiName, subcomponentName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "api-"+apiName+"."+subcomponentName)
+}
+
+func (ctx *testContext) WithAPIExtensionSubcomponent(extensionName, subcomponentName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "apiext-"+extensionName+"."+subcomponentName)
+}
+
+func (ctx *testContext) WithServiceSubcomponent(serviceName, subcomponentName string) core.Context {
+	return ctx.WithTracer(core.DefaultTracerService, "service-"+serviceName+"."+subcomponentName)
+}
+
 func (ctx *testContext) Config() config.Manager {
 	return ctx.cfg
+}
+
+func (ctx *testContext) SetConfig(cfg config.Manager) {
+	ctx.cfg = cfg
 }
 
 func (ctx *testContext) Cancel() {
@@ -662,6 +735,10 @@ func WrapCoreOptions(opts []core.ContextBuilderOption) []TestContextBuilderOptio
 	return wrapped
 }
 
+func ContextOptions(options ...TestContextBuilderOption) []TestContextBuilderOption {
+	return options
+}
+
 // WithAPIID sets the API ID for the test context, overriding any default value.
 func WithAPIID(apiID string) TestContextBuilderOption {
 	return func(ctx TestContext) (TestContext, error) {
@@ -939,7 +1016,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// This phase runs startup functions registered during later phases (components, plugins, options, etc.).
 	// Fire EVENT_BOOT_STARTUP_FUNCS before running startup functions
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS, pevent.NewBootStartupFuncsEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS, pevent.NewBootStartupFuncsEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot startup funcs event: %w", err)
 		}
 	}
@@ -955,7 +1032,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Fire EVENT_BOOT_STARTUP_FUNCS_COMPLETED after running startup functions
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, pevent.NewBootStartupFuncsCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, pevent.NewBootStartupFuncsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot startup funcs completed event: %w", err)
 		}
 	}
@@ -973,11 +1050,11 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 10: Protocol Initialization
 	// Fire EVENT_BOOT_PROTOCOL_WORKFLOWS and EVENT_BOOT_PROTOCOLS before initializing protocols
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS, pevent.NewBootProtocolWorkflowsEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS, pevent.NewBootProtocolWorkflowsEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot protocol workflows event: %w", err)
 		}
 
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS, pevent.NewBootProtocolsEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS, pevent.NewBootProtocolsEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot protocols event: %w", err)
 		}
 	}
@@ -988,11 +1065,11 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Fire EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED and EVENT_BOOT_PROTOCOLS_COMPLETED after initializing protocols
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, pevent.NewBootProtocolWorkflowsCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, pevent.NewBootProtocolWorkflowsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot protocol workflows completed event: %w", err)
 		}
 
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS_COMPLETED, pevent.NewBootProtocolsCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PROTOCOLS_COMPLETED, pevent.NewBootProtocolsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot protocols completed event: %w", err)
 		}
 	}
@@ -1000,7 +1077,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 11: Protocol Workflow Configuration
 	// Fire EVENT_BOOT_PLUGIN_WORKFLOWS before configuring protocol workflows
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS, pevent.NewBootPluginWorkflowsEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS, pevent.NewBootPluginWorkflowsEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot plugin workflows event: %w", err)
 		}
 	}
@@ -1011,7 +1088,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Fire EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED after configuring protocol workflows
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, pevent.NewBootPluginWorkflowsCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, pevent.NewBootPluginWorkflowsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot plugin workflows completed event: %w", err)
 		}
 	}
@@ -1019,12 +1096,12 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 	// Phase 12: Runtime Setup
 	if tctx, ok := ctx.(*testContext); ok && tctx.FireBootComplete() {
 		// Fire EVENT_BOOT_START at the very beginning of runtime setup
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_START, pevent.NewBootStartEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_START, pevent.NewBootStartEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot start event: %w", err)
 		}
 
 		// Fire EVENT_BOOT_CRON before starting cron
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON, pevent.NewBootCronEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON, pevent.NewBootCronEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot cron event: %w", err)
 		}
 
@@ -1044,12 +1121,12 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		}
 
 		// Fire EVENT_BOOT_CRON_COMPLETED after starting cron
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON_COMPLETED, pevent.NewBootCronCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_CRON_COMPLETED, pevent.NewBootCronCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot cron completed event: %w", err)
 		}
 
 		// Fire EVENT_BOOT_HTTP before starting HTTP
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP, pevent.NewBootHTTPEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP, pevent.NewBootHTTPEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot http event: %w", err)
 		}
 
@@ -1073,22 +1150,22 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 		}
 
 		// Fire EVENT_BOOT_HTTP_COMPLETED after starting HTTP
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP_COMPLETED, pevent.NewBootHTTPCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_HTTP_COMPLETED, pevent.NewBootHTTPCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot http completed event: %w", err)
 		}
 
 		// Fire EVENT_BOOT_MAILER (even though we don't start mailer in tests)
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER, pevent.NewBootMailerEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER, pevent.NewBootMailerEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot mailer event: %w", err)
 		}
 
 		// Fire EVENT_BOOT_MAILER_COMPLETED
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER_COMPLETED, pevent.NewBootMailerCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_MAILER_COMPLETED, pevent.NewBootMailerCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot mailer completed event: %w", err)
 		}
 
 		// Fire EVENT_BOOT_COMPLETED at the very end
-		if err = core.Fire(ctx, pevent.EVENT_BOOT_COMPLETED, pevent.NewBootCompletedEvent(ctx)); err != nil {
+		if err = core.Fire(ctx, pevent.EVENT_BOOT_COMPLETED, pevent.NewBootCompletedEvent(ctx, ctx.GetContext())); err != nil {
 			return fmt.Errorf("failed to fire boot complete event: %w", err)
 		}
 	}
@@ -1158,5 +1235,5 @@ func StartCron(ctx TestContext) error {
 		return fmt.Errorf("service found but is not core.CronService")
 	}
 
-	return svc.Start()
+	return svc.Start(nil)
 }

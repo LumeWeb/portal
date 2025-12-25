@@ -137,14 +137,14 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 		// Register protocol configs
 		if core.PluginHasProtocol(plugin) {
 			if proto, _, err := plugin.Protocol(); err == nil && proto != nil {
-				_ = manager.ConfigureProtocol(plugin.ID, proto.Config())
+				_ = manager.ConfigureProtocol(plugin.ID, proto.GetConfig())
 			}
 		}
 
 		// Register API configs
 		if core.PluginHasAPI(plugin) {
 			if api, _, err := plugin.API(); err == nil && api != nil {
-				_ = manager.ConfigureAPI(plugin.ID, api.Config())
+				_ = manager.ConfigureAPI(plugin.ID, api.GetConfig())
 			}
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/wneessen/go-mail"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/service/internal/mailer"
+	mailerMetrics "go.lumeweb.com/portal/service/internal/mailer"
 )
 
 var _ core.MailerService = (*Mailer)(nil)
@@ -21,14 +22,15 @@ func init() {
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewMailerService(NewMailerTemplateRegistry())
 		},
+		Metrics: mailerMetrics.GetCollectors(),
 	})
 }
 
 type Mailer struct {
-	ctx              core.Context
 	client           *mail.Client
 	templateRegistry *mailer.TemplateRegistry
 	connDialed       bool
+	core.Service
 }
 
 func (m *Mailer) ID() string {
@@ -44,33 +46,46 @@ func (m *Mailer) TemplateRegistry() *mailer.TemplateRegistry {
 }
 
 func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateData, bodyVars core.MailerTemplateData, to string) error {
-	email, err := m.templateRegistry.RenderTemplate(template, subjectVars, bodyVars)
+	return core.MetricTrack(
+		mailerMetrics.MailerDuration.WithLabelValues(mailerMetrics.LabelOpSend),
+		mailerMetrics.MailerFailed.WithLabelValues(mailerMetrics.LabelOpSend),
+		func() error {
+			email, err := m.templateRegistry.RenderTemplate(template, subjectVars, bodyVars)
 
-	if err != nil {
-		return err
-	}
+			if err != nil {
+				return err
+			}
 
-	email.SetFrom(m.ctx.Config().Config().Core.Mail.From)
-	email.SetTo(to)
+			email.SetFrom(m.Config().Config().Core.Mail.From)
+			email.SetTo(to)
 
-	msg, err := email.ToMessage()
-	if err != nil {
-		return err
-	}
+			msg, err := email.ToMessage()
+			if err != nil {
+				return err
+			}
 
-	err = m.client.DialAndSend(msg)
-	if err != nil {
-		return err
-	}
+			err = m.client.DialAndSend(msg)
+			if err != nil {
+				return err
+			}
 
-	m.connDialed = true
-	return nil
+			m.connDialed = true
+			mailerMetrics.EmailsSent.WithLabelValues(mailerMetrics.LabelOpSend).Inc()
+			return nil
+		},
+	)
 }
 
 func (m *Mailer) TemplateRegister(name string, template core.MailerTemplate) error {
-	m.templateRegistry.RegisterTemplate(name, template)
-
-	return nil
+	return core.MetricTrack(
+		mailerMetrics.MailerDuration.WithLabelValues(mailerMetrics.LabelOpRegister),
+		mailerMetrics.MailerFailed.WithLabelValues(mailerMetrics.LabelOpRegister),
+		func() error {
+			m.templateRegistry.RegisterTemplate(name, template)
+			mailerMetrics.TemplatesTotal.WithLabelValues(mailerMetrics.LabelOpRegister).Inc()
+			return nil
+		},
+	)
 }
 
 func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, []core.ContextBuilderOption, error) {
@@ -79,10 +94,6 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 	}
 
 	opts := core.ContextOptions(
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			m.ctx = ctx
-			return nil
-		}),
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
 			var options []mail.Option
 

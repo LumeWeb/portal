@@ -9,6 +9,7 @@ type APIExtensionFactory func() (APIExtension, []ContextBuilderOption, error)
 
 // APIExtension defines how plugins can extend existing APIs
 type APIExtension interface {
+	Component
 	// TargetAPI returns the name of the API this extension targets
 	TargetAPI() string
 
@@ -21,13 +22,19 @@ var (
 	apiExtensionsMu sync.RWMutex
 )
 
-// RegisterAPIExtension registers an extension for an API
-func RegisterAPIExtension(ext APIExtension) {
+// registerAPIExtension is a private helper that implements the core registration logic
+// with proper mutex handling for appending to the extension slice map
+func registerAPIExtension(ext APIExtension) {
 	apiExtensionsMu.Lock()
 	defer apiExtensionsMu.Unlock()
 
 	target := ext.TargetAPI()
 	apiExtensions[target] = append(apiExtensions[target], ext)
+}
+
+// RegisterAPIExtension registers an extension for an API
+func RegisterAPIExtension(ext APIExtension) {
+	registerAPIExtension(ext)
 }
 
 // GetAPIExtensions returns all extensions for a given API

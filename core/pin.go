@@ -2,9 +2,10 @@ package core
 
 import (
 	"context"
+	"time"
+
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
-	"time"
 )
 
 const PIN_SERVICE = "pin"
@@ -20,28 +21,28 @@ type PinService interface {
 
 	// AccountPins retrieves the list of pins (uploads) for the given user ID,
 	// created after the specified timestamp.
-	AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error)
+	AccountPins(ctx context.Context, id uint, createdAfter uint64) ([]*models.Pin, error)
 
 	// AllAccountPins retrieves all pins (uploads) for the given user ID.
-	AllAccountPins(id uint) ([]*models.Pin, error)
+	AllAccountPins(ctx context.Context, id uint) ([]*models.Pin, error)
 
 	// DeletePinByHash deletes the pin associated with the given hash and user ID.
-	DeletePinByHash(hash StorageHash, userId uint) error
+	DeletePinByHash(ctx context.Context, hash StorageHash, userId uint) error
 
 	// GetPinByHash retrieves the pin associated with the given hash and user ID.
-	GetPinByHash(hash StorageHash, userId uint) (*models.Pin, error)
+	GetPinByHash(ctx context.Context, hash StorageHash, userId uint) (*models.Pin, error)
 
 	// PinByHash creates a new pin for the given hash and user ID if it doesn't exist.
-	PinByHash(hash StorageHash, userId uint, protocolData any) error
+	PinByHash(ctx context.Context, hash StorageHash, userId uint, protocolData any) error
 
 	// PinByID creates a new pin for the given upload ID and user ID if it doesn't exist.
-	PinByID(uploadId uint, userId uint, protocolData any) error
+	PinByID(ctx context.Context, uploadId uint, userId uint, protocolData any) error
 
 	// UploadPinnedGlobal checks if the upload with the given hash is pinned globally.
-	UploadPinnedGlobal(hash StorageHash) (bool, error)
+	UploadPinnedGlobal(ctx context.Context, hash StorageHash) (bool, error)
 
 	// UploadPinnedByUser checks if the upload with the given hash is pinned by the specified user.
-	UploadPinnedByUser(hash StorageHash, userId uint) (bool, error)
+	UploadPinnedByUser(ctx context.Context, hash StorageHash, userId uint) (bool, error)
 
 	// GetPinsByUploadID retrieves the list of pins for the given upload ID.
 	GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error)

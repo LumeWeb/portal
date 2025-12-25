@@ -5,8 +5,13 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
 )
 
 // NewMockAuthService creates a new instance of MockAuthService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -34,6 +39,144 @@ type MockAuthService_Expecter struct {
 
 func (_m *MockAuthService) EXPECT() *MockAuthService_Expecter {
 	return &MockAuthService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockAuthService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockAuthService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockAuthService_Expecter) Config() *MockAuthService_Config_Call {
+	return &MockAuthService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockAuthService_Config_Call) Run(run func()) *MockAuthService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAuthService_Config_Call) Return(manager config.Manager) *MockAuthService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockAuthService_Config_Call) RunAndReturn(run func() config.Manager) *MockAuthService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockAuthService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockAuthService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockAuthService_Expecter) Context() *MockAuthService_Context_Call {
+	return &MockAuthService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockAuthService_Context_Call) Run(run func()) *MockAuthService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAuthService_Context_Call) Return(context core.Context) *MockAuthService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockAuthService_Context_Call) RunAndReturn(run func() core.Context) *MockAuthService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockAuthService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockAuthService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockAuthService_Expecter) DB() *MockAuthService_DB_Call {
+	return &MockAuthService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockAuthService_DB_Call) Run(run func()) *MockAuthService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAuthService_DB_Call) Return(dB *gorm.DB) *MockAuthService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockAuthService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockAuthService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ID provides a mock function for the type MockAuthService
@@ -80,9 +223,55 @@ func (_c *MockAuthService_ID_Call) RunAndReturn(run func() string) *MockAuthServ
 	return _c
 }
 
+// Logger provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockAuthService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockAuthService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockAuthService_Expecter) Logger() *MockAuthService_Logger_Call {
+	return &MockAuthService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockAuthService_Logger_Call) Run(run func()) *MockAuthService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAuthService_Logger_Call) Return(logger *core.Logger) *MockAuthService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockAuthService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockAuthService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LoginID provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginID(id uint, ip string, rememberMe bool) (string, error) {
-	ret := _mock.Called(id, ip, rememberMe)
+func (_mock *MockAuthService) LoginID(ctx context.Context, id uint, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(ctx, id, ip, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginID")
@@ -90,16 +279,16 @@ func (_mock *MockAuthService) LoginID(id uint, ip string, rememberMe bool) (stri
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) (string, error)); ok {
-		return returnFunc(id, ip, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, bool) (string, error)); ok {
+		return returnFunc(ctx, id, ip, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) string); ok {
-		r0 = returnFunc(id, ip, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, bool) string); ok {
+		r0 = returnFunc(ctx, id, ip, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string, bool) error); ok {
-		r1 = returnFunc(id, ip, rememberMe)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, string, bool) error); ok {
+		r1 = returnFunc(ctx, id, ip, rememberMe)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -112,31 +301,37 @@ type MockAuthService_LoginID_Call struct {
 }
 
 // LoginID is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uint
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginID(id interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginID_Call {
-	return &MockAuthService_LoginID_Call{Call: _e.mock.On("LoginID", id, ip, rememberMe)}
+func (_e *MockAuthService_Expecter) LoginID(ctx interface{}, id interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginID_Call {
+	return &MockAuthService_LoginID_Call{Call: _e.mock.On("LoginID", ctx, id, ip, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginID_Call) Run(run func(id uint, ip string, rememberMe bool)) *MockAuthService_LoginID_Call {
+func (_c *MockAuthService_LoginID_Call) Run(run func(ctx context.Context, id uint, ip string, rememberMe bool)) *MockAuthService_LoginID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
 		}
-		var arg2 bool
+		var arg2 string
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(string)
+		}
+		var arg3 bool
+		if args[3] != nil {
+			arg3 = args[3].(bool)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -147,14 +342,14 @@ func (_c *MockAuthService_LoginID_Call) Return(s string, err error) *MockAuthSer
 	return _c
 }
 
-func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(id uint, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginID_Call {
+func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(ctx context.Context, id uint, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginID_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // LoginOTP provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginOTP(userId uint, code string, rememberMe bool) (string, error) {
-	ret := _mock.Called(userId, code, rememberMe)
+func (_mock *MockAuthService) LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error) {
+	ret := _mock.Called(ctx, userId, code, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginOTP")
@@ -162,16 +357,16 @@ func (_mock *MockAuthService) LoginOTP(userId uint, code string, rememberMe bool
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) (string, error)); ok {
-		return returnFunc(userId, code, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, bool) (string, error)); ok {
+		return returnFunc(ctx, userId, code, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string, bool) string); ok {
-		r0 = returnFunc(userId, code, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, bool) string); ok {
+		r0 = returnFunc(ctx, userId, code, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string, bool) error); ok {
-		r1 = returnFunc(userId, code, rememberMe)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, string, bool) error); ok {
+		r1 = returnFunc(ctx, userId, code, rememberMe)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -184,31 +379,37 @@ type MockAuthService_LoginOTP_Call struct {
 }
 
 // LoginOTP is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - code string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginOTP(userId interface{}, code interface{}, rememberMe interface{}) *MockAuthService_LoginOTP_Call {
-	return &MockAuthService_LoginOTP_Call{Call: _e.mock.On("LoginOTP", userId, code, rememberMe)}
+func (_e *MockAuthService_Expecter) LoginOTP(ctx interface{}, userId interface{}, code interface{}, rememberMe interface{}) *MockAuthService_LoginOTP_Call {
+	return &MockAuthService_LoginOTP_Call{Call: _e.mock.On("LoginOTP", ctx, userId, code, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginOTP_Call) Run(run func(userId uint, code string, rememberMe bool)) *MockAuthService_LoginOTP_Call {
+func (_c *MockAuthService_LoginOTP_Call) Run(run func(ctx context.Context, userId uint, code string, rememberMe bool)) *MockAuthService_LoginOTP_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
 		}
-		var arg2 bool
+		var arg2 string
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(string)
+		}
+		var arg3 bool
+		if args[3] != nil {
+			arg3 = args[3].(bool)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -219,14 +420,14 @@ func (_c *MockAuthService_LoginOTP_Call) Return(s string, err error) *MockAuthSe
 	return _c
 }
 
-func (_c *MockAuthService_LoginOTP_Call) RunAndReturn(run func(userId uint, code string, rememberMe bool) (string, error)) *MockAuthService_LoginOTP_Call {
+func (_c *MockAuthService_LoginOTP_Call) RunAndReturn(run func(ctx context.Context, userId uint, code string, rememberMe bool) (string, error)) *MockAuthService_LoginOTP_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // LoginPassword provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
-	ret := _mock.Called(email, password, ip, rememberMe)
+func (_mock *MockAuthService) LoginPassword(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+	ret := _mock.Called(ctx, email, password, ip, rememberMe)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LoginPassword")
@@ -235,23 +436,23 @@ func (_mock *MockAuthService) LoginPassword(email string, password string, ip st
 	var r0 string
 	var r1 *models.User
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, string, bool) (string, *models.User, error)); ok {
-		return returnFunc(email, password, ip, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, bool) (string, *models.User, error)); ok {
+		return returnFunc(ctx, email, password, ip, rememberMe)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string, string, bool) string); ok {
-		r0 = returnFunc(email, password, ip, rememberMe)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, bool) string); ok {
+		r0 = returnFunc(ctx, email, password, ip, rememberMe)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string, string, bool) *models.User); ok {
-		r1 = returnFunc(email, password, ip, rememberMe)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, bool) *models.User); ok {
+		r1 = returnFunc(ctx, email, password, ip, rememberMe)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(string, string, string, bool) error); ok {
-		r2 = returnFunc(email, password, ip, rememberMe)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string, bool) error); ok {
+		r2 = returnFunc(ctx, email, password, ip, rememberMe)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -264,19 +465,103 @@ type MockAuthService_LoginPassword_Call struct {
 }
 
 // LoginPassword is a helper method to define mock.On call
+//   - ctx context.Context
 //   - email string
 //   - password string
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginPassword(email interface{}, password interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPassword_Call {
-	return &MockAuthService_LoginPassword_Call{Call: _e.mock.On("LoginPassword", email, password, ip, rememberMe)}
+func (_e *MockAuthService_Expecter) LoginPassword(ctx interface{}, email interface{}, password interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPassword_Call {
+	return &MockAuthService_LoginPassword_Call{Call: _e.mock.On("LoginPassword", ctx, email, password, ip, rememberMe)}
 }
 
-func (_c *MockAuthService_LoginPassword_Call) Run(run func(email string, password string, ip string, rememberMe bool)) *MockAuthService_LoginPassword_Call {
+func (_c *MockAuthService_LoginPassword_Call) Run(run func(ctx context.Context, email string, password string, ip string, rememberMe bool)) *MockAuthService_LoginPassword_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 bool
+		if args[4] != nil {
+			arg4 = args[4].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_LoginPassword_Call) Return(s string, user *models.User, err error) *MockAuthService_LoginPassword_Call {
+	_c.Call.Return(s, user, err)
+	return _c
+}
+
+func (_c *MockAuthService_LoginPassword_Call) RunAndReturn(run func(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error)) *MockAuthService_LoginPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LoginPubkey provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(ctx, pubkey, ip, rememberMe)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoginPubkey")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) (string, error)); ok {
+		return returnFunc(ctx, pubkey, ip, rememberMe)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) string); ok {
+		r0 = returnFunc(ctx, pubkey, ip, rememberMe)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
+		r1 = returnFunc(ctx, pubkey, ip, rememberMe)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthService_LoginPubkey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginPubkey'
+type MockAuthService_LoginPubkey_Call struct {
+	*mock.Call
+}
+
+// LoginPubkey is a helper method to define mock.On call
+//   - ctx context.Context
+//   - pubkey string
+//   - ip string
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginPubkey(ctx interface{}, pubkey interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPubkey_Call {
+	return &MockAuthService_LoginPubkey_Call{Call: _e.mock.On("LoginPubkey", ctx, pubkey, ip, rememberMe)}
+}
+
+func (_c *MockAuthService_LoginPubkey_Call) Run(run func(ctx context.Context, pubkey string, ip string, rememberMe bool)) *MockAuthService_LoginPubkey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -300,91 +585,179 @@ func (_c *MockAuthService_LoginPassword_Call) Run(run func(email string, passwor
 	return _c
 }
 
-func (_c *MockAuthService_LoginPassword_Call) Return(s string, user *models.User, err error) *MockAuthService_LoginPassword_Call {
-	_c.Call.Return(s, user, err)
-	return _c
-}
-
-func (_c *MockAuthService_LoginPassword_Call) RunAndReturn(run func(email string, password string, ip string, rememberMe bool) (string, *models.User, error)) *MockAuthService_LoginPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// LoginPubkey provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error) {
-	ret := _mock.Called(pubkey, ip, rememberMe)
-
-	if len(ret) == 0 {
-		panic("no return value specified for LoginPubkey")
-	}
-
-	var r0 string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, bool) (string, error)); ok {
-		return returnFunc(pubkey, ip, rememberMe)
-	}
-	if returnFunc, ok := ret.Get(0).(func(string, string, bool) string); ok {
-		r0 = returnFunc(pubkey, ip, rememberMe)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-	if returnFunc, ok := ret.Get(1).(func(string, string, bool) error); ok {
-		r1 = returnFunc(pubkey, ip, rememberMe)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockAuthService_LoginPubkey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginPubkey'
-type MockAuthService_LoginPubkey_Call struct {
-	*mock.Call
-}
-
-// LoginPubkey is a helper method to define mock.On call
-//   - pubkey string
-//   - ip string
-//   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginPubkey(pubkey interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPubkey_Call {
-	return &MockAuthService_LoginPubkey_Call{Call: _e.mock.On("LoginPubkey", pubkey, ip, rememberMe)}
-}
-
-func (_c *MockAuthService_LoginPubkey_Call) Run(run func(pubkey string, ip string, rememberMe bool)) *MockAuthService_LoginPubkey_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 bool
-		if args[2] != nil {
-			arg2 = args[2].(bool)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
 func (_c *MockAuthService_LoginPubkey_Call) Return(s string, err error) *MockAuthService_LoginPubkey_Call {
 	_c.Call.Return(s, err)
 	return _c
 }
 
-func (_c *MockAuthService_LoginPubkey_Call) RunAndReturn(run func(pubkey string, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginPubkey_Call {
+func (_c *MockAuthService_LoginPubkey_Call) RunAndReturn(run func(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginPubkey_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
+// SetConfig provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockAuthService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockAuthService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockAuthService_Expecter) SetConfig(cfg interface{}) *MockAuthService_SetConfig_Call {
+	return &MockAuthService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockAuthService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockAuthService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_SetConfig_Call) Return() *MockAuthService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAuthService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockAuthService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockAuthService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockAuthService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockAuthService_Expecter) SetContext(ctx interface{}) *MockAuthService_SetContext_Call {
+	return &MockAuthService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockAuthService_SetContext_Call) Run(run func(ctx core.Context)) *MockAuthService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_SetContext_Call) Return() *MockAuthService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAuthService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockAuthService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockAuthService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockAuthService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockAuthService_Expecter) SetDB(db interface{}) *MockAuthService_SetDB_Call {
+	return &MockAuthService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockAuthService_SetDB_Call) Run(run func(db *gorm.DB)) *MockAuthService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_SetDB_Call) Return() *MockAuthService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAuthService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockAuthService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockAuthService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockAuthService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockAuthService_Expecter) SetLogger(logger interface{}) *MockAuthService_SetLogger_Call {
+	return &MockAuthService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockAuthService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockAuthService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_SetLogger_Call) Return() *MockAuthService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAuthService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockAuthService_SetLogger_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ValidLoginByEmail provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) ValidLoginByEmail(email string, password string) (bool, *models.User, error) {
-	ret := _mock.Called(email, password)
+func (_mock *MockAuthService) ValidLoginByEmail(ctx context.Context, email string, password string) (bool, *models.User, error) {
+	ret := _mock.Called(ctx, email, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ValidLoginByEmail")
@@ -393,23 +766,23 @@ func (_mock *MockAuthService) ValidLoginByEmail(email string, password string) (
 	var r0 bool
 	var r1 *models.User
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(string, string) (bool, *models.User, error)); ok {
-		return returnFunc(email, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, *models.User, error)); ok {
+		return returnFunc(ctx, email, password)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string) bool); ok {
-		r0 = returnFunc(email, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, email, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string) *models.User); ok {
-		r1 = returnFunc(email, password)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *models.User); ok {
+		r1 = returnFunc(ctx, email, password)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(string, string) error); ok {
-		r2 = returnFunc(email, password)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, email, password)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -422,25 +795,31 @@ type MockAuthService_ValidLoginByEmail_Call struct {
 }
 
 // ValidLoginByEmail is a helper method to define mock.On call
+//   - ctx context.Context
 //   - email string
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByEmail(email interface{}, password interface{}) *MockAuthService_ValidLoginByEmail_Call {
-	return &MockAuthService_ValidLoginByEmail_Call{Call: _e.mock.On("ValidLoginByEmail", email, password)}
+func (_e *MockAuthService_Expecter) ValidLoginByEmail(ctx interface{}, email interface{}, password interface{}) *MockAuthService_ValidLoginByEmail_Call {
+	return &MockAuthService_ValidLoginByEmail_Call{Call: _e.mock.On("ValidLoginByEmail", ctx, email, password)}
 }
 
-func (_c *MockAuthService_ValidLoginByEmail_Call) Run(run func(email string, password string)) *MockAuthService_ValidLoginByEmail_Call {
+func (_c *MockAuthService_ValidLoginByEmail_Call) Run(run func(ctx context.Context, email string, password string)) *MockAuthService_ValidLoginByEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -451,14 +830,14 @@ func (_c *MockAuthService_ValidLoginByEmail_Call) Return(b bool, user *models.Us
 	return _c
 }
 
-func (_c *MockAuthService_ValidLoginByEmail_Call) RunAndReturn(run func(email string, password string) (bool, *models.User, error)) *MockAuthService_ValidLoginByEmail_Call {
+func (_c *MockAuthService_ValidLoginByEmail_Call) RunAndReturn(run func(ctx context.Context, email string, password string) (bool, *models.User, error)) *MockAuthService_ValidLoginByEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ValidLoginByUserID provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) ValidLoginByUserID(id uint, password string) (bool, *models.User, error) {
-	ret := _mock.Called(id, password)
+func (_mock *MockAuthService) ValidLoginByUserID(ctx context.Context, id uint, password string) (bool, *models.User, error) {
+	ret := _mock.Called(ctx, id, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ValidLoginByUserID")
@@ -467,23 +846,23 @@ func (_mock *MockAuthService) ValidLoginByUserID(id uint, password string) (bool
 	var r0 bool
 	var r1 *models.User
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) (bool, *models.User, error)); ok {
-		return returnFunc(id, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) (bool, *models.User, error)); ok {
+		return returnFunc(ctx, id, password)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string) bool); ok {
-		r0 = returnFunc(id, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) bool); ok {
+		r0 = returnFunc(ctx, id, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string) *models.User); ok {
-		r1 = returnFunc(id, password)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, string) *models.User); ok {
+		r1 = returnFunc(ctx, id, password)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(uint, string) error); ok {
-		r2 = returnFunc(id, password)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, string) error); ok {
+		r2 = returnFunc(ctx, id, password)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -496,25 +875,31 @@ type MockAuthService_ValidLoginByUserID_Call struct {
 }
 
 // ValidLoginByUserID is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uint
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByUserID(id interface{}, password interface{}) *MockAuthService_ValidLoginByUserID_Call {
-	return &MockAuthService_ValidLoginByUserID_Call{Call: _e.mock.On("ValidLoginByUserID", id, password)}
+func (_e *MockAuthService_Expecter) ValidLoginByUserID(ctx interface{}, id interface{}, password interface{}) *MockAuthService_ValidLoginByUserID_Call {
+	return &MockAuthService_ValidLoginByUserID_Call{Call: _e.mock.On("ValidLoginByUserID", ctx, id, password)}
 }
 
-func (_c *MockAuthService_ValidLoginByUserID_Call) Run(run func(id uint, password string)) *MockAuthService_ValidLoginByUserID_Call {
+func (_c *MockAuthService_ValidLoginByUserID_Call) Run(run func(ctx context.Context, id uint, password string)) *MockAuthService_ValidLoginByUserID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -525,22 +910,22 @@ func (_c *MockAuthService_ValidLoginByUserID_Call) Return(b bool, user *models.U
 	return _c
 }
 
-func (_c *MockAuthService_ValidLoginByUserID_Call) RunAndReturn(run func(id uint, password string) (bool, *models.User, error)) *MockAuthService_ValidLoginByUserID_Call {
+func (_c *MockAuthService_ValidLoginByUserID_Call) RunAndReturn(run func(ctx context.Context, id uint, password string) (bool, *models.User, error)) *MockAuthService_ValidLoginByUserID_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ValidLoginByUserObj provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) ValidLoginByUserObj(user *models.User, password string) bool {
-	ret := _mock.Called(user, password)
+func (_mock *MockAuthService) ValidLoginByUserObj(ctx context.Context, user *models.User, password string) bool {
+	ret := _mock.Called(ctx, user, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ValidLoginByUserObj")
 	}
 
 	var r0 bool
-	if returnFunc, ok := ret.Get(0).(func(*models.User, string) bool); ok {
-		r0 = returnFunc(user, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.User, string) bool); ok {
+		r0 = returnFunc(ctx, user, password)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
@@ -553,25 +938,31 @@ type MockAuthService_ValidLoginByUserObj_Call struct {
 }
 
 // ValidLoginByUserObj is a helper method to define mock.On call
+//   - ctx context.Context
 //   - user *models.User
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByUserObj(user interface{}, password interface{}) *MockAuthService_ValidLoginByUserObj_Call {
-	return &MockAuthService_ValidLoginByUserObj_Call{Call: _e.mock.On("ValidLoginByUserObj", user, password)}
+func (_e *MockAuthService_Expecter) ValidLoginByUserObj(ctx interface{}, user interface{}, password interface{}) *MockAuthService_ValidLoginByUserObj_Call {
+	return &MockAuthService_ValidLoginByUserObj_Call{Call: _e.mock.On("ValidLoginByUserObj", ctx, user, password)}
 }
 
-func (_c *MockAuthService_ValidLoginByUserObj_Call) Run(run func(user *models.User, password string)) *MockAuthService_ValidLoginByUserObj_Call {
+func (_c *MockAuthService_ValidLoginByUserObj_Call) Run(run func(ctx context.Context, user *models.User, password string)) *MockAuthService_ValidLoginByUserObj_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *models.User
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(*models.User)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 *models.User
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(*models.User)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -582,7 +973,7 @@ func (_c *MockAuthService_ValidLoginByUserObj_Call) Return(b bool) *MockAuthServ
 	return _c
 }
 
-func (_c *MockAuthService_ValidLoginByUserObj_Call) RunAndReturn(run func(user *models.User, password string) bool) *MockAuthService_ValidLoginByUserObj_Call {
+func (_c *MockAuthService_ValidLoginByUserObj_Call) RunAndReturn(run func(ctx context.Context, user *models.User, password string) bool) *MockAuthService_ValidLoginByUserObj_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -35,7 +35,7 @@ func NewStateMachineRegistry(ctx core.Context) *DefaultStateMachineRegistry {
 	}
 }
 
-func (r *DefaultStateMachineRegistry) GetOrCreate(jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error) {
+func (r *DefaultStateMachineRegistry) GetOrCreate(ctx context.Context, jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -153,7 +153,7 @@ func (r *DefaultStateMachineRegistry) afterEventCallback(ctx context.Context, e 
 	}
 }
 
-func (r *DefaultStateMachineRegistry) Remove(jobID uuid.UUID) {
+func (r *DefaultStateMachineRegistry) Remove(ctx context.Context, jobID uuid.UUID) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.machines, jobID)

@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"sync"
+	"time"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
@@ -11,9 +15,6 @@ import (
 	"go.lumeweb.com/portal/db/types"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"math"
-	"sync"
-	"time"
 )
 
 var _ core.CronCoordinator = (*StandaloneCoordinator)(nil)
@@ -97,7 +98,7 @@ func NewStandaloneCoordinator(
 	if opt.Scheduler != nil {
 		coordinator.scheduler = opt.Scheduler
 	} else {
-		scheduler, err := gocron.NewScheduler()
+		scheduler, err := gocron.NewScheduler(gocron.WithSchedulerMonitor(NewPrometheusMonitor()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create scheduler: %w", err)
 		}
@@ -114,11 +115,11 @@ func NewStandaloneCoordinator(
 	return coordinator, nil
 }
 
-func (s *StandaloneCoordinator) SetHeartbeat(jobID uuid.UUID) error {
-	return s.stateMachine.Transition(s.ctx, jobID, models.CronJobStateRunning, core.WithCronHeartbeat())
+func (s *StandaloneCoordinator) SetHeartbeat(ctx context.Context, jobID uuid.UUID) error {
+	return s.stateMachine.Transition(ctx, jobID, models.CronJobStateRunning, core.WithCronHeartbeat())
 }
 
-func (s *StandaloneCoordinator) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
+func (s *StandaloneCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
 	var job models.CronJob
 	if err := s.db.Where("uuid = ?", types.FromUUID(jobID)).First(&job).Error; err != nil {
 		return false, err
@@ -129,8 +130,8 @@ func (s *StandaloneCoordinator) CheckHeartbeat(jobID uuid.UUID) (bool, error) {
 	return time.Since(*job.LastHeartbeat) < 2*time.Minute, nil
 }
 
-func (s *StandaloneCoordinator) CreateJobFromDB(jobID uuid.UUID) (core.CronJob, error) {
-	return s.jobCreator.CreateFromDB(jobID)
+func (s *StandaloneCoordinator) CreateJobFromDB(ctx context.Context, jobID uuid.UUID) (core.CronJob, error) {
+	return s.jobCreator.CreateFromDB(ctx, jobID)
 }
 
 func (s *StandaloneCoordinator) getJobRecord(jobID uuid.UUID) (*models.CronJob, error) {
@@ -166,14 +167,14 @@ func (s *StandaloneCoordinator) getScheduleDefinitionForJob(jobID uuid.UUID) (go
 	return s.cronService.ScheduleRegistry().Create(*schedDef)
 }
 
-func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
+func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID) error {
 	// Validate jobID is not empty
 	if jobID == uuid.Nil {
 		return fmt.Errorf("invalid job ID: cannot be empty")
 	}
 
 	// Ensure we have a valid context before scheduling
-	if _, err := s.getOrCreateJobContext(jobID); err != nil {
+	if _, err := s.getOrCreateJobContext(ctx, jobID); err != nil {
 		return fmt.Errorf("failed to create job context: %w", err)
 	}
 
@@ -184,7 +185,7 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 
 	// Define the task function
 	taskFunc := func(jobID uuid.UUID) error {
-		return s.ExecuteJob(jobID)
+		return s.ExecuteJob(ctx, jobID)
 	}
 
 	// Calculate delay if this is a retry
@@ -235,14 +236,14 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 
 	// Define the before job runs event listener
 	beforeJobRuns := func(jobID uuid.UUID, jobName string) {
-		s.logger.Debug("Before job runs", 
-			zap.String("jobID", jobID.String()), 
+		s.logger.Debug("Before job runs",
+			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName))
-		
+
 		// Perform any pre-execution tasks here
-		if err := s.SetupJob(jobID); err != nil {
-			s.logger.Error("Failed to setup job", 
-				zap.String("jobID", jobID.String()), 
+		if err := s.SetupJob(ctx, jobID); err != nil {
+			s.logger.Error("Failed to setup job",
+				zap.String("jobID", jobID.String()),
 				zap.Error(err))
 		}
 	}
@@ -251,7 +252,7 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 	afterJobRuns := func(jobID uuid.UUID, jobName string) {
 		s.logger.Debug("After job runs", zap.String("jobID", jobID.String()), zap.String("jobName", jobName))
 		// Perform any post-execution tasks here
-		if err = s.CleanupJob(jobID); err != nil {
+		if err = s.CleanupJob(ctx, jobID); err != nil {
 			s.logger.Error("Failed to cleanup job", zap.String("jobID", jobID.String()), zap.Error(err))
 		}
 	}
@@ -270,7 +271,7 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 		s.failureMu.Unlock()
 
 		// Handle all failure transitions through HandleFailedJob
-		if err := s.HandleFailedJob(jobID, uint(failures)); err != nil {
+		if err := s.HandleFailedJob(ctx, jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
@@ -292,7 +293,7 @@ func (s *StandaloneCoordinator) EnqueueJob(jobID uuid.UUID) error {
 
 		// Handle all failure transitions through HandleFailedJob
 		// For panic recovery, we'll treat it as a retryable failure (not permanent)
-		if err := s.HandleFailedJob(jobID, uint(failures)); err != nil {
+		if err := s.HandleFailedJob(ctx, jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job", zap.String("jobID", jobID.String()), zap.Error(err))
 		}
 	}
@@ -320,12 +321,12 @@ func (s *StandaloneCoordinator) Start() error {
 	return nil
 }
 
-func (s *StandaloneCoordinator) HandleFailedJob(jobID uuid.UUID, failures uint) error {
+func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.UUID, failures uint) error {
 	// Cancel any existing context first
 	s.cancelJobContext(jobID)
 
 	// Stop heartbeat monitoring
-	s.cronService.Monitor().StopHeartbeat(jobID)
+	s.cronService.Monitor().StopHeartbeat(ctx, jobID)
 
 	// Update job state to failed and increment failures
 	ctx, cancel := context.WithCancel(s.ctx)
@@ -367,21 +368,21 @@ func (s *StandaloneCoordinator) HandleFailedJob(jobID uuid.UUID, failures uint) 
 	}
 
 	// Requeue the job for retry
-	if err := s.EnqueueJob(jobID); err != nil {
+	if err := s.EnqueueJob(ctx, jobID); err != nil {
 		return fmt.Errorf("failed to requeue job: %w", err)
 	}
 
 	return nil
 }
 
-func (s *StandaloneCoordinator) getOrCreateJobContext(jobID uuid.UUID) (context.Context, error) {
+func (s *StandaloneCoordinator) getOrCreateJobContext(ctx context.Context, jobID uuid.UUID) (context.Context, error) {
 	s.jobCtxMu.Lock()
 	defer s.jobCtxMu.Unlock()
 
 	// Check if we have an existing valid context
-	if ctx, exists := s.jobContexts[jobID]; exists {
+	if jobCtx, exists := s.jobContexts[jobID]; exists {
 		select {
-		case <-ctx.Done():
+		case <-jobCtx.Done():
 			// Context is canceled, create new one
 		default:
 			// Existing context is still valid
@@ -390,14 +391,14 @@ func (s *StandaloneCoordinator) getOrCreateJobContext(jobID uuid.UUID) (context.
 	}
 
 	// Create new context
-	ctx, cancel := context.WithCancel(s.ctx)
+	ctx, cancel := context.WithCancel(ctx)
 	s.jobContexts[jobID] = ctx
 	s.jobCancels[jobID] = cancel
 
 	return ctx, nil
 }
 
-func (s *StandaloneCoordinator) SetupJob(jobID uuid.UUID) error {
+func (s *StandaloneCoordinator) SetupJob(ctx context.Context, jobID uuid.UUID) error {
 	// Get current job state for defensive logging
 	dbJob, err := s.getJobRecord(jobID)
 	if err != nil {
@@ -405,12 +406,12 @@ func (s *StandaloneCoordinator) SetupJob(jobID uuid.UUID) error {
 	}
 
 	if dbJob.State == models.CronJobStateCompleted {
-		s.logger.Debug("SetupJob called on completed job - this should not happen normally", 
+		s.logger.Debug("SetupJob called on completed job - this should not happen normally",
 			zap.String("jobID", jobID.String()),
 			zap.String("currentState", string(dbJob.State)))
 	}
 
-	ctx, err := s.getOrCreateJobContext(jobID)
+	jobCtx, err := s.getOrCreateJobContext(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to create job context: %w", err)
 	}
@@ -418,7 +419,7 @@ func (s *StandaloneCoordinator) SetupJob(jobID uuid.UUID) error {
 	// Only transition to running if currently queued
 	if dbJob.State == models.CronJobStateQueued {
 		if err := s.cronService.StateMachine().Transition(
-			ctx,
+			jobCtx,
 			jobID,
 			models.CronJobStateRunning,
 			core.WithCronHeartbeat(),
@@ -430,7 +431,7 @@ func (s *StandaloneCoordinator) SetupJob(jobID uuid.UUID) error {
 	}
 
 	// Start heartbeat monitoring
-	s.cronService.Monitor().StartHeartbeat(jobID)
+	s.cronService.Monitor().StartHeartbeat(ctx, jobID)
 
 	s.logger.Info("Started job execution",
 		zap.String("jobID", jobID.String()))
@@ -448,7 +449,7 @@ func (s *StandaloneCoordinator) cancelJobContext(jobID uuid.UUID) {
 	}
 }
 
-func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
+func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID) error {
 	// Get current job state for defensive logging
 	dbJob, err := s.getJobRecord(jobID)
 	if err != nil {
@@ -456,12 +457,12 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 	}
 
 	if dbJob.State == models.CronJobStateCompleted {
-		s.logger.Debug("CleanupJob called on already completed job - this should not happen normally", 
+		s.logger.Debug("CleanupJob called on already completed job - this should not happen normally",
 			zap.String("jobID", jobID.String()),
 			zap.String("currentState", string(dbJob.State)))
 	}
 
-	s.cronService.Monitor().StopHeartbeat(jobID)
+	s.cronService.Monitor().StopHeartbeat(ctx, jobID)
 	s.cancelJobContext(jobID)
 
 	// Reset failure count on successful completion
@@ -472,8 +473,8 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 	// Only transition to completed if currently running
 	state := dbJob.State
 	if state == models.CronJobStateRunning {
-		if err := s.cronService.StateMachine().Transition(
-			context.Background(),
+		if err = s.cronService.StateMachine().Transition(
+			ctx,
 			jobID,
 			models.CronJobStateCompleted,
 		); err != nil {
@@ -499,9 +500,9 @@ func (s *StandaloneCoordinator) CleanupJob(jobID uuid.UUID) error {
 	return nil
 }
 
-func (s *StandaloneCoordinator) ExecuteJob(jobID uuid.UUID) error {
+func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
 	// Get job instance
-	job, err := s.CreateJobFromDB(jobID)
+	job, err := s.CreateJobFromDB(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to create job instance: %w", err)
 	}
@@ -525,7 +526,7 @@ func (s *StandaloneCoordinator) RemoveJob(jobID uuid.UUID) error {
 	return s.scheduler.RemoveJob(jobID)
 }
 
-func (s *StandaloneCoordinator) JobContext(jobID uuid.UUID) context.Context {
+func (s *StandaloneCoordinator) JobContext(ctx context.Context, jobID uuid.UUID) context.Context {
 	s.jobCtxMu.RLock()
 	defer s.jobCtxMu.RUnlock()
 	return s.jobContexts[jobID]

@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 )
@@ -37,16 +39,16 @@ func (_m *MockCronable) EXPECT() *MockCronable_Expecter {
 }
 
 // RegisterTasks provides a mock function for the type MockCronable
-func (_mock *MockCronable) RegisterTasks(cron core.CronService) error {
-	ret := _mock.Called(cron)
+func (_mock *MockCronable) RegisterTasks(ctx context.Context, cron core.CronService) error {
+	ret := _mock.Called(ctx, cron)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterTasks")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.CronService) error); ok {
-		r0 = returnFunc(cron)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.CronService) error); ok {
+		r0 = returnFunc(ctx, cron)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -59,19 +61,25 @@ type MockCronable_RegisterTasks_Call struct {
 }
 
 // RegisterTasks is a helper method to define mock.On call
+//   - ctx context.Context
 //   - cron core.CronService
-func (_e *MockCronable_Expecter) RegisterTasks(cron interface{}) *MockCronable_RegisterTasks_Call {
-	return &MockCronable_RegisterTasks_Call{Call: _e.mock.On("RegisterTasks", cron)}
+func (_e *MockCronable_Expecter) RegisterTasks(ctx interface{}, cron interface{}) *MockCronable_RegisterTasks_Call {
+	return &MockCronable_RegisterTasks_Call{Call: _e.mock.On("RegisterTasks", ctx, cron)}
 }
 
-func (_c *MockCronable_RegisterTasks_Call) Run(run func(cron core.CronService)) *MockCronable_RegisterTasks_Call {
+func (_c *MockCronable_RegisterTasks_Call) Run(run func(ctx context.Context, cron core.CronService)) *MockCronable_RegisterTasks_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.CronService
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.CronService)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.CronService
+		if args[1] != nil {
+			arg1 = args[1].(core.CronService)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -82,22 +90,22 @@ func (_c *MockCronable_RegisterTasks_Call) Return(err error) *MockCronable_Regis
 	return _c
 }
 
-func (_c *MockCronable_RegisterTasks_Call) RunAndReturn(run func(cron core.CronService) error) *MockCronable_RegisterTasks_Call {
+func (_c *MockCronable_RegisterTasks_Call) RunAndReturn(run func(ctx context.Context, cron core.CronService) error) *MockCronable_RegisterTasks_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ScheduleJobs provides a mock function for the type MockCronable
-func (_mock *MockCronable) ScheduleJobs(cron core.CronService) error {
-	ret := _mock.Called(cron)
+func (_mock *MockCronable) ScheduleJobs(ctx context.Context, cron core.CronService) error {
+	ret := _mock.Called(ctx, cron)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ScheduleJobs")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.CronService) error); ok {
-		r0 = returnFunc(cron)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.CronService) error); ok {
+		r0 = returnFunc(ctx, cron)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -110,19 +118,25 @@ type MockCronable_ScheduleJobs_Call struct {
 }
 
 // ScheduleJobs is a helper method to define mock.On call
+//   - ctx context.Context
 //   - cron core.CronService
-func (_e *MockCronable_Expecter) ScheduleJobs(cron interface{}) *MockCronable_ScheduleJobs_Call {
-	return &MockCronable_ScheduleJobs_Call{Call: _e.mock.On("ScheduleJobs", cron)}
+func (_e *MockCronable_Expecter) ScheduleJobs(ctx interface{}, cron interface{}) *MockCronable_ScheduleJobs_Call {
+	return &MockCronable_ScheduleJobs_Call{Call: _e.mock.On("ScheduleJobs", ctx, cron)}
 }
 
-func (_c *MockCronable_ScheduleJobs_Call) Run(run func(cron core.CronService)) *MockCronable_ScheduleJobs_Call {
+func (_c *MockCronable_ScheduleJobs_Call) Run(run func(ctx context.Context, cron core.CronService)) *MockCronable_ScheduleJobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.CronService
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.CronService)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.CronService
+		if args[1] != nil {
+			arg1 = args[1].(core.CronService)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -133,7 +147,7 @@ func (_c *MockCronable_ScheduleJobs_Call) Return(err error) *MockCronable_Schedu
 	return _c
 }
 
-func (_c *MockCronable_ScheduleJobs_Call) RunAndReturn(run func(cron core.CronService) error) *MockCronable_ScheduleJobs_Call {
+func (_c *MockCronable_ScheduleJobs_Call) RunAndReturn(run func(ctx context.Context, cron core.CronService) error) *MockCronable_ScheduleJobs_Call {
 	_c.Call.Return(run)
 	return _c
 }

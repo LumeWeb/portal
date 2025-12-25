@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"go.etcd.io/etcd/client/v3"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 type ClientType string
@@ -77,8 +78,8 @@ func (cm *ClientManager) Start() error {
 	return nil
 }
 
-func (cm *ClientManager) loadNodes(client *clientv3.Client) error {
-	resp, err := client.Get(context.Background(), cm.etcdKey, clientv3.WithPrefix())
+func (cm *ClientManager) loadNodes(ctx context.Context, client *clientv3.Client) error {
+	resp, err := client.Get(ctx, cm.etcdKey, clientv3.WithPrefix())
 	if err != nil {
 		return fmt.Errorf("failed to get nodes from etcd: %w", err)
 	}
@@ -98,8 +99,8 @@ func (cm *ClientManager) loadNodes(client *clientv3.Client) error {
 	return nil
 }
 
-func (cm *ClientManager) watchNodes(client *clientv3.Client) {
-	watchChan := client.Watch(context.Background(), cm.etcdKey, clientv3.WithPrefix())
+func (cm *ClientManager) watchNodes(ctx context.Context, client *clientv3.Client) {
+	watchChan := client.Watch(ctx, cm.etcdKey, clientv3.WithPrefix())
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
 			var node NodeInfo

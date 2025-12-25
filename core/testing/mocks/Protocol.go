@@ -8,6 +8,7 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockProtocol creates a new instance of MockProtocol. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -38,19 +39,19 @@ func (_m *MockProtocol) EXPECT() *MockProtocol_Expecter {
 }
 
 // Config provides a mock function for the type MockProtocol
-func (_mock *MockProtocol) Config() config.ProtocolConfig {
+func (_mock *MockProtocol) Config() config.Manager {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Config")
 	}
 
-	var r0 config.ProtocolConfig
-	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(config.ProtocolConfig)
+			r0 = ret.Get(0).(config.Manager)
 		}
 	}
 	return r0
@@ -73,12 +74,104 @@ func (_c *MockProtocol_Config_Call) Run(run func()) *MockProtocol_Config_Call {
 	return _c
 }
 
-func (_c *MockProtocol_Config_Call) Return(protocolConfig config.ProtocolConfig) *MockProtocol_Config_Call {
-	_c.Call.Return(protocolConfig)
+func (_c *MockProtocol_Config_Call) Return(manager config.Manager) *MockProtocol_Config_Call {
+	_c.Call.Return(manager)
 	return _c
 }
 
-func (_c *MockProtocol_Config_Call) RunAndReturn(run func() config.ProtocolConfig) *MockProtocol_Config_Call {
+func (_c *MockProtocol_Config_Call) RunAndReturn(run func() config.Manager) *MockProtocol_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockProtocol_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockProtocol_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) Context() *MockProtocol_Context_Call {
+	return &MockProtocol_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockProtocol_Context_Call) Run(run func()) *MockProtocol_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_Context_Call) Return(context core.Context) *MockProtocol_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockProtocol_Context_Call) RunAndReturn(run func() core.Context) *MockProtocol_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockProtocol_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockProtocol_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) DB() *MockProtocol_DB_Call {
+	return &MockProtocol_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockProtocol_DB_Call) Run(run func()) *MockProtocol_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_DB_Call) Return(dB *gorm.DB) *MockProtocol_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockProtocol_DB_Call) RunAndReturn(run func() *gorm.DB) *MockProtocol_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -123,6 +216,142 @@ func (_c *MockProtocol_DisplayName_Call) Return(s string) *MockProtocol_DisplayN
 }
 
 func (_c *MockProtocol_DisplayName_Call) RunAndReturn(run func() string) *MockProtocol_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetConfig provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) GetConfig() config.ProtocolConfig {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetConfig")
+	}
+
+	var r0 config.ProtocolConfig
+	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.ProtocolConfig)
+		}
+	}
+	return r0
+}
+
+// MockProtocol_GetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetConfig'
+type MockProtocol_GetConfig_Call struct {
+	*mock.Call
+}
+
+// GetConfig is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) GetConfig() *MockProtocol_GetConfig_Call {
+	return &MockProtocol_GetConfig_Call{Call: _e.mock.On("GetConfig")}
+}
+
+func (_c *MockProtocol_GetConfig_Call) Run(run func()) *MockProtocol_GetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_GetConfig_Call) Return(protocolConfig config.ProtocolConfig) *MockProtocol_GetConfig_Call {
+	_c.Call.Return(protocolConfig)
+	return _c
+}
+
+func (_c *MockProtocol_GetConfig_Call) RunAndReturn(run func() config.ProtocolConfig) *MockProtocol_GetConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ID provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) ID() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockProtocol_ID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ID'
+type MockProtocol_ID_Call struct {
+	*mock.Call
+}
+
+// ID is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) ID() *MockProtocol_ID_Call {
+	return &MockProtocol_ID_Call{Call: _e.mock.On("ID")}
+}
+
+func (_c *MockProtocol_ID_Call) Run(run func()) *MockProtocol_ID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_ID_Call) Return(s string) *MockProtocol_ID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockProtocol_ID_Call) RunAndReturn(run func() string) *MockProtocol_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockProtocol_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockProtocol_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockProtocol_Expecter) Logger() *MockProtocol_Logger_Call {
+	return &MockProtocol_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockProtocol_Logger_Call) Run(run func()) *MockProtocol_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProtocol_Logger_Call) Return(logger *core.Logger) *MockProtocol_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockProtocol_Logger_Call) RunAndReturn(run func() *core.Logger) *MockProtocol_Logger_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -214,6 +443,166 @@ func (_c *MockProtocol_Operations_Call) Return(operations []core.Operation) *Moc
 
 func (_c *MockProtocol_Operations_Call) RunAndReturn(run func() []core.Operation) *MockProtocol_Operations_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockProtocol_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockProtocol_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockProtocol_Expecter) SetConfig(cfg interface{}) *MockProtocol_SetConfig_Call {
+	return &MockProtocol_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockProtocol_SetConfig_Call) Run(run func(cfg config.Manager)) *MockProtocol_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockProtocol_SetConfig_Call) Return() *MockProtocol_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockProtocol_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockProtocol_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockProtocol_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockProtocol_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockProtocol_Expecter) SetContext(ctx interface{}) *MockProtocol_SetContext_Call {
+	return &MockProtocol_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockProtocol_SetContext_Call) Run(run func(ctx core.Context)) *MockProtocol_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockProtocol_SetContext_Call) Return() *MockProtocol_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockProtocol_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockProtocol_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockProtocol_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockProtocol_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockProtocol_Expecter) SetDB(db interface{}) *MockProtocol_SetDB_Call {
+	return &MockProtocol_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockProtocol_SetDB_Call) Run(run func(db *gorm.DB)) *MockProtocol_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockProtocol_SetDB_Call) Return() *MockProtocol_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockProtocol_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockProtocol_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockProtocol
+func (_mock *MockProtocol) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockProtocol_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockProtocol_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockProtocol_Expecter) SetLogger(logger interface{}) *MockProtocol_SetLogger_Call {
+	return &MockProtocol_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockProtocol_SetLogger_Call) Run(run func(logger *core.Logger)) *MockProtocol_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockProtocol_SetLogger_Call) Return() *MockProtocol_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockProtocol_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockProtocol_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

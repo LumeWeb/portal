@@ -71,7 +71,7 @@ func TestCronServiceDefault_RegisterJob_Integration(t *testing.T) {
 		testJob := newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily}, nil)
 
 		// Register the job
-		err := cronService.RegisterJob(testJob, nil)
+		err := cronService.RegisterJob(nil, testJob, nil)
 		require.NoError(t, err)
 
 		// Verify that the job was created in the database
@@ -83,7 +83,7 @@ func TestCronServiceDefault_RegisterJob_Integration(t *testing.T) {
 		assert.Equal(t, "cron.integration-test-job", job.SourceID)
 
 		// Clean up
-		err = cronService.Stop()
+		err = cronService.Stop(nil)
 		require.NoError(t, err)
 	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
@@ -97,37 +97,35 @@ func TestCronServiceDefault_RunJob_Integration(t *testing.T) {
 
 		cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 		defer func() {
-			err := cronService.Stop()
+			err := cronService.Stop(nil)
 			require.NoError(t, err)
 		}()
 
 		var jobRan bool
 
 		// Register the job
-		err := cronService.RegisterJobType(
-			integrationTestJobType,
-			func() (core.CronJob, error) {
-				return newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{
-					Type:   core.CronScheduleTypeOnce,
-					AtTime: time.Now().Add(time.Second * 1),
-				}, func() {
-					jobRan = true
-				}), nil
-			}, nil)
+		err := cronService.RegisterJobType(nil, integrationTestJobType, func() (core.CronJob, error) {
+			return newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{
+				Type:   core.CronScheduleTypeOnce,
+				AtTime: time.Now().Add(time.Second * 1),
+			}, func() {
+				jobRan = true
+			}), nil
+		}, nil)
 
 		require.NoError(t, err)
 
-		job, err := cronService.JobFactory().CreateJob(integrationTestJobType)
+		job, err := cronService.JobFactory().CreateJob(nil, integrationTestJobType)
 		require.NoError(t, err)
 
-		err = cronService.RegisterJob(job, nil)
+		err = cronService.RegisterJob(nil, job, nil)
 		require.NoError(t, err)
 
 		// Start the cron service
-		err = cronService.Start()
+		err = cronService.Start(nil)
 		require.NoError(t, err)
 
-		cronJob, found, err := cronService.GetActiveJob(job.ID())
+		cronJob, found, err := cronService.GetActiveJob(nil, job.ID())
 		require.NoError(t, err)
 		require.True(t, found)
 
@@ -150,7 +148,7 @@ func TestCronServiceDefault_RegisterPluginJobs_Integration(t *testing.T) {
 
 		cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 		defer func() {
-			err := cronService.Stop()
+			err := cronService.Stop(nil)
 			require.NoError(t, err)
 		}()
 
@@ -175,12 +173,12 @@ func TestCronServiceDefault_RegisterPluginJobs_Integration(t *testing.T) {
 		core.RegisterPlugin(pluginInfo)
 
 		// Register the plugin jobs
-		err := cronService.RegisterPluginJobs(pluginInfo)
+		err := cronService.RegisterPluginJobs(nil, pluginInfo)
 		require.NoError(t, err)
 
 		// Verify that the job type is registered
 		jobFactory := cronService.JobFactory()
-		_, err = jobFactory.CreateJob("plugin.test.job1")
+		_, err = jobFactory.CreateJob(nil, "plugin.test.job1")
 		require.NoError(t, err)
 	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
@@ -194,7 +192,7 @@ func TestCronServiceDefault_ScheduleRegistry_Integration(t *testing.T) {
 
 		cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 		defer func() {
-			err := cronService.Stop()
+			err := cronService.Stop(nil)
 			require.NoError(t, err)
 		}()
 
@@ -223,7 +221,7 @@ func TestCronServiceDefault_JobFactory_Integration(t *testing.T) {
 
 		cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 		defer func() {
-			err := cronService.Stop()
+			err := cronService.Stop(nil)
 			require.NoError(t, err)
 		}()
 
@@ -233,21 +231,17 @@ func TestCronServiceDefault_JobFactory_Integration(t *testing.T) {
 
 		// Register a new job type
 		jobType := integrationTestJobType
-		err := cronService.RegisterJobType(
-			integrationTestJobType,
-			func() (core.CronJob, error) {
-				return newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{
-					Type: core.CronScheduleTypeDaily,
-				}, nil), nil
-			},
-			&core.CronScheduleDefinition{
+		err := cronService.RegisterJobType(nil, integrationTestJobType, func() (core.CronJob, error) {
+			return newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{
 				Type: core.CronScheduleTypeDaily,
-			},
-		)
+			}, nil), nil
+		}, &core.CronScheduleDefinition{
+			Type: core.CronScheduleTypeDaily,
+		})
 		require.NoError(t, err)
 
 		// Verify that the job type is registered
-		_, err = factory.CreateJob(jobType)
+		_, err = factory.CreateJob(nil, jobType)
 		require.NoError(t, err)
 	}, coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService))
 }
@@ -261,7 +255,7 @@ func TestCronServiceDefault_StateMachine_Integration(t *testing.T) {
 
 		cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 		defer func() {
-			err := cronService.Stop()
+			err := cronService.Stop(nil)
 			require.NoError(t, err)
 		}()
 
@@ -269,7 +263,7 @@ func TestCronServiceDefault_StateMachine_Integration(t *testing.T) {
 		testJob := newSimpleTestJob(core.JobOriginCore, integrationTestJobSourceId, &core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily}, nil)
 
 		// Register the job
-		err := cronService.RegisterJob(testJob, nil)
+		err := cronService.RegisterJob(nil, testJob, nil)
 		require.NoError(t, err)
 
 		// Get the state machine

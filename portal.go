@@ -3,6 +3,10 @@ package portal
 import (
 	"errors"
 	"fmt"
+	"os"
+	"reflect"
+	"sync"
+
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
@@ -11,9 +15,6 @@ import (
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"os"
-	"reflect"
-	"sync"
 )
 
 var (
@@ -30,17 +31,19 @@ type Portal interface {
 }
 
 type PortalImpl struct {
-	ctx   core.Context
-	ctxMu sync.RWMutex
+	ctx    core.Context
+	logger *core.Logger
+	ctxMu  sync.RWMutex
 }
 
 func (p *PortalImpl) Init() error {
 	ctx := p.Context()
-	ctx.Logger().Info("Initializing portal")
+	logger := ctx.Logger()
+	logger.Info("Initializing portal")
 
 	// Fire init start event
-	if err := core.Fire(ctx, event.EVENT_INIT_START, event.NewInitStartEvent(ctx)); err != nil {
-		ctx.Logger().Error("Error firing init start event", zap.Error(err))
+	if err := core.Fire(ctx, event.EVENT_INIT_START, event.NewInitStartEvent(ctx, ctx.GetContext())); err != nil {
+		logger.Error("Error firing init start event", zap.Error(err))
 		return err
 	}
 
@@ -79,16 +82,16 @@ func (p *PortalImpl) Init() error {
 	ctxOpts = append(ctxOpts, opts...)
 
 	// Fire components registered event
-	if err := core.Fire(ctx, event.EVENT_INIT_COMPONENTS_REGISTERED, event.NewInitComponentsRegisteredEvent(ctx)); err != nil {
-		ctx.Logger().Error("Error firing init components registered event", zap.Error(err))
+	if err := core.Fire(ctx, event.EVENT_INIT_COMPONENTS_REGISTERED, event.NewInitComponentsRegisteredEvent(ctx, ctx.GetContext())); err != nil {
+		logger.Error("Error firing init components registered event", zap.Error(err))
 		return err
 	}
 
 	// Create new context with gathered options - this establishes the base context
 	// with all registered components but before any configuration is applied
-	ctx, err = core.NewContext(ctx.Config(), ctx.Logger(), ctxOpts...)
+	ctx, err = core.NewContext(ctx.Config(), logger, ctxOpts...)
 	if err != nil {
-		ctx.Logger().Error("Error applying context options", zap.Error(err))
+		logger.Error("Error applying context options", zap.Error(err))
 		return err
 	}
 	p.SetContext(ctx)
@@ -97,6 +100,11 @@ func (p *PortalImpl) Init() error {
 	// Configure all registered components with their respective configs
 	if err = p.configureServices(ctx); err != nil {
 		return fmt.Errorf("failed to configure services: %w", err)
+	}
+
+	// Register metrics for all services and plugins
+	if err = p.registerMetrics(ctx); err != nil {
+		return fmt.Errorf("failed to register metrics: %w", err)
 	}
 
 	if err = p.configureProtocols(ctx); err != nil {
@@ -108,19 +116,19 @@ func (p *PortalImpl) Init() error {
 	}
 
 	// Fire components configured event
-	if err := core.Fire(ctx, event.EVENT_INIT_COMPONENTS_CONFIGURED, event.NewInitComponentsConfiguredEvent(ctx)); err != nil {
-		ctx.Logger().Error("Error firing init components configured event", zap.Error(err))
+	if err := core.Fire(ctx, event.EVENT_INIT_COMPONENTS_CONFIGURED, event.NewInitComponentsConfiguredEvent(ctx, ctx.GetContext())); err != nil {
+		logger.Error("Error firing init components configured event", zap.Error(err))
 		return err
 	}
 
 	// Initialize config system and apply log level settings
 	err = ctx.Config().Init()
 	if err != nil {
-		ctx.Logger().Fatal("Failed to initialize config", zap.Error(err))
+		logger.Fatal("Failed to initialize config", zap.Error(err))
 		return err
 	}
 
-	ctx.Logger().SetLevelFromConfig()
+	logger.SetLevelFromConfig()
 
 	// Stage 3: Database & Models Setup
 	// Initialize database connection and register all data models
@@ -137,14 +145,20 @@ func (p *PortalImpl) Init() error {
 	// Apply database options first and update portal context
 	ctx, err = core.ProcessCtxOptions(ctx, dbOpts...)
 	if err != nil {
-		ctx.Logger().Error("Error applying database options", zap.Error(err))
+		logger.Error("Error applying database options", zap.Error(err))
 		return err
 	}
 	p.SetContext(ctx)
 
+	// Setup DB observability with OpenTelemetry tracing
+	if err := db.SetupDBObservability(ctx); err != nil {
+		logger.Error("Failed to configure DB observability", zap.Error(err))
+		return err
+	}
+
 	// Fire database ready event (now with working DB)
-	if err := core.Fire(ctx, event.EVENT_INIT_DATABASE_READY, event.NewInitDatabaseReadyEvent(ctx)); err != nil {
-		ctx.Logger().Error("Error firing init database ready event", zap.Error(err))
+	if err := core.Fire(ctx, event.EVENT_INIT_DATABASE_READY, event.NewInitDatabaseReadyEvent(ctx, ctx.GetContext())); err != nil {
+		logger.Error("Error firing init database ready event", zap.Error(err))
 		return err
 	}
 
@@ -175,15 +189,15 @@ func (p *PortalImpl) Init() error {
 	if len(ctxOpts) > 0 {
 		ctx, err = core.ProcessCtxOptions(ctx, ctxOpts...)
 		if err != nil {
-			ctx.Logger().Error("Error creating context", zap.Error(err))
+			logger.Error("Error creating context", zap.Error(err))
 			return err
 		}
 		p.SetContext(ctx)
 	}
 
 	// Fire init complete event
-	if err := core.Fire(ctx, event.EVENT_INIT_COMPLETE, event.NewInitCompleteEvent(ctx)); err != nil {
-		ctx.Logger().Error("Error firing init complete event", zap.Error(err))
+	if err := core.Fire(ctx, event.EVENT_INIT_COMPLETE, event.NewInitCompleteEvent(ctx, ctx.GetContext())); err != nil {
+		logger.Error("Error firing init complete event", zap.Error(err))
 		return err
 	}
 
@@ -194,12 +208,12 @@ func (p *PortalImpl) Start() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Starting portal")
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_START, event.NewBootStartEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_START, event.NewBootStartEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot start event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_STARTUP_FUNCS, event.NewBootStartupFuncsEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_STARTUP_FUNCS, event.NewBootStartupFuncsEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot startup funcs event", zap.Error(err))
 		return err
 	}
@@ -208,12 +222,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, event.NewBootStartupFuncsCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_STARTUP_FUNCS_COMPLETED, event.NewBootStartupFuncsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot startup funcs completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PLUGIN_WORKFLOWS, event.NewBootPluginWorkflowsEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PLUGIN_WORKFLOWS, event.NewBootPluginWorkflowsEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot plugin workflows event", zap.Error(err))
 		return err
 	}
@@ -222,12 +236,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, event.NewBootPluginWorkflowsCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PLUGIN_WORKFLOWS_COMPLETED, event.NewBootPluginWorkflowsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot plugin workflows completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOL_WORKFLOWS, event.NewBootProtocolWorkflowsEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOL_WORKFLOWS, event.NewBootProtocolWorkflowsEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot protocol workflows event", zap.Error(err))
 		return err
 	}
@@ -236,12 +250,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, event.NewBootProtocolWorkflowsCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOL_WORKFLOWS_COMPLETED, event.NewBootProtocolWorkflowsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot protocol workflows completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOLS, event.NewBootProtocolsEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOLS, event.NewBootProtocolsEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot protocols event", zap.Error(err))
 		return err
 	}
@@ -250,12 +264,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOLS_COMPLETED, event.NewBootProtocolsCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_PROTOCOLS_COMPLETED, event.NewBootProtocolsCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot protocols completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_CRON, event.NewBootCronEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_CRON, event.NewBootCronEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot cron event", zap.Error(err))
 		return err
 	}
@@ -264,12 +278,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_CRON_COMPLETED, event.NewBootCronCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_CRON_COMPLETED, event.NewBootCronCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot cron completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_HTTP, event.NewBootHTTPEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_HTTP, event.NewBootHTTPEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot http event", zap.Error(err))
 		return err
 	}
@@ -278,12 +292,12 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_HTTP_COMPLETED, event.NewBootHTTPCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_HTTP_COMPLETED, event.NewBootHTTPCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot http completed event", zap.Error(err))
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_MAILER, event.NewBootMailerEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_MAILER, event.NewBootMailerEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot mailer event", zap.Error(err))
 		return err
 	}
@@ -292,7 +306,7 @@ func (p *PortalImpl) Start() error {
 		return err
 	}
 
-	if err := core.Fire(ctx, event.EVENT_BOOT_MAILER_COMPLETED, event.NewBootMailerCompletedEvent(ctx)); err != nil {
+	if err := core.Fire(ctx, event.EVENT_BOOT_MAILER_COMPLETED, event.NewBootMailerCompletedEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot mailer completed event", zap.Error(err))
 		return err
 	}
@@ -429,6 +443,28 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 	return nil
 }
 
+func (p *PortalImpl) registerMetrics(ctx core.Context) error {
+	// Register metrics for all core and plugin services
+	for _, svcInfo := range core.GetServices() {
+		if err := core.RegisterServiceMetrics(svcInfo.ID, svcInfo.Metrics); err != nil {
+			ctx.Logger().Warn("Failed to register service metrics",
+				zap.String("service", svcInfo.ID),
+				zap.Error(err))
+		}
+	}
+
+	// Register metrics for all plugins
+	for _, plugin := range core.GetPlugins() {
+		if err := core.RegisterPluginMetrics(plugin.ID, plugin.Metrics); err != nil {
+			ctx.Logger().Warn("Failed to register plugin metrics",
+				zap.String("plugin", plugin.ID),
+				zap.Error(err))
+		}
+	}
+
+	return nil
+}
+
 func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, svcCtxOpts []core.ContextBuilderOption, err error) {
 	// Initialize all services and collect their context options.
 	// Returns both direct context options and service-specific options separately
@@ -443,7 +479,7 @@ func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, svcCtx
 		if opts != nil {
 			svcCtxOpts = append(svcCtxOpts, opts...)
 		}
-		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc))
+		ctxOpts = append(ctxOpts, core.ContextWithService(svcInfo.ID, svc), core.ContextWithStartupComponent(svc))
 	}
 
 	return ctxOpts, svcCtxOpts, nil
@@ -451,7 +487,7 @@ func (p *PortalImpl) initServices() (ctxOpts []core.ContextBuilderOption, svcCtx
 
 func (p *PortalImpl) configureProtocols(ctx core.Context) error {
 	for name, proto := range core.GetProtocols() {
-		err := ctx.Config().ConfigureProtocol(name, proto.Config())
+		err := ctx.Config().ConfigureProtocol(name, proto.GetConfig())
 		if err != nil {
 			ctx.Logger().Error("Error configuring protocol", zap.String("protocol", proto.Name()), zap.Error(err))
 			return fmt.Errorf("failed to configure protocol %q: %w", proto.Name(), err)
@@ -477,6 +513,7 @@ func (p *PortalImpl) registerProtocols(ctx core.Context) (ctxOpts []core.Context
 
 			ctxOpts = append(ctxOpts, opts...)
 			core.RegisterProtocol(plugin.ID, proto)
+			ctxOpts = append(ctxOpts, core.ContextWithStartupComponent(proto))
 		}
 	}
 
@@ -485,7 +522,7 @@ func (p *PortalImpl) registerProtocols(ctx core.Context) (ctxOpts []core.Context
 
 func (p *PortalImpl) configureAPIs(ctx core.Context) error {
 	for name, api := range core.GetAPIs() {
-		err := ctx.Config().ConfigureAPI(name, api.Config())
+		err := ctx.Config().ConfigureAPI(name, api.GetConfig())
 		if err != nil {
 			ctx.Logger().Error("Error configuring api", zap.String("api", api.Name()), zap.Error(err))
 			return fmt.Errorf("failed to configure API %q: %w", api.Name(), err)
@@ -511,6 +548,7 @@ func (p *PortalImpl) registerAPIs(ctx core.Context) (ctxOpts []core.ContextBuild
 
 			ctxOpts = append(ctxOpts, opts...)
 			core.RegisterAPI(plugin.ID, api)
+			ctxOpts = append(ctxOpts, core.ContextWithStartupComponent(api))
 		}
 	}
 
@@ -540,9 +578,11 @@ func (p *PortalImpl) registerAPIExtensions(ctx core.Context) (ctxOpts []core.Con
 						zap.String("plugin", plugin.ID),
 						zap.String("target", ext.TargetAPI()))
 					core.RegisterAPIExtension(ext)
+					ctxOpts = append(ctxOpts, core.ContextWithStartupComponent(ext))
 
 					return core.ProcessCtxOptions(ctx, ctxOptions...)
 				})
+
 				ctxOpts = append(ctxOpts, apiExtStartup)
 			}
 		}
@@ -571,7 +611,7 @@ func (p *PortalImpl) initModels(_ core.Context, dbInst *gorm.DB) (ctxOpts []core
 func (p *PortalImpl) initProtocols(ctx core.Context) (ctxOpts []core.ContextBuilderOption, err error) {
 	for _, proto := range core.GetProtocols() {
 		if initProto, ok := proto.(core.ProtocolInit); ok {
-			if err := initProto.Init(ctx); err != nil {
+			if err = initProto.Init(ctx); err != nil {
 				ctx.Logger().Error("Error initializing protocol", zap.String("protocol", proto.Name()), zap.Error(err))
 				return nil, err
 			}
@@ -644,7 +684,7 @@ func (p *PortalImpl) startCron(ctx core.Context) error {
 		return errors.New("cron service not found")
 	}
 
-	err := cronSvc.(core.CronService).Start()
+	err := cronSvc.(core.CronService).Start(nil)
 	if err != nil {
 		return err
 	}
@@ -717,12 +757,13 @@ func (p *PortalImpl) runExitFuncs(ctx core.Context) error {
 }
 
 func (p *PortalImpl) fireBootCompletedEvent(ctx core.Context) error {
-	return core.Fire(ctx, event.EVENT_BOOT_COMPLETED, event.NewBootCompletedEvent(ctx))
+	return core.Fire(ctx, event.EVENT_BOOT_COMPLETED, event.NewBootCompletedEvent(ctx, ctx.GetContext()))
 }
 
 func NewPortal(ctx core.Context) *PortalImpl {
 	return &PortalImpl{
-		ctx: ctx,
+		ctx:    ctx,
+		logger: ctx.Logger(),
 	}
 }
 
@@ -736,6 +777,7 @@ func (p *PortalImpl) SetContext(ctx core.Context) {
 	p.ctxMu.Lock()
 	defer p.ctxMu.Unlock()
 	p.ctx = ctx
+	p.logger = ctx.Logger()
 }
 
 func NewActivePortal(ctx core.Context) {

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -11,28 +12,28 @@ import (
 	"github.com/casbin/gorm-adapter/v3"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	accessMetrics "go.lumeweb.com/portal/service/internal/access"
 )
 
 var _ core.AccessService = (*AccessServiceDefault)(nil)
 
 type AccessServiceDefault struct {
-	ctx      core.Context
 	enforcer *casbin.Enforcer
+	core.Service
 }
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.ACCESS_SERVICE,
 		Factory: NewAccessService,
+		Metrics: accessMetrics.GetCollectors(),
 	})
 }
 
 func NewAccessService() (core.Service, []core.ContextBuilderOption, error) {
 	service := &AccessServiceDefault{}
 	opts := core.ContextOptions(
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			service.ctx = ctx
-
+		core.ContextWithStartupFunc(func(_ core.Context) error {
 			return service.IInit()
 		}),
 	)
@@ -44,59 +45,98 @@ func (a *AccessServiceDefault) ID() string {
 	return core.ACCESS_SERVICE
 }
 
-func (a *AccessServiceDefault) RegisterRoute(subdomain, path, method, role string) error {
-	fqdn := fmt.Sprintf("%s.%s", subdomain, a.ctx.Config().Config().Core.Domain)
-	_, err := a.enforcer.AddPolicy(role, fqdn, path, method)
-	return err
-}
-
-func (a *AccessServiceDefault) AssignRoleToUser(userId uint, role string) error {
-	userIdStr := strconv.FormatUint(uint64(userId), 10)
-	_, err := a.enforcer.AddRoleForUser(userIdStr, role)
-
-	return err
-}
-
-func (a *AccessServiceDefault) CheckAccess(userId uint, fqdn, path, method string) (bool, error) {
-	return a.enforcer.Enforce(strconv.FormatUint(uint64(userId), 10), fqdn, path, method)
-}
-
-func (a *AccessServiceDefault) ExportUserPolicy(userId uint) ([]*core.AccessPolicy, error) {
-	userIdStr := strconv.FormatUint(uint64(userId), 10)
-	// Get all roles for the user
-	roles, err := a.enforcer.GetRolesForUser(userIdStr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add the user ID itself to the roles slice
-	roles = append(roles, userIdStr)
-
-	var policies []*core.AccessPolicy
-
-	// For each role (including the user ID)
-	for _, role := range roles {
-		// Get policies for this role
-		rolePolicies, err := a.enforcer.GetFilteredPolicy(0, role)
-		if err != nil {
-			return nil, err
-		}
-
-		// Format each policy
-		for _, policy := range rolePolicies {
-			if len(policy) >= 4 {
-				policyStruct := &core.AccessPolicy{
-					Subject: policy[0],
-					Domain:  policy[1],
-					Object:  policy[2],
-					Action:  policy[3],
-				}
-				policies = append(policies, policyStruct)
+func (a *AccessServiceDefault) RegisterRoute(ctx context.Context, subdomain, path, method, role string) error {
+	return core.MetricTrack(
+		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
+		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
+		func() error {
+			fqdn := fmt.Sprintf("%s.%s", subdomain, a.Context().Config().Config().Core.Domain)
+			_, err := a.enforcer.AddPolicy(role, fqdn, path, method)
+			if err == nil {
+				accessMetrics.RoutesRegistered.WithLabelValues(accessMetrics.LabelOpRegisterRoute).Inc()
 			}
-		}
-	}
+			return err
+		},
+	)
+}
 
-	return policies, nil
+func (a *AccessServiceDefault) AssignRoleToUser(ctx context.Context, userId uint, role string) error {
+	return core.MetricTrack(
+		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpAssignRole),
+		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpAssignRole),
+		func() error {
+			userIdStr := strconv.FormatUint(uint64(userId), 10)
+			_, err := a.enforcer.AddRoleForUser(userIdStr, role)
+			if err == nil {
+				accessMetrics.RolesAssigned.WithLabelValues(accessMetrics.LabelOpAssignRole).Inc()
+			}
+			return err
+		},
+	)
+}
+
+func (a *AccessServiceDefault) CheckAccess(ctx context.Context, userId uint, fqdn, path, method string) (bool, error) {
+	result, err := core.MetricTrackResult(
+		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpCheckAccess),
+		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpCheckAccess),
+		func() (bool, error) {
+			return a.enforcer.Enforce(strconv.FormatUint(uint64(userId), 10), fqdn, path, method)
+		},
+	)
+
+	if err == nil {
+		accessMetrics.AccessChecked.WithLabelValues(accessMetrics.LabelOpCheckAccess).Inc()
+	}
+	return result, err
+}
+
+func (a *AccessServiceDefault) ExportUserPolicy(ctx context.Context, userId uint) ([]*core.AccessPolicy, error) {
+	result, err := core.MetricTrackResult(
+		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpExportPolicy),
+		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpExportPolicy),
+		func() ([]*core.AccessPolicy, error) {
+			userIdStr := strconv.FormatUint(uint64(userId), 10)
+			// Get all roles for the user
+			roles, err := a.enforcer.GetRolesForUser(userIdStr)
+			if err != nil {
+				return nil, err
+			}
+
+			// Add the user ID itself to the roles slice
+			roles = append(roles, userIdStr)
+
+			var policies []*core.AccessPolicy
+
+			// For each role (including the user ID)
+			for _, role := range roles {
+				// Get policies for this role
+				rolePolicies, err := a.enforcer.GetFilteredPolicy(0, role)
+				if err != nil {
+					return nil, err
+				}
+
+				// Format each policy
+				for _, policy := range rolePolicies {
+					if len(policy) >= 4 {
+						policyStruct := &core.AccessPolicy{
+							Subject: policy[0],
+							Domain:  policy[1],
+							Object:  policy[2],
+							Action:  policy[3],
+						}
+						policies = append(policies, policyStruct)
+					}
+				}
+			}
+
+			return policies, nil
+		},
+	)
+
+	if err == nil {
+		accessMetrics.PolicyExported.WithLabelValues(accessMetrics.LabelOpExportPolicy).Inc()
+	}
+	return result, err
 }
 
 func (a *AccessServiceDefault) IInit() error {
@@ -127,7 +167,7 @@ func (a *AccessServiceDefault) IInit() error {
 
 	a.enforcer = enforcer
 
-	db := a.ctx.DB()
+	db := a.DB()
 
 	// Load policies from database
 	gormadapter.TurnOffAutoMigrate(db)
@@ -142,7 +182,7 @@ func (a *AccessServiceDefault) GetEnforcer() *casbin.Enforcer {
 	return a.enforcer
 }
 
-func (a *AccessServiceDefault) ExportModel() *core.AccessModel {
+func (a *AccessServiceDefault) ExportModel(context.Context) *core.AccessModel {
 	m := a.enforcer.GetModel()
 	accessModel := &core.AccessModel{}
 
