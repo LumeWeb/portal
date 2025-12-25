@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/looplab/fsm"
 	"go.lumeweb.com/portal/core"
@@ -130,7 +131,7 @@ type stateMachineData struct {
 // Transition validates and performs state transitions
 func (sm *DefaultCronJobStateMachine) Transition(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...core.CronStateOption) error {
 	// Get job and FSM from registry
-	job, fsmInstance, err := sm.registry.GetOrCreate(jobID)
+	job, fsmInstance, err := sm.registry.GetOrCreate(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get state machine: %w", err)
 	}
@@ -181,11 +182,11 @@ func (sm *DefaultCronJobStateMachine) State() string {
 }
 
 // IsValidTransition checks if a state transition is valid
-func (sm *DefaultCronJobStateMachine) RemoveStateMachine(jobID uuid.UUID) {
-	sm.registry.Remove(jobID)
+func (sm *DefaultCronJobStateMachine) RemoveStateMachine(ctx context.Context, jobID uuid.UUID) {
+	sm.registry.Remove(ctx, jobID)
 }
 
-func (sm *DefaultCronJobStateMachine) IsValidTransition(current, new models.CronJobState) bool {
+func (sm *DefaultCronJobStateMachine) IsValidTransition(ctx context.Context, current, new models.CronJobState) bool {
 	// Get allowed source states for the destination state
 	allowedSrcs, ok := stateTransitions[new]
 	if !ok {

@@ -67,7 +67,7 @@ func TestDefaultCronMonitor_CleanupOrphanedJobs(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
-		count, err := monitor.CleanupOrphanedJobs()
+		count, err := monitor.CleanupOrphanedJobs(nil)
 		require.NoError(tb, err)
 
 		// Verify
@@ -105,7 +105,7 @@ func TestDefaultCronMonitor_CleanupOrphanedJobs_PluginUnregistered(t *testing.T)
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
-		count, err := monitor.CleanupOrphanedJobs()
+		count, err := monitor.CleanupOrphanedJobs(nil)
 		require.NoError(tb, err)
 
 		// Verify
@@ -158,7 +158,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
-		err := monitor.RequeueStuckJobs()
+		err := monitor.RequeueStuckJobs(nil)
 		require.NoError(tb, err)
 
 		// Assert that HandleFailedJob was called
@@ -187,7 +187,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs_NoStuckJobs(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
-		err := monitor.RequeueStuckJobs()
+		err := monitor.RequeueStuckJobs(nil)
 		require.NoError(tb, err)
 
 		// Assert that HandleFailedJob was NOT called
@@ -248,7 +248,7 @@ func TestDefaultCronMonitor_CleanupCompletedJobs(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
-		err := monitor.CleanupCompletedJobs()
+		err := monitor.CleanupCompletedJobs(nil)
 		require.NoError(tb, err)
 
 		// Verify that only the old, completed "once" job was deleted
@@ -272,17 +272,17 @@ func TestDefaultCronMonitor_MaintenanceLoop(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Start the monitoring loop
-		err := monitor.StartMonitoring()
+		err := monitor.StartMonitoring(nil)
 		require.NoError(t, err)
 
 		// Send a maintenance signal
-		monitor.SignalMaintenance()
+		monitor.SignalMaintenance(nil)
 
 		// Give the loop some time to process the signal
 		time.Sleep(100 * time.Millisecond)
 
 		// Stop the monitoring loop
-		err = monitor.StopMonitoring()
+		err = monitor.StopMonitoring(nil)
 		require.NoError(t, err)
 	})
 }
@@ -294,18 +294,18 @@ func TestDefaultCronMonitor_SignalMaintenance(t *testing.T) {
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Start the monitoring loop
-		err := monitor.StartMonitoring()
+		err := monitor.StartMonitoring(nil)
 		require.NoError(t, err)
 
 		// Send multiple maintenance signals
-		monitor.SignalMaintenance()
-		monitor.SignalMaintenance() // Send a second signal to ensure non-blocking
+		monitor.SignalMaintenance(nil)
+		monitor.SignalMaintenance(nil) // Send a second signal to ensure non-blocking
 
 		// Give the loop some time to process the signal
 		time.Sleep(50 * time.Millisecond)
 
 		// Stop the monitoring loop
-		err = monitor.StopMonitoring()
+		err = monitor.StopMonitoring(nil)
 		require.NoError(t, err)
 
 		// Check that the maintenance channel has at most one signal
@@ -346,17 +346,17 @@ func TestDefaultCronMonitor_SignalMaintenance_TriggersMaintenance(t *testing.T) 
 
 		// Create real monitor instance and start it
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
-		err := monitor.StartMonitoring()
+		err := monitor.StartMonitoring(nil)
 		require.NoError(t, err)
 		defer func(monitor *DefaultCronMonitor) {
-			err = monitor.StopMonitoring()
+			err = monitor.StopMonitoring(nil)
 			if err != nil {
 				require.NoError(t, err)
 			}
 		}(monitor)
 
 		// Send maintenance signal
-		monitor.SignalMaintenance()
+		monitor.SignalMaintenance(nil)
 
 		// Give the loop time to process
 		time.Sleep(1 * time.Second)
@@ -385,7 +385,7 @@ func TestDefaultCronMonitor_Heartbeat(t *testing.T) {
 		// Create monitor instance
 		monitor := NewDefaultCronMonitor(ctx, mockCronService)
 
-		monitor.StartHeartbeat(jobID)
+		monitor.StartHeartbeat(nil, jobID)
 		time.Sleep(50 * time.Millisecond) // Give heartbeat loop some time
 
 		ret := true
@@ -395,17 +395,17 @@ func TestDefaultCronMonitor_Heartbeat(t *testing.T) {
 			return ret, nil
 		})
 
-		alive, err := monitor.CheckHeartbeat(jobID)
+		alive, err := monitor.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.True(t, alive)
 
 		// --- Test StopHeartbeat ---
-		monitor.StopHeartbeat(jobID)
+		monitor.StopHeartbeat(nil, jobID)
 		time.Sleep(50 * time.Millisecond) // Give heartbeat loop some time
 
 		// --- Test CheckHeartbeat (not alive after stop) ---
 		ret = false
-		alive, err = monitor.CheckHeartbeat(jobID)
+		alive, err = monitor.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.False(t, alive)
 

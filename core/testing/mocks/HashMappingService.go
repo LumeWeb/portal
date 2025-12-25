@@ -8,7 +8,9 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockHashMappingService creates a new instance of MockHashMappingService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -36,6 +38,144 @@ type MockHashMappingService_Expecter struct {
 
 func (_m *MockHashMappingService) EXPECT() *MockHashMappingService_Expecter {
 	return &MockHashMappingService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockHashMappingService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockHashMappingService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockHashMappingService_Expecter) Config() *MockHashMappingService_Config_Call {
+	return &MockHashMappingService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockHashMappingService_Config_Call) Run(run func()) *MockHashMappingService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_Config_Call) Return(manager config.Manager) *MockHashMappingService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockHashMappingService_Config_Call) RunAndReturn(run func() config.Manager) *MockHashMappingService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockHashMappingService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockHashMappingService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockHashMappingService_Expecter) Context() *MockHashMappingService_Context_Call {
+	return &MockHashMappingService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockHashMappingService_Context_Call) Run(run func()) *MockHashMappingService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_Context_Call) Return(context core.Context) *MockHashMappingService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockHashMappingService_Context_Call) RunAndReturn(run func() core.Context) *MockHashMappingService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockHashMappingService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockHashMappingService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockHashMappingService_Expecter) DB() *MockHashMappingService_DB_Call {
+	return &MockHashMappingService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockHashMappingService_DB_Call) Run(run func()) *MockHashMappingService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_DB_Call) Return(dB *gorm.DB) *MockHashMappingService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockHashMappingService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockHashMappingService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteMappings provides a mock function for the type MockHashMappingService
@@ -310,6 +450,212 @@ func (_c *MockHashMappingService_ID_Call) Return(s string) *MockHashMappingServi
 
 func (_c *MockHashMappingService_ID_Call) RunAndReturn(run func() string) *MockHashMappingService_ID_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockHashMappingService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockHashMappingService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockHashMappingService_Expecter) Logger() *MockHashMappingService_Logger_Call {
+	return &MockHashMappingService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockHashMappingService_Logger_Call) Run(run func()) *MockHashMappingService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_Logger_Call) Return(logger *core.Logger) *MockHashMappingService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockHashMappingService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockHashMappingService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockHashMappingService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockHashMappingService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockHashMappingService_Expecter) SetConfig(cfg interface{}) *MockHashMappingService_SetConfig_Call {
+	return &MockHashMappingService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockHashMappingService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockHashMappingService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_SetConfig_Call) Return() *MockHashMappingService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockHashMappingService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockHashMappingService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockHashMappingService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockHashMappingService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockHashMappingService_Expecter) SetContext(ctx interface{}) *MockHashMappingService_SetContext_Call {
+	return &MockHashMappingService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockHashMappingService_SetContext_Call) Run(run func(ctx core.Context)) *MockHashMappingService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_SetContext_Call) Return() *MockHashMappingService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockHashMappingService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockHashMappingService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockHashMappingService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockHashMappingService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockHashMappingService_Expecter) SetDB(db interface{}) *MockHashMappingService_SetDB_Call {
+	return &MockHashMappingService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockHashMappingService_SetDB_Call) Run(run func(db *gorm.DB)) *MockHashMappingService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_SetDB_Call) Return() *MockHashMappingService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockHashMappingService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockHashMappingService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockHashMappingService
+func (_mock *MockHashMappingService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockHashMappingService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockHashMappingService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockHashMappingService_Expecter) SetLogger(logger interface{}) *MockHashMappingService_SetLogger_Call {
+	return &MockHashMappingService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockHashMappingService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockHashMappingService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockHashMappingService_SetLogger_Call) Return() *MockHashMappingService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockHashMappingService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockHashMappingService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

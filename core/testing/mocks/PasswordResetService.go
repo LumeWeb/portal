@@ -5,8 +5,13 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
 )
 
 // NewMockPasswordResetService creates a new instance of MockPasswordResetService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -34,6 +39,144 @@ type MockPasswordResetService_Expecter struct {
 
 func (_m *MockPasswordResetService) EXPECT() *MockPasswordResetService_Expecter {
 	return &MockPasswordResetService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockPasswordResetService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockPasswordResetService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockPasswordResetService_Expecter) Config() *MockPasswordResetService_Config_Call {
+	return &MockPasswordResetService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockPasswordResetService_Config_Call) Run(run func()) *MockPasswordResetService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_Config_Call) Return(manager config.Manager) *MockPasswordResetService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockPasswordResetService_Config_Call) RunAndReturn(run func() config.Manager) *MockPasswordResetService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockPasswordResetService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockPasswordResetService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockPasswordResetService_Expecter) Context() *MockPasswordResetService_Context_Call {
+	return &MockPasswordResetService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockPasswordResetService_Context_Call) Run(run func()) *MockPasswordResetService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_Context_Call) Return(context core.Context) *MockPasswordResetService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockPasswordResetService_Context_Call) RunAndReturn(run func() core.Context) *MockPasswordResetService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockPasswordResetService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockPasswordResetService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockPasswordResetService_Expecter) DB() *MockPasswordResetService_DB_Call {
+	return &MockPasswordResetService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockPasswordResetService_DB_Call) Run(run func()) *MockPasswordResetService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_DB_Call) Return(dB *gorm.DB) *MockPasswordResetService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockPasswordResetService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockPasswordResetService_DB_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ID provides a mock function for the type MockPasswordResetService
@@ -80,17 +223,63 @@ func (_c *MockPasswordResetService_ID_Call) RunAndReturn(run func() string) *Moc
 	return _c
 }
 
+// Logger provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockPasswordResetService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockPasswordResetService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockPasswordResetService_Expecter) Logger() *MockPasswordResetService_Logger_Call {
+	return &MockPasswordResetService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockPasswordResetService_Logger_Call) Run(run func()) *MockPasswordResetService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_Logger_Call) Return(logger *core.Logger) *MockPasswordResetService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockPasswordResetService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockPasswordResetService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ResetPassword provides a mock function for the type MockPasswordResetService
-func (_mock *MockPasswordResetService) ResetPassword(email string, token string, password string) error {
-	ret := _mock.Called(email, token, password)
+func (_mock *MockPasswordResetService) ResetPassword(ctx context.Context, email string, token string, password string) error {
+	ret := _mock.Called(ctx, email, token, password)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ResetPassword")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = returnFunc(email, token, password)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = returnFunc(ctx, email, token, password)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -103,18 +292,19 @@ type MockPasswordResetService_ResetPassword_Call struct {
 }
 
 // ResetPassword is a helper method to define mock.On call
+//   - ctx context.Context
 //   - email string
 //   - token string
 //   - password string
-func (_e *MockPasswordResetService_Expecter) ResetPassword(email interface{}, token interface{}, password interface{}) *MockPasswordResetService_ResetPassword_Call {
-	return &MockPasswordResetService_ResetPassword_Call{Call: _e.mock.On("ResetPassword", email, token, password)}
+func (_e *MockPasswordResetService_Expecter) ResetPassword(ctx interface{}, email interface{}, token interface{}, password interface{}) *MockPasswordResetService_ResetPassword_Call {
+	return &MockPasswordResetService_ResetPassword_Call{Call: _e.mock.On("ResetPassword", ctx, email, token, password)}
 }
 
-func (_c *MockPasswordResetService_ResetPassword_Call) Run(run func(email string, token string, password string)) *MockPasswordResetService_ResetPassword_Call {
+func (_c *MockPasswordResetService_ResetPassword_Call) Run(run func(ctx context.Context, email string, token string, password string)) *MockPasswordResetService_ResetPassword_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -124,10 +314,15 @@ func (_c *MockPasswordResetService_ResetPassword_Call) Run(run func(email string
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -138,22 +333,22 @@ func (_c *MockPasswordResetService_ResetPassword_Call) Return(err error) *MockPa
 	return _c
 }
 
-func (_c *MockPasswordResetService_ResetPassword_Call) RunAndReturn(run func(email string, token string, password string) error) *MockPasswordResetService_ResetPassword_Call {
+func (_c *MockPasswordResetService_ResetPassword_Call) RunAndReturn(run func(ctx context.Context, email string, token string, password string) error) *MockPasswordResetService_ResetPassword_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SendPasswordReset provides a mock function for the type MockPasswordResetService
-func (_mock *MockPasswordResetService) SendPasswordReset(user *models.User) error {
-	ret := _mock.Called(user)
+func (_mock *MockPasswordResetService) SendPasswordReset(ctx context.Context, user *models.User) error {
+	ret := _mock.Called(ctx, user)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SendPasswordReset")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(*models.User) error); ok {
-		r0 = returnFunc(user)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.User) error); ok {
+		r0 = returnFunc(ctx, user)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -166,19 +361,25 @@ type MockPasswordResetService_SendPasswordReset_Call struct {
 }
 
 // SendPasswordReset is a helper method to define mock.On call
+//   - ctx context.Context
 //   - user *models.User
-func (_e *MockPasswordResetService_Expecter) SendPasswordReset(user interface{}) *MockPasswordResetService_SendPasswordReset_Call {
-	return &MockPasswordResetService_SendPasswordReset_Call{Call: _e.mock.On("SendPasswordReset", user)}
+func (_e *MockPasswordResetService_Expecter) SendPasswordReset(ctx interface{}, user interface{}) *MockPasswordResetService_SendPasswordReset_Call {
+	return &MockPasswordResetService_SendPasswordReset_Call{Call: _e.mock.On("SendPasswordReset", ctx, user)}
 }
 
-func (_c *MockPasswordResetService_SendPasswordReset_Call) Run(run func(user *models.User)) *MockPasswordResetService_SendPasswordReset_Call {
+func (_c *MockPasswordResetService_SendPasswordReset_Call) Run(run func(ctx context.Context, user *models.User)) *MockPasswordResetService_SendPasswordReset_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 *models.User
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(*models.User)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 *models.User
+		if args[1] != nil {
+			arg1 = args[1].(*models.User)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -189,7 +390,167 @@ func (_c *MockPasswordResetService_SendPasswordReset_Call) Return(err error) *Mo
 	return _c
 }
 
-func (_c *MockPasswordResetService_SendPasswordReset_Call) RunAndReturn(run func(user *models.User) error) *MockPasswordResetService_SendPasswordReset_Call {
+func (_c *MockPasswordResetService_SendPasswordReset_Call) RunAndReturn(run func(ctx context.Context, user *models.User) error) *MockPasswordResetService_SendPasswordReset_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockPasswordResetService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockPasswordResetService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockPasswordResetService_Expecter) SetConfig(cfg interface{}) *MockPasswordResetService_SetConfig_Call {
+	return &MockPasswordResetService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockPasswordResetService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockPasswordResetService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetConfig_Call) Return() *MockPasswordResetService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockPasswordResetService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockPasswordResetService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockPasswordResetService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockPasswordResetService_Expecter) SetContext(ctx interface{}) *MockPasswordResetService_SetContext_Call {
+	return &MockPasswordResetService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockPasswordResetService_SetContext_Call) Run(run func(ctx core.Context)) *MockPasswordResetService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetContext_Call) Return() *MockPasswordResetService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockPasswordResetService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockPasswordResetService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockPasswordResetService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockPasswordResetService_Expecter) SetDB(db interface{}) *MockPasswordResetService_SetDB_Call {
+	return &MockPasswordResetService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockPasswordResetService_SetDB_Call) Run(run func(db *gorm.DB)) *MockPasswordResetService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetDB_Call) Return() *MockPasswordResetService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockPasswordResetService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockPasswordResetService
+func (_mock *MockPasswordResetService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockPasswordResetService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockPasswordResetService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockPasswordResetService_Expecter) SetLogger(logger interface{}) *MockPasswordResetService_SetLogger_Call {
+	return &MockPasswordResetService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockPasswordResetService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockPasswordResetService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetLogger_Call) Return() *MockPasswordResetService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPasswordResetService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockPasswordResetService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }

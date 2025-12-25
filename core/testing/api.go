@@ -8,6 +8,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	"gorm.io/gorm"
 )
 
 // MockAPI implements core.API for testing
@@ -19,6 +20,7 @@ type MockAPI struct {
 	authTokenNameValue string
 	openAPIInfoValue   router.APIInfoDefinition
 	configureFunc      func(router.Router, core.AccessService) error
+	componentConfig    config.Manager // For Component.Config() method
 }
 
 // Name implements core.API
@@ -26,8 +28,8 @@ func (m *MockAPI) Name() string {
 	return m.nameValue
 }
 
-// Config implements core.API
-func (m *MockAPI) Config() config.APIConfig {
+// GetConfig implements core.API
+func (m *MockAPI) GetConfig() config.APIConfig {
 	return m.configValue
 }
 
@@ -69,7 +71,7 @@ func NewMockAPI(t testing.TB, name string) *MockAPI {
 
 	// Setup default expectations
 	mockAPI.EXPECT().Name().Return(name).Maybe()
-	mockAPI.EXPECT().Config().Return(nil).Maybe()
+	mockAPI.EXPECT().GetConfig().Return(nil).Maybe()
 	mockAPI.EXPECT().Subdomain().Return("").Maybe()
 	mockAPI.EXPECT().AuthTokenName().Return("").Maybe()
 	mockAPI.EXPECT().OpenAPIInfo().Return(apiInfo).Maybe()
@@ -112,6 +114,43 @@ func (m *MockAPI) WithOpenAPIInfo(openAPIInfo router.APIInfoDefinition) *MockAPI
 func (m *MockAPI) WithConfigure(f func(router.Router, core.AccessService) error) *MockAPI {
 	m.configureFunc = f
 	return m
+}
+
+// Config implements core.Component
+func (m *MockAPI) Config() config.Manager {
+	return m.componentConfig
+}
+
+// SetConfig implements core.Component
+func (m *MockAPI) SetConfig(cfg config.Manager) {
+	m.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (m *MockAPI) Context() core.Context {
+	return nil
+}
+
+// SetContext implements core.Component
+func (m *MockAPI) SetContext(ctx core.Context) {
+}
+
+// Logger implements core.Component
+func (m *MockAPI) Logger() *core.Logger {
+	return nil
+}
+
+// SetLogger implements core.Component
+func (m *MockAPI) SetLogger(logger *core.Logger) {
+}
+
+// DB implements core.Component
+func (m *MockAPI) DB() *gorm.DB {
+	return nil
+}
+
+// SetDB implements core.Component
+func (m *MockAPI) SetDB(db *gorm.DB) {
 }
 
 // Ensure MockAPI implements core.API

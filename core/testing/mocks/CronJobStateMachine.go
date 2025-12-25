@@ -41,16 +41,16 @@ func (_m *MockCronJobStateMachine) EXPECT() *MockCronJobStateMachine_Expecter {
 }
 
 // IsValidTransition provides a mock function for the type MockCronJobStateMachine
-func (_mock *MockCronJobStateMachine) IsValidTransition(current models.CronJobState, new models.CronJobState) bool {
-	ret := _mock.Called(current, new)
+func (_mock *MockCronJobStateMachine) IsValidTransition(ctx context.Context, current models.CronJobState, new models.CronJobState) bool {
+	ret := _mock.Called(ctx, current, new)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IsValidTransition")
 	}
 
 	var r0 bool
-	if returnFunc, ok := ret.Get(0).(func(models.CronJobState, models.CronJobState) bool); ok {
-		r0 = returnFunc(current, new)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, models.CronJobState, models.CronJobState) bool); ok {
+		r0 = returnFunc(ctx, current, new)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
@@ -63,25 +63,31 @@ type MockCronJobStateMachine_IsValidTransition_Call struct {
 }
 
 // IsValidTransition is a helper method to define mock.On call
+//   - ctx context.Context
 //   - current models.CronJobState
 //   - new models.CronJobState
-func (_e *MockCronJobStateMachine_Expecter) IsValidTransition(current interface{}, new interface{}) *MockCronJobStateMachine_IsValidTransition_Call {
-	return &MockCronJobStateMachine_IsValidTransition_Call{Call: _e.mock.On("IsValidTransition", current, new)}
+func (_e *MockCronJobStateMachine_Expecter) IsValidTransition(ctx interface{}, current interface{}, new interface{}) *MockCronJobStateMachine_IsValidTransition_Call {
+	return &MockCronJobStateMachine_IsValidTransition_Call{Call: _e.mock.On("IsValidTransition", ctx, current, new)}
 }
 
-func (_c *MockCronJobStateMachine_IsValidTransition_Call) Run(run func(current models.CronJobState, new models.CronJobState)) *MockCronJobStateMachine_IsValidTransition_Call {
+func (_c *MockCronJobStateMachine_IsValidTransition_Call) Run(run func(ctx context.Context, current models.CronJobState, new models.CronJobState)) *MockCronJobStateMachine_IsValidTransition_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 models.CronJobState
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(models.CronJobState)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 models.CronJobState
 		if args[1] != nil {
 			arg1 = args[1].(models.CronJobState)
 		}
+		var arg2 models.CronJobState
+		if args[2] != nil {
+			arg2 = args[2].(models.CronJobState)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -92,14 +98,14 @@ func (_c *MockCronJobStateMachine_IsValidTransition_Call) Return(b bool) *MockCr
 	return _c
 }
 
-func (_c *MockCronJobStateMachine_IsValidTransition_Call) RunAndReturn(run func(current models.CronJobState, new models.CronJobState) bool) *MockCronJobStateMachine_IsValidTransition_Call {
+func (_c *MockCronJobStateMachine_IsValidTransition_Call) RunAndReturn(run func(ctx context.Context, current models.CronJobState, new models.CronJobState) bool) *MockCronJobStateMachine_IsValidTransition_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RemoveStateMachine provides a mock function for the type MockCronJobStateMachine
-func (_mock *MockCronJobStateMachine) RemoveStateMachine(jobID uuid.UUID) {
-	_mock.Called(jobID)
+func (_mock *MockCronJobStateMachine) RemoveStateMachine(ctx context.Context, jobID uuid.UUID) {
+	_mock.Called(ctx, jobID)
 	return
 }
 
@@ -109,19 +115,25 @@ type MockCronJobStateMachine_RemoveStateMachine_Call struct {
 }
 
 // RemoveStateMachine is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachine_Expecter) RemoveStateMachine(jobID interface{}) *MockCronJobStateMachine_RemoveStateMachine_Call {
-	return &MockCronJobStateMachine_RemoveStateMachine_Call{Call: _e.mock.On("RemoveStateMachine", jobID)}
+func (_e *MockCronJobStateMachine_Expecter) RemoveStateMachine(ctx interface{}, jobID interface{}) *MockCronJobStateMachine_RemoveStateMachine_Call {
+	return &MockCronJobStateMachine_RemoveStateMachine_Call{Call: _e.mock.On("RemoveStateMachine", ctx, jobID)}
 }
 
-func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) Run(run func(jobID uuid.UUID)) *MockCronJobStateMachine_RemoveStateMachine_Call {
+func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronJobStateMachine_RemoveStateMachine_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -132,7 +144,7 @@ func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) Return() *MockCronJob
 	return _c
 }
 
-func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) RunAndReturn(run func(jobID uuid.UUID)) *MockCronJobStateMachine_RemoveStateMachine_Call {
+func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID)) *MockCronJobStateMachine_RemoveStateMachine_Call {
 	_c.Run(run)
 	return _c
 }

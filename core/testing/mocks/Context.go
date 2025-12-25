@@ -12,6 +12,7 @@ import (
 	"go.lumeweb.com/event/v2"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -927,6 +928,46 @@ func (_c *MockContext_ProtocolLogger_Call) RunAndReturn(run func(protocol core.P
 	return _c
 }
 
+// ReplaceLogger provides a mock function for the type MockContext
+func (_mock *MockContext) ReplaceLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockContext_ReplaceLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReplaceLogger'
+type MockContext_ReplaceLogger_Call struct {
+	*mock.Call
+}
+
+// ReplaceLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockContext_Expecter) ReplaceLogger(logger interface{}) *MockContext_ReplaceLogger_Call {
+	return &MockContext_ReplaceLogger_Call{Call: _e.mock.On("ReplaceLogger", logger)}
+}
+
+func (_c *MockContext_ReplaceLogger_Call) Run(run func(logger *core.Logger)) *MockContext_ReplaceLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_ReplaceLogger_Call) Return() *MockContext_ReplaceLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockContext_ReplaceLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockContext_ReplaceLogger_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ResetEvents provides a mock function for the type MockContext
 func (_mock *MockContext) ResetEvents() {
 	_mock.Called()
@@ -1152,6 +1193,89 @@ func (_c *MockContext_StartupFuncs_Call) RunAndReturn(run func() []func(core.Con
 	return _c
 }
 
+// TraceMethod provides a mock function for the type MockContext
+func (_mock *MockContext) TraceMethod(name string, opts ...core.SpanOption) (context.Context, trace.Span) {
+	// core.SpanOption
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, name)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TraceMethod")
+	}
+
+	var r0 context.Context
+	var r1 trace.Span
+	if returnFunc, ok := ret.Get(0).(func(string, ...core.SpanOption) (context.Context, trace.Span)); ok {
+		return returnFunc(name, opts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(string, ...core.SpanOption) context.Context); ok {
+		r0 = returnFunc(name, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(context.Context)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(string, ...core.SpanOption) trace.Span); ok {
+		r1 = returnFunc(name, opts...)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(trace.Span)
+		}
+	}
+	return r0, r1
+}
+
+// MockContext_TraceMethod_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TraceMethod'
+type MockContext_TraceMethod_Call struct {
+	*mock.Call
+}
+
+// TraceMethod is a helper method to define mock.On call
+//   - name string
+//   - opts ...core.SpanOption
+func (_e *MockContext_Expecter) TraceMethod(name interface{}, opts ...interface{}) *MockContext_TraceMethod_Call {
+	return &MockContext_TraceMethod_Call{Call: _e.mock.On("TraceMethod",
+		append([]interface{}{name}, opts...)...)}
+}
+
+func (_c *MockContext_TraceMethod_Call) Run(run func(name string, opts ...core.SpanOption)) *MockContext_TraceMethod_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 []core.SpanOption
+		variadicArgs := make([]core.SpanOption, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.SpanOption)
+			}
+		}
+		arg1 = variadicArgs
+		run(
+			arg0,
+			arg1...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_TraceMethod_Call) Return(context1 context.Context, span trace.Span) *MockContext_TraceMethod_Call {
+	_c.Call.Return(context1, span)
+	return _c
+}
+
+func (_c *MockContext_TraceMethod_Call) RunAndReturn(run func(name string, opts ...core.SpanOption) (context.Context, trace.Span)) *MockContext_TraceMethod_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Value provides a mock function for the type MockContext
 func (_mock *MockContext) Value(key any) any {
 	ret := _mock.Called(key)
@@ -1201,6 +1325,230 @@ func (_c *MockContext_Value_Call) Return(v any) *MockContext_Value_Call {
 }
 
 func (_c *MockContext_Value_Call) RunAndReturn(run func(key any) any) *MockContext_Value_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithAPIExtensionSubcomponent provides a mock function for the type MockContext
+func (_mock *MockContext) WithAPIExtensionSubcomponent(extensionName string, subcomponentName string) core.Context {
+	ret := _mock.Called(extensionName, subcomponentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithAPIExtensionSubcomponent")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string, string) core.Context); ok {
+		r0 = returnFunc(extensionName, subcomponentName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithAPIExtensionSubcomponent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithAPIExtensionSubcomponent'
+type MockContext_WithAPIExtensionSubcomponent_Call struct {
+	*mock.Call
+}
+
+// WithAPIExtensionSubcomponent is a helper method to define mock.On call
+//   - extensionName string
+//   - subcomponentName string
+func (_e *MockContext_Expecter) WithAPIExtensionSubcomponent(extensionName interface{}, subcomponentName interface{}) *MockContext_WithAPIExtensionSubcomponent_Call {
+	return &MockContext_WithAPIExtensionSubcomponent_Call{Call: _e.mock.On("WithAPIExtensionSubcomponent", extensionName, subcomponentName)}
+}
+
+func (_c *MockContext_WithAPIExtensionSubcomponent_Call) Run(run func(extensionName string, subcomponentName string)) *MockContext_WithAPIExtensionSubcomponent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithAPIExtensionSubcomponent_Call) Return(context1 core.Context) *MockContext_WithAPIExtensionSubcomponent_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithAPIExtensionSubcomponent_Call) RunAndReturn(run func(extensionName string, subcomponentName string) core.Context) *MockContext_WithAPIExtensionSubcomponent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithAPIExtensionTracer provides a mock function for the type MockContext
+func (_mock *MockContext) WithAPIExtensionTracer(extensionName string) core.Context {
+	ret := _mock.Called(extensionName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithAPIExtensionTracer")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(extensionName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithAPIExtensionTracer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithAPIExtensionTracer'
+type MockContext_WithAPIExtensionTracer_Call struct {
+	*mock.Call
+}
+
+// WithAPIExtensionTracer is a helper method to define mock.On call
+//   - extensionName string
+func (_e *MockContext_Expecter) WithAPIExtensionTracer(extensionName interface{}) *MockContext_WithAPIExtensionTracer_Call {
+	return &MockContext_WithAPIExtensionTracer_Call{Call: _e.mock.On("WithAPIExtensionTracer", extensionName)}
+}
+
+func (_c *MockContext_WithAPIExtensionTracer_Call) Run(run func(extensionName string)) *MockContext_WithAPIExtensionTracer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithAPIExtensionTracer_Call) Return(context1 core.Context) *MockContext_WithAPIExtensionTracer_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithAPIExtensionTracer_Call) RunAndReturn(run func(extensionName string) core.Context) *MockContext_WithAPIExtensionTracer_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithAPISubcomponent provides a mock function for the type MockContext
+func (_mock *MockContext) WithAPISubcomponent(apiName string, subcomponentName string) core.Context {
+	ret := _mock.Called(apiName, subcomponentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithAPISubcomponent")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string, string) core.Context); ok {
+		r0 = returnFunc(apiName, subcomponentName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithAPISubcomponent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithAPISubcomponent'
+type MockContext_WithAPISubcomponent_Call struct {
+	*mock.Call
+}
+
+// WithAPISubcomponent is a helper method to define mock.On call
+//   - apiName string
+//   - subcomponentName string
+func (_e *MockContext_Expecter) WithAPISubcomponent(apiName interface{}, subcomponentName interface{}) *MockContext_WithAPISubcomponent_Call {
+	return &MockContext_WithAPISubcomponent_Call{Call: _e.mock.On("WithAPISubcomponent", apiName, subcomponentName)}
+}
+
+func (_c *MockContext_WithAPISubcomponent_Call) Run(run func(apiName string, subcomponentName string)) *MockContext_WithAPISubcomponent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithAPISubcomponent_Call) Return(context1 core.Context) *MockContext_WithAPISubcomponent_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithAPISubcomponent_Call) RunAndReturn(run func(apiName string, subcomponentName string) core.Context) *MockContext_WithAPISubcomponent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithAPITracer provides a mock function for the type MockContext
+func (_mock *MockContext) WithAPITracer(apiName string) core.Context {
+	ret := _mock.Called(apiName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithAPITracer")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(apiName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithAPITracer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithAPITracer'
+type MockContext_WithAPITracer_Call struct {
+	*mock.Call
+}
+
+// WithAPITracer is a helper method to define mock.On call
+//   - apiName string
+func (_e *MockContext_Expecter) WithAPITracer(apiName interface{}) *MockContext_WithAPITracer_Call {
+	return &MockContext_WithAPITracer_Call{Call: _e.mock.On("WithAPITracer", apiName)}
+}
+
+func (_c *MockContext_WithAPITracer_Call) Run(run func(apiName string)) *MockContext_WithAPITracer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithAPITracer_Call) Return(context1 core.Context) *MockContext_WithAPITracer_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithAPITracer_Call) RunAndReturn(run func(apiName string) core.Context) *MockContext_WithAPITracer_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1396,6 +1744,395 @@ func (_c *MockContext_WithLoggerOptions_Call) Return(logger *core.Logger) *MockC
 }
 
 func (_c *MockContext_WithLoggerOptions_Call) RunAndReturn(run func(opts ...zap.Option) *core.Logger) *MockContext_WithLoggerOptions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithProtocolSubcomponent provides a mock function for the type MockContext
+func (_mock *MockContext) WithProtocolSubcomponent(protocolName string, subcomponentName string) core.Context {
+	ret := _mock.Called(protocolName, subcomponentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithProtocolSubcomponent")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string, string) core.Context); ok {
+		r0 = returnFunc(protocolName, subcomponentName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithProtocolSubcomponent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithProtocolSubcomponent'
+type MockContext_WithProtocolSubcomponent_Call struct {
+	*mock.Call
+}
+
+// WithProtocolSubcomponent is a helper method to define mock.On call
+//   - protocolName string
+//   - subcomponentName string
+func (_e *MockContext_Expecter) WithProtocolSubcomponent(protocolName interface{}, subcomponentName interface{}) *MockContext_WithProtocolSubcomponent_Call {
+	return &MockContext_WithProtocolSubcomponent_Call{Call: _e.mock.On("WithProtocolSubcomponent", protocolName, subcomponentName)}
+}
+
+func (_c *MockContext_WithProtocolSubcomponent_Call) Run(run func(protocolName string, subcomponentName string)) *MockContext_WithProtocolSubcomponent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithProtocolSubcomponent_Call) Return(context1 core.Context) *MockContext_WithProtocolSubcomponent_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithProtocolSubcomponent_Call) RunAndReturn(run func(protocolName string, subcomponentName string) core.Context) *MockContext_WithProtocolSubcomponent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithProtocolTracer provides a mock function for the type MockContext
+func (_mock *MockContext) WithProtocolTracer(protocolName string) core.Context {
+	ret := _mock.Called(protocolName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithProtocolTracer")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(protocolName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithProtocolTracer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithProtocolTracer'
+type MockContext_WithProtocolTracer_Call struct {
+	*mock.Call
+}
+
+// WithProtocolTracer is a helper method to define mock.On call
+//   - protocolName string
+func (_e *MockContext_Expecter) WithProtocolTracer(protocolName interface{}) *MockContext_WithProtocolTracer_Call {
+	return &MockContext_WithProtocolTracer_Call{Call: _e.mock.On("WithProtocolTracer", protocolName)}
+}
+
+func (_c *MockContext_WithProtocolTracer_Call) Run(run func(protocolName string)) *MockContext_WithProtocolTracer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithProtocolTracer_Call) Return(context1 core.Context) *MockContext_WithProtocolTracer_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithProtocolTracer_Call) RunAndReturn(run func(protocolName string) core.Context) *MockContext_WithProtocolTracer_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithServiceSubcomponent provides a mock function for the type MockContext
+func (_mock *MockContext) WithServiceSubcomponent(serviceName string, subcomponentName string) core.Context {
+	ret := _mock.Called(serviceName, subcomponentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithServiceSubcomponent")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string, string) core.Context); ok {
+		r0 = returnFunc(serviceName, subcomponentName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithServiceSubcomponent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithServiceSubcomponent'
+type MockContext_WithServiceSubcomponent_Call struct {
+	*mock.Call
+}
+
+// WithServiceSubcomponent is a helper method to define mock.On call
+//   - serviceName string
+//   - subcomponentName string
+func (_e *MockContext_Expecter) WithServiceSubcomponent(serviceName interface{}, subcomponentName interface{}) *MockContext_WithServiceSubcomponent_Call {
+	return &MockContext_WithServiceSubcomponent_Call{Call: _e.mock.On("WithServiceSubcomponent", serviceName, subcomponentName)}
+}
+
+func (_c *MockContext_WithServiceSubcomponent_Call) Run(run func(serviceName string, subcomponentName string)) *MockContext_WithServiceSubcomponent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithServiceSubcomponent_Call) Return(context1 core.Context) *MockContext_WithServiceSubcomponent_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithServiceSubcomponent_Call) RunAndReturn(run func(serviceName string, subcomponentName string) core.Context) *MockContext_WithServiceSubcomponent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithServiceTracer provides a mock function for the type MockContext
+func (_mock *MockContext) WithServiceTracer(serviceName string) core.Context {
+	ret := _mock.Called(serviceName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithServiceTracer")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(serviceName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithServiceTracer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithServiceTracer'
+type MockContext_WithServiceTracer_Call struct {
+	*mock.Call
+}
+
+// WithServiceTracer is a helper method to define mock.On call
+//   - serviceName string
+func (_e *MockContext_Expecter) WithServiceTracer(serviceName interface{}) *MockContext_WithServiceTracer_Call {
+	return &MockContext_WithServiceTracer_Call{Call: _e.mock.On("WithServiceTracer", serviceName)}
+}
+
+func (_c *MockContext_WithServiceTracer_Call) Run(run func(serviceName string)) *MockContext_WithServiceTracer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithServiceTracer_Call) Return(context1 core.Context) *MockContext_WithServiceTracer_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithServiceTracer_Call) RunAndReturn(run func(serviceName string) core.Context) *MockContext_WithServiceTracer_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithTracer provides a mock function for the type MockContext
+func (_mock *MockContext) WithTracer(service string, subsystem string) core.Context {
+	ret := _mock.Called(service, subsystem)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithTracer")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string, string) core.Context); ok {
+		r0 = returnFunc(service, subsystem)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithTracer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithTracer'
+type MockContext_WithTracer_Call struct {
+	*mock.Call
+}
+
+// WithTracer is a helper method to define mock.On call
+//   - service string
+//   - subsystem string
+func (_e *MockContext_Expecter) WithTracer(service interface{}, subsystem interface{}) *MockContext_WithTracer_Call {
+	return &MockContext_WithTracer_Call{Call: _e.mock.On("WithTracer", service, subsystem)}
+}
+
+func (_c *MockContext_WithTracer_Call) Run(run func(service string, subsystem string)) *MockContext_WithTracer_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithTracer_Call) Return(context1 core.Context) *MockContext_WithTracer_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithTracer_Call) RunAndReturn(run func(service string, subsystem string) core.Context) *MockContext_WithTracer_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithTracerService provides a mock function for the type MockContext
+func (_mock *MockContext) WithTracerService(service string) core.Context {
+	ret := _mock.Called(service)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithTracerService")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(service)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithTracerService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithTracerService'
+type MockContext_WithTracerService_Call struct {
+	*mock.Call
+}
+
+// WithTracerService is a helper method to define mock.On call
+//   - service string
+func (_e *MockContext_Expecter) WithTracerService(service interface{}) *MockContext_WithTracerService_Call {
+	return &MockContext_WithTracerService_Call{Call: _e.mock.On("WithTracerService", service)}
+}
+
+func (_c *MockContext_WithTracerService_Call) Run(run func(service string)) *MockContext_WithTracerService_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithTracerService_Call) Return(context1 core.Context) *MockContext_WithTracerService_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithTracerService_Call) RunAndReturn(run func(service string) core.Context) *MockContext_WithTracerService_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithTracerSubsystem provides a mock function for the type MockContext
+func (_mock *MockContext) WithTracerSubsystem(subsystem string) core.Context {
+	ret := _mock.Called(subsystem)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithTracerSubsystem")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(string) core.Context); ok {
+		r0 = returnFunc(subsystem)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithTracerSubsystem_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithTracerSubsystem'
+type MockContext_WithTracerSubsystem_Call struct {
+	*mock.Call
+}
+
+// WithTracerSubsystem is a helper method to define mock.On call
+//   - subsystem string
+func (_e *MockContext_Expecter) WithTracerSubsystem(subsystem interface{}) *MockContext_WithTracerSubsystem_Call {
+	return &MockContext_WithTracerSubsystem_Call{Call: _e.mock.On("WithTracerSubsystem", subsystem)}
+}
+
+func (_c *MockContext_WithTracerSubsystem_Call) Run(run func(subsystem string)) *MockContext_WithTracerSubsystem_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithTracerSubsystem_Call) Return(context1 core.Context) *MockContext_WithTracerSubsystem_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithTracerSubsystem_Call) RunAndReturn(run func(subsystem string) core.Context) *MockContext_WithTracerSubsystem_Call {
 	_c.Call.Return(run)
 	return _c
 }

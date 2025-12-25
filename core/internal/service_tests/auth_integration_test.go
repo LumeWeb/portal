@@ -60,18 +60,18 @@ func TestAuthService_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Test LoginPassword
-		token, loggedInUser, err := authService.LoginPassword("testuser@example.com", password, "127.0.0.1", false)
+		token, loggedInUser, err := authService.LoginPassword(nil, "testuser@example.com", password, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 		assert.Equal(tb, user.ID, loggedInUser.ID)
 
 		// 4. Test LoginPubkey
-		pubkeyToken, err := authService.LoginPubkey(pubKeyBase64, "127.0.0.1", false)
+		pubkeyToken, err := authService.LoginPubkey(nil, pubKeyBase64, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, pubkeyToken)
 
 		// 5. Test LoginID
-		idToken, err := authService.LoginID(user.ID, "127.0.0.1", false)
+		idToken, err := authService.LoginID(nil, user.ID, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, idToken)
 
@@ -80,19 +80,19 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Error(tb, err)
 
 		// 7. Test invalid LoginPubkey
-		_, err = authService.LoginPubkey("invalidkey", "127.0.0.1", false)
+		_, err = authService.LoginPubkey(nil, "invalidkey", "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 8. Test invalid LoginID
-		_, err = authService.LoginID(999999, "127.0.0.1", false)
+		_, err = authService.LoginID(nil, 999999, "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 9. Verify valid password by user object
-		valid := authService.ValidLoginByUserObj(user, password)
+		valid := authService.ValidLoginByUserObj(nil, user, password)
 		assert.True(tb, valid)
 
 		// 10. Verify valid password by email
-		valid, fetchedUser, err := authService.ValidLoginByEmail("testuser@example.com", password)
+		valid, fetchedUser, err := authService.ValidLoginByEmail(nil, "testuser@example.com", password)
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
@@ -100,13 +100,13 @@ func TestAuthService_Integration(t *testing.T) {
 		// 11. Verify valid password by user ID
 		userIDStr := strconv.Itoa(int(user.ID))
 		fmt.Println("User ID:", userIDStr)
-		valid, fetchedUser, err = authService.ValidLoginByUserID(user.ID, password)
+		valid, fetchedUser, err = authService.ValidLoginByUserID(nil, user.ID, password)
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
 
 		// 12. Test account pending deletion
-		err = userService.RequestAccountDeletion(user.ID, "127.0.0.1")
+		err = userService.RequestAccountDeletion(nil, user.ID, "127.0.0.1")
 		require.NoError(tb, err)
 
 		_, _, err = authService.LoginPassword("testuser@example.com", password, "127.0.0.1", false)

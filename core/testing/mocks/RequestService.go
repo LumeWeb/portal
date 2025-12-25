@@ -8,10 +8,12 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"go.lumeweb.com/queryutil/filter"
+	"gorm.io/gorm"
 )
 
 // NewMockRequestService creates a new instance of MockRequestService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -246,6 +248,98 @@ func (_c *MockRequestService_ComputeRequestStatusWithDeleted_Call) RunAndReturn(
 	return _c
 }
 
+// Config provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockRequestService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockRequestService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockRequestService_Expecter) Config() *MockRequestService_Config_Call {
+	return &MockRequestService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockRequestService_Config_Call) Run(run func()) *MockRequestService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRequestService_Config_Call) Return(manager config.Manager) *MockRequestService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockRequestService_Config_Call) RunAndReturn(run func() config.Manager) *MockRequestService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockRequestService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockRequestService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockRequestService_Expecter) Context() *MockRequestService_Context_Call {
+	return &MockRequestService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockRequestService_Context_Call) Run(run func()) *MockRequestService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRequestService_Context_Call) Return(context1 core.Context) *MockRequestService_Context_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockRequestService_Context_Call) RunAndReturn(run func() core.Context) *MockRequestService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateRequest provides a mock function for the type MockRequestService
 func (_mock *MockRequestService) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
 	ret := _mock.Called(ctx, req, data)
@@ -378,6 +472,52 @@ func (_c *MockRequestService_CreateRequestModel_Call) Return(requestDataModel da
 }
 
 func (_c *MockRequestService_CreateRequestModel_Call) RunAndReturn(run func(operation string) (data_models.RequestDataModel, error)) *MockRequestService_CreateRequestModel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockRequestService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockRequestService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockRequestService_Expecter) DB() *MockRequestService_DB_Call {
+	return &MockRequestService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockRequestService_DB_Call) Run(run func()) *MockRequestService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRequestService_DB_Call) Return(dB *gorm.DB) *MockRequestService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockRequestService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockRequestService_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1239,6 +1379,52 @@ func (_c *MockRequestService_ListRequestsByUser_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// Logger provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockRequestService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockRequestService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockRequestService_Expecter) Logger() *MockRequestService_Logger_Call {
+	return &MockRequestService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockRequestService_Logger_Call) Run(run func()) *MockRequestService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRequestService_Logger_Call) Return(logger *core.Logger) *MockRequestService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockRequestService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockRequestService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // QueryRequest provides a mock function for the type MockRequestService
 func (_mock *MockRequestService) QueryRequest(ctx context.Context, query any, filter1 core.RequestFilter) (*models.Request, error) {
 	ret := _mock.Called(ctx, query, filter1)
@@ -1496,6 +1682,166 @@ func (_c *MockRequestService_RequestExists_Call) Return(b bool, err error) *Mock
 
 func (_c *MockRequestService_RequestExists_Call) RunAndReturn(run func(ctx context.Context, id uint) (bool, error)) *MockRequestService_RequestExists_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockRequestService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockRequestService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockRequestService_Expecter) SetConfig(cfg interface{}) *MockRequestService_SetConfig_Call {
+	return &MockRequestService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockRequestService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockRequestService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_SetConfig_Call) Return() *MockRequestService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRequestService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockRequestService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockRequestService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockRequestService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockRequestService_Expecter) SetContext(ctx interface{}) *MockRequestService_SetContext_Call {
+	return &MockRequestService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockRequestService_SetContext_Call) Run(run func(ctx core.Context)) *MockRequestService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_SetContext_Call) Return() *MockRequestService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRequestService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockRequestService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockRequestService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockRequestService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockRequestService_Expecter) SetDB(db interface{}) *MockRequestService_SetDB_Call {
+	return &MockRequestService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockRequestService_SetDB_Call) Run(run func(db *gorm.DB)) *MockRequestService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_SetDB_Call) Return() *MockRequestService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRequestService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockRequestService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockRequestService
+func (_mock *MockRequestService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockRequestService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockRequestService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockRequestService_Expecter) SetLogger(logger interface{}) *MockRequestService_SetLogger_Call {
+	return &MockRequestService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockRequestService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockRequestService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRequestService_SetLogger_Call) Return() *MockRequestService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockRequestService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockRequestService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

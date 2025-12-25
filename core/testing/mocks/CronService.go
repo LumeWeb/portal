@@ -5,9 +5,13 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockCronService creates a new instance of MockCronService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -35,6 +39,98 @@ type MockCronService_Expecter struct {
 
 func (_m *MockCronService) EXPECT() *MockCronService_Expecter {
 	return &MockCronService_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockCronService
+func (_mock *MockCronService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockCronService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockCronService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Config() *MockCronService_Config_Call {
+	return &MockCronService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockCronService_Config_Call) Run(run func()) *MockCronService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Config_Call) Return(manager config.Manager) *MockCronService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockCronService_Config_Call) RunAndReturn(run func() config.Manager) *MockCronService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockCronService
+func (_mock *MockCronService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockCronService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockCronService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Context() *MockCronService_Context_Call {
+	return &MockCronService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockCronService_Context_Call) Run(run func()) *MockCronService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Context_Call) Return(context core.Context) *MockCronService_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockCronService_Context_Call) RunAndReturn(run func() core.Context) *MockCronService_Context_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Coordinator provides a mock function for the type MockCronService
@@ -83,9 +179,55 @@ func (_c *MockCronService_Coordinator_Call) RunAndReturn(run func() core.CronCoo
 	return _c
 }
 
+// DB provides a mock function for the type MockCronService
+func (_mock *MockCronService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockCronService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockCronService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) DB() *MockCronService_DB_Call {
+	return &MockCronService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockCronService_DB_Call) Run(run func()) *MockCronService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_DB_Call) Return(dB *gorm.DB) *MockCronService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockCronService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockCronService_DB_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetActiveJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) GetActiveJob(jobID uuid.UUID) (core.CronJob, bool, error) {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronService) GetActiveJob(ctx context.Context, jobID uuid.UUID) (core.CronJob, bool, error) {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetActiveJob")
@@ -94,23 +236,23 @@ func (_mock *MockCronService) GetActiveJob(jobID uuid.UUID) (core.CronJob, bool,
 	var r0 core.CronJob
 	var r1 bool
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (core.CronJob, bool, error)); ok {
-		return returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (core.CronJob, bool, error)); ok {
+		return returnFunc(ctx, jobID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) core.CronJob); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) core.CronJob); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(core.CronJob)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) bool); ok {
-		r1 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) bool); ok {
+		r1 = returnFunc(ctx, jobID)
 	} else {
 		r1 = ret.Get(1).(bool)
 	}
-	if returnFunc, ok := ret.Get(2).(func(uuid.UUID) error); ok {
-		r2 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID) error); ok {
+		r2 = returnFunc(ctx, jobID)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -123,19 +265,25 @@ type MockCronService_GetActiveJob_Call struct {
 }
 
 // GetActiveJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronService_Expecter) GetActiveJob(jobID interface{}) *MockCronService_GetActiveJob_Call {
-	return &MockCronService_GetActiveJob_Call{Call: _e.mock.On("GetActiveJob", jobID)}
+func (_e *MockCronService_Expecter) GetActiveJob(ctx interface{}, jobID interface{}) *MockCronService_GetActiveJob_Call {
+	return &MockCronService_GetActiveJob_Call{Call: _e.mock.On("GetActiveJob", ctx, jobID)}
 }
 
-func (_c *MockCronService_GetActiveJob_Call) Run(run func(jobID uuid.UUID)) *MockCronService_GetActiveJob_Call {
+func (_c *MockCronService_GetActiveJob_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronService_GetActiveJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -146,7 +294,7 @@ func (_c *MockCronService_GetActiveJob_Call) Return(cronJob core.CronJob, b bool
 	return _c
 }
 
-func (_c *MockCronService_GetActiveJob_Call) RunAndReturn(run func(jobID uuid.UUID) (core.CronJob, bool, error)) *MockCronService_GetActiveJob_Call {
+func (_c *MockCronService_GetActiveJob_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) (core.CronJob, bool, error)) *MockCronService_GetActiveJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -241,6 +389,52 @@ func (_c *MockCronService_JobFactory_Call) RunAndReturn(run func() core.CronJobF
 	return _c
 }
 
+// Logger provides a mock function for the type MockCronService
+func (_mock *MockCronService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockCronService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockCronService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockCronService_Expecter) Logger() *MockCronService_Logger_Call {
+	return &MockCronService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockCronService_Logger_Call) Run(run func()) *MockCronService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCronService_Logger_Call) Return(logger *core.Logger) *MockCronService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockCronService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockCronService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Monitor provides a mock function for the type MockCronService
 func (_mock *MockCronService) Monitor() core.CronMonitor {
 	ret := _mock.Called()
@@ -328,16 +522,16 @@ func (_c *MockCronService_RegisterEntity_Call) RunAndReturn(run func(entity core
 }
 
 // RegisterJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) RegisterJob(job core.CronJob, retryPolicy *core.RetryPolicy) error {
-	ret := _mock.Called(job, retryPolicy)
+func (_mock *MockCronService) RegisterJob(ctx context.Context, job core.CronJob, retryPolicy *core.RetryPolicy) error {
+	ret := _mock.Called(ctx, job, retryPolicy)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.CronJob, *core.RetryPolicy) error); ok {
-		r0 = returnFunc(job, retryPolicy)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.CronJob, *core.RetryPolicy) error); ok {
+		r0 = returnFunc(ctx, job, retryPolicy)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -350,25 +544,31 @@ type MockCronService_RegisterJob_Call struct {
 }
 
 // RegisterJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - job core.CronJob
 //   - retryPolicy *core.RetryPolicy
-func (_e *MockCronService_Expecter) RegisterJob(job interface{}, retryPolicy interface{}) *MockCronService_RegisterJob_Call {
-	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", job, retryPolicy)}
+func (_e *MockCronService_Expecter) RegisterJob(ctx interface{}, job interface{}, retryPolicy interface{}) *MockCronService_RegisterJob_Call {
+	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", ctx, job, retryPolicy)}
 }
 
-func (_c *MockCronService_RegisterJob_Call) Run(run func(job core.CronJob, retryPolicy *core.RetryPolicy)) *MockCronService_RegisterJob_Call {
+func (_c *MockCronService_RegisterJob_Call) Run(run func(ctx context.Context, job core.CronJob, retryPolicy *core.RetryPolicy)) *MockCronService_RegisterJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.CronJob
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.CronJob)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 *core.RetryPolicy
+		var arg1 core.CronJob
 		if args[1] != nil {
-			arg1 = args[1].(*core.RetryPolicy)
+			arg1 = args[1].(core.CronJob)
+		}
+		var arg2 *core.RetryPolicy
+		if args[2] != nil {
+			arg2 = args[2].(*core.RetryPolicy)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -379,22 +579,22 @@ func (_c *MockCronService_RegisterJob_Call) Return(err error) *MockCronService_R
 	return _c
 }
 
-func (_c *MockCronService_RegisterJob_Call) RunAndReturn(run func(job core.CronJob, retryPolicy *core.RetryPolicy) error) *MockCronService_RegisterJob_Call {
+func (_c *MockCronService_RegisterJob_Call) RunAndReturn(run func(ctx context.Context, job core.CronJob, retryPolicy *core.RetryPolicy) error) *MockCronService_RegisterJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RegisterJobType provides a mock function for the type MockCronService
-func (_mock *MockCronService) RegisterJobType(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
-	ret := _mock.Called(jobType, factory, defaultSchedule)
+func (_mock *MockCronService) RegisterJobType(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
+	ret := _mock.Called(ctx, jobType, factory, defaultSchedule)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterJobType")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, core.CronJobFactoryFunc, *core.CronScheduleDefinition) error); ok {
-		r0 = returnFunc(jobType, factory, defaultSchedule)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, core.CronJobFactoryFunc, *core.CronScheduleDefinition) error); ok {
+		r0 = returnFunc(ctx, jobType, factory, defaultSchedule)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -407,31 +607,37 @@ type MockCronService_RegisterJobType_Call struct {
 }
 
 // RegisterJobType is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobType string
 //   - factory core.CronJobFactoryFunc
 //   - defaultSchedule *core.CronScheduleDefinition
-func (_e *MockCronService_Expecter) RegisterJobType(jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronService_RegisterJobType_Call {
-	return &MockCronService_RegisterJobType_Call{Call: _e.mock.On("RegisterJobType", jobType, factory, defaultSchedule)}
+func (_e *MockCronService_Expecter) RegisterJobType(ctx interface{}, jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronService_RegisterJobType_Call {
+	return &MockCronService_RegisterJobType_Call{Call: _e.mock.On("RegisterJobType", ctx, jobType, factory, defaultSchedule)}
 }
 
-func (_c *MockCronService_RegisterJobType_Call) Run(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition)) *MockCronService_RegisterJobType_Call {
+func (_c *MockCronService_RegisterJobType_Call) Run(run func(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition)) *MockCronService_RegisterJobType_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 core.CronJobFactoryFunc
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(core.CronJobFactoryFunc)
+			arg1 = args[1].(string)
 		}
-		var arg2 *core.CronScheduleDefinition
+		var arg2 core.CronJobFactoryFunc
 		if args[2] != nil {
-			arg2 = args[2].(*core.CronScheduleDefinition)
+			arg2 = args[2].(core.CronJobFactoryFunc)
+		}
+		var arg3 *core.CronScheduleDefinition
+		if args[3] != nil {
+			arg3 = args[3].(*core.CronScheduleDefinition)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -442,22 +648,22 @@ func (_c *MockCronService_RegisterJobType_Call) Return(err error) *MockCronServi
 	return _c
 }
 
-func (_c *MockCronService_RegisterJobType_Call) RunAndReturn(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error) *MockCronService_RegisterJobType_Call {
+func (_c *MockCronService_RegisterJobType_Call) RunAndReturn(run func(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error) *MockCronService_RegisterJobType_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RegisterPluginJobs provides a mock function for the type MockCronService
-func (_mock *MockCronService) RegisterPluginJobs(plugin core.PluginInfo) error {
-	ret := _mock.Called(plugin)
+func (_mock *MockCronService) RegisterPluginJobs(ctx context.Context, plugin core.PluginInfo) error {
+	ret := _mock.Called(ctx, plugin)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterPluginJobs")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.PluginInfo) error); ok {
-		r0 = returnFunc(plugin)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.PluginInfo) error); ok {
+		r0 = returnFunc(ctx, plugin)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -470,19 +676,25 @@ type MockCronService_RegisterPluginJobs_Call struct {
 }
 
 // RegisterPluginJobs is a helper method to define mock.On call
+//   - ctx context.Context
 //   - plugin core.PluginInfo
-func (_e *MockCronService_Expecter) RegisterPluginJobs(plugin interface{}) *MockCronService_RegisterPluginJobs_Call {
-	return &MockCronService_RegisterPluginJobs_Call{Call: _e.mock.On("RegisterPluginJobs", plugin)}
+func (_e *MockCronService_Expecter) RegisterPluginJobs(ctx interface{}, plugin interface{}) *MockCronService_RegisterPluginJobs_Call {
+	return &MockCronService_RegisterPluginJobs_Call{Call: _e.mock.On("RegisterPluginJobs", ctx, plugin)}
 }
 
-func (_c *MockCronService_RegisterPluginJobs_Call) Run(run func(plugin core.PluginInfo)) *MockCronService_RegisterPluginJobs_Call {
+func (_c *MockCronService_RegisterPluginJobs_Call) Run(run func(ctx context.Context, plugin core.PluginInfo)) *MockCronService_RegisterPluginJobs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.PluginInfo
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.PluginInfo)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.PluginInfo
+		if args[1] != nil {
+			arg1 = args[1].(core.PluginInfo)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -493,22 +705,22 @@ func (_c *MockCronService_RegisterPluginJobs_Call) Return(err error) *MockCronSe
 	return _c
 }
 
-func (_c *MockCronService_RegisterPluginJobs_Call) RunAndReturn(run func(plugin core.PluginInfo) error) *MockCronService_RegisterPluginJobs_Call {
+func (_c *MockCronService_RegisterPluginJobs_Call) RunAndReturn(run func(ctx context.Context, plugin core.PluginInfo) error) *MockCronService_RegisterPluginJobs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RunJob provides a mock function for the type MockCronService
-func (_mock *MockCronService) RunJob(id uuid.UUID) error {
-	ret := _mock.Called(id)
+func (_mock *MockCronService) RunJob(ctx context.Context, id uuid.UUID) error {
+	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RunJob")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) error); ok {
-		r0 = returnFunc(id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = returnFunc(ctx, id)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -521,19 +733,25 @@ type MockCronService_RunJob_Call struct {
 }
 
 // RunJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockCronService_Expecter) RunJob(id interface{}) *MockCronService_RunJob_Call {
-	return &MockCronService_RunJob_Call{Call: _e.mock.On("RunJob", id)}
+func (_e *MockCronService_Expecter) RunJob(ctx interface{}, id interface{}) *MockCronService_RunJob_Call {
+	return &MockCronService_RunJob_Call{Call: _e.mock.On("RunJob", ctx, id)}
 }
 
-func (_c *MockCronService_RunJob_Call) Run(run func(id uuid.UUID)) *MockCronService_RunJob_Call {
+func (_c *MockCronService_RunJob_Call) Run(run func(ctx context.Context, id uuid.UUID)) *MockCronService_RunJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -544,7 +762,7 @@ func (_c *MockCronService_RunJob_Call) Return(err error) *MockCronService_RunJob
 	return _c
 }
 
-func (_c *MockCronService_RunJob_Call) RunAndReturn(run func(id uuid.UUID) error) *MockCronService_RunJob_Call {
+func (_c *MockCronService_RunJob_Call) RunAndReturn(run func(ctx context.Context, id uuid.UUID) error) *MockCronService_RunJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -595,17 +813,177 @@ func (_c *MockCronService_ScheduleRegistry_Call) RunAndReturn(run func() core.Cr
 	return _c
 }
 
+// SetConfig provides a mock function for the type MockCronService
+func (_mock *MockCronService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockCronService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockCronService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockCronService_Expecter) SetConfig(cfg interface{}) *MockCronService_SetConfig_Call {
+	return &MockCronService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockCronService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockCronService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_SetConfig_Call) Return() *MockCronService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCronService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockCronService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockCronService
+func (_mock *MockCronService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockCronService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockCronService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockCronService_Expecter) SetContext(ctx interface{}) *MockCronService_SetContext_Call {
+	return &MockCronService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockCronService_SetContext_Call) Run(run func(ctx core.Context)) *MockCronService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_SetContext_Call) Return() *MockCronService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCronService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockCronService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockCronService
+func (_mock *MockCronService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockCronService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockCronService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockCronService_Expecter) SetDB(db interface{}) *MockCronService_SetDB_Call {
+	return &MockCronService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockCronService_SetDB_Call) Run(run func(db *gorm.DB)) *MockCronService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_SetDB_Call) Return() *MockCronService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCronService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockCronService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockCronService
+func (_mock *MockCronService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockCronService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockCronService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockCronService_Expecter) SetLogger(logger interface{}) *MockCronService_SetLogger_Call {
+	return &MockCronService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockCronService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockCronService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronService_SetLogger_Call) Return() *MockCronService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCronService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockCronService_SetLogger_Call {
+	_c.Run(run)
+	return _c
+}
+
 // Start provides a mock function for the type MockCronService
-func (_mock *MockCronService) Start() error {
-	ret := _mock.Called()
+func (_mock *MockCronService) Start(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Start")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -618,13 +996,20 @@ type MockCronService_Start_Call struct {
 }
 
 // Start is a helper method to define mock.On call
-func (_e *MockCronService_Expecter) Start() *MockCronService_Start_Call {
-	return &MockCronService_Start_Call{Call: _e.mock.On("Start")}
+//   - ctx context.Context
+func (_e *MockCronService_Expecter) Start(ctx interface{}) *MockCronService_Start_Call {
+	return &MockCronService_Start_Call{Call: _e.mock.On("Start", ctx)}
 }
 
-func (_c *MockCronService_Start_Call) Run(run func()) *MockCronService_Start_Call {
+func (_c *MockCronService_Start_Call) Run(run func(ctx context.Context)) *MockCronService_Start_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -634,7 +1019,7 @@ func (_c *MockCronService_Start_Call) Return(err error) *MockCronService_Start_C
 	return _c
 }
 
-func (_c *MockCronService_Start_Call) RunAndReturn(run func() error) *MockCronService_Start_Call {
+func (_c *MockCronService_Start_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronService_Start_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -686,16 +1071,16 @@ func (_c *MockCronService_StateMachine_Call) RunAndReturn(run func() core.CronJo
 }
 
 // Stop provides a mock function for the type MockCronService
-func (_mock *MockCronService) Stop() error {
-	ret := _mock.Called()
+func (_mock *MockCronService) Stop(ctx context.Context) error {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Stop")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -708,13 +1093,20 @@ type MockCronService_Stop_Call struct {
 }
 
 // Stop is a helper method to define mock.On call
-func (_e *MockCronService_Expecter) Stop() *MockCronService_Stop_Call {
-	return &MockCronService_Stop_Call{Call: _e.mock.On("Stop")}
+//   - ctx context.Context
+func (_e *MockCronService_Expecter) Stop(ctx interface{}) *MockCronService_Stop_Call {
+	return &MockCronService_Stop_Call{Call: _e.mock.On("Stop", ctx)}
 }
 
-func (_c *MockCronService_Stop_Call) Run(run func()) *MockCronService_Stop_Call {
+func (_c *MockCronService_Stop_Call) Run(run func(ctx context.Context)) *MockCronService_Stop_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -724,7 +1116,7 @@ func (_c *MockCronService_Stop_Call) Return(err error) *MockCronService_Stop_Cal
 	return _c
 }
 
-func (_c *MockCronService_Stop_Call) RunAndReturn(run func() error) *MockCronService_Stop_Call {
+func (_c *MockCronService_Stop_Call) RunAndReturn(run func(ctx context.Context) error) *MockCronService_Stop_Call {
 	_c.Call.Return(run)
 	return _c
 }

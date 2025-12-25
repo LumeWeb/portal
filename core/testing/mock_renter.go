@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"go.sia.tech/renterd/v2/api"
+	"gorm.io/gorm"
 )
 
 var _ core.RenterService = (*MockRenterService)(nil)
@@ -23,6 +25,10 @@ type MockRenterService struct {
 	buckets  map[string]bool   // track created buckets
 	mu       sync.RWMutex
 	t        testing.TB
+	componentConfig  config.Manager
+	componentContext core.Context
+	componentLogger  *core.Logger
+	componentDB      *gorm.DB
 }
 
 func (h *MockRenterService) ID() string {
@@ -221,4 +227,44 @@ func (h *MockRenterService) SlabSize(_ context.Context) (uint64, error) {
 
 	// Default slab size of 4MB
 	return uint64(4 * 1024 * 1024), nil
+}
+
+// Config implements core.Component
+func (h *MockRenterService) Config() config.Manager {
+	return h.componentConfig
+}
+
+// SetConfig implements core.Component
+func (h *MockRenterService) SetConfig(cfg config.Manager) {
+	h.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (h *MockRenterService) Context() core.Context {
+	return h.componentContext
+}
+
+// SetContext implements core.Component
+func (h *MockRenterService) SetContext(ctx core.Context) {
+	h.componentContext = ctx
+}
+
+// Logger implements core.Component
+func (h *MockRenterService) Logger() *core.Logger {
+	return h.componentLogger
+}
+
+// SetLogger implements core.Component
+func (h *MockRenterService) SetLogger(logger *core.Logger) {
+	h.componentLogger = logger
+}
+
+// DB implements core.Component
+func (h *MockRenterService) DB() *gorm.DB {
+	return h.componentDB
+}
+
+// SetDB implements core.Component
+func (h *MockRenterService) SetDB(db *gorm.DB) {
+	h.componentDB = db
 }

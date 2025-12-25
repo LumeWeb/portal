@@ -14,21 +14,22 @@ var (
 )
 
 type CoreConfig struct {
-	DB              DatabaseConfig `config:"db"`
-	Domain          string         `config:"domain"`
-	Secure          bool           `config:"secure"`
-	PortalName      string         `config:"portal_name"`
-	ExternalPort    uint           `config:"external_port"`
-	Identity        types.Identity `config:"identity"`
-	Log             LogConfig      `config:"log"`
-	Port            uint           `config:"port"`
-	PostUploadLimit uint64         `config:"post_upload_limit"`
-	Storage         StorageConfig  `config:"storage"`
-	Mail            MailConfig     `config:"mail"`
-	Clustered       *ClusterConfig `config:"clustered"`
-	NodeID          types.UUID     `config:"node_id"`
-	Cron            CronConfig     `config:"cron"`
-	Account         AccountConfig  `config:"account"`
+	DB              DatabaseConfig       `config:"db"`
+	Domain          string               `config:"domain"`
+	Secure          bool                 `config:"secure"`
+	PortalName      string               `config:"portal_name"`
+	ExternalPort    uint                 `config:"external_port"`
+	Identity        types.Identity       `config:"identity"`
+	Log             LogConfig            `config:"log"`
+	Port            uint                 `config:"port"`
+	PostUploadLimit uint64               `config:"post_upload_limit"`
+	Storage         StorageConfig        `config:"storage"`
+	Mail            MailConfig           `config:"mail"`
+	Clustered       *ClusterConfig       `config:"clustered"`
+	NodeID          types.UUID           `config:"node_id"`
+	Cron            CronConfig           `config:"cron"`
+	Account         AccountConfig        `config:"account"`
+	Observability   ObservabilityConfig  `config:"observability"`
 }
 
 func (c CoreConfig) Schema() z.ZogSchema {

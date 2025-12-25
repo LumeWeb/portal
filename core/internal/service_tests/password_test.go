@@ -60,7 +60,7 @@ func TestPasswordResetService_SendPasswordReset(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Send password reset email
-		err = passwordResetService.SendPasswordReset(user)
+		err = passwordResetService.SendPasswordReset(nil, user)
 		require.NoError(tb, err)
 
 		// Verify mock expectations
@@ -97,7 +97,7 @@ func TestPasswordResetService_SendPasswordReset_MissingSubdomain(t *testing.T) {
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		err = passwordResetService.SendPasswordReset(user)
+		err = passwordResetService.SendPasswordReset(nil, user)
 		assert.Error(t, err)
 		assert.Equal(t, "password reset service subdomain not configured", err.Error())
 	}, coreTesting.WithServiceFactory(core.PASSWORD_RESET_SERVICE, service.NewPasswordResetService))
@@ -154,11 +154,11 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 3. Reset the password
-		err = passwordResetService.ResetPassword(user.Email, token, newPassword)
+		err = passwordResetService.ResetPassword(nil, user.Email, token, newPassword)
 		require.NoError(tb, err)
 
 		// 4. Verify that the password was updated in the database
-		_, updatedUser, err := userService.AccountExists(user.ID)
+		_, updatedUser, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		err = bcrypt.CompareHashAndPassword([]byte(updatedUser.PasswordHash), []byte(newPassword))
 		require.NoError(tb, err)
@@ -170,12 +170,12 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		assert.True(tb, errors.Is(result.Error, gorm.ErrRecordNotFound))
 
 		// Test with invalid email
-		err = passwordResetService.ResetPassword("invalid@example.com", token, newPassword)
+		err = passwordResetService.ResetPassword(nil, "invalid@example.com", token, newPassword)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyUserNotFound)
 
 		// Test with invalid token
-		err = passwordResetService.ResetPassword(user.Email, "invalidtoken", newPassword)
+		err = passwordResetService.ResetPassword(nil, user.Email, "invalidtoken", newPassword)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyUserNotFound)
 
@@ -189,7 +189,7 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		err = ctx.DB().Create(&expiredReset).Error
 		require.NoError(tb, err)
 
-		err = passwordResetService.ResetPassword(user.Email, expiredToken, newPassword)
+		err = passwordResetService.ResetPassword(nil, user.Email, expiredToken, newPassword)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeySecurityTokenExpired)
 

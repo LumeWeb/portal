@@ -11,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	"gorm.io/gorm"
 )
 
 var _ core.StorageService = (*MockStorageService)(nil)
@@ -22,9 +24,12 @@ var _ core.StorageService = (*MockStorageService)(nil)
 // to provide a real S3 client configured like the actual storage service.
 type MockStorageService struct {
 	*mocks.MockStorageService
-	ctx        core.Context
-	s3Client   *s3.Client
-	s3ClientMu sync.RWMutex
+	ctx               core.Context
+	s3Client          *s3.Client
+	s3ClientMu        sync.RWMutex
+	componentConfig   config.Manager
+	componentLogger   *core.Logger
+	componentDB       *gorm.DB
 }
 
 // NewMockStorageService creates a new MockStorageService with a core context.
@@ -101,4 +106,44 @@ func ensureHttpPrefix(endpoint string) string {
 		return "http://" + endpoint
 	}
 	return endpoint
+}
+
+// Config implements core.Component
+func (m *MockStorageService) Config() config.Manager {
+	return m.componentConfig
+}
+
+// SetConfig implements core.Component
+func (m *MockStorageService) SetConfig(cfg config.Manager) {
+	m.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (m *MockStorageService) Context() core.Context {
+	return m.ctx
+}
+
+// SetContext implements core.Component
+func (m *MockStorageService) SetContext(ctx core.Context) {
+	m.ctx = ctx
+}
+
+// Logger implements core.Component
+func (m *MockStorageService) Logger() *core.Logger {
+	return m.componentLogger
+}
+
+// SetLogger implements core.Component
+func (m *MockStorageService) SetLogger(logger *core.Logger) {
+	m.componentLogger = logger
+}
+
+// DB implements core.Component
+func (m *MockStorageService) DB() *gorm.DB {
+	return m.componentDB
+}
+
+// SetDB implements core.Component
+func (m *MockStorageService) SetDB(db *gorm.DB) {
+	m.componentDB = db
 }

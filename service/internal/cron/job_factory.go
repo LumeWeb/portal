@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"context"
 	"fmt"
 	"go.lumeweb.com/portal/core"
 	"sync"
@@ -41,7 +42,7 @@ type DeadJobCheckJob struct {
 func (j *DeadJobCheckJob) Run(ctx core.Context) error {
 	// Signal the monitor to perform maintenance
 	cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
-	cronService.Monitor().SignalMaintenance()
+	cronService.Monitor().SignalMaintenance(nil)
 	return nil
 }
 
@@ -53,11 +54,11 @@ type CleanupJob struct {
 
 func (j *CleanupJob) Run(ctx core.Context) error {
 	cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
-	return cronService.Monitor().CleanupCompletedJobs()
+	return cronService.Monitor().CleanupCompletedJobs(nil)
 }
 
 // RegisterFactory registers a job type with optional default schedule
-func (f *DefaultJobFactory) GetDefaultSchedule(jobType string) (*core.CronScheduleDefinition, bool) {
+func (f *DefaultJobFactory) GetDefaultSchedule(ctx context.Context, jobType string) (*core.CronScheduleDefinition, bool) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 
@@ -65,11 +66,7 @@ func (f *DefaultJobFactory) GetDefaultSchedule(jobType string) (*core.CronSchedu
 	return sched, exists
 }
 
-func (f *DefaultJobFactory) RegisterFactory(
-	jobType string,
-	factory core.CronJobFactoryFunc,
-	defaultSchedule *core.CronScheduleDefinition,
-) error {
+func (f *DefaultJobFactory) RegisterFactory(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
 	if err := core.ValidateCronJobType(jobType); err != nil {
 		return fmt.Errorf("invalid job type: %w", err)
 	}
@@ -89,7 +86,7 @@ func (f *DefaultJobFactory) RegisterFactory(
 }
 
 // CreateJob instantiates a job of the given type
-func (f *DefaultJobFactory) CreateJob(jobType string) (core.CronJob, error) {
+func (f *DefaultJobFactory) CreateJob(ctx context.Context, jobType string) (core.CronJob, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 

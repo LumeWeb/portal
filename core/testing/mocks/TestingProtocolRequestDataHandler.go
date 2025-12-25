@@ -98,19 +98,19 @@ func (_c *MockTestingProtocolRequestDataHandler_CompleteProtocolData_Call) RunAn
 }
 
 // Config provides a mock function for the type MockTestingProtocolRequestDataHandler
-func (_mock *MockTestingProtocolRequestDataHandler) Config() config.ProtocolConfig {
+func (_mock *MockTestingProtocolRequestDataHandler) Config() config.Manager {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Config")
 	}
 
-	var r0 config.ProtocolConfig
-	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(config.ProtocolConfig)
+			r0 = ret.Get(0).(config.Manager)
 		}
 	}
 	return r0
@@ -133,12 +133,58 @@ func (_c *MockTestingProtocolRequestDataHandler_Config_Call) Run(run func()) *Mo
 	return _c
 }
 
-func (_c *MockTestingProtocolRequestDataHandler_Config_Call) Return(protocolConfig config.ProtocolConfig) *MockTestingProtocolRequestDataHandler_Config_Call {
-	_c.Call.Return(protocolConfig)
+func (_c *MockTestingProtocolRequestDataHandler_Config_Call) Return(manager config.Manager) *MockTestingProtocolRequestDataHandler_Config_Call {
+	_c.Call.Return(manager)
 	return _c
 }
 
-func (_c *MockTestingProtocolRequestDataHandler_Config_Call) RunAndReturn(run func() config.ProtocolConfig) *MockTestingProtocolRequestDataHandler_Config_Call {
+func (_c *MockTestingProtocolRequestDataHandler_Config_Call) RunAndReturn(run func() config.Manager) *MockTestingProtocolRequestDataHandler_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockTestingProtocolRequestDataHandler_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) Context() *MockTestingProtocolRequestDataHandler_Context_Call {
+	return &MockTestingProtocolRequestDataHandler_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Context_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Context_Call) Return(context1 core.Context) *MockTestingProtocolRequestDataHandler_Context_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Context_Call) RunAndReturn(run func() core.Context) *MockTestingProtocolRequestDataHandler_Context_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -202,6 +248,52 @@ func (_c *MockTestingProtocolRequestDataHandler_CreateProtocolData_Call) Return(
 }
 
 func (_c *MockTestingProtocolRequestDataHandler_CreateProtocolData_Call) RunAndReturn(run func(ctx context.Context, id uint, data any) error) *MockTestingProtocolRequestDataHandler_CreateProtocolData_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockTestingProtocolRequestDataHandler_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) DB() *MockTestingProtocolRequestDataHandler_DB_Call {
+	return &MockTestingProtocolRequestDataHandler_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DB_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DB_Call) Return(dB *gorm.DB) *MockTestingProtocolRequestDataHandler_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_DB_Call) RunAndReturn(run func() *gorm.DB) *MockTestingProtocolRequestDataHandler_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -303,6 +395,52 @@ func (_c *MockTestingProtocolRequestDataHandler_DisplayName_Call) Return(s strin
 }
 
 func (_c *MockTestingProtocolRequestDataHandler_DisplayName_Call) RunAndReturn(run func() string) *MockTestingProtocolRequestDataHandler_DisplayName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetConfig provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) GetConfig() config.ProtocolConfig {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetConfig")
+	}
+
+	var r0 config.ProtocolConfig
+	if returnFunc, ok := ret.Get(0).(func() config.ProtocolConfig); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.ProtocolConfig)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_GetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetConfig'
+type MockTestingProtocolRequestDataHandler_GetConfig_Call struct {
+	*mock.Call
+}
+
+// GetConfig is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) GetConfig() *MockTestingProtocolRequestDataHandler_GetConfig_Call {
+	return &MockTestingProtocolRequestDataHandler_GetConfig_Call{Call: _e.mock.On("GetConfig")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_GetConfig_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_GetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_GetConfig_Call) Return(protocolConfig config.ProtocolConfig) *MockTestingProtocolRequestDataHandler_GetConfig_Call {
+	_c.Call.Return(protocolConfig)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_GetConfig_Call) RunAndReturn(run func() config.ProtocolConfig) *MockTestingProtocolRequestDataHandler_GetConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -423,6 +561,96 @@ func (_c *MockTestingProtocolRequestDataHandler_GetProtocolDataModel_Call) Retur
 }
 
 func (_c *MockTestingProtocolRequestDataHandler_GetProtocolDataModel_Call) RunAndReturn(run func() any) *MockTestingProtocolRequestDataHandler_GetProtocolDataModel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ID provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) ID() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_ID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ID'
+type MockTestingProtocolRequestDataHandler_ID_Call struct {
+	*mock.Call
+}
+
+// ID is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) ID() *MockTestingProtocolRequestDataHandler_ID_Call {
+	return &MockTestingProtocolRequestDataHandler_ID_Call{Call: _e.mock.On("ID")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_ID_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_ID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_ID_Call) Return(s string) *MockTestingProtocolRequestDataHandler_ID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_ID_Call) RunAndReturn(run func() string) *MockTestingProtocolRequestDataHandler_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockTestingProtocolRequestDataHandler_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockTestingProtocolRequestDataHandler_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) Logger() *MockTestingProtocolRequestDataHandler_Logger_Call {
+	return &MockTestingProtocolRequestDataHandler_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Logger_Call) Run(run func()) *MockTestingProtocolRequestDataHandler_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Logger_Call) Return(logger *core.Logger) *MockTestingProtocolRequestDataHandler_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_Logger_Call) RunAndReturn(run func() *core.Logger) *MockTestingProtocolRequestDataHandler_Logger_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -579,6 +807,166 @@ func (_c *MockTestingProtocolRequestDataHandler_QueryProtocolData_Call) Return(d
 
 func (_c *MockTestingProtocolRequestDataHandler_QueryProtocolData_Call) RunAndReturn(run func(ctx context.Context, tx *gorm.DB, query any) *gorm.DB) *MockTestingProtocolRequestDataHandler_QueryProtocolData_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockTestingProtocolRequestDataHandler_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockTestingProtocolRequestDataHandler_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolRequestDataHandler_SetConfig_Call {
+	return &MockTestingProtocolRequestDataHandler_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetConfig_Call) Run(run func(cfg config.Manager)) *MockTestingProtocolRequestDataHandler_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetConfig_Call) Return() *MockTestingProtocolRequestDataHandler_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockTestingProtocolRequestDataHandler_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockTestingProtocolRequestDataHandler_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockTestingProtocolRequestDataHandler_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetContext(ctx interface{}) *MockTestingProtocolRequestDataHandler_SetContext_Call {
+	return &MockTestingProtocolRequestDataHandler_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetContext_Call) Run(run func(ctx core.Context)) *MockTestingProtocolRequestDataHandler_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetContext_Call) Return() *MockTestingProtocolRequestDataHandler_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockTestingProtocolRequestDataHandler_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockTestingProtocolRequestDataHandler_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockTestingProtocolRequestDataHandler_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetDB(db interface{}) *MockTestingProtocolRequestDataHandler_SetDB_Call {
+	return &MockTestingProtocolRequestDataHandler_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetDB_Call) Run(run func(db *gorm.DB)) *MockTestingProtocolRequestDataHandler_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetDB_Call) Return() *MockTestingProtocolRequestDataHandler_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockTestingProtocolRequestDataHandler_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockTestingProtocolRequestDataHandler
+func (_mock *MockTestingProtocolRequestDataHandler) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockTestingProtocolRequestDataHandler_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockTestingProtocolRequestDataHandler_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetLogger(logger interface{}) *MockTestingProtocolRequestDataHandler_SetLogger_Call {
+	return &MockTestingProtocolRequestDataHandler_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetLogger_Call) Run(run func(logger *core.Logger)) *MockTestingProtocolRequestDataHandler_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetLogger_Call) Return() *MockTestingProtocolRequestDataHandler_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockTestingProtocolRequestDataHandler_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockTestingProtocolRequestDataHandler_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

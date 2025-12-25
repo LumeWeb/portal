@@ -7,7 +7,9 @@ package mocks
 import (
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockAPIExtension creates a new instance of MockAPIExtension. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -35,6 +37,52 @@ type MockAPIExtension_Expecter struct {
 
 func (_m *MockAPIExtension) EXPECT() *MockAPIExtension_Expecter {
 	return &MockAPIExtension_Expecter{mock: &_m.Mock}
+}
+
+// Config provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockAPIExtension_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockAPIExtension_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockAPIExtension_Expecter) Config() *MockAPIExtension_Config_Call {
+	return &MockAPIExtension_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockAPIExtension_Config_Call) Run(run func()) *MockAPIExtension_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_Config_Call) Return(manager config.Manager) *MockAPIExtension_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockAPIExtension_Config_Call) RunAndReturn(run func() config.Manager) *MockAPIExtension_Config_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // Configure provides a mock function for the type MockAPIExtension
@@ -91,6 +139,348 @@ func (_c *MockAPIExtension_Configure_Call) Return(err error) *MockAPIExtension_C
 
 func (_c *MockAPIExtension_Configure_Call) RunAndReturn(run func(router1 router.Router, accessSvc core.AccessService) error) *MockAPIExtension_Configure_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockAPIExtension_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockAPIExtension_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockAPIExtension_Expecter) Context() *MockAPIExtension_Context_Call {
+	return &MockAPIExtension_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockAPIExtension_Context_Call) Run(run func()) *MockAPIExtension_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_Context_Call) Return(context core.Context) *MockAPIExtension_Context_Call {
+	_c.Call.Return(context)
+	return _c
+}
+
+func (_c *MockAPIExtension_Context_Call) RunAndReturn(run func() core.Context) *MockAPIExtension_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockAPIExtension_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockAPIExtension_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockAPIExtension_Expecter) DB() *MockAPIExtension_DB_Call {
+	return &MockAPIExtension_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockAPIExtension_DB_Call) Run(run func()) *MockAPIExtension_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_DB_Call) Return(dB *gorm.DB) *MockAPIExtension_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockAPIExtension_DB_Call) RunAndReturn(run func() *gorm.DB) *MockAPIExtension_DB_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ID provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) ID() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ID")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockAPIExtension_ID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ID'
+type MockAPIExtension_ID_Call struct {
+	*mock.Call
+}
+
+// ID is a helper method to define mock.On call
+func (_e *MockAPIExtension_Expecter) ID() *MockAPIExtension_ID_Call {
+	return &MockAPIExtension_ID_Call{Call: _e.mock.On("ID")}
+}
+
+func (_c *MockAPIExtension_ID_Call) Run(run func()) *MockAPIExtension_ID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_ID_Call) Return(s string) *MockAPIExtension_ID_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockAPIExtension_ID_Call) RunAndReturn(run func() string) *MockAPIExtension_ID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockAPIExtension_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockAPIExtension_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockAPIExtension_Expecter) Logger() *MockAPIExtension_Logger_Call {
+	return &MockAPIExtension_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockAPIExtension_Logger_Call) Run(run func()) *MockAPIExtension_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_Logger_Call) Return(logger *core.Logger) *MockAPIExtension_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockAPIExtension_Logger_Call) RunAndReturn(run func() *core.Logger) *MockAPIExtension_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockAPIExtension_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockAPIExtension_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockAPIExtension_Expecter) SetConfig(cfg interface{}) *MockAPIExtension_SetConfig_Call {
+	return &MockAPIExtension_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockAPIExtension_SetConfig_Call) Run(run func(cfg config.Manager)) *MockAPIExtension_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_SetConfig_Call) Return() *MockAPIExtension_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAPIExtension_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockAPIExtension_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockAPIExtension_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockAPIExtension_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockAPIExtension_Expecter) SetContext(ctx interface{}) *MockAPIExtension_SetContext_Call {
+	return &MockAPIExtension_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockAPIExtension_SetContext_Call) Run(run func(ctx core.Context)) *MockAPIExtension_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_SetContext_Call) Return() *MockAPIExtension_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAPIExtension_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockAPIExtension_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockAPIExtension_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockAPIExtension_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockAPIExtension_Expecter) SetDB(db interface{}) *MockAPIExtension_SetDB_Call {
+	return &MockAPIExtension_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockAPIExtension_SetDB_Call) Run(run func(db *gorm.DB)) *MockAPIExtension_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_SetDB_Call) Return() *MockAPIExtension_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAPIExtension_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockAPIExtension_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockAPIExtension
+func (_mock *MockAPIExtension) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockAPIExtension_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockAPIExtension_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockAPIExtension_Expecter) SetLogger(logger interface{}) *MockAPIExtension_SetLogger_Call {
+	return &MockAPIExtension_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockAPIExtension_SetLogger_Call) Run(run func(logger *core.Logger)) *MockAPIExtension_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAPIExtension_SetLogger_Call) Return() *MockAPIExtension_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAPIExtension_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockAPIExtension_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }
 

@@ -22,6 +22,7 @@ type DatabaseConfig struct {
 	Cache         *CacheConfig `config:"cache"`
 	TLSEnabled    bool         `config:"tls_enabled"`
 	TLSSkipVerify bool         `config:"tls_skip_verify"`
+	MetricsPort   uint         `config:"metrics_port"`
 }
 
 func (d DatabaseConfig) Schema() z.ZogSchema {
@@ -37,6 +38,8 @@ func (d DatabaseConfig) Schema() z.ZogSchema {
 		"Charset":       z.String(),
 		"TLSEnabled":    z.Bool(),
 		"TLSSkipVerify": z.Bool(),
+		"MetricsPort": z.Uint().
+			GT(0, z.Message("metrics_port must be greater than 0")),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		d, ok := data.(*DatabaseConfig)
 		if !ok {
@@ -82,9 +85,10 @@ func (d DatabaseConfig) CacheEnabled() bool {
 
 func (d DatabaseConfig) Defaults() map[string]any {
 	def := map[string]any{
-		"Type":    "sqlite",
-		"File":    "portal.db",
-		"Charset": "utf8mb4",
+		"Type":        "sqlite",
+		"File":        "portal.db",
+		"Charset":     "utf8mb4",
+		"MetricsPort": uint(9091),
 	}
 
 	if d.Type == "mysql" {

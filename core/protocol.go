@@ -3,11 +3,12 @@ package core
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
+
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"gorm.io/gorm"
-	"sort"
-	"sync"
 )
 
 var (
@@ -16,9 +17,10 @@ var (
 )
 
 type Protocol interface {
+	Component
 	Name() string
 	DisplayName() string
-	Config() config.ProtocolConfig
+	GetConfig() config.ProtocolConfig
 	Operations() []Operation
 	Workflows() []WorkflowDefinition
 }
@@ -70,7 +72,9 @@ type TestingProtocolPinHandler interface {
 	ProtocolPinHandler
 }
 
-func RegisterProtocol(id string, protocol Protocol) {
+// registerProtocol is a private helper that implements the core registration logic
+// with proper duplicate checking and mutex handling
+func registerProtocol(id string, protocol Protocol) {
 	protocolsMu.Lock()
 	defer protocolsMu.Unlock()
 
@@ -79,6 +83,10 @@ func RegisterProtocol(id string, protocol Protocol) {
 	}
 
 	protocols[id] = protocol
+}
+
+func RegisterProtocol(id string, protocol Protocol) {
+	registerProtocol(id, protocol)
 }
 
 func GetProtocols() map[string]Protocol {

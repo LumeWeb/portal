@@ -3,9 +3,7 @@
 package db
 
 import (
-	"go.lumeweb.com/portal/config"
-	"go.lumeweb.com/portal/core"
-	"go.lumeweb.com/portal/db/migrations"
+	"context"
 	"io/fs"
 	"log"
 	"math"
@@ -17,11 +15,16 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db/migrations"
 
 	"go.uber.org/zap"
 
 	"github.com/go-gorm/caches/v4"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
+	"gorm.io/plugin/prometheus"
 )
 
 // NewDatabase creates a new database connection and returns it along with context options.
@@ -114,6 +117,37 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	return nil
 }
 
+// SetupDBObservability configures OpenTelemetry tracing and Prometheus metrics for the database connection.
+// It returns an error if any plugin cannot be registered.
+func SetupDBObservability(ctx core.Context) error {
+	db := ctx.DB()
+	cfg := ctx.Config().Config()
+	observabilityCfg := cfg.Core.Observability
+	dbName := cfg.Core.DB.Name
+
+	// Setup OpenTelemetry tracing if enabled
+	if observabilityCfg.IsTracingEnabled() {
+		if err := db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+			return err
+		}
+	}
+
+	// Setup Prometheus metrics if enabled
+	if observabilityCfg.IsMetricsEnabled() {
+		metricsCfg := prometheus.Config{
+			DBName:          dbName,
+			RefreshInterval: uint32(observabilityCfg.Metrics.RefreshInterval),
+			StartServer:     true,
+			HTTPServerPort:  uint32(cfg.Core.DB.MetricsPort),
+		}
+		if err := db.Use(prometheus.New(metricsCfg)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // RetryOnLock executes a database operation with exponential backoff retry logic
 // when database lock errors are encountered.
 func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
@@ -155,12 +189,46 @@ func RetryOnLock(db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
 
 // RetryableTransaction executes a database transaction with retry logic for lock errors.
 // It combines the transaction with the RetryOnLock functionality.
-func RetryableTransaction(ctx core.Context, db *gorm.DB, operation func(*gorm.DB) *gorm.DB) error {
+func RetryableTransaction(ctx context.Context, db *gorm.DB, operation func(tx *gorm.DB) *gorm.DB) error {
 	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		return RetryOnLock(tx, func(tx *gorm.DB) *gorm.DB {
 			return operation(tx)
 		})
 	})
+}
+
+// RetryableComponentTransaction executes a database transaction with retry logic for lock errors.
+// It extracts the context and database connection from the provided component and delegates
+// to RetryableTransaction for the actual execution.
+//
+// The component must implement the core.Component interface with methods:
+// - Ctx() core.Context to get the execution context
+// - DB() *gorm.DB to get the database connection
+//
+// Parameters:
+//   - component: The component providing context and database connection
+//   - operation: A function that takes a transaction *gorm.DB and returns a *gorm.DB result
+//
+// Returns:
+//   - error: Any error encountered during transaction execution or retries
+func RetryableComponentTransaction(component core.Component, ctx context.Context, operation func(tx *gorm.DB) *gorm.DB) error {
+	return RetryableTransaction(ctx, component.DB(), operation)
+}
+
+// RetryableComponentLock executes a database operation with exponential backoff retry logic
+// when database lock errors are encountered, using the component's database connection.
+//
+// The component must implement the core.Component interface with a DB() method that returns
+// a *gorm.DB connection.
+//
+// Parameters:
+//   - component: The component providing the database connection
+//   - operation: A function that takes a *gorm.DB and returns a *gorm.DB result
+//
+// Returns:
+//   - error: Any error encountered during operation execution or retries
+func RetryableComponentLock(component core.Component, operation func(tx *gorm.DB) *gorm.DB) error {
+	return RetryOnLock(component.DB(), operation)
 }
 
 // isLockError checks if the given error is a database lock error.

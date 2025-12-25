@@ -36,12 +36,12 @@ func TestOTPService_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 2. Generate OTP secret
-		secret, err := otpService.OTPGenerate(user.ID)
+		secret, err := otpService.OTPGenerate(nil, user.ID)
 		require.NoError(tb, err)
 		assert.NotEmpty(tb, secret)
 
 		// 3. Verify OTP secret was stored
-		updatedUser, _, err := userService.AccountExists(user.ID)
+		updatedUser, _, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, updatedUser)
 
@@ -50,44 +50,44 @@ func TestOTPService_Integration(t *testing.T) {
 		require.NoError(tb, err)
 
 		// 5. Verify OTP code
-		valid, err := otpService.OTPVerify(user.ID, code)
+		valid, err := otpService.OTPVerify(nil, user.ID, code)
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 
 		// 6. Enable OTP
-		err = otpService.OTPEnable(user.ID, code)
+		err = otpService.OTPEnable(nil, user.ID, code)
 		require.NoError(tb, err)
 
 		// 7. Verify OTP is enabled
-		enabledUser, _, err := userService.AccountExists(user.ID)
+		enabledUser, _, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, enabledUser)
 
 		// 8. Disable OTP
-		err = otpService.OTPDisable(user.ID)
+		err = otpService.OTPDisable(nil, user.ID)
 		require.NoError(tb, err)
 
 		// 9. Verify OTP is disabled
-		disabledUser, _, err := userService.AccountExists(user.ID)
+		disabledUser, _, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, disabledUser)
 
 		// 10. Test invalid OTP code
-		valid, err = otpService.OTPVerify(user.ID, "000000")
+		valid, err = otpService.OTPVerify(nil, user.ID, "000000")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 
 		// 11. Test invalid user
-		_, err = otpService.OTPGenerate(999999)
+		_, err = otpService.OTPGenerate(nil, 999999)
 		assert.Error(tb, err)
 
-		_, err = otpService.OTPVerify(999999, "123456")
+		_, err = otpService.OTPVerify(nil, 999999, "123456")
 		assert.Error(tb, err)
 
-		err = otpService.OTPEnable(999999, "123456")
+		err = otpService.OTPEnable(nil, 999999, "123456")
 		assert.Error(tb, err)
 
-		err = otpService.OTPDisable(999999)
+		err = otpService.OTPDisable(nil, 999999)
 		assert.Error(tb, err)
 
 	},

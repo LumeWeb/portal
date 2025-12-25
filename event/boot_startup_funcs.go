@@ -1,6 +1,10 @@
 package event
 
-import "go.lumeweb.com/portal/core"
+import (
+	"context"
+
+	"go.lumeweb.com/portal/core"
+)
 
 const (
 	EVENT_BOOT_STARTUP_FUNCS           = "boot.startup.funcs"
@@ -9,36 +13,40 @@ const (
 
 type BootStartupFuncsEvent struct {
 	Context core.Context
+	Ctx     context.Context
 }
 
-func NewBootStartupFuncsEvent(ctx core.Context) *BootStartupFuncsEvent {
+func NewBootStartupFuncsEvent(ctx core.Context, eventCtx context.Context) *BootStartupFuncsEvent {
 	return &BootStartupFuncsEvent{
 		Context: ctx,
+		Ctx:     eventCtx,
 	}
 }
 
 // OnBootStartupFuncs registers a handler to run when the system boot startup funcs start.
 // This is a convenience wrapper around Listen for the EVENT_BOOT_STARTUP_FUNCS event.
-func OnBootStartupFuncs(ctx core.Context, handler func(core.Context) error, priority ...int) {
+func OnBootStartupFuncs(ctx core.Context, handler func(core.Context, context.Context) error, priority ...int) {
 	core.Listen[BootStartupFuncsEvent](ctx, EVENT_BOOT_STARTUP_FUNCS, func(e *core.CoreEvent[BootStartupFuncsEvent]) error {
-		return handler(e.Data.Context)
+		return handler(e.Data.Context, e.Data.Ctx)
 	}, priority...)
 }
 
 type BootStartupFuncsCompletedEvent struct {
 	Context core.Context
+	Ctx     context.Context
 }
 
-func NewBootStartupFuncsCompletedEvent(ctx core.Context) *BootStartupFuncsCompletedEvent {
+func NewBootStartupFuncsCompletedEvent(ctx core.Context, eventCtx context.Context) *BootStartupFuncsCompletedEvent {
 	return &BootStartupFuncsCompletedEvent{
 		Context: ctx,
+		Ctx:     eventCtx,
 	}
 }
 
 // OnBootStartupFuncsCompleted registers a handler to run when the system boot startup funcs completes.
 // This is a convenience wrapper around Listen for the EVENT_BOOT_STARTUP_FUNCS_COMPLETED event.
-func OnBootStartupFuncsCompleted(ctx core.Context, handler func(core.Context) error, priority ...int) {
+func OnBootStartupFuncsCompleted(ctx core.Context, handler func(core.Context, context.Context) error, priority ...int) {
 	core.Listen[BootStartupFuncsCompletedEvent](ctx, EVENT_BOOT_STARTUP_FUNCS_COMPLETED, func(e *core.CoreEvent[BootStartupFuncsCompletedEvent]) error {
-		return handler(e.Data.Context)
+		return handler(e.Data.Context, e.Data.Ctx)
 	}, priority...)
 }

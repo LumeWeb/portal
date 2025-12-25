@@ -1,5 +1,7 @@
 package core
 
+import "context"
+
 const (
 	ACCESS_SERVICE = "access"
 
@@ -10,19 +12,19 @@ const (
 // AccessService interface defines the simplified methods for managing access control
 type AccessService interface {
 	// RegisterRoute adds a new route with its associated role and permissions
-	RegisterRoute(subdomain, path, method, role string) error
+	RegisterRoute(ctx context.Context, subdomain, path, method, role string) error
 
 	// RegisterRole adds a new role with its associated permissions
-	AssignRoleToUser(userId uint, role string) error
+	AssignRoleToUser(ctx context.Context, userId uint, role string) error
 
 	// CheckAccess checks if a given role has access to a specific route
-	CheckAccess(userId uint, fqdn, path, method string) (bool, error)
+	CheckAccess(ctx context.Context, userId uint, fqdn, path, method string) (bool, error)
 
 	// ExportUserPolicy returns the policy for a specific user
-	ExportUserPolicy(userId uint) ([]*AccessPolicy, error)
+	ExportUserPolicy(ctx context.Context, userId uint) ([]*AccessPolicy, error)
 
 	// ExportModel returns the model for the access service
-	ExportModel() *AccessModel
+	ExportModel(ctx context.Context) *AccessModel
 
 	Service
 }

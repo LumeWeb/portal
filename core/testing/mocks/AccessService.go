@@ -5,8 +5,12 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
+	"gorm.io/gorm"
 )
 
 // NewMockAccessService creates a new instance of MockAccessService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -37,16 +41,16 @@ func (_m *MockAccessService) EXPECT() *MockAccessService_Expecter {
 }
 
 // AssignRoleToUser provides a mock function for the type MockAccessService
-func (_mock *MockAccessService) AssignRoleToUser(userId uint, role string) error {
-	ret := _mock.Called(userId, role)
+func (_mock *MockAccessService) AssignRoleToUser(ctx context.Context, userId uint, role string) error {
+	ret := _mock.Called(ctx, userId, role)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AssignRoleToUser")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) error); ok {
-		r0 = returnFunc(userId, role)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) error); ok {
+		r0 = returnFunc(ctx, userId, role)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -59,25 +63,31 @@ type MockAccessService_AssignRoleToUser_Call struct {
 }
 
 // AssignRoleToUser is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - role string
-func (_e *MockAccessService_Expecter) AssignRoleToUser(userId interface{}, role interface{}) *MockAccessService_AssignRoleToUser_Call {
-	return &MockAccessService_AssignRoleToUser_Call{Call: _e.mock.On("AssignRoleToUser", userId, role)}
+func (_e *MockAccessService_Expecter) AssignRoleToUser(ctx interface{}, userId interface{}, role interface{}) *MockAccessService_AssignRoleToUser_Call {
+	return &MockAccessService_AssignRoleToUser_Call{Call: _e.mock.On("AssignRoleToUser", ctx, userId, role)}
 }
 
-func (_c *MockAccessService_AssignRoleToUser_Call) Run(run func(userId uint, role string)) *MockAccessService_AssignRoleToUser_Call {
+func (_c *MockAccessService_AssignRoleToUser_Call) Run(run func(ctx context.Context, userId uint, role string)) *MockAccessService_AssignRoleToUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -88,14 +98,14 @@ func (_c *MockAccessService_AssignRoleToUser_Call) Return(err error) *MockAccess
 	return _c
 }
 
-func (_c *MockAccessService_AssignRoleToUser_Call) RunAndReturn(run func(userId uint, role string) error) *MockAccessService_AssignRoleToUser_Call {
+func (_c *MockAccessService_AssignRoleToUser_Call) RunAndReturn(run func(ctx context.Context, userId uint, role string) error) *MockAccessService_AssignRoleToUser_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CheckAccess provides a mock function for the type MockAccessService
-func (_mock *MockAccessService) CheckAccess(userId uint, fqdn string, path string, method string) (bool, error) {
-	ret := _mock.Called(userId, fqdn, path, method)
+func (_mock *MockAccessService) CheckAccess(ctx context.Context, userId uint, fqdn string, path string, method string) (bool, error) {
+	ret := _mock.Called(ctx, userId, fqdn, path, method)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckAccess")
@@ -103,16 +113,16 @@ func (_mock *MockAccessService) CheckAccess(userId uint, fqdn string, path strin
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, string, string) (bool, error)); ok {
-		return returnFunc(userId, fqdn, path, method)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string, string) (bool, error)); ok {
+		return returnFunc(ctx, userId, fqdn, path, method)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, string, string, string) bool); ok {
-		r0 = returnFunc(userId, fqdn, path, method)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string, string) bool); ok {
+		r0 = returnFunc(ctx, userId, fqdn, path, method)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, string, string, string) error); ok {
-		r1 = returnFunc(userId, fqdn, path, method)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, string, string, string) error); ok {
+		r1 = returnFunc(ctx, userId, fqdn, path, method)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -125,23 +135,24 @@ type MockAccessService_CheckAccess_Call struct {
 }
 
 // CheckAccess is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - fqdn string
 //   - path string
 //   - method string
-func (_e *MockAccessService_Expecter) CheckAccess(userId interface{}, fqdn interface{}, path interface{}, method interface{}) *MockAccessService_CheckAccess_Call {
-	return &MockAccessService_CheckAccess_Call{Call: _e.mock.On("CheckAccess", userId, fqdn, path, method)}
+func (_e *MockAccessService_Expecter) CheckAccess(ctx interface{}, userId interface{}, fqdn interface{}, path interface{}, method interface{}) *MockAccessService_CheckAccess_Call {
+	return &MockAccessService_CheckAccess_Call{Call: _e.mock.On("CheckAccess", ctx, userId, fqdn, path, method)}
 }
 
-func (_c *MockAccessService_CheckAccess_Call) Run(run func(userId uint, fqdn string, path string, method string)) *MockAccessService_CheckAccess_Call {
+func (_c *MockAccessService_CheckAccess_Call) Run(run func(ctx context.Context, userId uint, fqdn string, path string, method string)) *MockAccessService_CheckAccess_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
 		}
 		var arg2 string
 		if args[2] != nil {
@@ -151,11 +162,16 @@ func (_c *MockAccessService_CheckAccess_Call) Run(run func(userId uint, fqdn str
 		if args[3] != nil {
 			arg3 = args[3].(string)
 		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -166,22 +182,160 @@ func (_c *MockAccessService_CheckAccess_Call) Return(b bool, err error) *MockAcc
 	return _c
 }
 
-func (_c *MockAccessService_CheckAccess_Call) RunAndReturn(run func(userId uint, fqdn string, path string, method string) (bool, error)) *MockAccessService_CheckAccess_Call {
+func (_c *MockAccessService_CheckAccess_Call) RunAndReturn(run func(ctx context.Context, userId uint, fqdn string, path string, method string) (bool, error)) *MockAccessService_CheckAccess_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Config provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockAccessService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockAccessService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockAccessService_Expecter) Config() *MockAccessService_Config_Call {
+	return &MockAccessService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockAccessService_Config_Call) Run(run func()) *MockAccessService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAccessService_Config_Call) Return(manager config.Manager) *MockAccessService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockAccessService_Config_Call) RunAndReturn(run func() config.Manager) *MockAccessService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockAccessService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockAccessService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockAccessService_Expecter) Context() *MockAccessService_Context_Call {
+	return &MockAccessService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockAccessService_Context_Call) Run(run func()) *MockAccessService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAccessService_Context_Call) Return(context1 core.Context) *MockAccessService_Context_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockAccessService_Context_Call) RunAndReturn(run func() core.Context) *MockAccessService_Context_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockAccessService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockAccessService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockAccessService_Expecter) DB() *MockAccessService_DB_Call {
+	return &MockAccessService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockAccessService_DB_Call) Run(run func()) *MockAccessService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAccessService_DB_Call) Return(dB *gorm.DB) *MockAccessService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockAccessService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockAccessService_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ExportModel provides a mock function for the type MockAccessService
-func (_mock *MockAccessService) ExportModel() *core.AccessModel {
-	ret := _mock.Called()
+func (_mock *MockAccessService) ExportModel(ctx context.Context) *core.AccessModel {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExportModel")
 	}
 
 	var r0 *core.AccessModel
-	if returnFunc, ok := ret.Get(0).(func() *core.AccessModel); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) *core.AccessModel); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*core.AccessModel)
@@ -196,13 +350,20 @@ type MockAccessService_ExportModel_Call struct {
 }
 
 // ExportModel is a helper method to define mock.On call
-func (_e *MockAccessService_Expecter) ExportModel() *MockAccessService_ExportModel_Call {
-	return &MockAccessService_ExportModel_Call{Call: _e.mock.On("ExportModel")}
+//   - ctx context.Context
+func (_e *MockAccessService_Expecter) ExportModel(ctx interface{}) *MockAccessService_ExportModel_Call {
+	return &MockAccessService_ExportModel_Call{Call: _e.mock.On("ExportModel", ctx)}
 }
 
-func (_c *MockAccessService_ExportModel_Call) Run(run func()) *MockAccessService_ExportModel_Call {
+func (_c *MockAccessService_ExportModel_Call) Run(run func(ctx context.Context)) *MockAccessService_ExportModel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -212,14 +373,14 @@ func (_c *MockAccessService_ExportModel_Call) Return(accessModel *core.AccessMod
 	return _c
 }
 
-func (_c *MockAccessService_ExportModel_Call) RunAndReturn(run func() *core.AccessModel) *MockAccessService_ExportModel_Call {
+func (_c *MockAccessService_ExportModel_Call) RunAndReturn(run func(ctx context.Context) *core.AccessModel) *MockAccessService_ExportModel_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ExportUserPolicy provides a mock function for the type MockAccessService
-func (_mock *MockAccessService) ExportUserPolicy(userId uint) ([]*core.AccessPolicy, error) {
-	ret := _mock.Called(userId)
+func (_mock *MockAccessService) ExportUserPolicy(ctx context.Context, userId uint) ([]*core.AccessPolicy, error) {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExportUserPolicy")
@@ -227,18 +388,18 @@ func (_mock *MockAccessService) ExportUserPolicy(userId uint) ([]*core.AccessPol
 
 	var r0 []*core.AccessPolicy
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint) ([]*core.AccessPolicy, error)); ok {
-		return returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]*core.AccessPolicy, error)); ok {
+		return returnFunc(ctx, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) []*core.AccessPolicy); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []*core.AccessPolicy); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*core.AccessPolicy)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) error); ok {
-		r1 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -251,19 +412,25 @@ type MockAccessService_ExportUserPolicy_Call struct {
 }
 
 // ExportUserPolicy is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockAccessService_Expecter) ExportUserPolicy(userId interface{}) *MockAccessService_ExportUserPolicy_Call {
-	return &MockAccessService_ExportUserPolicy_Call{Call: _e.mock.On("ExportUserPolicy", userId)}
+func (_e *MockAccessService_Expecter) ExportUserPolicy(ctx interface{}, userId interface{}) *MockAccessService_ExportUserPolicy_Call {
+	return &MockAccessService_ExportUserPolicy_Call{Call: _e.mock.On("ExportUserPolicy", ctx, userId)}
 }
 
-func (_c *MockAccessService_ExportUserPolicy_Call) Run(run func(userId uint)) *MockAccessService_ExportUserPolicy_Call {
+func (_c *MockAccessService_ExportUserPolicy_Call) Run(run func(ctx context.Context, userId uint)) *MockAccessService_ExportUserPolicy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -274,7 +441,7 @@ func (_c *MockAccessService_ExportUserPolicy_Call) Return(accessPolicys []*core.
 	return _c
 }
 
-func (_c *MockAccessService_ExportUserPolicy_Call) RunAndReturn(run func(userId uint) ([]*core.AccessPolicy, error)) *MockAccessService_ExportUserPolicy_Call {
+func (_c *MockAccessService_ExportUserPolicy_Call) RunAndReturn(run func(ctx context.Context, userId uint) ([]*core.AccessPolicy, error)) *MockAccessService_ExportUserPolicy_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -323,17 +490,63 @@ func (_c *MockAccessService_ID_Call) RunAndReturn(run func() string) *MockAccess
 	return _c
 }
 
+// Logger provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockAccessService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockAccessService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockAccessService_Expecter) Logger() *MockAccessService_Logger_Call {
+	return &MockAccessService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockAccessService_Logger_Call) Run(run func()) *MockAccessService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockAccessService_Logger_Call) Return(logger *core.Logger) *MockAccessService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockAccessService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockAccessService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RegisterRoute provides a mock function for the type MockAccessService
-func (_mock *MockAccessService) RegisterRoute(subdomain string, path string, method string, role string) error {
-	ret := _mock.Called(subdomain, path, method, role)
+func (_mock *MockAccessService) RegisterRoute(ctx context.Context, subdomain string, path string, method string, role string) error {
+	ret := _mock.Called(ctx, subdomain, path, method, role)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterRoute")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, string, string) error); ok {
-		r0 = returnFunc(subdomain, path, method, role)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = returnFunc(ctx, subdomain, path, method, role)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -346,19 +559,20 @@ type MockAccessService_RegisterRoute_Call struct {
 }
 
 // RegisterRoute is a helper method to define mock.On call
+//   - ctx context.Context
 //   - subdomain string
 //   - path string
 //   - method string
 //   - role string
-func (_e *MockAccessService_Expecter) RegisterRoute(subdomain interface{}, path interface{}, method interface{}, role interface{}) *MockAccessService_RegisterRoute_Call {
-	return &MockAccessService_RegisterRoute_Call{Call: _e.mock.On("RegisterRoute", subdomain, path, method, role)}
+func (_e *MockAccessService_Expecter) RegisterRoute(ctx interface{}, subdomain interface{}, path interface{}, method interface{}, role interface{}) *MockAccessService_RegisterRoute_Call {
+	return &MockAccessService_RegisterRoute_Call{Call: _e.mock.On("RegisterRoute", ctx, subdomain, path, method, role)}
 }
 
-func (_c *MockAccessService_RegisterRoute_Call) Run(run func(subdomain string, path string, method string, role string)) *MockAccessService_RegisterRoute_Call {
+func (_c *MockAccessService_RegisterRoute_Call) Run(run func(ctx context.Context, subdomain string, path string, method string, role string)) *MockAccessService_RegisterRoute_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -372,11 +586,16 @@ func (_c *MockAccessService_RegisterRoute_Call) Run(run func(subdomain string, p
 		if args[3] != nil {
 			arg3 = args[3].(string)
 		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -387,7 +606,167 @@ func (_c *MockAccessService_RegisterRoute_Call) Return(err error) *MockAccessSer
 	return _c
 }
 
-func (_c *MockAccessService_RegisterRoute_Call) RunAndReturn(run func(subdomain string, path string, method string, role string) error) *MockAccessService_RegisterRoute_Call {
+func (_c *MockAccessService_RegisterRoute_Call) RunAndReturn(run func(ctx context.Context, subdomain string, path string, method string, role string) error) *MockAccessService_RegisterRoute_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockAccessService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockAccessService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockAccessService_Expecter) SetConfig(cfg interface{}) *MockAccessService_SetConfig_Call {
+	return &MockAccessService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockAccessService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockAccessService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccessService_SetConfig_Call) Return() *MockAccessService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAccessService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockAccessService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockAccessService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockAccessService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockAccessService_Expecter) SetContext(ctx interface{}) *MockAccessService_SetContext_Call {
+	return &MockAccessService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockAccessService_SetContext_Call) Run(run func(ctx core.Context)) *MockAccessService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccessService_SetContext_Call) Return() *MockAccessService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAccessService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockAccessService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockAccessService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockAccessService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockAccessService_Expecter) SetDB(db interface{}) *MockAccessService_SetDB_Call {
+	return &MockAccessService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockAccessService_SetDB_Call) Run(run func(db *gorm.DB)) *MockAccessService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccessService_SetDB_Call) Return() *MockAccessService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAccessService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockAccessService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockAccessService
+func (_mock *MockAccessService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockAccessService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockAccessService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockAccessService_Expecter) SetLogger(logger interface{}) *MockAccessService_SetLogger_Call {
+	return &MockAccessService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockAccessService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockAccessService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccessService_SetLogger_Call) Return() *MockAccessService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockAccessService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockAccessService_SetLogger_Call {
+	_c.Run(run)
 	return _c
 }

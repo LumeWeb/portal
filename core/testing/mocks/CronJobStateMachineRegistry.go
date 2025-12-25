@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/looplab/fsm"
 	mock "github.com/stretchr/testify/mock"
@@ -39,8 +41,8 @@ func (_m *MockCronJobStateMachineRegistry) EXPECT() *MockCronJobStateMachineRegi
 }
 
 // GetOrCreate provides a mock function for the type MockCronJobStateMachineRegistry
-func (_mock *MockCronJobStateMachineRegistry) GetOrCreate(jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error) {
-	ret := _mock.Called(jobID)
+func (_mock *MockCronJobStateMachineRegistry) GetOrCreate(ctx context.Context, jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error) {
+	ret := _mock.Called(ctx, jobID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrCreate")
@@ -49,25 +51,25 @@ func (_mock *MockCronJobStateMachineRegistry) GetOrCreate(jobID uuid.UUID) (*mod
 	var r0 *models.CronJob
 	var r1 *fsm.FSM
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) (*models.CronJob, *fsm.FSM, error)); ok {
-		return returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*models.CronJob, *fsm.FSM, error)); ok {
+		return returnFunc(ctx, jobID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uuid.UUID) *models.CronJob); ok {
-		r0 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) *models.CronJob); ok {
+		r0 = returnFunc(ctx, jobID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.CronJob)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uuid.UUID) *fsm.FSM); ok {
-		r1 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) *fsm.FSM); ok {
+		r1 = returnFunc(ctx, jobID)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*fsm.FSM)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(uuid.UUID) error); ok {
-		r2 = returnFunc(jobID)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uuid.UUID) error); ok {
+		r2 = returnFunc(ctx, jobID)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -80,19 +82,25 @@ type MockCronJobStateMachineRegistry_GetOrCreate_Call struct {
 }
 
 // GetOrCreate is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachineRegistry_Expecter) GetOrCreate(jobID interface{}) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
-	return &MockCronJobStateMachineRegistry_GetOrCreate_Call{Call: _e.mock.On("GetOrCreate", jobID)}
+func (_e *MockCronJobStateMachineRegistry_Expecter) GetOrCreate(ctx interface{}, jobID interface{}) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
+	return &MockCronJobStateMachineRegistry_GetOrCreate_Call{Call: _e.mock.On("GetOrCreate", ctx, jobID)}
 }
 
-func (_c *MockCronJobStateMachineRegistry_GetOrCreate_Call) Run(run func(jobID uuid.UUID)) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
+func (_c *MockCronJobStateMachineRegistry_GetOrCreate_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -103,14 +111,14 @@ func (_c *MockCronJobStateMachineRegistry_GetOrCreate_Call) Return(cronJob *mode
 	return _c
 }
 
-func (_c *MockCronJobStateMachineRegistry_GetOrCreate_Call) RunAndReturn(run func(jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error)) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
+func (_c *MockCronJobStateMachineRegistry_GetOrCreate_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error)) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Remove provides a mock function for the type MockCronJobStateMachineRegistry
-func (_mock *MockCronJobStateMachineRegistry) Remove(jobID uuid.UUID) {
-	_mock.Called(jobID)
+func (_mock *MockCronJobStateMachineRegistry) Remove(ctx context.Context, jobID uuid.UUID) {
+	_mock.Called(ctx, jobID)
 	return
 }
 
@@ -120,19 +128,25 @@ type MockCronJobStateMachineRegistry_Remove_Call struct {
 }
 
 // Remove is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachineRegistry_Expecter) Remove(jobID interface{}) *MockCronJobStateMachineRegistry_Remove_Call {
-	return &MockCronJobStateMachineRegistry_Remove_Call{Call: _e.mock.On("Remove", jobID)}
+func (_e *MockCronJobStateMachineRegistry_Expecter) Remove(ctx interface{}, jobID interface{}) *MockCronJobStateMachineRegistry_Remove_Call {
+	return &MockCronJobStateMachineRegistry_Remove_Call{Call: _e.mock.On("Remove", ctx, jobID)}
 }
 
-func (_c *MockCronJobStateMachineRegistry_Remove_Call) Run(run func(jobID uuid.UUID)) *MockCronJobStateMachineRegistry_Remove_Call {
+func (_c *MockCronJobStateMachineRegistry_Remove_Call) Run(run func(ctx context.Context, jobID uuid.UUID)) *MockCronJobStateMachineRegistry_Remove_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uuid.UUID
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uuid.UUID)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uuid.UUID
+		if args[1] != nil {
+			arg1 = args[1].(uuid.UUID)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -143,7 +157,7 @@ func (_c *MockCronJobStateMachineRegistry_Remove_Call) Return() *MockCronJobStat
 	return _c
 }
 
-func (_c *MockCronJobStateMachineRegistry_Remove_Call) RunAndReturn(run func(jobID uuid.UUID)) *MockCronJobStateMachineRegistry_Remove_Call {
+func (_c *MockCronJobStateMachineRegistry_Remove_Call) RunAndReturn(run func(ctx context.Context, jobID uuid.UUID)) *MockCronJobStateMachineRegistry_Remove_Call {
 	_c.Run(run)
 	return _c
 }

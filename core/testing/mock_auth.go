@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
@@ -14,9 +15,10 @@ import (
 // It automatically sets up mock expectations and provides convenient methods for common auth operations.
 type MockAuthService struct {
 	*mocks.MockAuthService
-	userSvc *MockUserService
-	ctx     TestContext
-	jwtHelper *JWTHelper
+	userSvc   *MockUserService
+	componentConfig config.Manager
+	ctx        TestContext
+	jwtHelper  *JWTHelper
 }
 
 // NewMockAuthService creates a new MockAuthService that embeds auth mock and has private user mock.
@@ -49,9 +51,9 @@ func (m *MockAuthService) CreateAndLoginUser(email, password string) (string, *m
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, "127.0.0.1", false)
 
-	// Mock the login response
+	// Mock of login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, "127.0.0.1", false).Return(token, user, nil).Maybe().Maybe()
+	m.EXPECT().LoginPassword(mock.Anything, email, password, "127.0.0.1", false).Return(token, user, nil).Maybe().Maybe()
 
 	return token, user, nil
 }
@@ -69,13 +71,13 @@ func (m *MockAuthService) CreateAndLoginUserWithRemember(email, password string)
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, "127.0.0.1", true)
 
-	// Mock the login response with long-lived token
+	// Mock of login response with long-lived token
 	token, err := m.jwtHelper.CreateLongLivedToken(user.ID, 30) // 30 days
 	if err != nil {
 		// Fallback to regular token if long-lived token creation fails
 		token = m.generateTestToken(user.ID)
 	}
-	m.EXPECT().LoginPassword(email, password, "127.0.0.1", true).Return(token, user, nil).Maybe()
+	m.EXPECT().LoginPassword(mock.Anything, email, password, "127.0.0.1", true).Return(token, user, nil).Maybe()
 
 	return token, user, nil
 }
@@ -93,9 +95,9 @@ func (m *MockAuthService) LoginUser(email, password string) (string, *models.Use
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, "127.0.0.1", false)
 
-	// Mock the login response
+	// Mock of login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, "127.0.0.1", false).Return(token, user, nil)
+	m.EXPECT().LoginPassword(mock.Anything, email, password, "127.0.0.1", false).Return(token, user, nil)
 
 	return token, user, nil
 }
@@ -113,9 +115,9 @@ func (m *MockAuthService) LoginUserWithIP(email, password, ip string) (string, *
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, ip, false)
 
-	// Mock the login response
+	// Mock of login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginPassword(email, password, ip, false).Return(token, user, nil).Maybe()
+	m.EXPECT().LoginPassword(mock.Anything, email, password, ip, false).Return(token, user, nil).Maybe()
 
 	return token, user, nil
 }
@@ -133,9 +135,9 @@ func (m *MockAuthService) LoginUserByID(userID uint) (string, error) {
 	// Setup mock expectations for login
 	m.setupLoginExpectations(user, "127.0.0.1", false)
 
-	// Mock the login response
+	// Mock of login response
 	token := m.generateTestToken(user.ID)
-	m.EXPECT().LoginID(userID, "127.0.0.1", false).Return(token, nil)
+	m.EXPECT().LoginID(mock.Anything, userID, "127.0.0.1", false).Return(token, nil)
 
 	return token, nil
 }
@@ -145,22 +147,22 @@ func (m *MockAuthService) LoginUserWithOTP(userID uint, otpCode string) (string,
 	// Setup mock expectations for OTP login
 	m.setupOTPLoginExpectations(userID)
 
-	// Mock the OTP login response with 2FA token
+	// Mock of OTP login response with 2FA token
 	token, err := m.jwtHelper.Create2FAToken(userID)
 	if err != nil {
 		// Fallback to regular token if 2FA token creation fails
 		token = m.generateTestToken(userID)
 	}
-	m.EXPECT().LoginOTP(userID, otpCode, false).Return(token, nil)
+	m.EXPECT().LoginOTP(mock.Anything, userID, otpCode, false).Return(token, nil)
 
 	return token, nil
 }
 
 // ValidatePassword validates password for a user with automatic mock setup.
 func (m *MockAuthService) ValidatePassword(user *models.User, password string) bool {
-	// Mock the password validation
+	// Mock of password validation
 	isValid := m.validatePasswordHash(user.PasswordHash, password)
-	m.EXPECT().ValidLoginByUserObj(user, password).Return(isValid)
+	m.EXPECT().ValidLoginByUserObj(mock.Anything, user, password).Return(isValid)
 
 	return isValid
 }
@@ -178,19 +180,19 @@ func (m *MockAuthService) SetupOTPLoginExpectations(userID uint, otpCode string)
 // setupLoginExpectations sets up mock expectations for login operations.
 func (m *MockAuthService) setupLoginExpectations(user *models.User, ip string, rememberMe bool) {
 	// Maybe expect pending deletion check
-	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil).Maybe()
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil).Maybe()
 
 	// Maybe expect account info update - use mock.Anything for time to avoid flaky tests
-	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Maybe()
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil).Maybe()
 }
 
 // setupOTPLoginExpectations sets up mock expectations for OTP login operations.
 func (m *MockAuthService) setupOTPLoginExpectations(userID uint) {
 	// Maybe expect pending deletion check
-	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(userID).Return(false, nil).Maybe()
+	m.userSvc.MockUserService.EXPECT().IsAccountPendingDeletion(mock.Anything, userID).Return(false, nil).Maybe()
 
 	// Maybe expect account info update - use mock.Anything for time to avoid flaky tests
-	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(userID, mock.Anything).Return(nil).Maybe()
+	m.userSvc.MockUserService.EXPECT().UpdateAccountInfo(mock.Anything, userID, mock.Anything).Return(nil).Maybe()
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)
@@ -214,7 +216,47 @@ func (m *MockAuthService) generateTestToken(userID uint) string {
 	return token
 }
 
-// GetUserService returns the embedded user service for advanced usage.
+// GetUserService returns embedded user service for advanced usage.
 func (m *MockAuthService) GetUserService() *MockUserService {
 	return m.userSvc
+}
+
+// Config implements core.Component
+func (m *MockAuthService) Config() config.Manager {
+	return m.componentConfig
+}
+
+// SetConfig implements core.Component
+func (m *MockAuthService) SetConfig(cfg config.Manager) {
+	m.componentConfig = cfg
+}
+
+// Context implements core.Component
+func (m *MockAuthService) Context() core.Context {
+	return m.ctx
+}
+
+// SetContext implements core.Component
+func (m *MockAuthService) SetContext(coreCtx core.Context) {
+	if testCtx, ok := coreCtx.(TestContext); ok {
+		m.ctx = testCtx
+	}
+}
+
+// Logger implements core.Component
+func (m *MockAuthService) Logger() *core.Logger {
+	return nil
+}
+
+// SetLogger implements core.Component
+func (m *MockAuthService) SetLogger(logger *core.Logger) {
+}
+
+// DB implements core.Component
+func (m *MockAuthService) DB() *gorm.DB {
+	return nil
+}
+
+// SetDB implements core.Component
+func (m *MockAuthService) SetDB(db *gorm.DB) {
 }

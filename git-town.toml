@@ -1,0 +1,20 @@
+# See https://www.git-town.com/configuration-file for details
+
+[branches]
+main = "develop"
+
+[create]
+share-new-branches = "no"
+
+[hosting]
+forge-type = "github"
+github-connector = "gh"
+
+[ship]
+delete-tracking-branch = true
+
+[sync]
+feature-strategy = "rebase"
+perennial-strategy = "rebase"
+push-hook = true
+upstream = true

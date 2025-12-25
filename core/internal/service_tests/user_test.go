@@ -31,13 +31,13 @@ func TestUserService_EmailExists(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test email exists
-		exists, retrievedUser, err := userService.EmailExists(email)
+		exists, retrievedUser, err := userService.EmailExists(nil, email)
 		require.NoError(tb, err)
 		assert.True(tb, exists)
 		assert.Equal(tb, user.ID, retrievedUser.ID)
 
 		// Test email does not exist
-		exists, _, err = userService.EmailExists("nonexistent@example.com")
+		exists, _, err = userService.EmailExists(nil, "nonexistent@example.com")
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
@@ -63,13 +63,13 @@ func TestUserService_AccountExists(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test account exists
-		exists, retrievedUser, err := userService.AccountExists(user.ID)
+		exists, retrievedUser, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, exists)
 		assert.Equal(tb, user.ID, retrievedUser.ID)
 
 		// Test account does not exist
-		exists, _, err = userService.AccountExists(999)
+		exists, _, err = userService.AccountExists(nil, 999)
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
@@ -102,18 +102,18 @@ func TestUserService_CreateAccount(t *testing.T) {
 		// Test create account
 		email := "test@example.com"
 		password := "password"
-		user, err := userService.CreateAccount(email, password, false)
+		user, err := userService.CreateAccount(nil, email, password, false)
 		require.NoError(tb, err)
 		assert.NotEmpty(tb, user.PasswordHash)
 		assert.Equal(tb, email, user.Email)
 
 		// Verify account exists
-		exists, _, err := userService.EmailExists(email)
+		exists, _, err := userService.EmailExists(nil, email)
 		require.NoError(tb, err)
 		assert.True(tb, exists)
 
 		// Test create account with existing email
-		_, err = userService.CreateAccount(email, password, false)
+		_, err = userService.CreateAccount(nil, email, password, false)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyEmailAlreadyExists)
 
@@ -141,11 +141,11 @@ func TestUserService_UpdateAccountName(t *testing.T) {
 		// Test update account name
 		firstName := "John"
 		lastName := "Doe"
-		err = userService.UpdateAccountName(user.ID, firstName, lastName)
+		err = userService.UpdateAccountName(user.ID, nil, firstName, lastName)
 		require.NoError(tb, err)
 
 		// Verify account name
-		_, updatedUser, err := userService.AccountExists(user.ID)
+		_, updatedUser, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.Equal(tb, firstName, updatedUser.FirstName)
 		assert.Equal(tb, lastName, updatedUser.LastName)
@@ -173,24 +173,24 @@ func TestUserService_UpdateAccountEmail(t *testing.T) {
 
 		// Test update account email
 		newEmail := "new@example.com"
-		err = userService.UpdateAccountEmail(user.ID, newEmail, password)
+		err = userService.UpdateAccountEmail(nil, user.ID, newEmail, password)
 		require.NoError(tb, err)
 
 		// Verify account email
-		_, updatedUser, err := userService.AccountExists(user.ID)
+		_, updatedUser, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.Equal(tb, newEmail, updatedUser.Email)
 
 		// Test update account email with existing email
-		_, err = userService.CreateAccount("existing@example.com", password, false)
+		_, err = userService.CreateAccount(nil, "existing@example.com", password, false)
 		require.NoError(tb, err)
 
-		err = userService.UpdateAccountEmail(user.ID, "existing@example.com", password)
+		err = userService.UpdateAccountEmail(nil, user.ID, "existing@example.com", password)
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyEmailAlreadyExists)
 
 		// Test update account email with invalid password
-		err = userService.UpdateAccountEmail(user.ID, "invalid@example.com", "wrongpassword")
+		err = userService.UpdateAccountEmail(nil, user.ID, "invalid@example.com", "wrongpassword")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidLogin)
 
@@ -217,17 +217,17 @@ func TestUserService_UpdateAccountPassword(t *testing.T) {
 
 		// Test update account password
 		newPassword := "newpassword"
-		err = userService.UpdateAccountPassword(user.ID, password, newPassword)
+		err = userService.UpdateAccountPassword(nil, user.ID, password, newPassword)
 		require.NoError(tb, err)
 
 		// Verify account password
-		_, updatedUser, err := userService.AccountExists(user.ID)
+		_, updatedUser, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		err = bcrypt.CompareHashAndPassword([]byte(updatedUser.PasswordHash), []byte(newPassword))
 		assert.NoError(tb, err)
 
 		// Test update account password with invalid password
-		err = userService.UpdateAccountPassword(user.ID, "wrongpassword", "newpassword")
+		err = userService.UpdateAccountPassword(nil, user.ID, "wrongpassword", "newpassword")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidPassword)
 
@@ -253,11 +253,11 @@ func TestUserService_DeleteAccount(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test delete account
-		err = userService.DeleteAccount(user.ID)
+		err = userService.DeleteAccount(nil, user.ID)
 		require.NoError(tb, err)
 
 		// Verify account does not exist
-		exists, _, err := userService.AccountExists(user.ID)
+		exists, _, err := userService.AccountExists(nil, user.ID)
 		require.NoError(tb, err)
 		assert.False(tb, exists)
 
@@ -283,16 +283,16 @@ func TestUserService_RequestAccountDeletion(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test request account deletion
-		err = userService.RequestAccountDeletion(user.ID, "127.0.0.1")
+		err = userService.RequestAccountDeletion(nil, user.ID, "127.0.0.1")
 		require.NoError(tb, err)
 
 		// Verify account deletion requested
-		pending, err := userService.IsAccountPendingDeletion(user.ID)
+		pending, err := userService.IsAccountPendingDeletion(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, pending)
 
 		// Test request account deletion again
-		err = userService.RequestAccountDeletion(user.ID, "127.0.0.1")
+		err = userService.RequestAccountDeletion(nil, user.ID, "127.0.0.1")
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyAccountDeletionRequestAlreadyExists)
 
@@ -318,16 +318,16 @@ func TestUserService_IsAccountPendingDeletion(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test is account pending deletion
-		pending, err := userService.IsAccountPendingDeletion(user.ID)
+		pending, err := userService.IsAccountPendingDeletion(nil, user.ID)
 		require.NoError(tb, err)
 		assert.False(tb, pending)
 
 		// Request account deletion
-		err = userService.RequestAccountDeletion(user.ID, "127.0.0.1")
+		err = userService.RequestAccountDeletion(nil, user.ID, "127.0.0.1")
 		require.NoError(tb, err)
 
 		// Test is account pending deletion
-		pending, err = userService.IsAccountPendingDeletion(user.ID)
+		pending, err = userService.IsAccountPendingDeletion(nil, user.ID)
 		require.NoError(tb, err)
 		assert.True(tb, pending)
 

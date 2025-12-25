@@ -1,7 +1,9 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
+
 	"go.lumeweb.com/portal/db/models"
 )
 
@@ -26,30 +28,30 @@ func GenerateSecurityToken() string {
 type AuthService interface {
 	// LoginPassword authenticates a user with the provided email and password.
 	// It returns the generated JWT token and the authenticated user if successful.
-	LoginPassword(email string, password string, ip string, rememberMe bool) (string, *models.User, error)
+	LoginPassword(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error)
 
 	// LoginOTP authenticates a user with the provided user ID and OTP code.
 	// It returns the generated JWT token if successful.
-	LoginOTP(userId uint, code string, rememberMe bool) (string, error)
+	LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error)
 
 	// LoginPubkey authenticates a user with the provided public key.
 	// It returns the generated JWT token if successful.
-	LoginPubkey(pubkey string, ip string, rememberMe bool) (string, error)
+	LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error)
 
 	// LoginID authenticates a user with the provided user ID.
 	// It returns the generated JWT token if successful.
-	LoginID(id uint, ip string, rememberMe bool) (string, error)
+	LoginID(ctx context.Context, id uint, ip string, rememberMe bool) (string, error)
 
 	// ValidLoginByUserObj checks if the provided password is valid for the given user.
-	ValidLoginByUserObj(user *models.User, password string) bool
+	ValidLoginByUserObj(ctx context.Context, user *models.User, password string) bool
 
 	// ValidLoginByEmail checks if the provided email and password are valid.
 	// It returns a boolean indicating success, the authenticated user, and an error if any.
-	ValidLoginByEmail(email string, password string) (bool, *models.User, error)
+	ValidLoginByEmail(ctx context.Context, email string, password string) (bool, *models.User, error)
 
 	// ValidLoginByUserID checks if the provided user ID and password are valid.
 	// It returns a boolean indicating success, the authenticated user, and an error if any.
-	ValidLoginByUserID(id uint, password string) (bool, *models.User, error)
+	ValidLoginByUserID(ctx context.Context, id uint, password string) (bool, *models.User, error)
 
 	Service
 }

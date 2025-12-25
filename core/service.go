@@ -2,14 +2,17 @@ package core
 
 import (
 	"fmt"
+	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core/internal"
-	"sync"
 )
 
 type ServiceFactory func() (Service, []ContextBuilderOption, error)
 
 type Service interface {
+	Component
 	ID() string
 }
 
@@ -31,6 +34,7 @@ type ServiceInfo struct {
 	ID      string
 	Factory ServiceFactory
 	Depends []string
+	Metrics []prometheus.Collector
 }
 
 func RegisterServicesFromPlugins() {

@@ -1,8 +1,10 @@
 package cron
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
@@ -25,7 +27,7 @@ func NewJobCreator(db *gorm.DB, jobFactory core.CronJobFactory, logger *core.Log
 	}
 }
 
-func (j *JobCreator) CreateFromDB(jobID uuid.UUID) (core.CronJob, error) {
+func (j *JobCreator) CreateFromDB(ctx context.Context, jobID uuid.UUID) (core.CronJob, error) {
 	// Retrieve job details from database
 	var cronJob models.CronJob
 	if err := j.db.Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&cronJob).Error; err != nil {
@@ -33,7 +35,7 @@ func (j *JobCreator) CreateFromDB(jobID uuid.UUID) (core.CronJob, error) {
 	}
 
 	// Create job instance
-	job, err := j.jobFactory.CreateJob(cronJob.JobType)
+	job, err := j.jobFactory.CreateJob(ctx, cronJob.JobType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create job instance: %w", err)
 	}

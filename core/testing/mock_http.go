@@ -8,13 +8,17 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
+	"gorm.io/gorm"
 )
 
 // MockHTTPService implements core.HTTPService for testing with default expectations
 type MockHTTPService struct {
 	*mocks.MockHTTPService
-	router   router.Router
-	cmanager config.Manager
+	router            router.Router
+	cmanager          config.Manager
+	componentContext  core.Context
+	componentLogger   *core.Logger
+	componentDB       *gorm.DB
 }
 
 // NewMockHTTPService creates a new mock HTTP service with default expectations
@@ -109,6 +113,46 @@ func (m *MockHTTPService) WithRouter(r router.Router) *MockHTTPService {
 func (m *MockHTTPService) WithConfigManager(c config.Manager) *MockHTTPService {
 	m.cmanager = c
 	return m
+}
+
+// Config implements core.Component
+func (m *MockHTTPService) Config() config.Manager {
+	return m.cmanager
+}
+
+// SetConfig implements core.Component
+func (m *MockHTTPService) SetConfig(cfg config.Manager) {
+	m.cmanager = cfg
+}
+
+// Context implements core.Component
+func (m *MockHTTPService) Context() core.Context {
+	return m.componentContext
+}
+
+// SetContext implements core.Component
+func (m *MockHTTPService) SetContext(ctx core.Context) {
+	m.componentContext = ctx
+}
+
+// Logger implements core.Component
+func (m *MockHTTPService) Logger() *core.Logger {
+	return m.componentLogger
+}
+
+// SetLogger implements core.Component
+func (m *MockHTTPService) SetLogger(logger *core.Logger) {
+	m.componentLogger = logger
+}
+
+// DB implements core.Component
+func (m *MockHTTPService) DB() *gorm.DB {
+	return m.componentDB
+}
+
+// SetDB implements core.Component
+func (m *MockHTTPService) SetDB(db *gorm.DB) {
+	m.componentDB = db
 }
 
 // Ensure MockHTTPService implements core.HTTPService

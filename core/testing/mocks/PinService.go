@@ -8,9 +8,11 @@ import (
 	"context"
 
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/models/data_models"
+	"gorm.io/gorm"
 )
 
 // NewMockPinService creates a new instance of MockPinService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -41,8 +43,8 @@ func (_m *MockPinService) EXPECT() *MockPinService_Expecter {
 }
 
 // AccountPins provides a mock function for the type MockPinService
-func (_mock *MockPinService) AccountPins(id uint, createdAfter uint64) ([]*models.Pin, error) {
-	ret := _mock.Called(id, createdAfter)
+func (_mock *MockPinService) AccountPins(ctx context.Context, id uint, createdAfter uint64) ([]*models.Pin, error) {
+	ret := _mock.Called(ctx, id, createdAfter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AccountPins")
@@ -50,18 +52,18 @@ func (_mock *MockPinService) AccountPins(id uint, createdAfter uint64) ([]*model
 
 	var r0 []*models.Pin
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint, uint64) ([]*models.Pin, error)); ok {
-		return returnFunc(id, createdAfter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, uint64) ([]*models.Pin, error)); ok {
+		return returnFunc(ctx, id, createdAfter)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint, uint64) []*models.Pin); ok {
-		r0 = returnFunc(id, createdAfter)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, uint64) []*models.Pin); ok {
+		r0 = returnFunc(ctx, id, createdAfter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*models.Pin)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint, uint64) error); ok {
-		r1 = returnFunc(id, createdAfter)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, uint64) error); ok {
+		r1 = returnFunc(ctx, id, createdAfter)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -74,25 +76,31 @@ type MockPinService_AccountPins_Call struct {
 }
 
 // AccountPins is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uint
 //   - createdAfter uint64
-func (_e *MockPinService_Expecter) AccountPins(id interface{}, createdAfter interface{}) *MockPinService_AccountPins_Call {
-	return &MockPinService_AccountPins_Call{Call: _e.mock.On("AccountPins", id, createdAfter)}
+func (_e *MockPinService_Expecter) AccountPins(ctx interface{}, id interface{}, createdAfter interface{}) *MockPinService_AccountPins_Call {
+	return &MockPinService_AccountPins_Call{Call: _e.mock.On("AccountPins", ctx, id, createdAfter)}
 }
 
-func (_c *MockPinService_AccountPins_Call) Run(run func(id uint, createdAfter uint64)) *MockPinService_AccountPins_Call {
+func (_c *MockPinService_AccountPins_Call) Run(run func(ctx context.Context, id uint, createdAfter uint64)) *MockPinService_AccountPins_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint64
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(uint64)
+			arg1 = args[1].(uint)
+		}
+		var arg2 uint64
+		if args[2] != nil {
+			arg2 = args[2].(uint64)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -103,14 +111,14 @@ func (_c *MockPinService_AccountPins_Call) Return(pins []*models.Pin, err error)
 	return _c
 }
 
-func (_c *MockPinService_AccountPins_Call) RunAndReturn(run func(id uint, createdAfter uint64) ([]*models.Pin, error)) *MockPinService_AccountPins_Call {
+func (_c *MockPinService_AccountPins_Call) RunAndReturn(run func(ctx context.Context, id uint, createdAfter uint64) ([]*models.Pin, error)) *MockPinService_AccountPins_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // AllAccountPins provides a mock function for the type MockPinService
-func (_mock *MockPinService) AllAccountPins(id uint) ([]*models.Pin, error) {
-	ret := _mock.Called(id)
+func (_mock *MockPinService) AllAccountPins(ctx context.Context, id uint) ([]*models.Pin, error) {
+	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AllAccountPins")
@@ -118,18 +126,18 @@ func (_mock *MockPinService) AllAccountPins(id uint) ([]*models.Pin, error) {
 
 	var r0 []*models.Pin
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint) ([]*models.Pin, error)); ok {
-		return returnFunc(id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]*models.Pin, error)); ok {
+		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) []*models.Pin); ok {
-		r0 = returnFunc(id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []*models.Pin); ok {
+		r0 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*models.Pin)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) error); ok {
-		r1 = returnFunc(id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -142,19 +150,25 @@ type MockPinService_AllAccountPins_Call struct {
 }
 
 // AllAccountPins is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uint
-func (_e *MockPinService_Expecter) AllAccountPins(id interface{}) *MockPinService_AllAccountPins_Call {
-	return &MockPinService_AllAccountPins_Call{Call: _e.mock.On("AllAccountPins", id)}
+func (_e *MockPinService_Expecter) AllAccountPins(ctx interface{}, id interface{}) *MockPinService_AllAccountPins_Call {
+	return &MockPinService_AllAccountPins_Call{Call: _e.mock.On("AllAccountPins", ctx, id)}
 }
 
-func (_c *MockPinService_AllAccountPins_Call) Run(run func(id uint)) *MockPinService_AllAccountPins_Call {
+func (_c *MockPinService_AllAccountPins_Call) Run(run func(ctx context.Context, id uint)) *MockPinService_AllAccountPins_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -165,7 +179,99 @@ func (_c *MockPinService_AllAccountPins_Call) Return(pins []*models.Pin, err err
 	return _c
 }
 
-func (_c *MockPinService_AllAccountPins_Call) RunAndReturn(run func(id uint) ([]*models.Pin, error)) *MockPinService_AllAccountPins_Call {
+func (_c *MockPinService_AllAccountPins_Call) RunAndReturn(run func(ctx context.Context, id uint) ([]*models.Pin, error)) *MockPinService_AllAccountPins_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Config provides a mock function for the type MockPinService
+func (_mock *MockPinService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockPinService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockPinService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockPinService_Expecter) Config() *MockPinService_Config_Call {
+	return &MockPinService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockPinService_Config_Call) Run(run func()) *MockPinService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPinService_Config_Call) Return(manager config.Manager) *MockPinService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockPinService_Config_Call) RunAndReturn(run func() config.Manager) *MockPinService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockPinService
+func (_mock *MockPinService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockPinService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockPinService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockPinService_Expecter) Context() *MockPinService_Context_Call {
+	return &MockPinService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockPinService_Context_Call) Run(run func()) *MockPinService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPinService_Context_Call) Return(context1 core.Context) *MockPinService_Context_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockPinService_Context_Call) RunAndReturn(run func() core.Context) *MockPinService_Context_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -306,6 +412,52 @@ func (_c *MockPinService_CreatePinModel_Call) RunAndReturn(run func(protocol str
 	return _c
 }
 
+// DB provides a mock function for the type MockPinService
+func (_mock *MockPinService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockPinService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockPinService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockPinService_Expecter) DB() *MockPinService_DB_Call {
+	return &MockPinService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockPinService_DB_Call) Run(run func()) *MockPinService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPinService_DB_Call) Return(dB *gorm.DB) *MockPinService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockPinService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockPinService_DB_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeletePin provides a mock function for the type MockPinService
 func (_mock *MockPinService) DeletePin(ctx context.Context, id uint) error {
 	ret := _mock.Called(ctx, id)
@@ -364,16 +516,16 @@ func (_c *MockPinService_DeletePin_Call) RunAndReturn(run func(ctx context.Conte
 }
 
 // DeletePinByHash provides a mock function for the type MockPinService
-func (_mock *MockPinService) DeletePinByHash(hash core.StorageHash, userId uint) error {
-	ret := _mock.Called(hash, userId)
+func (_mock *MockPinService) DeletePinByHash(ctx context.Context, hash core.StorageHash, userId uint) error {
+	ret := _mock.Called(ctx, hash, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeletePinByHash")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) error); ok {
-		r0 = returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint) error); ok {
+		r0 = returnFunc(ctx, hash, userId)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -386,25 +538,31 @@ type MockPinService_DeletePinByHash_Call struct {
 }
 
 // DeletePinByHash is a helper method to define mock.On call
+//   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) DeletePinByHash(hash interface{}, userId interface{}) *MockPinService_DeletePinByHash_Call {
-	return &MockPinService_DeletePinByHash_Call{Call: _e.mock.On("DeletePinByHash", hash, userId)}
+func (_e *MockPinService_Expecter) DeletePinByHash(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_DeletePinByHash_Call {
+	return &MockPinService_DeletePinByHash_Call{Call: _e.mock.On("DeletePinByHash", ctx, hash, userId)}
 }
 
-func (_c *MockPinService_DeletePinByHash_Call) Run(run func(hash core.StorageHash, userId uint)) *MockPinService_DeletePinByHash_Call {
+func (_c *MockPinService_DeletePinByHash_Call) Run(run func(ctx context.Context, hash core.StorageHash, userId uint)) *MockPinService_DeletePinByHash_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.StorageHash
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.StorageHash)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 core.StorageHash
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(core.StorageHash)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -415,7 +573,7 @@ func (_c *MockPinService_DeletePinByHash_Call) Return(err error) *MockPinService
 	return _c
 }
 
-func (_c *MockPinService_DeletePinByHash_Call) RunAndReturn(run func(hash core.StorageHash, userId uint) error) *MockPinService_DeletePinByHash_Call {
+func (_c *MockPinService_DeletePinByHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, userId uint) error) *MockPinService_DeletePinByHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -489,8 +647,8 @@ func (_c *MockPinService_GetPin_Call) RunAndReturn(run func(ctx context.Context,
 }
 
 // GetPinByHash provides a mock function for the type MockPinService
-func (_mock *MockPinService) GetPinByHash(hash core.StorageHash, userId uint) (*models.Pin, error) {
-	ret := _mock.Called(hash, userId)
+func (_mock *MockPinService) GetPinByHash(ctx context.Context, hash core.StorageHash, userId uint) (*models.Pin, error) {
+	ret := _mock.Called(ctx, hash, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPinByHash")
@@ -498,18 +656,18 @@ func (_mock *MockPinService) GetPinByHash(hash core.StorageHash, userId uint) (*
 
 	var r0 *models.Pin
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) (*models.Pin, error)); ok {
-		return returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint) (*models.Pin, error)); ok {
+		return returnFunc(ctx, hash, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) *models.Pin); ok {
-		r0 = returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint) *models.Pin); ok {
+		r0 = returnFunc(ctx, hash, userId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.Pin)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(core.StorageHash, uint) error); ok {
-		r1 = returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash, uint) error); ok {
+		r1 = returnFunc(ctx, hash, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -522,25 +680,31 @@ type MockPinService_GetPinByHash_Call struct {
 }
 
 // GetPinByHash is a helper method to define mock.On call
+//   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) GetPinByHash(hash interface{}, userId interface{}) *MockPinService_GetPinByHash_Call {
-	return &MockPinService_GetPinByHash_Call{Call: _e.mock.On("GetPinByHash", hash, userId)}
+func (_e *MockPinService_Expecter) GetPinByHash(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_GetPinByHash_Call {
+	return &MockPinService_GetPinByHash_Call{Call: _e.mock.On("GetPinByHash", ctx, hash, userId)}
 }
 
-func (_c *MockPinService_GetPinByHash_Call) Run(run func(hash core.StorageHash, userId uint)) *MockPinService_GetPinByHash_Call {
+func (_c *MockPinService_GetPinByHash_Call) Run(run func(ctx context.Context, hash core.StorageHash, userId uint)) *MockPinService_GetPinByHash_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.StorageHash
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.StorageHash)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 core.StorageHash
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(core.StorageHash)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -551,7 +715,7 @@ func (_c *MockPinService_GetPinByHash_Call) Return(pin *models.Pin, err error) *
 	return _c
 }
 
-func (_c *MockPinService_GetPinByHash_Call) RunAndReturn(run func(hash core.StorageHash, userId uint) (*models.Pin, error)) *MockPinService_GetPinByHash_Call {
+func (_c *MockPinService_GetPinByHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, userId uint) (*models.Pin, error)) *MockPinService_GetPinByHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -866,17 +1030,63 @@ func (_c *MockPinService_ID_Call) RunAndReturn(run func() string) *MockPinServic
 	return _c
 }
 
+// Logger provides a mock function for the type MockPinService
+func (_mock *MockPinService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockPinService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockPinService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockPinService_Expecter) Logger() *MockPinService_Logger_Call {
+	return &MockPinService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockPinService_Logger_Call) Run(run func()) *MockPinService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPinService_Logger_Call) Return(logger *core.Logger) *MockPinService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockPinService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockPinService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PinByHash provides a mock function for the type MockPinService
-func (_mock *MockPinService) PinByHash(hash core.StorageHash, userId uint, protocolData any) error {
-	ret := _mock.Called(hash, userId, protocolData)
+func (_mock *MockPinService) PinByHash(ctx context.Context, hash core.StorageHash, userId uint, protocolData any) error {
+	ret := _mock.Called(ctx, hash, userId, protocolData)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PinByHash")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint, any) error); ok {
-		r0 = returnFunc(hash, userId, protocolData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint, any) error); ok {
+		r0 = returnFunc(ctx, hash, userId, protocolData)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -889,31 +1099,37 @@ type MockPinService_PinByHash_Call struct {
 }
 
 // PinByHash is a helper method to define mock.On call
+//   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
 //   - protocolData any
-func (_e *MockPinService_Expecter) PinByHash(hash interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByHash_Call {
-	return &MockPinService_PinByHash_Call{Call: _e.mock.On("PinByHash", hash, userId, protocolData)}
+func (_e *MockPinService_Expecter) PinByHash(ctx interface{}, hash interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByHash_Call {
+	return &MockPinService_PinByHash_Call{Call: _e.mock.On("PinByHash", ctx, hash, userId, protocolData)}
 }
 
-func (_c *MockPinService_PinByHash_Call) Run(run func(hash core.StorageHash, userId uint, protocolData any)) *MockPinService_PinByHash_Call {
+func (_c *MockPinService_PinByHash_Call) Run(run func(ctx context.Context, hash core.StorageHash, userId uint, protocolData any)) *MockPinService_PinByHash_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.StorageHash
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.StorageHash)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 core.StorageHash
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(core.StorageHash)
 		}
-		var arg2 any
+		var arg2 uint
 		if args[2] != nil {
-			arg2 = args[2].(any)
+			arg2 = args[2].(uint)
+		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -924,22 +1140,22 @@ func (_c *MockPinService_PinByHash_Call) Return(err error) *MockPinService_PinBy
 	return _c
 }
 
-func (_c *MockPinService_PinByHash_Call) RunAndReturn(run func(hash core.StorageHash, userId uint, protocolData any) error) *MockPinService_PinByHash_Call {
+func (_c *MockPinService_PinByHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, userId uint, protocolData any) error) *MockPinService_PinByHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PinByID provides a mock function for the type MockPinService
-func (_mock *MockPinService) PinByID(uploadId uint, userId uint, protocolData any) error {
-	ret := _mock.Called(uploadId, userId, protocolData)
+func (_mock *MockPinService) PinByID(ctx context.Context, uploadId uint, userId uint, protocolData any) error {
+	ret := _mock.Called(ctx, uploadId, userId, protocolData)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PinByID")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, uint, any) error); ok {
-		r0 = returnFunc(uploadId, userId, protocolData)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, uint, any) error); ok {
+		r0 = returnFunc(ctx, uploadId, userId, protocolData)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -952,31 +1168,37 @@ type MockPinService_PinByID_Call struct {
 }
 
 // PinByID is a helper method to define mock.On call
+//   - ctx context.Context
 //   - uploadId uint
 //   - userId uint
 //   - protocolData any
-func (_e *MockPinService_Expecter) PinByID(uploadId interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByID_Call {
-	return &MockPinService_PinByID_Call{Call: _e.mock.On("PinByID", uploadId, userId, protocolData)}
+func (_e *MockPinService_Expecter) PinByID(ctx interface{}, uploadId interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByID_Call {
+	return &MockPinService_PinByID_Call{Call: _e.mock.On("PinByID", ctx, uploadId, userId, protocolData)}
 }
 
-func (_c *MockPinService_PinByID_Call) Run(run func(uploadId uint, userId uint, protocolData any)) *MockPinService_PinByID_Call {
+func (_c *MockPinService_PinByID_Call) Run(run func(ctx context.Context, uploadId uint, userId uint, protocolData any)) *MockPinService_PinByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 uint
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
-		var arg2 any
+		var arg2 uint
 		if args[2] != nil {
-			arg2 = args[2].(any)
+			arg2 = args[2].(uint)
+		}
+		var arg3 any
+		if args[3] != nil {
+			arg3 = args[3].(any)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -987,7 +1209,7 @@ func (_c *MockPinService_PinByID_Call) Return(err error) *MockPinService_PinByID
 	return _c
 }
 
-func (_c *MockPinService_PinByID_Call) RunAndReturn(run func(uploadId uint, userId uint, protocolData any) error) *MockPinService_PinByID_Call {
+func (_c *MockPinService_PinByID_Call) RunAndReturn(run func(ctx context.Context, uploadId uint, userId uint, protocolData any) error) *MockPinService_PinByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1192,6 +1414,166 @@ func (_c *MockPinService_RegisterPinModel_Call) RunAndReturn(run func(protocol s
 	return _c
 }
 
+// SetConfig provides a mock function for the type MockPinService
+func (_mock *MockPinService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockPinService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockPinService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockPinService_Expecter) SetConfig(cfg interface{}) *MockPinService_SetConfig_Call {
+	return &MockPinService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockPinService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockPinService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_SetConfig_Call) Return() *MockPinService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPinService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockPinService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockPinService
+func (_mock *MockPinService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockPinService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockPinService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockPinService_Expecter) SetContext(ctx interface{}) *MockPinService_SetContext_Call {
+	return &MockPinService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockPinService_SetContext_Call) Run(run func(ctx core.Context)) *MockPinService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_SetContext_Call) Return() *MockPinService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPinService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockPinService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockPinService
+func (_mock *MockPinService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockPinService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockPinService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockPinService_Expecter) SetDB(db interface{}) *MockPinService_SetDB_Call {
+	return &MockPinService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockPinService_SetDB_Call) Run(run func(db *gorm.DB)) *MockPinService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_SetDB_Call) Return() *MockPinService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPinService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockPinService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockPinService
+func (_mock *MockPinService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockPinService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockPinService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockPinService_Expecter) SetLogger(logger interface{}) *MockPinService_SetLogger_Call {
+	return &MockPinService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockPinService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockPinService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_SetLogger_Call) Return() *MockPinService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPinService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockPinService_SetLogger_Call {
+	_c.Run(run)
+	return _c
+}
+
 // UpdatePin provides a mock function for the type MockPinService
 func (_mock *MockPinService) UpdatePin(ctx context.Context, pin *models.Pin) error {
 	ret := _mock.Called(ctx, pin)
@@ -1376,8 +1758,8 @@ func (_c *MockPinService_UpdateProtocolPin_Call) RunAndReturn(run func(ctx conte
 }
 
 // UploadPinnedByUser provides a mock function for the type MockPinService
-func (_mock *MockPinService) UploadPinnedByUser(hash core.StorageHash, userId uint) (bool, error) {
-	ret := _mock.Called(hash, userId)
+func (_mock *MockPinService) UploadPinnedByUser(ctx context.Context, hash core.StorageHash, userId uint) (bool, error) {
+	ret := _mock.Called(ctx, hash, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadPinnedByUser")
@@ -1385,16 +1767,16 @@ func (_mock *MockPinService) UploadPinnedByUser(hash core.StorageHash, userId ui
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) (bool, error)); ok {
-		return returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint) (bool, error)); ok {
+		return returnFunc(ctx, hash, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash, uint) bool); ok {
-		r0 = returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash, uint) bool); ok {
+		r0 = returnFunc(ctx, hash, userId)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(core.StorageHash, uint) error); ok {
-		r1 = returnFunc(hash, userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash, uint) error); ok {
+		r1 = returnFunc(ctx, hash, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1407,25 +1789,31 @@ type MockPinService_UploadPinnedByUser_Call struct {
 }
 
 // UploadPinnedByUser is a helper method to define mock.On call
+//   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) UploadPinnedByUser(hash interface{}, userId interface{}) *MockPinService_UploadPinnedByUser_Call {
-	return &MockPinService_UploadPinnedByUser_Call{Call: _e.mock.On("UploadPinnedByUser", hash, userId)}
+func (_e *MockPinService_Expecter) UploadPinnedByUser(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_UploadPinnedByUser_Call {
+	return &MockPinService_UploadPinnedByUser_Call{Call: _e.mock.On("UploadPinnedByUser", ctx, hash, userId)}
 }
 
-func (_c *MockPinService_UploadPinnedByUser_Call) Run(run func(hash core.StorageHash, userId uint)) *MockPinService_UploadPinnedByUser_Call {
+func (_c *MockPinService_UploadPinnedByUser_Call) Run(run func(ctx context.Context, hash core.StorageHash, userId uint)) *MockPinService_UploadPinnedByUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.StorageHash
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.StorageHash)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 uint
+		var arg1 core.StorageHash
 		if args[1] != nil {
-			arg1 = args[1].(uint)
+			arg1 = args[1].(core.StorageHash)
+		}
+		var arg2 uint
+		if args[2] != nil {
+			arg2 = args[2].(uint)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -1436,14 +1824,14 @@ func (_c *MockPinService_UploadPinnedByUser_Call) Return(b bool, err error) *Moc
 	return _c
 }
 
-func (_c *MockPinService_UploadPinnedByUser_Call) RunAndReturn(run func(hash core.StorageHash, userId uint) (bool, error)) *MockPinService_UploadPinnedByUser_Call {
+func (_c *MockPinService_UploadPinnedByUser_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash, userId uint) (bool, error)) *MockPinService_UploadPinnedByUser_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadPinnedGlobal provides a mock function for the type MockPinService
-func (_mock *MockPinService) UploadPinnedGlobal(hash core.StorageHash) (bool, error) {
-	ret := _mock.Called(hash)
+func (_mock *MockPinService) UploadPinnedGlobal(ctx context.Context, hash core.StorageHash) (bool, error) {
+	ret := _mock.Called(ctx, hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadPinnedGlobal")
@@ -1451,16 +1839,16 @@ func (_mock *MockPinService) UploadPinnedGlobal(hash core.StorageHash) (bool, er
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash) (bool, error)); ok {
-		return returnFunc(hash)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) (bool, error)); ok {
+		return returnFunc(ctx, hash)
 	}
-	if returnFunc, ok := ret.Get(0).(func(core.StorageHash) bool); ok {
-		r0 = returnFunc(hash)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) bool); ok {
+		r0 = returnFunc(ctx, hash)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(core.StorageHash) error); ok {
-		r1 = returnFunc(hash)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash) error); ok {
+		r1 = returnFunc(ctx, hash)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -1473,19 +1861,25 @@ type MockPinService_UploadPinnedGlobal_Call struct {
 }
 
 // UploadPinnedGlobal is a helper method to define mock.On call
+//   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockPinService_Expecter) UploadPinnedGlobal(hash interface{}) *MockPinService_UploadPinnedGlobal_Call {
-	return &MockPinService_UploadPinnedGlobal_Call{Call: _e.mock.On("UploadPinnedGlobal", hash)}
+func (_e *MockPinService_Expecter) UploadPinnedGlobal(ctx interface{}, hash interface{}) *MockPinService_UploadPinnedGlobal_Call {
+	return &MockPinService_UploadPinnedGlobal_Call{Call: _e.mock.On("UploadPinnedGlobal", ctx, hash)}
 }
 
-func (_c *MockPinService_UploadPinnedGlobal_Call) Run(run func(hash core.StorageHash)) *MockPinService_UploadPinnedGlobal_Call {
+func (_c *MockPinService_UploadPinnedGlobal_Call) Run(run func(ctx context.Context, hash core.StorageHash)) *MockPinService_UploadPinnedGlobal_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 core.StorageHash
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(core.StorageHash)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.StorageHash
+		if args[1] != nil {
+			arg1 = args[1].(core.StorageHash)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -1496,7 +1890,7 @@ func (_c *MockPinService_UploadPinnedGlobal_Call) Return(b bool, err error) *Moc
 	return _c
 }
 
-func (_c *MockPinService_UploadPinnedGlobal_Call) RunAndReturn(run func(hash core.StorageHash) (bool, error)) *MockPinService_UploadPinnedGlobal_Call {
+func (_c *MockPinService_UploadPinnedGlobal_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash) (bool, error)) *MockPinService_UploadPinnedGlobal_Call {
 	_c.Call.Return(run)
 	return _c
 }

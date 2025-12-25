@@ -73,7 +73,7 @@ func TestUserService(t *testing.T) {
 		password := "password123"
 
 		// Test create user account using the real service
-		createdUser, err := userSvc.CreateAccount(email, password, false)
+		createdUser, err := userSvc.CreateAccount(nil, email, password, false)
 		require.NoError(t, err)
 		assert.Equal(t, email, createdUser.Email)
 		assert.NotZero(t, createdUser.ID)
@@ -86,7 +86,7 @@ func TestUserService(t *testing.T) {
 		assert.Equal(t, createdUser.Email, userInDB.Email)
 
 		// Test check if email exists using the real service
-		exists, foundUser, err := userSvc.EmailExists(email)
+		exists, foundUser, err := userSvc.EmailExists(nil, email)
 		require.NoError(t, err)
 		assert.True(t, exists)
 		assert.Equal(t, createdUser.ID, foundUser.ID)
@@ -97,7 +97,7 @@ func TestUserService(t *testing.T) {
 		//	t.Parallel()
 
 		// Test check if non-existent email exists using the real service
-		exists, _, err := userSvc.EmailExists("nonexistent@example.com")
+		exists, _, err := userSvc.EmailExists(nil, "nonexistent@example.com")
 		assert.NoError(t, err) // EmailExists should return false, nil, nil for not found
 		assert.False(t, exists)
 	})
@@ -106,12 +106,12 @@ func TestUserService(t *testing.T) {
 		//	t.Parallel()
 
 		// Create test user first using the real service
-		testUser, err := userSvc.CreateAccount("update@example.com", "password123", false)
+		testUser, err := userSvc.CreateAccount(nil, "update@example.com", "password123", false)
 		require.NoError(t, err)
 
 		// Test update account info using the real service
 		updatedEmail := "updated@example.com"
-		err = userSvc.UpdateAccountInfo(testUser.ID, map[string]any{
+		err = userSvc.UpdateAccountInfo(nil, testUser.ID, map[string]any{
 			"email": updatedEmail,
 		})
 		require.NoError(t, err)
@@ -126,11 +126,11 @@ func TestUserService(t *testing.T) {
 		//	t.Parallel()
 
 		// Create test user first using the real service
-		testUser, err := userSvc.CreateAccount("delete@example.com", "password123", false)
+		testUser, err := userSvc.CreateAccount(nil, "delete@example.com", "password123", false)
 		require.NoError(t, err)
 
 		// Test delete account using the real service
-		err = userSvc.DeleteAccount(testUser.ID)
+		err = userSvc.DeleteAccount(nil, testUser.ID)
 		require.NoError(t, err)
 
 		// Verify deletion in the database
@@ -145,14 +145,14 @@ func TestUserService(t *testing.T) {
 		// Create test data using the real service
 		usersToCreate := []string{"list1@example.com", "list2@example.com", "list3@example.com"}
 		for _, email := range usersToCreate {
-			_, err := userSvc.CreateAccount(email, "password123", false)
+			_, err := userSvc.CreateAccount(nil, email, "password123", false)
 			require.NoError(t, err)
 		}
 
 		// Test get accounts pending deletion (using a real method from the interface)
 		// This method is not implemented in the mock, but should work with the real service
 		// if it queries the database correctly.
-		pendingUsers, err := userSvc.GetAccountsPendingDeletion()
+		pendingUsers, err := userSvc.GetAccountsPendingDeletion(nil)
 		require.NoError(t, err)
 		// Since we just created test users, none should be pending deletion
 		assert.Len(t, pendingUsers, 0)
@@ -194,7 +194,7 @@ func BenchmarkUserService(b *testing.B) {
 		// No need to manually delete users.
 		for i := 0; i < b.N; i++ {
 			email := fmt.Sprintf("user%d@example.com", i)
-			_, err := userSvc.CreateAccount(email, "password123", false)
+			_, err := userSvc.CreateAccount(nil, email, "password123", false)
 			if err != nil {
 				b.Fatalf("Failed to create user: %v", err)
 			}
@@ -205,7 +205,7 @@ func BenchmarkUserService(b *testing.B) {
 		// SetupTestWithDB provides a clean DB for each benchmark run.
 		// Create test data within the benchmark setup.
 		email := "benchmark@example.com"
-		_, err := userSvc.CreateAccount(email, "password123", false)
+		_, err := userSvc.CreateAccount(nil, email, "password123", false)
 		if err != nil {
 			b.Fatalf("Failed to create test user: %v", err)
 		}
@@ -213,7 +213,7 @@ func BenchmarkUserService(b *testing.B) {
 		b.ResetTimer() // Reset timer after setup
 
 		for i := 0; i < b.N; i++ {
-			_, _, err := userSvc.EmailExists(email)
+			_, _, err := userSvc.EmailExists(nil, email)
 			if err != nil {
 				b.Fatalf("Failed to check email: %v", err)
 			}

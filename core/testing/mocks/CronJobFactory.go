@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 )
@@ -37,8 +39,8 @@ func (_m *MockCronJobFactory) EXPECT() *MockCronJobFactory_Expecter {
 }
 
 // CreateJob provides a mock function for the type MockCronJobFactory
-func (_mock *MockCronJobFactory) CreateJob(jobType string) (core.CronJob, error) {
-	ret := _mock.Called(jobType)
+func (_mock *MockCronJobFactory) CreateJob(ctx context.Context, jobType string) (core.CronJob, error) {
+	ret := _mock.Called(ctx, jobType)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateJob")
@@ -46,18 +48,18 @@ func (_mock *MockCronJobFactory) CreateJob(jobType string) (core.CronJob, error)
 
 	var r0 core.CronJob
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string) (core.CronJob, error)); ok {
-		return returnFunc(jobType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (core.CronJob, error)); ok {
+		return returnFunc(ctx, jobType)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) core.CronJob); ok {
-		r0 = returnFunc(jobType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) core.CronJob); ok {
+		r0 = returnFunc(ctx, jobType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(core.CronJob)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) error); ok {
-		r1 = returnFunc(jobType)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, jobType)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -70,19 +72,25 @@ type MockCronJobFactory_CreateJob_Call struct {
 }
 
 // CreateJob is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobType string
-func (_e *MockCronJobFactory_Expecter) CreateJob(jobType interface{}) *MockCronJobFactory_CreateJob_Call {
-	return &MockCronJobFactory_CreateJob_Call{Call: _e.mock.On("CreateJob", jobType)}
+func (_e *MockCronJobFactory_Expecter) CreateJob(ctx interface{}, jobType interface{}) *MockCronJobFactory_CreateJob_Call {
+	return &MockCronJobFactory_CreateJob_Call{Call: _e.mock.On("CreateJob", ctx, jobType)}
 }
 
-func (_c *MockCronJobFactory_CreateJob_Call) Run(run func(jobType string)) *MockCronJobFactory_CreateJob_Call {
+func (_c *MockCronJobFactory_CreateJob_Call) Run(run func(ctx context.Context, jobType string)) *MockCronJobFactory_CreateJob_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -93,14 +101,14 @@ func (_c *MockCronJobFactory_CreateJob_Call) Return(cronJob core.CronJob, err er
 	return _c
 }
 
-func (_c *MockCronJobFactory_CreateJob_Call) RunAndReturn(run func(jobType string) (core.CronJob, error)) *MockCronJobFactory_CreateJob_Call {
+func (_c *MockCronJobFactory_CreateJob_Call) RunAndReturn(run func(ctx context.Context, jobType string) (core.CronJob, error)) *MockCronJobFactory_CreateJob_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetDefaultSchedule provides a mock function for the type MockCronJobFactory
-func (_mock *MockCronJobFactory) GetDefaultSchedule(jobType string) (*core.CronScheduleDefinition, bool) {
-	ret := _mock.Called(jobType)
+func (_mock *MockCronJobFactory) GetDefaultSchedule(ctx context.Context, jobType string) (*core.CronScheduleDefinition, bool) {
+	ret := _mock.Called(ctx, jobType)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetDefaultSchedule")
@@ -108,18 +116,18 @@ func (_mock *MockCronJobFactory) GetDefaultSchedule(jobType string) (*core.CronS
 
 	var r0 *core.CronScheduleDefinition
 	var r1 bool
-	if returnFunc, ok := ret.Get(0).(func(string) (*core.CronScheduleDefinition, bool)); ok {
-		return returnFunc(jobType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*core.CronScheduleDefinition, bool)); ok {
+		return returnFunc(ctx, jobType)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) *core.CronScheduleDefinition); ok {
-		r0 = returnFunc(jobType)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *core.CronScheduleDefinition); ok {
+		r0 = returnFunc(ctx, jobType)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*core.CronScheduleDefinition)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) bool); ok {
-		r1 = returnFunc(jobType)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) bool); ok {
+		r1 = returnFunc(ctx, jobType)
 	} else {
 		r1 = ret.Get(1).(bool)
 	}
@@ -132,19 +140,25 @@ type MockCronJobFactory_GetDefaultSchedule_Call struct {
 }
 
 // GetDefaultSchedule is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobType string
-func (_e *MockCronJobFactory_Expecter) GetDefaultSchedule(jobType interface{}) *MockCronJobFactory_GetDefaultSchedule_Call {
-	return &MockCronJobFactory_GetDefaultSchedule_Call{Call: _e.mock.On("GetDefaultSchedule", jobType)}
+func (_e *MockCronJobFactory_Expecter) GetDefaultSchedule(ctx interface{}, jobType interface{}) *MockCronJobFactory_GetDefaultSchedule_Call {
+	return &MockCronJobFactory_GetDefaultSchedule_Call{Call: _e.mock.On("GetDefaultSchedule", ctx, jobType)}
 }
 
-func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Run(run func(jobType string)) *MockCronJobFactory_GetDefaultSchedule_Call {
+func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Run(run func(ctx context.Context, jobType string)) *MockCronJobFactory_GetDefaultSchedule_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -155,22 +169,22 @@ func (_c *MockCronJobFactory_GetDefaultSchedule_Call) Return(cronScheduleDefinit
 	return _c
 }
 
-func (_c *MockCronJobFactory_GetDefaultSchedule_Call) RunAndReturn(run func(jobType string) (*core.CronScheduleDefinition, bool)) *MockCronJobFactory_GetDefaultSchedule_Call {
+func (_c *MockCronJobFactory_GetDefaultSchedule_Call) RunAndReturn(run func(ctx context.Context, jobType string) (*core.CronScheduleDefinition, bool)) *MockCronJobFactory_GetDefaultSchedule_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // RegisterFactory provides a mock function for the type MockCronJobFactory
-func (_mock *MockCronJobFactory) RegisterFactory(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
-	ret := _mock.Called(jobType, factory, defaultSchedule)
+func (_mock *MockCronJobFactory) RegisterFactory(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
+	ret := _mock.Called(ctx, jobType, factory, defaultSchedule)
 
 	if len(ret) == 0 {
 		panic("no return value specified for RegisterFactory")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, core.CronJobFactoryFunc, *core.CronScheduleDefinition) error); ok {
-		r0 = returnFunc(jobType, factory, defaultSchedule)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, core.CronJobFactoryFunc, *core.CronScheduleDefinition) error); ok {
+		r0 = returnFunc(ctx, jobType, factory, defaultSchedule)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -183,31 +197,37 @@ type MockCronJobFactory_RegisterFactory_Call struct {
 }
 
 // RegisterFactory is a helper method to define mock.On call
+//   - ctx context.Context
 //   - jobType string
 //   - factory core.CronJobFactoryFunc
 //   - defaultSchedule *core.CronScheduleDefinition
-func (_e *MockCronJobFactory_Expecter) RegisterFactory(jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronJobFactory_RegisterFactory_Call {
-	return &MockCronJobFactory_RegisterFactory_Call{Call: _e.mock.On("RegisterFactory", jobType, factory, defaultSchedule)}
+func (_e *MockCronJobFactory_Expecter) RegisterFactory(ctx interface{}, jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronJobFactory_RegisterFactory_Call {
+	return &MockCronJobFactory_RegisterFactory_Call{Call: _e.mock.On("RegisterFactory", ctx, jobType, factory, defaultSchedule)}
 }
 
-func (_c *MockCronJobFactory_RegisterFactory_Call) Run(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition)) *MockCronJobFactory_RegisterFactory_Call {
+func (_c *MockCronJobFactory_RegisterFactory_Call) Run(run func(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition)) *MockCronJobFactory_RegisterFactory_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 core.CronJobFactoryFunc
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(core.CronJobFactoryFunc)
+			arg1 = args[1].(string)
 		}
-		var arg2 *core.CronScheduleDefinition
+		var arg2 core.CronJobFactoryFunc
 		if args[2] != nil {
-			arg2 = args[2].(*core.CronScheduleDefinition)
+			arg2 = args[2].(core.CronJobFactoryFunc)
+		}
+		var arg3 *core.CronScheduleDefinition
+		if args[3] != nil {
+			arg3 = args[3].(*core.CronScheduleDefinition)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -218,7 +238,7 @@ func (_c *MockCronJobFactory_RegisterFactory_Call) Return(err error) *MockCronJo
 	return _c
 }
 
-func (_c *MockCronJobFactory_RegisterFactory_Call) RunAndReturn(run func(jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error) *MockCronJobFactory_RegisterFactory_Call {
+func (_c *MockCronJobFactory_RegisterFactory_Call) RunAndReturn(run func(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error) *MockCronJobFactory_RegisterFactory_Call {
 	_c.Call.Return(run)
 	return _c
 }

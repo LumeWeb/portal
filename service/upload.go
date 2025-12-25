@@ -7,6 +7,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	uploadMetrics "go.lumeweb.com/portal/service/internal/upload"
 	"gorm.io/gorm"
 )
 
@@ -16,26 +17,18 @@ func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.UPLOAD_SERVICE,
 		Factory: NewMetadataService,
+		Metrics: uploadMetrics.GetCollectors(),
 	})
 }
 
 type UploadServiceDefault struct {
-	ctx core.Context
-	db  *gorm.DB
+	core.Service
 }
 
 func NewMetadataService() (core.Service, []core.ContextBuilderOption, error) {
 	meta := &UploadServiceDefault{}
 
-	opts := core.ContextOptions(
-		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			meta.ctx = ctx
-			meta.db = ctx.DB()
-			return nil
-		}),
-	)
-
-	return meta, opts, nil
+	return meta, nil, nil
 }
 
 func (m *UploadServiceDefault) ID() string {
@@ -43,51 +36,62 @@ func (m *UploadServiceDefault) ID() string {
 }
 
 func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Upload) error {
-	return db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
-		existingUpload := &models.Upload{
-			Hash:     upload.Hash,
-			Protocol: upload.Protocol,
-		}
+	return core.MetricTrack(
+		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpSave),
+		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpSave),
+		func() error {
+			err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				existingUpload := &models.Upload{
+					Hash:     upload.Hash,
+					Protocol: upload.Protocol,
+				}
 
-		err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Model(existingUpload).Where(existingUpload).First(existingUpload)
-		})
+				err := db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
+					return db.Model(existingUpload).Where(existingUpload).First(existingUpload)
+				})
 
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			_ = tx.AddError(err)
-			return tx
-		}
+				if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+					_ = tx.AddError(err)
+					return tx
+				}
 
-		// If the record doesn't exist, create a new one
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return tx.Create(upload)
-		}
+				// If the record doesn't exist, create a new one
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return tx.Create(upload)
+				}
 
-		// Update fields if they are different and not empty
-		if upload.UserID != 0 && upload.UserID != existingUpload.UserID {
-			existingUpload.UserID = upload.UserID
-		}
-		if upload.MimeType != "" && upload.MimeType != existingUpload.MimeType {
-			existingUpload.MimeType = upload.MimeType
-		}
-		if upload.UploaderIP != "" && upload.UploaderIP != existingUpload.UploaderIP {
-			existingUpload.UploaderIP = upload.UploaderIP
-		}
-		if upload.Size != 0 && upload.Size != existingUpload.Size {
-			existingUpload.Size = upload.Size
-		}
+				// Update fields if they are different and not empty
+				if upload.UserID != 0 && upload.UserID != existingUpload.UserID {
+					existingUpload.UserID = upload.UserID
+				}
+				if upload.MimeType != "" && upload.MimeType != existingUpload.MimeType {
+					existingUpload.MimeType = upload.MimeType
+				}
+				if upload.UploaderIP != "" && upload.UploaderIP != existingUpload.UploaderIP {
+					existingUpload.UploaderIP = upload.UploaderIP
+				}
+				if upload.Size != 0 && upload.Size != existingUpload.Size {
+					existingUpload.Size = upload.Size
+				}
 
-		save := tx.Save(existingUpload)
+				save := tx.Save(existingUpload)
 
-		if err = save.Error; err == nil {
-			upload.ID = existingUpload.ID
-		}
+				if err = save.Error; err == nil {
+					upload.ID = existingUpload.ID
+				}
 
-		return save
-	})
+				return save
+			})
+
+			if err == nil {
+				uploadMetrics.UploadsSaved.WithLabelValues(uploadMetrics.LabelOpSave).Inc()
+			}
+			return err
+		},
+	)
 }
 
-func (m *UploadServiceDefault) GetUpload(_ context.Context, objectHash core.StorageHash) (*models.Upload, error) {
+func (m *UploadServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (*models.Upload, error) {
 	var upload models.Upload
 	upload.Hash = objectHash.Multihash()
 
@@ -95,53 +99,93 @@ func (m *UploadServiceDefault) GetUpload(_ context.Context, objectHash core.Stor
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&upload).Where(&upload).First(&upload)
-	}); err != nil {
-		return nil, err
-	}
+	result, err := core.MetricTrackResult(
+		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpGet),
+		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpGet),
+		func() (*models.Upload, error) {
+			if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Model(&upload).Where(&upload).First(&upload)
+			}); err != nil {
+				return nil, err
+			}
+			return &upload, nil
+		},
+	)
 
-	return &upload, nil
+	if err == nil {
+		uploadMetrics.UploadsQueried.WithLabelValues(uploadMetrics.LabelOpGet).Inc()
+	}
+	return result, err
 }
 
 func (m *UploadServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
 	var upload models.Upload
 	upload.Hash = objectHash.Multihash()
 
-	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&upload).Where(&upload).First(&upload)
-	}); err != nil {
-		return err
-	}
+	return core.MetricTrack(
+		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpDelete),
+		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpDelete),
+		func() error {
+			if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Model(&upload).Where(&upload).First(&upload)
+			}); err != nil {
+				return err
+			}
 
-	return db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Delete(&upload)
-	})
+			if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Delete(&upload)
+			}); err != nil {
+				return err
+			}
+
+			uploadMetrics.UploadsDeleted.WithLabelValues(uploadMetrics.LabelOpDelete).Inc()
+			return nil
+		},
+	)
 }
 
 func (m *UploadServiceDefault) GetAllUploads(ctx context.Context) ([]*models.Upload, error) {
-	var uploads []*models.Upload
+	result, err := core.MetricTrackResult(
+		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpListAll),
+		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpListAll),
+		func() ([]*models.Upload, error) {
+			var uploads []*models.Upload
 
-	if err := m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return db.RetryOnLock(tx, func(db *gorm.DB) *gorm.DB {
-			return db.Find(&uploads)
-		})
-	}); err != nil {
-		return nil, err
+			if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Find(&uploads)
+			}); err != nil {
+				return nil, err
+			}
+
+			return uploads, nil
+		},
+	)
+
+	if err == nil {
+		uploadMetrics.UploadsListed.WithLabelValues(uploadMetrics.LabelOpListAll).Inc()
 	}
-
-	return uploads, nil
+	return result, err
 }
 
 func (m *UploadServiceDefault) GetUploadByID(ctx context.Context, uploadID uint) (*models.Upload, error) {
 	var upload models.Upload
 	upload.ID = uploadID
 
-	if err := db.RetryableTransaction(m.ctx, m.db, func(tx *gorm.DB) *gorm.DB {
-		return tx.Model(&models.Upload{}).Where(&upload).First(&upload)
-	}); err != nil {
-		return nil, err
-	}
+	result, err := core.MetricTrackResult(
+		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpGetByID),
+		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpGetByID),
+		func() (*models.Upload, error) {
+			if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Model(&models.Upload{}).Where(&upload).First(&upload)
+			}); err != nil {
+				return nil, err
+			}
+			return &upload, nil
+		},
+	)
 
-	return &upload, nil
+	if err == nil {
+		uploadMetrics.UploadsQueried.WithLabelValues(uploadMetrics.LabelOpGetByID).Inc()
+	}
+	return result, err
 }

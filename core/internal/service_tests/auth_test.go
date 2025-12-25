@@ -78,12 +78,12 @@ func TestAuthService_LoginOTP(t *testing.T) {
 		otpService.EXPECT().OTPVerify(uint(0x1), invalidCode).Return(false, nil)
 
 		// Test valid OTP login
-		token, err := authService.LoginOTP(user.ID, validCode, false)
+		token, err := authService.LoginOTP(nil, user.ID, validCode, false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid OTP code
-		_, err = authService.LoginOTP(user.ID, invalidCode, false)
+		_, err = authService.LoginOTP(nil, user.ID, invalidCode, false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -106,11 +106,11 @@ func TestAuthService_ValidLoginByUserObj(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid password
-		valid := authService.ValidLoginByUserObj(user, "password")
+		valid := authService.ValidLoginByUserObj(nil, user, "password")
 		assert.True(tb, valid)
 
 		// Test invalid password
-		valid = authService.ValidLoginByUserObj(user, "wrongpassword")
+		valid = authService.ValidLoginByUserObj(nil, user, "wrongpassword")
 		assert.False(tb, valid)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -133,18 +133,18 @@ func TestAuthService_ValidLoginByUserID(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid login
-		valid, fetchedUser, err := authService.ValidLoginByUserID(user.ID, "password")
+		valid, fetchedUser, err := authService.ValidLoginByUserID(nil, user.ID, "password")
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
 
 		// Test invalid password
-		valid, _, err = authService.ValidLoginByUserID(user.ID, "wrongpassword")
+		valid, _, err = authService.ValidLoginByUserID(nil, user.ID, "wrongpassword")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 
 		// Test non-existent user
-		_, _, err = authService.ValidLoginByUserID(999999, "password")
+		_, _, err = authService.ValidLoginByUserID(nil, 999999, "password")
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -179,12 +179,12 @@ func TestAuthService_LoginPubkey(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 
 		// Test valid pubkey login
-		token, err := authService.LoginPubkey("test-public-key", "127.0.0.1", false)
+		token, err := authService.LoginPubkey(nil, "test-public-key", "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid pubkey
-		_, err = authService.LoginPubkey("invalid-key", "127.0.0.1", false)
+		_, err = authService.LoginPubkey(nil, "invalid-key", "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -212,12 +212,12 @@ func TestAuthService_LoginID(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
 
 		// Test valid ID login
-		token, err := authService.LoginID(user.ID, "127.0.0.1", false)
+		token, err := authService.LoginID(nil, user.ID, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid ID
-		_, err = authService.LoginID(999999, "127.0.0.1", false)
+		_, err = authService.LoginID(nil, 999999, "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -240,18 +240,18 @@ func TestAuthService_ValidLoginByEmail(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid login
-		valid, fetchedUser, err := authService.ValidLoginByEmail("emailvalid@example.com", "password")
+		valid, fetchedUser, err := authService.ValidLoginByEmail(nil, "emailvalid@example.com", "password")
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
 
 		// Test invalid password
-		valid, _, err = authService.ValidLoginByEmail("emailvalid@example.com", "wrongpassword")
+		valid, _, err = authService.ValidLoginByEmail(nil, "emailvalid@example.com", "wrongpassword")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 
 		// Test non-existent email
-		_, _, err = authService.ValidLoginByEmail("nonexistent@example.com", "password")
+		_, _, err = authService.ValidLoginByEmail(nil, "nonexistent@example.com", "password")
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }

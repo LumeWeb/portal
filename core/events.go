@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"go.lumeweb.com/event/v2"
 	"go.uber.org/zap"
 	"reflect"
@@ -19,6 +20,7 @@ type CoreEvent[P any] struct {
 	mu     *sync.Mutex // protects Data during sync operations
 	locked bool        // tracks if we already hold the lock
 	logger *Logger
+	ctx    context.Context // context.Context for observability tracing
 }
 
 // EventHandlerFunc defines a function signature for strongly-typed event handlers.
@@ -211,19 +213,31 @@ func syncInterceptor[P any](e *CoreEvent[P]) {
 // NewEvent creates a new CoreEvent with the given name and payload data.
 // name is the event name.
 // data is the payload data structure.
+// ctx is the optional context.Context for observability tracing.
 // Returns a new initialized CoreEvent.
-func NewEvent[P any](name string, data *P) *CoreEvent[P] {
+func NewEvent[P any](name string, data *P, ctx context.Context) *CoreEvent[P] {
 	return &CoreEvent[P]{
 		BasicEvent: event.NewBasic[EventData](name, make(EventData)),
 		Data:       *data,
 		mu:         &sync.Mutex{},
 		logger:     NewLogger(nil, zap.NewNop()), // Initialize with no-op logger by default
+		ctx:        ctx,                         // Set the context for observability tracing
 	}
 }
 
 // SetLogger sets the logger for the event.
 func (e *CoreEvent[P]) SetLogger(logger *Logger) {
 	e.logger = logger
+}
+
+// SetContext sets the context.Context for the event.
+func (e *CoreEvent[P]) SetContext(ctx context.Context) {
+	e.ctx = ctx
+}
+
+// Context returns the context.Context for the event.
+func (e *CoreEvent[P]) Context() context.Context {
+	return e.ctx
 }
 
 // Fire dispatches an event with the given name and payload using the context's event manager.
@@ -246,7 +260,7 @@ func Fire[P any](ctx Context, eventName string, data *P) error {
 // This is similar to Fire but provides access to the event object for inspection.
 // See Fire documentation for guidance on when to use pointer vs value payloads.
 func FireAndReturn[P any](ctx Context, eventName string, data *P) (error, event.Event[*CoreEvent[P]]) {
-	coreEvent := NewEvent[P](eventName, data)
+	coreEvent := NewEvent[P](eventName, data, ctx.GetContext())
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	return event.FireTyped[*CoreEvent[P]](ctx.Event(), eventName, coreEvent)
@@ -272,7 +286,7 @@ func FireByValue[P any](ctx Context, eventName string, data P) error {
 // This is similar to FireByValue but provides access to the event object for inspection.
 // See FireByValue documentation for guidance on when to use value payloads.
 func FireByValueAndReturn[P any](ctx Context, eventName string, data P) (error, event.Event[*CoreEvent[P]]) {
-	coreEvent := NewEvent[P](eventName, &data)
+	coreEvent := NewEvent[P](eventName, &data, ctx.GetContext())
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	return event.FireTyped[*CoreEvent[P]](ctx.Event(), eventName, coreEvent)
@@ -293,7 +307,7 @@ func MustFire[P any](ctx Context, eventName string, payload *P) {
 // eventName is the name of the event to fire.
 // payload is the data to send with the event (passed by pointer).
 func FireAsync[P any](ctx Context, eventName string, payload *P) {
-	coreEvent := NewEvent[P](eventName, payload)
+	coreEvent := NewEvent[P](eventName, payload, ctx.GetContext())
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	ctx.Event().Async(eventName, coreEvent)
@@ -304,7 +318,7 @@ func FireAsync[P any](ctx Context, eventName string, payload *P) {
 // eventName is the name of the event to fire.
 // data is the payload data to send with the event (passed by value).
 func FireAsyncByValue[P any](ctx Context, eventName string, data P) {
-	coreEvent := NewEvent[P](eventName, &data)
+	coreEvent := NewEvent[P](eventName, &data, ctx.GetContext())
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	ctx.Event().Async(eventName, coreEvent)

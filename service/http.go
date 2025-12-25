@@ -11,6 +11,7 @@ import (
 	"github.com/invopop/jsonschema"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal-middleware/cors"
@@ -24,6 +25,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
 
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
@@ -81,6 +83,7 @@ type HTTPServiceDefault struct {
 	globalPathsMu sync.RWMutex
 	wg            sync.WaitGroup
 	stopOnce      sync.Once
+	core.Service
 }
 
 func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
@@ -90,8 +93,6 @@ func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			_http.ctx = ctx
-			_http.logger = ctx.ServiceLogger(_http)
 			_http.access = ctx.Service(core.ACCESS_SERVICE).(core.AccessService)
 
 			_router, err := router.NewRouter(router.APIInfo().Title(fmt.Sprintf("%s Meta API", ctx.Config().Config().Core.PortalName)).Version(build.GetInfo().Version), func(c *router.RouterConfig) {
@@ -266,6 +267,16 @@ func (h *HTTPServiceDefault) Init() error {
 	err = swagger.WireRouter(h.router, "/swagger.json", "/swagger")
 	if err != nil {
 		return err
+	}
+
+	ocfg := h.ctx.Config().Config().Core.Observability
+
+	// Register metrics endpoints if observability is enabled
+	if ocfg.IsMetricsEnabled() {
+		metricsPath := ocfg.Metrics.Path
+		if err := h.registerMetricsEndpoints(metricsPath); err != nil {
+			return fmt.Errorf("failed to register metrics endpoints: %w", err)
+		}
 	}
 
 	err = h.router.GenerateAndExposeOpenapi()
@@ -768,4 +779,41 @@ func nameGenerics(r reflect.Type) string {
 func stripPackageName(name string) string {
 	parts := strings.Split(name, ".")
 	return parts[len(parts)-1]
+}
+
+
+
+// registerMetricsEndpoints registers the core metrics endpoint and per-vhost metrics endpoints
+func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error {
+
+	// Register core metrics endpoint on the root router
+	router.GetRouter(h.Router()).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.CoreMetricsRegistry()}), echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
+		Registerer: core.CoreMetricsRegistry(),
+	}))
+
+	h.logger.Info("Registered core metrics endpoint", zap.String("path", metricsPath))
+
+	// Register per-vhost metrics endpoints for each API
+	for _, api := range core.GetAPIs() {
+		apiName := api.Name()
+		domain := h.getAPIDomain(api)
+		hostRouter := h.router.GetHostRouter(h.normalizeHost(domain))
+		if hostRouter == nil {
+			h.logger.Warn("Failed to get host router for metrics",
+				zap.String("api", apiName))
+			continue
+		}
+
+		router.GetRouter(hostRouter).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.PluginMetricsRegistry(apiName)}), echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
+			Subsystem:  api.ID(),
+			Registerer: core.PluginMetricsRegistry(apiName),
+		}))
+
+		h.logger.Info("Registered API metrics endpoint",
+			zap.String("api", apiName),
+			zap.String("domain", domain),
+			zap.String("path", metricsPath))
+	}
+
+	return nil
 }

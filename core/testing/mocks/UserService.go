@@ -5,8 +5,13 @@
 package mocks
 
 import (
+	"context"
+
 	mock "github.com/stretchr/testify/mock"
+	"go.lumeweb.com/portal/config"
+	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"gorm.io/gorm"
 )
 
 // NewMockUserService creates a new instance of MockUserService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -37,8 +42,8 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 }
 
 // AccountExists provides a mock function for the type MockUserService
-func (_mock *MockUserService) AccountExists(id uint) (bool, *models.User, error) {
-	ret := _mock.Called(id)
+func (_mock *MockUserService) AccountExists(ctx context.Context, id uint) (bool, *models.User, error) {
+	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AccountExists")
@@ -47,23 +52,23 @@ func (_mock *MockUserService) AccountExists(id uint) (bool, *models.User, error)
 	var r0 bool
 	var r1 *models.User
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(uint) (bool, *models.User, error)); ok {
-		return returnFunc(id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (bool, *models.User, error)); ok {
+		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) bool); ok {
-		r0 = returnFunc(id)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) bool); ok {
+		r0 = returnFunc(ctx, id)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) *models.User); ok {
-		r1 = returnFunc(id)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) *models.User); ok {
+		r1 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(uint) error); ok {
-		r2 = returnFunc(id)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint) error); ok {
+		r2 = returnFunc(ctx, id)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -76,19 +81,25 @@ type MockUserService_AccountExists_Call struct {
 }
 
 // AccountExists is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id uint
-func (_e *MockUserService_Expecter) AccountExists(id interface{}) *MockUserService_AccountExists_Call {
-	return &MockUserService_AccountExists_Call{Call: _e.mock.On("AccountExists", id)}
+func (_e *MockUserService_Expecter) AccountExists(ctx interface{}, id interface{}) *MockUserService_AccountExists_Call {
+	return &MockUserService_AccountExists_Call{Call: _e.mock.On("AccountExists", ctx, id)}
 }
 
-func (_c *MockUserService_AccountExists_Call) Run(run func(id uint)) *MockUserService_AccountExists_Call {
+func (_c *MockUserService_AccountExists_Call) Run(run func(ctx context.Context, id uint)) *MockUserService_AccountExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -99,22 +110,22 @@ func (_c *MockUserService_AccountExists_Call) Return(b bool, user *models.User, 
 	return _c
 }
 
-func (_c *MockUserService_AccountExists_Call) RunAndReturn(run func(id uint) (bool, *models.User, error)) *MockUserService_AccountExists_Call {
+func (_c *MockUserService_AccountExists_Call) RunAndReturn(run func(ctx context.Context, id uint) (bool, *models.User, error)) *MockUserService_AccountExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // AddPubkeyToAccount provides a mock function for the type MockUserService
-func (_mock *MockUserService) AddPubkeyToAccount(user models.User, pubkey string) error {
-	ret := _mock.Called(user, pubkey)
+func (_mock *MockUserService) AddPubkeyToAccount(ctx context.Context, user models.User, pubkey string) error {
+	ret := _mock.Called(ctx, user, pubkey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddPubkeyToAccount")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(models.User, string) error); ok {
-		r0 = returnFunc(user, pubkey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, models.User, string) error); ok {
+		r0 = returnFunc(ctx, user, pubkey)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -127,25 +138,31 @@ type MockUserService_AddPubkeyToAccount_Call struct {
 }
 
 // AddPubkeyToAccount is a helper method to define mock.On call
+//   - ctx context.Context
 //   - user models.User
 //   - pubkey string
-func (_e *MockUserService_Expecter) AddPubkeyToAccount(user interface{}, pubkey interface{}) *MockUserService_AddPubkeyToAccount_Call {
-	return &MockUserService_AddPubkeyToAccount_Call{Call: _e.mock.On("AddPubkeyToAccount", user, pubkey)}
+func (_e *MockUserService_Expecter) AddPubkeyToAccount(ctx interface{}, user interface{}, pubkey interface{}) *MockUserService_AddPubkeyToAccount_Call {
+	return &MockUserService_AddPubkeyToAccount_Call{Call: _e.mock.On("AddPubkeyToAccount", ctx, user, pubkey)}
 }
 
-func (_c *MockUserService_AddPubkeyToAccount_Call) Run(run func(user models.User, pubkey string)) *MockUserService_AddPubkeyToAccount_Call {
+func (_c *MockUserService_AddPubkeyToAccount_Call) Run(run func(ctx context.Context, user models.User, pubkey string)) *MockUserService_AddPubkeyToAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 models.User
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(models.User)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 models.User
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(models.User)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -156,14 +173,106 @@ func (_c *MockUserService_AddPubkeyToAccount_Call) Return(err error) *MockUserSe
 	return _c
 }
 
-func (_c *MockUserService_AddPubkeyToAccount_Call) RunAndReturn(run func(user models.User, pubkey string) error) *MockUserService_AddPubkeyToAccount_Call {
+func (_c *MockUserService_AddPubkeyToAccount_Call) RunAndReturn(run func(ctx context.Context, user models.User, pubkey string) error) *MockUserService_AddPubkeyToAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Config provides a mock function for the type MockUserService
+func (_mock *MockUserService) Config() config.Manager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Config")
+	}
+
+	var r0 config.Manager
+	if returnFunc, ok := ret.Get(0).(func() config.Manager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(config.Manager)
+		}
+	}
+	return r0
+}
+
+// MockUserService_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
+type MockUserService_Config_Call struct {
+	*mock.Call
+}
+
+// Config is a helper method to define mock.On call
+func (_e *MockUserService_Expecter) Config() *MockUserService_Config_Call {
+	return &MockUserService_Config_Call{Call: _e.mock.On("Config")}
+}
+
+func (_c *MockUserService_Config_Call) Run(run func()) *MockUserService_Config_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUserService_Config_Call) Return(manager config.Manager) *MockUserService_Config_Call {
+	_c.Call.Return(manager)
+	return _c
+}
+
+func (_c *MockUserService_Config_Call) RunAndReturn(run func() config.Manager) *MockUserService_Config_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Context provides a mock function for the type MockUserService
+func (_mock *MockUserService) Context() core.Context {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Context")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func() core.Context); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockUserService_Context_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Context'
+type MockUserService_Context_Call struct {
+	*mock.Call
+}
+
+// Context is a helper method to define mock.On call
+func (_e *MockUserService_Expecter) Context() *MockUserService_Context_Call {
+	return &MockUserService_Context_Call{Call: _e.mock.On("Context")}
+}
+
+func (_c *MockUserService_Context_Call) Run(run func()) *MockUserService_Context_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUserService_Context_Call) Return(context1 core.Context) *MockUserService_Context_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockUserService_Context_Call) RunAndReturn(run func() core.Context) *MockUserService_Context_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // CreateAccount provides a mock function for the type MockUserService
-func (_mock *MockUserService) CreateAccount(email string, password string, verifyEmail bool) (*models.User, error) {
-	ret := _mock.Called(email, password, verifyEmail)
+func (_mock *MockUserService) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error) {
+	ret := _mock.Called(ctx, email, password, verifyEmail)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAccount")
@@ -171,18 +280,18 @@ func (_mock *MockUserService) CreateAccount(email string, password string, verif
 
 	var r0 *models.User
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string, bool) (*models.User, error)); ok {
-		return returnFunc(email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) (*models.User, error)); ok {
+		return returnFunc(ctx, email, password, verifyEmail)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string, bool) *models.User); ok {
-		r0 = returnFunc(email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) *models.User); ok {
+		r0 = returnFunc(ctx, email, password, verifyEmail)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string, bool) error); ok {
-		r1 = returnFunc(email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
+		r1 = returnFunc(ctx, email, password, verifyEmail)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -195,31 +304,37 @@ type MockUserService_CreateAccount_Call struct {
 }
 
 // CreateAccount is a helper method to define mock.On call
+//   - ctx context.Context
 //   - email string
 //   - password string
 //   - verifyEmail bool
-func (_e *MockUserService_Expecter) CreateAccount(email interface{}, password interface{}, verifyEmail interface{}) *MockUserService_CreateAccount_Call {
-	return &MockUserService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", email, password, verifyEmail)}
+func (_e *MockUserService_Expecter) CreateAccount(ctx interface{}, email interface{}, password interface{}, verifyEmail interface{}) *MockUserService_CreateAccount_Call {
+	return &MockUserService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, email, password, verifyEmail)}
 }
 
-func (_c *MockUserService_CreateAccount_Call) Run(run func(email string, password string, verifyEmail bool)) *MockUserService_CreateAccount_Call {
+func (_c *MockUserService_CreateAccount_Call) Run(run func(ctx context.Context, email string, password string, verifyEmail bool)) *MockUserService_CreateAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 bool
+		var arg2 string
 		if args[2] != nil {
-			arg2 = args[2].(bool)
+			arg2 = args[2].(string)
+		}
+		var arg3 bool
+		if args[3] != nil {
+			arg3 = args[3].(bool)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -230,22 +345,68 @@ func (_c *MockUserService_CreateAccount_Call) Return(user *models.User, err erro
 	return _c
 }
 
-func (_c *MockUserService_CreateAccount_Call) RunAndReturn(run func(email string, password string, verifyEmail bool) (*models.User, error)) *MockUserService_CreateAccount_Call {
+func (_c *MockUserService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error)) *MockUserService_CreateAccount_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DB provides a mock function for the type MockUserService
+func (_mock *MockUserService) DB() *gorm.DB {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DB")
+	}
+
+	var r0 *gorm.DB
+	if returnFunc, ok := ret.Get(0).(func() *gorm.DB); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gorm.DB)
+		}
+	}
+	return r0
+}
+
+// MockUserService_DB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DB'
+type MockUserService_DB_Call struct {
+	*mock.Call
+}
+
+// DB is a helper method to define mock.On call
+func (_e *MockUserService_Expecter) DB() *MockUserService_DB_Call {
+	return &MockUserService_DB_Call{Call: _e.mock.On("DB")}
+}
+
+func (_c *MockUserService_DB_Call) Run(run func()) *MockUserService_DB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUserService_DB_Call) Return(dB *gorm.DB) *MockUserService_DB_Call {
+	_c.Call.Return(dB)
+	return _c
+}
+
+func (_c *MockUserService_DB_Call) RunAndReturn(run func() *gorm.DB) *MockUserService_DB_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // DeleteAccount provides a mock function for the type MockUserService
-func (_mock *MockUserService) DeleteAccount(userId uint) error {
-	ret := _mock.Called(userId)
+func (_mock *MockUserService) DeleteAccount(ctx context.Context, userId uint) error {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAccount")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint) error); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -258,19 +419,25 @@ type MockUserService_DeleteAccount_Call struct {
 }
 
 // DeleteAccount is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) DeleteAccount(userId interface{}) *MockUserService_DeleteAccount_Call {
-	return &MockUserService_DeleteAccount_Call{Call: _e.mock.On("DeleteAccount", userId)}
+func (_e *MockUserService_Expecter) DeleteAccount(ctx interface{}, userId interface{}) *MockUserService_DeleteAccount_Call {
+	return &MockUserService_DeleteAccount_Call{Call: _e.mock.On("DeleteAccount", ctx, userId)}
 }
 
-func (_c *MockUserService_DeleteAccount_Call) Run(run func(userId uint)) *MockUserService_DeleteAccount_Call {
+func (_c *MockUserService_DeleteAccount_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_DeleteAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -281,14 +448,14 @@ func (_c *MockUserService_DeleteAccount_Call) Return(err error) *MockUserService
 	return _c
 }
 
-func (_c *MockUserService_DeleteAccount_Call) RunAndReturn(run func(userId uint) error) *MockUserService_DeleteAccount_Call {
+func (_c *MockUserService_DeleteAccount_Call) RunAndReturn(run func(ctx context.Context, userId uint) error) *MockUserService_DeleteAccount_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // EmailExists provides a mock function for the type MockUserService
-func (_mock *MockUserService) EmailExists(email string) (bool, *models.User, error) {
-	ret := _mock.Called(email)
+func (_mock *MockUserService) EmailExists(ctx context.Context, email string) (bool, *models.User, error) {
+	ret := _mock.Called(ctx, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for EmailExists")
@@ -297,23 +464,23 @@ func (_mock *MockUserService) EmailExists(email string) (bool, *models.User, err
 	var r0 bool
 	var r1 *models.User
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(string) (bool, *models.User, error)); ok {
-		return returnFunc(email)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (bool, *models.User, error)); ok {
+		return returnFunc(ctx, email)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) bool); ok {
-		r0 = returnFunc(email)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = returnFunc(ctx, email)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) *models.User); ok {
-		r1 = returnFunc(email)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *models.User); ok {
+		r1 = returnFunc(ctx, email)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(string) error); ok {
-		r2 = returnFunc(email)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, email)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -326,19 +493,25 @@ type MockUserService_EmailExists_Call struct {
 }
 
 // EmailExists is a helper method to define mock.On call
+//   - ctx context.Context
 //   - email string
-func (_e *MockUserService_Expecter) EmailExists(email interface{}) *MockUserService_EmailExists_Call {
-	return &MockUserService_EmailExists_Call{Call: _e.mock.On("EmailExists", email)}
+func (_e *MockUserService_Expecter) EmailExists(ctx interface{}, email interface{}) *MockUserService_EmailExists_Call {
+	return &MockUserService_EmailExists_Call{Call: _e.mock.On("EmailExists", ctx, email)}
 }
 
-func (_c *MockUserService_EmailExists_Call) Run(run func(email string)) *MockUserService_EmailExists_Call {
+func (_c *MockUserService_EmailExists_Call) Run(run func(ctx context.Context, email string)) *MockUserService_EmailExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -349,14 +522,14 @@ func (_c *MockUserService_EmailExists_Call) Return(b bool, user *models.User, er
 	return _c
 }
 
-func (_c *MockUserService_EmailExists_Call) RunAndReturn(run func(email string) (bool, *models.User, error)) *MockUserService_EmailExists_Call {
+func (_c *MockUserService_EmailExists_Call) RunAndReturn(run func(ctx context.Context, email string) (bool, *models.User, error)) *MockUserService_EmailExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Exists provides a mock function for the type MockUserService
-func (_mock *MockUserService) Exists(model any, conditions map[string]any) (bool, any, error) {
-	ret := _mock.Called(model, conditions)
+func (_mock *MockUserService) Exists(ctx context.Context, model any, conditions map[string]any) (bool, any, error) {
+	ret := _mock.Called(ctx, model, conditions)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Exists")
@@ -365,23 +538,23 @@ func (_mock *MockUserService) Exists(model any, conditions map[string]any) (bool
 	var r0 bool
 	var r1 any
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(any, map[string]any) (bool, any, error)); ok {
-		return returnFunc(model, conditions)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, map[string]any) (bool, any, error)); ok {
+		return returnFunc(ctx, model, conditions)
 	}
-	if returnFunc, ok := ret.Get(0).(func(any, map[string]any) bool); ok {
-		r0 = returnFunc(model, conditions)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, any, map[string]any) bool); ok {
+		r0 = returnFunc(ctx, model, conditions)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(any, map[string]any) any); ok {
-		r1 = returnFunc(model, conditions)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, any, map[string]any) any); ok {
+		r1 = returnFunc(ctx, model, conditions)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(any)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(any, map[string]any) error); ok {
-		r2 = returnFunc(model, conditions)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, any, map[string]any) error); ok {
+		r2 = returnFunc(ctx, model, conditions)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -394,25 +567,31 @@ type MockUserService_Exists_Call struct {
 }
 
 // Exists is a helper method to define mock.On call
+//   - ctx context.Context
 //   - model any
 //   - conditions map[string]any
-func (_e *MockUserService_Expecter) Exists(model interface{}, conditions interface{}) *MockUserService_Exists_Call {
-	return &MockUserService_Exists_Call{Call: _e.mock.On("Exists", model, conditions)}
+func (_e *MockUserService_Expecter) Exists(ctx interface{}, model interface{}, conditions interface{}) *MockUserService_Exists_Call {
+	return &MockUserService_Exists_Call{Call: _e.mock.On("Exists", ctx, model, conditions)}
 }
 
-func (_c *MockUserService_Exists_Call) Run(run func(model any, conditions map[string]any)) *MockUserService_Exists_Call {
+func (_c *MockUserService_Exists_Call) Run(run func(ctx context.Context, model any, conditions map[string]any)) *MockUserService_Exists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 any
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(any)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 map[string]any
+		var arg1 any
 		if args[1] != nil {
-			arg1 = args[1].(map[string]any)
+			arg1 = args[1].(any)
+		}
+		var arg2 map[string]any
+		if args[2] != nil {
+			arg2 = args[2].(map[string]any)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -423,14 +602,14 @@ func (_c *MockUserService_Exists_Call) Return(b bool, v any, err error) *MockUse
 	return _c
 }
 
-func (_c *MockUserService_Exists_Call) RunAndReturn(run func(model any, conditions map[string]any) (bool, any, error)) *MockUserService_Exists_Call {
+func (_c *MockUserService_Exists_Call) RunAndReturn(run func(ctx context.Context, model any, conditions map[string]any) (bool, any, error)) *MockUserService_Exists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetAccountsPendingDeletion provides a mock function for the type MockUserService
-func (_mock *MockUserService) GetAccountsPendingDeletion() ([]*models.User, error) {
-	ret := _mock.Called()
+func (_mock *MockUserService) GetAccountsPendingDeletion(ctx context.Context) ([]*models.User, error) {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAccountsPendingDeletion")
@@ -438,18 +617,18 @@ func (_mock *MockUserService) GetAccountsPendingDeletion() ([]*models.User, erro
 
 	var r0 []*models.User
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func() ([]*models.User, error)); ok {
-		return returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) ([]*models.User, error)); ok {
+		return returnFunc(ctx)
 	}
-	if returnFunc, ok := ret.Get(0).(func() []*models.User); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) []*models.User); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func() error); ok {
-		r1 = returnFunc()
+	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = returnFunc(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -462,13 +641,20 @@ type MockUserService_GetAccountsPendingDeletion_Call struct {
 }
 
 // GetAccountsPendingDeletion is a helper method to define mock.On call
-func (_e *MockUserService_Expecter) GetAccountsPendingDeletion() *MockUserService_GetAccountsPendingDeletion_Call {
-	return &MockUserService_GetAccountsPendingDeletion_Call{Call: _e.mock.On("GetAccountsPendingDeletion")}
+//   - ctx context.Context
+func (_e *MockUserService_Expecter) GetAccountsPendingDeletion(ctx interface{}) *MockUserService_GetAccountsPendingDeletion_Call {
+	return &MockUserService_GetAccountsPendingDeletion_Call{Call: _e.mock.On("GetAccountsPendingDeletion", ctx)}
 }
 
-func (_c *MockUserService_GetAccountsPendingDeletion_Call) Run(run func()) *MockUserService_GetAccountsPendingDeletion_Call {
+func (_c *MockUserService_GetAccountsPendingDeletion_Call) Run(run func(ctx context.Context)) *MockUserService_GetAccountsPendingDeletion_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -478,7 +664,7 @@ func (_c *MockUserService_GetAccountsPendingDeletion_Call) Return(users []*model
 	return _c
 }
 
-func (_c *MockUserService_GetAccountsPendingDeletion_Call) RunAndReturn(run func() ([]*models.User, error)) *MockUserService_GetAccountsPendingDeletion_Call {
+func (_c *MockUserService_GetAccountsPendingDeletion_Call) RunAndReturn(run func(ctx context.Context) ([]*models.User, error)) *MockUserService_GetAccountsPendingDeletion_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -588,8 +774,8 @@ func (_c *MockUserService_ID_Call) RunAndReturn(run func() string) *MockUserServ
 }
 
 // IsAccountPendingDeletion provides a mock function for the type MockUserService
-func (_mock *MockUserService) IsAccountPendingDeletion(userId uint) (bool, error) {
-	ret := _mock.Called(userId)
+func (_mock *MockUserService) IsAccountPendingDeletion(ctx context.Context, userId uint) (bool, error) {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IsAccountPendingDeletion")
@@ -597,16 +783,16 @@ func (_mock *MockUserService) IsAccountPendingDeletion(userId uint) (bool, error
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint) (bool, error)); ok {
-		return returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (bool, error)); ok {
+		return returnFunc(ctx, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) bool); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) bool); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) error); ok {
-		r1 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -619,19 +805,25 @@ type MockUserService_IsAccountPendingDeletion_Call struct {
 }
 
 // IsAccountPendingDeletion is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) IsAccountPendingDeletion(userId interface{}) *MockUserService_IsAccountPendingDeletion_Call {
-	return &MockUserService_IsAccountPendingDeletion_Call{Call: _e.mock.On("IsAccountPendingDeletion", userId)}
+func (_e *MockUserService_Expecter) IsAccountPendingDeletion(ctx interface{}, userId interface{}) *MockUserService_IsAccountPendingDeletion_Call {
+	return &MockUserService_IsAccountPendingDeletion_Call{Call: _e.mock.On("IsAccountPendingDeletion", ctx, userId)}
 }
 
-func (_c *MockUserService_IsAccountPendingDeletion_Call) Run(run func(userId uint)) *MockUserService_IsAccountPendingDeletion_Call {
+func (_c *MockUserService_IsAccountPendingDeletion_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_IsAccountPendingDeletion_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -642,14 +834,14 @@ func (_c *MockUserService_IsAccountPendingDeletion_Call) Return(b bool, err erro
 	return _c
 }
 
-func (_c *MockUserService_IsAccountPendingDeletion_Call) RunAndReturn(run func(userId uint) (bool, error)) *MockUserService_IsAccountPendingDeletion_Call {
+func (_c *MockUserService_IsAccountPendingDeletion_Call) RunAndReturn(run func(ctx context.Context, userId uint) (bool, error)) *MockUserService_IsAccountPendingDeletion_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // IsAccountVerified provides a mock function for the type MockUserService
-func (_mock *MockUserService) IsAccountVerified(userId uint) (bool, error) {
-	ret := _mock.Called(userId)
+func (_mock *MockUserService) IsAccountVerified(ctx context.Context, userId uint) (bool, error) {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IsAccountVerified")
@@ -657,16 +849,16 @@ func (_mock *MockUserService) IsAccountVerified(userId uint) (bool, error) {
 
 	var r0 bool
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(uint) (bool, error)); ok {
-		return returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) (bool, error)); ok {
+		return returnFunc(ctx, userId)
 	}
-	if returnFunc, ok := ret.Get(0).(func(uint) bool); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) bool); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(uint) error); ok {
-		r1 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -679,19 +871,25 @@ type MockUserService_IsAccountVerified_Call struct {
 }
 
 // IsAccountVerified is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) IsAccountVerified(userId interface{}) *MockUserService_IsAccountVerified_Call {
-	return &MockUserService_IsAccountVerified_Call{Call: _e.mock.On("IsAccountVerified", userId)}
+func (_e *MockUserService_Expecter) IsAccountVerified(ctx interface{}, userId interface{}) *MockUserService_IsAccountVerified_Call {
+	return &MockUserService_IsAccountVerified_Call{Call: _e.mock.On("IsAccountVerified", ctx, userId)}
 }
 
-func (_c *MockUserService_IsAccountVerified_Call) Run(run func(userId uint)) *MockUserService_IsAccountVerified_Call {
+func (_c *MockUserService_IsAccountVerified_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_IsAccountVerified_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
 		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -702,14 +900,60 @@ func (_c *MockUserService_IsAccountVerified_Call) Return(b bool, err error) *Moc
 	return _c
 }
 
-func (_c *MockUserService_IsAccountVerified_Call) RunAndReturn(run func(userId uint) (bool, error)) *MockUserService_IsAccountVerified_Call {
+func (_c *MockUserService_IsAccountVerified_Call) RunAndReturn(run func(ctx context.Context, userId uint) (bool, error)) *MockUserService_IsAccountVerified_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Logger provides a mock function for the type MockUserService
+func (_mock *MockUserService) Logger() *core.Logger {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Logger")
+	}
+
+	var r0 *core.Logger
+	if returnFunc, ok := ret.Get(0).(func() *core.Logger); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.Logger)
+		}
+	}
+	return r0
+}
+
+// MockUserService_Logger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Logger'
+type MockUserService_Logger_Call struct {
+	*mock.Call
+}
+
+// Logger is a helper method to define mock.On call
+func (_e *MockUserService_Expecter) Logger() *MockUserService_Logger_Call {
+	return &MockUserService_Logger_Call{Call: _e.mock.On("Logger")}
+}
+
+func (_c *MockUserService_Logger_Call) Run(run func()) *MockUserService_Logger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockUserService_Logger_Call) Return(logger *core.Logger) *MockUserService_Logger_Call {
+	_c.Call.Return(logger)
+	return _c
+}
+
+func (_c *MockUserService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockUserService_Logger_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PubkeyExists provides a mock function for the type MockUserService
-func (_mock *MockUserService) PubkeyExists(pubkey string) (bool, *models.PublicKey, error) {
-	ret := _mock.Called(pubkey)
+func (_mock *MockUserService) PubkeyExists(ctx context.Context, pubkey string) (bool, *models.PublicKey, error) {
+	ret := _mock.Called(ctx, pubkey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for PubkeyExists")
@@ -718,23 +962,23 @@ func (_mock *MockUserService) PubkeyExists(pubkey string) (bool, *models.PublicK
 	var r0 bool
 	var r1 *models.PublicKey
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(string) (bool, *models.PublicKey, error)); ok {
-		return returnFunc(pubkey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (bool, *models.PublicKey, error)); ok {
+		return returnFunc(ctx, pubkey)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string) bool); ok {
-		r0 = returnFunc(pubkey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = returnFunc(ctx, pubkey)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(string) *models.PublicKey); ok {
-		r1 = returnFunc(pubkey)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *models.PublicKey); ok {
+		r1 = returnFunc(ctx, pubkey)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*models.PublicKey)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(string) error); ok {
-		r2 = returnFunc(pubkey)
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, pubkey)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -747,68 +991,17 @@ type MockUserService_PubkeyExists_Call struct {
 }
 
 // PubkeyExists is a helper method to define mock.On call
+//   - ctx context.Context
 //   - pubkey string
-func (_e *MockUserService_Expecter) PubkeyExists(pubkey interface{}) *MockUserService_PubkeyExists_Call {
-	return &MockUserService_PubkeyExists_Call{Call: _e.mock.On("PubkeyExists", pubkey)}
+func (_e *MockUserService_Expecter) PubkeyExists(ctx interface{}, pubkey interface{}) *MockUserService_PubkeyExists_Call {
+	return &MockUserService_PubkeyExists_Call{Call: _e.mock.On("PubkeyExists", ctx, pubkey)}
 }
 
-func (_c *MockUserService_PubkeyExists_Call) Run(run func(pubkey string)) *MockUserService_PubkeyExists_Call {
+func (_c *MockUserService_PubkeyExists_Call) Run(run func(ctx context.Context, pubkey string)) *MockUserService_PubkeyExists_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUserService_PubkeyExists_Call) Return(b bool, publicKey *models.PublicKey, err error) *MockUserService_PubkeyExists_Call {
-	_c.Call.Return(b, publicKey, err)
-	return _c
-}
-
-func (_c *MockUserService_PubkeyExists_Call) RunAndReturn(run func(pubkey string) (bool, *models.PublicKey, error)) *MockUserService_PubkeyExists_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RequestAccountDeletion provides a mock function for the type MockUserService
-func (_mock *MockUserService) RequestAccountDeletion(userId uint, userIP string) error {
-	ret := _mock.Called(userId, userIP)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RequestAccountDeletion")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string) error); ok {
-		r0 = returnFunc(userId, userIP)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockUserService_RequestAccountDeletion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RequestAccountDeletion'
-type MockUserService_RequestAccountDeletion_Call struct {
-	*mock.Call
-}
-
-// RequestAccountDeletion is a helper method to define mock.On call
-//   - userId uint
-//   - userIP string
-func (_e *MockUserService_Expecter) RequestAccountDeletion(userId interface{}, userIP interface{}) *MockUserService_RequestAccountDeletion_Call {
-	return &MockUserService_RequestAccountDeletion_Call{Call: _e.mock.On("RequestAccountDeletion", userId, userIP)}
-}
-
-func (_c *MockUserService_RequestAccountDeletion_Call) Run(run func(userId uint, userIP string)) *MockUserService_RequestAccountDeletion_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
-		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -822,106 +1015,55 @@ func (_c *MockUserService_RequestAccountDeletion_Call) Run(run func(userId uint,
 	return _c
 }
 
-func (_c *MockUserService_RequestAccountDeletion_Call) Return(err error) *MockUserService_RequestAccountDeletion_Call {
-	_c.Call.Return(err)
+func (_c *MockUserService_PubkeyExists_Call) Return(b bool, publicKey *models.PublicKey, err error) *MockUserService_PubkeyExists_Call {
+	_c.Call.Return(b, publicKey, err)
 	return _c
 }
 
-func (_c *MockUserService_RequestAccountDeletion_Call) RunAndReturn(run func(userId uint, userIP string) error) *MockUserService_RequestAccountDeletion_Call {
+func (_c *MockUserService_PubkeyExists_Call) RunAndReturn(run func(ctx context.Context, pubkey string) (bool, *models.PublicKey, error)) *MockUserService_PubkeyExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// SendEmailVerification provides a mock function for the type MockUserService
-func (_mock *MockUserService) SendEmailVerification(userId uint) error {
-	ret := _mock.Called(userId)
+// RequestAccountDeletion provides a mock function for the type MockUserService
+func (_mock *MockUserService) RequestAccountDeletion(ctx context.Context, userId uint, userIP string) error {
+	ret := _mock.Called(ctx, userId, userIP)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SendEmailVerification")
+		panic("no return value specified for RequestAccountDeletion")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint) error); ok {
-		r0 = returnFunc(userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string) error); ok {
+		r0 = returnFunc(ctx, userId, userIP)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockUserService_SendEmailVerification_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendEmailVerification'
-type MockUserService_SendEmailVerification_Call struct {
+// MockUserService_RequestAccountDeletion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RequestAccountDeletion'
+type MockUserService_RequestAccountDeletion_Call struct {
 	*mock.Call
 }
 
-// SendEmailVerification is a helper method to define mock.On call
+// RequestAccountDeletion is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) SendEmailVerification(userId interface{}) *MockUserService_SendEmailVerification_Call {
-	return &MockUserService_SendEmailVerification_Call{Call: _e.mock.On("SendEmailVerification", userId)}
+//   - userIP string
+func (_e *MockUserService_Expecter) RequestAccountDeletion(ctx interface{}, userId interface{}, userIP interface{}) *MockUserService_RequestAccountDeletion_Call {
+	return &MockUserService_RequestAccountDeletion_Call{Call: _e.mock.On("RequestAccountDeletion", ctx, userId, userIP)}
 }
 
-func (_c *MockUserService_SendEmailVerification_Call) Run(run func(userId uint)) *MockUserService_SendEmailVerification_Call {
+func (_c *MockUserService_RequestAccountDeletion_Call) Run(run func(ctx context.Context, userId uint, userIP string)) *MockUserService_RequestAccountDeletion_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUserService_SendEmailVerification_Call) Return(err error) *MockUserService_SendEmailVerification_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockUserService_SendEmailVerification_Call) RunAndReturn(run func(userId uint) error) *MockUserService_SendEmailVerification_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// UpdateAccountEmail provides a mock function for the type MockUserService
-func (_mock *MockUserService) UpdateAccountEmail(userId uint, email string, password string) error {
-	ret := _mock.Called(userId, email, password)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateAccountEmail")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, string) error); ok {
-		r0 = returnFunc(userId, email, password)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockUserService_UpdateAccountEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAccountEmail'
-type MockUserService_UpdateAccountEmail_Call struct {
-	*mock.Call
-}
-
-// UpdateAccountEmail is a helper method to define mock.On call
-//   - userId uint
-//   - email string
-//   - password string
-func (_e *MockUserService_Expecter) UpdateAccountEmail(userId interface{}, email interface{}, password interface{}) *MockUserService_UpdateAccountEmail_Call {
-	return &MockUserService_UpdateAccountEmail_Call{Call: _e.mock.On("UpdateAccountEmail", userId, email, password)}
-}
-
-func (_c *MockUserService_UpdateAccountEmail_Call) Run(run func(userId uint, email string, password string)) *MockUserService_UpdateAccountEmail_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
-		if args[0] != nil {
-			arg0 = args[0].(uint)
-		}
-		var arg1 string
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(uint)
 		}
 		var arg2 string
 		if args[2] != nil {
@@ -936,27 +1078,313 @@ func (_c *MockUserService_UpdateAccountEmail_Call) Run(run func(userId uint, ema
 	return _c
 }
 
+func (_c *MockUserService_RequestAccountDeletion_Call) Return(err error) *MockUserService_RequestAccountDeletion_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_RequestAccountDeletion_Call) RunAndReturn(run func(ctx context.Context, userId uint, userIP string) error) *MockUserService_RequestAccountDeletion_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SendEmailVerification provides a mock function for the type MockUserService
+func (_mock *MockUserService) SendEmailVerification(ctx context.Context, userId uint) error {
+	ret := _mock.Called(ctx, userId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SendEmailVerification")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
+		r0 = returnFunc(ctx, userId)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_SendEmailVerification_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendEmailVerification'
+type MockUserService_SendEmailVerification_Call struct {
+	*mock.Call
+}
+
+// SendEmailVerification is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userId uint
+func (_e *MockUserService_Expecter) SendEmailVerification(ctx interface{}, userId interface{}) *MockUserService_SendEmailVerification_Call {
+	return &MockUserService_SendEmailVerification_Call{Call: _e.mock.On("SendEmailVerification", ctx, userId)}
+}
+
+func (_c *MockUserService_SendEmailVerification_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_SendEmailVerification_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_SendEmailVerification_Call) Return(err error) *MockUserService_SendEmailVerification_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_SendEmailVerification_Call) RunAndReturn(run func(ctx context.Context, userId uint) error) *MockUserService_SendEmailVerification_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetConfig provides a mock function for the type MockUserService
+func (_mock *MockUserService) SetConfig(cfg config.Manager) {
+	_mock.Called(cfg)
+	return
+}
+
+// MockUserService_SetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetConfig'
+type MockUserService_SetConfig_Call struct {
+	*mock.Call
+}
+
+// SetConfig is a helper method to define mock.On call
+//   - cfg config.Manager
+func (_e *MockUserService_Expecter) SetConfig(cfg interface{}) *MockUserService_SetConfig_Call {
+	return &MockUserService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
+}
+
+func (_c *MockUserService_SetConfig_Call) Run(run func(cfg config.Manager)) *MockUserService_SetConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 config.Manager
+		if args[0] != nil {
+			arg0 = args[0].(config.Manager)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_SetConfig_Call) Return() *MockUserService_SetConfig_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUserService_SetConfig_Call) RunAndReturn(run func(cfg config.Manager)) *MockUserService_SetConfig_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetContext provides a mock function for the type MockUserService
+func (_mock *MockUserService) SetContext(ctx core.Context) {
+	_mock.Called(ctx)
+	return
+}
+
+// MockUserService_SetContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetContext'
+type MockUserService_SetContext_Call struct {
+	*mock.Call
+}
+
+// SetContext is a helper method to define mock.On call
+//   - ctx core.Context
+func (_e *MockUserService_Expecter) SetContext(ctx interface{}) *MockUserService_SetContext_Call {
+	return &MockUserService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
+}
+
+func (_c *MockUserService_SetContext_Call) Run(run func(ctx core.Context)) *MockUserService_SetContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_SetContext_Call) Return() *MockUserService_SetContext_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUserService_SetContext_Call) RunAndReturn(run func(ctx core.Context)) *MockUserService_SetContext_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDB provides a mock function for the type MockUserService
+func (_mock *MockUserService) SetDB(db *gorm.DB) {
+	_mock.Called(db)
+	return
+}
+
+// MockUserService_SetDB_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDB'
+type MockUserService_SetDB_Call struct {
+	*mock.Call
+}
+
+// SetDB is a helper method to define mock.On call
+//   - db *gorm.DB
+func (_e *MockUserService_Expecter) SetDB(db interface{}) *MockUserService_SetDB_Call {
+	return &MockUserService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
+}
+
+func (_c *MockUserService_SetDB_Call) Run(run func(db *gorm.DB)) *MockUserService_SetDB_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *gorm.DB
+		if args[0] != nil {
+			arg0 = args[0].(*gorm.DB)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_SetDB_Call) Return() *MockUserService_SetDB_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUserService_SetDB_Call) RunAndReturn(run func(db *gorm.DB)) *MockUserService_SetDB_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetLogger provides a mock function for the type MockUserService
+func (_mock *MockUserService) SetLogger(logger *core.Logger) {
+	_mock.Called(logger)
+	return
+}
+
+// MockUserService_SetLogger_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetLogger'
+type MockUserService_SetLogger_Call struct {
+	*mock.Call
+}
+
+// SetLogger is a helper method to define mock.On call
+//   - logger *core.Logger
+func (_e *MockUserService_Expecter) SetLogger(logger interface{}) *MockUserService_SetLogger_Call {
+	return &MockUserService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
+}
+
+func (_c *MockUserService_SetLogger_Call) Run(run func(logger *core.Logger)) *MockUserService_SetLogger_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.Logger
+		if args[0] != nil {
+			arg0 = args[0].(*core.Logger)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_SetLogger_Call) Return() *MockUserService_SetLogger_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockUserService_SetLogger_Call) RunAndReturn(run func(logger *core.Logger)) *MockUserService_SetLogger_Call {
+	_c.Run(run)
+	return _c
+}
+
+// UpdateAccountEmail provides a mock function for the type MockUserService
+func (_mock *MockUserService) UpdateAccountEmail(ctx context.Context, userId uint, email string, password string) error {
+	ret := _mock.Called(ctx, userId, email, password)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAccountEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string) error); ok {
+		r0 = returnFunc(ctx, userId, email, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_UpdateAccountEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAccountEmail'
+type MockUserService_UpdateAccountEmail_Call struct {
+	*mock.Call
+}
+
+// UpdateAccountEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userId uint
+//   - email string
+//   - password string
+func (_e *MockUserService_Expecter) UpdateAccountEmail(ctx interface{}, userId interface{}, email interface{}, password interface{}) *MockUserService_UpdateAccountEmail_Call {
+	return &MockUserService_UpdateAccountEmail_Call{Call: _e.mock.On("UpdateAccountEmail", ctx, userId, email, password)}
+}
+
+func (_c *MockUserService_UpdateAccountEmail_Call) Run(run func(ctx context.Context, userId uint, email string, password string)) *MockUserService_UpdateAccountEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
 func (_c *MockUserService_UpdateAccountEmail_Call) Return(err error) *MockUserService_UpdateAccountEmail_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockUserService_UpdateAccountEmail_Call) RunAndReturn(run func(userId uint, email string, password string) error) *MockUserService_UpdateAccountEmail_Call {
+func (_c *MockUserService_UpdateAccountEmail_Call) RunAndReturn(run func(ctx context.Context, userId uint, email string, password string) error) *MockUserService_UpdateAccountEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UpdateAccountInfo provides a mock function for the type MockUserService
-func (_mock *MockUserService) UpdateAccountInfo(userId uint, info map[string]any) error {
-	ret := _mock.Called(userId, info)
+func (_mock *MockUserService) UpdateAccountInfo(ctx context.Context, userId uint, info map[string]any) error {
+	ret := _mock.Called(ctx, userId, info)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAccountInfo")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, map[string]any) error); ok {
-		r0 = returnFunc(userId, info)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, map[string]any) error); ok {
+		r0 = returnFunc(ctx, userId, info)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -969,25 +1397,31 @@ type MockUserService_UpdateAccountInfo_Call struct {
 }
 
 // UpdateAccountInfo is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - info map[string]any
-func (_e *MockUserService_Expecter) UpdateAccountInfo(userId interface{}, info interface{}) *MockUserService_UpdateAccountInfo_Call {
-	return &MockUserService_UpdateAccountInfo_Call{Call: _e.mock.On("UpdateAccountInfo", userId, info)}
+func (_e *MockUserService_Expecter) UpdateAccountInfo(ctx interface{}, userId interface{}, info interface{}) *MockUserService_UpdateAccountInfo_Call {
+	return &MockUserService_UpdateAccountInfo_Call{Call: _e.mock.On("UpdateAccountInfo", ctx, userId, info)}
 }
 
-func (_c *MockUserService_UpdateAccountInfo_Call) Run(run func(userId uint, info map[string]any)) *MockUserService_UpdateAccountInfo_Call {
+func (_c *MockUserService_UpdateAccountInfo_Call) Run(run func(ctx context.Context, userId uint, info map[string]any)) *MockUserService_UpdateAccountInfo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
 		}
-		var arg1 map[string]any
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(map[string]any)
+			arg1 = args[1].(uint)
+		}
+		var arg2 map[string]any
+		if args[2] != nil {
+			arg2 = args[2].(map[string]any)
 		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -998,22 +1432,22 @@ func (_c *MockUserService_UpdateAccountInfo_Call) Return(err error) *MockUserSer
 	return _c
 }
 
-func (_c *MockUserService_UpdateAccountInfo_Call) RunAndReturn(run func(userId uint, info map[string]any) error) *MockUserService_UpdateAccountInfo_Call {
+func (_c *MockUserService_UpdateAccountInfo_Call) RunAndReturn(run func(ctx context.Context, userId uint, info map[string]any) error) *MockUserService_UpdateAccountInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UpdateAccountName provides a mock function for the type MockUserService
-func (_mock *MockUserService) UpdateAccountName(userId uint, firstName string, lastName string) error {
-	ret := _mock.Called(userId, firstName, lastName)
+func (_mock *MockUserService) UpdateAccountName(userId uint, ctx context.Context, firstName string, lastName string) error {
+	ret := _mock.Called(userId, ctx, firstName, lastName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAccountName")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, string) error); ok {
-		r0 = returnFunc(userId, firstName, lastName)
+	if returnFunc, ok := ret.Get(0).(func(uint, context.Context, string, string) error); ok {
+		r0 = returnFunc(userId, ctx, firstName, lastName)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1027,30 +1461,36 @@ type MockUserService_UpdateAccountName_Call struct {
 
 // UpdateAccountName is a helper method to define mock.On call
 //   - userId uint
+//   - ctx context.Context
 //   - firstName string
 //   - lastName string
-func (_e *MockUserService_Expecter) UpdateAccountName(userId interface{}, firstName interface{}, lastName interface{}) *MockUserService_UpdateAccountName_Call {
-	return &MockUserService_UpdateAccountName_Call{Call: _e.mock.On("UpdateAccountName", userId, firstName, lastName)}
+func (_e *MockUserService_Expecter) UpdateAccountName(userId interface{}, ctx interface{}, firstName interface{}, lastName interface{}) *MockUserService_UpdateAccountName_Call {
+	return &MockUserService_UpdateAccountName_Call{Call: _e.mock.On("UpdateAccountName", userId, ctx, firstName, lastName)}
 }
 
-func (_c *MockUserService_UpdateAccountName_Call) Run(run func(userId uint, firstName string, lastName string)) *MockUserService_UpdateAccountName_Call {
+func (_c *MockUserService_UpdateAccountName_Call) Run(run func(userId uint, ctx context.Context, firstName string, lastName string)) *MockUserService_UpdateAccountName_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 uint
 		if args[0] != nil {
 			arg0 = args[0].(uint)
 		}
-		var arg1 string
+		var arg1 context.Context
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(context.Context)
 		}
 		var arg2 string
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -1061,22 +1501,22 @@ func (_c *MockUserService_UpdateAccountName_Call) Return(err error) *MockUserSer
 	return _c
 }
 
-func (_c *MockUserService_UpdateAccountName_Call) RunAndReturn(run func(userId uint, firstName string, lastName string) error) *MockUserService_UpdateAccountName_Call {
+func (_c *MockUserService_UpdateAccountName_Call) RunAndReturn(run func(userId uint, ctx context.Context, firstName string, lastName string) error) *MockUserService_UpdateAccountName_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UpdateAccountPassword provides a mock function for the type MockUserService
-func (_mock *MockUserService) UpdateAccountPassword(userId uint, password string, newPassword string) error {
-	ret := _mock.Called(userId, password, newPassword)
+func (_mock *MockUserService) UpdateAccountPassword(ctx context.Context, userId uint, password string, newPassword string) error {
+	ret := _mock.Called(ctx, userId, password, newPassword)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAccountPassword")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(uint, string, string) error); ok {
-		r0 = returnFunc(userId, password, newPassword)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string) error); ok {
+		r0 = returnFunc(ctx, userId, password, newPassword)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1089,18 +1529,87 @@ type MockUserService_UpdateAccountPassword_Call struct {
 }
 
 // UpdateAccountPassword is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId uint
 //   - password string
 //   - newPassword string
-func (_e *MockUserService_Expecter) UpdateAccountPassword(userId interface{}, password interface{}, newPassword interface{}) *MockUserService_UpdateAccountPassword_Call {
-	return &MockUserService_UpdateAccountPassword_Call{Call: _e.mock.On("UpdateAccountPassword", userId, password, newPassword)}
+func (_e *MockUserService_Expecter) UpdateAccountPassword(ctx interface{}, userId interface{}, password interface{}, newPassword interface{}) *MockUserService_UpdateAccountPassword_Call {
+	return &MockUserService_UpdateAccountPassword_Call{Call: _e.mock.On("UpdateAccountPassword", ctx, userId, password, newPassword)}
 }
 
-func (_c *MockUserService_UpdateAccountPassword_Call) Run(run func(userId uint, password string, newPassword string)) *MockUserService_UpdateAccountPassword_Call {
+func (_c *MockUserService_UpdateAccountPassword_Call) Run(run func(ctx context.Context, userId uint, password string, newPassword string)) *MockUserService_UpdateAccountPassword_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 uint
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(uint)
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_UpdateAccountPassword_Call) Return(err error) *MockUserService_UpdateAccountPassword_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_UpdateAccountPassword_Call) RunAndReturn(run func(ctx context.Context, userId uint, password string, newPassword string) error) *MockUserService_UpdateAccountPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// VerifyEmail provides a mock function for the type MockUserService
+func (_mock *MockUserService) VerifyEmail(ctx context.Context, email string, token string) error {
+	ret := _mock.Called(ctx, email, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyEmail")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = returnFunc(ctx, email, token)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_VerifyEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyEmail'
+type MockUserService_VerifyEmail_Call struct {
+	*mock.Call
+}
+
+// VerifyEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - email string
+//   - token string
+func (_e *MockUserService_Expecter) VerifyEmail(ctx interface{}, email interface{}, token interface{}) *MockUserService_VerifyEmail_Call {
+	return &MockUserService_VerifyEmail_Call{Call: _e.mock.On("VerifyEmail", ctx, email, token)}
+}
+
+func (_c *MockUserService_VerifyEmail_Call) Run(run func(ctx context.Context, email string, token string)) *MockUserService_VerifyEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
@@ -1119,69 +1628,12 @@ func (_c *MockUserService_UpdateAccountPassword_Call) Run(run func(userId uint, 
 	return _c
 }
 
-func (_c *MockUserService_UpdateAccountPassword_Call) Return(err error) *MockUserService_UpdateAccountPassword_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockUserService_UpdateAccountPassword_Call) RunAndReturn(run func(userId uint, password string, newPassword string) error) *MockUserService_UpdateAccountPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// VerifyEmail provides a mock function for the type MockUserService
-func (_mock *MockUserService) VerifyEmail(email string, token string) error {
-	ret := _mock.Called(email, token)
-
-	if len(ret) == 0 {
-		panic("no return value specified for VerifyEmail")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = returnFunc(email, token)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockUserService_VerifyEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyEmail'
-type MockUserService_VerifyEmail_Call struct {
-	*mock.Call
-}
-
-// VerifyEmail is a helper method to define mock.On call
-//   - email string
-//   - token string
-func (_e *MockUserService_Expecter) VerifyEmail(email interface{}, token interface{}) *MockUserService_VerifyEmail_Call {
-	return &MockUserService_VerifyEmail_Call{Call: _e.mock.On("VerifyEmail", email, token)}
-}
-
-func (_c *MockUserService_VerifyEmail_Call) Run(run func(email string, token string)) *MockUserService_VerifyEmail_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
-		if args[0] != nil {
-			arg0 = args[0].(string)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
 func (_c *MockUserService_VerifyEmail_Call) Return(err error) *MockUserService_VerifyEmail_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockUserService_VerifyEmail_Call) RunAndReturn(run func(email string, token string) error) *MockUserService_VerifyEmail_Call {
+func (_c *MockUserService_VerifyEmail_Call) RunAndReturn(run func(ctx context.Context, email string, token string) error) *MockUserService_VerifyEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }
