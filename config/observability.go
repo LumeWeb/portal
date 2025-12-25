@@ -32,26 +32,25 @@ var (
 )
 
 type ObservabilityConfig struct {
-	Enabled bool          `config:"enabled"`
-	Tracing TracingConfig `config:"tracing"`
-	Metrics MetricsConfig `config:"metrics"`
-	Logging LoggingConfig `config:"logging"`
+	Enabled     bool          `config:"enabled"`
+	ServiceName string        `config:"service_name"`
+	Tracing     TracingConfig `config:"tracing"`
+	Metrics     MetricsConfig `config:"metrics"`
+	Logging     LoggingConfig `config:"logging"`
 }
 
 type TracingConfig struct {
 	Enabled      bool    `config:"enabled"`
-	ServiceName  string  `config:"service_name"`
 	Sampler      string  `config:"sampler"`       // always, never, traceidratio
 	SamplerRatio float64 `config:"sampler_ratio"` // 0.0-1.0, only for traceidratio
 	Exporter     string  `config:"exporter"`      // otlp, none
 	OTLPEndpoint string  `config:"otlp_endpoint"`
-	Insecure     bool    `config:"insecure"`      // use insecure connection (no TLS) for OTLP
+	Insecure     bool    `config:"insecure"` // use insecure connection (no TLS) for OTLP
 }
 
 func (t TracingConfig) Schema() z.ZogSchema {
 	return z.Struct(z.Shape{
-		"Enabled":     z.Bool(),
-		"ServiceName": z.String(),
+		"Enabled": z.Bool(),
 		"Sampler": z.String().
 			OneOf([]string{SamplerAlways, SamplerNever, SamplerTraceIDRatio}, z.Message("sampler must be one of: always, never, traceidratio")),
 		"SamplerRatio": z.Float64().
@@ -60,7 +59,7 @@ func (t TracingConfig) Schema() z.ZogSchema {
 		"Exporter": z.String().
 			OneOf([]string{ExporterOTLP, ExporterNone}, z.Message("exporter must be one of: otlp, none")),
 		"OTLPEndpoint": z.String(),
-		"Insecure":   z.Bool(),
+		"Insecure":     z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*TracingConfig)
 		if !ok {
@@ -86,7 +85,6 @@ func (t TracingConfig) Schema() z.ZogSchema {
 func (t TracingConfig) Defaults() map[string]any {
 	return map[string]any{
 		"Enabled":      true,
-		"ServiceName":  DefaultServiceName,
 		"Sampler":      SamplerAlways,
 		"SamplerRatio": 1.0,
 		"Exporter":     ExporterOTLP,
@@ -129,10 +127,9 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 	return z.Struct(z.Shape{
 		"Enabled": z.Bool(),
 		"Level": z.String().
-			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")).
-			Default("info"),
+			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")),
 		"OTLPEndpoint": z.String(),
-		"Insecure":   z.Bool(),
+		"Insecure":     z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*LoggingConfig)
 		if !ok {
@@ -164,16 +161,18 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 	var loggingCfg LoggingConfig
 
 	return z.Struct(z.Shape{
-		"Enabled": z.Bool().Default(false),
-		"Tracing": tracingCfg.Schema(),
-		"Metrics": metricsCfg.Schema(),
-		"Logging": loggingCfg.Schema(),
+		"Enabled":     z.Bool(),
+		"ServiceName": z.String(),
+		"Tracing":     tracingCfg.Schema(),
+		"Metrics":     metricsCfg.Schema(),
+		"Logging":     loggingCfg.Schema(),
 	})
 }
 
 func (o ObservabilityConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled": false,
+		"Enabled":     false,
+		"ServiceName": DefaultServiceName,
 	}
 }
 

@@ -157,7 +157,7 @@ func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
 	return loggerProvider, nil
 }
 func newResource(ctx Context) *resource.Resource {
-	cfg := ctx.Config().Config().Core.Observability.Tracing
+	cfg := ctx.Config().Config().Core.Observability
 	hostname, _ := os.Hostname()
 
 	serviceName := cfg.ServiceName
