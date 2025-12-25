@@ -17,24 +17,24 @@ const (
 
 // Metric label values
 const (
-	LabelOpSave      = "save"
-	LabelOpGet       = "get"
-	LabelOpDelete    = "delete"
-	LabelOpListAll   = "list_all"
-	LabelOpGetByID   = "get_by_id"
-	LabelOpUnknown   = "unknown"
+	LabelOpSave    = "save"
+	LabelOpGet     = "get"
+	LabelOpDelete  = "delete"
+	LabelOpListAll = "list_all"
+	LabelOpGetByID = "get_by_id"
+	LabelOpUnknown = "unknown"
 
 	LabelStatusError = "error"
 )
 
 // Global metric instances
 var (
-	UploadsSaved    prometheus.CounterVec
-	UploadsDeleted  prometheus.CounterVec
-	UploadsQueried  prometheus.CounterVec
-	UploadsListed   prometheus.CounterVec
-	UploadDuration  prometheus.HistogramVec
-	UploadFailed    prometheus.CounterVec
+	UploadsSaved   prometheus.CounterVec
+	UploadsDeleted prometheus.CounterVec
+	UploadsQueried prometheus.CounterVec
+	UploadsListed  prometheus.CounterVec
+	UploadDuration prometheus.HistogramVec
+	UploadFailed   prometheus.CounterVec
 )
 
 // init initializes all upload metrics.

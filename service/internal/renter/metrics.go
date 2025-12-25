@@ -9,38 +9,38 @@ import (
 const (
 	MetricBucketOperationsTotal   = "bucket_operations_total"
 	MetricBucketOperationDuration = "bucket_operation_duration_seconds"
-	MetricObjectOperationsTotal    = "object_operations_total"
+	MetricObjectOperationsTotal   = "object_operations_total"
 	MetricObjectOperationDuration = "object_operation_duration_seconds"
 	MetricApiRequestsTotal        = "api_requests_total"
-	MetricApiLatency             = "api_latency_seconds"
-	MetricGougingCompliance      = "gouging_compliance_status"
+	MetricApiLatency              = "api_latency_seconds"
+	MetricGougingCompliance       = "gouging_compliance_status"
 	MetricRecommendedFee          = "recommended_fee_hastings"
 )
 
 // Metric label values
 const (
-	LabelClientTypeBus      = "bus"
-	LabelClientTypeWorker   = "worker"
+	LabelClientTypeBus       = "bus"
+	LabelClientTypeWorker    = "worker"
 	LabelClientTypeAutopilot = "autopilot"
 
-	LabelOperationCreate    = "create"
-	LabelOperationCheck     = "check"
-	LabelOperationUpload    = "upload"
-	LabelOperationDownload  = "download"
-	LabelOperationDelete    = "delete"
+	LabelOperationCreate   = "create"
+	LabelOperationCheck    = "check"
+	LabelOperationUpload   = "upload"
+	LabelOperationDownload = "download"
+	LabelOperationDelete   = "delete"
 
 	LabelStatusSuccess = "success"
 	LabelStatusError   = "error"
 
-	LabelEndpointBucket            = "bucket"
-	LabelEndpointObject            = "object"
-	LabelEndpointObjectMetadata    = "object_metadata"
-	LabelEndpointMultipartUpload   = "multipart_upload"
-	LabelEndpointHost             = "host"
-	LabelEndpointConsensus        = "consensus"
-	LabelEndpointFee              = "fee"
-	LabelEndpointGouging          = "gouging"
-	LabelEndpointUploadSettings   = "upload_settings"
+	LabelEndpointBucket              = "bucket"
+	LabelEndpointObject              = "object"
+	LabelEndpointObjectMetadata      = "object_metadata"
+	LabelEndpointMultipartUpload     = "multipart_upload"
+	LabelEndpointHost                = "host"
+	LabelEndpointConsensus           = "consensus"
+	LabelEndpointFee                 = "fee"
+	LabelEndpointGouging             = "gouging"
+	LabelEndpointUploadSettings      = "upload_settings"
 	LabelEndpointMultipartUploadPart = "multipart_upload_part"
 )
 
@@ -48,11 +48,11 @@ const (
 var (
 	BucketOperationsTotal   prometheus.CounterVec
 	BucketOperationDuration prometheus.HistogramVec
-	ObjectOperationsTotal    prometheus.CounterVec
-	ObjectOperationDuration  prometheus.HistogramVec
+	ObjectOperationsTotal   prometheus.CounterVec
+	ObjectOperationDuration prometheus.HistogramVec
 	ApiRequestsTotal        prometheus.CounterVec
-	ApiLatency             prometheus.HistogramVec
-	GougingCompliance      prometheus.Gauge
+	ApiLatency              prometheus.HistogramVec
+	GougingCompliance       prometheus.Gauge
 	RecommendedFee          prometheus.Gauge
 )
 

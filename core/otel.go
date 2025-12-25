@@ -61,56 +61,62 @@ func WithTracerInfo(ctx context.Context, service, subsystem string) context.Cont
 	return ctx
 }
 
+// withComponentTracer sets the tracer for a component given its type and name.
+// This is the DRY implementation used by all component-specific helpers.
+func withComponentTracer(ctx context.Context, componentType, componentName string) context.Context {
+	serviceName := DefaultTracerService + "/" + componentType + "/" + componentName
+	return WithTracerService(ctx, serviceName)
+}
+
+// withComponentSubcomponent adds a subsystem to an existing component tracer.
+// This is the DRY implementation used by all component subcomponent helpers.
+func withComponentSubcomponent(ctx context.Context, componentType, componentName, subcomponentName string) context.Context {
+	serviceName := DefaultTracerService + "/" + componentType + "/" + componentName
+	return WithTracerInfo(ctx, serviceName, subcomponentName)
+}
+
 // Dedicated tracer helpers for component types
 
 // WithProtocolTracer sets the tracer for a protocol component
 func WithProtocolTracer(ctx context.Context, protocolName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeProtocol + "/" + protocolName
-	return WithTracerService(ctx, serviceName)
+	return withComponentTracer(ctx, ComponentTypeProtocol, protocolName)
 }
 
 // WithAPITracer sets the tracer for an API component
 func WithAPITracer(ctx context.Context, apiName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeAPI + "/" + apiName
-	return WithTracerService(ctx, serviceName)
+	return withComponentTracer(ctx, ComponentTypeAPI, apiName)
 }
 
 // WithAPIExtensionTracer sets the tracer for an API extension component
 func WithAPIExtensionTracer(ctx context.Context, extensionName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeAPIExtension + "/" + extensionName
-	return WithTracerService(ctx, serviceName)
+	return withComponentTracer(ctx, ComponentTypeAPIExtension, extensionName)
 }
 
 // WithServiceTracer sets the tracer for a service component
 func WithServiceTracer(ctx context.Context, serviceName string) context.Context {
-	serviceName = DefaultTracerService + "/" + ComponentTypeService + "/" + serviceName
-	return WithTracerService(ctx, serviceName)
+	return withComponentTracer(ctx, ComponentTypeService, serviceName)
 }
 
 // Subcomponent tracer helpers - these add subsystem to existing service tracer
 
 // WithProtocolSubcomponent adds a subsystem to an existing protocol tracer
 func WithProtocolSubcomponent(ctx context.Context, protocolName, subcomponentName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeProtocol + "/" + protocolName
-	return WithTracerInfo(ctx, serviceName, subcomponentName)
+	return withComponentSubcomponent(ctx, ComponentTypeProtocol, protocolName, subcomponentName)
 }
 
 // WithAPISubcomponent adds a subsystem to an existing API tracer
 func WithAPISubcomponent(ctx context.Context, apiName, subcomponentName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeAPI + "/" + apiName
-	return WithTracerInfo(ctx, serviceName, subcomponentName)
+	return withComponentSubcomponent(ctx, ComponentTypeAPI, apiName, subcomponentName)
 }
 
 // WithAPIExtensionSubcomponent adds a subsystem to an existing API extension tracer
 func WithAPIExtensionSubcomponent(ctx context.Context, extensionName, subcomponentName string) context.Context {
-	serviceName := DefaultTracerService + "/" + ComponentTypeAPIExtension + "/" + extensionName
-	return WithTracerInfo(ctx, serviceName, subcomponentName)
+	return withComponentSubcomponent(ctx, ComponentTypeAPIExtension, extensionName, subcomponentName)
 }
 
 // WithServiceSubcomponent adds a subsystem to an existing service tracer
 func WithServiceSubcomponent(ctx context.Context, serviceName, subcomponentName string) context.Context {
-	serviceName = DefaultTracerService + "/" + ComponentTypeService + "/" + serviceName
-	return WithTracerInfo(ctx, serviceName, subcomponentName)
+	return withComponentSubcomponent(ctx, ComponentTypeService, serviceName, subcomponentName)
 }
 
 // getTracerName generates the appropriate tracer name from context
@@ -187,7 +193,7 @@ func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Co
 	)
 }
 
-// TraceMethod is a minimalist wrapper for auto-injecting spans into service methods with explicit naming
+// TraceMethod starts a new trace span for a method.
 // Usage:
 //
 //	func (s *MyService) MyMethod(ctx context.Context, params MyParams) error {
@@ -197,23 +203,13 @@ func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Co
 //		// method implementation
 //		return nil
 //	}
-func TraceMethod(ctx context.Context, name string, opts ...SpanOption) (context.Context, trace.Span) {
-	return StartSpan(ctx, name, opts...)
-}
-
-// TraceMethodVoid is a specialized version for methods without return values with explicit naming
-// Usage:
 //
 //	func (s *MyService) VoidMethod(ctx context.Context, params MyParams) {
-//		ctx, end := TraceMethodVoid(ctx, "my-service.VoidMethod")
-//		defer end(nil)
+//		ctx, span := TraceMethod(ctx, "my-service.VoidMethod")
+//		defer span.End()
 //
 //		// method implementation
 //	}
-func TraceMethodVoid(ctx context.Context, name string, opts ...SpanOption) (context.Context, func(err error)) {
-	ctx, span := StartSpan(ctx, name, opts...)
-
-	return ctx, func(err error) {
-		EndSpanWithErr(span, err)
-	}
+func TraceMethod(ctx context.Context, name string, opts ...SpanOption) (context.Context, trace.Span) {
+	return StartSpan(ctx, name, opts...)
 }

@@ -78,6 +78,9 @@ func (p *PinServiceDefault) ID() string {
 }
 
 func (p *PinServiceDefault) AllAccountPins(ctx context.Context, id uint) ([]*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.AllAccountPins")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpListAccount),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpListAccount),
@@ -98,6 +101,9 @@ func (p *PinServiceDefault) AllAccountPins(ctx context.Context, id uint) ([]*mod
 }
 
 func (p *PinServiceDefault) AccountPins(ctx context.Context, id uint, createdAfter uint64) ([]*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.AccountPins")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpListAccount),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpListAccount),
@@ -127,6 +133,9 @@ func (p *PinServiceDefault) AccountPins(ctx context.Context, id uint, createdAft
 }
 
 func (p *PinServiceDefault) DeletePinByHash(ctx context.Context, hash core.StorageHash, userId uint) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.DeletePinByHash")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpDelete),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpDelete),
@@ -152,6 +161,9 @@ func (p *PinServiceDefault) DeletePinByHash(ctx context.Context, hash core.Stora
 }
 
 func (p *PinServiceDefault) GetPinByHash(ctx context.Context, hash core.StorageHash, userId uint) (*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPinByHash")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpGet),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpGet),
@@ -169,6 +181,9 @@ func (p *PinServiceDefault) GetPinByHash(ctx context.Context, hash core.StorageH
 }
 
 func (p *PinServiceDefault) PinByHash(ctx context.Context, hash core.StorageHash, userId uint, protocolData any) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.PinByHash")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpCreate),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpCreate),
@@ -190,6 +205,9 @@ func (p *PinServiceDefault) PinByHash(ctx context.Context, hash core.StorageHash
 }
 
 func (p *PinServiceDefault) PinByID(ctx context.Context, uploadId uint, userId uint, protocolData any) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.PinByID")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpCreate),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpCreate),
@@ -206,10 +224,16 @@ func (p *PinServiceDefault) PinByID(ctx context.Context, uploadId uint, userId u
 }
 
 func (p *PinServiceDefault) UploadPinnedGlobal(ctx context.Context, hash core.StorageHash) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.UploadPinnedGlobal")
+	defer span.End()
+
 	return p.UploadPinnedByUser(ctx, hash, 0)
 }
 
 func (p *PinServiceDefault) UploadPinnedByUser(ctx context.Context, hash core.StorageHash, userId uint) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.UploadPinnedByUser")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpCheckUser),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpCheckUser),
@@ -242,6 +266,9 @@ func (p *PinServiceDefault) UploadPinnedByUser(ctx context.Context, hash core.St
 }
 
 func (p *PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPinsByUploadID")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpListUpload),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpListUpload),
@@ -262,6 +289,9 @@ func (p *PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint
 }
 
 func (p *PinServiceDefault) CreatePin(ctx context.Context, pin *models.Pin, protocolData any) (*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.CreatePin")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpCreate),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpCreate),
@@ -296,6 +326,9 @@ func (p *PinServiceDefault) CreatePin(ctx context.Context, pin *models.Pin, prot
 }
 
 func (p *PinServiceDefault) UpdatePin(ctx context.Context, pin *models.Pin) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.UpdatePin")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpUpdate),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpUpdate),
@@ -313,6 +346,9 @@ func (p *PinServiceDefault) UpdatePin(ctx context.Context, pin *models.Pin) erro
 
 // GetPin retrieves a pin by ID
 func (p *PinServiceDefault) GetPin(ctx context.Context, id uint) (*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPin")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpGet),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpGet),
@@ -332,6 +368,9 @@ func (p *PinServiceDefault) GetPin(ctx context.Context, id uint) (*models.Pin, e
 
 // DeletePin deletes a pin by ID
 func (p *PinServiceDefault) DeletePin(ctx context.Context, id uint) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.DeletePin")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpDelete),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpDelete),
@@ -364,6 +403,9 @@ func (p *PinServiceDefault) DeletePin(ctx context.Context, id uint) error {
 }
 
 func (p *PinServiceDefault) QueryPin(ctx context.Context, query interface{}, filter core.PinFilter) (*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.QueryPin")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpQuery),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpQuery),
@@ -394,6 +436,9 @@ func (p *PinServiceDefault) QueryPin(ctx context.Context, query interface{}, fil
 
 // UpdateProtocolPin updates the protocol-specific data for a pin
 func (p *PinServiceDefault) UpdateProtocolPin(ctx context.Context, id uint, protocolData any) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.UpdateProtocolPin")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpUpdate),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpUpdate),
@@ -424,6 +469,9 @@ func (p *PinServiceDefault) UpdateProtocolPin(ctx context.Context, id uint, prot
 
 // GetProtocolPin retrieves the protocol-specific data for a pin
 func (p *PinServiceDefault) GetProtocolPin(ctx context.Context, id uint) (any, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetProtocolPin")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpGetProtocol),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpGetProtocol),
@@ -447,6 +495,9 @@ func (p *PinServiceDefault) GetProtocolPin(ctx context.Context, id uint) (any, e
 }
 
 func (p *PinServiceDefault) QueryProtocolPin(ctx context.Context, protocol string, query any, filter core.PinFilter) (any, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.QueryProtocolPin")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpQueryProtocol),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpQueryProtocol),
@@ -494,6 +545,9 @@ func (p *PinServiceDefault) QueryProtocolPin(ctx context.Context, protocol strin
 }
 
 func (p *PinServiceDefault) GetPinData(ctx context.Context, pin *models.Pin) (interface{}, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPinData")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpGetData),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpGetData),
@@ -521,6 +575,9 @@ func (p *PinServiceDefault) GetPinData(ctx context.Context, pin *models.Pin) (in
 }
 
 func (p *PinServiceDefault) UpdatePinData(ctx context.Context, pin *models.Pin, data interface{}) error {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.UpdatePinData")
+	defer span.End()
+
 	return core.MetricTrack(
 		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpUpdateData),
 		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpUpdateData),

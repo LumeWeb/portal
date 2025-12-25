@@ -41,6 +41,9 @@ func NewDefaultCronMonitor(ctx core.Context, cron core.CronService) *DefaultCron
 }
 
 func (m *DefaultCronMonitor) CleanupOrphanedJobs(ctx context.Context) (int, error) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.CleanupOrphanedJobs")
+	defer span.End()
+
 	var count int
 	var jobs []models.CronJob
 	var toRemove []uuid.UUID
@@ -77,6 +80,9 @@ func (m *DefaultCronMonitor) CleanupOrphanedJobs(ctx context.Context) (int, erro
 }
 
 func (m *DefaultCronMonitor) RequeueStuckJobs(ctx context.Context) error {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.RequeueStuckJobs")
+	defer span.End()
+
 	// Get all jobs that appear dead based on database state
 	var potentialDeadJobs []models.CronJob
 	heartbeatCutoff := time.Now().Add(-5 * time.Minute)
@@ -154,6 +160,9 @@ func (m *DefaultCronMonitor) StartMonitoring(context.Context) error {
 }
 
 func (m *DefaultCronMonitor) StartHeartbeat(ctx context.Context, jobID uuid.UUID) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.StartHeartbeat")
+	defer span.End()
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -170,6 +179,9 @@ func (m *DefaultCronMonitor) StartHeartbeat(ctx context.Context, jobID uuid.UUID
 }
 
 func (m *DefaultCronMonitor) StopHeartbeat(ctx context.Context, jobID uuid.UUID) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.StopHeartbeat")
+	defer span.End()
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -185,6 +197,9 @@ func (m *DefaultCronMonitor) StopHeartbeat(ctx context.Context, jobID uuid.UUID)
 }
 
 func (m *DefaultCronMonitor) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.CheckHeartbeat")
+	defer span.End()
+
 	// Always check coordinator first
 	alive, err := m.cron.Coordinator().CheckHeartbeat(ctx, jobID)
 	if err != nil {
@@ -204,6 +219,9 @@ func (m *DefaultCronMonitor) CheckHeartbeat(ctx context.Context, jobID uuid.UUID
 }
 
 func (m *DefaultCronMonitor) heartbeatLoop(ctx context.Context, jobID uuid.UUID, stopChan <-chan struct{}) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronMonitor.heartbeatLoop")
+	defer span.End()
+
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 

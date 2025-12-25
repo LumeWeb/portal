@@ -36,6 +36,9 @@ func NewStateMachineRegistry(ctx core.Context) *DefaultStateMachineRegistry {
 }
 
 func (r *DefaultStateMachineRegistry) GetOrCreate(ctx context.Context, jobID uuid.UUID) (*models.CronJob, *fsm.FSM, error) {
+	ctx, span := core.TraceMethod(ctx, "DefaultStateMachineRegistry.GetOrCreate")
+	defer span.End()
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -68,6 +71,9 @@ func (r *DefaultStateMachineRegistry) GetOrCreate(ctx context.Context, jobID uui
 }
 
 func (r *DefaultStateMachineRegistry) persistState(ctx context.Context, jobID uuid.UUID, currentVersion int64, newState models.CronJobState, params *core.CronStateParams) error {
+	ctx, span := core.TraceMethod(ctx, "DefaultStateMachineRegistry.persistState")
+	defer span.End()
+
 	return db.RetryableTransaction(r.ctx, r.db, func(tx *gorm.DB) *gorm.DB {
 		updates := map[string]interface{}{
 			"state":   newState,
@@ -113,6 +119,9 @@ func (r *DefaultStateMachineRegistry) persistState(ctx context.Context, jobID uu
 }
 
 func (r *DefaultStateMachineRegistry) handleVersionConflict(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "DefaultStateMachineRegistry.handleVersionConflict")
+	defer span.End()
+
 	var exists bool
 	err := r.db.WithContext(ctx).
 		Model(&models.CronJob{}).
@@ -130,6 +139,9 @@ func (r *DefaultStateMachineRegistry) handleVersionConflict(ctx context.Context,
 }
 
 func (r *DefaultStateMachineRegistry) afterEventCallback(ctx context.Context, e *fsm.Event) {
+	ctx, span := core.TraceMethod(ctx, "DefaultStateMachineRegistry.afterEventCallback")
+	defer span.End()
+
 	data, ok := ctx.Value(stateMachineDataKey).(*stateMachineData)
 	if !ok {
 		e.Cancel(fmt.Errorf("missing state machine data"))
@@ -154,6 +166,9 @@ func (r *DefaultStateMachineRegistry) afterEventCallback(ctx context.Context, e 
 }
 
 func (r *DefaultStateMachineRegistry) Remove(ctx context.Context, jobID uuid.UUID) {
+	ctx, span := core.TraceMethod(ctx, "DefaultStateMachineRegistry.Remove")
+	defer span.End()
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.machines, jobID)

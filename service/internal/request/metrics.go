@@ -8,18 +8,18 @@ import (
 
 // Metric name constants for request service metrics
 const (
-	MetricCreated            = "created_total"
-	MetricCompleted          = "completed_total"
-	MetricFailed             = "failed_total"
-	MetricDeleted            = "deleted_total"
-	MetricUpdated            = "updated_total"
-	MetricDuplicate          = "duplicate_total"
-	MetricValidationFailed   = "validation_failed_total"
-	MetricQueryTotal         = "query_total"
-	MetricDuration           = "duration_seconds"
-	MetricByStatus          = "by_status"
-	MetricByOperation       = "by_operation"
-	MetricByProtocol        = "by_protocol"
+	MetricCreated          = "created_total"
+	MetricCompleted        = "completed_total"
+	MetricFailed           = "failed_total"
+	MetricDeleted          = "deleted_total"
+	MetricUpdated          = "updated_total"
+	MetricDuplicate        = "duplicate_total"
+	MetricValidationFailed = "validation_failed_total"
+	MetricQueryTotal       = "query_total"
+	MetricDuration         = "duration_seconds"
+	MetricByStatus         = "by_status"
+	MetricByOperation      = "by_operation"
+	MetricByProtocol       = "by_protocol"
 )
 
 // Metric label values
@@ -32,36 +32,36 @@ const (
 
 	LabelProtocolUnknown = "unknown"
 
-	LabelOperationCreate   = "create"
-	LabelOperationUpdate   = "update"
-	LabelOperationDelete   = "delete"
-	LabelOperationQuery    = "query"
-	LabelOperationExecute  = "execute"
-	LabelOperationUnknown  = "unknown"
+	LabelOperationCreate  = "create"
+	LabelOperationUpdate  = "update"
+	LabelOperationDelete  = "delete"
+	LabelOperationQuery   = "query"
+	LabelOperationExecute = "execute"
+	LabelOperationUnknown = "unknown"
 
-	LabelQueryTypeGet        = "get"
-	LabelQueryTypeQuery      = "query"
-	LabelQueryTypeList       = "list"
-	LabelQueryTypeByHash     = "by_hash"
-	LabelQueryTypeByUser     = "by_user"
-	LabelQueryTypeByStatus   = "by_status"
-	LabelQueryTypeGetStatus  = "get_status"
+	LabelQueryTypeGet       = "get"
+	LabelQueryTypeQuery     = "query"
+	LabelQueryTypeList      = "list"
+	LabelQueryTypeByHash    = "by_hash"
+	LabelQueryTypeByUser    = "by_user"
+	LabelQueryTypeByStatus  = "by_status"
+	LabelQueryTypeGetStatus = "get_status"
 )
 
 // Global metric instances
 var (
-	RequestsCreated         prometheus.CounterVec
-	RequestsCompleted       prometheus.CounterVec
-	RequestsFailed          prometheus.CounterVec
-	RequestsDeleted         prometheus.CounterVec
-	RequestsUpdated         prometheus.CounterVec
-	RequestsDuplicate       prometheus.CounterVec
+	RequestsCreated          prometheus.CounterVec
+	RequestsCompleted        prometheus.CounterVec
+	RequestsFailed           prometheus.CounterVec
+	RequestsDeleted          prometheus.CounterVec
+	RequestsUpdated          prometheus.CounterVec
+	RequestsDuplicate        prometheus.CounterVec
 	RequestsValidationFailed prometheus.CounterVec
-	RequestsQueryTotal      prometheus.CounterVec
-	RequestDuration        prometheus.HistogramVec
-	RequestsByStatus       prometheus.GaugeVec
-	RequestsByOperation    prometheus.GaugeVec
-	RequestsByProtocol     prometheus.GaugeVec
+	RequestsQueryTotal       prometheus.CounterVec
+	RequestDuration          prometheus.HistogramVec
+	RequestsByStatus         prometheus.GaugeVec
+	RequestsByOperation      prometheus.GaugeVec
+	RequestsByProtocol       prometheus.GaugeVec
 )
 
 // init initializes all request metrics.

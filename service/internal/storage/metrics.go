@@ -7,68 +7,68 @@ import (
 
 // Metric name constants for storage service metrics
 const (
-	MetricUploadDuration       = "upload_duration_seconds"
-	MetricUploadBytes          = "upload_bytes_total"
-	MetricUploadErrors         = "upload_errors_total"
-	MetricDownloadDuration     = "download_duration_seconds"
-	MetricDownloadBytes        = "download_bytes_total"
-	MetricDownloadErrors       = "download_errors_total"
-	MetricDeleteDuration       = "delete_duration_seconds"
-	MetricDeleteErrors         = "delete_errors_total"
-	MetricMultipartUploadParts = "multipart_upload_parts_total"
+	MetricUploadDuration        = "upload_duration_seconds"
+	MetricUploadBytes           = "upload_bytes_total"
+	MetricUploadErrors          = "upload_errors_total"
+	MetricDownloadDuration      = "download_duration_seconds"
+	MetricDownloadBytes         = "download_bytes_total"
+	MetricDownloadErrors        = "download_errors_total"
+	MetricDeleteDuration        = "delete_duration_seconds"
+	MetricDeleteErrors          = "delete_errors_total"
+	MetricMultipartUploadParts  = "multipart_upload_parts_total"
 	MetricMultipartUploadErrors = "multipart_upload_errors_total"
-	MetricS3UploadDuration   = "s3_upload_duration_seconds"
-	MetricS3UploadBytes      = "s3_upload_bytes_total"
-	MetricS3UploadErrors     = "s3_upload_errors_total"
-	MetricS3DownloadDuration = "s3_download_duration_seconds"
-	MetricS3DownloadBytes    = "s3_download_bytes_total"
-	MetricS3DownloadErrors   = "s3_download_errors_total"
-	MetricS3DeleteDuration   = "s3_delete_duration_seconds"
-	MetricS3DeleteErrors     = "s3_delete_errors_total"
-	MetricSiaUploadDuration  = "sia_upload_duration_seconds"
-	MetricSiaUploadBytes     = "sia_upload_bytes_total"
-	MetricSiaUploadErrors    = "sia_upload_errors_total"
-	MetricSiaDownloadDuration = "sia_download_duration_seconds"
-	MetricSiaDownloadBytes   = "sia_download_bytes_total"
-	MetricSiaDownloadErrors  = "sia_download_errors_total"
-	MetricSiaDeleteDuration  = "sia_delete_duration_seconds"
-	MetricSiaDeleteErrors    = "sia_delete_errors_total"
-	MetricActiveUploads       = "active_uploads"
-	MetricStorageCacheHits    = "storage_cache_hits_total"
-	MetricStorageCacheMisses  = "storage_cache_misses_total"
+	MetricS3UploadDuration      = "s3_upload_duration_seconds"
+	MetricS3UploadBytes         = "s3_upload_bytes_total"
+	MetricS3UploadErrors        = "s3_upload_errors_total"
+	MetricS3DownloadDuration    = "s3_download_duration_seconds"
+	MetricS3DownloadBytes       = "s3_download_bytes_total"
+	MetricS3DownloadErrors      = "s3_download_errors_total"
+	MetricS3DeleteDuration      = "s3_delete_duration_seconds"
+	MetricS3DeleteErrors        = "s3_delete_errors_total"
+	MetricSiaUploadDuration     = "sia_upload_duration_seconds"
+	MetricSiaUploadBytes        = "sia_upload_bytes_total"
+	MetricSiaUploadErrors       = "sia_upload_errors_total"
+	MetricSiaDownloadDuration   = "sia_download_duration_seconds"
+	MetricSiaDownloadBytes      = "sia_download_bytes_total"
+	MetricSiaDownloadErrors     = "sia_download_errors_total"
+	MetricSiaDeleteDuration     = "sia_delete_duration_seconds"
+	MetricSiaDeleteErrors       = "sia_delete_errors_total"
+	MetricActiveUploads         = "active_uploads"
+	MetricStorageCacheHits      = "storage_cache_hits_total"
+	MetricStorageCacheMisses    = "storage_cache_misses_total"
 )
 
 // Global metric instances (created once, reused everywhere)
 var (
-	UploadDuration       prometheus.Histogram
-	UploadBytes          prometheus.Counter
-	UploadErrors         prometheus.Counter
-	DownloadDuration     prometheus.Histogram
-	DownloadBytes        prometheus.Counter
-	DownloadErrors       prometheus.Counter
-	DeleteDuration       prometheus.Histogram
-	DeleteErrors         prometheus.Counter
-	MultipartUploadParts prometheus.Counter
+	UploadDuration        prometheus.Histogram
+	UploadBytes           prometheus.Counter
+	UploadErrors          prometheus.Counter
+	DownloadDuration      prometheus.Histogram
+	DownloadBytes         prometheus.Counter
+	DownloadErrors        prometheus.Counter
+	DeleteDuration        prometheus.Histogram
+	DeleteErrors          prometheus.Counter
+	MultipartUploadParts  prometheus.Counter
 	MultipartUploadErrors prometheus.Counter
-	S3UploadDuration    prometheus.Histogram
-	S3UploadBytes       prometheus.Counter
-	S3UploadErrors      prometheus.Counter
-	S3DownloadDuration  prometheus.Histogram
-	S3DownloadBytes     prometheus.Counter
-	S3DownloadErrors    prometheus.Counter
-	S3DeleteDuration    prometheus.Histogram
-	S3DeleteErrors      prometheus.Counter
-	SiaUploadDuration   prometheus.Histogram
-	SiaUploadBytes      prometheus.Counter
-	SiaUploadErrors     prometheus.Counter
-	SiaDownloadDuration prometheus.Histogram
-	SiaDownloadBytes    prometheus.Counter
-	SiaDownloadErrors   prometheus.Counter
-	SiaDeleteDuration   prometheus.Histogram
-	SiaDeleteErrors     prometheus.Counter
-	ActiveUploads       prometheus.Gauge
-	StorageCacheHits    prometheus.Counter
-	StorageCacheMisses  prometheus.Counter
+	S3UploadDuration      prometheus.Histogram
+	S3UploadBytes         prometheus.Counter
+	S3UploadErrors        prometheus.Counter
+	S3DownloadDuration    prometheus.Histogram
+	S3DownloadBytes       prometheus.Counter
+	S3DownloadErrors      prometheus.Counter
+	S3DeleteDuration      prometheus.Histogram
+	S3DeleteErrors        prometheus.Counter
+	SiaUploadDuration     prometheus.Histogram
+	SiaUploadBytes        prometheus.Counter
+	SiaUploadErrors       prometheus.Counter
+	SiaDownloadDuration   prometheus.Histogram
+	SiaDownloadBytes      prometheus.Counter
+	SiaDownloadErrors     prometheus.Counter
+	SiaDeleteDuration     prometheus.Histogram
+	SiaDeleteErrors       prometheus.Counter
+	ActiveUploads         prometheus.Gauge
+	StorageCacheHits      prometheus.Counter
+	StorageCacheMisses    prometheus.Counter
 )
 
 // init initializes all storage metrics.

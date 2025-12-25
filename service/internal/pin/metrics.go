@@ -7,37 +7,37 @@ import (
 
 // Metric name constants for pin service metrics
 const (
-	MetricCreated       = "created_total"
-	MetricDeleted       = "deleted_total"
-	MetricQueried       = "queried_total"
-	MetricUpdated       = "updated_total"
+	MetricCreated         = "created_total"
+	MetricDeleted         = "deleted_total"
+	MetricQueried         = "queried_total"
+	MetricUpdated         = "updated_total"
 	MetricProtocolQueried = "protocol_queried_total"
-	MetricDataQueried   = "data_queried_total"
-	MetricDataUpdated   = "data_updated_total"
-	MetricListed        = "listed_total"
-	MetricChecked       = "checked_total"
-	MetricDuration      = "duration_seconds"
-	MetricFailed        = "failed_total"
+	MetricDataQueried     = "data_queried_total"
+	MetricDataUpdated     = "data_updated_total"
+	MetricListed          = "listed_total"
+	MetricChecked         = "checked_total"
+	MetricDuration        = "duration_seconds"
+	MetricFailed          = "failed_total"
 )
 
 // Metric label values
 const (
-	LabelOpCreate          = "create"
-	LabelOpDelete          = "delete"
-	LabelOpGet             = "get"
-	LabelOpQuery           = "query"
-	LabelOpUpdate          = "update"
-	LabelOpGetProtocol     = "get_protocol"
-	LabelOpQueryProtocol   = "query_protocol"
-	LabelOpGetData         = "get_data"
-	LabelOpUpdateData      = "update_data"
-	LabelOpListAccount     = "list_account"
-	LabelOpListUpload      = "list_upload"
-	LabelOpCheckGlobal     = "check_global"
-	LabelOpCheckUser       = "check_user"
-	LabelOpUnknown         = "unknown"
+	LabelOpCreate        = "create"
+	LabelOpDelete        = "delete"
+	LabelOpGet           = "get"
+	LabelOpQuery         = "query"
+	LabelOpUpdate        = "update"
+	LabelOpGetProtocol   = "get_protocol"
+	LabelOpQueryProtocol = "query_protocol"
+	LabelOpGetData       = "get_data"
+	LabelOpUpdateData    = "update_data"
+	LabelOpListAccount   = "list_account"
+	LabelOpListUpload    = "list_upload"
+	LabelOpCheckGlobal   = "check_global"
+	LabelOpCheckUser     = "check_user"
+	LabelOpUnknown       = "unknown"
 
-	LabelStatusError       = "error"
+	LabelStatusError = "error"
 )
 
 // Global metric instances

@@ -7,32 +7,32 @@ import (
 
 // Metric name constants for hash mapping service metrics
 const (
-	MetricStored     = "stored_total"
-	MetricQueried    = "queried_total"
-	MetricDeleted    = "deleted_total"
-	MetricDuration   = "duration_seconds"
-	MetricFailed     = "failed_total"
+	MetricStored   = "stored_total"
+	MetricQueried  = "queried_total"
+	MetricDeleted  = "deleted_total"
+	MetricDuration = "duration_seconds"
+	MetricFailed   = "failed_total"
 )
 
 // Metric label values
 const (
-	LabelOpStore          = "store"
-	LabelOpGet            = "get"
-	LabelOpGetReverse     = "get_reverse"
-	LabelOpDelete         = "delete"
-	LabelOpUnknown        = "unknown"
-	LabelProtocolUnknown  = "unknown"
+	LabelOpStore         = "store"
+	LabelOpGet           = "get"
+	LabelOpGetReverse    = "get_reverse"
+	LabelOpDelete        = "delete"
+	LabelOpUnknown       = "unknown"
+	LabelProtocolUnknown = "unknown"
 
 	LabelStatusError = "error"
 )
 
 // Global metric instances
 var (
-	MappingsStored      prometheus.CounterVec
-	MappingsQueried     prometheus.CounterVec
-	MappingsDeleted     prometheus.CounterVec
-	MappingDuration     prometheus.HistogramVec
-	MappingFailed       prometheus.CounterVec
+	MappingsStored  prometheus.CounterVec
+	MappingsQueried prometheus.CounterVec
+	MappingsDeleted prometheus.CounterVec
+	MappingDuration prometheus.HistogramVec
+	MappingFailed   prometheus.CounterVec
 )
 
 // init initializes all hash mapping metrics.

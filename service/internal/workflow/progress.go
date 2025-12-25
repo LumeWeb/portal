@@ -19,19 +19,19 @@ import (
 //
 // Examples:
 // 1. 3-step workflow, step 1 just started (0% progress):
-//    - 0 steps complete (0%)
-//    - Step 1 contributes 16.66% (half of 33.33%)
-//    - Total progress: 16.66%
+//   - 0 steps complete (0%)
+//   - Step 1 contributes 16.66% (half of 33.33%)
+//   - Total progress: 16.66%
 //
 // 2. 3-step workflow, step 1 50% complete:
-//    - 0 steps complete (0%) 
-//    - Step 1 contributes 16.66% (half) + 8.33% (half of remaining 16.66%)
-//    - Total progress: 25%
+//   - 0 steps complete (0%)
+//   - Step 1 contributes 16.66% (half) + 8.33% (half of remaining 16.66%)
+//   - Total progress: 25%
 //
 // 3. 3-step workflow, step 2 just started:
-//    - 1 step complete (33.33%)
-//    - Step 2 contributes 16.66% (half of 33.33%)
-//    - Total progress: 50%
+//   - 1 step complete (33.33%)
+//   - Step 2 contributes 16.66% (half of 33.33%)
+//   - Total progress: 50%
 //
 // 4. Completed workflow always returns 100%
 // 5. Pending workflow always returns 0%
@@ -105,15 +105,16 @@ func CalculateProgress(
 //
 // This is a convenience wrapper that extracts:
 // - TotalSteps from WorkflowStatus
-// - CurrentStep from WorkflowStatus  
+// - CurrentStep from WorkflowStatus
 // - ProgressPercent (converted to 0.0-1.0) from RequestStatus
 // - State from RequestStatus
 //
 // Example:
-//   status := &WorkflowStatus{TotalSteps: 3, CurrentStep: 1}
-//   reqStatus := &RequestStatus{ProgressPercent: 50, State: "processing"}
-//   progress := CalculateWorkflowStatusProgress(status, reqStatus)
-//   // progress = 58.33% (1 step complete + 50% of current step progress)
+//
+//	status := &WorkflowStatus{TotalSteps: 3, CurrentStep: 1}
+//	reqStatus := &RequestStatus{ProgressPercent: 50, State: "processing"}
+//	progress := CalculateWorkflowStatusProgress(status, reqStatus)
+//	// progress = 58.33% (1 step complete + 50% of current step progress)
 func CalculateWorkflowStatusProgress(
 	status *core.WorkflowStatus,
 	reqStatus *core.RequestStatus,

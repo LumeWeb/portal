@@ -15,19 +15,19 @@ const (
 
 // Metric label values
 const (
-	LabelOpSend       = "send"
-	LabelOpRegister   = "register"
-	LabelOpUnknown    = "unknown"
+	LabelOpSend     = "send"
+	LabelOpRegister = "register"
+	LabelOpUnknown  = "unknown"
 
 	LabelStatusError = "error"
 )
 
 // Global metric instances
 var (
-	EmailsSent       prometheus.CounterVec
-	TemplatesTotal   prometheus.CounterVec
-	MailerDuration   prometheus.HistogramVec
-	MailerFailed     prometheus.CounterVec
+	EmailsSent     prometheus.CounterVec
+	TemplatesTotal prometheus.CounterVec
+	MailerDuration prometheus.HistogramVec
+	MailerFailed   prometheus.CounterVec
 )
 
 // init initializes all mailer metrics.

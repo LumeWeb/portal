@@ -34,6 +34,9 @@ func NewTUSUploadReader(
 	info handler.FileInfo,
 	startOffset int64,
 ) (*TUSUploadReader, error) {
+	ctx, span := core.TraceMethod(ctx, "NewTUSUploadReader")
+	defer span.End()
+
 	if logger == nil {
 		return nil, errors.New("logger cannot be nil")
 	}

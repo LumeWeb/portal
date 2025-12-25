@@ -36,6 +36,9 @@ func (m *UploadServiceDefault) ID() string {
 }
 
 func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Upload) error {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.SaveUpload")
+	defer span.End()
+
 	return core.MetricTrack(
 		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpSave),
 		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpSave),
@@ -92,6 +95,9 @@ func (m *UploadServiceDefault) SaveUpload(ctx context.Context, upload *models.Up
 }
 
 func (m *UploadServiceDefault) GetUpload(ctx context.Context, objectHash core.StorageHash) (*models.Upload, error) {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.GetUpload")
+	defer span.End()
+
 	var upload models.Upload
 	upload.Hash = objectHash.Multihash()
 
@@ -119,6 +125,9 @@ func (m *UploadServiceDefault) GetUpload(ctx context.Context, objectHash core.St
 }
 
 func (m *UploadServiceDefault) DeleteUpload(ctx context.Context, objectHash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.DeleteUpload")
+	defer span.End()
+
 	var upload models.Upload
 	upload.Hash = objectHash.Multihash()
 
@@ -145,6 +154,9 @@ func (m *UploadServiceDefault) DeleteUpload(ctx context.Context, objectHash core
 }
 
 func (m *UploadServiceDefault) GetAllUploads(ctx context.Context) ([]*models.Upload, error) {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.GetAllUploads")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		uploadMetrics.UploadDuration.WithLabelValues(uploadMetrics.LabelOpListAll),
 		uploadMetrics.UploadFailed.WithLabelValues(uploadMetrics.LabelOpListAll),
@@ -168,6 +180,9 @@ func (m *UploadServiceDefault) GetAllUploads(ctx context.Context) ([]*models.Upl
 }
 
 func (m *UploadServiceDefault) GetUploadByID(ctx context.Context, uploadID uint) (*models.Upload, error) {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.GetUploadByID")
+	defer span.End()
+
 	var upload models.Upload
 	upload.ID = uploadID
 

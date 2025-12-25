@@ -48,6 +48,9 @@ func setupMockS3(t *testing.T) (string, *s3.Client, func()) {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+			ctx, span := core.TraceMethod(ctx, "anonymous")
+			defer span.End()
+
 			return aws.Credentials{
 				AccessKeyID:     "FAKEACCESSKEY",
 				SecretAccessKey: "FAKESECRETKEY",

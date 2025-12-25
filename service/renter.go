@@ -118,6 +118,9 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 }
 
 func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.UploadObject")
+	defer span.End()
+
 	return core.MetricTrack(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationUpload),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationUpload, renterMetrics.LabelStatusError),
@@ -216,6 +219,9 @@ func (r *RenterDefault) getWorkerClient() (*workerClient.Client, error) {
 }
 
 func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.GetObject")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationDownload),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationDownload, renterMetrics.LabelStatusError),
@@ -242,6 +248,9 @@ func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName s
 }
 
 func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.GetObjectMetadata")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationDownload),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationDownload, renterMetrics.LabelStatusError),
@@ -269,6 +278,9 @@ func (r *RenterDefault) GetObjectMetadata(ctx context.Context, bucket string, fi
 }
 
 func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string, fileName string) error {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.DeleteObjectMetadata")
+	defer span.End()
+
 	return core.MetricTrack(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationDelete),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationDelete, renterMetrics.LabelStatusError),
@@ -294,6 +306,9 @@ func (r *RenterDefault) DeleteObjectMetadata(ctx context.Context, bucket string,
 }
 
 func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.UploadExists")
+	defer span.End()
+
 	var siaUpload models.SiaUpload
 
 	siaUpload.Bucket = bucket
@@ -312,6 +327,9 @@ func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileNam
 }
 
 func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.MultipartUploadParams) error {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.UploadObjectMultipart")
+	defer span.End()
+
 	return core.MetricTrack(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationUpload),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationUpload, renterMetrics.LabelStatusError),
@@ -485,6 +503,9 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 }
 
 func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileName string) error {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.DeleteObject")
+	defer span.End()
+
 	return core.MetricTrack(
 		renterMetrics.ObjectOperationDuration.WithLabelValues(renterMetrics.LabelOperationDelete),
 		renterMetrics.ObjectOperationsTotal.WithLabelValues(renterMetrics.LabelOperationDelete, renterMetrics.LabelStatusError),
@@ -510,6 +531,9 @@ func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileNam
 }
 
 func (r *RenterDefault) UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.UpdateGougingSettings")
+	defer span.End()
+
 	return core.MetricTrack(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointGouging),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointGouging, renterMetrics.LabelStatusError),
@@ -535,6 +559,9 @@ func (r *RenterDefault) UpdateGougingSettings(ctx context.Context, settings api.
 }
 
 func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSettings, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.GougingSettings")
+	defer span.End()
+
 	settings, err := core.MetricTrackResult(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointGouging),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointGouging, renterMetrics.LabelStatusError),
@@ -562,6 +589,9 @@ func (r *RenterDefault) GougingSettings(ctx context.Context) (api.GougingSetting
 }
 
 func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.SlabSize")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointUploadSettings),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointUploadSettings, renterMetrics.LabelStatusError),
@@ -589,6 +619,9 @@ func (r *RenterDefault) SlabSize(ctx context.Context) (uint64, error) {
 }
 
 func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Host, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.Host")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointHost),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointHost, renterMetrics.LabelStatusError),
@@ -614,6 +647,9 @@ func (r *RenterDefault) Host(ctx context.Context, host types.PublicKey) (api.Hos
 }
 
 func (r *RenterDefault) ConsensusState(ctx context.Context) (api.ConsensusState, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.ConsensusState")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointConsensus),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointConsensus, renterMetrics.LabelStatusError),
@@ -639,6 +675,9 @@ func (r *RenterDefault) ConsensusState(ctx context.Context) (api.ConsensusState,
 }
 
 func (r *RenterDefault) RecommendedFee(ctx context.Context) (types.Currency, error) {
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.RecommendedFee")
+	defer span.End()
+
 	fee, err := core.MetricTrackResult(
 		renterMetrics.ApiLatency.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointFee),
 		renterMetrics.ApiRequestsTotal.WithLabelValues(renterMetrics.LabelClientTypeBus, renterMetrics.LabelEndpointFee, renterMetrics.LabelStatusError),

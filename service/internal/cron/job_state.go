@@ -130,6 +130,9 @@ type stateMachineData struct {
 
 // Transition validates and performs state transitions
 func (sm *DefaultCronJobStateMachine) Transition(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...core.CronStateOption) error {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronJobStateMachine.Transition")
+	defer span.End()
+
 	// Get job and FSM from registry
 	job, fsmInstance, err := sm.registry.GetOrCreate(ctx, jobID)
 	if err != nil {
@@ -183,10 +186,16 @@ func (sm *DefaultCronJobStateMachine) State() string {
 
 // IsValidTransition checks if a state transition is valid
 func (sm *DefaultCronJobStateMachine) RemoveStateMachine(ctx context.Context, jobID uuid.UUID) {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronJobStateMachine.RemoveStateMachine")
+	defer span.End()
+
 	sm.registry.Remove(ctx, jobID)
 }
 
 func (sm *DefaultCronJobStateMachine) IsValidTransition(ctx context.Context, current, new models.CronJobState) bool {
+	ctx, span := core.TraceMethod(ctx, "DefaultCronJobStateMachine.IsValidTransition")
+	defer span.End()
+
 	// Get allowed source states for the destination state
 	allowedSrcs, ok := stateTransitions[new]
 	if !ok {

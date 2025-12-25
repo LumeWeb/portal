@@ -48,6 +48,8 @@ func (l *Lock) released() error {
 	return nil
 }
 func (l *Lock) Lock(ctx context.Context, requestUnlock func()) error {
+	ctx, span := core.TraceMethod(ctx, "Lock.Lock")
+	defer span.End()
 
 	db := l.locker.db
 

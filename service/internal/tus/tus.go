@@ -79,6 +79,9 @@ func NewTusHandler(
 
 // getUploadByIdentifier retrieves upload by identifier (hash or string ID)
 func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifier any, protocol core.StorageProtocol) (handler.Upload, error) {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.getUploadByIdentifier")
+	defer span.End()
+
 	switch v := identifier.(type) {
 	case core.StorageHash:
 		exists, _upload := t.tusService.UploadHashExists(ctx, protocol, v)
@@ -103,6 +106,9 @@ func (t *TusHandlerDefault) getUploadByIdentifier(ctx context.Context, identifie
 }
 
 func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, protocol core.StorageProtocol, start int64) (io.ReadSeekCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.UploadReader")
+	defer span.End()
+
 	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
 	if err != nil {
 		return nil, err
@@ -123,6 +129,9 @@ func (t *TusHandlerDefault) UploadReader(ctx context.Context, identifier any, pr
 }
 
 func (t *TusHandlerDefault) UploadSize(ctx context.Context, protocol core.StorageProtocol, identifier any) (uint64, error) {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.UploadSize")
+	defer span.End()
+
 	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
 	if err != nil {
 		return 0, err
@@ -166,6 +175,9 @@ func (t *TusHandlerDefault) HandleEventResponseError(message string, httpCode in
 }
 
 func (t *TusHandlerDefault) FailUploadById(ctx context.Context, protocol core.StorageProtocol, id string) error {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.FailUploadById")
+	defer span.End()
+
 	exists, upload := t.tusService.UploadExists(ctx, protocol, id)
 
 	if !exists {
@@ -192,6 +204,9 @@ func (t *TusHandlerDefault) FailUploadById(ctx context.Context, protocol core.St
 }
 
 func (t *TusHandlerDefault) SetHashById(ctx context.Context, id string, hash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.SetHashById")
+	defer span.End()
+
 	sp, err := t.StorageProtocol()
 	if err != nil {
 		return err
@@ -211,6 +226,9 @@ func (t *TusHandlerDefault) Logger() *core.Logger {
 }
 
 func (t *TusHandlerDefault) GetUploadMetadata(ctx context.Context, protocol core.StorageProtocol, identifier any) (map[string]string, error) {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.GetUploadMetadata")
+	defer span.End()
+
 	upload, err := t.getUploadByIdentifier(ctx, identifier, protocol)
 	if err != nil {
 		return nil, err
@@ -226,6 +244,9 @@ func (t *TusHandlerDefault) GetUploadMetadata(ctx context.Context, protocol core
 }
 
 func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.DeleteUpload")
+	defer span.End()
+
 	objectId, _ := splitIds(id)
 
 	// Try both IDs for each file type
@@ -269,6 +290,9 @@ func (t *TusHandlerDefault) DeleteUpload(ctx context.Context, id string) error {
 }
 
 func (t *TusHandlerDefault) init(ctx context.Context, handlerConfig core.TUSHandlerConfig) error {
+	ctx, span := core.TraceMethod(ctx, "TusHandlerDefault.init")
+	defer span.End()
+
 	// Validate handler config
 	if t.handlerConfig.Protocol == nil {
 		return fmt.Errorf("handler config Protocol cannot be nil")
@@ -644,6 +668,9 @@ func wrapContextHandler(h http.Handler) echo.HandlerFunc {
 }
 
 func GetEchoContext(ctx context.Context) (echo.Context, bool) {
+	ctx, span := core.TraceMethod(ctx, "GetEchoContext")
+	defer span.End()
+
 	c, ok := ctx.Value(echoContextKey).(echo.Context)
 	return c, ok
 }
