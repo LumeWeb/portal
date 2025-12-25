@@ -50,6 +50,9 @@ func (a AuthServiceDefault) ID() string {
 }
 
 func (a AuthServiceDefault) LoginPassword(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginPassword")
+	defer span.End()
+
 	valid, user, err := a.ValidLoginByEmail(ctx, email, password)
 
 	if err != nil {
@@ -70,6 +73,9 @@ func (a AuthServiceDefault) LoginPassword(ctx context.Context, email string, pas
 }
 
 func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginOTP")
+	defer span.End()
+
 	valid, err := a.otp.OTPVerify(ctx, userId, code)
 
 	if err != nil {
@@ -92,6 +98,9 @@ func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code stri
 }
 
 func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginPubkey")
+	defer span.End()
+
 	var model models.PublicKey
 	var rowsAffected int64
 
@@ -120,6 +129,9 @@ func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip s
 }
 
 func (a AuthServiceDefault) LoginID(ctx context.Context, id uint, ip string, rememberMe bool) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginID")
+	defer span.End()
+
 	var user models.User
 	var rowsAffected int64
 
@@ -148,10 +160,16 @@ func (a AuthServiceDefault) LoginID(ctx context.Context, id uint, ip string, rem
 }
 
 func (a AuthServiceDefault) ValidLoginByUserObj(ctx context.Context, user *models.User, password string) bool {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.ValidLoginByUserObj")
+	defer span.End()
+
 	return a.validPassword(user, password)
 }
 
 func (a AuthServiceDefault) ValidLoginByEmail(ctx context.Context, email string, password string) (bool, *models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.ValidLoginByEmail")
+	defer span.End()
+
 	var user models.User
 	var rowsAffected int64
 
@@ -178,6 +196,9 @@ func (a AuthServiceDefault) ValidLoginByEmail(ctx context.Context, email string,
 }
 
 func (a AuthServiceDefault) ValidLoginByUserID(ctx context.Context, id uint, password string) (bool, *models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.ValidLoginByUserID")
+	defer span.End()
+
 	var user models.User
 	var rowsAffected int64
 
@@ -205,6 +226,9 @@ func (a AuthServiceDefault) ValidLoginByUserID(ctx context.Context, id uint, pas
 	return true, &user, nil
 }
 func (a AuthServiceDefault) doLogin(ctx context.Context, user *models.User, ip string, bypassSecurity bool, rememberMe bool) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.doLogin")
+	defer span.End()
+
 	purpose := jwt.PurposeLogin
 
 	if user.OTPEnabled && !bypassSecurity {

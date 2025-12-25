@@ -98,6 +98,9 @@ func (c *CronServiceDefault) initializeCoordinator(ctx core.Context, registry co
 }
 
 func (c *CronServiceDefault) loadAndValidateJobs(ctx context.Context) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.loadAndValidateJobs")
+	defer span.End()
+
 	if err := c.loadJobsFromDB(ctx); err != nil {
 		return fmt.Errorf("failed to load jobs from database: %w", err)
 	}
@@ -167,6 +170,9 @@ func (c *CronServiceDefault) ID() string {
 }
 
 func (c *CronServiceDefault) Start(ctx context.Context) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.Start")
+	defer span.End()
+
 	// If testing injected a full dependency set, don't overwrite it.
 	if c.coordinator == nil || c.jobFactory == nil || c.scheduleRegistry == nil || c.stateMachine == nil || c.monitor == nil {
 		if err := c.initializeComponents(c.Context()); err != nil {
@@ -212,6 +218,9 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 }
 
 func (c *CronServiceDefault) registerMaintenanceJobs(ctx context.Context) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.registerMaintenanceJobs")
+	defer span.End()
+
 	// Register dead job check job using the pre-registered schedule
 	err := c.RegisterJobType(ctx, core.GetCronJobIdentifier(core.JobOriginCore, cron.DeadJobCheckJobType), func() (core.CronJob, error) {
 		return &cron.DeadJobCheckJob{
@@ -266,6 +275,9 @@ func (c *CronServiceDefault) Stop(context.Context) error {
 }
 
 func (c *CronServiceDefault) GetActiveJob(ctx context.Context, jobID uuid.UUID) (core.CronJob, bool, error) {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.GetActiveJob")
+	defer span.End()
+
 	// Check coordinator's active jobs first
 	jobs := c.coordinator.Jobs()
 	for _, job := range jobs {
@@ -298,6 +310,9 @@ func (c *CronServiceDefault) Coordinator() core.CronCoordinator {
 }
 
 func (c *CronServiceDefault) RegisterJob(ctx context.Context, job core.CronJob, retryPolicy *core.RetryPolicy) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.RegisterJob")
+	defer span.End()
+
 	if job == nil {
 		return fmt.Errorf("job cannot be nil")
 	}
@@ -384,11 +399,17 @@ func (c *CronServiceDefault) RegisterJob(ctx context.Context, job core.CronJob, 
 }
 
 func (c *CronServiceDefault) RunJob(ctx context.Context, id uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.RunJob")
+	defer span.End()
+
 	// Simply enqueue the job through the coordinator
 	return c.coordinator.EnqueueJob(ctx, id)
 }
 
 func (s *CronServiceDefault) RegisterJobType(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.RegisterJobType")
+	defer span.End()
+
 	// Register the job factory
 	if err := s.jobFactory.RegisterFactory(ctx, jobType, factory, defaultSchedule); err != nil {
 		return fmt.Errorf("failed to register job factory: %w", err)
@@ -418,6 +439,9 @@ func (s *CronServiceDefault) StateMachine() core.CronJobStateMachine {
 }
 
 func (s *CronServiceDefault) RegisterPluginJobs(ctx context.Context, plugin core.PluginInfo) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.RegisterPluginJobs")
+	defer span.End()
+
 	for _, jobReg := range plugin.CronJobs {
 		// Use the existing GetCronJobIdentifier which handles proper formatting
 		jobType := core.GetCronJobIdentifier(core.JobOriginPlugin, fmt.Sprintf("%s.%s", plugin.ID, jobReg.Name))
@@ -430,6 +454,9 @@ func (s *CronServiceDefault) RegisterPluginJobs(ctx context.Context, plugin core
 }
 
 func (c *CronServiceDefault) loadJobsFromDB(ctx context.Context) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.loadJobsFromDB")
+	defer span.End()
+
 	dbJobs := make([]models.CronJob, 0)
 	if err := c.DB().Where(models.CronJob{
 		State: models.CronJobStateQueued,

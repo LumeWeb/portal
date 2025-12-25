@@ -116,10 +116,16 @@ func NewStandaloneCoordinator(
 }
 
 func (s *StandaloneCoordinator) SetHeartbeat(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.SetHeartbeat")
+	defer span.End()
+
 	return s.stateMachine.Transition(ctx, jobID, models.CronJobStateRunning, core.WithCronHeartbeat())
 }
 
 func (s *StandaloneCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.CheckHeartbeat")
+	defer span.End()
+
 	var job models.CronJob
 	if err := s.db.Where("uuid = ?", types.FromUUID(jobID)).First(&job).Error; err != nil {
 		return false, err
@@ -131,6 +137,9 @@ func (s *StandaloneCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.U
 }
 
 func (s *StandaloneCoordinator) CreateJobFromDB(ctx context.Context, jobID uuid.UUID) (core.CronJob, error) {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.CreateJobFromDB")
+	defer span.End()
+
 	return s.jobCreator.CreateFromDB(ctx, jobID)
 }
 
@@ -168,6 +177,9 @@ func (s *StandaloneCoordinator) getScheduleDefinitionForJob(jobID uuid.UUID) (go
 }
 
 func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.EnqueueJob")
+	defer span.End()
+
 	// Validate jobID is not empty
 	if jobID == uuid.Nil {
 		return fmt.Errorf("invalid job ID: cannot be empty")
@@ -322,6 +334,9 @@ func (s *StandaloneCoordinator) Start() error {
 }
 
 func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.UUID, failures uint) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.HandleFailedJob")
+	defer span.End()
+
 	// Cancel any existing context first
 	s.cancelJobContext(jobID)
 
@@ -376,6 +391,9 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 }
 
 func (s *StandaloneCoordinator) getOrCreateJobContext(ctx context.Context, jobID uuid.UUID) (context.Context, error) {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.getOrCreateJobContext")
+	defer span.End()
+
 	s.jobCtxMu.Lock()
 	defer s.jobCtxMu.Unlock()
 
@@ -399,6 +417,9 @@ func (s *StandaloneCoordinator) getOrCreateJobContext(ctx context.Context, jobID
 }
 
 func (s *StandaloneCoordinator) SetupJob(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.SetupJob")
+	defer span.End()
+
 	// Get current job state for defensive logging
 	dbJob, err := s.getJobRecord(jobID)
 	if err != nil {
@@ -450,6 +471,9 @@ func (s *StandaloneCoordinator) cancelJobContext(jobID uuid.UUID) {
 }
 
 func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.CleanupJob")
+	defer span.End()
+
 	// Get current job state for defensive logging
 	dbJob, err := s.getJobRecord(jobID)
 	if err != nil {
@@ -501,6 +525,9 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 }
 
 func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob")
+	defer span.End()
+
 	// Get job instance
 	job, err := s.CreateJobFromDB(ctx, jobID)
 	if err != nil {
@@ -527,6 +554,9 @@ func (s *StandaloneCoordinator) RemoveJob(jobID uuid.UUID) error {
 }
 
 func (s *StandaloneCoordinator) JobContext(ctx context.Context, jobID uuid.UUID) context.Context {
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.JobContext")
+	defer span.End()
+
 	s.jobCtxMu.RLock()
 	defer s.jobCtxMu.RUnlock()
 	return s.jobContexts[jobID]

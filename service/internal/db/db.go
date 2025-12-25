@@ -16,13 +16,13 @@ func HandleDBError(err error) error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
-	
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 
 	// Optionally: detect duplicate key and map to a friendlier error key
 	// if errors.Is(err, gorm.ErrDuplicatedKey) { return core.NewAccountError(core.ErrKeyDuplicate, err) }
-	
+
 	return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 }

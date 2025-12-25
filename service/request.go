@@ -61,6 +61,9 @@ func (r *RequestServiceDefault) CreateRequestModel(operation string) (data_model
 }
 
 func (r *RequestServiceDefault) ListDistinctRequestFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ListDistinctRequestFilters")
+	defer span.End()
+
 	buildBaseQuery := func() *gorm.DB {
 		q := r.DB().Model(&models.Request{}).Where("user_id = ?", userID)
 		if len(additionalFilters) > 0 {
@@ -114,6 +117,9 @@ func (r *RequestServiceDefault) ID() string {
 }
 
 func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.Request, data interface{}) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.CreateRequest")
+	defer span.End()
+
 	protocol := req.Protocol
 	if protocol == "" {
 		protocol = requestMetrics.LabelProtocolUnknown
@@ -198,6 +204,9 @@ func (r *RequestServiceDefault) CreateRequest(ctx context.Context, req *models.R
 }
 
 func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ExecuteRequest")
+	defer span.End()
+
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
@@ -270,6 +279,9 @@ func (r *RequestServiceDefault) ExecuteRequest(ctx context.Context, id uint) err
 }
 
 func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.GetRequest")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeGet),
 		nil,
@@ -284,6 +296,9 @@ func (r *RequestServiceDefault) GetRequest(ctx context.Context, id uint) (*model
 }
 
 func (r *RequestServiceDefault) GetRequestWithDeleted(ctx context.Context, id uint) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.GetRequestWithDeleted")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		requestMetrics.RequestDuration.WithLabelValues(requestMetrics.LabelQueryTypeGet),
 		nil,
@@ -298,6 +313,9 @@ func (r *RequestServiceDefault) GetRequestWithDeleted(ctx context.Context, id ui
 }
 
 func (r *RequestServiceDefault) getRequest(ctx context.Context, id uint, withDeleted bool) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.getRequest")
+	defer span.End()
+
 	var req models.Request
 	err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
 		query := tx.WithContext(ctx)
@@ -316,6 +334,9 @@ func (r *RequestServiceDefault) getRequest(ctx context.Context, id uint, withDel
 }
 
 func (r *RequestServiceDefault) UpdateRequest(ctx context.Context, req *models.Request) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.UpdateRequest")
+	defer span.End()
+
 	protocol := req.Protocol
 	if protocol == "" {
 		protocol = requestMetrics.LabelProtocolUnknown
@@ -345,6 +366,9 @@ func (r *RequestServiceDefault) UpdateRequest(ctx context.Context, req *models.R
 }
 
 func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.DeleteRequest")
+	defer span.End()
+
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
@@ -395,6 +419,9 @@ func (r *RequestServiceDefault) DeleteRequest(ctx context.Context, id uint) erro
 }
 
 func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interface{}, filter core.RequestFilter) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.QueryRequest")
+	defer span.End()
+
 	var req models.Request
 
 	result, err := core.MetricTrackResult(
@@ -425,6 +452,9 @@ func (r *RequestServiceDefault) QueryRequest(ctx context.Context, query interfac
 }
 
 func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.StorageHash, filter core.RequestFilter) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.GetRequestByHash")
+	defer span.End()
+
 	var req models.Request
 	req.Hash = hash.Multihash()
 
@@ -453,6 +483,9 @@ func (r *RequestServiceDefault) GetRequestByHash(ctx context.Context, hash core.
 }
 
 func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID uint, filter core.RequestFilter) ([]*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ListRequestsByUser")
+	defer span.End()
+
 	var requests []*models.Request
 
 	var req models.Request
@@ -478,6 +511,9 @@ func (r *RequestServiceDefault) ListRequestsByUser(ctx context.Context, userID u
 }
 
 func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status string, filter core.RequestFilter) ([]*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ListRequestsByStatus")
+	defer span.End()
+
 	var requests []*models.Request
 
 	result, err := core.MetricTrackResult(
@@ -501,6 +537,9 @@ func (r *RequestServiceDefault) ListRequestsByStatus(ctx context.Context, status
 }
 
 func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint, status models.RequestStatusType, message string) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.UpdateRequestStatus")
+	defer span.End()
+
 	return db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.Request{}).
 			Where("id = ?", id).
@@ -513,6 +552,9 @@ func (r *RequestServiceDefault) UpdateRequestStatus(ctx context.Context, id uint
 }
 
 func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.CompleteRequest")
+	defer span.End()
+
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
@@ -579,6 +621,9 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 }
 
 func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason string) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.FailRequest")
+	defer span.End()
+
 	req, err := r.GetRequest(ctx, id)
 	if err != nil {
 		return err
@@ -629,14 +674,23 @@ func (r *RequestServiceDefault) FailRequest(ctx context.Context, id uint, reason
 }
 
 func (r *RequestServiceDefault) ComputeRequestStatus(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ComputeRequestStatus")
+	defer span.End()
+
 	return r.computeRequestStatus(ctx, id, keepExisting, false)
 }
 
 func (r *RequestServiceDefault) ComputeRequestStatusWithDeleted(ctx context.Context, id uint, keepExisting bool) (*core.RequestStatus, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ComputeRequestStatusWithDeleted")
+	defer span.End()
+
 	return r.computeRequestStatus(ctx, id, keepExisting, true)
 }
 
 func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uint, keepExisting bool, withDeleted bool) (*core.RequestStatus, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.computeRequestStatus")
+	defer span.End()
+
 	var req *models.Request
 	var err error
 
@@ -700,6 +754,9 @@ func (r *RequestServiceDefault) computeRequestStatus(ctx context.Context, id uin
 }
 
 func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models.Request) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.ValidateRequest")
+	defer span.End()
+
 	// Find the operation handler
 	_, handler, err := r.ops.FindOperationHandler(req.Operation)
 	if err != nil {
@@ -715,6 +772,9 @@ func (r *RequestServiceDefault) ValidateRequest(ctx context.Context, req *models
 }
 
 func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, withDeleted bool) (*core.RequestStatus, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.GetRequestStatus")
+	defer span.End()
+
 	var req *models.Request
 	var err error
 
@@ -756,6 +816,9 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 }
 
 func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.RequestExists")
+	defer span.End()
+
 	var exists bool
 	err := db.RetryableComponentTransaction(r, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.WithContext(ctx).
@@ -768,6 +831,9 @@ func (r *RequestServiceDefault) RequestExists(ctx context.Context, id uint) (boo
 }
 
 func (r *RequestServiceDefault) GetRequestData(ctx context.Context, req *models.Request) (interface{}, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.GetRequestData")
+	defer span.End()
+
 	// Get model for this operation
 	model, err := r.CreateRequestModel(req.Operation)
 	if err != nil {
@@ -788,6 +854,9 @@ func (r *RequestServiceDefault) GetRequestData(ctx context.Context, req *models.
 }
 
 func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *models.Request, data interface{}) error {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.UpdateRequestData")
+	defer span.End()
+
 	// Get model for this operation
 	model, err := r.CreateRequestModel(req.Operation)
 	if err != nil {
@@ -819,6 +888,9 @@ func (r *RequestServiceDefault) UpdateRequestData(ctx context.Context, req *mode
 }
 
 func (r *RequestServiceDefault) QueryRequestData(ctx context.Context, query any, filter core.RequestFilter) (*models.Request, error) {
+	ctx, span := core.TraceMethod(ctx, "RequestServiceDefault.QueryRequestData")
+	defer span.End()
+
 	var req models.Request
 
 	// Get model for the operation if specified

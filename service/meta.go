@@ -68,7 +68,7 @@ func (b *portalMetaBuilder) Plugin(pluginID string) (core.PluginMetaBuilder, err
 	if !exists {
 		return nil, fmt.Errorf("plugin %s not found in meta", pluginID)
 	}
-	
+
 	return &pluginMetaBuilder{
 		meta:       b.meta,
 		pluginID:   pluginID,

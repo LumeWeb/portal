@@ -72,13 +72,13 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
 				zap.Error(err))
 			return nil
 		}
-		
+
 		// Check if step is configured to continue on failure
 		stepInfo, stepErr := workflowSvc.GetWorkflowStepInfo(ctx, args)
 		if stepErr != nil {
 			return fmt.Errorf("failed to get workflow step info: %w", stepErr)
 		}
-		
+
 		// If the step is configured to continue on failure, we should still advance to the next step
 		if stepInfo.FailureBehavior == core.ContinueWorkflow {
 			ctx.Logger().Info("Workflow step failed but configured to continue",

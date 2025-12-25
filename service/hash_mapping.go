@@ -40,6 +40,9 @@ func (h *HashMappingServiceDefault) ID() string {
 }
 
 func (h *HashMappingServiceDefault) StoreMapping(ctx context.Context, sourceHash, targetHash core.StorageHash, protocol string, metadata map[string]interface{}) error {
+	ctx, span := core.TraceMethod(ctx, "HashMappingServiceDefault.StoreMapping")
+	defer span.End()
+
 	return core.MetricTrack(
 		hashMappingMetrics.MappingDuration.WithLabelValues(hashMappingMetrics.LabelOpStore),
 		hashMappingMetrics.MappingFailed.WithLabelValues(hashMappingMetrics.LabelOpStore),
@@ -73,6 +76,9 @@ func (h *HashMappingServiceDefault) StoreMapping(ctx context.Context, sourceHash
 }
 
 func (h *HashMappingServiceDefault) GetMappings(ctx context.Context, sourceHash core.StorageHash, protocol ...string) ([]core.StorageHash, error) {
+	ctx, span := core.TraceMethod(ctx, "HashMappingServiceDefault.GetMappings")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		hashMappingMetrics.MappingDuration.WithLabelValues(hashMappingMetrics.LabelOpGet),
 		hashMappingMetrics.MappingFailed.WithLabelValues(hashMappingMetrics.LabelOpGet),
@@ -114,6 +120,9 @@ func (h *HashMappingServiceDefault) GetMappings(ctx context.Context, sourceHash 
 }
 
 func (h *HashMappingServiceDefault) GetReverseMappings(ctx context.Context, targetHash core.StorageHash, protocol ...string) ([]core.StorageHash, error) {
+	ctx, span := core.TraceMethod(ctx, "HashMappingServiceDefault.GetReverseMappings")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		hashMappingMetrics.MappingDuration.WithLabelValues(hashMappingMetrics.LabelOpGetReverse),
 		hashMappingMetrics.MappingFailed.WithLabelValues(hashMappingMetrics.LabelOpGetReverse),
@@ -151,6 +160,9 @@ func (h *HashMappingServiceDefault) GetReverseMappings(ctx context.Context, targ
 }
 
 func (h *HashMappingServiceDefault) DeleteMappings(ctx context.Context, hash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "HashMappingServiceDefault.DeleteMappings")
+	defer span.End()
+
 	return core.MetricTrack(
 		hashMappingMetrics.MappingDuration.WithLabelValues(hashMappingMetrics.LabelOpDelete),
 		hashMappingMetrics.MappingFailed.WithLabelValues(hashMappingMetrics.LabelOpDelete),

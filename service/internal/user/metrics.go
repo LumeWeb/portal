@@ -7,47 +7,47 @@ import (
 
 // Metric name constants for user service metrics
 const (
-	MetricCreated              = "created_total"
-	MetricUpdated              = "updated_total"
-	MetricDeleted              = "deleted_total"
-	MetricExistsQueried        = "exists_queried_total"
+	MetricCreated               = "created_total"
+	MetricUpdated               = "updated_total"
+	MetricDeleted               = "deleted_total"
+	MetricExistsQueried         = "exists_queried_total"
 	MetricEmailVerificationSent = "email_verification_sent_total"
-	MetricEmailVerified        = "email_verified_total"
-	MetricDeletionRequested    = "deletion_requested_total"
-	MetricPublicKeyAdded       = "public_key_added_total"
-	MetricDuration             = "duration_seconds"
-	MetricFailed               = "failed_total"
+	MetricEmailVerified         = "email_verified_total"
+	MetricDeletionRequested     = "deletion_requested_total"
+	MetricPublicKeyAdded        = "public_key_added_total"
+	MetricDuration              = "duration_seconds"
+	MetricFailed                = "failed_total"
 )
 
 // Metric label values
 const (
-	LabelOpCreate            = "create"
-	LabelOpUpdate            = "update"
-	LabelOpDelete            = "delete"
-	LabelOpCheckExists       = "check_exists"
-	LabelOpSendVerification  = "send_verification"
-	LabelOpVerifyEmail       = "verify_email"
-	LabelOpRequestDeletion   = "request_deletion"
-	LabelOpListPending       = "list_pending"
-	LabelOpAddPubkey         = "add_pubkey"
-	LabelOpGetAccount        = "get_account"
-	LabelOpUnknown           = "unknown"
+	LabelOpCreate           = "create"
+	LabelOpUpdate           = "update"
+	LabelOpDelete           = "delete"
+	LabelOpCheckExists      = "check_exists"
+	LabelOpSendVerification = "send_verification"
+	LabelOpVerifyEmail      = "verify_email"
+	LabelOpRequestDeletion  = "request_deletion"
+	LabelOpListPending      = "list_pending"
+	LabelOpAddPubkey        = "add_pubkey"
+	LabelOpGetAccount       = "get_account"
+	LabelOpUnknown          = "unknown"
 
 	LabelStatusError = "error"
 )
 
 // Global metric instances
 var (
-	AccountsCreated              prometheus.CounterVec
-	AccountsUpdated              prometheus.CounterVec
-	AccountsDeleted              prometheus.CounterVec
-	AccountsExistsQueried        prometheus.CounterVec
-	EmailVerificationSent        prometheus.CounterVec
-	EmailVerified                prometheus.CounterVec
-	AccountDeletionRequested     prometheus.CounterVec
-	PublicKeyAdded               prometheus.CounterVec
-	UserOperationDuration        prometheus.HistogramVec
-	UserOperationFailed          prometheus.CounterVec
+	AccountsCreated          prometheus.CounterVec
+	AccountsUpdated          prometheus.CounterVec
+	AccountsDeleted          prometheus.CounterVec
+	AccountsExistsQueried    prometheus.CounterVec
+	EmailVerificationSent    prometheus.CounterVec
+	EmailVerified            prometheus.CounterVec
+	AccountDeletionRequested prometheus.CounterVec
+	PublicKeyAdded           prometheus.CounterVec
+	UserOperationDuration    prometheus.HistogramVec
+	UserOperationFailed      prometheus.CounterVec
 )
 
 // init initializes all user metrics.

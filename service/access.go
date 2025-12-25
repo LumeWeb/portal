@@ -46,6 +46,9 @@ func (a *AccessServiceDefault) ID() string {
 }
 
 func (a *AccessServiceDefault) RegisterRoute(ctx context.Context, subdomain, path, method, role string) error {
+	ctx, span := core.TraceMethod(ctx, "AccessServiceDefault.RegisterRoute")
+	defer span.End()
+
 	return core.MetricTrack(
 		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
 		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
@@ -61,6 +64,9 @@ func (a *AccessServiceDefault) RegisterRoute(ctx context.Context, subdomain, pat
 }
 
 func (a *AccessServiceDefault) AssignRoleToUser(ctx context.Context, userId uint, role string) error {
+	ctx, span := core.TraceMethod(ctx, "AccessServiceDefault.AssignRoleToUser")
+	defer span.End()
+
 	return core.MetricTrack(
 		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpAssignRole),
 		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpAssignRole),
@@ -76,6 +82,9 @@ func (a *AccessServiceDefault) AssignRoleToUser(ctx context.Context, userId uint
 }
 
 func (a *AccessServiceDefault) CheckAccess(ctx context.Context, userId uint, fqdn, path, method string) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "AccessServiceDefault.CheckAccess")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpCheckAccess),
 		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpCheckAccess),
@@ -91,6 +100,9 @@ func (a *AccessServiceDefault) CheckAccess(ctx context.Context, userId uint, fqd
 }
 
 func (a *AccessServiceDefault) ExportUserPolicy(ctx context.Context, userId uint) ([]*core.AccessPolicy, error) {
+	ctx, span := core.TraceMethod(ctx, "AccessServiceDefault.ExportUserPolicy")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpExportPolicy),
 		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpExportPolicy),

@@ -41,6 +41,9 @@ func (o OTPServiceDefault) ID() string {
 }
 
 func (o OTPServiceDefault) OTPGenerate(ctx context.Context, userId uint) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "OTPServiceDefault.OTPGenerate")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		otp.OTPOperation.WithLabelValues(otp.LabelOpGenerate),
 		otp.OTPFailed.WithLabelValues(otp.LabelOpGenerate),
@@ -76,6 +79,9 @@ func (o OTPServiceDefault) OTPGenerate(ctx context.Context, userId uint) (string
 }
 
 func (o OTPServiceDefault) OTPVerify(ctx context.Context, userId uint, code string) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "OTPServiceDefault.OTPVerify")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		otp.OTPOperation.WithLabelValues(otp.LabelOpVerify),
 		otp.OTPFailed.WithLabelValues(otp.LabelOpVerify),
@@ -105,6 +111,9 @@ func (o OTPServiceDefault) OTPVerify(ctx context.Context, userId uint, code stri
 }
 
 func (o OTPServiceDefault) OTPEnable(ctx context.Context, userId uint, code string) error {
+	ctx, span := core.TraceMethod(ctx, "OTPServiceDefault.OTPEnable")
+	defer span.End()
+
 	return core.MetricTrack(
 		otp.OTPOperation.WithLabelValues(otp.LabelOpEnable),
 		otp.OTPFailed.WithLabelValues(otp.LabelOpEnable),
@@ -128,6 +137,9 @@ func (o OTPServiceDefault) OTPEnable(ctx context.Context, userId uint, code stri
 }
 
 func (o OTPServiceDefault) OTPDisable(ctx context.Context, userId uint) error {
+	ctx, span := core.TraceMethod(ctx, "OTPServiceDefault.OTPDisable")
+	defer span.End()
+
 	return core.MetricTrack(
 		otp.OTPOperation.WithLabelValues(otp.LabelOpDisable),
 		otp.OTPFailed.WithLabelValues(otp.LabelOpDisable),

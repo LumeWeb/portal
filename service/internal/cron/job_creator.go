@@ -28,6 +28,9 @@ func NewJobCreator(db *gorm.DB, jobFactory core.CronJobFactory, logger *core.Log
 }
 
 func (j *JobCreator) CreateFromDB(ctx context.Context, jobID uuid.UUID) (core.CronJob, error) {
+	ctx, span := core.TraceMethod(ctx, "JobCreator.CreateFromDB")
+	defer span.End()
+
 	// Retrieve job details from database
 	var cronJob models.CronJob
 	if err := j.db.Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&cronJob).Error; err != nil {

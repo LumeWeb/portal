@@ -79,6 +79,9 @@ func (cm *ClientManager) Start() error {
 }
 
 func (cm *ClientManager) loadNodes(ctx context.Context, client *clientv3.Client) error {
+	ctx, span := core.TraceMethod(ctx, "ClientManager.loadNodes")
+	defer span.End()
+
 	resp, err := client.Get(ctx, cm.etcdKey, clientv3.WithPrefix())
 	if err != nil {
 		return fmt.Errorf("failed to get nodes from etcd: %w", err)
@@ -100,6 +103,9 @@ func (cm *ClientManager) loadNodes(ctx context.Context, client *clientv3.Client)
 }
 
 func (cm *ClientManager) watchNodes(ctx context.Context, client *clientv3.Client) {
+	ctx, span := core.TraceMethod(ctx, "ClientManager.watchNodes")
+	defer span.End()
+
 	watchChan := client.Watch(ctx, cm.etcdKey, clientv3.WithPrefix())
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {

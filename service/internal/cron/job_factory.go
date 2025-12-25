@@ -59,6 +59,9 @@ func (j *CleanupJob) Run(ctx core.Context) error {
 
 // RegisterFactory registers a job type with optional default schedule
 func (f *DefaultJobFactory) GetDefaultSchedule(ctx context.Context, jobType string) (*core.CronScheduleDefinition, bool) {
+	ctx, span := core.TraceMethod(ctx, "DefaultJobFactory.GetDefaultSchedule")
+	defer span.End()
+
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 
@@ -67,6 +70,9 @@ func (f *DefaultJobFactory) GetDefaultSchedule(ctx context.Context, jobType stri
 }
 
 func (f *DefaultJobFactory) RegisterFactory(ctx context.Context, jobType string, factory core.CronJobFactoryFunc, defaultSchedule *core.CronScheduleDefinition) error {
+	ctx, span := core.TraceMethod(ctx, "DefaultJobFactory.RegisterFactory")
+	defer span.End()
+
 	if err := core.ValidateCronJobType(jobType); err != nil {
 		return fmt.Errorf("invalid job type: %w", err)
 	}
@@ -87,6 +93,9 @@ func (f *DefaultJobFactory) RegisterFactory(ctx context.Context, jobType string,
 
 // CreateJob instantiates a job of the given type
 func (f *DefaultJobFactory) CreateJob(ctx context.Context, jobType string) (core.CronJob, error) {
+	ctx, span := core.TraceMethod(ctx, "DefaultJobFactory.CreateJob")
+	defer span.End()
+
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 

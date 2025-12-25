@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"go.lumeweb.com/event/v2"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"reflect"
 	"sync"
@@ -65,6 +66,13 @@ const ValueKey = "_value"
 type fieldInfo struct {
 	name  string
 	index int
+}
+
+// EventContextProvider is an interface for types that can provide their own context.
+// Implement this interface on your event payload types to have their context
+// used for event tracing instead of the caller's context.
+type EventContextProvider interface {
+	GetContext() context.Context
 }
 
 var (
@@ -221,7 +229,7 @@ func NewEvent[P any](name string, data *P, ctx context.Context) *CoreEvent[P] {
 		Data:       *data,
 		mu:         &sync.Mutex{},
 		logger:     NewLogger(nil, zap.NewNop()), // Initialize with no-op logger by default
-		ctx:        ctx,                         // Set the context for observability tracing
+		ctx:        ctx,                          // Set the context for observability tracing
 	}
 }
 
@@ -240,6 +248,23 @@ func (e *CoreEvent[P]) Context() context.Context {
 	return e.ctx
 }
 
+// extractEventContext attempts to extract a context from data if available.
+// Returns the data's context if found, otherwise returns the provided fallback context.
+func extractEventContext[P any](data *P, fallbackCtx context.Context) context.Context {
+	if data == nil {
+		return fallbackCtx
+	}
+
+	// Try type assertion to EventContextProvider interface
+	if provider, ok := any(data).(EventContextProvider); ok {
+		if ctx := provider.GetContext(); ctx != nil {
+			return ctx
+		}
+	}
+
+	return fallbackCtx
+}
+
 // Fire dispatches an event with the given name and payload using the context's event manager.
 // This variant accepts a pointer to the payload data, which allows handlers to modify the original data.
 // Use this when:
@@ -252,6 +277,10 @@ func (e *CoreEvent[P]) Context() context.Context {
 // data is a pointer to the payload data to send with the event.
 // Returns any error that occurred during firing.
 func Fire[P any](ctx Context, eventName string, data *P) error {
+	eventCtx := extractEventContext(data, ctx.GetContext())
+	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
+	defer EndSpanWithErr(span, nil)
+
 	err, _ := FireAndReturn(ctx, eventName, data)
 	return err
 }
@@ -260,7 +289,8 @@ func Fire[P any](ctx Context, eventName string, data *P) error {
 // This is similar to Fire but provides access to the event object for inspection.
 // See Fire documentation for guidance on when to use pointer vs value payloads.
 func FireAndReturn[P any](ctx Context, eventName string, data *P) (error, event.Event[*CoreEvent[P]]) {
-	coreEvent := NewEvent[P](eventName, data, ctx.GetContext())
+	eventCtx := extractEventContext(data, ctx.GetContext())
+	coreEvent := NewEvent[P](eventName, data, eventCtx)
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	return event.FireTyped[*CoreEvent[P]](ctx.Event(), eventName, coreEvent)
@@ -278,6 +308,10 @@ func FireAndReturn[P any](ctx Context, eventName string, data *P) (error, event.
 // data is the payload data to send with the event (passed by value).
 // Returns any error that occurred during firing.
 func FireByValue[P any](ctx Context, eventName string, data P) error {
+	eventCtx := extractEventContext(&data, ctx.GetContext())
+	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
+	defer EndSpanWithErr(span, nil)
+
 	err, _ := FireByValueAndReturn[P](ctx, eventName, data)
 	return err
 }
@@ -286,7 +320,8 @@ func FireByValue[P any](ctx Context, eventName string, data P) error {
 // This is similar to FireByValue but provides access to the event object for inspection.
 // See FireByValue documentation for guidance on when to use value payloads.
 func FireByValueAndReturn[P any](ctx Context, eventName string, data P) (error, event.Event[*CoreEvent[P]]) {
-	coreEvent := NewEvent[P](eventName, &data, ctx.GetContext())
+	eventCtx := extractEventContext(&data, ctx.GetContext())
+	coreEvent := NewEvent[P](eventName, &data, eventCtx)
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
 	return event.FireTyped[*CoreEvent[P]](ctx.Event(), eventName, coreEvent)
@@ -307,10 +342,15 @@ func MustFire[P any](ctx Context, eventName string, payload *P) {
 // eventName is the name of the event to fire.
 // payload is the data to send with the event (passed by pointer).
 func FireAsync[P any](ctx Context, eventName string, payload *P) {
-	coreEvent := NewEvent[P](eventName, payload, ctx.GetContext())
+	eventCtx := extractEventContext(payload, ctx.GetContext())
+	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
+
+	coreEvent := NewEvent[P](eventName, payload, eventCtx)
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
+
 	ctx.Event().Async(eventName, coreEvent)
+	span.End()
 }
 
 // FireAsyncByValue dispatches an event asynchronously using the context's event manager.
@@ -318,10 +358,15 @@ func FireAsync[P any](ctx Context, eventName string, payload *P) {
 // eventName is the name of the event to fire.
 // data is the payload data to send with the event (passed by value).
 func FireAsyncByValue[P any](ctx Context, eventName string, data P) {
-	coreEvent := NewEvent[P](eventName, &data, ctx.GetContext())
+	eventCtx := extractEventContext(&data, ctx.GetContext())
+	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
+
+	coreEvent := NewEvent[P](eventName, &data, eventCtx)
 	coreEvent.SetLogger(ctx.Logger())
 	coreEvent.SyncToMap()
+
 	ctx.Event().Async(eventName, coreEvent)
+	span.End()
 }
 
 // Listen registers a strongly-typed event handler using the context's event manager.
@@ -335,7 +380,17 @@ func Listen[P any](ctx Context, eventName string, handler EventHandlerFunc[P], p
 
 	// Create a listener function that matches the event library's expected signature
 	listener := event.NewListenerFunc[*CoreEvent[P]](func(e event.Event[*CoreEvent[P]]) error {
-		return wrappedHandler(e.Data())
+		coreEvent := e.Data()
+		handlerCtx := coreEvent.Context()
+
+		// Create a span for the handler execution
+		handlerCtx, span := TraceMethod(handlerCtx, "event.handler."+eventName, WithAttributes(attribute.String("event.name", eventName)))
+		defer EndSpanWithErr(span, nil)
+
+		// Update the core event's context with the handler span context
+		coreEvent.SetContext(handlerCtx)
+
+		return wrappedHandler(coreEvent)
 	})
 
 	event.OnTyped[*CoreEvent[P]](

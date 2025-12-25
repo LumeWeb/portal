@@ -67,6 +67,9 @@ func NewUserService() (core.Service, []core.ContextBuilderOption, error) {
 }
 
 func (u UserServiceDefault) RegisterTasks(ctx context.Context, crn core.CronService) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.RegisterTasks")
+	defer span.End()
+
 	attime, err := time.Parse(time.Kitchen, "03:00AM")
 	if err != nil {
 		return fmt.Errorf("failed to parse time: %w", err)
@@ -87,6 +90,9 @@ func (u UserServiceDefault) RegisterTasks(ctx context.Context, crn core.CronServ
 }
 
 func (u UserServiceDefault) ScheduleJobs(ctx context.Context, cron core.CronService) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.ScheduleJobs")
+	defer span.End()
+
 	// Create the job if it doesn't exist
 	_, err := cron.JobFactory().CreateJob(ctx, user.ProcessAccountDeletionRequestsJobType)
 	if err != nil {
@@ -106,6 +112,9 @@ type emailExistsResult struct {
 }
 
 func (u UserServiceDefault) EmailExists(ctx context.Context, email string) (bool, *models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.EmailExists")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCheckExists),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpCheckExists),
@@ -137,6 +146,9 @@ type pubkeyExistsResult struct {
 }
 
 func (u UserServiceDefault) PubkeyExists(ctx context.Context, pubkey string) (bool, *models.PublicKey, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.PubkeyExists")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCheckExists),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpCheckExists),
@@ -168,6 +180,9 @@ type accountExistsResult struct {
 }
 
 func (u UserServiceDefault) AccountExists(ctx context.Context, id uint) (bool, *models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.AccountExists")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCheckExists),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpCheckExists),
@@ -202,6 +217,9 @@ func (u UserServiceDefault) HashPassword(password string) (string, error) {
 }
 
 func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.CreateAccount")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCreate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpCreate),
@@ -284,6 +302,9 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 }
 
 func (u UserServiceDefault) UpdateAccountName(ctx context.Context, userId uint, firstName string, lastName string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.UpdateAccountName")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpUpdate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpUpdate),
@@ -301,6 +322,9 @@ func (u UserServiceDefault) UpdateAccountName(ctx context.Context, userId uint, 
 }
 
 func (u UserServiceDefault) UpdateAccountEmail(ctx context.Context, userId uint, email string, password string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.UpdateAccountEmail")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpUpdate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpUpdate),
@@ -335,6 +359,9 @@ func (u UserServiceDefault) UpdateAccountEmail(ctx context.Context, userId uint,
 }
 
 func (u UserServiceDefault) UpdateAccountPassword(ctx context.Context, userId uint, password string, newPassword string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.UpdateAccountPassword")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpUpdate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpUpdate),
@@ -365,6 +392,9 @@ func (u UserServiceDefault) UpdateAccountPassword(ctx context.Context, userId ui
 }
 
 func (u UserServiceDefault) UpdateAccountInfo(ctx context.Context, userId uint, info map[string]any) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.UpdateAccountInfo")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpUpdate),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpUpdate),
@@ -384,6 +414,9 @@ func (u UserServiceDefault) UpdateAccountInfo(ctx context.Context, userId uint, 
 }
 
 func (u UserServiceDefault) AddPubkeyToAccount(ctx context.Context, user models.User, pubkey string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.AddPubkeyToAccount")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpAddPubkey),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpAddPubkey),
@@ -417,6 +450,9 @@ func (u UserServiceDefault) AddPubkeyToAccount(ctx context.Context, user models.
 }
 
 func (u UserServiceDefault) Exists(ctx context.Context, model any, conditions map[string]any) (bool, any, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.Exists")
+	defer span.End()
+
 	var rowsAffected int64
 	// Conduct a query with the provided model and conditions
 	err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
@@ -441,6 +477,9 @@ func (u UserServiceDefault) Exists(ctx context.Context, model any, conditions ma
 }
 
 func (u UserServiceDefault) SendEmailVerification(ctx context.Context, userId uint) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.SendEmailVerification")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpSendVerification),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpSendVerification),
@@ -495,6 +534,9 @@ func (u UserServiceDefault) SendEmailVerification(ctx context.Context, userId ui
 }
 
 func (u UserServiceDefault) IsAccountVerified(ctx context.Context, userId uint) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.IsAccountVerified")
+	defer span.End()
+
 	var _user models.User
 	_user.ID = userId
 
@@ -512,6 +554,9 @@ func (u UserServiceDefault) IsAccountVerified(ctx context.Context, userId uint) 
 }
 
 func (u UserServiceDefault) VerifyEmail(ctx context.Context, email string, token string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.VerifyEmail")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpVerifyEmail),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpVerifyEmail),
@@ -582,6 +627,9 @@ func (u UserServiceDefault) VerifyEmail(ctx context.Context, email string, token
 }
 
 func (u *UserServiceDefault) DeleteAccount(ctx context.Context, userId uint) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.DeleteAccount")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpDelete),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpDelete),
@@ -622,6 +670,9 @@ func (u *UserServiceDefault) DeleteAccount(ctx context.Context, userId uint) err
 }
 
 func (u *UserServiceDefault) IsAccountPendingDeletion(ctx context.Context, userId uint) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.IsAccountPendingDeletion")
+	defer span.End()
+
 	var count int64
 	err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.AccountDeletion{}).
@@ -632,6 +683,9 @@ func (u *UserServiceDefault) IsAccountPendingDeletion(ctx context.Context, userI
 }
 
 func (u *UserServiceDefault) RequestAccountDeletion(ctx context.Context, userId uint, userIP string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.RequestAccountDeletion")
+	defer span.End()
+
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpRequestDeletion),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpRequestDeletion),
@@ -674,6 +728,9 @@ func (u *UserServiceDefault) RequestAccountDeletion(ctx context.Context, userId 
 }
 
 func (u *UserServiceDefault) GetAccountsPendingDeletion(ctx context.Context) ([]*models.User, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.GetAccountsPendingDeletion")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpListPending),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpListPending),

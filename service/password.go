@@ -66,6 +66,9 @@ func (p *PasswordResetServiceDefault) SetSubdomain(subdomain string) {
 }
 
 func (p PasswordResetServiceDefault) SendPasswordReset(ctx context.Context, user *models.User) error {
+	ctx, span := core.TraceMethod(ctx, "PasswordResetServiceDefault.SendPasswordReset")
+	defer span.End()
+
 	return core.MetricTrack(
 		password.ResetDuration.WithLabelValues(password.LabelOpSendReset),
 		password.ResetFailed.WithLabelValues(password.LabelOpSendReset),
@@ -116,6 +119,9 @@ func (p PasswordResetServiceDefault) SendPasswordReset(ctx context.Context, user
 }
 
 func (p PasswordResetServiceDefault) ResetPassword(ctx context.Context, email string, token string, newPassword string) error {
+	ctx, span := core.TraceMethod(ctx, "PasswordResetServiceDefault.ResetPassword")
+	defer span.End()
+
 	return core.MetricTrack(
 		password.ResetDuration.WithLabelValues(password.LabelOpReset),
 		password.ResetFailed.WithLabelValues(password.LabelOpReset),

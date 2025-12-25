@@ -8,17 +8,17 @@ import (
 
 // Metric name constants for workflow service metrics
 const (
-	MetricStarted           = "started_total"
-	MetricCompleted         = "completed_total"
-	MetricFailed            = "failed_total"
-	MetricStepCompleted     = "step_completed_total"
-	MetricStepFailed        = "step_failed_total"
-	MetricStepExecuted      = "step_executed_total"
-	MetricStepRetried       = "step_retried_total"
-	MetricWorkflowsActive   = "workflows_active"
-	MetricWorkflowsTotal    = "workflows_total"
-	MetricDuration          = "duration_seconds"
-	MetricStepDuration      = "step_duration_seconds"
+	MetricStarted         = "started_total"
+	MetricCompleted       = "completed_total"
+	MetricFailed          = "failed_total"
+	MetricStepCompleted   = "step_completed_total"
+	MetricStepFailed      = "step_failed_total"
+	MetricStepExecuted    = "step_executed_total"
+	MetricStepRetried     = "step_retried_total"
+	MetricWorkflowsActive = "workflows_active"
+	MetricWorkflowsTotal  = "workflows_total"
+	MetricDuration        = "duration_seconds"
+	MetricStepDuration    = "step_duration_seconds"
 )
 
 // Metric label values
@@ -29,18 +29,18 @@ const (
 	LabelStatusFailed     = models.RequestStatusFailed
 	LabelStatusDuplicate  = models.RequestStatusDuplicate
 
-	LabelOperationStart        = "start"
-	LabelOperationComplete     = "complete"
-	LabelOperationFail         = "fail"
-	LabelOperationExecute      = "execute"
-	LabelOperationGetStatus    = "get_status"
-	LabelOperationGetInstance  = "get_instance"
-	LabelOperationList         = "list"
-	LabelOperationFind         = "find"
-	LabelOperationConvert       = "convert"
-	LabelOperationCleanup      = "cleanup"
-	LabelOperationUpdateData   = "update_data"
-	LabelOperationUnknown      = "unknown"
+	LabelOperationStart       = "start"
+	LabelOperationComplete    = "complete"
+	LabelOperationFail        = "fail"
+	LabelOperationExecute     = "execute"
+	LabelOperationGetStatus   = "get_status"
+	LabelOperationGetInstance = "get_instance"
+	LabelOperationList        = "list"
+	LabelOperationFind        = "find"
+	LabelOperationConvert     = "convert"
+	LabelOperationCleanup     = "cleanup"
+	LabelOperationUpdateData  = "update_data"
+	LabelOperationUnknown     = "unknown"
 
 	LabelFailureBehaviorFail     = "fail_workflow"
 	LabelFailureBehaviorContinue = "continue_workflow"
@@ -54,17 +54,17 @@ const (
 
 // Global metric instances
 var (
-	WorkflowsStarted         prometheus.CounterVec
-	WorkflowsCompleted       prometheus.CounterVec
-	WorkflowsFailed          prometheus.CounterVec
-	WorkflowStepsCompleted   prometheus.CounterVec
-	WorkflowStepsFailed      prometheus.CounterVec
-	WorkflowStepsExecuted    prometheus.CounterVec
-	WorkflowStepsRetried     prometheus.CounterVec
-	WorkflowsActive          prometheus.GaugeVec
-	WorkflowsTotal           prometheus.GaugeVec
-	WorkflowDuration         prometheus.HistogramVec
-	WorkflowStepDuration     prometheus.HistogramVec
+	WorkflowsStarted       prometheus.CounterVec
+	WorkflowsCompleted     prometheus.CounterVec
+	WorkflowsFailed        prometheus.CounterVec
+	WorkflowStepsCompleted prometheus.CounterVec
+	WorkflowStepsFailed    prometheus.CounterVec
+	WorkflowStepsExecuted  prometheus.CounterVec
+	WorkflowStepsRetried   prometheus.CounterVec
+	WorkflowsActive        prometheus.GaugeVec
+	WorkflowsTotal         prometheus.GaugeVec
+	WorkflowDuration       prometheus.HistogramVec
+	WorkflowStepDuration   prometheus.HistogramVec
 )
 
 // init initializes all workflow metrics.

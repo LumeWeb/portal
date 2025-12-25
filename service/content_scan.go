@@ -84,6 +84,9 @@ func (s *ContentScannerServiceDefault) RegisterScanner(scanner core.ContentScann
 }
 
 func (s *ContentScannerServiceDefault) ScanContent(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error) {
+	ctx, span := core.TraceMethod(ctx, "ContentScannerServiceDefault.ScanContent")
+	defer span.End()
+
 	return core.MetricTrackResult(
 		contentScanMetrics.ScanDuration.WithLabelValues(contentScanMetrics.LabelOpScan),
 		contentScanMetrics.OperationFailed.WithLabelValues(contentScanMetrics.LabelOpScan),
@@ -136,6 +139,9 @@ func (s *ContentScannerServiceDefault) ScanContent(ctx context.Context, hash cor
 }
 
 func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash core.StorageHash) ([]*core.ScanResult, error) {
+	ctx, span := core.TraceMethod(ctx, "ContentScannerServiceDefault.GetScanResults")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		contentScanMetrics.ScanDuration.WithLabelValues(contentScanMetrics.LabelOpGetResults),
 		contentScanMetrics.OperationFailed.WithLabelValues(contentScanMetrics.LabelOpGetResults),
@@ -167,6 +173,9 @@ func (s *ContentScannerServiceDefault) GetScanResults(ctx context.Context, hash 
 }
 
 func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id uint) (*core.ScanResult, error) {
+	ctx, span := core.TraceMethod(ctx, "ContentScannerServiceDefault.GetScanResultById")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		contentScanMetrics.ScanDuration.WithLabelValues(contentScanMetrics.LabelOpGetResultById),
 		contentScanMetrics.OperationFailed.WithLabelValues(contentScanMetrics.LabelOpGetResultById),
@@ -196,6 +205,9 @@ func (s *ContentScannerServiceDefault) GetScanResultById(ctx context.Context, id
 }
 
 func (s *ContentScannerServiceDefault) storeScanResult(ctx context.Context, hash core.StorageHash, result *core.ScanResult) error {
+	ctx, span := core.TraceMethod(ctx, "ContentScannerServiceDefault.storeScanResult")
+	defer span.End()
+
 	metadataJSON, err := json.Marshal(result.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal meta %w", err)

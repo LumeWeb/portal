@@ -7,12 +7,12 @@ import (
 
 // Metric name constants for access service metrics
 const (
-	MetricRouteRegistered  = "route_registered_total"
-	MetricRoleAssigned     = "role_assigned_total"
-	MetricAccessChecked    = "access_checked_total"
-	MetricPolicyExported   = "policy_exported_total"
-	MetricDuration         = "duration_seconds"
-	MetricFailed           = "failed_total"
+	MetricRouteRegistered = "route_registered_total"
+	MetricRoleAssigned    = "role_assigned_total"
+	MetricAccessChecked   = "access_checked_total"
+	MetricPolicyExported  = "policy_exported_total"
+	MetricDuration        = "duration_seconds"
+	MetricFailed          = "failed_total"
 )
 
 // Metric label values
@@ -28,12 +28,12 @@ const (
 
 // Global metric instances
 var (
-	RoutesRegistered  prometheus.CounterVec
-	RolesAssigned     prometheus.CounterVec
-	AccessChecked     prometheus.CounterVec
-	PolicyExported    prometheus.CounterVec
-	AccessDuration    prometheus.HistogramVec
-	AccessFailed      prometheus.CounterVec
+	RoutesRegistered prometheus.CounterVec
+	RolesAssigned    prometheus.CounterVec
+	AccessChecked    prometheus.CounterVec
+	PolicyExported   prometheus.CounterVec
+	AccessDuration   prometheus.HistogramVec
+	AccessFailed     prometheus.CounterVec
 )
 
 // init initializes all access metrics.

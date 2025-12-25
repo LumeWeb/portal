@@ -7,38 +7,38 @@ import (
 
 // Metric name constants for content scanner service metrics
 const (
-	MetricScanned      = "scanned_total"
-	MetricPassed       = "passed_total"
-	MetricFailed       = "failed_total"
-	MetricResultsQueried = "results_queried_total"
+	MetricScanned           = "scanned_total"
+	MetricPassed            = "passed_total"
+	MetricFailed            = "failed_total"
+	MetricResultsQueried    = "results_queried_total"
 	MetricScannerRegistered = "scanner_registered_total"
-	MetricDuration     = "duration_seconds"
-	MetricOperationFailed = "failed_total"
+	MetricDuration          = "duration_seconds"
+	MetricOperationFailed   = "failed_total"
 )
 
 // Metric label values
 const (
-	LabelOpScan         = "scan"
-	LabelOpGetResults   = "get_results"
+	LabelOpScan          = "scan"
+	LabelOpGetResults    = "get_results"
 	LabelOpGetResultById = "get_result_by_id"
-	LabelOpRegister     = "register"
-	LabelOpUnknown      = "unknown"
+	LabelOpRegister      = "register"
+	LabelOpUnknown       = "unknown"
 
-	LabelStatusPassed  = "passed"
-	LabelStatusFailed  = "failed"
+	LabelStatusPassed = "passed"
+	LabelStatusFailed = "failed"
 
 	LabelScannerUnknown = "unknown"
 )
 
 // Global metric instances
 var (
-	Scanned            prometheus.CounterVec
-	ScansPassed        prometheus.CounterVec
-	ScansFailed        prometheus.CounterVec
-	ResultsQueried     prometheus.CounterVec
-	ScannerRegistered  prometheus.CounterVec
-	ScanDuration       prometheus.HistogramVec
-	OperationFailed    prometheus.CounterVec
+	Scanned           prometheus.CounterVec
+	ScansPassed       prometheus.CounterVec
+	ScansFailed       prometheus.CounterVec
+	ResultsQueried    prometheus.CounterVec
+	ScannerRegistered prometheus.CounterVec
+	ScanDuration      prometheus.HistogramVec
+	OperationFailed   prometheus.CounterVec
 )
 
 // init initializes all content scanner metrics.

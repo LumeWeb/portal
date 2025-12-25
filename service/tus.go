@@ -70,6 +70,9 @@ func (t *TUSServiceDefault) Name() string {
 }
 
 func (t *TUSServiceDefault) UploadExists(ctx context.Context, protocol core.StorageProtocol, id string) (bool, *models.TUSRequest) {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.UploadExists")
+	defer span.End()
+
 	opName := core.TUSUploadOperationName(protocol.Name())
 
 	result, err := core.MetricTrackResult(
@@ -114,6 +117,9 @@ type uploadExistsResult struct {
 }
 
 func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, protocol core.StorageProtocol, hash core.StorageHash) (bool, *models.TUSRequest) {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.UploadHashExists")
+	defer span.End()
+
 	opName := core.TUSUploadOperationName(protocol.Name())
 
 	result, err := core.MetricTrackResult(
@@ -156,6 +162,9 @@ func (t *TUSServiceDefault) UploadHashExists(ctx context.Context, protocol core.
 }
 
 func (t *TUSServiceDefault) Uploads(ctx context.Context, protocol core.StorageProtocol, uploaderID uint) ([]*models.TUSRequest, error) {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.Uploads")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpList),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpList),
@@ -197,6 +206,9 @@ func (t *TUSServiceDefault) Uploads(ctx context.Context, protocol core.StoragePr
 }
 
 func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageHash, uploadID string, uploaderID uint, uploaderIP string, protocol core.StorageProtocol) (*models.TUSRequest, error) {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.CreateUpload")
+	defer span.End()
+
 	result, err := core.MetricTrackResult(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpCreate),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpCreate),
@@ -245,6 +257,9 @@ func (t *TUSServiceDefault) CreateUpload(ctx context.Context, hash core.StorageH
 }
 
 func (t *TUSServiceDefault) UploadProgress(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.UploadProgress")
+	defer span.End()
+
 	return core.MetricTrack(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpProgress),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpProgress),
@@ -267,6 +282,9 @@ func (t *TUSServiceDefault) UploadProgress(ctx context.Context, protocol core.St
 }
 
 func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.UploadCompleted")
+	defer span.End()
+
 	return core.MetricTrack(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpCompleted),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpCompleted),
@@ -290,6 +308,9 @@ func (t *TUSServiceDefault) UploadCompleted(ctx context.Context, protocol core.S
 }
 
 func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.UploadProcessing")
+	defer span.End()
+
 	return core.MetricTrack(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpProcessing),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpProcessing),
@@ -306,6 +327,9 @@ func (t *TUSServiceDefault) UploadProcessing(ctx context.Context, protocol core.
 }
 
 func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, protocol core.StorageProtocol, uploadID string) error {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.DeleteUpload")
+	defer span.End()
+
 	return core.MetricTrack(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpDelete),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpDelete),
@@ -328,6 +352,9 @@ func (t *TUSServiceDefault) DeleteUpload(ctx context.Context, protocol core.Stor
 }
 
 func (t *TUSServiceDefault) SetHash(ctx context.Context, protocol core.StorageProtocol, uploadID string, hash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "TUSServiceDefault.SetHash")
+	defer span.End()
+
 	return core.MetricTrack(
 		tus.UploadDuration.WithLabelValues(tus.LabelOpSetHash),
 		tus.UploadFailed.WithLabelValues(tus.LabelOpSetHash),
@@ -403,6 +430,9 @@ func (h *TUSOperationHandler) ValidateRequest(_ context.Context, _ *models.Reque
 
 // Execute processes a TUS upload request
 func (h *TUSOperationHandler) Execute(ctx context.Context, req *models.Request) error {
+	ctx, span := core.TraceMethod(ctx, "TUSOperationHandler.Execute")
+	defer span.End()
+
 	if h.handler != nil {
 		// Get the TUS upload data
 		data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
@@ -425,6 +455,9 @@ func (h *TUSOperationHandler) Execute(ctx context.Context, req *models.Request) 
 
 // GetStatus gets the status of a TUS upload request
 func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request) (*core.RequestStatus, error) {
+	ctx, span := core.TraceMethod(ctx, "TUSOperationHandler.GetStatus")
+	defer span.End()
+
 	// Get the TUS upload data
 	data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
 	if err != nil {
@@ -451,6 +484,9 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 
 // Cleanup handles any necessary cleanup after the operation completes or fails
 func (h *TUSOperationHandler) Cleanup(ctx context.Context, req *models.Request) error {
+	ctx, span := core.TraceMethod(ctx, "TUSOperationHandler.Cleanup")
+	defer span.End()
+
 	// Get the TUS upload data
 	data, err := core.GetService[core.RequestService](h.Context(), core.REQUEST_SERVICE).GetRequestData(ctx, req)
 	if err != nil {
@@ -622,5 +658,8 @@ func TUSDefaultPreFinishResponse(handlerFactory TusHandlerFactory, hashFunc TUSH
 }
 
 func TusGetEchoContext(ctx context.Context) (echo.Context, bool) {
+	ctx, span := core.TraceMethod(ctx, "TusGetEchoContext")
+	defer span.End()
+
 	return tus.GetEchoContext(ctx)
 }

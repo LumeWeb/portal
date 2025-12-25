@@ -194,6 +194,9 @@ func (rp *readerPool) Close() {
 }
 
 func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*models.Upload, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObject")
+	defer span.End()
+
 	startTime := time.Now()
 	storageMetrics.ActiveUploads.Inc()
 	defer storageMetrics.ActiveUploads.Dec()
@@ -311,6 +314,9 @@ func (s StorageServiceDefault) detectMimeType(reader io.Reader) (*mimetype.MIME,
 }
 
 func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol core.StorageProtocol, data io.ReadSeeker, proof core.StorageHash, size uint64) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObjectProof")
+	defer span.End()
+
 	if proof == nil {
 		hashResult, err := s.getObjectProof(protocol, data, size)
 		if err != nil {
@@ -357,10 +363,16 @@ func (s StorageServiceDefault) applyStorageOptions(opts []core.StorageOptionFunc
 }
 
 func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, start int64) (io.ReadCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObject")
+	defer span.End()
+
 	return s.DownloadObjectWithOptions(ctx, protocol, objectHash, core.StorageDownloadWithStart(start))
 }
 
 func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc) (io.ReadCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectWithOptions")
+	defer span.End()
+
 	startTime := time.Now()
 
 	var partialRange *api.DownloadRange = nil
@@ -393,6 +405,9 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 }
 
 func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) (io.ReadCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectProof")
+	defer span.End()
+
 	object, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), api.DownloadObjectOptions{})
 	if err != nil {
 		return nil, err
@@ -402,12 +417,18 @@ func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol
 }
 
 func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObject")
+	defer span.End()
+
 	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
 		return s.renter.DeleteObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash))
 	})
 }
 
 func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObjectProof")
+	defer span.End()
+
 	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
 		return s.renter.DeleteObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash))
 	})
@@ -419,6 +440,9 @@ func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol c
 // data: The data to upload
 // Returns error if upload fails
 func (s StorageServiceDefault) S3Upload(ctx context.Context, bucket string, key string, data io.Reader) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3Upload")
+	defer span.End()
+
 	return s.s3PutObject(ctx, bucket, key, data, 0)
 }
 
@@ -427,6 +451,9 @@ func (s StorageServiceDefault) S3Upload(ctx context.Context, bucket string, key 
 // key: The object key/path to delete
 // Returns error if deletion fails
 func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key string) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3Delete")
+	defer span.End()
+
 	return s.s3DeleteObject(ctx, bucket, key)
 }
 
@@ -435,6 +462,9 @@ func (s StorageServiceDefault) S3Delete(ctx context.Context, bucket string, key 
 // key: The object key/path to download
 // Returns io.ReadSeekCloser for the object data (caller must close it) and error if download fails
 func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3Download")
+	defer span.End()
+
 	return s.s3GetObject(ctx, bucket, key)
 }
 
@@ -445,6 +475,9 @@ func (s StorageServiceDefault) S3Download(ctx context.Context, bucket string, ke
 // size: The size of the data in bytes
 // Returns error if put operation fails
 func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, key string, data io.Reader, size int64) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.s3PutObject")
+	defer span.End()
+
 	var uploadSize uint64
 	if size > 0 {
 		uploadSize = uint64(size)
@@ -497,6 +530,9 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 // key: The object key/path
 // Returns io.ReadSeekCloser for the object data and error if get operation fails
 func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, key string) (io.ReadSeekCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.s3GetObject")
+	defer span.End()
+
 	return core.MetricTrackResult(storageMetrics.S3DownloadDuration, storageMetrics.S3DownloadErrors, func() (io.ReadSeekCloser, error) {
 		client, err := s.S3Client(ctx)
 		if err != nil {
@@ -514,6 +550,9 @@ func (s StorageServiceDefault) s3GetObject(ctx context.Context, bucket string, k
 // key: The object key/path to delete
 // Returns error if delete operation fails
 func (s StorageServiceDefault) s3DeleteObject(ctx context.Context, bucket string, key string) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.s3DeleteObject")
+	defer span.End()
+
 	return core.MetricTrack(storageMetrics.S3DeleteDuration, storageMetrics.S3DeleteErrors, func() error {
 		client, err := s.S3Client(ctx)
 		if err != nil {
@@ -531,6 +570,9 @@ func (s StorageServiceDefault) s3DeleteObject(ctx context.Context, bucket string
 // S3Client creates and returns a new S3 client instance.
 // Returns configured *s3.Client and error if client creation fails
 func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3Client")
+	defer span.End()
+
 	cfg, err := awsConfig.LoadDefaultConfig(ctx,
 		awsConfig.WithRegion(s.Config().Config().Core.Storage.S3.Region),
 		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
@@ -558,6 +600,9 @@ func (s StorageServiceDefault) S3Client(ctx context.Context) (*s3.Client, error)
 // size: The total size of the data in bytes
 // Returns error if upload fails
 func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.ReadCloser, bucket, key string, size uint64) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3MultipartUpload")
+	defer span.End()
+
 	return core.MetricTrackGaugeWithBytes(storageMetrics.ActiveUploads, storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, size, func() error {
 		client, err := s.S3Client(ctx)
 		if err != nil {
@@ -733,6 +778,9 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 }
 
 func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, *time.Time, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadStatus")
+	defer span.End()
+
 	exists, upload, err := s.renter.UploadExists(ctx, protocol.Name(), objectName)
 	if err != nil {
 		return core.StorageUploadStatusUnknown, nil, err
@@ -762,6 +810,9 @@ func validateUploadID(uploadId string) error {
 }
 
 func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3TemporaryUpload")
+	defer span.End()
+
 	options := &core.S3TempUploadOptions{}
 	for _, opt := range opts {
 		opt(options)
@@ -800,6 +851,9 @@ func (s StorageServiceDefault) S3TemporaryUpload(ctx context.Context, data io.Re
 // uploadId: The ID of the temporary upload
 // Returns io.ReadSeekCloser for the upload data and error if retrieval fails
 func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) (io.ReadSeekCloser, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3GetTemporaryUpload")
+	defer span.End()
+
 	// Validate uploadId to prevent path traversal
 	if err := validateUploadID(uploadId); err != nil {
 		return nil, err
@@ -812,6 +866,9 @@ func (s StorageServiceDefault) S3GetTemporaryUpload(ctx context.Context, protoco
 // uploadId: The ID of the temporary upload to delete
 // Returns error if deletion fails
 func (s StorageServiceDefault) S3Exists(ctx context.Context, bucket string, key string) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3Exists")
+	defer span.End()
+
 	client, err := s.S3Client(ctx)
 	if err != nil {
 		return false, err
@@ -836,6 +893,9 @@ func (s StorageServiceDefault) S3Exists(ctx context.Context, bucket string, key 
 }
 
 func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, protocol core.StorageProtocol, uploadId string) error {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3DeleteTemporaryUpload")
+	defer span.End()
+
 	// Validate uploadId to prevent path traversal
 	if err := validateUploadID(uploadId); err != nil {
 		return err
@@ -855,6 +915,9 @@ func (s StorageServiceDefault) S3DeleteTemporaryUpload(ctx context.Context, prot
 // uploadId: The ID of the temporary upload to check
 // Returns true if the upload exists, false otherwise, and error if check fails
 func (s StorageServiceDefault) S3TemporaryUploadExists(ctx context.Context, protocol core.StorageProtocol, uploadId string) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3TemporaryUploadExists")
+	defer span.End()
+
 	// Validate uploadId to prevent path traversal
 	if err := validateUploadID(uploadId); err != nil {
 		return false, err

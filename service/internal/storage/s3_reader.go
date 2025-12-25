@@ -61,6 +61,9 @@ func NewS3Reader(
 	key string,
 	chunkSizePolicy ChunkSizePolicy,
 ) (*S3Reader, error) {
+	ctx, span := core.TraceMethod(ctx, "NewS3Reader")
+	defer span.End()
+
 	if logger == nil {
 		return nil, errors.New("logger cannot be nil")
 	}

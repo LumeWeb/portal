@@ -7,10 +7,10 @@ import (
 
 // Metric name constants for password reset service metrics
 const (
-	MetricResetSent   = "reset_sent_total"
+	MetricResetSent     = "reset_sent_total"
 	MetricPasswordReset = "password_reset_total"
-	MetricDuration    = "duration_seconds"
-	MetricFailed      = "failed_total"
+	MetricDuration      = "duration_seconds"
+	MetricFailed        = "failed_total"
 )
 
 // Metric label values
@@ -22,10 +22,10 @@ const (
 
 // Global metric instances
 var (
-	ResetSent       prometheus.CounterVec
-	PasswordReset   prometheus.CounterVec
-	ResetDuration   prometheus.HistogramVec
-	ResetFailed     prometheus.CounterVec
+	ResetSent     prometheus.CounterVec
+	PasswordReset prometheus.CounterVec
+	ResetDuration prometheus.HistogramVec
+	ResetFailed   prometheus.CounterVec
 )
 
 // init initializes all password reset metrics.

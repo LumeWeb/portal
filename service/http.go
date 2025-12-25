@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/invopop/jsonschema"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
-	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal-middleware/cors"
@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
 
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
@@ -780,8 +779,6 @@ func stripPackageName(name string) string {
 	parts := strings.Split(name, ".")
 	return parts[len(parts)-1]
 }
-
-
 
 // registerMetricsEndpoints registers the core metrics endpoint and per-vhost metrics endpoints
 func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error {
