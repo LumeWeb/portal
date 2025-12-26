@@ -102,6 +102,8 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 			logger.Logger = v.Logger
 			logger.level = v.Level()
 			logger.cm = cm
+			// Reuse the existing logger's OTEL level filter to maintain consistency
+			logger.otelLevel = v.otelLevel
 		case *zap.Logger:
 			logger.Logger = v
 			atomicLevel.SetLevel(v.Level())
