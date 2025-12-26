@@ -21,6 +21,11 @@ func ContextWithTelemetry() ContextBuilderOption {
 		}
 
 		ctx.OnStartup(func(ctx Context) error {
+			// Validate DSN format
+			if cfg.DSN == "" {
+				return nil
+			}
+
 			// Build uptrace configuration options
 			options := []uptrace.Option{
 				uptrace.WithDSN(cfg.DSN),
@@ -30,6 +35,12 @@ func ContextWithTelemetry() ContextBuilderOption {
 
 			if hostname, err := os.Hostname(); err == nil {
 				options = append(options, uptrace.WithResourceAttributes(semconv.HostName(hostname)))
+			}
+
+			// Configure logging if enabled
+			if cfg.Logging.Enabled {
+				options = append(options, uptrace.WithLogEnabled(true))
+				options = append(options, uptrace.WithLogLevel(cfg.Logging.Level))
 			}
 
 			// Configure tracing if enabled
