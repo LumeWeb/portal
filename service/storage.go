@@ -483,10 +483,12 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 		uploadSize = uint64(size)
 	}
 
-	return core.MetricTrackWithBytes(storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, func() (error, uint64) {
+	var uploadErr error
+	core.MetricTrackWithBytes(storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, func() (bool, uint64, error) {
 		client, err := s.S3Client(ctx)
 		if err != nil {
-			return err, uploadSize
+			uploadErr = err
+			return false, uploadSize, err
 		}
 
 		input := &s3.PutObjectInput{
@@ -521,8 +523,10 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 		}
 
 		_, err = client.PutObject(ctx, input)
-		return err, uploadSize
+		uploadErr = err
+		return err == nil, uploadSize, err
 	})
+	return uploadErr
 }
 
 // s3GetObject is an internal helper for getting objects from S3 storage.
@@ -603,10 +607,11 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3MultipartUpload")
 	defer span.End()
 
-	return core.MetricTrackGaugeWithBytes(storageMetrics.ActiveUploads, storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, size, func() error {
+	var result bool
+	core.MetricTrackGaugeWithBytes(storageMetrics.ActiveUploads, storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, func() (bool, uint64, error) {
 		client, err := s.S3Client(ctx)
 		if err != nil {
-			return err
+			return false, size, err
 		}
 
 		var uploadId string
@@ -628,7 +633,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 		err = s.renter.CreateBucketIfNotExists(bucket)
 		if err != nil {
-			return err
+			return false, size, err
 		}
 
 		var totalUploadDuration time.Duration
@@ -638,7 +643,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return db.Model(&s3Upload).First(&s3Upload)
 		}); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return err
+				return false, size, err
 			}
 		} else {
 			uploadId = s3Upload.UploadID
@@ -674,7 +679,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 				Key:    aws.String(key),
 			})
 			if err != nil {
-				return err
+				return false, size, err
 			}
 
 			uploadId = *mu.UploadId
@@ -683,7 +688,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
 				return db.Create(&s3Upload)
 			}); err != nil {
-				return err
+				return false, size, err
 			}
 		}
 
@@ -692,7 +697,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			partData := make([]byte, partSize)
 			readSize, err := data.Read(partData)
 			if err != nil && err != io.EOF {
-				return err
+				return false, size, err
 			}
 
 			if partNum <= int(lastPartNumber) {
@@ -716,7 +721,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 				if abortErr != nil {
 					s.Logger().Error("error aborting multipart upload", zap.Error(abortErr))
 				}
-				return err
+				return false, size, err
 			}
 
 			completedParts = append(completedParts, types.CompletedPart{
@@ -762,19 +767,25 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		})
 		if err != nil {
 			storageMetrics.MultipartUploadErrors.Inc()
-			return err
+			return false, size, err
 		}
 
 		if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
 			return db.Delete(&s3Upload)
 		}); err != nil {
-			return err
+			return false, size, err
 		}
 
 		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
 
-		return nil
+		result = true
+		return true, size, nil
 	})
+
+	if !result {
+		return fmt.Errorf("S3MultipartUpload failed")
+	}
+	return nil
 }
 
 func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, *time.Time, error) {
