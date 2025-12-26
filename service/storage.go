@@ -644,8 +644,8 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		var totalUploadDuration time.Duration
 		var currentAverageDuration time.Duration
 
-		if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
-			return db.Model(&s3Upload).First(&s3Upload)
+		if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+			return tx.Model(&s3Upload).First(&s3Upload)
 		}); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				uploadErr = err
@@ -692,8 +692,8 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			uploadId = *mu.UploadId
 
 			s3Upload.UploadID = uploadId
-			if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
-				return db.Create(&s3Upload)
+			if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+				return tx.Create(&s3Upload)
 			}); err != nil {
 				uploadErr = err
 				return false, size, err
@@ -781,15 +781,16 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return false, size, err
 		}
 
-		if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
-			return db.Delete(&s3Upload)
+		if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+			uploadErr = tx.Delete(&s3Upload).Error
+			return tx
 		}); err != nil {
 			return false, size, err
 		}
 
 		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
 
-		return true, size, nil
+		return true, size, uploadErr
 	})
 
 	return uploadErr
