@@ -40,6 +40,7 @@ func init() {
 }
 
 type CronServiceDefault struct {
+	*core.BaseComponent
 	coordinator        core.CronCoordinator
 	jobFactory         core.CronJobFactory
 	scheduleRegistry   core.CronScheduleRegistry
@@ -50,7 +51,6 @@ type CronServiceDefault struct {
 	monitor            core.CronMonitor
 	entities           []core.Cronable
 	defaultRetryPolicy *core.RetryPolicy
-	core.Service
 }
 
 func (c *CronServiceDefault) initializeComponents(ctx core.Context) error {

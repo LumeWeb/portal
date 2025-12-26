@@ -29,9 +29,9 @@ func init() {
 
 // Default implementation
 type ContentScannerServiceDefault struct {
+	*core.BaseComponent
 	scanners []core.ContentScanner
 	mu       sync.RWMutex
-	core.Service
 }
 
 func NewContentScannerService() (core.Service, []core.ContextBuilderOption, error) {

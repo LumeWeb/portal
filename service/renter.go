@@ -37,11 +37,11 @@ func init() {
 }
 
 type RenterDefault struct {
+	*core.BaseComponent
 	busClient       *busClient.Client
 	workerClient    *workerClient.Client
 	autoPilotClient *autoPilotClient.Client
 	clientManager   *renterInternal.ClientManager
-	core.Service
 }
 
 func NewRenterService() (*RenterDefault, []core.ContextBuilderOption, error) {

@@ -19,8 +19,8 @@ func init() {
 }
 
 type OTPServiceDefault struct {
+	*core.BaseComponent
 	user core.UserService
-	core.Service
 }
 
 func NewOTPService() (core.Service, []core.ContextBuilderOption, error) {

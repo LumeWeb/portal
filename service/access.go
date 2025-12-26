@@ -18,8 +18,9 @@ import (
 var _ core.AccessService = (*AccessServiceDefault)(nil)
 
 type AccessServiceDefault struct {
+	*core.BaseComponent
+
 	enforcer *casbin.Enforcer
-	core.Service
 }
 
 func init() {

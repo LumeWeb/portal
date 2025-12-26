@@ -26,10 +26,10 @@ func init() {
 }
 
 type AuthServiceDefault struct {
+	*core.BaseComponent
 	db   *gorm.DB
 	user core.UserService
 	otp  core.OTPService
-	core.Service
 }
 
 func NewAuthService() (core.Service, []core.ContextBuilderOption, error) {

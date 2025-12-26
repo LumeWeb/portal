@@ -684,7 +684,7 @@ func (p *PortalImpl) startCron(ctx core.Context) error {
 		return errors.New("cron service not found")
 	}
 
-	err := cronSvc.(core.CronService).Start(nil)
+	err := cronSvc.(core.CronService).Start(ctx)
 	if err != nil {
 		return err
 	}

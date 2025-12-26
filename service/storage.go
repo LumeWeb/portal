@@ -117,9 +117,9 @@ func NewStorageUploadRequest(options ...core.StorageUploadOption) core.StorageUp
 }
 
 type StorageServiceDefault struct {
+	*core.BaseComponent
 	renter   core.RenterService
 	metadata core.UploadService
-	core.Service
 }
 
 func NewStorageService() (core.Service, []core.ContextBuilderOption, error) {

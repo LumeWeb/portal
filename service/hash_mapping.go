@@ -26,7 +26,7 @@ func init() {
 }
 
 type HashMappingServiceDefault struct {
-	core.Service
+	*core.BaseComponent
 }
 
 func NewHashMappingService() (core.Service, []core.ContextBuilderOption, error) {

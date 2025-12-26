@@ -22,7 +22,7 @@ func init() {
 }
 
 type UploadServiceDefault struct {
-	core.Service
+	*core.BaseComponent
 }
 
 func NewMetadataService() (core.Service, []core.ContextBuilderOption, error) {

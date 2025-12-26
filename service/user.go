@@ -37,11 +37,11 @@ func init() {
 }
 
 type UserServiceDefault struct {
+	*core.BaseComponent
 	mailer    core.MailerService
 	cron      core.CronService
 	subdomain string
 	access    core.AccessService
-	core.Service
 }
 
 func NewUserService() (core.Service, []core.ContextBuilderOption, error) {

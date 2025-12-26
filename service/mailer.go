@@ -27,10 +27,10 @@ func init() {
 }
 
 type Mailer struct {
+	*core.BaseComponent
 	client           *mail.Client
 	templateRegistry *mailer.TemplateRegistry
 	connDialed       bool
-	core.Service
 }
 
 func (m *Mailer) ID() string {

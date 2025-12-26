@@ -33,8 +33,8 @@ func init() {
 }
 
 type TUSServiceDefault struct {
+	*core.BaseComponent
 	requests core.RequestService
-	core.Service
 }
 
 func NewTUSService() (core.Service, []core.ContextBuilderOption, error) {

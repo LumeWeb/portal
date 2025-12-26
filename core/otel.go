@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 const (
@@ -29,6 +30,10 @@ type tracerSubsystemKey struct{}
 // GetTracerService extracts the tracer service name from context
 // Returns DefaultTracerService as default if no service is set
 func GetTracerService(ctx context.Context) string {
+	if ctx == nil {
+		zap.L().Warn("nil context provided to GetTracerService, using default tracer service")
+		return DefaultTracerService
+	}
 	if service, ok := ctx.Value(tracerServiceKey{}).(string); ok && service != "" {
 		return service
 	}
@@ -38,6 +43,10 @@ func GetTracerService(ctx context.Context) string {
 // GetTracerSubsystem extracts the subsystem name from context
 // Returns empty string if no subsystem is set
 func GetTracerSubsystem(ctx context.Context) string {
+	if ctx == nil {
+		zap.L().Warn("nil context provided to GetTracerSubsystem, using empty subsystem")
+		return ""
+	}
 	if subsystem, ok := ctx.Value(tracerSubsystemKey{}).(string); ok {
 		return subsystem
 	}
@@ -121,6 +130,10 @@ func WithServiceSubcomponent(ctx context.Context, serviceName, subcomponentName 
 
 // getTracerName generates the appropriate tracer name from context
 func getTracerName(ctx context.Context) string {
+	if ctx == nil {
+		zap.L().Warn("nil context provided to getTracerName, using default tracer name")
+		return DefaultTracerService
+	}
 	service := GetTracerService(ctx)
 	subsystem := GetTracerSubsystem(ctx)
 
@@ -177,6 +190,11 @@ func WithSpanKind(kind trace.SpanKind) SpanOption {
 
 // StartSpan creates and starts a new span with the given configuration
 func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Context, trace.Span) {
+	if ctx == nil {
+		zap.L().Warn("nil context provided to StartSpan, using context.Background()")
+		ctx = context.Background()
+	}
+
 	config := &SpanConfig{
 		Name: name,
 		Kind: trace.SpanKindInternal,

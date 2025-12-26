@@ -344,6 +344,27 @@ func ContextWithStartupFunc(f LifecycleFunc) ContextBuilderOption {
 func ContextWithStartupComponent(component Component) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(func(startupCtx Context) error {
+			// Initialize nil BaseComponent field if present
+			componentValue := reflect.ValueOf(component)
+			if componentValue.Kind() != reflect.Ptr || componentValue.IsNil() {
+				return nil
+			}
+
+			componentElem := componentValue.Elem()
+			if componentElem.Kind() != reflect.Struct {
+				return nil
+			}
+
+			baseComponentField := componentElem.FieldByName("BaseComponent")
+			if !baseComponentField.IsValid() || !baseComponentField.Type().AssignableTo(reflect.TypeOf((*BaseComponent)(nil))) {
+				return nil
+			}
+
+			if baseComponentField.IsNil() {
+				newBaseComponent := NewBaseComponent(startupCtx)
+				baseComponentField.Set(reflect.ValueOf(newBaseComponent))
+			}
+
 			// Wire up the component with database and config
 			component.SetDB(startupCtx.DB())
 			component.SetConfig(startupCtx.Config())
