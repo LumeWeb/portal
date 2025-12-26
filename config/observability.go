@@ -136,7 +136,7 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 		}
 
 		// Validate DSN format if provided (contains secrets)
-		if c.DSN != "" && c.Enabled {
+		if c.DSN != "" {
 			// Use uptrace's ParseDSN to validate format without exposing values
 			_, err := uptrace.ParseDSN(c.DSN)
 			if err != nil {
