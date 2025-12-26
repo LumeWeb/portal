@@ -121,8 +121,12 @@ func (l *Logger) SetLevelFromConfig() {
 		l.level.SetLevel(mapLogLevel(l.cm.Config().Core.Log.Level))
 
 		// Update OTEL level filter if it exists
-		if l.otelLevel != nil && l.cm.Config().Core.Observability.IsLoggingEnabled() {
-			l.otelLevel.SetMinLevel(mapLogLevel(l.cm.Config().Core.Observability.Logging.Level))
+		if l.otelLevel != nil {
+			if l.cm.Config().Core.Observability.IsLoggingEnabled() {
+				l.otelLevel.SetMinLevel(mapLogLevel(l.cm.Config().Core.Observability.Logging.Level))
+			} else {
+				l.otelLevel.SetMinLevel(zapcore.FatalLevel + 1)
+			}
 		}
 	}
 }
