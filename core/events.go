@@ -276,13 +276,13 @@ func extractEventContext[P any](data *P, fallbackCtx context.Context) context.Co
 // eventName is the name of the event to fire.
 // data is a pointer to the payload data to send with the event.
 // Returns any error that occurred during firing.
-func Fire[P any](ctx Context, eventName string, data *P) error {
+func Fire[P any](ctx Context, eventName string, data *P) (err error) {
 	eventCtx := extractEventContext(data, ctx.GetContext())
 	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-	defer EndSpanWithErr(span, nil)
+	defer EndSpanWithErr(span, err)
 
-	err, _ := FireAndReturn(ctx, eventName, data)
-	return err
+	err, _ = FireAndReturn(ctx, eventName, data)
+	return
 }
 
 // FireAndReturn dispatches an event and returns both the error and event object.
@@ -307,13 +307,13 @@ func FireAndReturn[P any](ctx Context, eventName string, data *P) (error, event.
 // eventName is the name of the event to fire.
 // data is the payload data to send with the event (passed by value).
 // Returns any error that occurred during firing.
-func FireByValue[P any](ctx Context, eventName string, data P) error {
+func FireByValue[P any](ctx Context, eventName string, data P) (err error) {
 	eventCtx := extractEventContext(&data, ctx.GetContext())
 	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-	defer EndSpanWithErr(span, nil)
+	defer EndSpanWithErr(span, err)
 
-	err, _ := FireByValueAndReturn[P](ctx, eventName, data)
-	return err
+	err, _ = FireByValueAndReturn[P](ctx, eventName, data)
+	return
 }
 
 // FireByValueAndReturn dispatches an event by value and returns both the error and event object.
@@ -379,13 +379,13 @@ func Listen[P any](ctx Context, eventName string, handler EventHandlerFunc[P], p
 	wrappedHandler := WithInterceptor(handler, syncInterceptor[P])
 
 	// Create a listener function that matches the event library's expected signature
-	listener := event.NewListenerFunc[*CoreEvent[P]](func(e event.Event[*CoreEvent[P]]) error {
+	listener := event.NewListenerFunc[*CoreEvent[P]](func(e event.Event[*CoreEvent[P]]) (err error) {
 		coreEvent := e.Data()
 		handlerCtx := coreEvent.Context()
 
 		// Create a span for the handler execution
 		handlerCtx, span := TraceMethod(handlerCtx, "event.handler."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-		defer EndSpanWithErr(span, nil)
+		defer EndSpanWithErr(span, err)
 
 		// Update the core event's context with the handler span context
 		coreEvent.SetContext(handlerCtx)

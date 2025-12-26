@@ -103,12 +103,12 @@ func (cm *ClientManager) loadNodes(ctx context.Context, client *clientv3.Client)
 }
 
 func (cm *ClientManager) watchNodes(ctx context.Context, client *clientv3.Client) {
-	ctx, span := core.TraceMethod(ctx, "ClientManager.watchNodes")
-	defer span.End()
-
 	watchChan := client.Watch(ctx, cm.etcdKey, clientv3.WithPrefix())
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
+			_, span := core.TraceMethod(ctx, "ClientManager.watchNodes.event")
+			defer span.End()
+
 			var node NodeInfo
 			if err := json.Unmarshal(event.Kv.Value, &node); err != nil {
 				cm.logger.Error("failed to unmarshal node info from watch event", zap.Error(err))

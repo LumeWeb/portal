@@ -66,16 +66,10 @@ type handlerBridge struct {
 }
 
 func (h *handlerBridge) Enabled(ctx context.Context, level slog.Level) bool {
-	ctx, span := core.TraceMethod(ctx, "handlerBridge.Enabled")
-	defer span.End()
-
 	return h.newHandler.Enabled(ctx, newSlog.Level(level))
 }
 
 func (h *handlerBridge) Handle(ctx context.Context, r slog.Record) error {
-	ctx, span := core.TraceMethod(ctx, "handlerBridge.Handle")
-	defer span.End()
-
 	// Convert old Record to new Record
 	newRecord := newSlog.NewRecord(
 		r.Time,

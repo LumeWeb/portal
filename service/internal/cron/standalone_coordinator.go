@@ -11,6 +11,7 @@ import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
+	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
 	"go.uber.org/zap"
@@ -127,7 +128,10 @@ func (s *StandaloneCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.U
 	defer span.End()
 
 	var job models.CronJob
-	if err := s.db.Where("uuid = ?", types.FromUUID(jobID)).First(&job).Error; err != nil {
+	err := db.RetryableTransaction(ctx, s.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("uuid = ?", types.FromUUID(jobID)).First(&job)
+	})
+	if err != nil {
 		return false, err
 	}
 	if job.LastHeartbeat == nil {
@@ -143,9 +147,11 @@ func (s *StandaloneCoordinator) CreateJobFromDB(ctx context.Context, jobID uuid.
 	return s.jobCreator.CreateFromDB(ctx, jobID)
 }
 
-func (s *StandaloneCoordinator) getJobRecord(jobID uuid.UUID) (*models.CronJob, error) {
+func (s *StandaloneCoordinator) getJobRecord(ctx context.Context, jobID uuid.UUID) (*models.CronJob, error) {
 	var dbJob models.CronJob
-	err := s.db.Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&dbJob).Error
+	err := db.RetryableTransaction(ctx, s.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where(&models.CronJob{UUID: types.FromUUID(jobID)}).First(&dbJob)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job from DB: %w", err)
 	}
@@ -162,8 +168,8 @@ func (s *StandaloneCoordinator) getScheduleDefinition(dbJob *models.CronJob) (*c
 	return &schedDef, nil
 }
 
-func (s *StandaloneCoordinator) getScheduleDefinitionForJob(jobID uuid.UUID) (gocron.JobDefinition, error) {
-	dbJob, err := s.getJobRecord(jobID)
+func (s *StandaloneCoordinator) getScheduleDefinitionForJob(ctx context.Context, jobID uuid.UUID) (gocron.JobDefinition, error) {
+	dbJob, err := s.getJobRecord(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +196,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 		return fmt.Errorf("failed to create job context: %w", err)
 	}
 
-	jobDef, err := s.getScheduleDefinitionForJob(jobID)
+	jobDef, err := s.getScheduleDefinitionForJob(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get schedule definition: %w", err)
 	}
@@ -204,7 +210,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 	var delay time.Duration
 	if failures, exists := s.failureCounts[jobID]; exists && failures > 0 {
 		var retryPolicy *core.RetryPolicy
-		if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
+		if dbJob, err := s.getJobRecord(ctx, jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
 			if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err == nil && retryPolicy != nil {
 				// Validate retry policy parameters
 				if retryPolicy.MaxRetries < 0 {
@@ -358,7 +364,7 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 
 	// Determine if this is a permanent failure based on retry policy
 	var retryPolicy *core.RetryPolicy
-	if dbJob, err := s.getJobRecord(jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
+	if dbJob, err := s.getJobRecord(ctx, jobID); err == nil && len(dbJob.RetryPolicy) > 0 {
 		if err := json.Unmarshal([]byte(dbJob.RetryPolicy), &retryPolicy); err != nil {
 			s.logger.Error("Failed to parse retry policy",
 				zap.String("jobID", jobID.String()),
@@ -421,7 +427,7 @@ func (s *StandaloneCoordinator) SetupJob(ctx context.Context, jobID uuid.UUID) e
 	defer span.End()
 
 	// Get current job state for defensive logging
-	dbJob, err := s.getJobRecord(jobID)
+	dbJob, err := s.getJobRecord(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get job record: %w", err)
 	}
@@ -475,7 +481,7 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 	defer span.End()
 
 	// Get current job state for defensive logging
-	dbJob, err := s.getJobRecord(jobID)
+	dbJob, err := s.getJobRecord(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get job record: %w", err)
 	}
