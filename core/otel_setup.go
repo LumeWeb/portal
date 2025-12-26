@@ -2,17 +2,10 @@ package core
 
 import (
 	"os"
-	"time"
 
+	"github.com/uptrace/uptrace-go/uptrace"
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/log/global"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/log"
-	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 )
@@ -27,148 +20,55 @@ func ContextWithTelemetry() ContextBuilderOption {
 			return ctx, nil
 		}
 
-		// Set up propagator (TraceContext + Baggage)
-		prop := newPropagator()
-		otel.SetTextMapPropagator(prop)
-
 		ctx.OnStartup(func(ctx Context) error {
-			// Set up trace provider if tracing is enabled
-			if cfg.Tracing.Enabled {
-				tracerProvider, err := newTracerProvider(ctx)
-				if err != nil {
-					return err
-				}
-
-				otel.SetTracerProvider(tracerProvider)
-
-				ctx.OnExit(func(exitCtx Context) error {
-					return tracerProvider.Shutdown(exitCtx.GetContext())
-				})
+			// Build uptrace configuration options
+			options := []uptrace.Option{
+				uptrace.WithDSN(cfg.DSN),
+				uptrace.WithServiceName(cfg.ServiceName),
+				uptrace.WithServiceVersion(build.GetInfo().Version),
 			}
+
+			if hostname, err := os.Hostname(); err == nil {
+				options = append(options, uptrace.WithResourceAttributes(semconv.HostName(hostname)))
+			}
+
+			// Configure tracing if enabled
+			var tracingOptions []uptrace.TracingOption
+			if cfg.Tracing.Enabled {
+				tracingOptions = append(tracingOptions, uptrace.WithTracingEnabled(true))
+
+				// Configure sampler
+				var sampler trace.Sampler
+				switch cfg.Tracing.Sampler {
+				case config.SamplerAlways:
+					sampler = trace.AlwaysSample()
+				case config.SamplerNever:
+					sampler = trace.NeverSample()
+				case config.SamplerTraceIDRatio:
+					sampler = trace.TraceIDRatioBased(cfg.Tracing.SamplerRatio)
+				default:
+					sampler = trace.AlwaysSample()
+				}
+				tracingOptions = append(tracingOptions, uptrace.WithTraceSampler(sampler))
+			} else {
+				tracingOptions = append(tracingOptions, uptrace.WithTracingEnabled(false))
+			}
+
+			// Append tracing options
+			for _, opt := range tracingOptions {
+				options = append(options, opt)
+			}
+
+			// Configure OpenTelemetry using uptrace-go
+			uptrace.ConfigureOpentelemetry(options...)
+
+			ctx.OnExit(func(exitCtx Context) error {
+				return uptrace.Shutdown(exitCtx.GetContext())
+			})
 
 			return nil
 		})
 
-		// Set up logger provider if logging is enabled
-		if cfg.Logging.Enabled {
-			loggerProvider, err := newLoggerProvider(ctx)
-			if err != nil {
-				return ctx, err
-			}
-			global.SetLoggerProvider(loggerProvider)
-
-			ctx.ReplaceLogger(NewLogger(ctx.Config(), ctx.Logger()))
-
-			ctx.OnExit(func(exitCtx Context) error {
-				return loggerProvider.Shutdown(exitCtx.GetContext())
-			})
-		}
-
 		return ctx, nil
 	}
-}
-
-func newPropagator() propagation.TextMapPropagator {
-	return propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	)
-}
-
-func newTracerProvider(ctx Context) (*trace.TracerProvider, error) {
-	cfg := ctx.Config().Config().Core.Observability.Tracing
-
-	var sampler trace.Sampler
-	switch cfg.Sampler {
-	case config.SamplerAlways:
-		sampler = trace.AlwaysSample()
-	case config.SamplerNever:
-		sampler = trace.NeverSample()
-	case config.SamplerTraceIDRatio:
-		sampler = trace.TraceIDRatioBased(cfg.SamplerRatio)
-	default:
-		sampler = trace.AlwaysSample()
-	}
-
-	// Check if we should use OTLP exporter
-	if cfg.Exporter == config.ExporterOTLP {
-		opts := []otlptracehttp.Option{
-			otlptracehttp.WithEndpoint(cfg.OTLPEndpoint),
-		}
-		if cfg.Insecure {
-			opts = append(opts, otlptracehttp.WithInsecure())
-		}
-		traceExporter, err := otlptracehttp.New(ctx, opts...)
-
-		if err != nil {
-			return nil, err
-		}
-
-		tracerProvider := trace.NewTracerProvider(
-			trace.WithBatcher(traceExporter,
-				trace.WithBatchTimeout(1*time.Second),
-			),
-			trace.WithSampler(sampler),
-			trace.WithResource(newResource(ctx)),
-		)
-		return tracerProvider, nil
-	}
-
-	// No exporter - create provider with no exporters
-	tracerProvider := trace.NewTracerProvider(
-		trace.WithSampler(sampler),
-		trace.WithResource(newResource(ctx)),
-	)
-	return tracerProvider, nil
-}
-
-func newLoggerProvider(ctx Context) (*log.LoggerProvider, error) {
-	cfg := ctx.Config().Config().Core.Observability.Logging
-
-	// Create the OTLP HTTP exporter if exporter is configured as otlp
-	var logExporter log.Exporter
-	if cfg.Exporter == config.ExporterOTLP {
-		var err error
-		opts := []otlploghttp.Option{
-			otlploghttp.WithEndpoint(cfg.OTLPEndpoint),
-		}
-		if cfg.Insecure {
-			opts = append(opts, otlploghttp.WithInsecure())
-		}
-		logExporter, err = otlploghttp.New(ctx, opts...)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var processor log.Processor
-	if logExporter != nil {
-		processor = log.NewBatchProcessor(logExporter)
-	}
-
-	opts := []log.LoggerProviderOption{
-		log.WithResource(newResource(ctx)),
-	}
-	if processor != nil {
-		opts = append(opts, log.WithProcessor(processor))
-	}
-
-	loggerProvider := log.NewLoggerProvider(opts...)
-	return loggerProvider, nil
-}
-func newResource(ctx Context) *resource.Resource {
-	cfg := ctx.Config().Config().Core.Observability
-	hostname, _ := os.Hostname()
-
-	serviceName := cfg.ServiceName
-	if serviceName == "" {
-		serviceName = hostname
-	}
-
-	return resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceName(serviceName),
-		semconv.ServiceVersion(build.GetInfo().Version),
-		semconv.HostName(hostname),
-	)
 }
