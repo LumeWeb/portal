@@ -518,7 +518,10 @@ func (s StorageServiceDefault) s3PutObject(ctx context.Context, bucket string, k
 					input.ContentType = aws.String(mime.String())
 				}
 				// Reset reader position
-				_, _ = seeker.Seek(0, io.SeekStart)
+				if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+					uploadErr = fmt.Errorf("failed to reset reader after MIME detection: %w", err)
+					return false, uploadSize, uploadErr
+				}
 			}
 		}
 
@@ -607,10 +610,11 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.S3MultipartUpload")
 	defer span.End()
 
-	var result bool
+	var uploadErr error
 	core.MetricTrackGaugeWithBytes(storageMetrics.ActiveUploads, storageMetrics.S3UploadDuration, storageMetrics.S3UploadBytes, storageMetrics.S3UploadErrors, func() (bool, uint64, error) {
 		client, err := s.S3Client(ctx)
 		if err != nil {
+			uploadErr = err
 			return false, size, err
 		}
 
@@ -633,6 +637,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 		err = s.renter.CreateBucketIfNotExists(bucket)
 		if err != nil {
+			uploadErr = err
 			return false, size, err
 		}
 
@@ -643,6 +648,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return db.Model(&s3Upload).First(&s3Upload)
 		}); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				uploadErr = err
 				return false, size, err
 			}
 		} else {
@@ -679,6 +685,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 				Key:    aws.String(key),
 			})
 			if err != nil {
+				uploadErr = err
 				return false, size, err
 			}
 
@@ -688,6 +695,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			if err = db.RetryableComponentLock(s, func(db *gorm.DB) *gorm.DB {
 				return db.Create(&s3Upload)
 			}); err != nil {
+				uploadErr = err
 				return false, size, err
 			}
 		}
@@ -697,6 +705,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			partData := make([]byte, partSize)
 			readSize, err := data.Read(partData)
 			if err != nil && err != io.EOF {
+				uploadErr = err
 				return false, size, err
 			}
 
@@ -721,6 +730,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 				if abortErr != nil {
 					s.Logger().Error("error aborting multipart upload", zap.Error(abortErr))
 				}
+				uploadErr = err
 				return false, size, err
 			}
 
@@ -767,6 +777,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		})
 		if err != nil {
 			storageMetrics.MultipartUploadErrors.Inc()
+			uploadErr = err
 			return false, size, err
 		}
 
@@ -778,14 +789,10 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 
 		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
 
-		result = true
 		return true, size, nil
 	})
 
-	if !result {
-		return fmt.Errorf("S3MultipartUpload failed")
-	}
-	return nil
+	return uploadErr
 }
 
 func (s StorageServiceDefault) UploadStatus(ctx context.Context, protocol core.StorageProtocol, objectName string) (core.StorageUploadStatus, *time.Time, error) {
