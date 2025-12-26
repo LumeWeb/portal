@@ -1,6 +1,8 @@
 package user
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -29,7 +31,7 @@ func NewProcessAccountDeletionRequestsJob() *ProcessAccountDeletionRequestsJob {
 	}
 }
 
-func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context) error {
+func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx context.Context) error {
 	logger := ctx.Logger()
 	userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 	pinService := core.GetService[core.PinService](ctx, core.PIN_SERVICE)

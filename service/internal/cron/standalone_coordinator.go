@@ -249,6 +249,11 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 		return s.ExecuteJob(ctx, jobID)
 	}
 
+	// Validate retry policy before computing delay
+	if err := s.validateRetryPolicy(ctx, jobID); err != nil {
+		return fmt.Errorf("retry policy validation failed: %w", err)
+	}
+
 	// Calculate delay if this is a retry
 	var delay time.Duration
 	if failures, exists := s.failureCounts[jobID]; exists && failures > 0 {
@@ -264,14 +269,11 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 				return fmt.Errorf("failed to unmarshal retry policy: %w", err)
 			}
 
-			// Retry policy is now pre-validated in SetupJob, but we validate again here
-			// for safety since this runs during retries
 			if retryPolicy.MaxRetries == 0 {
 				return nil
 			}
 
 			delay = retryPolicy.InitialDelay * time.Duration(math.Pow(retryPolicy.BackoffFactor, float64(failures-1)))
-			// Cap the delay at maxRetryDelay
 			if delay > maxRetryDelay {
 				delay = maxRetryDelay
 			}
@@ -441,7 +443,7 @@ func (s *StandaloneCoordinator) getOrCreateJobContext(ctx context.Context, jobID
 			// Context is canceled, create new one
 		default:
 			// Existing context is still valid
-			return ctx, nil
+			return jobCtx, nil
 		}
 	}
 
@@ -580,7 +582,7 @@ func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID)
 	if job == nil {
 		return fmt.Errorf("failed to execute job: job instance is nil")
 	}
-	return job.Run(s.ctx)
+	return job.Run(s.ctx, ctx)
 }
 
 func (s *StandaloneCoordinator) Jobs() []gocron.Job {

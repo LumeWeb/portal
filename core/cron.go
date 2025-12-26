@@ -338,7 +338,7 @@ func (b *BaseCronJob) Schedule() *CronScheduleDefinition {
 	return b.scheduleDefinition
 }
 
-func (b *BaseCronJob) Run(_ Context) error {
+func (b *BaseCronJob) Run(_ Context, _ context.Context) error {
 	return nil
 }
 
@@ -380,7 +380,9 @@ type CronJob interface {
 	DisplayName() string
 
 	// Run executes the job logic.
-	Run(ctx Context) error
+	// ctx provides access to the DI container (services, DB, logger).
+	// eventCtx provides request-level context for cancellation and tracing.
+	Run(ctx Context, eventCtx context.Context) error
 
 	// Schedule returns the schedule definition for the job.
 	Schedule() *CronScheduleDefinition
