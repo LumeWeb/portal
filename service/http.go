@@ -71,8 +71,7 @@ func init() {
 }
 
 type HTTPServiceDefault struct {
-	ctx           core.Context
-	logger        *core.Logger
+	*core.BaseComponent
 	router        router.Router
 	srv           *http.Server
 	access        core.AccessService
@@ -82,7 +81,6 @@ type HTTPServiceDefault struct {
 	globalPathsMu sync.RWMutex
 	wg            sync.WaitGroup
 	stopOnce      sync.Once
-	core.Service
 }
 
 func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
@@ -144,7 +142,7 @@ func (h *HTTPServiceDefault) Init() error {
 			return err
 		},
 	}))
-	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.ctx.Config().Config().Core.Port), 10)
+	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
 		domain := h.getAPIDomain(api)
 
@@ -183,7 +181,7 @@ func (h *HTTPServiceDefault) Init() error {
 
 		// Apply any registered extensions using the *same* gswagger router
 		for _, ext := range core.GetAPIExtensions(api.Name()) {
-			h.logger.Info("Applying API extension",
+			h.Logger().Info("Applying API extension",
 				zap.String("api", api.Name()),
 				zap.String("extension", fmt.Sprintf("%T", ext)))
 
@@ -268,7 +266,7 @@ func (h *HTTPServiceDefault) Init() error {
 		return err
 	}
 
-	ocfg := h.ctx.Config().Config().Core.Observability
+	ocfg := h.Config().Config().Core.Observability
 
 	// Register metrics endpoints if observability is enabled
 	if ocfg.IsMetricsEnabled() {
@@ -292,7 +290,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 	// Get app type from query param (empty string means no filter)
 	appType := ctx.QueryParam("app")
 
-	metaBuilder := NewPortalMetaBuilder(h.ctx.Config().Config().Core.Domain)
+	metaBuilder := NewPortalMetaBuilder(h.Config().Config().Core.Domain)
 
 	// Add core build info from build.Default
 	metaBuilder.AddCoreBuildInfo(build.Default.Info())
@@ -307,7 +305,7 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 		// Get plugin meta builder
 		pluginBuilder, err := metaBuilder.AddPlugin(plugin.ID)
 		if err != nil {
-			h.logger.Error("Failed to add plugin to meta builder",
+			h.Logger().Error("Failed to add plugin to meta builder",
 				zap.String("plugin", plugin.ID),
 				zap.Error(err))
 			continue
@@ -328,8 +326,8 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 
 		// Let plugin add its own metadata
 		if plugin.Meta != nil {
-			if err := plugin.Meta(h.ctx, metaBuilder); err != nil {
-				h.logger.Error("Failed to process plugin meta",
+			if err := plugin.Meta(h.Context(), metaBuilder); err != nil {
+				h.Logger().Error("Failed to process plugin meta",
 					zap.String("plugin", plugin.ID),
 					zap.Error(err))
 			}
@@ -437,7 +435,7 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 			manifest, err := h.getProcessedManifest(&plugin, bundle, bundleIndex)
 			if err != nil {
 				http.Error(w, "Failed to process manifest", http.StatusInternalServerError)
-				h.logger.Error("Failed to process manifest", zap.Error(err))
+				h.Logger().Error("Failed to process manifest", zap.Error(err))
 				return
 			}
 
@@ -445,7 +443,7 @@ func (h *HTTPServiceDefault) apiPluginWebBundleFileServerHandler(e echo.Context)
 			err = json.NewEncoder(w).Encode(manifest)
 			if err != nil {
 				http.Error(w, "Failed to encode manifest", http.StatusInternalServerError)
-				h.logger.Error("Failed to encode manifest", zap.Error(err))
+				h.Logger().Error("Failed to encode manifest", zap.Error(err))
 			}
 			return
 		}
@@ -478,7 +476,7 @@ func (h *HTTPServiceDefault) Serve() error {
 		defer h.wg.Done()
 		err := h.srv.Serve(ln)
 		if err != nil && err != http.ErrServerClosed {
-			h.logger.Fatal("Failed to serve", zap.Error(err))
+			h.Logger().Fatal("Failed to serve", zap.Error(err))
 		}
 	}()
 
@@ -551,7 +549,7 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return // Request handled by the root framework router
 		}
 		// This should not happen if the router is properly configured
-		h.logger.Error("Root router does not implement http.Handler")
+		h.Logger().Error("Root router does not implement http.Handler")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -578,12 +576,12 @@ func (h *HTTPServiceDefault) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// This should not happen if the router is properly configured
-	h.logger.Error("Target router does not implement http.Handler", zap.String("host", host))
+	h.Logger().Error("Target router does not implement http.Handler", zap.String("host", host))
 	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
 
 func (h *HTTPServiceDefault) getAPIDomain(api core.API) string {
-	root := strings.Trim(strings.ToLower(h.ctx.Config().Config().Core.Domain), ".")
+	root := strings.Trim(strings.ToLower(h.Config().Config().Core.Domain), ".")
 	sub := strings.Trim(strings.ToLower(strings.TrimSpace(api.Subdomain())), ".")
 	host := root
 	if sub != "" {
@@ -594,9 +592,9 @@ func (h *HTTPServiceDefault) getAPIDomain(api core.API) string {
 
 func (h *HTTPServiceDefault) getActivePort() uint16 {
 	var port uint
-	port = h.ctx.Config().Config().Core.Port
-	if h.ctx.Config().Config().Core.ExternalPort != 0 {
-		port = h.ctx.Config().Config().Core.ExternalPort
+	port = h.Config().Config().Core.Port
+	if h.Config().Config().Core.ExternalPort != 0 {
+		port = h.Config().Config().Core.ExternalPort
 	}
 	return uint16(port)
 }
@@ -625,7 +623,7 @@ func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
 	formatter := ""
 
 	protocol := "http"
-	if h.ctx.Config().Config().Core.Secure {
+	if h.Config().Config().Core.Secure {
 		protocol = "https"
 	}
 
@@ -639,7 +637,7 @@ func (h *HTTPServiceDefault) APISubdomain(id string, proto bool) string {
 		return ""
 	}
 
-	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), h.ctx.Config().Config().Core.Domain)
+	return fmt.Sprintf(formatter, core.GetAPI(id).Subdomain(), h.Config().Config().Core.Domain)
 }
 
 func mapSchemaType(typ reflect.Type) *jsonschema.Schema {
@@ -788,7 +786,7 @@ func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error 
 		Registerer: core.CoreMetricsRegistry(),
 	}))
 
-	h.logger.Info("Registered core metrics endpoint", zap.String("path", metricsPath))
+	h.Logger().Info("Registered core metrics endpoint", zap.String("path", metricsPath))
 
 	// Register per-vhost metrics endpoints for each API
 	for _, api := range core.GetAPIs() {
@@ -796,7 +794,7 @@ func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error 
 		domain := h.getAPIDomain(api)
 		hostRouter := h.router.GetHostRouter(h.normalizeHost(domain))
 		if hostRouter == nil {
-			h.logger.Warn("Failed to get host router for metrics",
+			h.Logger().Warn("Failed to get host router for metrics",
 				zap.String("api", apiName))
 			continue
 		}
@@ -806,7 +804,7 @@ func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error 
 			Registerer: core.PluginMetricsRegistry(apiName),
 		}))
 
-		h.logger.Info("Registered API metrics endpoint",
+		h.Logger().Info("Registered API metrics endpoint",
 			zap.String("api", apiName),
 			zap.String("domain", domain),
 			zap.String("path", metricsPath))

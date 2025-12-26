@@ -32,10 +32,10 @@ func init() {
 }
 
 type RequestServiceDefault struct {
+	*core.BaseComponent
 	models map[string]data_models.RequestDataModel
 	mutex  sync.RWMutex
 	ops    core.OperationFinder
-	core.Service
 }
 
 func (r *RequestServiceDefault) RegisterRequestModel(operation string, model data_models.RequestDataModel) {

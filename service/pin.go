@@ -30,10 +30,10 @@ func init() {
 }
 
 type PinServiceDefault struct {
+	*core.BaseComponent
 	metadata core.UploadService
 	models   map[string]data_models.PinDataModel
 	mutex    *sync.RWMutex
-	core.Service
 }
 
 func (p *PinServiceDefault) RegisterPinModel(protocol string, model data_models.PinDataModel) {

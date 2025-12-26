@@ -153,12 +153,12 @@ type WorkflowMetadata struct {
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
 type WorkflowCoordinatorDefault struct {
+	*core.BaseComponent
 	requestSvc  core.RequestService
 	cronService core.CronService
 	workflows   map[string]*core.WorkflowDefinition
 	disabled    map[string]bool
 	workflowsMu sync.RWMutex
-	core.Service
 }
 
 func (w *WorkflowCoordinatorDefault) RegisterTasks(ctx context.Context, cron core.CronService) error {

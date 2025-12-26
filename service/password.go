@@ -28,11 +28,11 @@ func init() {
 }
 
 type PasswordResetServiceDefault struct {
+	*core.BaseComponent
 	user      core.UserService
 	mailer    core.MailerService
 	mu        *sync.RWMutex
 	subdomain string
-	core.Service
 }
 
 func NewPasswordResetService() (core.Service, []core.ContextBuilderOption, error) {
