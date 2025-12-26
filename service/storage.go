@@ -788,9 +788,13 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return false, size, err
 		}
 
+		if uploadErr != nil {
+			return false, size, uploadErr
+		}
+
 		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
 
-		return true, size, uploadErr
+		return true, size, nil
 	})
 
 	return uploadErr
