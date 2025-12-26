@@ -16,6 +16,20 @@ type levelFilterCore struct {
 	minLevel atomic.Int32
 }
 
+// findLevelFilterCore attempts to find a levelFilterCore in the logger's core chain.
+func findLevelFilterCore(logger *zap.Logger) *levelFilterCore {
+	if logger == nil {
+		return nil
+	}
+
+	// Check single core directly
+	if filter, ok := logger.Core().(*levelFilterCore); ok {
+		return filter
+	}
+
+	return nil
+}
+
 func (c *levelFilterCore) Enabled(lvl zapcore.Level) bool {
 	return lvl >= zapcore.Level(c.minLevel.Load()) && c.Core.Enabled(lvl)
 }
@@ -53,10 +67,15 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 			// For zap.Logger, create an atomic level to maintain API compatibility
 			atomicLevel := zap.NewAtomicLevel()
 			atomicLevel.SetLevel(v.Level())
+
+			// Try to detect and preserve the OTEL level filter if present
+			otelLevelFilter := findLevelFilterCore(v)
+
 			return &Logger{
-				Logger: v,
-				level:  &atomicLevel,
-				cm:     cm,
+				Logger:    v,
+				level:     &atomicLevel,
+				cm:        cm,
+				otelLevel: otelLevelFilter,
 			}
 		}
 	}
@@ -136,6 +155,12 @@ func (l *Logger) SetLevelFromConfig() {
 			} else {
 				l.otelLevel.SetMinLevel(zapcore.FatalLevel + 1)
 			}
+		} else if l.cm.Config().Core.Observability.IsLoggingEnabled() && global.GetLoggerProvider() != nil {
+			// OTEL logging is configured but we don't have a reference to the level filter
+			// This can happen when a *zap.Logger was provided externally with OTEL support
+			// that we couldn't detect or manage. Log a warning to inform the caller.
+			l.Warn("OTEL level management unavailable: runtime OTEL log level changes will not be applied",
+				zap.String("otlp_level", l.cm.Config().Core.Observability.Logging.Level))
 		}
 	}
 }
