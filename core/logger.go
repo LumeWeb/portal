@@ -39,6 +39,28 @@ type Logger struct {
 }
 
 func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
+	// If an existing Logger is provided, reuse its cores
+	if len(existingLogger) > 0 {
+		switch v := existingLogger[0].(type) {
+		case *Logger:
+			return &Logger{
+				Logger:    v.Logger,
+				level:     v.Level(),
+				cm:        cm,
+				otelLevel: v.otelLevel,
+			}
+		case *zap.Logger:
+			// For zap.Logger, create an atomic level to maintain API compatibility
+			atomicLevel := zap.NewAtomicLevel()
+			atomicLevel.SetLevel(v.Level())
+			return &Logger{
+				Logger: v,
+				level:  &atomicLevel,
+				cm:     cm,
+			}
+		}
+	}
+
 	// Create a new atomic level
 	atomicLevel := zap.NewAtomicLevel()
 
@@ -93,21 +115,6 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 		level:      &atomicLevel,
 		cm:         cm,
 		otelLevel:  otelLevelFilter,
-	}
-
-	// If an existing logger is provided, use it instead
-	if len(existingLogger) > 0 {
-		switch v := existingLogger[0].(type) {
-		case *Logger:
-			logger.Logger = v.Logger
-			logger.level = v.Level()
-			logger.cm = cm
-			// Reuse the existing logger's OTEL level filter to maintain consistency
-			logger.otelLevel = v.otelLevel
-		case *zap.Logger:
-			logger.Logger = v
-			atomicLevel.SetLevel(v.Level())
-		}
 	}
 
 	// Only set the logger on the config manager if it's not nil
