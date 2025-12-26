@@ -784,8 +784,8 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
 			return tx.Delete(&s3Upload)
 		}); err != nil {
-			uploadErr = err
-			return false, size, err
+			s.Logger().Error("failed to delete S3Upload record after successful upload", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
+			// Don't return error since upload succeeded
 		}
 
 		s.Logger().Debug("S3 multipart upload complete", zap.String("key", key), zap.String("bucket", bucket))
