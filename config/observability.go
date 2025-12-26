@@ -10,14 +10,9 @@ const (
 	SamplerNever        = "never"
 	SamplerTraceIDRatio = "traceidratio"
 
-	// Exporter constants
-	ExporterOTLP = "otlp"
-	ExporterNone = "none"
-
 	// Default values
-	DefaultServiceName  = "portal"
-	DefaultOTLPEndpoint = "localhost:4317"
-	DefaultMetricsPath  = "/metrics"
+	DefaultServiceName = "portal"
+	DefaultMetricsPath = "/metrics"
 )
 
 var (
@@ -34,6 +29,7 @@ var (
 type ObservabilityConfig struct {
 	Enabled     bool          `config:"enabled"`
 	ServiceName string        `config:"service_name"`
+	DSN         string        `config:"dsn"`
 	Tracing     TracingConfig `config:"tracing"`
 	Metrics     MetricsConfig `config:"metrics"`
 	Logging     LoggingConfig `config:"logging"`
@@ -43,9 +39,6 @@ type TracingConfig struct {
 	Enabled      bool    `config:"enabled"`
 	Sampler      string  `config:"sampler"`       // always, never, traceidratio
 	SamplerRatio float64 `config:"sampler_ratio"` // 0.0-1.0, only for traceidratio
-	Exporter     string  `config:"exporter"`      // otlp, none
-	OTLPEndpoint string  `config:"otlp_endpoint"`
-	Insecure     bool    `config:"insecure"` // use insecure connection (no TLS) for OTLP
 }
 
 func (t TracingConfig) Schema() z.ZogSchema {
@@ -56,10 +49,6 @@ func (t TracingConfig) Schema() z.ZogSchema {
 		"SamplerRatio": z.Float64().
 			GTE(0.0, z.Message("sampler_ratio must be >= 0.0")).
 			LTE(1.0, z.Message("sampler_ratio must be <= 1.0")),
-		"Exporter": z.String().
-			OneOf([]string{ExporterOTLP, ExporterNone}, z.Message("exporter must be one of: otlp, none")),
-		"OTLPEndpoint": z.String(),
-		"Insecure":     z.Bool(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*TracingConfig)
 		if !ok {
@@ -72,12 +61,6 @@ func (t TracingConfig) Schema() z.ZogSchema {
 			return false
 		}
 
-		// Validate otlp_endpoint is required when exporter is otlp
-		if c.Exporter == ExporterOTLP && c.OTLPEndpoint == "" {
-			ctx.AddIssue(ctx.Issue().SetMessage("otlp_endpoint is required when exporter is 'otlp'"))
-			return false
-		}
-
 		return true
 	})
 }
@@ -87,9 +70,6 @@ func (t TracingConfig) Defaults() map[string]any {
 		"Enabled":      true,
 		"Sampler":      SamplerAlways,
 		"SamplerRatio": 1.0,
-		"Exporter":     ExporterOTLP,
-		"OTLPEndpoint": DefaultOTLPEndpoint,
-		"Insecure":     true,
 	}
 }
 
@@ -117,11 +97,8 @@ func (m MetricsConfig) Defaults() map[string]any {
 }
 
 type LoggingConfig struct {
-	Enabled      bool   `config:"enabled"`
-	Level        string `config:"level"`
-	Exporter     string `config:"exporter"`      // otlp, none
-	OTLPEndpoint string `config:"otlp_endpoint"`
-	Insecure     bool   `config:"insecure"` // use insecure connection (no TLS) for OTLP
+	Enabled bool   `config:"enabled"`
+	Level   string `config:"level"`
 }
 
 func (l LoggingConfig) Schema() z.ZogSchema {
@@ -129,33 +106,13 @@ func (l LoggingConfig) Schema() z.ZogSchema {
 		"Enabled": z.Bool(),
 		"Level": z.String().
 			OneOf([]string{"debug", "info", "warn", "error"}, z.Message("level must be one of: debug, info, warn, error")),
-		"Exporter": z.String().
-			OneOf([]string{ExporterOTLP, ExporterNone}, z.Message("exporter must be one of: otlp, none")),
-		"OTLPEndpoint": z.String(),
-		"Insecure":     z.Bool(),
-	}).TestFunc(func(data any, ctx z.Ctx) bool {
-		c, ok := data.(*LoggingConfig)
-		if !ok {
-			return true
-		}
-
-		// Validate otlp_endpoint is required when exporter is otlp
-		if c.Exporter == ExporterOTLP && c.OTLPEndpoint == "" {
-			ctx.AddIssue(ctx.Issue().SetMessage("otlp_endpoint is required when exporter is 'otlp'"))
-			return false
-		}
-
-		return true
 	})
 }
 
 func (l LoggingConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled":      true,
-		"Level":        "info",
-		"Exporter":     ExporterOTLP,
-		"OTLPEndpoint": DefaultOTLPEndpoint,
-		"Insecure":     true,
+		"Enabled": true,
+		"Level":   "info",
 	}
 }
 
@@ -167,6 +124,7 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 	return z.Struct(z.Shape{
 		"Enabled":     z.Bool(),
 		"ServiceName": z.String(),
+		"DSN":         z.String(),
 		"Tracing":     tracingCfg.Schema(),
 		"Metrics":     metricsCfg.Schema(),
 		"Logging":     loggingCfg.Schema(),
