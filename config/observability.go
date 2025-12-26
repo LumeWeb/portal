@@ -2,6 +2,7 @@ package config
 
 import (
 	z "github.com/Oudwins/zog"
+	"github.com/uptrace/uptrace-go/uptrace"
 )
 
 const (
@@ -128,6 +129,23 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 		"Tracing":     tracingCfg.Schema(),
 		"Metrics":     metricsCfg.Schema(),
 		"Logging":     loggingCfg.Schema(),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		c, ok := data.(*ObservabilityConfig)
+		if !ok {
+			return true
+		}
+
+		// Validate DSN format if provided (contains secrets)
+		if c.DSN != "" && c.Enabled {
+			// Use uptrace's ParseDSN to validate format without exposing values
+			_, err := uptrace.ParseDSN(c.DSN)
+			if err != nil {
+				ctx.AddIssue(ctx.Issue().SetMessage("DSN format is invalid"))
+				return false
+			}
+		}
+
+		return true
 	})
 }
 
