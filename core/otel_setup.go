@@ -39,8 +39,7 @@ func ContextWithTelemetry() ContextBuilderOption {
 
 			// Configure logging if enabled
 			if cfg.Logging.Enabled {
-				options = append(options, uptrace.WithLogEnabled(true))
-				options = append(options, uptrace.WithLogLevel(cfg.Logging.Level))
+				options = append(options, uptrace.WithLoggingEnabled(true))
 			}
 
 			// Configure tracing if enabled
