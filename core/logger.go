@@ -2,6 +2,7 @@ package core
 
 import (
 	"os"
+	"sync/atomic"
 
 	"go.lumeweb.com/portal/config"
 	"go.opentelemetry.io/contrib/bridges/otelzap"
@@ -10,10 +11,31 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type levelFilterCore struct {
+	zapcore.Core
+	minLevel atomic.Int32
+}
+
+func (c *levelFilterCore) Enabled(lvl zapcore.Level) bool {
+	return lvl >= zapcore.Level(c.minLevel.Load()) && c.Core.Enabled(lvl)
+}
+
+func (c *levelFilterCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	if c.Enabled(ent.Level) {
+		return ce.AddCore(ent, c)
+	}
+	return ce
+}
+
+func (c *levelFilterCore) SetMinLevel(lvl zapcore.Level) {
+	c.minLevel.Store(int32(lvl))
+}
+
 type Logger struct {
 	*zap.Logger
-	level *zap.AtomicLevel
-	cm    config.Manager
+	level        *zap.AtomicLevel
+	cm           config.Manager
+	otelLevel    *levelFilterCore
 }
 
 func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
@@ -37,6 +59,7 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 	// Check if OTEL logger provider is available and add OTEL core
 	provider := global.GetLoggerProvider()
 	var core zapcore.Core
+	var otelLevelFilter *levelFilterCore
 	if provider != nil {
 		var otelCore zapcore.Core = otelzap.NewCore(
 			DefaultTracerService,
@@ -44,16 +67,21 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 			otelzap.WithLoggerProvider(provider),
 		)
 
-		// Apply observability log level filter if configured
-		if cm != nil && cm.Config() != nil && cm.Config().Core.Observability.IsLoggingEnabled() {
-			minLevel := mapLogLevel(cm.Config().Core.Observability.Logging.Level)
-			otelCore = &levelFilterCore{
-				Core:     otelCore,
-				minLevel: minLevel,
-			}
+		// Always wrap OTEL core with levelFilterCore
+		otelLevelFilter = &levelFilterCore{
+			Core: otelCore,
 		}
 
-		core = zapcore.NewTee(otelCore, consoleCore)
+		// Set initial OTEL log level based on configuration
+		if cm != nil && cm.Config() != nil && cm.Config().Core.Observability.IsLoggingEnabled() {
+			minLevel := mapLogLevel(cm.Config().Core.Observability.Logging.Level)
+			otelLevelFilter.SetMinLevel(minLevel)
+		} else {
+			// When logging is disabled, set to highest level to effectively drop all logs
+			otelLevelFilter.SetMinLevel(zapcore.FatalLevel + 1)
+		}
+
+		core = zapcore.NewTee(otelLevelFilter, consoleCore)
 	} else {
 		core = consoleCore
 	}
@@ -61,9 +89,10 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 	zapLogger := zap.New(core, zap.AddCaller())
 
 	logger := &Logger{
-		Logger: zapLogger,
-		level:  &atomicLevel,
-		cm:     cm,
+		Logger:     zapLogger,
+		level:      &atomicLevel,
+		cm:         cm,
+		otelLevel:  otelLevelFilter,
 	}
 
 	// If an existing logger is provided, use it instead
@@ -90,6 +119,11 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 func (l *Logger) SetLevelFromConfig() {
 	if l.cm != nil && l.cm.Config() != nil {
 		l.level.SetLevel(mapLogLevel(l.cm.Config().Core.Log.Level))
+
+		// Update OTEL level filter if it exists
+		if l.otelLevel != nil && l.cm.Config().Core.Observability.IsLoggingEnabled() {
+			l.otelLevel.SetMinLevel(mapLogLevel(l.cm.Config().Core.Observability.Logging.Level))
+		}
 	}
 }
 
@@ -99,9 +133,10 @@ func (l *Logger) Level() *zap.AtomicLevel {
 
 func (l *Logger) wrap(logger *zap.Logger) *Logger {
 	return &Logger{
-		Logger: logger,
-		level:  l.level,
-		cm:     l.cm,
+		Logger:    logger,
+		level:     l.level,
+		cm:        l.cm,
+		otelLevel: l.otelLevel,
 	}
 }
 
@@ -116,21 +151,4 @@ func mapLogLevel(level string) zapcore.Level {
 	default:
 		return zapcore.ErrorLevel
 	}
-}
-
-// levelFilterCore wraps a zapcore.Core and filters by minimum level
-type levelFilterCore struct {
-	zapcore.Core
-	minLevel zapcore.Level
-}
-
-func (c *levelFilterCore) Enabled(lvl zapcore.Level) bool {
-	return lvl >= c.minLevel && c.Core.Enabled(lvl)
-}
-
-func (c *levelFilterCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
-	if c.Enabled(ent.Level) {
-		return ce.AddCore(ent, c)
-	}
-	return ce
 }
