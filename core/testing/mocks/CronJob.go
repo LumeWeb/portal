@@ -5,6 +5,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	mock "github.com/stretchr/testify/mock"
@@ -311,16 +313,16 @@ func (_c *MockCronJob_Origin_Call) RunAndReturn(run func() string) *MockCronJob_
 }
 
 // Run provides a mock function for the type MockCronJob
-func (_mock *MockCronJob) Run(ctx core.Context) error {
-	ret := _mock.Called(ctx)
+func (_mock *MockCronJob) Run(ctx core.Context, eventCtx context.Context) error {
+	ret := _mock.Called(ctx, eventCtx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Run")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(core.Context) error); ok {
-		r0 = returnFunc(ctx)
+	if returnFunc, ok := ret.Get(0).(func(core.Context, context.Context) error); ok {
+		r0 = returnFunc(ctx, eventCtx)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -334,18 +336,24 @@ type MockCronJob_Run_Call struct {
 
 // Run is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockCronJob_Expecter) Run(ctx interface{}) *MockCronJob_Run_Call {
-	return &MockCronJob_Run_Call{Call: _e.mock.On("Run", ctx)}
+//   - eventCtx context.Context
+func (_e *MockCronJob_Expecter) Run(ctx interface{}, eventCtx interface{}) *MockCronJob_Run_Call {
+	return &MockCronJob_Run_Call{Call: _e.mock.On("Run", ctx, eventCtx)}
 }
 
-func (_c *MockCronJob_Run_Call) Run(run func(ctx core.Context)) *MockCronJob_Run_Call {
+func (_c *MockCronJob_Run_Call) Run(run func(ctx core.Context, eventCtx context.Context)) *MockCronJob_Run_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 core.Context
 		if args[0] != nil {
 			arg0 = args[0].(core.Context)
 		}
+		var arg1 context.Context
+		if args[1] != nil {
+			arg1 = args[1].(context.Context)
+		}
 		run(
 			arg0,
+			arg1,
 		)
 	})
 	return _c
@@ -356,7 +364,7 @@ func (_c *MockCronJob_Run_Call) Return(err error) *MockCronJob_Run_Call {
 	return _c
 }
 
-func (_c *MockCronJob_Run_Call) RunAndReturn(run func(ctx core.Context) error) *MockCronJob_Run_Call {
+func (_c *MockCronJob_Run_Call) RunAndReturn(run func(ctx core.Context, eventCtx context.Context) error) *MockCronJob_Run_Call {
 	_c.Call.Return(run)
 	return _c
 }

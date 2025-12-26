@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/google/uuid"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -28,7 +30,7 @@ func newWorkflowStepExecutorJob() *workflowStepExecutorJob {
 	}
 }
 
-func (j *workflowStepExecutorJob) Run(ctx core.Context) error {
+func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context) error {
 	workflowSvc := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
 	if workflowSvc == nil {
 		return fmt.Errorf("%s", "failed to get workflow service")

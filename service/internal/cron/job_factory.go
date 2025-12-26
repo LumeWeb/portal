@@ -39,7 +39,7 @@ type DeadJobCheckJob struct {
 	*core.BaseCronJob
 }
 
-func (j *DeadJobCheckJob) Run(ctx core.Context) error {
+func (j *DeadJobCheckJob) Run(ctx core.Context, eventCtx context.Context) error {
 	// Signal the monitor to perform maintenance
 	cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 	cronService.Monitor().SignalMaintenance(nil)
@@ -52,7 +52,7 @@ type CleanupJob struct {
 	*core.BaseCronJob
 }
 
-func (j *CleanupJob) Run(ctx core.Context) error {
+func (j *CleanupJob) Run(ctx core.Context, eventCtx context.Context) error {
 	cronService := core.GetService[core.CronService](ctx, core.CRON_SERVICE)
 	return cronService.Monitor().CleanupCompletedJobs(nil)
 }

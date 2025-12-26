@@ -49,7 +49,7 @@ func newSimpleTestJob(origin string, sourceId string, schedule *core.CronSchedul
 	}
 }
 
-func (j *simpleTestJob) Run(ctx core.Context) error {
+func (j *simpleTestJob) Run(ctx core.Context, eventCtx context.Context) error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.runCallback != nil {
