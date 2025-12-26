@@ -279,7 +279,7 @@ func extractEventContext[P any](data *P, fallbackCtx context.Context) context.Co
 func Fire[P any](ctx Context, eventName string, data *P) (err error) {
 	eventCtx := extractEventContext(data, ctx.GetContext())
 	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-	defer EndSpanWithErr(span, err)
+	defer func() { EndSpanWithErr(span, err) }()
 
 	err, _ = FireAndReturn(ctx, eventName, data)
 	return
@@ -310,7 +310,7 @@ func FireAndReturn[P any](ctx Context, eventName string, data *P) (error, event.
 func FireByValue[P any](ctx Context, eventName string, data P) (err error) {
 	eventCtx := extractEventContext(&data, ctx.GetContext())
 	_, span := TraceMethod(eventCtx, "event."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-	defer EndSpanWithErr(span, err)
+	defer func() { EndSpanWithErr(span, err) }()
 
 	err, _ = FireByValueAndReturn[P](ctx, eventName, data)
 	return
@@ -385,7 +385,7 @@ func Listen[P any](ctx Context, eventName string, handler EventHandlerFunc[P], p
 
 		// Create a span for the handler execution
 		handlerCtx, span := TraceMethod(handlerCtx, "event.handler."+eventName, WithAttributes(attribute.String("event.name", eventName)))
-		defer EndSpanWithErr(span, err)
+		defer func() { EndSpanWithErr(span, err) }()
 
 		// Update the core event's context with the handler span context
 		coreEvent.SetContext(handlerCtx)
