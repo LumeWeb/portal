@@ -38,20 +38,20 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx conte
 	requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 
 	// Get all deletion requests
-	requests, err := userService.GetAccountsPendingDeletion(nil)
+	requests, err := userService.GetAccountsPendingDeletion(eventCtx)
 	if err != nil {
 		logger.Error("Failed to get account deletion requests", zap.Error(err))
 		return err
 	}
 
 	for _, request := range requests {
-		uploadRequests, err := requestService.ListRequestsByUser(ctx, request.ID, core.RequestFilter{})
+		uploadRequests, err := requestService.ListRequestsByUser(eventCtx, request.ID, core.RequestFilter{})
 		if err != nil {
 			return err
 		}
 
 		for _, uploadRequest := range uploadRequests {
-			err := requestService.DeleteRequest(ctx, uploadRequest.ID)
+			err := requestService.DeleteRequest(eventCtx, uploadRequest.ID)
 			if err != nil {
 				logger.Error("Failed to delete request",
 					zap.Uint("request_id", uploadRequest.ID),
@@ -60,7 +60,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx conte
 			}
 		}
 
-		pins, err := pinService.AllAccountPins(ctx, request.ID)
+		pins, err := pinService.AllAccountPins(eventCtx, request.ID)
 		if err != nil {
 			logger.Error("Failed to get account pins",
 				zap.Uint("user_id", request.ID),
@@ -69,7 +69,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx conte
 		}
 
 		for _, pin := range pins {
-			err = pinService.DeletePin(ctx, pin.ID)
+			err = pinService.DeletePin(eventCtx, pin.ID)
 			if err != nil {
 				logger.Error("Failed to delete pin",
 					zap.Uint("pin_id", pin.ID),
@@ -78,7 +78,7 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx conte
 			}
 		}
 
-		err = userService.DeleteAccount(ctx, request.ID)
+		err = userService.DeleteAccount(eventCtx, request.ID)
 		if err != nil {
 			logger.Error("Failed to delete account",
 				zap.Uint("user_id", request.ID),
