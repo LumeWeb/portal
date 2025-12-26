@@ -47,7 +47,10 @@ func (j *ProcessAccountDeletionRequestsJob) Run(ctx core.Context, eventCtx conte
 	for _, request := range requests {
 		uploadRequests, err := requestService.ListRequestsByUser(eventCtx, request.ID, core.RequestFilter{})
 		if err != nil {
-			return err
+			logger.Error("Failed to get user upload requests",
+				zap.Uint("user_id", request.ID),
+				zap.Error(err))
+			continue
 		}
 
 		for _, uploadRequest := range uploadRequests {
