@@ -27,31 +27,35 @@ func NewLogger(cm config.Manager, existingLogger ...any) *Logger {
 		atomicLevel.SetLevel(mapLogLevel("debug"))
 	}
 
-	// Create the logger with the atomic level
-	// Check if OTEL logger provider is available and use it
-	var core zapcore.Core
+	// Create console core first
+	consoleCore := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+		zapcore.Lock(os.Stdout),
+		atomicLevel,
+	)
+
+	// Check if OTEL logger provider is available and add OTEL core
 	provider := global.GetLoggerProvider()
+	var core zapcore.Core
 	if provider != nil {
-		// Use OTEL-enabled core if provider is available
-		otelCore := otelzap.NewCore(
+		var otelCore zapcore.Core = otelzap.NewCore(
 			DefaultTracerService,
 			otelzap.WithAttributes(),
 			otelzap.WithLoggerProvider(provider),
 		)
-		// Compose with standard zap core that enforces atomicLevel for runtime level changes
-		zapCore := zapcore.NewCore(
-			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-			zapcore.Lock(os.Stdout),
-			atomicLevel,
-		)
-		core = zapcore.NewTee(otelCore, zapCore)
+
+		// Apply observability log level filter if configured
+		if cm != nil && cm.Config() != nil && cm.Config().Core.Observability.IsLoggingEnabled() {
+			minLevel := mapLogLevel(cm.Config().Core.Observability.Logging.Level)
+			otelCore = &levelFilterCore{
+				Core:     otelCore,
+				minLevel: minLevel,
+			}
+		}
+
+		core = zapcore.NewTee(otelCore, consoleCore)
 	} else {
-		// Use standard zap core
-		core = zapcore.NewCore(
-			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
-			zapcore.Lock(os.Stdout),
-			atomicLevel,
-		)
+		core = consoleCore
 	}
 
 	zapLogger := zap.New(core, zap.AddCaller())
@@ -112,4 +116,21 @@ func mapLogLevel(level string) zapcore.Level {
 	default:
 		return zapcore.ErrorLevel
 	}
+}
+
+// levelFilterCore wraps a zapcore.Core and filters by minimum level
+type levelFilterCore struct {
+	zapcore.Core
+	minLevel zapcore.Level
+}
+
+func (c *levelFilterCore) Enabled(lvl zapcore.Level) bool {
+	return lvl >= c.minLevel && c.Core.Enabled(lvl)
+}
+
+func (c *levelFilterCore) Check(ent zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	if c.Enabled(ent.Level) {
+		return ce.AddCore(ent, c)
+	}
+	return ce
 }
