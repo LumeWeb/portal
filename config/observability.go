@@ -118,17 +118,10 @@ func (l LoggingConfig) Defaults() map[string]any {
 }
 
 func (o ObservabilityConfig) Schema() z.ZogSchema {
-	var tracingCfg TracingConfig
-	var metricsCfg MetricsConfig
-	var loggingCfg LoggingConfig
-
 	return z.Struct(z.Shape{
 		"Enabled":     z.Bool(),
 		"ServiceName": z.String(),
 		"DSN":         z.String(),
-		"Tracing":     tracingCfg.Schema(),
-		"Metrics":     metricsCfg.Schema(),
-		"Logging":     loggingCfg.Schema(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*ObservabilityConfig)
 		if !ok {
@@ -152,6 +145,7 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 func (o ObservabilityConfig) Defaults() map[string]any {
 	return map[string]any{
 		"Enabled":     false,
+		"DSN":         "",
 		"ServiceName": DefaultServiceName,
 	}
 }
