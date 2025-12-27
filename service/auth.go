@@ -27,7 +27,6 @@ func init() {
 
 type AuthServiceDefault struct {
 	*core.BaseComponent
-	db   *gorm.DB
 	user core.UserService
 	otp  core.OTPService
 }
@@ -104,8 +103,8 @@ func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip s
 	var model models.PublicKey
 	var rowsAffected int64
 
-	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
-		tx := db.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
+	err := db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
 		rowsAffected = tx.RowsAffected
 		return tx
 	})
@@ -137,8 +136,8 @@ func (a AuthServiceDefault) LoginID(ctx context.Context, id uint, ip string, rem
 
 	user.ID = id
 
-	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
-		tx := db.Model(&user).Where(&user).First(&user)
+	err := db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Model(&user).Where(&user).First(&user)
 		rowsAffected = tx.RowsAffected
 		return tx
 	})
@@ -173,8 +172,8 @@ func (a AuthServiceDefault) ValidLoginByEmail(ctx context.Context, email string,
 	var user models.User
 	var rowsAffected int64
 
-	err := db.RetryOnLock(a.db, func(db *gorm.DB) *gorm.DB {
-		tx := db.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
+	err := db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.Model(&models.User{}).Where(&models.User{Email: email}).First(&user)
 		rowsAffected = tx.RowsAffected
 		return tx
 	})
