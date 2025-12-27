@@ -8,6 +8,13 @@ import (
 	"gorm.io/datatypes"
 )
 
+// Pre-compiled regex patterns for testing GORM behavior
+var (
+	testGORMBinaryPattern       = regexp.MustCompile(`<binary>`)
+	testGORMHexPattern          = regexp.MustCompile(`X'[0-9a-fA-F]+'`)
+	testGORMInvalidUTF8Pattern  = regexp.MustCompile(`"[^"]*�[^"]*"`)
+)
+
 func TestSanitizeTracingQuery(t *testing.T) {
 	// Generate test data dynamically
 	binaryUUID := datatypes.NewBinUUIDv4()
@@ -154,31 +161,31 @@ func TestGORMExplainBehavior(t *testing.T) {
 
 	// Case 3: Verify our regex patterns match the expected inputs
 	tests := []struct {
-		pattern string
-		input   string
-		want    bool
+		re   *regexp.Regexp
+		input string
+		want bool
 	}{
 		{
-			pattern: `<binary>`,
-			input:   `"<binary>"`,
-			want:    true,
+			re:    testGORMBinaryPattern,
+			input: `"<binary>"`,
+			want:  true,
 		},
 		{
-			pattern: `X'[0-9a-fA-F]+'`,
-			input:   `X'deadbeef'`,
-			want:    true,
+			re:    testGORMHexPattern,
+			input: `X'deadbeef'`,
+			want:  true,
 		},
 		{
-			pattern: `"[^"]*�[^"]*"`,
-			input:   `"` + string(binaryBytes) + `"`,
-			want:    true,
+			re:    testGORMInvalidUTF8Pattern,
+			input: `"` + string(binaryBytes) + `"`,
+			want:  true,
 		},
 	}
 
 	for _, tt := range tests {
-		matched := regexp.MustCompile(tt.pattern).MatchString(tt.input)
+		matched := tt.re.MatchString(tt.input)
 		if matched != tt.want {
-			t.Errorf("Pattern %q matching %q: got %v, want %v", tt.pattern, tt.input, matched, tt.want)
+			t.Errorf("Pattern matching %q: got %v, want %v", tt.input, matched, tt.want)
 		}
 	}
 }
