@@ -341,6 +341,43 @@ func ContextWithStartupFunc(f LifecycleFunc) ContextBuilderOption {
 	}
 }
 
+// findBaseComponentField searches for a BaseComponent field in the struct hierarchy,
+// including embedded structs, using BFS traversal.
+func findBaseComponentField(componentElem reflect.Value) reflect.Value {
+	var baseComponentField reflect.Value
+
+	queue := []reflect.Value{componentElem}
+	for len(queue) > 0 {
+		v := queue[0]
+		queue = queue[1:]
+
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				continue
+			}
+			v = v.Elem()
+		}
+
+		if v.Kind() != reflect.Struct {
+			continue
+		}
+
+		f := v.FieldByName("BaseComponent")
+		if f.IsValid() {
+			baseComponentField = f
+			break
+		}
+
+		for i := 0; i < v.NumField(); i++ {
+			if v.Type().Field(i).Anonymous {
+				queue = append(queue, v.Field(i))
+			}
+		}
+	}
+
+	return baseComponentField
+}
+
 func ContextWithStartupComponent(component Component) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(func(startupCtx Context) error {
@@ -355,7 +392,7 @@ func ContextWithStartupComponent(component Component) ContextBuilderOption {
 				return nil
 			}
 
-			baseComponentField := componentElem.FieldByName("BaseComponent")
+			baseComponentField := findBaseComponentField(componentElem)
 			if !baseComponentField.IsValid() || !baseComponentField.Type().AssignableTo(reflect.TypeOf((*BaseComponent)(nil))) {
 				return nil
 			}
