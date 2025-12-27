@@ -281,12 +281,12 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 				return nil, core.NewAccountError(core.ErrKeyAssigningUserRoleFailed, err)
 			}
 
-			if err := u.Context().Fire(event.EVENT_USER_CREATED, event.NewUserCreatedEvent(&_user, ctx)); err != nil {
+			if err := u.Context().Fire(event.EVENT_USER_CREATED, event.NewUserCreatedEvent(ctx, &_user)); err != nil {
 				return nil, err
 			}
 
 			if isFirstUser || !verifyEmail {
-				if err := u.Context().Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(&_user, ctx)); err != nil {
+				if err := u.Context().Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(ctx, &_user)); err != nil {
 					return nil, err
 				}
 			}
@@ -615,7 +615,7 @@ func (u UserServiceDefault) VerifyEmail(ctx context.Context, email string, token
 				return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 			}
 
-			err := u.Context().Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(&verification.User, ctx))
+			err := u.Context().Fire(event.EVENT_USER_ACTIVATED, event.NewUserActivatedEvent(ctx, &verification.User))
 			if err != nil {
 				return err
 			}
