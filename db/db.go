@@ -10,6 +10,7 @@ import (
 	"math/rand/v2"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -117,6 +118,30 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	return nil
 }
 
+// sanitizeTracingQuery removes binary UUID values from SQL queries to prevent
+// invalid UTF-8 errors in OpenTelemetry/proto serialization.
+// Binary UUIDs appear as 16-byte sequences in SQL and are replaced with a placeholder.
+func sanitizeTracingQuery(query string) string {
+	// GORM's placeholder for binary values: "<binary>" or '<binary>'
+	// This is produced by GORM's ExplainSQL when it encounters non-printable byte slices
+	query = regexp.MustCompile(`"<binary>"`).ReplaceAllString(query, `"<uuid>"`)
+	query = regexp.MustCompile(`'<binary>'`).ReplaceAllString(query, `'<uuid>'`)
+	
+	// Hex-encoded binary pattern: X'[0-9a-fA-F]+'
+	query = regexp.MustCompile(`X'[0-9a-fA-F]+'`).ReplaceAllString(query, `"<uuid>"`)
+	
+	// Replace quoted strings containing the UTF-8 replacement character (U+FFFD)
+	// This character appears when invalid UTF-8 sequences are present (e.g., raw binary UUID bytes)
+	query = regexp.MustCompile(`"[^"]*�[^"]*"`).ReplaceAllString(query, `"<uuid>"`)
+	query = regexp.MustCompile(`'[^']*�[^']*'`).ReplaceAllString(query, `'<uuid>'`)
+	
+	// Also target strings with control characters (0x00-0x1F except \t, \n, \r)
+	query = regexp.MustCompile(`"[^"]*[\x00-\x08\x0b\x0c\x0e-\x1f][^"]*"`).ReplaceAllString(query, `"<uuid>"`)
+	query = regexp.MustCompile(`'[^']*[\x00-\x08\x0b\x0c\x0e-\x1f][^']*'`).ReplaceAllString(query, `'<uuid>'`)
+	
+	return query
+}
+
 // SetupDBObservability configures OpenTelemetry tracing and Prometheus metrics for the database connection.
 // It returns an error if any plugin cannot be registered.
 func SetupDBObservability(ctx core.Context) error {
@@ -127,7 +152,12 @@ func SetupDBObservability(ctx core.Context) error {
 
 	// Setup OpenTelemetry tracing if enabled
 	if observabilityCfg.IsTracingEnabled() {
-		if err := db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
+		// Add a query formatter to sanitize binary UUID values from traces
+		// This prevents invalid UTF-8 errors when uptrace serializes query strings as protobuf
+		if err := db.Use(tracing.NewPlugin(
+			tracing.WithoutMetrics(),
+			tracing.WithQueryFormatter(sanitizeTracingQuery),
+		)); err != nil {
 			return err
 		}
 	}

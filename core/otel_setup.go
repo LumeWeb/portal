@@ -13,14 +13,14 @@ import (
 // ContextWithTelemetry sets up the OpenTelemetry pipeline based on observability config.
 func ContextWithTelemetry() ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
-		cfg := ctx.Config().Config().Core.Observability
-
-		// Skip all setup if observability is disabled
-		if !cfg.Enabled {
-			return ctx, nil
-		}
-
 		ctx.OnStartup(func(ctx Context) error {
+			cfg := ctx.Config().Config().Core.Observability
+
+			// Skip all setup if observability is disabled
+			if !cfg.Enabled {
+				return nil
+			}
+
 			// Validate DSN format
 			if cfg.DSN == "" {
 				return nil
