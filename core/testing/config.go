@@ -17,6 +17,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// configKeySeparator is the separator used between config key parts
+	configKeySeparator = "."
+)
+
 // ConfigBuilder is a generic builder for any config type that implements
 // the Defaults pattern (map[string]any)
 type ConfigBuilder struct {
@@ -268,7 +273,7 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 	})
 
 	for key, value := range flatConfig {
-		fullKey := prefix + key
+		fullKey := strings.TrimSuffix(prefix, configKeySeparator) + configKeySeparator + key
 		if err := setConfigValue(ctx, fullKey, value); err != nil {
 			return err
 		}
