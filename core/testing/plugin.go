@@ -381,7 +381,12 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, pl
 		return nil, fmt.Errorf("failed to register service: %w", err)
 	}
 
-	return WrapCoreOptions(opts), nil
+	// Prepend ContextWithStartupComponent to ensure proper wiring
+	startupOpts := WrapCoreOptions(core.ContextOptions(core.ContextWithStartupComponent(service)))
+	wrappedOpts := WrapCoreOptions(opts)
+	allOpts := append(startupOpts, wrappedOpts...)
+
+	return allOpts, nil
 }
 
 // configureService handles the configuration of a single service, including:
