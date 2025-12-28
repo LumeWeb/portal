@@ -114,8 +114,11 @@ func WithServiceFactory(id string, factory core.ServiceFactory) TestContextBuild
 			return nil, fmt.Errorf("failed to create service '%s': %w", id, err)
 		}
 
-		// Register a startup function that will create and register the service later
-		startupOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
+		// Wire up the service's BaseComponent with context, logger, DB, and config
+		startupOpt := core.ContextWithStartupComponent(serviceInstance)
+
+		// Register a startup function that will register the service in the context
+		registerOpt := core.ContextWithStartupFunc(func(coreCtx core.Context) error {
 			tctx, ok := coreCtx.(TestContext)
 			if !ok {
 				return fmt.Errorf("context is not a TestContext, cannot use WithServiceFactory")
@@ -133,12 +136,18 @@ func WithServiceFactory(id string, factory core.ServiceFactory) TestContextBuild
 			return nil
 		})
 
-		options, err := ProcessCtxOptions(ctx, WrapCoreOptions(ctxOpts)...)
+		// Apply wiring first, then registration, then other options
+		options, err := ProcessCtxOptions(ctx, WrapCoreOption(startupOpt))
 		if err != nil {
 			return nil, err
 		}
 
-		options, err = ProcessCtxOptions(options, WrapCoreOption(startupOpt))
+		options, err = ProcessCtxOptions(options, WrapCoreOption(registerOpt))
+		if err != nil {
+			return nil, err
+		}
+
+		options, err = ProcessCtxOptions(options, WrapCoreOptions(ctxOpts)...)
 		if err != nil {
 			return nil, err
 		}

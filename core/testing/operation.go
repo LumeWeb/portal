@@ -90,9 +90,9 @@ func NewMockOperation(t TB) *MockOperation {
 	}
 
 	// Set up default expectations (optional, but good practice)
-	mockOp.On("Type").Return("").Maybe()
-	mockOp.On("GlobalType").Return(core.OperationType("")).Maybe()
-	mockOp.On("Handler").Return(NewMockOperationHandler(t)).Maybe()
+	mockOp.EXPECT().Type().Return("").Maybe()
+	mockOp.EXPECT().GlobalType().Return(core.OperationType("")).Maybe()
+	mockOp.EXPECT().Handler().Return(NewMockOperationHandler(t)).Maybe()
 
 	return op
 }
@@ -105,10 +105,10 @@ func NewMockOperationHandler(t TB) *MockOperationHandler {
 	}
 
 	// Set up default expectations (optional, but good practice)
-	mockHandler.On("ValidateRequest", mock.Anything, mock.Anything).Return(nil).Maybe()
-	mockHandler.On("Execute", mock.Anything, mock.Anything).Return(nil).Maybe()
-	mockHandler.On("GetStatus", mock.Anything, mock.Anything).Return(&core.RequestStatus{}, nil).Maybe()
-	mockHandler.On("Cleanup", mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockHandler.EXPECT().ValidateRequest(mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockHandler.EXPECT().Execute(mock.Anything, mock.Anything).Return(nil).Maybe()
+	mockHandler.EXPECT().GetStatus(mock.Anything, mock.Anything).Return(&core.RequestStatus{}, nil).Maybe()
+	mockHandler.EXPECT().Cleanup(mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	return handler
 }

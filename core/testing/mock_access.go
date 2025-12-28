@@ -27,15 +27,15 @@ func NewMockAccessService(t TB) *MockAccessService {
 	}
 
 	// Set up default expectations
-	mockAccess.On("RegisterRoute", mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+	mockAccess.EXPECT().RegisterRoute(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Maybe().
 		Return(nil)
 
-	mockAccess.On("AssignRoleToUser", mock.AnythingOfType("uint"), mock.AnythingOfType("string")).
+	mockAccess.EXPECT().AssignRoleToUser(mock.Anything, mock.Anything, mock.Anything).
 		Maybe().
 		Return(nil)
 
-	mockAccess.On("CheckAccess", mock.AnythingOfType("uint"), mock.AnythingOfType("string"), mock.AnythingOfType("string"), mock.AnythingOfType("string")).
+	mockAccess.EXPECT().CheckAccess(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Maybe().
 		Return(true, nil)
 
@@ -46,7 +46,7 @@ func NewMockAccessService(t TB) *MockAccessService {
 func (m *MockAccessService) CheckAccess(ctx context.Context, userId uint, fqdn, path, method string) (bool, error) {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockAccessService.Mock, "CheckAccess", userId, fqdn, path, method) {
-		m.On("CheckAccess", userId, fqdn, path, method).Return(true, nil)
+		m.EXPECT().CheckAccess(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
 	}
 
 	return m.MockAccessService.CheckAccess(nil, userId, fqdn, path, method)
@@ -56,7 +56,7 @@ func (m *MockAccessService) CheckAccess(ctx context.Context, userId uint, fqdn, 
 func (m *MockAccessService) AssignRoleToUser(ctx context.Context, userId uint, role string) error {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockAccessService.Mock, "AssignRoleToUser", userId, role) {
-		m.On("AssignRoleToUser", userId, role).Return(nil)
+		m.EXPECT().AssignRoleToUser(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	}
 
 	return m.MockAccessService.AssignRoleToUser(nil, userId, role)

@@ -25,7 +25,7 @@ func TestAPIEndpoints(t *testing.T) {
 	// The API registration option is passed as a variadic option after the test function.
 	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		// The API is now registered and configured within this test context
-		// because NewAPIRegistrationOption was passed as an option to RunTestCaseWithDB.
+		// because WithAPI was passed as an option to RunTestCase.
 
 		t.Run("public hello endpoint", func(t *testing.T) {
 			//t.Parallel() // Subtests can run in parallel
@@ -73,12 +73,13 @@ func TestAPIEndpoints(t *testing.T) {
 		})
 	},
 		// Pass the API registration option here as a variadic argument
-		coreTesting.NewAPIRegistrationOption("test", NewTestAPI),
+		coreTesting.WithAPI("test", NewTestAPI),
 	)
 }
 
 // TestAPI implements a simple API for testing
 type TestAPI struct {
+	*core.BaseComponent
 	ctx    core.Context
 	logger *core.Logger
 }
@@ -98,6 +99,7 @@ func NewTestAPI() (core.API, []core.ContextBuilderOption, error) {
 }
 
 func (a *TestAPI) Name() string          { return "test" }
+func (a *TestAPI) ID() string            { return "test" }
 func (a *TestAPI) Subdomain() string     { return "" }
 func (a *TestAPI) AuthTokenName() string { return "test-token" }
 
@@ -108,7 +110,7 @@ func (a *TestAPI) OpenAPIInfo() router.APIInfoDefinition {
 		Version("1.0.0")
 }
 
-func (a *TestAPI) Config() config.APIConfig {
+func (a *TestAPI) GetConfig() config.APIConfig {
 	return &TestAPIConfig{}
 }
 
@@ -139,7 +141,7 @@ func (a *TestAPI) Configure(r router.Router, access core.AccessService) error {
 			),
 			router.WithMiddlewares(middleware.AuthMiddleware(
 				a.ctx,
-				jwt.PurposeLogin,
+				middleware.WithAuthPurpose(jwt.PurposeLogin),
 			)),
 		),
 	)
