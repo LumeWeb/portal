@@ -438,8 +438,8 @@ func GetMockUserService(ctx core.Context) *MockUserService {
 
 // GetMockWorkflowService returns the mock workflow service from the context for testing
 // Panics if the workflow service is not a mock
-func GetMockWorkflowService(ctx core.Context) *mocks.MockWorkflowService {
-	return getMock[mocks.MockWorkflowService](ctx, core.WORKFLOW_SERVICE)
+func GetMockWorkflowService(ctx core.Context) *MockWorkflowService {
+	return getMock[MockWorkflowService](ctx, core.WORKFLOW_SERVICE)
 }
 
 // registerServiceInstance registers a service instance both locally in the test context
