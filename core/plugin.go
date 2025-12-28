@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 
+	_ "net/http"
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"go.lumeweb.com/portal/build"
 	_ "go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core/internal"
-	_ "net/http"
-	"sync"
 )
 
 type PluginFactory func() PluginInfo
@@ -53,7 +54,7 @@ type PluginInfo struct {
 }
 
 type Configurable interface {
-	Config() (any, error)
+	GetConfig() (any, error)
 }
 
 var (

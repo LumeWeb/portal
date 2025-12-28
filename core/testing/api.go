@@ -20,7 +20,7 @@ type MockAPI struct {
 	authTokenNameValue string
 	openAPIInfoValue   router.APIInfoDefinition
 	configureFunc      func(router.Router, core.AccessService) error
-	componentConfig    config.Manager // For Component.Config() method
+	componentConfig    config.Manager // For Component.GetConfig() method
 }
 
 // Name implements core.API

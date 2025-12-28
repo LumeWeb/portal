@@ -19,7 +19,7 @@ type RedisConnectorImpl struct {
 }
 
 func NewRedisConnector(ctx core.Context) (*RedisConnectorImpl, error) {
-	redisConfig := ctx.Config().Config().Redis
+	redisConfig := ctx.GetConfig().GetConfig().Redis
 	conn, err := rmq.OpenConnection("portal_cron", "tcp",
 		fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port), 1, nil)
 	if err != nil {
@@ -92,7 +92,7 @@ var _ core.QueueService = (*RedisService)(nil)
 var _ core.CronHeartbeatService = (*RedisService)(nil)
 
 func NewRedisService(ctx core.Context, cronService *core.CronService) (*core.CronRedisQueueService, error) {
-	redisConfig := ctx.Config().Config().Redis
+	redisConfig := ctx.GetConfig().GetConfig().Redis
 	conn, err := rmq.OpenConnection("portal_cron", "tcp",
 		fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port), 1, nil)
 	if err != nil {

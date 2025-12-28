@@ -234,7 +234,7 @@ func TestCreateDefaultConfig(t *testing.T) {
 
 	// Verify that the file was created in the mock file system
 	_, ok := fs.Files[testPath]
-	assert.True(t, ok, "Config file should be created")
+	assert.True(t, ok, "GetConfig file should be created")
 
 	// Verify that the parent directory was created
 	parentDir := filepath.Dir(testPath)
@@ -674,14 +674,14 @@ func TestDatabaseConfigValidation(t *testing.T) {
 			},
 		},
 		{
-			name: "Valid SQLite Config",
+			name: "Valid SQLite GetConfig",
 			config: DatabaseConfig{
 				Type: "sqlite",
 				File: "portal.db",
 			},
 		},
 		{
-			name: "Valid MySQL Config",
+			name: "Valid MySQL GetConfig",
 			config: DatabaseConfig{
 				Type:     "mysql",
 				Host:     "localhost",

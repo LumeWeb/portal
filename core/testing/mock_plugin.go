@@ -89,9 +89,9 @@ func (b *MockPluginBuilder) WithMockServiceFactory(id string, factory interface{
 	return b
 }
 
-// WithServiceConfig adds a config expectation for a mock service's Config() method.
+// WithServiceConfig adds a config expectation for a mock service's GetConfig() method.
 // The provided config will be set up as a "Maybe" expectation, allowing the mock
-// to return the config when Config() is called, or not to be called at all.
+// to return the config when GetConfig() is called, or not to be called at all.
 func (b *MockPluginBuilder) WithServiceConfig(id string, config any) *MockPluginBuilder {
 	if b.serviceConfigs == nil {
 		b.serviceConfigs = make(map[string]any)
@@ -109,15 +109,15 @@ func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) erro
 		// Check if mockInstance implements core.Configurable interface
 		_, ok := mockInstance.(core.Configurable)
 		if !ok {
-			return fmt.Errorf("mock service '%s' does not implement core.Configurable interface (Config() (any, error))", id)
+			return fmt.Errorf("mock service '%s' does not implement core.Configurable interface (GetConfig() (any, error))", id)
 		}
 
-		// Now we can safely set up the mock Config() expectation
+		// Now we can safely set up the mock GetConfig() expectation
 		onMock, ok := mockInstance.(interface {
 			On(methodName string, arguments ...any) *mock.Call
 		})
 		if ok {
-			onMock.On("Config").Return(cfg, nil).Maybe()
+			onMock.On("GetConfig").Return(cfg, nil).Maybe()
 		}
 
 		cfgDefaults, ok := cfg.(config.Defaults)

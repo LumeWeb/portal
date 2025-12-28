@@ -39,7 +39,7 @@ var mockAPIConfig = MockAPIConfig{}
 // Helper function to create a mock ConfigManager with required expectations
 func newMockConfigManager(t *testing.T, cfg *config.Config) *config.MockManager {
 	mockConfigManager := config.NewMockManager(t)
-	mockConfigManager.On("Config").Return(cfg)
+	mockConfigManager.On("GetConfig").Return(cfg)
 	mockConfigManager.On("SetLogger", mock.Anything).Return()
 	return mockConfigManager
 }
@@ -68,7 +68,7 @@ func newTestPluginInfoWithComponent(t *testing.T, id string, componentType strin
 			mockAPI := mocks.NewMockAPI(t)
 			// Minimal mocks to satisfy the interface
 			mockAPI.On("Name").Return(id + "-api")
-			// Removed expectations for Subdomain, AuthTokenName, Config, OpenAPIInfo, Configure
+			// Removed expectations for Subdomain, AuthTokenName, GetConfig, OpenAPIInfo, Configure
 			return mockAPI, nil, nil
 		}
 	case "Protocol":
@@ -76,7 +76,7 @@ func newTestPluginInfoWithComponent(t *testing.T, id string, componentType strin
 			mockProtocol := mocks.NewMockProtocol(nil)
 			// Minimal mocks to satisfy the interface
 			mockProtocol.On("Name").Return(id + "-protocol")
-			mockProtocol.On("Config").Return(nil)
+			mockProtocol.On("GetConfig").Return(nil)
 			mockProtocol.On("Operations").Return(nil)
 			return mockProtocol, nil, nil
 		}
