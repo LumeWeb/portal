@@ -29,25 +29,25 @@ func NewMockHTTPService(t TB) *MockHTTPService {
 	}
 
 	// Set up default expectations
-	mockHTTPService.On("Router").
+	mockHTTPService.EXPECT().Router().
 		Maybe().
 		Return(func() router.Router {
 			return httpService.router
 		})
 
-	mockHTTPService.On("Serve").
+	mockHTTPService.EXPECT().Serve().
 		Maybe().
 		Return(nil)
 
-	mockHTTPService.On("Init").
+	mockHTTPService.EXPECT().Init().
 		Maybe().
 		Return(nil)
 
-	mockHTTPService.On("RegisterGlobalPath", mock.AnythingOfType("string")).
+	mockHTTPService.EXPECT().RegisterGlobalPath(mock.AnythingOfType("string")).
 		Maybe().
 		Return(nil)
 
-	mockHTTPService.On("APISubdomain", mock.AnythingOfType("string"), mock.AnythingOfType("bool")).
+	mockHTTPService.EXPECT().APISubdomain(mock.AnythingOfType("string"), mock.AnythingOfType("bool")).
 		Maybe().
 		Return(httpService.apiSubdomainFunc("", false))
 
@@ -58,7 +58,7 @@ func NewMockHTTPService(t TB) *MockHTTPService {
 func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockHTTPService.Mock, "APISubdomain", id, proto) {
-		m.On("APISubdomain", id, proto).Return(m.apiSubdomainFunc(id, proto))
+		m.EXPECT().APISubdomain(id, proto).Return("")
 	}
 
 	return m.MockHTTPService.APISubdomain(id, proto)
@@ -78,7 +78,7 @@ func (m *MockHTTPService) apiSubdomainFunc(id string, proto bool) func(string, b
 func (m *MockHTTPService) Serve() error {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockHTTPService.Mock, "Serve") {
-		m.On("Serve").Return(nil)
+		m.EXPECT().Serve().Return(nil)
 	}
 
 	return m.MockHTTPService.Serve()
@@ -88,7 +88,7 @@ func (m *MockHTTPService) Serve() error {
 func (m *MockHTTPService) Init() error {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockHTTPService.Mock, "Init") {
-		m.On("Init").Return(nil)
+		m.EXPECT().Init().Return(nil)
 	}
 
 	return m.MockHTTPService.Init()
@@ -98,7 +98,7 @@ func (m *MockHTTPService) Init() error {
 func (m *MockHTTPService) RegisterGlobalPath(path string) error {
 	// Set up expectation if not already set
 	if !WasMethodCalled(&m.MockHTTPService.Mock, "RegisterGlobalPath", path) {
-		m.On("RegisterGlobalPath", path).Return(nil)
+		m.EXPECT().RegisterGlobalPath(path).Return(nil)
 	}
 
 	return m.MockHTTPService.RegisterGlobalPath(path)

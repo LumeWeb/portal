@@ -85,28 +85,28 @@ func NewMockAPI(t testing.TB, name string) *MockAPI {
 // WithConfig sets the config for the mock API
 func (m *MockAPI) WithConfig(cfg config.APIConfig) *MockAPI {
 	m.configValue = cfg
-	m.MockAPI.On("GetConfig").Return(cfg).Maybe()
+	m.MockAPI.EXPECT().GetConfig().Return(cfg).Maybe()
 	return m
 }
 
 // WithSubdomain sets the subdomain for the mock API
 func (m *MockAPI) WithSubdomain(subdomain string) *MockAPI {
 	m.subdomainValue = subdomain
-	m.MockAPI.On("Subdomain").Return(subdomain).Maybe()
+	m.MockAPI.EXPECT().Subdomain().Return(subdomain).Maybe()
 	return m
 }
 
 // WithAuthTokenName sets the auth token name for the mock API
 func (m *MockAPI) WithAuthTokenName(authTokenName string) *MockAPI {
 	m.authTokenNameValue = authTokenName
-	m.MockAPI.On("AuthTokenName").Return(authTokenName).Maybe()
+	m.MockAPI.EXPECT().AuthTokenName().Return(authTokenName).Maybe()
 	return m
 }
 
 // WithOpenAPIInfo sets the OpenAPI info for the mock API
 func (m *MockAPI) WithOpenAPIInfo(openAPIInfo router.APIInfoDefinition) *MockAPI {
 	m.openAPIInfoValue = openAPIInfo
-	m.MockAPI.On("OpenAPIInfo").Return(openAPIInfo).Maybe()
+	m.MockAPI.EXPECT().OpenAPIInfo().Return(openAPIInfo).Maybe()
 	return m
 }
 
