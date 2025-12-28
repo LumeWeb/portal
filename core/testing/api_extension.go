@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"github.com/stretchr/testify/mock"
 	router "go.lumeweb.com/portal-router"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/testing/mocks"
