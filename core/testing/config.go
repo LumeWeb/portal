@@ -273,7 +273,10 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 	})
 
 	for key, value := range flatConfig {
-		fullKey := strings.TrimSuffix(prefix, configKeySeparator) + configKeySeparator + key
+		fullKey := key
+		if prefix != "" {
+			fullKey = strings.TrimSuffix(prefix, configKeySeparator) + configKeySeparator + key
+		}
 		if err := setConfigValue(ctx, fullKey, value); err != nil {
 			return err
 		}
