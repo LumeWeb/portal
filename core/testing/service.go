@@ -114,6 +114,15 @@ func WithServiceFactory(id string, factory core.ServiceFactory) TestContextBuild
 			return nil, fmt.Errorf("failed to create service '%s': %w", id, err)
 		}
 
+		// Ensure the service instance is a pointer so it can be modified by the wiring function.
+		// If the factory returns a value type, we need to take its address so wiring works.
+		servicePtr := reflect.ValueOf(serviceInstance)
+		if servicePtr.Kind() != reflect.Ptr {
+			servicePtr = reflect.New(servicePtr.Type())
+			servicePtr.Elem().Set(reflect.ValueOf(serviceInstance))
+			serviceInstance = servicePtr.Interface().(core.Service)
+		}
+
 		// Wire up the service's BaseComponent with context, logger, DB, and config
 		startupOpt := core.ContextWithStartupComponent(serviceInstance)
 

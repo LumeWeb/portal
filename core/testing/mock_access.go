@@ -26,40 +26,30 @@ func NewMockAccessService(t TB) *MockAccessService {
 		MockAccessService: mockAccess,
 	}
 
-	// Set up default expectations
+	// Set up default expectations using EXPECT() with Maybe() for optional calls
 	mockAccess.EXPECT().RegisterRoute(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Maybe().
-		Return(nil)
+		Return(nil).
+		Maybe()
 
 	mockAccess.EXPECT().AssignRoleToUser(mock.Anything, mock.Anything, mock.Anything).
-		Maybe().
-		Return(nil)
+		Return(nil).
+		Maybe()
 
 	mockAccess.EXPECT().CheckAccess(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Maybe().
-		Return(true, nil)
+		Return(true, nil).
+		Maybe()
 
 	return access
 }
 
 // CheckAccess implements core.AccessService with automatic mock setup
 func (m *MockAccessService) CheckAccess(ctx context.Context, userId uint, fqdn, path, method string) (bool, error) {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockAccessService.Mock, "CheckAccess", userId, fqdn, path, method) {
-		m.EXPECT().CheckAccess(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(true, nil)
-	}
-
-	return m.MockAccessService.CheckAccess(nil, userId, fqdn, path, method)
+	return m.MockAccessService.CheckAccess(ctx, userId, fqdn, path, method)
 }
 
 // AssignRoleToUser implements core.AccessService with automatic mock setup
 func (m *MockAccessService) AssignRoleToUser(ctx context.Context, userId uint, role string) error {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockAccessService.Mock, "AssignRoleToUser", userId, role) {
-		m.EXPECT().AssignRoleToUser(mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	}
-
-	return m.MockAccessService.AssignRoleToUser(nil, userId, role)
+	return m.MockAccessService.AssignRoleToUser(ctx, userId, role)
 }
 
 // Config implements core.Component

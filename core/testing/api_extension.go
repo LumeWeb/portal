@@ -35,7 +35,7 @@ func NewMockAPIExtension(t TB, targetAPI string) *MockAPIExtension {
 
 	// Setup default expectations
 	mockAPIExtension.MockAPIExtension.EXPECT().TargetAPI().Return(targetAPI).Maybe()
-	mockAPIExtension.MockAPIExtension.EXPECT().Configure(new(router.Router), new(core.AccessService)).Return(nil).Maybe()
+	mockAPIExtension.MockAPIExtension.EXPECT().Configure(mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	return mockAPIExtension
 }

@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const testPassword = "password123"
+
 // TestUserService_CreateAndGet tests creating and retrieving a user
 func TestUserService_CreateAndGet(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
@@ -21,9 +23,8 @@ func TestUserService_CreateAndGet(t *testing.T) {
 		require.NotNil(tb, userSvc)
 
 		email := "test@example.com"
-		password := "password123"
 
-		createdUser, err := userSvc.CreateAccount(context.Background(), email, password, false)
+		createdUser, err := userSvc.CreateAccount(context.Background(), email, testPassword, false)
 		require.NoError(t, err)
 		assert.Equal(t, email, createdUser.Email)
 		assert.NotZero(t, createdUser.ID)
@@ -62,7 +63,7 @@ func TestUserService_Update(t *testing.T) {
 		userSvc := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 		require.NotNil(tb, userSvc)
 
-		testUser, err := userSvc.CreateAccount(context.Background(), "update@example.com", "password123", false)
+		testUser, err := userSvc.CreateAccount(context.Background(), "update@example.com", testPassword, false)
 		require.NoError(t, err)
 
 		updatedEmail := "updated@example.com"
@@ -85,7 +86,7 @@ func TestUserService_Delete(t *testing.T) {
 		userSvc := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 		require.NotNil(tb, userSvc)
 
-		testUser, err := userSvc.CreateAccount(context.Background(), "delete@example.com", "password123", false)
+		testUser, err := userSvc.CreateAccount(context.Background(), "delete@example.com", testPassword, false)
 		require.NoError(t, err)
 
 		err = userSvc.DeleteAccount(context.Background(), testUser.ID)
@@ -107,7 +108,7 @@ func TestUserService_List(t *testing.T) {
 
 		usersToCreate := []string{"list1@example.com", "list2@example.com", "list3@example.com"}
 		for _, email := range usersToCreate {
-			_, err := userSvc.CreateAccount(context.Background(), email, "password123", false)
+			_, err := userSvc.CreateAccount(context.Background(), email, testPassword, false)
 			require.NoError(t, err)
 		}
 
@@ -132,12 +133,13 @@ func BenchmarkUserService(b *testing.B) {
 	ctx, err = coreTesting.ProcessCtxOptions(ctx, coreTesting.WrapCoreOptions(opts)...)
 	require.NoError(b, err)
 
+	ctx.RegisterService(core.USER_SERVICE, realUserSvc)
+
 	err = coreTesting.BootEnvironment(b, ctx)
 	require.NoError(b, err)
 
 	userSvc := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 	require.NotNil(b, userSvc)
-	_ = realUserSvc // unused but kept for clarity
 
 	b.ResetTimer()
 
