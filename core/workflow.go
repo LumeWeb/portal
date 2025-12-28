@@ -16,6 +16,13 @@ import (
 
 const WORKFLOW_SERVICE = "workflow"
 
+// Workflow name constants for common workflows
+const (
+	PinWorkflowName       = "pin"
+	UploadWorkflowName    = "upload"
+	TUSUploadWorkflowName = "tus_upload"
+)
+
 // Predefined errors
 var (
 	ErrWorkflowHasNoSteps = errors.New("workflow has no steps")
@@ -415,4 +422,88 @@ type WorkflowStatus struct {
 	StartedAt     time.Time
 	UpdatedAt     time.Time
 	Message       string
+}
+
+// NewRetryStep creates an OperationStep with RetryStep failure behavior.
+// This is the most common failure behavior for operations that may transiently fail
+// and should be retried with backoff.
+func NewRetryStep(operation string) OperationStep {
+	return OperationStep{
+		Operation:       operation,
+		FailureBehavior: RetryStep,
+		ID:              operation,
+	}
+}
+
+// NewContinueStep creates an OperationStep with ContinueWorkflow failure behavior.
+// Use this for optional operations where failure should not block the workflow.
+func NewContinueStep(operation string) OperationStep {
+	return OperationStep{
+		Operation:       operation,
+		FailureBehavior: ContinueWorkflow,
+		ID:              operation,
+	}
+}
+
+// NewFailStep creates an OperationStep with FailWorkflow failure behavior.
+// Use this for critical operations where any failure should halt the entire workflow.
+func NewFailStep(operation string) OperationStep {
+	return OperationStep{
+		Operation:       operation,
+		FailureBehavior: FailWorkflow,
+		ID:              operation,
+	}
+}
+
+// NewWorkflowDefinition creates a WorkflowDefinition with the given parameters.
+// This is a convenience function for creating workflow definitions.
+func NewWorkflowDefinition(name string, autoTriggerFirstStep bool, steps []OperationStep) WorkflowDefinition {
+	return WorkflowDefinition{
+		Name:                 name,
+		Steps:                steps,
+		AutoTriggerFirstStep: autoTriggerFirstStep,
+	}
+}
+
+// NewPinWorkflow creates a standard pin workflow definition for a protocol.
+// The workflow includes: retrieve, scan, store, and optionally publish steps.
+// Additional steps can be appended by the plugin as needed.
+func NewPinWorkflow(protocol string, includePublish bool) WorkflowDefinition {
+	steps := []OperationStep{
+		NewRetryStep(RetrieveOperationName(protocol)),
+		NewRetryStep(ScanOperationName(protocol)),
+		NewRetryStep(StoreOperationName(protocol)),
+	}
+
+	if includePublish {
+		steps = append(steps, NewContinueStep(PublishOperationName(protocol)))
+	}
+
+	return NewWorkflowDefinition(PinWorkflowName, true, steps)
+}
+
+// NewUploadWorkflow creates a standard upload workflow definition for a protocol.
+// The workflow includes: post-upload step.
+// Additional steps can be appended by the plugin as needed.
+func NewUploadWorkflow(protocol string) WorkflowDefinition {
+	return NewWorkflowDefinition(
+		UploadWorkflowName,
+		true,
+		[]OperationStep{
+			NewRetryStep(PostUploadOperationName(protocol)),
+		},
+	)
+}
+
+// NewTUSUploadWorkflow creates a standard TUS upload workflow definition for a protocol.
+// The workflow includes: TUS upload step.
+// Additional steps can be appended by the plugin as needed.
+func NewTUSUploadWorkflow(protocol string) WorkflowDefinition {
+	return NewWorkflowDefinition(
+		TUSUploadWorkflowName,
+		true,
+		[]OperationStep{
+			NewRetryStep(TUSUploadOperationName(protocol)),
+		},
+	)
 }
