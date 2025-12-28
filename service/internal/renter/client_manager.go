@@ -43,8 +43,8 @@ type ClientManager struct {
 func NewClientManager(ctx core.Context) *ClientManager {
 	/*	etcdKey := ""
 
-		if ctx.Config().Config().Core.ClusterEnabled() && ctx.Config().Config().Core.Clustered.EtcdEnabled() {
-			etcdKey = ctx.Config().Config().Core.Clustered.Etcd.ComputePrefix(ClusterKey)
+		if ctx.GetConfig().GetConfig().Core.ClusterEnabled() && ctx.GetConfig().GetConfig().Core.Clustered.EtcdEnabled() {
+			etcdKey = ctx.GetConfig().GetConfig().Core.Clustered.Etcd.ComputePrefix(ClusterKey)
 		}*/
 
 	return &ClientManager{
@@ -56,11 +56,11 @@ func NewClientManager(ctx core.Context) *ClientManager {
 }
 
 func (cm *ClientManager) Start() error {
-	/*	if !cm.ctx.Config().Config().Core.ClusterEnabled() {
+	/*	if !cm.ctx.GetConfig().GetConfig().Core.ClusterEnabled() {
 			return nil
 		}
 
-		etcdMgr, err := cm.ctx.Config().Config().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
+		etcdMgr, err := cm.ctx.GetConfig().GetConfig().Core.Clustered.Etcd.GetManager(cm.logger.Logger)
 		if err != nil {
 			return fmt.Errorf("failed to create etcd manager: %w", err)
 		}

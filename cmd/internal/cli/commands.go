@@ -112,7 +112,7 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 
 		if !core.IsCoreService(svcInfo.ID) {
 			if configurableSvc, ok := svc.(core.Configurable); ok {
-				cfg, err := configurableSvc.Config()
+				cfg, err := configurableSvc.GetConfig()
 				if err != nil {
 					continue
 				}

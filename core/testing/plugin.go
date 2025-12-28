@@ -390,7 +390,7 @@ func RegisterService(ctx TestContext, id string, factory core.ServiceFactory, pl
 // - Plugin association validation
 // - Actual configuration through the config manager
 func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error {
-	// Detect a Config() provider
+	// Detect a GetConfig() provider
 	type serviceWithConfig interface{ GetConfig() (any, error) }
 	provider, ok := svc.(serviceWithConfig)
 	if !ok {
@@ -420,7 +420,7 @@ func configureService(ctx TestContext, svcInfo core.ServiceInfo, svc any) error 
 	if reflect.ValueOf(cfgResult).Kind() != reflect.Pointer &&
 		reflect.ValueOf(compliantCfg).Kind() == reflect.Pointer &&
 		!reflect.ValueOf(cfgResult).CanAddr() {
-		ctx.Logger().Warn("Config value was not addressable; using pointer to a copy for configuration.",
+		ctx.Logger().Warn("GetConfig value was not addressable; using pointer to a copy for configuration.",
 			zap.String("service", svcInfo.ID))
 	}
 

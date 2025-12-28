@@ -403,7 +403,7 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 	for _, svcInfo := range svcs {
 		if !core.IsCoreService(svcInfo.ID) {
 			if configurableSvc, ok := ctx.Service(svcInfo.ID).(core.Configurable); ok {
-				cfgResult, err := configurableSvc.Config()
+				cfgResult, err := configurableSvc.GetConfig()
 				if err != nil {
 					return err
 				}
@@ -419,7 +419,7 @@ func (p *PortalImpl) configureServices(ctx core.Context) error {
 				}
 
 				if reflect.ValueOf(cfgResult).Kind() != reflect.Pointer && reflect.ValueOf(compliantCfg).Kind() == reflect.Pointer && !reflect.ValueOf(cfgResult).CanAddr() {
-					ctx.Logger().Warn("Config value was not addressable; using pointer to a copy for configuration.", zap.String("service", svcInfo.ID))
+					ctx.Logger().Warn("GetConfig value was not addressable; using pointer to a copy for configuration.", zap.String("service", svcInfo.ID))
 				}
 
 				svcConfig, ok := compliantCfg.(config.ServiceConfig)

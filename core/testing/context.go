@@ -1189,7 +1189,7 @@ func RegisterServices(ctx TestContext) ([]TestContextBuilderOption, error) {
 			return nil, fmt.Errorf("failed to initialize service %s: %w", svcInfo.ID, err)
 		}
 
-		// Use ContextWithStartupComponent to properly wire up the service with BaseComponent, DB, Config, Logger, and Context
+		// Use ContextWithStartupComponent to properly wire up the service with BaseComponent, DB, GetConfig, Logger, and Context
 		startupOpt := core.ContextOptions(core.ContextWithStartupComponent(svc))
 		opts = append(opts, WrapCoreOptions(startupOpt)...)
 

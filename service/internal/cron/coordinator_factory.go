@@ -6,7 +6,7 @@ import (
 )
 
 func NewCoordinatorFromContext(ctx core.Context, cronService core.CronService, registry core.CronJobStateMachineRegistry) (core.CronCoordinator, error) {
-	/*if ctx.Config().ClusterEnabled() {
+	/*if ctx.GetConfig().ClusterEnabled() {
 		return NewClusterCoordinatorFromContext(ctx, cronService)
 	}*/
 	return NewStandaloneCoordinatorFromContext(ctx, cronService, registry)
@@ -14,7 +14,7 @@ func NewCoordinatorFromContext(ctx core.Context, cronService core.CronService, r
 
 /*
 	func NewClusterCoordinatorFromContext(ctx core.Context, cronService core.CronService) (core.CronCoordinator, error) {
-		redisConfig := ctx.Config().Config().Redis
+		redisConfig := ctx.GetConfig().GetConfig().Redis
 
 		// Create Redis connection
 		conn, err := rabbitmq.NewConn(

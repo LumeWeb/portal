@@ -35,12 +35,12 @@ func (_m *MockConfigurable) EXPECT() *MockConfigurable_Expecter {
 	return &MockConfigurable_Expecter{mock: &_m.Mock}
 }
 
-// Config provides a mock function for the type MockConfigurable
-func (_mock *MockConfigurable) Config() (any, error) {
+// GetConfig provides a mock function for the type MockConfigurable
+func (_mock *MockConfigurable) GetConfig() (any, error) {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for Config")
+		panic("no return value specified for GetConfig")
 	}
 
 	var r0 any
@@ -63,29 +63,29 @@ func (_mock *MockConfigurable) Config() (any, error) {
 	return r0, r1
 }
 
-// MockConfigurable_Config_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Config'
-type MockConfigurable_Config_Call struct {
+// MockConfigurable_GetConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetConfig'
+type MockConfigurable_GetConfig_Call struct {
 	*mock.Call
 }
 
-// Config is a helper method to define mock.On call
-func (_e *MockConfigurable_Expecter) Config() *MockConfigurable_Config_Call {
-	return &MockConfigurable_Config_Call{Call: _e.mock.On("Config")}
+// GetConfig is a helper method to define mock.On call
+func (_e *MockConfigurable_Expecter) GetConfig() *MockConfigurable_GetConfig_Call {
+	return &MockConfigurable_GetConfig_Call{Call: _e.mock.On("GetConfig")}
 }
 
-func (_c *MockConfigurable_Config_Call) Run(run func()) *MockConfigurable_Config_Call {
+func (_c *MockConfigurable_GetConfig_Call) Run(run func()) *MockConfigurable_GetConfig_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *MockConfigurable_Config_Call) Return(v any, err error) *MockConfigurable_Config_Call {
+func (_c *MockConfigurable_GetConfig_Call) Return(v any, err error) *MockConfigurable_GetConfig_Call {
 	_c.Call.Return(v, err)
 	return _c
 }
 
-func (_c *MockConfigurable_Config_Call) RunAndReturn(run func() (any, error)) *MockConfigurable_Config_Call {
+func (_c *MockConfigurable_GetConfig_Call) RunAndReturn(run func() (any, error)) *MockConfigurable_GetConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }

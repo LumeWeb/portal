@@ -17,7 +17,7 @@ func NewRedisQueueService(
 	stateUpdater func(ctx context.Context, jobID uuid.UUID, state models.CronJobState) error,
 	heartbeatUpdater func(ctx context.Context, jobID uuid.UUID) error,
 ) (*RedisQueueService, error) {
-	redisConfig := ctx.Config().Config().Redis
+	redisConfig := ctx.GetConfig().GetConfig().Redis
 	conn, err := rmq.OpenConnection("portal", "tcp", fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port), 1, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to redis: %w", err)
