@@ -123,16 +123,11 @@ func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOpt
 		// Register the extension
 		core.RegisterAPIExtension(ext)
 
-		// Process any extension options
-		if len(extOpts) > 0 {
-			wrappedOpts := WrapCoreOptions(extOpts)
-			ctx, err = ProcessCtxOptions(ctx, wrappedOpts...)
-			if err != nil {
-				return ctx, fmt.Errorf("failed to process extension options: %w", err)
-			}
-		}
+		// Add ContextWithStartupComponent for the extension
+		ctxOpts := append([]core.ContextBuilderOption{}, core.ContextOptions(core.ContextWithStartupComponent(ext))...)
+		ctxOpts = append(ctxOpts, extOpts...)
 
-		return ctx, nil
+		return ProcessCtxOptions(ctx, WrapCoreOptions(ctxOpts)...)
 	}
 }
 
@@ -275,8 +270,11 @@ func RegisterAPIExtension(ctx TestContext, factory core.APIExtensionsFactory) (c
 
 			core.RegisterAPIExtension(ext)
 
-			wrappedOpts := WrapCoreOptions(ctxOptions)
-			return ProcessCtxOptions(tctx, wrappedOpts...)
+			// Add ContextWithStartupComponent for the extension
+			opts := append([]core.ContextBuilderOption{}, core.ContextOptions(core.ContextWithStartupComponent(ext))...)
+			opts = append(opts, ctxOptions...)
+
+			return ProcessCtxOptions(tctx, WrapCoreOptions(opts)...)
 		})
 		ctxOpts = append(ctxOpts, apiExtStartup)
 	}
