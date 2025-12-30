@@ -50,28 +50,28 @@ func (d DatabaseConfig) Schema() z.ZogSchema {
 
 		if d.Type == "sqlite" {
 			if d.File == "" {
-				ctx.AddIssue(ctx.Issue().SetPath("File").SetMessage("core.db.file is required for sqlite"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"File"}).SetMessage("core.db.file is required for sqlite"))
 				valid = false
 			}
 		} else if d.Type == "mysql" {
 			if d.Host == "" {
-				ctx.AddIssue(ctx.Issue().SetPath("Host").SetMessage("core.db.host is required for mysql"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"Host"}).SetMessage("core.db.host is required for mysql"))
 				valid = false
 			}
 			if d.Port <= 0 {
-				ctx.AddIssue(ctx.Issue().SetPath("Port").SetMessage("core.db.port must be greater than 0"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"Port"}).SetMessage("core.db.port must be greater than 0"))
 				valid = false
 			}
 			if d.Username == "" {
-				ctx.AddIssue(ctx.Issue().SetPath("Username").SetMessage("core.db.username is required for mysql"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"Username"}).SetMessage("core.db.username is required for mysql"))
 				valid = false
 			}
 			if d.Password == "" {
-				ctx.AddIssue(ctx.Issue().SetPath("Password").SetMessage("core.db.password is required for mysql"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"Password"}).SetMessage("core.db.password is required for mysql"))
 				valid = false
 			}
 			if d.Name == "" {
-				ctx.AddIssue(ctx.Issue().SetPath("Name").SetMessage("core.db.name is required for mysql"))
+				ctx.AddIssue(ctx.Issue().SetPath([]string{"Name"}).SetMessage("core.db.name is required for mysql"))
 				valid = false
 			}
 		}
