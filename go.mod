@@ -13,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.0
 	github.com/aws/smithy-go v1.24.0
 	github.com/casbin/casbin/v2 v2.123.0
+	github.com/casbin/casbin/v3 v3.5.0
 	github.com/casbin/gorm-adapter/v3 v3.39.0
 	github.com/docker/go-units v0.5.0
 	github.com/eventials/go-tus v0.0.0-20250612203642-7827b129cd4c
