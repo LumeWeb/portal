@@ -57,7 +57,7 @@ require (
 	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.4
-	go.lumeweb.com/portal-router v0.6.9
+	go.lumeweb.com/portal-router v0.6.11
 	go.opentelemetry.io/contrib/bridges/otelzap v0.14.0
 	go.opentelemetry.io/otel v1.39.0
 	go.opentelemetry.io/otel/log v0.15.0
