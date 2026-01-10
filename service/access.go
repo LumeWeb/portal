@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/casbin/casbin/v2"
-	"github.com/casbin/casbin/v2/model"
-	_ "github.com/casbin/casbin/v2/rbac/default-role-manager"
+	"github.com/casbin/casbin/v3"
+	"github.com/casbin/casbin/v3/model"
+	_ "github.com/casbin/casbin/v3/rbac/default-role-manager"
 	"github.com/casbin/gorm-adapter/v3"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
