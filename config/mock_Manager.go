@@ -597,6 +597,52 @@ func (_c *MockManager_Delim_Call) RunAndReturn(run func() string) *MockManager_D
 	return _c
 }
 
+// DescriptionManager provides a mock function for the type MockManager
+func (_mock *MockManager) DescriptionManager() configmanager.DescriptionManager {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DescriptionManager")
+	}
+
+	var r0 configmanager.DescriptionManager
+	if returnFunc, ok := ret.Get(0).(func() configmanager.DescriptionManager); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(configmanager.DescriptionManager)
+		}
+	}
+	return r0
+}
+
+// MockManager_DescriptionManager_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DescriptionManager'
+type MockManager_DescriptionManager_Call struct {
+	*mock.Call
+}
+
+// DescriptionManager is a helper method to define mock.On call
+func (_e *MockManager_Expecter) DescriptionManager() *MockManager_DescriptionManager_Call {
+	return &MockManager_DescriptionManager_Call{Call: _e.mock.On("DescriptionManager")}
+}
+
+func (_c *MockManager_DescriptionManager_Call) Run(run func()) *MockManager_DescriptionManager_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_DescriptionManager_Call) Return(descriptionManager configmanager.DescriptionManager) *MockManager_DescriptionManager_Call {
+	_c.Call.Return(descriptionManager)
+	return _c
+}
+
+func (_c *MockManager_DescriptionManager_Call) RunAndReturn(run func() configmanager.DescriptionManager) *MockManager_DescriptionManager_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DisableValidation provides a mock function for the type MockManager
 func (_mock *MockManager) DisableValidation() {
 	_mock.Called()
@@ -960,6 +1006,52 @@ func (_c *MockManager_GetAPI_Call) RunAndReturn(run func(pluginName string) APIC
 	return _c
 }
 
+// GetAllDescriptions provides a mock function for the type MockManager
+func (_mock *MockManager) GetAllDescriptions() map[string]string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllDescriptions")
+	}
+
+	var r0 map[string]string
+	if returnFunc, ok := ret.Get(0).(func() map[string]string); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+	return r0
+}
+
+// MockManager_GetAllDescriptions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllDescriptions'
+type MockManager_GetAllDescriptions_Call struct {
+	*mock.Call
+}
+
+// GetAllDescriptions is a helper method to define mock.On call
+func (_e *MockManager_Expecter) GetAllDescriptions() *MockManager_GetAllDescriptions_Call {
+	return &MockManager_GetAllDescriptions_Call{Call: _e.mock.On("GetAllDescriptions")}
+}
+
+func (_c *MockManager_GetAllDescriptions_Call) Run(run func()) *MockManager_GetAllDescriptions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockManager_GetAllDescriptions_Call) Return(stringToString map[string]string) *MockManager_GetAllDescriptions_Call {
+	_c.Call.Return(stringToString)
+	return _c
+}
+
+func (_c *MockManager_GetAllDescriptions_Call) RunAndReturn(run func() map[string]string) *MockManager_GetAllDescriptions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetBool provides a mock function for the type MockManager
 func (_mock *MockManager) GetBool(key string) (bool, error) {
 	ret := _mock.Called(key)
@@ -1016,6 +1108,110 @@ func (_c *MockManager_GetBool_Call) Return(b bool, err error) *MockManager_GetBo
 }
 
 func (_c *MockManager_GetBool_Call) RunAndReturn(run func(key string) (bool, error)) *MockManager_GetBool_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetDescription provides a mock function for the type MockManager
+func (_mock *MockManager) GetDescription(key string) string {
+	ret := _mock.Called(key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDescription")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func(string) string); ok {
+		r0 = returnFunc(key)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockManager_GetDescription_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDescription'
+type MockManager_GetDescription_Call struct {
+	*mock.Call
+}
+
+// GetDescription is a helper method to define mock.On call
+//   - key string
+func (_e *MockManager_Expecter) GetDescription(key interface{}) *MockManager_GetDescription_Call {
+	return &MockManager_GetDescription_Call{Call: _e.mock.On("GetDescription", key)}
+}
+
+func (_c *MockManager_GetDescription_Call) Run(run func(key string)) *MockManager_GetDescription_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockManager_GetDescription_Call) Return(s string) *MockManager_GetDescription_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockManager_GetDescription_Call) RunAndReturn(run func(key string) string) *MockManager_GetDescription_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetDescriptionsForPrefix provides a mock function for the type MockManager
+func (_mock *MockManager) GetDescriptionsForPrefix(prefix string) map[string]string {
+	ret := _mock.Called(prefix)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDescriptionsForPrefix")
+	}
+
+	var r0 map[string]string
+	if returnFunc, ok := ret.Get(0).(func(string) map[string]string); ok {
+		r0 = returnFunc(prefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+	return r0
+}
+
+// MockManager_GetDescriptionsForPrefix_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDescriptionsForPrefix'
+type MockManager_GetDescriptionsForPrefix_Call struct {
+	*mock.Call
+}
+
+// GetDescriptionsForPrefix is a helper method to define mock.On call
+//   - prefix string
+func (_e *MockManager_Expecter) GetDescriptionsForPrefix(prefix interface{}) *MockManager_GetDescriptionsForPrefix_Call {
+	return &MockManager_GetDescriptionsForPrefix_Call{Call: _e.mock.On("GetDescriptionsForPrefix", prefix)}
+}
+
+func (_c *MockManager_GetDescriptionsForPrefix_Call) Run(run func(prefix string)) *MockManager_GetDescriptionsForPrefix_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockManager_GetDescriptionsForPrefix_Call) Return(stringToString map[string]string) *MockManager_GetDescriptionsForPrefix_Call {
+	_c.Call.Return(stringToString)
+	return _c
+}
+
+func (_c *MockManager_GetDescriptionsForPrefix_Call) RunAndReturn(run func(prefix string) map[string]string) *MockManager_GetDescriptionsForPrefix_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2251,6 +2447,92 @@ func (_c *MockManager_SetAtomic_Call) Return(err error) *MockManager_SetAtomic_C
 
 func (_c *MockManager_SetAtomic_Call) RunAndReturn(run func(ctx context.Context, updates map[string]any) error) *MockManager_SetAtomic_Call {
 	_c.Call.Return(run)
+	return _c
+}
+
+// SetDescription provides a mock function for the type MockManager
+func (_mock *MockManager) SetDescription(key string, description string) {
+	_mock.Called(key, description)
+	return
+}
+
+// MockManager_SetDescription_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDescription'
+type MockManager_SetDescription_Call struct {
+	*mock.Call
+}
+
+// SetDescription is a helper method to define mock.On call
+//   - key string
+//   - description string
+func (_e *MockManager_Expecter) SetDescription(key interface{}, description interface{}) *MockManager_SetDescription_Call {
+	return &MockManager_SetDescription_Call{Call: _e.mock.On("SetDescription", key, description)}
+}
+
+func (_c *MockManager_SetDescription_Call) Run(run func(key string, description string)) *MockManager_SetDescription_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockManager_SetDescription_Call) Return() *MockManager_SetDescription_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockManager_SetDescription_Call) RunAndReturn(run func(key string, description string)) *MockManager_SetDescription_Call {
+	_c.Run(run)
+	return _c
+}
+
+// SetDescriptions provides a mock function for the type MockManager
+func (_mock *MockManager) SetDescriptions(descriptions map[string]string) {
+	_mock.Called(descriptions)
+	return
+}
+
+// MockManager_SetDescriptions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDescriptions'
+type MockManager_SetDescriptions_Call struct {
+	*mock.Call
+}
+
+// SetDescriptions is a helper method to define mock.On call
+//   - descriptions map[string]string
+func (_e *MockManager_Expecter) SetDescriptions(descriptions interface{}) *MockManager_SetDescriptions_Call {
+	return &MockManager_SetDescriptions_Call{Call: _e.mock.On("SetDescriptions", descriptions)}
+}
+
+func (_c *MockManager_SetDescriptions_Call) Run(run func(descriptions map[string]string)) *MockManager_SetDescriptions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 map[string]string
+		if args[0] != nil {
+			arg0 = args[0].(map[string]string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockManager_SetDescriptions_Call) Return() *MockManager_SetDescriptions_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockManager_SetDescriptions_Call) RunAndReturn(run func(descriptions map[string]string)) *MockManager_SetDescriptions_Call {
+	_c.Run(run)
 	return _c
 }
 
