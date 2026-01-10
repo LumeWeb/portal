@@ -5,8 +5,8 @@ import (
 	_ "embed"
 	"os"
 
-	"github.com/casbin/casbin/v2"
-	casbinfsadapter "github.com/naucon/casbin-fs-adapter"
+	"github.com/casbin/casbin/v3"
+	"go.lumeweb.com/portal/service/internal/auth/fsadapter"
 	"go.uber.org/zap"
 )
 
@@ -15,8 +15,8 @@ var casbinData embed.FS
 
 func NewCasbin(logger *zap.Logger) (*casbin.Enforcer, error) {
 	fsys := os.DirFS("casbin")
-	a := casbinfsadapter.NewAdapter(fsys, "policy.csv")
-	m, err := casbinfsadapter.NewModel(fsys, "model.conf")
+	a := fsadapter.NewAdapter(fsys, "policy.csv")
+	m, err := fsadapter.NewModel(fsys, "model.conf")
 
 	if err != nil {
 		return nil, err

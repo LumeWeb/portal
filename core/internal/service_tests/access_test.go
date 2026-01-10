@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
