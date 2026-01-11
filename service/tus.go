@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"time"
 
@@ -491,8 +490,7 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 				if progress > 100 {
 					progress = 100
 				}
-				// Round to 2 decimal places
-				status.ProgressPercent = math.Round(progress*100) / 100
+				status.ProgressPercent = progress
 
 				// Use custom status message for hashing stage
 				status.Message = "Hashing upload..."

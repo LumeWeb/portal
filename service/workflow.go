@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -704,6 +705,8 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 
 			// Calculate progress using centralized helper
 			status.Progress = workflowPkg.CalculateWorkflowStatusProgress(status, reqStatus)
+			// Normalize to 2 decimal places to ensure consistent JSON output for UI clients
+			status.Progress = math.Round(status.Progress*100) / 100
 			currentStepProgress := reqStatus.ProgressPercent / 100.0
 			w.Logger().Debug("Calculated workflow progress",
 				zap.String("workflow", status.WorkflowName),
