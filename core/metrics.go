@@ -42,6 +42,16 @@ func PluginMetricsRegistry(pluginID string) *prometheus.Registry {
 	return pluginRegistries[pluginID]
 }
 
+// ResetMetrics resets all metrics registries for testing purposes
+// This should be called between tests to prevent duplicate registration errors
+func ResetMetrics() {
+	metricsMu.Lock()
+	defer metricsMu.Unlock()
+
+	coreRegistry = prometheus.NewRegistry()
+	pluginRegistries = make(map[string]*prometheus.Registry)
+}
+
 // RegisterCoreCollector registers a collector with the core registry
 func RegisterCoreCollector(collector prometheus.Collector) error {
 	return CoreMetricsRegistry().Register(collector)
