@@ -26,8 +26,9 @@ var _ core.TUSService = (*TUSServiceDefault)(nil)
 
 // TUSHashProgressData represents the hashing progress data stored in workflow metadata
 type TUSHashProgressData struct {
-	BytesHashed int64 `json:"hash_progress_bytes"`
-	TotalBytes  int64 `json:"hash_progress_total"`
+	BytesHashed          int64 `json:"hash_progress_bytes"`
+	TotalBytes           int64 `json:"hash_progress_total"`
+	HashProgressComplete bool  `json:"hash_progress_complete"`
 }
 
 func init() {
@@ -494,8 +495,9 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 				// Round to 2 decimal places
 				status.ProgressPercent = math.Round(progress*100) / 100
 
-				// Use custom status message for hashing stage
-				status.Message = "Hashing upload..."
+				if !progressData.HashProgressComplete {
+					status.Message = "Hashing upload..."
+				}
 			}
 		}
 	}
