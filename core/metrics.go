@@ -250,7 +250,7 @@ func MetricTrackResult[T any](observer prometheus.Observer, errors prometheus.Co
 
 	result, err := f()
 
-	if err != nil {
+	if err != nil && errors != nil {
 		errors.Inc()
 	}
 
