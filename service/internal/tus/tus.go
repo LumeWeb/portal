@@ -594,7 +594,59 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 		// Compute hash if callback is provided (now the request is visible in operations and in a workflow)
 		var computedHash core.StorageHash
 		if hashCallback != nil {
-			computedHash, err = hashCallback(handlr, hook)
+			// Get the upload reader and size for progress tracking
+			protocol, err := handlr.StorageProtocol()
+			if err != nil {
+				errMessage := "Failed to get storage protocol"
+				ctx.Logger().Error(errMessage, zap.Error(err))
+				if failErr := handlr.FailUploadById(ctx, sp, hook.Upload.ID); failErr != nil {
+					ctx.Logger().Error("Failed to fail upload",
+						zap.Error(failErr),
+						zap.String("uploadID", hook.Upload.ID))
+				}
+				return
+			}
+
+			// Resolve effective size and validate
+			size := hook.Upload.Size
+			if size < 0 {
+				size = hook.Upload.Offset
+			}
+			if size < 0 {
+				errMessage := fmt.Sprintf("invalid/unknown upload size for %s: size=%d offset=%d", hook.Upload.ID, hook.Upload.Size, hook.Upload.Offset)
+				ctx.Logger().Error(errMessage)
+				if failErr := handlr.FailUploadById(ctx, sp, hook.Upload.ID); failErr != nil {
+					ctx.Logger().Error("Failed to fail upload",
+						zap.Error(failErr),
+						zap.String("uploadID", hook.Upload.ID))
+				}
+				return
+			}
+
+			// Get the upload reader
+			reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
+			if err != nil {
+				errMessage := fmt.Sprintf("failed to get upload reader for %s: %v", hook.Upload.ID, err)
+				ctx.Logger().Error(errMessage)
+				if failErr := handlr.FailUploadById(ctx, sp, hook.Upload.ID); failErr != nil {
+					ctx.Logger().Error("Failed to fail upload",
+						zap.Error(failErr),
+						zap.String("uploadID", hook.Upload.ID))
+				}
+				return
+			}
+
+			// Wrap reader with progress tracking
+			progressReader := NewHashProgressReader(reader, size, tusReq.RequestID, workflowSvc, ctx.Logger(), 0)
+			defer func() {
+				if err := reader.Close(); err != nil {
+					ctx.Logger().Error("failed to close upload reader", zap.Error(err))
+				}
+				progressReader.Finalize(hook.Context)
+			}()
+
+			// Call hashCallback with the progress reader
+			computedHash, err = hashCallback(handlr, hook, progressReader)
 			if err != nil {
 				errMessage := "Failed to compute hash"
 				ctx.Logger().Error(errMessage, zap.Error(err))

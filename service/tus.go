@@ -23,6 +23,12 @@ import (
 
 var _ core.TUSService = (*TUSServiceDefault)(nil)
 
+// TUSHashProgressData represents the hashing progress data stored in workflow metadata
+type TUSHashProgressData struct {
+	BytesHashed int64 `json:"hash_progress_bytes"`
+	TotalBytes  int64 `json:"hash_progress_total"`
+}
+
 func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.TUS_SERVICE,
@@ -475,8 +481,21 @@ func (h *TUSOperationHandler) GetStatus(ctx context.Context, req *models.Request
 	if req.Status == models.RequestStatusCompleted || tusReq.Completed {
 		status.ProgressPercent = 100
 	} else if req.Status == models.RequestStatusProcessing {
-		// For processing, we don't have detailed progress info from TUS
-		status.ProgressPercent = 50
+		// Try to get progress from workflow data
+		var progressData TUSHashProgressData
+		if err := h.StructuredWorkflowData(req.ID, &progressData); err == nil {
+			// Calculate progress from bytes/total
+			if progressData.TotalBytes > 0 && progressData.BytesHashed > 0 {
+				progress := float64(progressData.BytesHashed) / float64(progressData.TotalBytes) * 100
+				if progress > 100 {
+					progress = 100
+				}
+				status.ProgressPercent = progress
+
+				// Use custom status message for hashing stage
+				status.Message = "Hashing upload..."
+			}
+		}
 	}
 
 	return &status, nil
