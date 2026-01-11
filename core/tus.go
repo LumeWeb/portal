@@ -68,7 +68,8 @@ type TUSUploadCreatedVerifyFunc func(hook handler.HookEvent, uploaderId uint) (S
 type TUSUploadCreatedAfterFunc func(requestId uint) error
 
 // TUSUploadCompletedHashFunc defines a callback that computes and returns the multihash for a completed upload
-type TUSUploadCompletedHashFunc func(handlr TusHandler, hook handler.HookEvent) (StorageHash, error)
+// The reader parameter is provided for the callback to read data from. The callback should not create its own reader.
+type TUSUploadCompletedHashFunc func(handlr TusHandler, hook handler.HookEvent, reader io.Reader) (StorageHash, error)
 
 // TUSPreFinishResponseCallback defines a callback that runs before finishing an upload
 // Can modify the HTTP response before it's sent to the client
