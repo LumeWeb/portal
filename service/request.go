@@ -799,14 +799,7 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		UpdatedAt: req.UpdatedAt,
 	}
 
-	// Set default message based on status if not provided
-	if req.StatusMessage == "" {
-		status.Message = core.GetDefaultStatusMessage(req.Status)
-	} else {
-		status.Message = req.StatusMessage
-	}
-
-	// Get progress percentage
+	// Get progress percentage and detailed status from handler
 	var computedStatus *core.RequestStatus
 	if withDeleted {
 		computedStatus, err = r.ComputeRequestStatusWithDeleted(ctx, id, true)
@@ -815,6 +808,19 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 	}
 	if err == nil {
 		status.ProgressPercent = computedStatus.ProgressPercent
+		// Use message from handler if provided, otherwise fall back to request status message
+		if computedStatus.Message != "" {
+			status.Message = computedStatus.Message
+		}
+	}
+
+	// Set default message based on status if not yet set
+	if status.Message == "" {
+		if req.StatusMessage == "" {
+			status.Message = core.GetDefaultStatusMessage(req.Status)
+		} else {
+			status.Message = req.StatusMessage
+		}
 	}
 
 	return status, nil
