@@ -551,39 +551,13 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			return
 		}
 
-		// Compute hash if callback is provided
-		var computedHash core.StorageHash
-		if hashCallback != nil {
-			computedHash, err = hashCallback(handlr, hook)
-			if err != nil {
-				errMessage := "Failed to compute hash"
-				handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
-				ctx.Logger().Error(errMessage, zap.Error(err))
-				return
-			}
-
-			// Update the request with the computed hash using TUS service
-			if computedHash != nil {
-				err = handlr.SetHashById(ctx, hook.Upload.ID, computedHash)
-				if err != nil {
-					errMessage := "Failed to update request with computed hash"
-					handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
-					ctx.Logger().Error(errMessage, zap.Error(err))
-					return
-				}
-			}
-		}
-
+		// Set status to processing first so the request appears in operations
 		err = core.GetService[core.TUSService](ctx, core.TUS_SERVICE).UploadProcessing(ctx, sp, hook.Upload.ID)
 		if err != nil {
 			errMessage := "Failed to update upload status"
 			handlr.HandleEventResponseError(errMessage, http.StatusInternalServerError, hook)
 			ctx.Logger().Error(errMessage, zap.Error(err))
 			return
-		}
-
-		if processHandler != nil {
-			processHandler(handlr, hook)
 		}
 
 		// Get services for workflow processing
@@ -604,7 +578,7 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			return
 		}
 
-		// Convert and execute workflow
+		// Convert to workflow before hashing so we can use workflow failure handling
 		err = workflowSvc.ConvertRequestToWorkflow(ctx, tusReq.RequestID, workflowName, 0)
 		if err != nil {
 			ctx.Logger().Error("Failed to convert request to workflow", zap.Error(err))
@@ -615,6 +589,45 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 					zap.Uint("requestID", tusReq.RequestID))
 			}
 			return
+		}
+
+		// Compute hash if callback is provided (now the request is visible in operations and in a workflow)
+		var computedHash core.StorageHash
+		if hashCallback != nil {
+			computedHash, err = hashCallback(handlr, hook)
+			if err != nil {
+				errMessage := "Failed to compute hash"
+				ctx.Logger().Error(errMessage, zap.Error(err))
+
+				// Fail the upload since hashing failed - this cleans up the uploaded files from S3 buffer bucket
+				if failErr := handlr.FailUploadById(ctx, sp, hook.Upload.ID); failErr != nil {
+					ctx.Logger().Error("Failed to fail upload",
+						zap.Error(failErr),
+						zap.String("uploadID", hook.Upload.ID))
+				}
+				return
+			}
+
+			// Update the request with the computed hash using TUS service
+			if computedHash != nil {
+				err = handlr.SetHashById(ctx, hook.Upload.ID, computedHash)
+				if err != nil {
+					errMessage := "Failed to update request with computed hash"
+					ctx.Logger().Error(errMessage, zap.Error(err))
+
+					// Fail the upload since hash update failed - this cleans up the uploaded files from S3 buffer bucket
+					if failErr := handlr.FailUploadById(ctx, sp, hook.Upload.ID); failErr != nil {
+						ctx.Logger().Error("Failed to fail upload",
+							zap.Error(failErr),
+							zap.String("uploadID", hook.Upload.ID))
+					}
+					return
+				}
+			}
+		}
+
+		if processHandler != nil {
+			processHandler(handlr, hook)
 		}
 
 		// Dispatch the first workflow step using the public interface
