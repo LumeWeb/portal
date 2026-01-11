@@ -2,7 +2,6 @@ package tus
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync"
 
@@ -86,11 +85,6 @@ func (h *HashProgressReader) Read(p []byte) (n int, err error) {
 func (h *HashProgressReader) updateProgress(ctx context.Context) {
 	if h.workflowSvc == nil || h.requestID == 0 {
 		return
-	}
-
-	progressPercent := float64(0)
-	if h.totalBytes > 0 {
-		progressPercent = float64(h.bytesRead) / float64(h.totalBytes) * 100
 	}
 
 	data := map[string]any{
