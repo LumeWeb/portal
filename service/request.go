@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -807,7 +808,8 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		computedStatus, err = r.ComputeRequestStatus(ctx, id, true)
 	}
 	if err == nil {
-		status.ProgressPercent = computedStatus.ProgressPercent
+		// Normalize to 2 decimal places to ensure consistent JSON output for UI clients
+		status.ProgressPercent = math.Round(computedStatus.ProgressPercent*100) / 100
 		// Use message from handler if provided, otherwise fall back to request status message
 		if computedStatus.Message != "" {
 			status.Message = computedStatus.Message
