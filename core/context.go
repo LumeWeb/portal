@@ -652,6 +652,7 @@ func ResetState() {
 	ResetServices()
 	ResetHashAlgorithms()
 	ResetErrorRegistry()
+	ResetMetrics()
 
 	// Reset plugins
 	pluginsMu.Lock()
