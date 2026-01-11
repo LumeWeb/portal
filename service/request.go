@@ -109,7 +109,12 @@ func NewRequestService() (core.Service, []core.ContextBuilderOption, error) {
 		models: make(map[string]data_models.RequestDataModel),
 	}
 
-	return req, nil, nil
+	return req, core.ContextOptions(
+		core.ContextWithStartupFunc(func(ctx core.Context) error {
+			req.ops = NewOperationFinder(ctx)
+			return nil
+		}),
+	), nil
 }
 
 func (r *RequestServiceDefault) ID() string {
