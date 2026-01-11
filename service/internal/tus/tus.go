@@ -624,7 +624,10 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			}
 
 			// Get the upload reader
-			reader, err := handlr.UploadReader(hook.Context, hook.Upload.ID, protocol, 0)
+			// IMPORTANT: Use the service context (ctx) instead of hook.Context
+			// because hook.Context is the HTTP request context which is canceled after
+			// the upload completes, and this handler runs in a goroutine after completion.
+			reader, err := handlr.UploadReader(ctx, hook.Upload.ID, protocol, 0)
 			if err != nil {
 				errMessage := fmt.Sprintf("failed to get upload reader for %s: %v", hook.Upload.ID, err)
 				ctx.Logger().Error(errMessage)
@@ -642,7 +645,7 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 				if err := reader.Close(); err != nil {
 					ctx.Logger().Error("failed to close upload reader", zap.Error(err))
 				}
-				progressReader.Finalize(hook.Context)
+				progressReader.Finalize(ctx)
 			}()
 
 			// Call hashCallback with the progress reader
