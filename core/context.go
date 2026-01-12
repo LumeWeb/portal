@@ -662,3 +662,11 @@ func ResetState() {
 	pluginsOrderedMu.Unlock()
 	pluginsMu.Unlock()
 }
+
+// DetachContext creates a new context that inherits the trace context from the input
+// but is not canceled when the input context is canceled.
+// This is useful for starting long-running workflows that should outlive HTTP requests
+// or other short-lived contexts while preserving OpenTelemetry tracing.
+func DetachContext(ctx context.Context) context.Context {
+	return context.WithoutCancel(ctx)
+}
