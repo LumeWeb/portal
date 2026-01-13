@@ -31,7 +31,7 @@ func (u *UUID) UnmarshalYAML(value *yaml.Node) error {
 
 }
 
-func (u *UUID) DecodeMapstructure(value interface{}) error {
+func (u *UUID) UnmarshalMapstructure(value interface{}) error {
 	switch v := value.(type) {
 	case string:
 		id, err := uuid.Parse(v)
