@@ -23,7 +23,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.19.0
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/go-viper/mapstructure/v2 v2.4.0
+	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/ipfs/go-cid v0.6.0
@@ -50,7 +50,7 @@ require (
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/wneessen/go-mail v0.7.2
 	go.etcd.io/etcd/client/v3 v3.6.7
-	go.lumeweb.com/configmanager v0.3.23
+	go.lumeweb.com/configmanager v0.3.24
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.4
@@ -67,8 +67,8 @@ require (
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
 	go.uber.org/zap/exp v0.3.0
-	golang.org/x/crypto v0.46.0
-	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
+	golang.org/x/crypto v0.47.0
+	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/mysql v1.6.0
@@ -227,14 +227,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
-	golang.org/x/tools v0.40.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251222181119-0a764e51fe1b // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260112192933-99fd39fd28a9 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260112192933-99fd39fd28a9 // indirect
 	gorm.io/driver/clickhouse v0.7.0 // indirect
 	lukechampine.com/frand v1.5.1 // indirect
 )
-
-replace github.com/go-viper/mapstructure/v2 => github.com/LumeWeb/mapstructure/v2 v2.0.0-20241213212524-92525f5828be

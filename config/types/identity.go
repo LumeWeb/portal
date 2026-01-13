@@ -61,7 +61,7 @@ func (i Identity) MarshalYAML() (interface{}, error) {
 	return i.seed, nil
 }
 
-func (i *Identity) DecodeMapstructure(value interface{}) error {
+func (i *Identity) UnmarshalMapstructure(value interface{}) error {
 	if _, ok := value.(string); !ok {
 		return errors.New("identity must be a string")
 	}
