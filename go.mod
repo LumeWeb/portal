@@ -47,7 +47,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tus/tusd/v2 v2.8.0
 	github.com/uptrace/uptrace-go v1.39.0
-	github.com/urfave/cli/v3 v3.6.1
+	github.com/urfave/cli/v3 v3.6.2
 	github.com/wneessen/go-mail v0.7.2
 	go.etcd.io/etcd/client/v3 v3.6.7
 	go.lumeweb.com/configmanager v0.3.24
