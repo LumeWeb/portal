@@ -811,7 +811,10 @@ func (r *RequestServiceDefault) GetRequestStatus(ctx context.Context, id uint, w
 		// Normalize to 2 decimal places to ensure consistent JSON output for UI clients
 		status.ProgressPercent = math.Round(computedStatus.ProgressPercent*100) / 100
 		// Use state from handler if provided (may be different from req.Status due to progress tracking)
-		status.State = computedStatus.State
+		// Only apply handler-provided state if it's non-empty to preserve terminal states
+		if computedStatus.State != "" {
+			status.State = computedStatus.State
+		}
 		// Use message from handler if provided, otherwise fall back to request status message
 		if computedStatus.Message != "" {
 			status.Message = computedStatus.Message

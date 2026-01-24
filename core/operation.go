@@ -592,8 +592,9 @@ func (h *OperationHelperDefault) GetStatusFromWorkflowData(requestID uint, req *
 			status.Message = h.getOperationAwareMessage(req.Status, req.Operation)
 		}
 
-		// If progress is > 0, the operation is definitely processing regardless of req.Status
-		if progress.ProgressPercent > 0 {
+		// If progress is > 0, the operation is definitely processing
+		// Preserve terminal states (Failed/Completed) regardless of progress
+		if progress.ProgressPercent > 0 && status.State != models.RequestStatusCompleted && status.State != models.RequestStatusFailed {
 			status.State = models.RequestStatusProcessing
 		}
 	} else {
