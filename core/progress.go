@@ -268,7 +268,8 @@ func (t *ProgressTracker) CompleteWorkUnit(unitIndex int) error {
 	
 	// Calculate progress
 	t.currentProgress = float64(t.completedUnits) / float64(t.config.TotalWorkUnits) * 100
-	t.currentStep = t.workUnits[unitIndex].Name
+	// Don't set currentStep to work unit name - use overall message instead
+	// This prevents "unit_X" from appearing in status messages
 	t.stepProgress = 100
 	
 	return t.persistProgress()
@@ -442,18 +443,24 @@ func (t *ProgressTracker) getStepDescription(stepName string) string {
 
 // persistProgress saves the progress to workflow data and notifies callbacks
 func (t *ProgressTracker) persistProgress() error {
+	// In WorkUnits mode, don't use step-specific messages to avoid "unit_X" in status
+	stepName := t.currentStep
+	if t.config.Mode == ProgressModeWorkUnits {
+		stepName = ""
+	}
+
 	// Create progress update
 	update := ProgressUpdate{
 		ProgressPercent: t.currentProgress,
-		StepName:        t.currentStep,
+		StepName:        stepName,
 		StepProgress:    t.stepProgress,
 		UpdatedAt:       time.Now(),
 	}
 	
 	// Generate messages
-	if t.currentStep != "" {
+	if stepName != "" {
 		// Try to get step description for better messaging
-		stepDescription := t.getStepDescription(t.currentStep)
+		stepDescription := t.getStepDescription(stepName)
 		update.Message = t.config.MessageProvider.GetStepMessage(stepDescription, t.stepProgress)
 	} else {
 		update.Message = t.config.MessageProvider.GetOverallMessage(t.currentProgress)
@@ -462,7 +469,7 @@ func (t *ProgressTracker) persistProgress() error {
 	// Persist to workflow data
 	progressData := map[string]any{
 		"progress_percent": t.currentProgress,
-		"step_name":        t.currentStep,
+		"step_name":        stepName,
 		"step_progress":    t.stepProgress,
 		"message":          update.Message,
 		"updated_at":       update.UpdatedAt,
