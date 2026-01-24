@@ -1,10 +1,10 @@
 package core_tests
 
 import (
-	"go.lumeweb.com/portal/core"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.lumeweb.com/portal/core"
 )
 
 func TestFormatOperationName(t *testing.T) {
@@ -138,11 +138,11 @@ func TestOperationNameHelpers(t *testing.T) {
 
 func TestPrefixedOperationName(t *testing.T) {
 	tests := []struct {
-		name      string
-		protocol  string
-		prefix    string
-		opType    core.OperationType
-		expected  string
+		name     string
+		protocol string
+		prefix   string
+		opType   core.OperationType
+		expected string
 	}{
 		{
 			name:     "tus upload",
