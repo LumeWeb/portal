@@ -393,29 +393,34 @@ func TestProgressTrackerWeightedMode(t *testing.T) {
 		tracker, err := core.NewProgressTracker(config)
 		require.NoError(t, err)
 
-		// Set step1 to 100% - should be 100% (all steps assumed complete)
-		// Note: In the current implementation, non-current steps without sub-trackers
-		// are assumed to be complete, so setting any step to 100% results in 100% overall
+		// Set step1 to 100% with weights [1.0, 2.0, 1.0]
+		// With the fix: step1=100% (current, cached), step2=0% (not set), step3=0% (not set)
+		// Total weight = 4.0, completed = 1.0*1.0 + 2.0*0 + 1.0*0 = 1.0
+		// Progress = 1.0/4.0 = 25%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = tracker.SetStepProgress("step1", 100.0)
 		require.NoError(t, err)
-		assert.InDelta(t, 100.0, tracker.GetProgress(), 0.01)
+		assert.InDelta(t, 25.0, tracker.GetProgress(), 0.01)
 
-		// Set step2 to 50% - should be 75% overall (step1=100%, step2=50%, step3=100%)
+		// Set step2 to 50%: step1=100% (cached), step2=50% (current), step3=0%
+		// Total weight = 4.0, completed = 1.0*1.0 + 2.0*0.5 + 1.0*0 = 2.0
+		// Progress = 2.0/4.0 = 50%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = tracker.SetStepProgress("step2", 50.0)
 		require.NoError(t, err)
+		assert.InDelta(t, 50.0, tracker.GetProgress(), 0.01)
+
+		// Set step3 to 100%: step1=100% (cached), step2=50% (cached), step3=100% (current)
+		// Total weight = 4.0, completed = 1.0*1.0 + 2.0*0.5 + 1.0*1.0 = 3.0
+		// Progress = 3.0/4.0 = 75%
+		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
+		err = tracker.SetStepProgress("step3", 100.0)
+		require.NoError(t, err)
 		assert.InDelta(t, 75.0, tracker.GetProgress(), 0.01)
 
-		// Set step3 to 50% - should be 87.5% overall (step1=100%, step2=100%, step3=50%)
-		// Note: Non-current steps are assumed complete, so step2 is NOT remembered as 50%
-		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
-		err = tracker.SetStepProgress("step3", 50.0)
-		require.NoError(t, err)
-		assert.InDelta(t, 87.5, tracker.GetProgress(), 0.01)
-
-		// Set step2 to 100% - should be 100% overall (step1=100%, step2=100%, step3=100%)
-		// Note: step3 is NOT remembered as 50%
+		// Set step2 to 100%: step1=100% (cached), step2=100% (current), step3=100% (cached)
+		// Total weight = 4.0, completed = 1.0*1.0 + 2.0*1.0 + 1.0*1.0 = 4.0
+		// Progress = 4.0/4.0 = 100%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = tracker.SetStepProgress("step2", 100.0)
 		require.NoError(t, err)
@@ -810,15 +815,16 @@ func TestCreateSubTracker(t *testing.T) {
 
 		// Verify the sub-tracker can set step progress
 		// Setting sub_step1 to 100% with weights [1.0, 2.0]:
-		// Current implementation assumes non-current steps without sub-trackers are complete
-		// So: step1=100% (current), step2=100% (assumed complete) = 100% overall
+		// With the fix: step1=100% (current, cached), step2=0% (not set yet)
+		// Total weight = 3.0, completed = 1.0*1.0 + 2.0*0 = 1.0
+		// Progress = 1.0/3.0 = 33.33%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = subTracker.SetStepProgress("sub_step1", 100.0)
 		require.NoError(t, err)
-		assert.InDelta(t, 100.0, subTracker.GetProgress(), 0.01)
+		assert.InDelta(t, 33.33, subTracker.GetProgress(), 0.01)
 
 		// Setting sub_step2 to 50% with weights [1.0, 2.0]:
-		// Current implementation: step1=100% (assumed complete), step2=50% (current)
+		// With the fix: step1=100% (cached), step2=50% (current)
 		// Total weight = 3.0, completed = 1.0*1.0 + 2.0*0.5 = 2.0
 		// Progress = 2.0/3.0 = 66.67%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
@@ -1016,7 +1022,9 @@ func TestParentTrackerWithSubTrackers(t *testing.T) {
 		err = subTracker.SetProgress(50.0)
 		require.NoError(t, err)
 
-		// Refresh parent - should be (0.5 * 1.0 + 1.0 * 2.0) / 3.0 = 83.33%
+		// Refresh parent - step1=50% (sub-tracker), step2=100% (assumed complete without sub-tracker)
+		// Total weight = 3.0, completed = 1.0*0.5 + 2.0*1.0 = 2.5
+		// Progress = 2.5/3.0 = 83.33%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = tracker.RefreshFromSubTrackers()
 		require.NoError(t, err)
@@ -1069,7 +1077,9 @@ func TestParentTrackerWithSubTrackers(t *testing.T) {
 		err = subTracker.CompleteWorkUnit(4)
 		require.NoError(t, err)
 
-		// Refresh parent - should be (0.5 * 1.0 + 1.0 * 1.0) / 2.0 = 75%
+		// Refresh parent - step1=50% (sub-tracker), step2=100% (assumed complete without sub-tracker)
+		// Total weight = 2.0, completed = 1.0*0.5 + 1.0*1.0 = 1.5
+		// Progress = 1.5/2.0 = 75%
 		mockWorkflowService.EXPECT().UpdateWorkflowData(mock.Anything, mock.AnythingOfType("uint"), mock.Anything).Return(nil)
 		err = tracker.RefreshFromSubTrackers()
 		require.NoError(t, err)

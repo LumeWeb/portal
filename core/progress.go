@@ -120,6 +120,7 @@ type ProgressStep struct {
 	Description string            `json:"description"` // Human-readable description of this step
 	Weight      float64           `json:"weight"`      // Relative weight of this step in overall progress
 	SubTracker  *ProgressTracker  `json:"-"`           // Nested tracker for this step
+	progress    float64           `json:"-"`           // Cached progress for this step (0-100)
 }
 
 // ProgressTrackerConfig configures a ProgressTracker
@@ -298,13 +299,14 @@ func (t *ProgressTracker) SetStepProgress(stepName string, stepProgress float64)
 			found = true
 			t.currentStep = stepName
 			t.stepProgress = stepProgress
+			step.progress = stepProgress
 			completedWeight += step.Weight * (stepProgress / 100)
 		} else if step.SubTracker != nil {
 			// If this step has a sub-tracker, use its progress
 			completedWeight += step.Weight * (step.SubTracker.GetProgress() / 100)
 		} else {
-			// Assume step is complete if it has no sub-tracker and we've moved past it
-			completedWeight += step.Weight
+			// Use cached progress for steps without sub-trackers
+			completedWeight += step.Weight * (step.progress / 100)
 		}
 	}
 	
@@ -379,7 +381,7 @@ func (t *ProgressTracker) RefreshFromSubTrackers() error {
 			// Use sub-tracker progress
 			completedWeight += step.Weight * (step.SubTracker.GetProgress() / 100)
 		} else {
-			// Assume step is complete if it has no sub-tracker
+			// Assume step is complete if it has no sub-tracker when refreshing
 			completedWeight += step.Weight
 		}
 	}
@@ -556,12 +558,13 @@ func (h *ProgressTrackerHelper) RunStep(stepName string, progress float64, fn fu
 }
 
 // NewProgressTrackerFromHelper creates a progress tracker from an OperationHelper
-func NewProgressTrackerFromHelper(helper OperationHelper, mode ProgressMode, configFunc func(*ProgressTrackerConfig)) (*ProgressTracker, error) {
+// The requestID parameter is required and must be non-zero
+func NewProgressTrackerFromHelper(helper OperationHelper, requestID uint, mode ProgressMode, configFunc func(*ProgressTrackerConfig)) (*ProgressTracker, error) {
 	cfg := ProgressTrackerConfig{
-		Mode:           mode,
-		RequestID:      0, // Will be set in Execute method
+		Mode:            mode,
+		RequestID:       requestID,
 		WorkflowService: GetService[WorkflowService](helper.Context(), WORKFLOW_SERVICE),
-		Logger:         helper.Logger(),
+		Logger:          helper.Logger(),
 	}
 	
 	if configFunc != nil {

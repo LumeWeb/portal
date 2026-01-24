@@ -526,7 +526,9 @@ func NewMessageProviderForOperation(operation string, useSimpleProvider bool) Pr
 		name := parts[len(parts)-1]
 		// Convert underscore to space and capitalize
 		displayName := strings.ReplaceAll(name, "_", " ")
-		displayName = strings.ToUpper(displayName[:1]) + displayName[1:]
+		if len(displayName) > 0 {
+			displayName = strings.ToUpper(displayName[:1]) + displayName[1:]
+		}
 
 		if useSimpleProvider {
 			return NewSimpleProgressMessageProvider(displayName)
