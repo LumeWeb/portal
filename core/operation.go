@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
@@ -100,11 +101,16 @@ var (
 	OpTypeScan   OperationType = "scan"   // Scan/validate content
 )
 
+// Progress message provider fallback constants
+const (
+	progressProviderFallbackOperation = "operation"
+)
+
 type Operation interface {
 	Type() string              // Specific operation name (e.g., "ipfs.pin" or "ipfs.pin.car")
 	GlobalType() OperationType // Optional global type mapping (e.g., OpTypePin) or empty for custom ops
 	Handler() OperationHandler // The handler implementation
-	Name() string             // Custom name for the operation
+	Name() string              // Custom name for the operation
 }
 
 // OperationDisplay provides human-readable display information for operations
@@ -187,11 +193,11 @@ func formatOperationName(parts ...string) string {
 	filteredParts := lo.Filter(parts, func(part string, _ int) bool {
 		return part != ""
 	})
-	
+
 	if len(filteredParts) == 0 {
 		return ""
 	}
-	
+
 	return strings.Join(filteredParts, ".")
 }
 
@@ -302,6 +308,23 @@ type OperationHelper interface {
 	Logger() *Logger
 	// StartWorkflow starts a new workflow with the given name and options
 	StartWorkflow(name string, opts ...WorkflowOption) (*models.Request, error)
+
+	// NewProgressTracker creates a progress tracker for this operation
+	NewProgressTracker(requestID uint, mode ProgressMode, configFunc func(*ProgressTrackerConfig)) (*ProgressTracker, error)
+
+	// GetProgressFromWorkflowData retrieves progress from workflow data
+	GetProgressFromWorkflowData(requestID uint) (*ProgressUpdate, error)
+
+	// GetStatusFromWorkflowData retrieves status from workflow data, using progress tracker data if available
+	GetStatusFromWorkflowData(requestID uint, req *models.Request) (*RequestStatus, error)
+
+	// NewDefaultProgressMessageProvider creates a message provider using the operation's display name
+	// It automatically fetches the display name from core's OperationTypeDisplayNames mapping
+	NewDefaultProgressMessageProvider(operationType OperationType) *DefaultProgressMessageProvider
+
+	// NewSimpleProgressMessageProvider creates a simple message provider using the operation's display name
+	// It automatically fetches the display name from core's OperationTypeDisplayNames mapping
+	NewSimpleProgressMessageProvider(operationType OperationType) *SimpleProgressMessageProvider
 }
 
 // OperationHelperDefault is the default implementation of OperationHelper
@@ -439,4 +462,226 @@ func GetOperationDisplayName(op Operation) string {
 // StartWorkflow starts a new workflow with the given name and options
 func (h *OperationHelperDefault) StartWorkflow(name string, opts ...WorkflowOption) (*models.Request, error) {
 	return h.workflow.StartWorkflow(h.ctx, name, opts...)
+}
+
+// NewProgressTracker creates a progress tracker for this operation
+func (h *OperationHelperDefault) NewProgressTracker(requestID uint, mode ProgressMode, configFunc func(*ProgressTrackerConfig)) (*ProgressTracker, error) {
+	cfg := ProgressTrackerConfig{
+		Mode:            mode,
+		RequestID:       requestID,
+		WorkflowService: h.workflow,
+		Logger:          h.Logger(),
+	}
+
+	if configFunc != nil {
+		configFunc(&cfg)
+	}
+
+	return NewProgressTracker(cfg)
+}
+
+// NewDefaultProgressMessageProvider creates a message provider using the operation's display name
+// It automatically fetches the display name from core's OperationTypeDisplayNames mapping
+func (h *OperationHelperDefault) NewDefaultProgressMessageProvider(operationType OperationType) *DefaultProgressMessageProvider {
+	operationName := string(operationType)
+
+	// Try to get display name from mappings
+	if info, exists := OperationTypeDisplayNames[operationType]; exists {
+		return NewDefaultProgressMessageProvider(info.Name)
+	}
+
+	// Fallback to operation type string
+	return NewDefaultProgressMessageProvider(operationName)
+}
+
+// NewSimpleProgressMessageProvider creates a simple message provider using the operation's display name
+// It automatically fetches the display name from core's OperationTypeDisplayNames mapping
+func (h *OperationHelperDefault) NewSimpleProgressMessageProvider(operationType OperationType) *SimpleProgressMessageProvider {
+	operationName := string(operationType)
+
+	// Try to get display name from mappings
+	if info, exists := OperationTypeDisplayNames[operationType]; exists {
+		return NewSimpleProgressMessageProvider(info.Name)
+	}
+
+	// Fallback to operation type string
+	return NewSimpleProgressMessageProvider(operationName)
+}
+
+// NewMessageProviderForOperation creates a message provider using the full operation string
+// It extracts the operation type and looks up the display name from OperationTypeDisplayNames
+// For example: "lbry.retrieve" → "Retrieve", "ipfs.upload" → "Upload"
+func NewMessageProviderForOperation(operation string, useSimpleProvider bool) ProgressMessageProvider {
+	// Try to get operation display info
+	if info, exists := getOperationDisplayInfo(operation); exists {
+		if useSimpleProvider {
+			return NewSimpleProgressMessageProvider(info.Name)
+		}
+		return NewDefaultProgressMessageProvider(info.Name)
+	}
+
+	// Fallback: extract last part of operation name and format it
+	parts := strings.Split(operation, ".")
+	if len(parts) > 0 {
+		name := parts[len(parts)-1]
+		// Convert underscore to space and capitalize
+		displayName := strings.ReplaceAll(name, "_", " ")
+		if len(displayName) > 0 {
+			displayName = strings.ToUpper(displayName[:1]) + displayName[1:]
+		}
+
+		if useSimpleProvider {
+			return NewSimpleProgressMessageProvider(displayName)
+		}
+		return NewDefaultProgressMessageProvider(displayName)
+	}
+
+	// Ultimate fallback
+	if useSimpleProvider {
+		return NewSimpleProgressMessageProvider(ucFirst(progressProviderFallbackOperation))
+	}
+	return NewDefaultProgressMessageProvider(ucFirst(progressProviderFallbackOperation))
+}
+
+// GetProgressFromWorkflowData retrieves progress from workflow data
+func (h *OperationHelperDefault) GetProgressFromWorkflowData(requestID uint) (*ProgressUpdate, error) {
+	k, err := h.WorkflowData(requestID)
+	if err != nil {
+		return nil, err
+	}
+
+	update := &ProgressUpdate{
+		ProgressPercent: k.Float64("progress_percent"),
+		StepName:        k.String("step_name"),
+		StepProgress:    k.Float64("step_progress"),
+		Message:         k.String("message"),
+	}
+
+	if updatedAtStr := k.String("updated_at"); updatedAtStr != "" {
+		updatedAt, err := time.Parse(time.RFC3339, updatedAtStr)
+		if err == nil {
+			update.UpdatedAt = updatedAt
+		}
+	} else {
+		update.UpdatedAt = time.Now()
+	}
+
+	return update, nil
+}
+
+// GetStatusFromWorkflowData retrieves status from workflow data, using progress tracker data if available
+func (h *OperationHelperDefault) GetStatusFromWorkflowData(requestID uint, req *models.Request) (*RequestStatus, error) {
+	status := &RequestStatus{
+		State:     req.Status,
+		UpdatedAt: time.Now(),
+	}
+
+	// Try to get progress from workflow data
+	progress, err := h.GetProgressFromWorkflowData(requestID)
+	if err == nil {
+		// Use progress data if available (even if 0%)
+		status.ProgressPercent = progress.ProgressPercent
+		status.UpdatedAt = progress.UpdatedAt
+
+		// Use progress message from tracker if available
+		// This preserves step-specific messages like "Storing SD blob locally"
+		if progress.Message != "" {
+			status.Message = progress.Message
+		} else {
+			// Fall back to operation-aware message
+			status.Message = h.getOperationAwareMessage(req.Status, req.Operation)
+		}
+	} else {
+		// Fall back to operation-aware status messages
+		status.Message = h.getOperationAwareMessage(req.Status, req.Operation)
+
+		// Set default progress based on status
+		switch req.Status {
+		case models.RequestStatusPending:
+			status.ProgressPercent = 0
+		case models.RequestStatusProcessing:
+			status.ProgressPercent = 10 // Default processing progress
+		case models.RequestStatusCompleted:
+			status.ProgressPercent = 100
+		case models.RequestStatusFailed:
+			status.ProgressPercent = 0
+		default:
+			status.ProgressPercent = 0
+		}
+	}
+
+	return status, nil
+}
+
+// getOperationAwareMessage generates a human-readable message based on status and operation type
+// Uses the existing OperationTypeDisplayNames mappings when available
+func (h *OperationHelperDefault) getOperationAwareMessage(status models.RequestStatusType, operation string) string {
+	// Try to get operation display info from global mappings
+	opDisplay, exists := getOperationDisplayInfo(operation)
+	if exists {
+		// Use the operation's display name
+		opName := opDisplay.Name
+
+		// Generate contextual message based on status
+		switch status {
+		case models.RequestStatusPending:
+			return fmt.Sprintf("Waiting to start %s", opName)
+		case models.RequestStatusProcessing:
+			return fmt.Sprintf("Processing %s", opName)
+		case models.RequestStatusCompleted:
+			return fmt.Sprintf("%s completed", opName)
+		case models.RequestStatusFailed:
+			return fmt.Sprintf("%s failed", opName)
+		case models.RequestStatusDuplicate:
+			return GetDefaultStatusMessage(status)
+		default:
+			return fmt.Sprintf("%s in progress", opName)
+		}
+	}
+
+	// Fallback to generic messages if operation not found in mappings
+	switch status {
+	case models.RequestStatusProcessing:
+		return fmt.Sprintf("Processing %s", operation)
+	default:
+		// All other statuses use the default message
+		return GetDefaultStatusMessage(status)
+	}
+}
+
+// getOperationDisplayInfo gets display info for an operation string
+// First tries global type mappings, then falls back to extracting the last part
+func getOperationDisplayInfo(operation string) (OperationTypeInfo, bool) {
+	if operation == "" {
+		return OperationTypeInfo{}, false
+	}
+
+	// Try to match against global operation types
+	for opType, info := range OperationTypeDisplayNames {
+		if strings.HasSuffix(operation, "."+string(opType)) {
+			return info, true
+		}
+	}
+
+	// Try to match against post_upload and tus_upload variants
+	if strings.HasSuffix(operation, ".post_upload") {
+		if info, exists := OperationTypeDisplayNames[OpTypeUpload]; exists {
+			return info, true
+		}
+	}
+	if strings.HasSuffix(operation, ".tus_upload") {
+		if info, exists := OperationTypeDisplayNames[OpTypeUpload]; exists {
+			return info, true
+		}
+	}
+
+	return OperationTypeInfo{}, false
+}
+
+// ucFirst converts the first character of a string to uppercase
+func ucFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
