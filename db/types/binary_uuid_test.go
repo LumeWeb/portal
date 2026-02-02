@@ -84,3 +84,12 @@ func TestNewBinUUID(t *testing.T) {
 	assert.Equal(t, byte('4'), uuid1.String()[14])
 	assert.Equal(t, byte('4'), uuid2.String()[14])
 }
+
+func TestBinaryUUID_JSONSchema(t *testing.T) {
+	uuid := BinaryUUID{}
+	schema := uuid.JSONSchema()
+
+	assert.NotNil(t, schema)
+	assert.Equal(t, "string", schema.Type)
+	assert.Equal(t, "uuid", schema.Format)
+}

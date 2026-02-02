@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 
+	jsonschema "github.com/invopop/jsonschema"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 )
@@ -65,4 +66,14 @@ func (u BinaryUUID) Equals(other BinaryUUID) bool {
 
 func (u BinaryUUID) Empty() bool {
 	return u.Equals(EmptyUUID)
+}
+
+// JSONSchema returns the JSON Schema definition for BinaryUUID.
+// This ensures swagger generation treats BinaryUUID as a string UUID format
+// rather than the default object structure.
+func (b BinaryUUID) JSONSchema() *jsonschema.Schema {
+	return &jsonschema.Schema{
+		Type:   "string",
+		Format: "uuid",
+	}
 }
