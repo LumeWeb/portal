@@ -12,11 +12,13 @@ import (
 func StartServer(cmd *cli.Command) error {
 	// Continue with normal portal initialization
 	cfg, err := config.NewManager()
-	logger := core.NewLogger(cfg)
 	if err != nil {
+		// Create a basic logger for fatal error since we can't use core.NewLogger without config
+		logger, _ := zap.NewDevelopment()
 		logger.Fatal("Failed to load config", zap.Error(err))
 		return err
 	}
+	logger := core.NewLogger(cfg)
 
 	ctx, err := core.NewContext(cfg, logger)
 	if err != nil {
