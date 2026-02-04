@@ -4,6 +4,8 @@ const (
 	//
 	ENV_PREFIX    = "PORTAL__"
 	ENV_SEPARATOR = "__"
+	// Environment variable names
+	ENV_CONFIG_PATHS = ENV_PREFIX + "CONFIG_PATHS"
 	// File extensions and names
 	CONFIG_EXTENSION  = ".yaml"
 	CoreConfigFile    = "core" + CONFIG_EXTENSION
@@ -30,7 +32,6 @@ func getDefaultConfigPaths() []string {
 	return []string{
 		"/etc/lumeweb/portal",
 		"$HOME/.lumeweb/portal",
-		"./portal.yaml",
 		"./",
 	}
 }

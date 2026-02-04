@@ -33,7 +33,8 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 		// Expand environment variables in path
 		expandedPath := os.ExpandEnv(_path)
 
-		// Check if path is a directory
+		// Append CoreConfigFile for core config paths
+		// All paths (defaults and PORTAL__CONFIG_PATHS) must be directories
 		if options.Core {
 			expandedPath = path.Join(expandedPath, CoreConfigFile)
 		}
@@ -239,8 +240,16 @@ func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
 	var paths []string
 	if len(m.configPaths) > 0 {
 		paths = m.configPaths
-	} else if customPaths := os.Getenv(ENV_PREFIX + "CONFIG_PATHS"); customPaths != "" {
+	} else if customPaths := os.Getenv(ENV_CONFIG_PATHS); customPaths != "" {
 		paths = strings.Split(customPaths, string(os.PathListSeparator))
+		// Validate that all paths are directories, not file paths
+		for _, p := range paths {
+			expandedPath := os.ExpandEnv(p)
+			info, err := os.Stat(expandedPath)
+			if err == nil && !info.IsDir() {
+				return nil, fmt.Errorf("%s must contain directories, not file paths: %s", ENV_CONFIG_PATHS, p)
+			}
+		}
 	} else {
 		paths = DefaultConfigPaths
 	}
