@@ -98,10 +98,15 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 	// Register services from plugins (this just registers them, doesn't start them)
 	core.RegisterServicesFromPlugins()
 
+	// Disable validation for config-env command since we may not have all required values
+	manager.DisableValidation()
+
 	// Initialize just the config manager to process configs
-	if err := manager.Init(); err != nil {
-		return fmt.Errorf("failed to initialize config manager: %w", err)
-	}
+	// We ignore validation errors here since we just want to display the config
+	_ = manager.Init()
+
+	// Re-enable validation
+	manager.EnableValidation()
 
 	// Register service configs
 	for _, svcInfo := range core.GetServices() {
