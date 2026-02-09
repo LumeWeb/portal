@@ -67,10 +67,15 @@ func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
 // apiSubdomainFunc generates the return function for APISubdomain expectations
 func (m *MockHTTPService) apiSubdomainFunc(id string, proto bool) func(string, bool) string {
 	return func(id string, proto bool) string {
+		domain := m.cmanager.Config().Core.Domain
 		if core.GetAPI(id) == nil {
 			return ""
 		}
-		return fmt.Sprintf("%s.%s", core.GetAPI(id).Subdomain(), m.cmanager.Config().Core.Domain)
+		subdomain := core.GetAPI(id).Subdomain()
+		if subdomain == "" {
+			return domain
+		}
+		return fmt.Sprintf("%s.%s", subdomain, domain)
 	}
 }
 
