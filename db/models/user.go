@@ -32,6 +32,19 @@ type User struct {
 	PasswordResets     []PasswordReset
 }
 
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.Email != "" {
+		verify, err := getEmailVerifier().Verify(u.Email)
+		if err != nil {
+			return err
+		}
+		if !verify.Syntax.Valid {
+			return errors.New("email is invalid")
+		}
+	}
+	return nil
+}
+
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	var email string
 	var changed bool

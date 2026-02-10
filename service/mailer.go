@@ -162,6 +162,14 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			options = append(options, mail.WithUsername(mailCfg.Username))
 			options = append(options, mail.WithPassword(mailCfg.Password))
 
+			if mailCfg.Host != "" {
+				domain := mailCfg.Host
+				if ctx.Config().Config().Core.Domain != "" {
+					domain = ctx.Config().Config().Core.Domain
+				}
+				options = append(options, mail.WithHELO(domain))
+			}
+
 			client, err := mail.NewClient(mailCfg.Host, options...)
 			if err != nil {
 				ctx.Logger().Error("Failed to create mail client",
