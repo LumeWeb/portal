@@ -13,8 +13,10 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
 	dbHelper "go.lumeweb.com/portal/service/internal/db"
+	"go.lumeweb.com/portal/service/internal/mailer"
 	"go.lumeweb.com/portal/service/internal/user"
 	userInternal "go.lumeweb.com/portal/service/internal/user"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -273,7 +275,11 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 				}
 			} else if verifyEmail {
 				if err := u.SendEmailVerification(ctx, _user.ID); err != nil {
-					return nil, err
+					u.Logger().Warn("Failed to send email verification during account creation, but account was created successfully",
+						zap.Uint("user_id", _user.ID),
+						zap.String("email", _user.Email),
+						zap.Error(err))
+					mailer.MailerFailed.WithLabelValues(mailer.LabelOpSend).Inc()
 				}
 			}
 
