@@ -10,6 +10,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	mailerMetrics "go.lumeweb.com/portal/service/internal/mailer"
+	"go.uber.org/zap"
 )
 
 var _ core.MailerService = (*Mailer)(nil)
@@ -46,6 +47,16 @@ func (m *Mailer) TemplateRegistry() *mailer.TemplateRegistry {
 }
 
 func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateData, bodyVars core.MailerTemplateData, to string) error {
+	mailCfg := m.Config().Config().Core.Mail
+
+	m.Logger().Debug("Sending email",
+		zap.String("template", template),
+		zap.String("to", to),
+		zap.String("host", mailCfg.Host),
+		zap.Int("port", mailCfg.Port),
+		zap.String("from", mailCfg.From),
+	)
+
 	return core.MetricTrack(
 		mailerMetrics.MailerDuration.WithLabelValues(mailerMetrics.LabelOpSend),
 		mailerMetrics.MailerFailed.WithLabelValues(mailerMetrics.LabelOpSend),
@@ -53,24 +64,51 @@ func (m *Mailer) TemplateSend(template string, subjectVars core.MailerTemplateDa
 			email, err := m.templateRegistry.RenderTemplate(template, subjectVars, bodyVars)
 
 			if err != nil {
+				m.Logger().Error("Failed to render email template",
+					zap.String("template", template),
+					zap.String("to", to),
+					zap.Error(err),
+				)
 				return err
 			}
 
-			email.SetFrom(m.Config().Config().Core.Mail.From)
+			email.SetFrom(mailCfg.From)
 			email.SetTo(to)
 
 			msg, err := email.ToMessage()
 			if err != nil {
+				m.Logger().Error("Failed to create email message",
+					zap.String("template", template),
+					zap.String("to", to),
+					zap.String("from", mailCfg.From),
+					zap.Error(err),
+				)
 				return err
 			}
 
 			err = m.client.DialAndSend(msg)
 			if err != nil {
+				m.Logger().Error("Failed to send email",
+					zap.String("template", template),
+					zap.String("to", to),
+					zap.String("host", mailCfg.Host),
+					zap.Int("port", mailCfg.Port),
+					zap.Bool("ssl", mailCfg.SSL),
+					zap.String("auth_type", mailCfg.AuthType),
+					zap.String("from", mailCfg.From),
+					zap.Error(err),
+				)
 				return err
 			}
 
 			m.connDialed = true
 			mailerMetrics.EmailsSent.WithLabelValues(mailerMetrics.LabelOpSend).Inc()
+			m.Logger().Debug("Email sent successfully",
+				zap.String("template", template),
+				zap.String("to", to),
+				zap.String("host", mailCfg.Host),
+				zap.Int("port", mailCfg.Port),
+			)
 			return nil
 		},
 	)
@@ -98,28 +136,51 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			var options []mail.Option
 
 			cfg := ctx.Config()
+			mailCfg := cfg.Config().Core.Mail
 
-			if cfg.Config().Core.Mail.Port != 0 {
-				options = append(options, mail.WithPort(cfg.Config().Core.Mail.Port))
+			ctx.Logger().Debug("Initializing mailer service",
+				zap.String("host", mailCfg.Host),
+				zap.Int("port", mailCfg.Port),
+				zap.Bool("ssl", mailCfg.SSL),
+				zap.String("auth_type", mailCfg.AuthType),
+				zap.String("from", mailCfg.From),
+				zap.String("username", mailCfg.Username),
+			)
+
+			if mailCfg.Port != 0 {
+				options = append(options, mail.WithPort(mailCfg.Port))
 			}
 
-			if cfg.Config().Core.Mail.AuthType != "" {
-				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(cfg.Config().Core.Mail.AuthType))))
+			if mailCfg.AuthType != "" {
+				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(mailCfg.AuthType))))
 			}
 
-			if cfg.Config().Core.Mail.SSL {
+			if mailCfg.SSL {
 				options = append(options, mail.WithSSLPort(true))
 			}
 
-			options = append(options, mail.WithUsername(cfg.Config().Core.Mail.Username))
-			options = append(options, mail.WithPassword(cfg.Config().Core.Mail.Password))
+			options = append(options, mail.WithUsername(mailCfg.Username))
+			options = append(options, mail.WithPassword(mailCfg.Password))
 
-			client, err := mail.NewClient(cfg.Config().Core.Mail.Host, options...)
+			client, err := mail.NewClient(mailCfg.Host, options...)
 			if err != nil {
+				ctx.Logger().Error("Failed to create mail client",
+					zap.String("host", mailCfg.Host),
+					zap.Int("port", mailCfg.Port),
+					zap.Bool("ssl", mailCfg.SSL),
+					zap.String("auth_type", mailCfg.AuthType),
+					zap.Error(err),
+				)
 				return err
 			}
 
 			m.client = client
+
+			ctx.Logger().Debug("Mailer service initialized successfully",
+				zap.String("host", mailCfg.Host),
+				zap.Int("port", mailCfg.Port),
+				zap.Bool("ssl", mailCfg.SSL),
+			)
 
 			return nil
 		}),
