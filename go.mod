@@ -52,7 +52,6 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.7
 	go.lumeweb.com/configmanager v0.3.24
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/gswagger v0.20.10
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.4
 	go.lumeweb.com/portal-router v0.6.11
@@ -153,7 +152,7 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/ClickHouse/ch-go v0.67.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.1 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
@@ -211,6 +210,7 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.7 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.7 // indirect
+	go.lumeweb.com/gswagger v0.20.10 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.64.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.15.0 // indirect
