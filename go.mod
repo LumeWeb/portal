@@ -17,7 +17,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/eventials/go-tus v0.0.0-20250612203642-7827b129cd4c
 	github.com/fatih/structs v1.1.0
-	github.com/gabriel-vasile/mimetype v1.4.12
+	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20251210195828-51570c36481b
 	github.com/go-co-op/gocron/v2 v2.19.0
