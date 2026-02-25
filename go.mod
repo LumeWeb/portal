@@ -50,7 +50,7 @@ require (
 	github.com/urfave/cli/v3 v3.6.2
 	github.com/wneessen/go-mail v0.7.2
 	go.etcd.io/etcd/client/v3 v3.6.7
-	go.lumeweb.com/configmanager v0.3.24
+	go.lumeweb.com/configmanager v0.3.26
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.4
