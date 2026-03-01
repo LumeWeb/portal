@@ -20,6 +20,7 @@ type findConfigFileOptions struct {
 	CheckWritable   bool       // Check if existing files are writable
 	FS              FileSystem // Filesystem interface for operations
 	Core            bool
+	Logger          *zap.Logger
 }
 
 // findConfigFile searches for a config file in specified locations with more robust handling
@@ -59,6 +60,11 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 			// File doesn't exist and we should create it
 			if err := CreateDefaultConfig(expandedPath, options.FS); err != nil {
 				// Failed to create, try next path
+				if options.Logger != nil {
+					options.Logger.Warn("failed to create config file, trying next path",
+						zap.String("path", expandedPath),
+						zap.Error(err))
+				}
 				continue
 			}
 			return expandedPath, nil
@@ -261,6 +267,7 @@ func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
 		CheckWritable:   true,
 		FS:              m.fs, // Use the configured filesystem
 		Core:            true,
+		Logger:          m.logger,
 	}, m.Manager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find or create config file: %w", err)
@@ -430,6 +437,7 @@ func (m *ManagerDefault) getPluginConfigFile(pluginName, subDir string, configTy
 		CreateIfMissing: true,
 		CheckWritable:   true,
 		FS:              m.fs,
+		Logger:          m.logger,
 	}, m)
 	if err != nil {
 		return "", fmt.Errorf("failed to find/create config file for %s '%s': %w", configType, pluginName, err)
@@ -518,6 +526,7 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 		CreateIfMissing: true,
 		CheckWritable:   true,
 		FS:              m.fs,
+		Logger:          m.logger,
 	}, m)
 	if err != nil {
 		return fmt.Errorf("failed to find/create config file for Service '%s/%s': %w", pluginName, serviceName, err)
