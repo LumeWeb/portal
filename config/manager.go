@@ -58,7 +58,8 @@ func findConfigFile(options findConfigFileOptions, cm configmanager.Manager) (st
 		if os.IsNotExist(err) && options.CreateIfMissing {
 			// File doesn't exist and we should create it
 			if err := CreateDefaultConfig(expandedPath, options.FS); err != nil {
-				return "", fmt.Errorf("failed to create default config at %s: %w", expandedPath, err)
+				// Failed to create, try next path
+				continue
 			}
 			return expandedPath, nil
 		}
