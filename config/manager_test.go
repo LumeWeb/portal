@@ -90,6 +90,58 @@ func (m *MockFileSystem) Create(name string) (*os.File, error) {
 	return tmpfile, nil
 }
 
+// conditionalMkdirAllFS is a mock filesystem that fails MkdirAll on specific paths
+type conditionalMkdirAllFS struct {
+	Files    map[string][]byte
+	Dirs     map[string]bool
+	failPath string // Path on which MkdirAll should fail
+}
+
+func (m *conditionalMkdirAllFS) Stat(name string) (os.FileInfo, error) {
+	if _, ok := m.Files[name]; ok || m.Dirs[name] {
+		return mockFileInfo{name: name, isDir: m.Dirs[name]}, nil
+	}
+	return nil, os.ErrNotExist
+}
+
+func (m *conditionalMkdirAllFS) MkdirAll(path string, perm os.FileMode) error {
+	// Check if the path contains the failPath
+	if m.failPath != "" && strings.HasPrefix(path, m.failPath) {
+		return os.ErrPermission
+	}
+	m.Dirs[path] = true
+	return nil
+}
+
+func (m *conditionalMkdirAllFS) OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
+	if content, ok := m.Files[name]; ok {
+		tmpfile, err := os.CreateTemp("", "testfile")
+		if err != nil {
+			return nil, err
+		}
+		if _, err := tmpfile.Write(content); err != nil {
+			return nil, err
+		}
+		if err := tmpfile.Close(); err != nil {
+			return nil, err
+		}
+		return os.OpenFile(tmpfile.Name(), flag, perm)
+	}
+	return nil, os.ErrNotExist
+}
+
+func (m *conditionalMkdirAllFS) Create(name string) (*os.File, error) {
+	if m.Files == nil {
+		m.Files = make(map[string][]byte)
+	}
+	tmpfile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		return nil, err
+	}
+	m.Files[name] = []byte{}
+	return tmpfile, nil
+}
+
 type mockFileInfo struct {
 	name  string
 	size  int64
@@ -117,6 +169,7 @@ func TestFindConfigFile(t *testing.T) {
 			name: "File exists in default path",
 			options: findConfigFileOptions{
 				Paths: []string{"/etc/lumeweb/portal"},
+				Core:  true,
 			},
 			setup: func(h *testHelper) {
 				h.withMockFS(map[string][]byte{"/etc/lumeweb/portal/core.yaml": []byte("test")})
@@ -127,6 +180,7 @@ func TestFindConfigFile(t *testing.T) {
 			name: "File exists in home path",
 			options: findConfigFileOptions{
 				Paths: []string{"$HOME/.lumeweb/portal"},
+				Core:  true,
 			},
 			setup: func(h *testHelper) {
 				h.withMockFS(map[string][]byte{
@@ -136,9 +190,27 @@ func TestFindConfigFile(t *testing.T) {
 			expectedPath: filepath.Join(os.Getenv("HOME"), ".lumeweb/portal/core.yaml"),
 		},
 		{
+			name: "Create fails on first path with permission, succeeds on second",
+			options: findConfigFileOptions{
+				Paths:           []string{"/etc/lumeweb/portal", "/tmp"},
+				CreateIfMissing: true,
+				FS:              nil,
+				Core:            true,
+			},
+			setup: func(h *testHelper) {
+				h.fs = &conditionalMkdirAllFS{
+					Files:    make(map[string][]byte),
+					Dirs:     make(map[string]bool),
+					failPath: "/etc/lumeweb/portal",
+				}
+			},
+			expectedPath: "/tmp/core.yaml",
+		},
+		{
 			name: "File exists in current directory",
 			options: findConfigFileOptions{
 				Paths: []string{"./"},
+				Core:  true,
 			},
 			setup: func(h *testHelper) {
 				h.withMockFS(map[string][]byte{"core.yaml": []byte("test")})
@@ -150,6 +222,7 @@ func TestFindConfigFile(t *testing.T) {
 			options: findConfigFileOptions{
 				Paths: []string{"/etc/lumeweb/portal", "$HOME/.lumeweb/portal", "./"},
 				FS:    &MockFileSystem{},
+				Core:  true,
 			},
 			expectedError: "no valid config file found in paths: [/etc/lumeweb/portal $HOME/.lumeweb/portal ./]",
 		},
@@ -159,6 +232,7 @@ func TestFindConfigFile(t *testing.T) {
 				Paths:           []string{"/tmp"},
 				CreateIfMissing: true,
 				FS:              &MockFileSystem{},
+				Core:            true,
 			},
 			expectedPath: "/tmp/core.yaml",
 		},
@@ -167,6 +241,7 @@ func TestFindConfigFile(t *testing.T) {
 			options: findConfigFileOptions{
 				Paths:         []string{"/tmp"},
 				CheckWritable: true,
+				Core:          true,
 			},
 			setup: func(h *testHelper) {
 				h.fs = &MockFileSystem{
@@ -218,8 +293,8 @@ func TestCreateDefaultConfig(t *testing.T) {
 		Dirs:  make(map[string]bool),
 	}
 
-	// Mock ConfigManager
-	cm, err := configmanager.NewConfigManager(
+	// Mock ConfigManager (not used in this test but kept for consistency)
+	_, err := configmanager.NewConfigManager(
 		[]source.ConfigSource{source.NewEnvConfigSource(ENV_PREFIX, ENV_SEPARATOR)},
 		configmanager.WithLogger(zap.NewNop()),
 	)
@@ -228,8 +303,8 @@ func TestCreateDefaultConfig(t *testing.T) {
 	// Define test path
 	testPath := "/tmp/test_config.yaml"
 
-	// Execute createDefaultConfig
-	err = createDefaultConfig(testPath, fs)
+	// Execute CreateDefaultConfig
+	err = CreateDefaultConfig(testPath, fs)
 	require.NoError(t, err)
 
 	// Verify that the file was created in the mock file system
@@ -264,15 +339,19 @@ portal_name: "test_portal"
 	m, err := NewManager(WithConfigPaths([]string{tempDir}))
 	require.NoError(t, err)
 
+	// Configure a test plugin first so directories will be created on Init
+	err = m.ConfigureProtocol("test_plugin", newTestProtocolConfig())
+	require.NoError(t, err)
+
 	// Initialize
 	err = m.Init()
 	require.NoError(t, err)
 
 	// Verify directories were created
 	expectedDirs := []string{
-		filepath.Join(m.configDir, ProtoDir),
-		filepath.Join(m.configDir, APIDir),
-		filepath.Join(m.configDir, ServiceDir),
+		filepath.Join(m.configDir, PluginsDir, "test_plugin", ProtoDir),
+		filepath.Join(m.configDir, PluginsDir, "test_plugin", APIDir),
+		filepath.Join(m.configDir, PluginsDir, "test_plugin", ServiceDir),
 	}
 	for _, dir := range expectedDirs {
 		_, err := os.Stat(dir)
@@ -370,11 +449,11 @@ portal_name: test_portal
 			configFile := ""
 			switch tt.configType {
 			case "protocol":
-				configFile = filepath.Join(tempDir, ProtoDir, tt.pluginName+CONFIG_EXTENSION)
+				configFile = filepath.Join(tempDir, PluginsDir, tt.pluginName, ProtoDir, SectionConfigFile)
 			case "api":
-				configFile = filepath.Join(tempDir, APIDir, tt.pluginName+CONFIG_EXTENSION)
+				configFile = filepath.Join(tempDir, PluginsDir, tt.pluginName, APIDir, SectionConfigFile)
 			case "service":
-				configFile = filepath.Join(tempDir, ServiceDir, tt.pluginName+"_"+tt.serviceName+CONFIG_EXTENSION)
+				configFile = filepath.Join(tempDir, PluginsDir, tt.pluginName, ServiceDir, tt.serviceName+CONFIG_EXTENSION)
 			}
 
 			// Write test config
@@ -510,7 +589,7 @@ func createTempFile(t *testing.T, dir, content string) string {
 
 type testHelper struct {
 	t      *testing.T
-	fs     *MockFileSystem
+	fs     FileSystem
 	cmd    *cli.Command
 	logger *zap.Logger
 }
