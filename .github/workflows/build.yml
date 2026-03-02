@@ -1,11 +1,16 @@
 name: Build
 
 on:
-    push:
-        branches:
-            - '**'
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-    build:
-        uses: ./.github/workflows/_build.yml
+  build:
+    uses: LumeWeb/workflows/.github/workflows/build-portal.yml@develop
+    secrets: inherit
