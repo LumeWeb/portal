@@ -24,7 +24,7 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 			d := net.Dialer{
 				Timeout: time.Millisecond * time.Duration(3000),
 			}
-			return d.DialContext(ctx, "udp", dnsResolver+":53")
+			return d.DialContext(ctx, network, net.JoinHostPort(dnsResolver, "53"))
 		},
 	}
 }
