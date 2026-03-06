@@ -30,6 +30,7 @@ type CoreConfig struct {
 	Cron            CronConfig           `config:"cron"`
 	Account         AccountConfig        `config:"account"`
 	Observability   ObservabilityConfig  `config:"observability"`
+	DNSResolver     string               `config:"dns_resolver"`
 }
 
 func (c CoreConfig) Schema() z.ZogSchema {
@@ -66,6 +67,7 @@ func (c CoreConfig) Defaults() map[string]any {
 		"PortalName":      "",
 		"Port":            8080,
 		"Secure":          true,
+		"DNSResolver":     "",
 	}
 }
 
