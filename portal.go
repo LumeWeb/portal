@@ -12,6 +12,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/event"
+	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -40,6 +41,12 @@ func (p *PortalImpl) Init() error {
 	ctx := p.Context()
 	logger := ctx.Logger()
 	logger.Info("Initializing portal")
+
+	// Setup DNS override if configured
+	dnsResolver := ctx.Config().Config().Core.DNSResolver
+	if dnsResolver != "" {
+		pkgDNS.SetupDNSResolver(dnsResolver, logger)
+	}
 
 	// Fire init start event
 	if err := core.Fire(ctx, event.EVENT_INIT_START, event.NewInitStartEvent(ctx, ctx.GetContext())); err != nil {
