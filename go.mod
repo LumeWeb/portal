@@ -1,6 +1,6 @@
 module go.lumeweb.com/portal
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/AfterShip/email-verifier v1.4.1
@@ -60,9 +60,9 @@ require (
 	go.opentelemetry.io/otel/log v0.15.0
 	go.opentelemetry.io/otel/sdk v1.40.0
 	go.opentelemetry.io/otel/trace v1.40.0
-	go.sia.tech/core v0.14.1
-	go.sia.tech/coreutils v0.16.5
-	go.sia.tech/renterd/v2 v2.4.0
+	go.sia.tech/core v0.19.1-0.20251215141429-887336e35dd9
+	go.sia.tech/coreutils v0.21.1
+	go.sia.tech/renterd/v2 v2.9.0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.27.1
 	go.uber.org/zap/exp v0.3.0
@@ -135,7 +135,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.lumeweb.com/queryutil v0.3.15
-	go.sia.tech/jape v0.14.0 // indirect
+	go.sia.tech/jape v0.14.1 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/grpc v1.78.0 // indirect
@@ -184,7 +184,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/gotd/contrib v0.21.0 // indirect
+	github.com/gotd/contrib v0.21.1 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hbollon/go-edlib v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -192,10 +192,10 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
-	github.com/klauspost/reedsolomon v1.12.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
+	github.com/klauspost/reedsolomon v1.13.2 // indirect
 	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	github.com/mattn/go-sqlite3 v1.14.34 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
