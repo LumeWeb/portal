@@ -2,7 +2,6 @@ package service
 
 import (
 	"io/fs"
-	"net"
 	"path"
 	"strings"
 	"text/template"
@@ -173,9 +172,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			}
 
 			// Add custom dialer for DNS resolver
-			dnsResolverHost, dnsResolverPort := ctx.Config().Config().Core.DNSResolverAddr()
-			if dnsResolverHost != "" {
-				dnsResolver := net.JoinHostPort(dnsResolverHost, dnsResolverPort)
+			if dnsResolver := ctx.Config().Config().Core.DNSResolverString(); dnsResolver != "" {
 				dialer := pkgDNS.CustomDialer(dnsResolver)
 				ctx.Logger().Debug("Configuring mail client with custom DNS resolver",
 					zap.String("dns_resolver", dnsResolver),

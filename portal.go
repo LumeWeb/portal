@@ -3,7 +3,6 @@ package portal
 import (
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"reflect"
 	"sync"
@@ -133,9 +132,7 @@ func (p *PortalImpl) Init() error {
 	logger.SetLevelFromConfig()
 
 	// Setup DNS override if configured
-	dnsResolverHost, dnsResolverPort := ctx.Config().Config().Core.DNSResolverAddr()
-	if dnsResolverHost != "" {
-		dnsResolver := net.JoinHostPort(dnsResolverHost, dnsResolverPort)
+	if dnsResolver := ctx.Config().Config().Core.DNSResolverString(); dnsResolver != "" {
 		pkgDNS.SetupDNSResolver(dnsResolver, logger)
 	}
 

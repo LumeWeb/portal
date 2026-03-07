@@ -2,6 +2,7 @@ package config
 
 import (
 	"net"
+	"strings"
 	z "github.com/Oudwins/zog"
 	"github.com/docker/go-units"
 	"go.lumeweb.com/configmanager"
@@ -86,6 +87,13 @@ func (c CoreConfig) DNSResolverAddr() (host string, port string) {
 	h, p, err := net.SplitHostPort(c.DNSResolver)
 	if err != nil {
 		// SplitHostPort fails if there's no port, which is expected.
+		// Check if it's a bracketed IPv6 address without port.
+		// Trim brackets and validate it's a valid IP address.
+		host := strings.Trim(c.DNSResolver, "[]")
+		if net.ParseIP(host) != nil && host != c.DNSResolver {
+			// Was bracketed and is a valid IP
+			return host, "53"
+		}
 		// Treat the entire string as the host and use default port.
 		return c.DNSResolver, "53"
 	}
@@ -95,4 +103,14 @@ func (c CoreConfig) DNSResolverAddr() (host string, port string) {
 	}
 
 	return h, p
+}
+
+// DNSResolverString returns the DNS resolver address in host:port format.
+// Returns empty string if no DNS resolver is configured.
+func (c CoreConfig) DNSResolverString() string {
+	host, port := c.DNSResolverAddr()
+	if host == "" {
+		return ""
+	}
+	return net.JoinHostPort(host, port)
 }
