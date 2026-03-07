@@ -11,11 +11,18 @@ var (
 	_ Defaults                           = (*MailConfig)(nil)
 )
 
+// TLS policy string constants - these must match the values returned by mail.TLSPolicy.String()
+const (
+	TLSPolicyNoTLS         = "NoTLS"
+	TLSPolicyOpportunistic = "TLSOpportunistic"
+	TLSPolicyMandatory     = "TLSMandatory"
+)
+
 type MailConfig struct {
 	Host      string                 `config:"host"`
 	Port      int                    `config:"port"`
 	SSL       bool                   `config:"ssl"`
-	TLSPolicy int                    `config:"tls_policy"`
+	TLSPolicy string                 `config:"tls_policy"`
 	AuthType  string                 `config:"auth_type"`
 	Username  string                 `config:"username"`
 	Password  string                 `config:"password"`
@@ -35,8 +42,8 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"port": z.Int(),
 		"auth_type": z.String(),
 		"ssl": z.Bool(),
-		"tls_policy": z.Int().
-			OneOf([]int{int(mail.NoTLS), int(mail.TLSOpportunistic), int(mail.TLSMandatory)}, z.Message("tls_policy must be one of: NoTLS, TLSOpportunistic, TLSMandatory")),
+		"tls_policy": z.String().
+			OneOf([]string{TLSPolicyNoTLS, TLSPolicyOpportunistic, TLSPolicyMandatory}, z.Message("tls_policy must be one of: NoTLS, TLSOpportunistic, TLSMandatory")),
 	})
 }
 
@@ -46,7 +53,7 @@ func (m MailConfig) Defaults() map[string]interface{} {
 		"auth_type":  "plain",
 		"port":       25,
 		"ssl":        false,
-		"tls_policy": int(mail.TLSMandatory),
+		"tls_policy": mail.TLSMandatory.String(),
 		"from":       "",
 		"username":   "",
 		"password":   "",

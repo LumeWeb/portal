@@ -1,12 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"io/fs"
 	"path"
 	"strings"
 	"text/template"
 
 	"github.com/wneessen/go-mail"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	"go.lumeweb.com/portal/service/internal/mailer"
@@ -17,6 +19,21 @@ import (
 var _ core.MailerService = (*Mailer)(nil)
 
 var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
+
+// parseTLSPolicy converts a string representation to mail.TLSPolicy
+func parseTLSPolicy(policy string) (mail.TLSPolicy, error) {
+	switch policy {
+	case config.TLSPolicyMandatory, "":
+		// Empty string defaults to TLSMandatory for security
+		return mail.TLSMandatory, nil
+	case config.TLSPolicyOpportunistic:
+		return mail.TLSOpportunistic, nil
+	case config.TLSPolicyNoTLS:
+		return mail.NoTLS, nil
+	default:
+		return mail.TLSMandatory, fmt.Errorf("invalid TLS policy: %s, defaulting to TLSMandatory", policy)
+	}
+}
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -143,7 +160,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 				zap.String("host", mailCfg.Host),
 				zap.Int("port", mailCfg.Port),
 				zap.Bool("ssl", mailCfg.SSL),
-				zap.Int("tls_policy", mailCfg.TLSPolicy),
+				zap.String("tls_policy", mailCfg.TLSPolicy),
 				zap.String("auth_type", mailCfg.AuthType),
 				zap.String("from", mailCfg.From),
 				zap.String("username", mailCfg.Username),
@@ -162,9 +179,17 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			}
 
 			// Configure TLS policy
-			options = append(options, mail.WithTLSPortPolicy(mail.TLSPolicy(mailCfg.TLSPolicy)))
+			tlsPolicy, err := parseTLSPolicy(mailCfg.TLSPolicy)
+			if err != nil {
+				ctx.Logger().Error("Failed to parse TLS policy",
+					zap.String("tls_policy", mailCfg.TLSPolicy),
+					zap.Error(err),
+				)
+				return fmt.Errorf("invalid TLS policy configuration: %w", err)
+			}
+			options = append(options, mail.WithTLSPortPolicy(tlsPolicy))
 			ctx.Logger().Debug("Configuring TLS policy",
-				zap.Int("tls_policy", mailCfg.TLSPolicy),
+				zap.String("tls_policy", mailCfg.TLSPolicy),
 			)
 
 			options = append(options, mail.WithUsername(mailCfg.Username))
