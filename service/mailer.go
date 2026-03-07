@@ -22,7 +22,7 @@ var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
 
 // normalizeAuthType converts "none" alias to "NOAUTH"
 func normalizeAuthType(authType string) string {
-	if strings.EqualFold(authType, "none") {
+	if strings.EqualFold(authType, config.SMTPAuthAliasNone) {
 		return string(mail.SMTPAuthNoAuth)
 	}
 	return authType
