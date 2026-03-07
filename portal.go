@@ -132,8 +132,7 @@ func (p *PortalImpl) Init() error {
 	logger.SetLevelFromConfig()
 
 	// Setup DNS override if configured
-	dnsResolver := ctx.Config().Config().Core.DNSResolver
-	if dnsResolver != "" {
+	if dnsResolver := ctx.Config().Config().Core.DNSResolverString(); dnsResolver != "" {
 		pkgDNS.SetupDNSResolver(dnsResolver, logger)
 	}
 
