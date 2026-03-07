@@ -171,13 +171,13 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 				options = append(options, mail.WithHELO(domain))
 			}
 
-			// Add custom dialer if DNS resolver is configured
+			// Add custom dialer for DNS resolver
 			dnsResolver := ctx.Config().Config().Core.DNSResolver
-			if dnsResolver != "" {
+			if dialer := pkgDNS.CustomDialer(dnsResolver); dialer != nil {
 				ctx.Logger().Debug("Configuring mail client with custom DNS resolver",
 					zap.String("dns_resolver", dnsResolver),
 				)
-				options = append(options, mail.WithDialContextFunc(pkgDNS.CustomDialer(dnsResolver)))
+				options = append(options, mail.WithDialContextFunc(dialer))
 			}
 
 			client, err := mail.NewClient(mailCfg.Host, options...)

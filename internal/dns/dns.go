@@ -2,7 +2,6 @@ package dns
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -35,37 +34,26 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 // CustomDialer returns a dial function that uses a custom DNS resolver.
 // Required for libraries using net.Dialer{} directly, which bypasses net.DefaultResolver.
 func CustomDialer(dnsResolver string) func(ctx context.Context, network, address string) (net.Conn, error) {
-	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(address)
-		if err != nil {
-			return nil, fmt.Errorf("failed to split host:port: %w", err)
+	if dnsResolver == "" {
+		return func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, network, address)
 		}
+	}
 
-		// Create a resolver that uses the custom DNS server
-		resolver := &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, netType, addr string) (net.Conn, error) {
-				d := net.Dialer{
-					Timeout: time.Millisecond * time.Duration(3000),
-				}
-				return d.DialContext(ctx, netType, net.JoinHostPort(dnsResolver, "53"))
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{
+			Timeout: time.Second * 30,
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, netType, addr string) (net.Conn, error) {
+					dd := net.Dialer{
+						Timeout: time.Millisecond * time.Duration(3000),
+					}
+					return dd.DialContext(ctx, netType, net.JoinHostPort(dnsResolver, "53"))
+				},
 			},
 		}
-
-		// Resolve the hostname using the custom resolver
-		ips, err := resolver.LookupIPAddr(ctx, host)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve %s: %w", host, err)
-		}
-
-		if len(ips) == 0 {
-			return nil, fmt.Errorf("no IPs found for %s", host)
-		}
-
-		// Use the first IP address to dial
-		targetAddr := net.JoinHostPort(ips[0].String(), port)
-
-		d := net.Dialer{}
-		return d.DialContext(ctx, network, targetAddr)
+		return d.DialContext(ctx, network, address)
 	}
 }

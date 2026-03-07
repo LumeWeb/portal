@@ -30,8 +30,11 @@ func TestSetupDNSResolver(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original resolver
+			// Save original resolver and ensure restoration even on panic
 			originalResolver := net.DefaultResolver
+			defer func() {
+				net.DefaultResolver = originalResolver
+			}()
 
 			// Call SetupDNSResolver with a test logger
 			logger := core.NewLogger(nil, zap.NewNop())
@@ -47,9 +50,6 @@ func TestSetupDNSResolver(t *testing.T) {
 					t.Error("Expected net.DefaultResolver to remain unchanged")
 				}
 			}
-
-			// Restore original resolver
-			net.DefaultResolver = originalResolver
 		})
 	}
 }
