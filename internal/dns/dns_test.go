@@ -70,24 +70,25 @@ func TestCustomDialer(t *testing.T) {
 	})
 
 	t.Run("valid address format", func(t *testing.T) {
-		conn, err := dialer(ctx, "tcp", "example.com:25")
-		if err != nil && conn != nil {
+		conn, _ := dialer(ctx, "tcp", "example.com:25")
+		if conn != nil {
 			conn.Close()
 		}
 	})
 }
 
-const mockDNSPort = "15353"
 const mockMXRecord = "mock-mx-server.test.local."
 
 func startMockDNSServer(t *testing.T) (*dns.Server, string) {
-	addr := "127.0.0.1:" + mockDNSPort
 	server := &dns.Server{
-		Addr: addr,
+		Addr: "127.0.0.1:0",
 		Net:  "udp",
 	}
 
 	server.Handler = dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		if len(r.Question) == 0 {
+			return
+		}
 		m := new(dns.Msg)
 		m.SetReply(r)
 		m.Answer = append(m.Answer, &dns.MX{
@@ -103,11 +104,22 @@ func startMockDNSServer(t *testing.T) (*dns.Server, string) {
 		w.WriteMsg(m)
 	})
 
+	ready := make(chan struct{})
+	server.NotifyStartedFunc = func() { close(ready) }
+
 	go func() {
-		server.ListenAndServe()
+		if err := server.ListenAndServe(); err != nil {
+			t.Errorf("mock DNS server failed: %v", err)
+		}
 	}()
 
-	time.Sleep(1 * time.Second)
+	select {
+	case <-ready:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for mock DNS server")
+	}
+	
+	addr := server.PacketConn.LocalAddr().String()
 	return server, addr
 }
 

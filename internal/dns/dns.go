@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-kiss/monkey"
@@ -12,11 +13,12 @@ import (
 	"go.uber.org/zap"
 )
 
-var customDNSAddr string
+var customDNSAddr atomic.Value // stores string
 
-func customLookupMX(name string) ([]*net.MX, error) {
-	if customDNSAddr == "" {
-		return net.DefaultResolver.LookupMX(context.Background(), name)
+func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
+	addr, _ := customDNSAddr.Load().(string)
+	if addr == "" {
+		return net.DefaultResolver.LookupMX(ctx, name)
 	}
 
 	c := &dns.Client{Timeout: 5 * time.Second}
@@ -24,7 +26,7 @@ func customLookupMX(name string) ([]*net.MX, error) {
 	m.SetQuestion(dns.Fqdn(name), dns.TypeMX)
 	m.RecursionDesired = true
 
-	r, _, err := c.Exchange(m, customDNSAddr)
+	r, _, err := c.Exchange(m, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +61,7 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 		logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
 	}
 
-	customDNSAddr = dnsResolver
+	customDNSAddr.Store(dnsResolver)
 
 	customResolver := &net.Resolver{
 		PreferGo: true,
@@ -73,7 +75,7 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 
 	resolverType := reflect.TypeOf(customResolver)
 	monkey.PatchInstanceMethod(resolverType, "LookupMX", func(r *net.Resolver, ctx context.Context, name string) ([]*net.MX, error) {
-		return customLookupMX(name)
+		return customLookupMX(ctx, name)
 	})
 }
 
@@ -89,9 +91,9 @@ func CustomDialer(dnsResolver string) func(ctx context.Context, network, address
 			Timeout: 30 * time.Second,
 			Resolver: &net.Resolver{
 				PreferGo: true,
-				Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 					dd := net.Dialer{Timeout: 3 * time.Second}
-					return dd.DialContext(ctx, "udp", dnsResolver)
+					return dd.DialContext(ctx, network, dnsResolver)
 				},
 			},
 		}
