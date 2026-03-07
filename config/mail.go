@@ -42,6 +42,7 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"port": z.Int(),
 		"auth_type": z.String().
 			OneOf([]string{
+				"none",
 				string(mail.SMTPAuthCramMD5),
 				string(mail.SMTPAuthCustom),
 				string(mail.SMTPAuthLogin),

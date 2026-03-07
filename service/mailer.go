@@ -20,6 +20,14 @@ var _ core.MailerService = (*Mailer)(nil)
 
 var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
 
+// normalizeAuthType converts "none" alias to "NOAUTH"
+func normalizeAuthType(authType string) string {
+	if strings.EqualFold(authType, "none") {
+		return string(mail.SMTPAuthNoAuth)
+	}
+	return authType
+}
+
 // parseTLSPolicy converts a string representation to mail.TLSPolicy
 func parseTLSPolicy(policy string) (mail.TLSPolicy, error) {
 	switch policy {
@@ -170,8 +178,11 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 				options = append(options, mail.WithPort(mailCfg.Port))
 			}
 
+			// Normalize auth_type (e.g., "none" -> "NOAUTH")
+			normalizedAuthType := normalizeAuthType(mailCfg.AuthType)
+
 			if mailCfg.AuthType != "" {
-				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(strings.ToUpper(mailCfg.AuthType))))
+				options = append(options, mail.WithSMTPAuth(mail.SMTPAuthType(normalizedAuthType)))
 			}
 
 			if mailCfg.SSL {
@@ -193,7 +204,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			)
 
 			// Only set username/password if authentication is configured
-			if mail.SMTPAuthType(mailCfg.AuthType) != mail.SMTPAuthNoAuth {
+			if mail.SMTPAuthType(normalizedAuthType) != mail.SMTPAuthNoAuth {
 				options = append(options, mail.WithUsername(mailCfg.Username))
 				options = append(options, mail.WithPassword(mailCfg.Password))
 			}
