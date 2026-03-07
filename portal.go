@@ -42,12 +42,6 @@ func (p *PortalImpl) Init() error {
 	logger := ctx.Logger()
 	logger.Info("Initializing portal")
 
-	// Setup DNS override if configured
-	dnsResolver := ctx.Config().Config().Core.DNSResolver
-	if dnsResolver != "" {
-		pkgDNS.SetupDNSResolver(dnsResolver, logger)
-	}
-
 	// Fire init start event
 	if err := core.Fire(ctx, event.EVENT_INIT_START, event.NewInitStartEvent(ctx, ctx.GetContext())); err != nil {
 		logger.Error("Error firing init start event", zap.Error(err))
@@ -136,6 +130,12 @@ func (p *PortalImpl) Init() error {
 	}
 
 	logger.SetLevelFromConfig()
+
+	// Setup DNS override if configured
+	dnsResolver := ctx.Config().Config().Core.DNSResolver
+	if dnsResolver != "" {
+		pkgDNS.SetupDNSResolver(dnsResolver, logger)
+	}
 
 	// Stage 3: Database & Models Setup
 	// Initialize database connection and register all data models
