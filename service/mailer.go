@@ -193,7 +193,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			)
 
 			// Only set username/password if authentication is configured
-			if mail.SMTPAuthType(strings.ToUpper(mailCfg.AuthType)) != mail.SMTPAuthNoAuth {
+			if mail.SMTPAuthType(mailCfg.AuthType) != mail.SMTPAuthNoAuth {
 				options = append(options, mail.WithUsername(mailCfg.Username))
 				options = append(options, mail.WithPassword(mailCfg.Password))
 			}
