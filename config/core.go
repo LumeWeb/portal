@@ -1,6 +1,7 @@
 package config
 
 import (
+	"net"
 	z "github.com/Oudwins/zog"
 	"github.com/docker/go-units"
 	"go.lumeweb.com/configmanager"
@@ -73,4 +74,25 @@ func (c CoreConfig) Defaults() map[string]any {
 
 func (c CoreConfig) ClusterEnabled() bool {
 	return c.Clustered != nil && c.Clustered.Enabled
+}
+
+// DNSResolverAddr returns the DNS resolver host and port.
+// If DNSResolver contains a port, it extracts both. Otherwise, it returns the host with default port 53.
+func (c CoreConfig) DNSResolverAddr() (host string, port string) {
+	if c.DNSResolver == "" {
+		return "", ""
+	}
+
+	h, p, err := net.SplitHostPort(c.DNSResolver)
+	if err != nil {
+		// SplitHostPort fails if there's no port, which is expected.
+		// Treat the entire string as the host and use default port.
+		return c.DNSResolver, "53"
+	}
+
+	if p == "" {
+		return h, "53"
+	}
+
+	return h, p
 }
