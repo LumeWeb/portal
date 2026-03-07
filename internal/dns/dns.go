@@ -16,7 +16,9 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 		return
 	}
 
-	logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
+	if logger != nil {
+		logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
+	}
 
 	net.DefaultResolver = &net.Resolver{
 		PreferGo: true,
@@ -26,5 +28,32 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 			}
 			return d.DialContext(ctx, network, net.JoinHostPort(dnsResolver, "53"))
 		},
+	}
+}
+
+// CustomDialer returns a dial function that uses a custom DNS resolver.
+// Required for libraries using net.Dialer{} directly, which bypasses net.DefaultResolver.
+func CustomDialer(dnsResolver string) func(ctx context.Context, network, address string) (net.Conn, error) {
+	if dnsResolver == "" {
+		return func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, network, address)
+		}
+	}
+
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{
+			Timeout: time.Second * 30,
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, netType, addr string) (net.Conn, error) {
+					dd := net.Dialer{
+						Timeout: time.Millisecond * time.Duration(3000),
+					}
+					return dd.DialContext(ctx, netType, net.JoinHostPort(dnsResolver, "53"))
+				},
+			},
+		}
+		return d.DialContext(ctx, network, address)
 	}
 }
