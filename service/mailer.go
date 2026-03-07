@@ -8,6 +8,7 @@ import (
 
 	"github.com/wneessen/go-mail"
 	"go.lumeweb.com/portal/core"
+	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	mailerMetrics "go.lumeweb.com/portal/service/internal/mailer"
 	"go.uber.org/zap"
@@ -168,6 +169,15 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 					domain = ctx.Config().Config().Core.Domain
 				}
 				options = append(options, mail.WithHELO(domain))
+			}
+
+			// Add custom dialer if DNS resolver is configured
+			dnsResolver := ctx.Config().Config().Core.DNSResolver
+			if dnsResolver != "" {
+				ctx.Logger().Debug("Configuring mail client with custom DNS resolver",
+					zap.String("dns_resolver", dnsResolver),
+				)
+				options = append(options, mail.WithDialContextFunc(pkgDNS.CustomDialer(dnsResolver)))
 			}
 
 			client, err := mail.NewClient(mailCfg.Host, options...)
