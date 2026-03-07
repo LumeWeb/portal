@@ -143,7 +143,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 				zap.String("host", mailCfg.Host),
 				zap.Int("port", mailCfg.Port),
 				zap.Bool("ssl", mailCfg.SSL),
-				zap.String("tls_policy", mailCfg.TLSPolicy),
+				zap.Int("tls_policy", mailCfg.TLSPolicy),
 				zap.String("auth_type", mailCfg.AuthType),
 				zap.String("from", mailCfg.From),
 				zap.String("username", mailCfg.Username),
@@ -162,12 +162,10 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			}
 
 			// Configure TLS policy
-			if mailCfg.TLSPolicy != "" {
-				options = append(options, mail.WithTLSPortPolicy(mailCfg.TLSPolicy))
-				ctx.Logger().Debug("Configuring TLS policy",
-					zap.String("tls_policy", string(mailCfg.TLSPolicy)),
-				)
-			}
+			options = append(options, mail.WithTLSPortPolicy(mail.TLSPolicy(mailCfg.TLSPolicy)))
+			ctx.Logger().Debug("Configuring TLS policy",
+				zap.Int("tls_policy", mailCfg.TLSPolicy),
+			)
 
 			options = append(options, mail.WithUsername(mailCfg.Username))
 			options = append(options, mail.WithPassword(mailCfg.Password))

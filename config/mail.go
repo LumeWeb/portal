@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Oudwins/zog"
+	z "github.com/Oudwins/zog"
 	"github.com/wneessen/go-mail"
 	"go.lumeweb.com/configmanager"
 )
@@ -15,7 +15,7 @@ type MailConfig struct {
 	Host      string                 `config:"host"`
 	Port      int                    `config:"port"`
 	SSL       bool                   `config:"ssl"`
-	TLSPolicy mail.TLSPolicy         `config:"tls_policy"`
+	TLSPolicy int                    `config:"tls_policy"`
 	AuthType  string                 `config:"auth_type"`
 	Username  string                 `config:"username"`
 	Password  string                 `config:"password"`
@@ -35,7 +35,8 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"port": z.Int(),
 		"auth_type": z.String(),
 		"ssl": z.Bool(),
-		"tls_policy": z.Enum(string(mail.NoTLS), string(mail.TLSOpportunistic), string(mail.TLSMandatory)),
+		"tls_policy": z.Int().
+			OneOf([]int{int(mail.NoTLS), int(mail.TLSOpportunistic), int(mail.TLSMandatory)}, z.Message("tls_policy must be one of: NoTLS, TLSOpportunistic, TLSMandatory")),
 	})
 }
 
@@ -45,7 +46,7 @@ func (m MailConfig) Defaults() map[string]interface{} {
 		"auth_type":  "plain",
 		"port":       25,
 		"ssl":        false,
-		"tls_policy": string(mail.TLSMandatory),
+		"tls_policy": int(mail.TLSMandatory),
 		"from":       "",
 		"username":   "",
 		"password":   "",
