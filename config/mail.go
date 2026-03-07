@@ -18,6 +18,9 @@ const (
 	TLSPolicyMandatory     = "TLSMandatory"
 )
 
+// SMTP auth type alias constant - provides a user-friendly alias for NOAUTH
+const SMTPAuthAliasNone = "none"
+
 type MailConfig struct {
 	Host      string                 `config:"host"`
 	Port      int                    `config:"port"`
@@ -42,6 +45,7 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"port": z.Int(),
 		"auth_type": z.String().
 			OneOf([]string{
+				SMTPAuthAliasNone,
 				string(mail.SMTPAuthCramMD5),
 				string(mail.SMTPAuthCustom),
 				string(mail.SMTPAuthLogin),
