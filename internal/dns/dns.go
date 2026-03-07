@@ -3,14 +3,55 @@ package dns
 import (
 	"context"
 	"net"
+	"reflect"
+	"sync/atomic"
 	"time"
 
+	"github.com/go-kiss/monkey"
+	"github.com/miekg/dns"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
 )
 
-// SetupDNSResolver configures the default DNS resolver to use a custom DNS server if specified.
-// This affects all networking operations including HTTP clients, SMTP, and other network connections.
+var customDNSAddr atomic.Value // stores string
+
+func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
+	addr, _ := customDNSAddr.Load().(string)
+	if addr == "" {
+		return net.DefaultResolver.LookupMX(ctx, name)
+	}
+
+	c := &dns.Client{Timeout: 5 * time.Second}
+	m := new(dns.Msg)
+	m.SetQuestion(dns.Fqdn(name), dns.TypeMX)
+	m.RecursionDesired = true
+
+	r, _, err := c.Exchange(m, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	var mxRecords []*net.MX
+	for _, ans := range r.Answer {
+		if mx, ok := ans.(*dns.MX); ok {
+			mxRecords = append(mxRecords, &net.MX{
+				Host: mx.Mx,
+				Pref: uint16(mx.Preference),
+			})
+		}
+	}
+
+	if len(mxRecords) == 0 {
+		return nil, &net.DNSError{
+			Name:       name,
+			Err:        "no such host",
+			IsNotFound: true,
+		}
+	}
+
+	return mxRecords, nil
+}
+
 func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 	if dnsResolver == "" {
 		return
@@ -20,37 +61,39 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 		logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
 	}
 
-	net.DefaultResolver = &net.Resolver{
+	customDNSAddr.Store(dnsResolver)
+
+	customResolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout: time.Millisecond * time.Duration(3000),
-			}
+			d := net.Dialer{Timeout: 3 * time.Second}
 			return d.DialContext(ctx, network, dnsResolver)
 		},
 	}
+
+	net.DefaultResolver = customResolver
+
+	resolverType := reflect.TypeOf(customResolver)
+	monkey.PatchInstanceMethod(resolverType, "LookupMX", func(r *net.Resolver, ctx context.Context, name string) ([]*net.MX, error) {
+		return customLookupMX(ctx, name)
+	})
 }
 
-// CustomDialer returns a dial function that uses a custom DNS resolver.
-// Required for libraries using net.Dialer{} directly, which bypasses net.DefaultResolver.
 func CustomDialer(dnsResolver string) func(ctx context.Context, network, address string) (net.Conn, error) {
 	if dnsResolver == "" {
 		return func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{}
-			return d.DialContext(ctx, network, address)
+			return (&net.Dialer{}).DialContext(ctx, network, address)
 		}
 	}
 
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		d := net.Dialer{
-			Timeout: time.Second * 30,
+			Timeout: 30 * time.Second,
 			Resolver: &net.Resolver{
 				PreferGo: true,
-				Dial: func(ctx context.Context, netType, addr string) (net.Conn, error) {
-					dd := net.Dialer{
-						Timeout: time.Millisecond * time.Duration(3000),
-					}
-					return dd.DialContext(ctx, netType, dnsResolver)
+				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+					dd := net.Dialer{Timeout: 3 * time.Second}
+					return dd.DialContext(ctx, network, dnsResolver)
 				},
 			},
 		}
