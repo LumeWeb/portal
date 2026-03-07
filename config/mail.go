@@ -40,7 +40,22 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"from": z.String().
 			Required(z.Message("core.mail.from is required")),
 		"port": z.Int(),
-		"auth_type": z.String(),
+		"auth_type": z.String().
+			OneOf([]string{
+				string(mail.SMTPAuthCramMD5),
+				string(mail.SMTPAuthCustom),
+				string(mail.SMTPAuthLogin),
+				string(mail.SMTPAuthLoginNoEnc),
+				string(mail.SMTPAuthNoAuth),
+				string(mail.SMTPAuthPlain),
+				string(mail.SMTPAuthPlainNoEnc),
+				string(mail.SMTPAuthXOAUTH2),
+				string(mail.SMTPAuthSCRAMSHA1),
+				string(mail.SMTPAuthSCRAMSHA1PLUS),
+				string(mail.SMTPAuthSCRAMSHA256),
+				string(mail.SMTPAuthSCRAMSHA256PLUS),
+				string(mail.SMTPAuthAutoDiscover),
+			}, z.Message("auth_type must be a valid SMTP auth type")),
 		"ssl": z.Bool(),
 		"tls_policy": z.String().
 			OneOf([]string{TLSPolicyNoTLS, TLSPolicyOpportunistic, TLSPolicyMandatory}, z.Message("tls_policy must be one of: NoTLS, TLSOpportunistic, TLSMandatory")),
@@ -50,7 +65,7 @@ func (m MailConfig) Schema() z.ZogSchema {
 func (m MailConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
 		"host":       "",
-		"auth_type":  "plain",
+		"auth_type":  string(mail.SMTPAuthPlain),
 		"port":       25,
 		"ssl":        false,
 		"tls_policy": mail.TLSMandatory.String(),
