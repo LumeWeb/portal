@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"io/fs"
 	"path"
 	"strings"
@@ -17,6 +18,20 @@ import (
 var _ core.MailerService = (*Mailer)(nil)
 
 var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
+
+// parseTLSPolicy converts a string representation to mail.TLSPolicy
+func parseTLSPolicy(policy string) (mail.TLSPolicy, error) {
+	switch policy {
+	case "TLSMandatory":
+		return mail.TLSMandatory, nil
+	case "TLSOpportunistic":
+		return mail.TLSOpportunistic, nil
+	case "NoTLS":
+		return mail.NoTLS, nil
+	default:
+		return mail.NoTLS, fmt.Errorf("invalid TLS policy: %s", policy)
+	}
+}
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
@@ -143,7 +158,7 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 				zap.String("host", mailCfg.Host),
 				zap.Int("port", mailCfg.Port),
 				zap.Bool("ssl", mailCfg.SSL),
-				zap.Int("tls_policy", mailCfg.TLSPolicy),
+				zap.String("tls_policy", mailCfg.TLSPolicy),
 				zap.String("auth_type", mailCfg.AuthType),
 				zap.String("from", mailCfg.From),
 				zap.String("username", mailCfg.Username),
@@ -162,9 +177,17 @@ func NewMailerService(templateRegistry *mailer.TemplateRegistry) (core.Service, 
 			}
 
 			// Configure TLS policy
-			options = append(options, mail.WithTLSPortPolicy(mail.TLSPolicy(mailCfg.TLSPolicy)))
+			tlsPolicy, err := parseTLSPolicy(mailCfg.TLSPolicy)
+			if err != nil {
+				ctx.Logger().Error("Failed to parse TLS policy",
+					zap.String("tls_policy", mailCfg.TLSPolicy),
+					zap.Error(err),
+				)
+				return fmt.Errorf("invalid TLS policy configuration: %w", err)
+			}
+			options = append(options, mail.WithTLSPortPolicy(tlsPolicy))
 			ctx.Logger().Debug("Configuring TLS policy",
-				zap.Int("tls_policy", mailCfg.TLSPolicy),
+				zap.String("tls_policy", mailCfg.TLSPolicy),
 			)
 
 			options = append(options, mail.WithUsername(mailCfg.Username))
