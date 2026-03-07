@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/wneessen/go-mail"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	"go.lumeweb.com/portal/service/internal/mailer"
@@ -22,14 +23,15 @@ var ErrEmailTemplateNotFound = mailer.ErrTemplateNotFound
 // parseTLSPolicy converts a string representation to mail.TLSPolicy
 func parseTLSPolicy(policy string) (mail.TLSPolicy, error) {
 	switch policy {
-	case "TLSMandatory":
+	case config.TLSPolicyMandatory, "":
+		// Empty string defaults to TLSMandatory for security
 		return mail.TLSMandatory, nil
-	case "TLSOpportunistic":
+	case config.TLSPolicyOpportunistic:
 		return mail.TLSOpportunistic, nil
-	case "NoTLS":
+	case config.TLSPolicyNoTLS:
 		return mail.NoTLS, nil
 	default:
-		return mail.NoTLS, fmt.Errorf("invalid TLS policy: %s", policy)
+		return mail.TLSMandatory, fmt.Errorf("invalid TLS policy: %s, defaulting to TLSMandatory", policy)
 	}
 }
 
