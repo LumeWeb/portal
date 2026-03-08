@@ -156,6 +156,31 @@ func TestKeyMatchEcho(t *testing.T) {
 			key2:     "/api/v1/accounts/:accountID/keys/:keyID/*",
 			expected: true,
 		},
+		// Security: regex metacharacters in static segments
+		{
+			name:     "dot in version should be escaped",
+			key1:     "/api/v1.0/keys/123",
+			key2:     "/api/v1.0/keys/:keyID",
+			expected: true,
+		},
+		{
+			name:     "dot in version should not match other chars",
+			key1:     "/api/v1X0/keys/123",
+			key2:     "/api/v1.0/keys/:keyID",
+			expected: false,
+		},
+		{
+			name:     "dot in version with sub-resource",
+			key1:     "/api/v2.1/keys/123/sub",
+			key2:     "/api/v2.1/keys/:keyID/*",
+			expected: true,
+		},
+		{
+			name:     "dot in version should not match X",
+			key1:     "/api/v2X1/keys/123/sub",
+			key2:     "/api/v2.1/keys/:keyID/*",
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {

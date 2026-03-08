@@ -7,34 +7,29 @@ import (
 	"github.com/casbin/casbin/v3/util"
 )
 
+var (
+	paramRegex = regexp.MustCompile(`:[^/]+`)
+)
+
 // KeyMatchEcho determines whether key1 matches the pattern of key2 using Echo's colon syntax.
 // Supports :param for single path segments and :param/* for sub-resources.
 // For example:
 //   "/api/account/keys/ec6a9c56-2d04-4450-b6e3-1d10985e275b" matches "/api/account/keys/:keyID"
 //   "/api/account/keys/123/subresource" matches "/api/account/keys/:keyID/*"
 func KeyMatchEcho(key1 string, key2 string) bool {
-	// Try standard KeyMatch2 first for :param syntax
-	if util.KeyMatch2(key1, key2) {
-		return true
-	}
+	// Escape all static path segments first
+	// This prevents regex metacharacters like '.' in paths from being interpreted as wildcards
+	pattern := regexp.QuoteMeta(key2)
 
-	// Handle :param/* patterns where the path must have at least one segment after the parameter
-	key2 = strings.Replace(key2, "/*", "/.*", -1)
+	// Now unescape the parts we want to be regex: :param and /*
+	// Replace escaped :param with actual regex
+	pattern = strings.ReplaceAll(pattern, regexp.QuoteMeta(":"), ":")
+	pattern = paramRegex.ReplaceAllString(pattern, "[^/]+")
 
-	// Check if pattern contains :param/* syntax
-	re := regexp.MustCompile(`:([^/]+)/\.\*`)
-	if !re.MatchString(key2) {
-		return false
-	}
+	// Replace escaped /* with .*
+	pattern = strings.ReplaceAll(pattern, regexp.QuoteMeta("/*"), "/.*")
 
-	// Replace :param/.* with regex that requires at least one segment after the parameter
-	key2 = re.ReplaceAllString(key2, "([^/]+)/.+$")
-
-	// Replace other :param patterns
-	re = regexp.MustCompile(`:[^/]+`)
-	key2 = re.ReplaceAllString(key2, "$1[^/]+$2")
-
-	return util.RegexMatch(key1, "^"+key2+"$")
+	return util.RegexMatch(key1, "^"+pattern+"$")
 }
 
 // KeyMatchEchoFunc is the wrapper for KeyMatchEcho.
