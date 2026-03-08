@@ -158,6 +158,8 @@ github.com/casbin/casbin/v3 v3.9.0 h1:EHE4TR/CtnXxvweCRkMiRFD850uhg072zgxL1u0kDd
 github.com/casbin/casbin/v3 v3.9.0/go.mod h1:5rJbQr2e6AuuDDNxnPc5lQlC9nIgg6nS1zYwKXhpHC8=
 github.com/casbin/gorm-adapter/v3 v3.40.0 h1:jj58MTKmjAqvTkVOcaapN6HolwdtwiqxVVLsvY8Owsw=
 github.com/casbin/gorm-adapter/v3 v3.40.0/go.mod h1:BQZRJhwUnwMpI+pT2m7/cUJwXxrHfzpBpPcNTyMGeGA=
+github.com/casbin/gorm-adapter/v3 v3.41.0 h1:Xhpi0tfRP9aKPDWDf6dgBxHZ9UM6IophxxPIEGWqCNM=
+github.com/casbin/gorm-adapter/v3 v3.41.0/go.mod h1:BQZRJhwUnwMpI+pT2m7/cUJwXxrHfzpBpPcNTyMGeGA=
 github.com/casbin/govaluate v1.3.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
 github.com/casbin/govaluate v1.10.0 h1:ffGw51/hYH3w3rZcxO/KcaUIDOLP84w7nsidMVgaDG0=
 github.com/casbin/govaluate v1.10.0/go.mod h1:G/UnbIjZk/0uMNaLwZZmFQrR72tYRZWQkO70si/iR7A=
