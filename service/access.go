@@ -9,10 +9,10 @@ import (
 	"github.com/casbin/casbin/v3"
 	"github.com/casbin/casbin/v3/model"
 	_ "github.com/casbin/casbin/v3/rbac/default-role-manager"
-	"github.com/casbin/gorm-adapter/v3"
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	accessMetrics "go.lumeweb.com/portal/service/internal/access"
+	access "go.lumeweb.com/portal/service/internal/access"
 )
 
 var _ core.AccessService = (*AccessServiceDefault)(nil)
@@ -27,7 +27,7 @@ func init() {
 	core.RegisterService(core.ServiceInfo{
 		ID:      core.ACCESS_SERVICE,
 		Factory: NewAccessService,
-		Metrics: accessMetrics.GetCollectors(),
+		Metrics: access.GetCollectors(),
 	})
 }
 
@@ -51,13 +51,13 @@ func (a *AccessServiceDefault) RegisterRoute(ctx context.Context, subdomain, pat
 	defer span.End()
 
 	return core.MetricTrack(
-		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
-		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpRegisterRoute),
+		access.AccessDuration.WithLabelValues(access.LabelOpRegisterRoute),
+		access.AccessFailed.WithLabelValues(access.LabelOpRegisterRoute),
 		func() error {
 			fqdn := fmt.Sprintf("%s.%s", subdomain, a.Context().Config().Config().Core.Domain)
 			_, err := a.enforcer.AddPolicy(role, fqdn, path, method)
 			if err == nil {
-				accessMetrics.RoutesRegistered.WithLabelValues(accessMetrics.LabelOpRegisterRoute).Inc()
+				access.RoutesRegistered.WithLabelValues(access.LabelOpRegisterRoute).Inc()
 			}
 			return err
 		},
@@ -69,13 +69,13 @@ func (a *AccessServiceDefault) AssignRoleToUser(ctx context.Context, userId uint
 	defer span.End()
 
 	return core.MetricTrack(
-		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpAssignRole),
-		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpAssignRole),
+		access.AccessDuration.WithLabelValues(access.LabelOpAssignRole),
+		access.AccessFailed.WithLabelValues(access.LabelOpAssignRole),
 		func() error {
 			userIdStr := strconv.FormatUint(uint64(userId), 10)
 			_, err := a.enforcer.AddRoleForUser(userIdStr, role)
 			if err == nil {
-				accessMetrics.RolesAssigned.WithLabelValues(accessMetrics.LabelOpAssignRole).Inc()
+				access.RolesAssigned.WithLabelValues(access.LabelOpAssignRole).Inc()
 			}
 			return err
 		},
@@ -87,15 +87,15 @@ func (a *AccessServiceDefault) CheckAccess(ctx context.Context, userId uint, fqd
 	defer span.End()
 
 	result, err := core.MetricTrackResult(
-		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpCheckAccess),
-		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpCheckAccess),
+		access.AccessDuration.WithLabelValues(access.LabelOpCheckAccess),
+		access.AccessFailed.WithLabelValues(access.LabelOpCheckAccess),
 		func() (bool, error) {
 			return a.enforcer.Enforce(strconv.FormatUint(uint64(userId), 10), fqdn, path, method)
 		},
 	)
 
 	if err == nil {
-		accessMetrics.AccessChecked.WithLabelValues(accessMetrics.LabelOpCheckAccess).Inc()
+		access.AccessChecked.WithLabelValues(access.LabelOpCheckAccess).Inc()
 	}
 	return result, err
 }
@@ -105,8 +105,8 @@ func (a *AccessServiceDefault) ExportUserPolicy(ctx context.Context, userId uint
 	defer span.End()
 
 	result, err := core.MetricTrackResult(
-		accessMetrics.AccessDuration.WithLabelValues(accessMetrics.LabelOpExportPolicy),
-		accessMetrics.AccessFailed.WithLabelValues(accessMetrics.LabelOpExportPolicy),
+		access.AccessDuration.WithLabelValues(access.LabelOpExportPolicy),
+		access.AccessFailed.WithLabelValues(access.LabelOpExportPolicy),
 		func() ([]*core.AccessPolicy, error) {
 			userIdStr := strconv.FormatUint(uint64(userId), 10)
 			// Get all roles for the user
@@ -147,7 +147,7 @@ func (a *AccessServiceDefault) ExportUserPolicy(ctx context.Context, userId uint
 	)
 
 	if err == nil {
-		accessMetrics.PolicyExported.WithLabelValues(accessMetrics.LabelOpExportPolicy).Inc()
+		access.PolicyExported.WithLabelValues(access.LabelOpExportPolicy).Inc()
 	}
 	return result, err
 }
@@ -168,7 +168,7 @@ func (a *AccessServiceDefault) IInit() error {
 	m.AddDef("e", "e", "some(where (p.eft == allow))")
 
 	// Matchers
-	m.AddDef("m", "m", "g(r.sub, p.sub) && r.dom == p.dom && keyMatch2(r.obj, p.obj) && r.act == p.act")
+	m.AddDef("m", "m", "g(r.sub, p.sub) && r.dom == p.dom && keyMatchEcho(r.obj, p.obj) && r.act == p.act")
 
 	// Load the model
 	enforcer, err := casbin.NewEnforcer(m)
@@ -177,6 +177,9 @@ func (a *AccessServiceDefault) IInit() error {
 	}
 
 	enforcer.EnableAutoSave(true)
+
+	// Register custom key matcher for Echo's colon syntax
+	enforcer.AddFunction("keyMatchEcho", access.KeyMatchEchoFunc)
 
 	a.enforcer = enforcer
 
