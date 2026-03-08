@@ -170,28 +170,32 @@ func (a *AccessServiceDefault) IInit() error {
 	// Matchers
 	m.AddDef("m", "m", "g(r.sub, p.sub) && r.dom == p.dom && keyMatchEcho(r.obj, p.obj) && r.act == p.act")
 
-	// Load the model
-	enforcer, err := casbin.NewEnforcer(m)
-	if err != nil {
-		return err
-	}
-
-	enforcer.EnableAutoSave(true)
-
-	// Register custom key matcher for Echo's colon syntax
-	enforcer.AddFunction("keyMatchEcho", access.KeyMatchEchoFunc)
-
-	a.enforcer = enforcer
-
 	db := a.DB()
 
 	// Load policies from database
 	gormadapter.TurnOffAutoMigrate(db)
 	tbl := models.AccessRule{}
 	tableName := db.NamingStrategy.TableName(reflect.TypeOf(tbl).Name())
-	adapter, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &tbl, tableName)
+	adapter, err := gormadapter.NewAdapterByDBWithCustomTable(db, &tbl, tableName)
+	if err != nil {
+		return err
+	}
 
-	return a.enforcer.InitWithModelAndAdapter(m, adapter)
+	// Load the model with adapter
+	enforcer, err := casbin.NewEnforcer(m, adapter)
+	if err != nil {
+		return err
+	}
+
+	// Register custom key matcher for Echo's colon syntax
+	// Must be registered before the enforcer is used
+	enforcer.AddFunction("keyMatchEcho", access.KeyMatchEchoFunc)
+
+	enforcer.EnableAutoSave(true)
+
+	a.enforcer = enforcer
+
+	return nil
 }
 
 func (a *AccessServiceDefault) GetEnforcer() *casbin.Enforcer {
