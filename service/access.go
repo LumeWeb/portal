@@ -168,7 +168,7 @@ func (a *AccessServiceDefault) IInit() error {
 	m.AddDef("e", "e", "some(where (p.eft == allow))")
 
 	// Matchers
-	m.AddDef("m", "m", "g(r.sub, p.sub) && r.dom == p.dom && keyMatch5(r.obj, p.obj) && r.act == p.act")
+	m.AddDef("m", "m", "g(r.sub, p.sub) && r.dom == p.dom && keyMatch2(r.obj, p.obj) && r.act == p.act")
 
 	// Load the model
 	enforcer, err := casbin.NewEnforcer(m)
