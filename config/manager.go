@@ -13,6 +13,22 @@ import (
 	"go.uber.org/zap"
 )
 
+// StripPluginNamePrefix removes the plugin name prefix from a service ID if present.
+// If the serviceName starts with pluginName+"-", it strips the prefix.
+// This handles cases where service IDs include the plugin name (e.g., "my-plugin-service-id").
+func StripPluginNamePrefix(pluginName, serviceName string) string {
+	if pluginName == "" || serviceName == "" {
+		return serviceName
+	}
+	lowerPluginName := strings.ToLower(pluginName)
+	prefix := lowerPluginName + "-"
+	if strings.HasPrefix(strings.ToLower(serviceName), prefix) {
+		// Strip the prefix and keep the rest of the service name
+		return serviceName[len(prefix):]
+	}
+	return serviceName
+}
+
 // findConfigFileOptions defines options for finding configuration files
 type findConfigFileOptions struct {
 	Paths           []string   // Search paths, defaults to DefaultConfigPaths if empty
@@ -513,8 +529,11 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 	}
 
 	pluginName = strings.ToLower(pluginName)
-	key := fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
-	filePath := filepath.Join(m.configDir, PluginsDir, pluginName, ServiceDir, serviceName+CONFIG_EXTENSION)
+	
+	// Strip plugin name prefix from serviceName for both config namespace and file paths
+	cleanServiceName := StripPluginNamePrefix(pluginName, serviceName)
+	key := fmt.Sprintf(ServiceSpecifier, pluginName, cleanServiceName)
+	filePath := filepath.Join(m.configDir, PluginsDir, pluginName, ServiceDir, cleanServiceName+CONFIG_EXTENSION)
 
 	// Register the service config struct
 	if err := m.Manager.RegisterStruct(key, cfg); err != nil {
@@ -550,7 +569,9 @@ func (m *ManagerDefault) ConfigureService(pluginName string, serviceName string,
 
 func (m *ManagerDefault) GetService(pluginName string, serviceName string) ServiceConfig {
 	pluginName = strings.ToLower(pluginName)
-	key := fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
+	// Strip plugin name prefix if present in serviceName for config namespace lookup
+	cleanServiceName := StripPluginNamePrefix(pluginName, serviceName)
+	key := fmt.Sprintf(ServiceSpecifier, pluginName, cleanServiceName)
 
 	_, cfg, err := m.Manager.Get(key)
 
