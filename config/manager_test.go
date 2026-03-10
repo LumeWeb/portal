@@ -428,7 +428,9 @@ portal_name: test_portal
 				return "value: test"
 			},
 			getKey: func(pluginName, serviceName string) string {
-				return fmt.Sprintf(ServiceSpecifier, pluginName, serviceName)
+				// Strip plugin name prefix to match the new behavior
+				cleanServiceName := StripPluginNamePrefix(pluginName, serviceName)
+				return fmt.Sprintf(ServiceSpecifier, pluginName, cleanServiceName)
 			},
 			getFunc: func(m *ManagerDefault, pluginName string) interface{} {
 				return m.GetService(pluginName, "test_service")

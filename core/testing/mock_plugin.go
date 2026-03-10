@@ -122,7 +122,9 @@ func (b *MockPluginBuilder) applyServiceConfig(id string, mockInstance any) erro
 
 		cfgDefaults, ok := cfg.(config.Defaults)
 		if ok {
-			prefix := fmt.Sprintf(config.ServiceSpecifier, b.plugin.ID, id)
+			// Strip plugin name prefix for config namespace
+			cleanServiceID := config.StripPluginNamePrefix(b.plugin.ID, id)
+			prefix := fmt.Sprintf(config.ServiceSpecifier, b.plugin.ID, cleanServiceID)
 			return ApplyConfig(b.ctx, prefix, cfgDefaults)
 		}
 	}

@@ -132,7 +132,9 @@ func WithServiceConfig(pluginName string, serviceName string, serviceConfig conf
 		if err := cfg.ConfigureService(pluginName, serviceName, serviceConfig); err != nil {
 			return ctx, fmt.Errorf("failed to configure service %s for plugin %s: %w", serviceName, pluginName, err)
 		}
-		prefix := fmt.Sprintf(config.ServiceSpecifier, pluginName, serviceName)
+		// Strip plugin name prefix if present for consistent config key generation
+		cleanServiceName := config.StripPluginNamePrefix(pluginName, serviceName)
+		prefix := fmt.Sprintf(config.ServiceSpecifier, pluginName, cleanServiceName)
 		if err := ApplyConfig(ctx, prefix, serviceConfig); err != nil {
 			return ctx, err
 		}
