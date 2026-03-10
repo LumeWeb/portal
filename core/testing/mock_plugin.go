@@ -191,7 +191,31 @@ func (b *MockPluginBuilder) Build() (core.Service, []core.ContextBuilderOption, 
 
 	if len(b.services) > 0 || len(b.mockServices) > 0 || len(b.mockServiceFactories) > 0 {
 		allServices := make([]core.ServiceInfo, 0, len(b.services)+len(b.mockServices)+len(b.mockServiceFactories))
-		allServices = append(allServices, b.services...)
+		// Process regular services - wrap factories to apply config
+		for _, svc := range b.services {
+			id := svc.ID
+			factory := svc.Factory
+			depends := svc.Depends
+
+			// Wrap the factory to apply config after service is created
+			allServices = append(allServices, core.ServiceInfo{
+				ID: id,
+				Factory: func() (core.Service, []core.ContextBuilderOption, error) {
+					svcInstance, opts, err := factory()
+					if err != nil {
+						return nil, nil, err
+					}
+
+					// Apply config if provided for this service
+					if err := b.applyServiceConfig(id, svcInstance); err != nil {
+						return nil, nil, err
+					}
+
+					return svcInstance, opts, nil
+				},
+				Depends: depends,
+			})
+		}
 
 		// Process mock services - add to services list with no-op factories
 		for _, mockSvc := range b.mockServices {
