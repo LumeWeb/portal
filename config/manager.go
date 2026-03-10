@@ -14,14 +14,14 @@ import (
 )
 
 // StripPluginNamePrefix removes the plugin name prefix from a service ID if present.
-// If the serviceName starts with pluginName+"-", it strips the prefix.
-// This handles cases where service IDs include the plugin name (e.g., "my-plugin-service-id").
+// If the serviceName starts with pluginName+".", it strips the prefix.
+// This handles cases where service IDs include the plugin name (e.g., "ipfs.dns" → "dns").
 func StripPluginNamePrefix(pluginName, serviceName string) string {
 	if pluginName == "" || serviceName == "" {
 		return serviceName
 	}
 	lowerPluginName := strings.ToLower(pluginName)
-	prefix := lowerPluginName + "-"
+	prefix := lowerPluginName + "."
 	if strings.HasPrefix(strings.ToLower(serviceName), prefix) {
 		// Strip the prefix and keep the rest of the service name
 		return serviceName[len(prefix):]
