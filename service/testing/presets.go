@@ -22,6 +22,8 @@ func PresetE2E() coreTesting.TestContextBuilderOption {
 	// Layer 4 (requiring layer 3): auth (depends on user + otp), password reset (depends on user + mailer)
 	// Layer 5 (globally required, always initialized): access, http
 	return coreTesting.CombineOptions(
+		// Renter service - must be first as storage service depends on it
+		coreTesting.WithStatefulMockRenterService(),
 
 		// Layer 1: Foundation services
 		coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService),
@@ -53,8 +55,5 @@ func PresetE2E() coreTesting.TestContextBuilderOption {
 		// Layer 5: Globally required services
 		coreTesting.WithServiceFactory(core.ACCESS_SERVICE, service.NewAccessService),
 		coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService),
-
-		// Renter service - needs stateful mock for testing
-		coreTesting.WithStatefulMockRenterService(),
 	)
 }
