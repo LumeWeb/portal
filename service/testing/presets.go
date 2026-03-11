@@ -25,7 +25,12 @@ func PresetE2E() coreTesting.TestContextBuilderOption {
 
 		// Layer 1: Foundation services
 		coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService),
-		coreTesting.WithServiceFactory(core.MAILER_SERVICE, service.NewMailerService),
+
+		// Mailer requires a templateRegistry parameter
+		coreTesting.WithServiceFactory(core.MAILER_SERVICE, func() (core.Service, []core.ContextBuilderOption, error) {
+			return service.NewMailerService(service.NewMailerTemplateRegistry())
+		}),
+
 		coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService),
 		coreTesting.WithServiceFactory(core.CONTENT_SCANNER_SERVICE, service.NewContentScannerService),
