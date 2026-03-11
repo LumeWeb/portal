@@ -47,7 +47,7 @@ require (
 	github.com/samber/lo v1.53.0
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tus/tusd/v2 v2.9.1
+	github.com/tus/tusd/v2 v2.9.2
 	github.com/uptrace/uptrace-go v1.40.0
 	github.com/urfave/cli/v3 v3.7.0
 	github.com/wneessen/go-mail v0.7.2
