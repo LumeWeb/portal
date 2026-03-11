@@ -24,6 +24,8 @@ func PresetE2E() coreTesting.TestContextBuilderOption {
 	return coreTesting.CombineOptions(
 		// Renter service - must be first as storage service depends on it
 		coreTesting.WithStatefulMockRenterService(),
+		// Mock S3 storage for safe testing without network calls
+		coreTesting.WithMockS3(),
 
 		// Layer 1: Foundation services
 		coreTesting.WithServiceFactory(core.CRON_SERVICE, service.NewCronService),
