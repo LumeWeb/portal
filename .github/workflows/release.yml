@@ -1,33 +1,9 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - "**"
-    paths:
-      - '.changeset/**'
-      - '.changeset-release/**'
-      - 'package.json'
-    tags:
-      - '**'
-  pull_request:
-    types:
-      - closed
-    branches:
-      - '**'
-    paths:
-      - '.changeset/**'
-      - '.changeset-release/**'
-      - 'package.json'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
+  workflow_dispatch:
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: LumeWeb/golang-versioner-action@v0.1.8
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    uses: LumeWeb/workflows/.github/workflows/release.yml@develop
+    secrets: inherit
