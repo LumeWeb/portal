@@ -54,13 +54,29 @@ func NewMockHTTPService(t TB) *MockHTTPService {
 	return httpService
 }
 
-// APISubdomain implements core.HTTPService with automatic mock setup
-func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockHTTPService.Mock, "APISubdomain", id, proto) {
-		m.EXPECT().APISubdomain(id, proto).Return("")
+// Router implements core.HTTPService with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
+func (m *MockHTTPService) Router() router.Router {
+	// Check if test already set up an expectation for Router
+	// If not, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockHTTPService.Mock, "Router") {
+		m.EXPECT().Router().Return(m.router).Maybe()
 	}
 
+	// Delegate to the underlying mock implementation
+	return m.MockHTTPService.Router()
+}
+
+// APISubdomain implements core.HTTPService with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
+func (m *MockHTTPService) APISubdomain(id string, proto bool) string {
+	// Check if test already set up an expectation for APISubdomain
+	// If not, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockHTTPService.Mock, "APISubdomain") {
+		m.EXPECT().APISubdomain(mock.AnythingOfType("string"), mock.AnythingOfType("bool")).Return("").Maybe()
+	}
+
+	// Delegate to the underlying mock implementation
 	return m.MockHTTPService.APISubdomain(id, proto)
 }
 
@@ -82,33 +98,42 @@ func (m *MockHTTPService) apiSubdomainFunc(id string, proto bool) func(string, b
 	}
 }
 
-// Serve implements core.HTTPService with automatic mock setup
+// Serve implements core.HTTPService with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
 func (m *MockHTTPService) Serve() error {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockHTTPService.Mock, "Serve") {
-		m.EXPECT().Serve().Return(nil)
+	// Check if test already set up an expectation for Serve
+	// If not, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockHTTPService.Mock, "Serve") {
+		m.EXPECT().Serve().Return(nil).Maybe()
 	}
 
+	// Delegate to the underlying mock implementation
 	return m.MockHTTPService.Serve()
 }
 
-// Init implements core.HTTPService with automatic mock setup
+// Init implements core.HTTPService with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
 func (m *MockHTTPService) Init() error {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockHTTPService.Mock, "Init") {
-		m.EXPECT().Init().Return(nil)
+	// Check if test already set up an expectation for Init
+	// If not, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockHTTPService.Mock, "Init") {
+		m.EXPECT().Init().Return(nil).Maybe()
 	}
 
+	// Delegate to the underlying mock implementation
 	return m.MockHTTPService.Init()
 }
 
-// RegisterGlobalPath implements core.HTTPService with automatic mock setup
+// RegisterGlobalPath implements core.HTTPService with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
 func (m *MockHTTPService) RegisterGlobalPath(path string) error {
-	// Set up expectation if not already set
-	if !WasMethodCalled(&m.MockHTTPService.Mock, "RegisterGlobalPath", path) {
-		m.EXPECT().RegisterGlobalPath(path).Return(nil)
+	// Check if test already set up an expectation for RegisterGlobalPath
+	// If not, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockHTTPService.Mock, "RegisterGlobalPath") {
+		m.EXPECT().RegisterGlobalPath(mock.AnythingOfType("string")).Return(nil).Maybe()
 	}
 
+	// Delegate to the underlying mock implementation
 	return m.MockHTTPService.RegisterGlobalPath(path)
 }
 

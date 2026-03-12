@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 	gjwt "github.com/golang-jwt/jwt/v5"
 	"go.lumeweb.com/portal-middleware/auth/jwt"
 	"go.lumeweb.com/portal/config"
@@ -237,4 +240,50 @@ func (h *JWTHelper) GenerateExpiredTestToken(userID uint) string {
 // Useful for tests that need to simulate invalid tokens.
 func (h *JWTHelper) GenerateInvalidTestToken() string {
 	return "invalid_test_token"
+}
+
+// ===== Top-level Test Helpers =====
+
+// CreateTestJWTToken generates a valid JWT token for testing purposes.
+// These are convenient top-level functions that can be used without needing a JWTHelper instance.
+func CreateTestJWTToken(tb testing.TB, ctx TestContext, userID string, purpose jwt.Purpose, duration time.Duration) string {
+	pk := ctx.Config().Config().Core.Identity.PrivateKey()
+	jwtToken, err := jwt.CreateToken(pk, ctx.Config().Config().Core.Domain, userID, purpose, duration)
+	require.NoError(tb, err, "Failed to generate test JWT")
+	return jwtToken
+}
+
+// CreateTestLoginToken generates a valid JWT token with login purpose for testing.
+// Uses a default 90-day expiration.
+func CreateTestLoginToken(tb testing.TB, ctx TestContext, userID string) string {
+	return CreateTestJWTToken(tb, ctx, userID, jwt.PurposeLogin, 90*24*time.Hour)
+}
+
+// CreateTest2FAToken generates a valid JWT token with 2FA purpose for testing.
+// Uses a default 90-day expiration.
+func CreateTest2FAToken(tb testing.TB, ctx TestContext, userID string) string {
+	return CreateTestJWTToken(tb, ctx, userID, jwt.Purpose2FA, 90*24*time.Hour)
+}
+
+// CreateTestAPIToken generates a valid JWT token with API purpose for testing.
+// Uses a default 90-day expiration.
+func CreateTestAPIToken(tb testing.TB, ctx TestContext, userID string) string {
+	return CreateTestJWTToken(tb, ctx, userID, jwt.PurposeAPI, 90*24*time.Hour)
+}
+
+// CreateTestAPIKeyToken generates a valid API key JWT for testing purposes with custom key ID.
+func CreateTestAPIKeyToken(tb testing.TB, ctx TestContext, userID string, keyID uuid.UUID) string {
+	pk := ctx.Config().Config().Core.Identity.PrivateKey()
+	apiKeyToken, err := jwt.CreateToken(
+		pk,
+		ctx.Config().Config().Core.Domain,
+		userID,
+		jwt.PurposeAPI,
+		24*time.Hour,
+		jwt.WithClaims(&gjwt.RegisteredClaims{
+			ID: keyID.String(),
+		}),
+	)
+	require.NoError(tb, err, "Failed to generate test API key token")
+	return apiKeyToken
 }
