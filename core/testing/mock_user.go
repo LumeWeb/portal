@@ -139,21 +139,6 @@ func (m *MockUserService) UserDoesNotExist(userID uint) (bool, *models.User, err
 	return false, nil, nil
 }
 
-// EmailExists checks if email exists with automatic mock setup.
-func (m *MockUserService) EmailExists(ctx context.Context, email string) (bool, *models.User, error) {
-	// Create test user object
-	user := &models.User{
-		Model:    gorm.Model{ID: 1},
-		Email:    email,
-		Verified: true,
-	}
-
-	// Mock of EmailExists response
-	m.EXPECT().EmailExists(mock.Anything, email).Return(true, user, nil)
-
-	return true, user, nil
-}
-
 // EmailDoesNotExist checks if email does not exist with automatic mock setup.
 func (m *MockUserService) EmailDoesNotExist(email string) (bool, *models.User, error) {
 	// Mock of EmailExists response for not found
@@ -210,16 +195,6 @@ func (m *MockUserService) AddPublicKeyFails(user *models.User, publicKey string)
 	return fmt.Errorf("key already exists")
 }
 
-// HashPassword hashes a password with automatic mock setup.
-func (m *MockUserService) HashPassword(password string) (string, error) {
-	hash := m.hashPassword(password)
-
-	// Mock of HashPassword response
-	m.EXPECT().HashPassword(password).Return(hash, nil)
-
-	return hash, nil
-}
-
 // HashPasswordFails simulates password hashing failure with automatic mock setup.
 func (m *MockUserService) HashPasswordFails(password string) (string, error) {
 	// Mock of HashPassword response with error
@@ -241,6 +216,49 @@ func (m *MockUserService) SetupEmailExistsExpectation(email string, exists bool,
 // SetupUpdateAccountInfoExpectation sets up account info update expectation.
 func (m *MockUserService) SetupUpdateAccountInfoExpectation(userID uint, updateData map[string]any, err error) {
 	m.EXPECT().UpdateAccountInfo(mock.Anything, userID, updateData).Return(err)
+}
+
+// AccountExists checks if account exists by ID with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
+func (m *MockUserService) AccountExists(ctx context.Context, userID uint) (bool, *models.User, error) {
+	// Check if test already set up an expectation for AccountExists
+	// If not, add a safe default expectation (account does not exist)
+	if !HasExpectationForMethod(&m.MockUserService.Mock, "AccountExists") {
+		m.EXPECT().AccountExists(mock.Anything, mock.AnythingOfType("uint")).
+			Return(false, nil, nil).Maybe()
+	}
+
+	// Delegate to the underlying mock implementation
+	return m.MockUserService.AccountExists(ctx, userID)
+}
+
+// EmailExists checks if email exists with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
+func (m *MockUserService) EmailExists(ctx context.Context, email string) (bool, *models.User, error) {
+	// Check if test already set up an expectation for EmailExists
+	// If not, add a safe default expectation (email does not exist)
+	if !HasExpectationForMethod(&m.MockUserService.Mock, "EmailExists") {
+		m.EXPECT().EmailExists(mock.Anything, mock.AnythingOfType("string")).
+			Return(false, nil, nil).Maybe()
+	}
+
+	// Delegate to the underlying mock implementation
+	return m.MockUserService.EmailExists(ctx, email)
+}
+
+// HashPassword hashes a password with automatic mock setup.
+// If no expectation was set by the test, adds a safe default expectation.
+func (m *MockUserService) HashPassword(password string) (string, error) {
+	// Check if test already, add a safe default expectation
+	if !HasExpectationForMethod(&m.MockUserService.Mock, "HashPassword") {
+		// Generate a simple hash for the default return
+		hash := m.hashPassword(password)
+		m.EXPECT().HashPassword(mock.AnythingOfType("string")).
+			Return(hash, nil).Maybe()
+	}
+
+	// Delegate to the underlying mock implementation
+	return m.MockUserService.HashPassword(password)
 }
 
 // hashPassword creates a simple hash for testing (in real scenario would use bcrypt)

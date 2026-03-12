@@ -4,6 +4,18 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// HasExpectationForMethod checks if any expectation already exists for a given method.
+// This allows helper methods to avoid adding duplicate expectations.
+// Used in mock helper implementations to ensure we only add defaults when needed.
+func HasExpectationForMethod(m *mock.Mock, methodName string) bool {
+	for _, call := range m.ExpectedCalls {
+		if call.Method == methodName {
+			return true
+		}
+	}
+	return false
+}
+
 // WasMethodCalled checks if a method was called on the mock with the given arguments.
 // Returns true if the method was called with matching arguments, false otherwise.
 // Unlike testify's AssertCalled, this doesn't fail the test if not called.
