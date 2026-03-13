@@ -32,20 +32,21 @@ const CtxRangeKey CtxRangeKeyType = "range"
 var _ core.TusHandler = (*TusHandlerDefault)(nil)
 
 type TusHandlerDefault struct {
-	handlerConfig core.TUSHandlerConfig
-	ctx           core.Context
-	db            *gorm.DB
-	config        config.Manager
-	logger        *core.Logger
-	tusService    core.TUSService
-	cron          core.CronService
-	storage       core.StorageService
-	users         core.UserService
-	metadata      core.UploadService
-	requests      core.RequestService
-	tus           *handler.Handler
-	tusStore      handler.DataStore
-	s3Client      *s3.Client
+	handlerConfig  core.TUSHandlerConfig
+	ctx            core.Context
+	db             *gorm.DB
+	config         config.Manager
+	logger         *core.Logger
+	tusService     core.TUSService
+	cron           core.CronService
+	storage        core.StorageService
+	users          core.UserService
+	metadata       core.UploadService
+	requests       core.RequestService
+	tus            *handler.Handler
+	tusStore       handler.DataStore
+	s3Client       *s3.Client
+	workerCancel   context.CancelFunc
 }
 
 func (t *TusHandlerDefault) GetTusHandler() *handler.Handler {
@@ -353,13 +354,21 @@ func (t *TusHandlerDefault) init(ctx context.Context, handlerConfig core.TUSHand
 	return nil
 }
 func (t *TusHandlerDefault) worker() {
-	ctx := t.ctx
+	// Detach context for upload operations to survive service cancellation
+	// This allows in-progress uploads to complete during shutdown
+	detachedCtx := core.DetachContext(t.ctx)
+
+	// Create cancellable sub-context for worker lifecycle management
+	// This allows graceful shutdown while preserving upload operation context
+	workerCtx, cancel := context.WithCancel(detachedCtx)
+	t.workerCancel = cancel
+	defer cancel()
 
 	// Handle created uploads
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-workerCtx.Done():
 				return
 			case info := <-t.tus.CreatedUploads:
 				if t.handlerConfig.CreatedUploadHandler != nil {
@@ -373,7 +382,7 @@ func (t *TusHandlerDefault) worker() {
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-workerCtx.Done():
 				return
 			case info := <-t.tus.UploadProgress:
 				if t.handlerConfig.UploadProgressHandler != nil {
@@ -387,7 +396,7 @@ func (t *TusHandlerDefault) worker() {
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-workerCtx.Done():
 				return
 			case info := <-t.tus.TerminatedUploads:
 				if t.handlerConfig.TerminatedUploadHandler != nil {
@@ -401,7 +410,7 @@ func (t *TusHandlerDefault) worker() {
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-workerCtx.Done():
 				return
 			case info := <-t.tus.CompleteUploads:
 				if t.handlerConfig.CompletedUploadHandler != nil {
@@ -410,6 +419,14 @@ func (t *TusHandlerDefault) worker() {
 			}
 		}
 	}()
+}
+
+// Shutdown gracefully terminates the worker goroutines
+// This should be called during service shutdown to prevent goroutine leaks
+func (t *TusHandlerDefault) Shutdown() {
+	if t.workerCancel != nil {
+		t.workerCancel()
+	}
 }
 
 func getLockerMode(cm config.Manager, logger *core.Logger) string {
@@ -624,9 +641,7 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			}
 
 			// Get the upload reader
-			// IMPORTANT: Use the service context (ctx) instead of hook.Context
-			// because hook.Context is the HTTP request context which is canceled after
-			// the upload completes, and this handler runs in a goroutine after completion.
+			// Note: ctx is already detached from the worker goroutine
 			reader, err := handlr.UploadReader(ctx, hook.Upload.ID, protocol, 0)
 			if err != nil {
 				errMessage := fmt.Sprintf("failed to get upload reader for %s: %v", hook.Upload.ID, err)
