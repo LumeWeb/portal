@@ -799,6 +799,7 @@ go.lumeweb.com/portal-plugin-core v0.0.0-20260109024150-b4ac33cb7c47 h1:72BfSDgl
 go.lumeweb.com/portal-plugin-core v0.0.0-20260109024150-b4ac33cb7c47/go.mod h1:pnvjUHp5g8HuEst+rBdQDGIj4IgJjIvN5Ou2XGye9KQ=
 go.lumeweb.com/portal-plugin-dashboard v0.2.7-0.20260308093909-80f381086370 h1:Y1FOkKD3JNA98P32AQCQneTXmAxMQi6xEBD00WcXAT4=
 go.lumeweb.com/portal-plugin-dashboard v0.2.7-0.20260308093909-80f381086370/go.mod h1:HF7NbZNDu9nNjCS5e7YmRak/lPaSa6gXsiQ/2bisoJU=
+go.lumeweb.com/portal-plugin-dashboard v0.2.7-0.20260312042836-d9dfa043a80d/go.mod h1:XzNGrs5qmHO/imWHCIVzFMcLcnvRH83dVW45t1zX5m0=
 go.lumeweb.com/portal-router v0.6.13 h1:WqBNN4naPuERAwLqjCwxpAhpvzBxom8w8KqdP+EoTvw=
 go.lumeweb.com/portal-router v0.6.13/go.mod h1:4tb+XYa0GYiFVraMoossGgMBTN9z4U54v8SL+EOBvbs=
 go.lumeweb.com/queryutil v0.3.15 h1:R2l6GAAne8rCgh1rGy5HQ54zvs8JJw3gRLjhmkd8SHk=
