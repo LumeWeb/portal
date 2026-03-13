@@ -245,8 +245,10 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 	}
 
 	// Define the task function
+	// Detach context to avoid cancellation in long-running jobs
+	jobCtx := core.DetachContext(ctx)
 	taskFunc := func(jobID uuid.UUID) error {
-		return s.ExecuteJob(ctx, jobID)
+		return s.ExecuteJob(jobCtx, jobID)
 	}
 
 	// Validate retry policy before computing delay
@@ -292,7 +294,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 			zap.String("jobName", jobName))
 
 		// Perform any pre-execution tasks here
-		if err := s.SetupJob(ctx, jobID); err != nil {
+		if err := s.SetupJob(jobCtx, jobID); err != nil {
 			s.logger.Error("Failed to setup job",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
@@ -303,7 +305,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 	afterJobRuns := func(jobID uuid.UUID, jobName string) {
 		s.logger.Debug("After job runs", zap.String("jobID", jobID.String()), zap.String("jobName", jobName))
 		// Perform any post-execution tasks here
-		if err = s.CleanupJob(ctx, jobID); err != nil {
+		if err = s.CleanupJob(jobCtx, jobID); err != nil {
 			s.logger.Error("Failed to cleanup job", zap.String("jobID", jobID.String()), zap.Error(err))
 		}
 	}
@@ -322,7 +324,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 		s.failureMu.Unlock()
 
 		// Handle all failure transitions through HandleFailedJob
-		if err := s.HandleFailedJob(ctx, jobID, uint(failures)); err != nil {
+		if err := s.HandleFailedJob(jobCtx, jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
@@ -344,7 +346,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 
 		// Handle all failure transitions through HandleFailedJob
 		// For panic recovery, we'll treat it as a retryable failure (not permanent)
-		if err := s.HandleFailedJob(ctx, jobID, uint(failures)); err != nil {
+		if err := s.HandleFailedJob(jobCtx, jobID, uint(failures)); err != nil {
 			s.logger.Error("Failed to handle failed job", zap.String("jobID", jobID.String()), zap.Error(err))
 		}
 	}

@@ -353,7 +353,10 @@ func (t *TusHandlerDefault) init(ctx context.Context, handlerConfig core.TUSHand
 	return nil
 }
 func (t *TusHandlerDefault) worker() {
-	ctx := t.ctx
+	// Detach context to avoid cancellation in long-running goroutines
+	// The service context may be canceled during shutdown, but upload processing
+	// should continue to completion.
+	ctx := core.DetachContext(t.ctx)
 
 	// Handle created uploads
 	go func() {
@@ -624,9 +627,7 @@ func DefaultUploadCompletedHandler(ctx core.Context, processHandler core.TUSUplo
 			}
 
 			// Get the upload reader
-			// IMPORTANT: Use the service context (ctx) instead of hook.Context
-			// because hook.Context is the HTTP request context which is canceled after
-			// the upload completes, and this handler runs in a goroutine after completion.
+			// Note: ctx is already detached from the worker goroutine
 			reader, err := handlr.UploadReader(ctx, hook.Upload.ID, protocol, 0)
 			if err != nil {
 				errMessage := fmt.Sprintf("failed to get upload reader for %s: %v", hook.Upload.ID, err)
