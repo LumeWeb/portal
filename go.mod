@@ -37,6 +37,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.3
 	github.com/labstack/echo-contrib v0.17.4
 	github.com/labstack/echo/v4 v4.15.1
+	github.com/labstack/echo/v5 v5.0.4
 	github.com/looplab/fsm v1.0.3
 	github.com/miekg/dns v1.1.72
 	github.com/multiformats/go-multibase v0.2.0
