@@ -789,6 +789,8 @@ go.lumeweb.com/configmanager v0.3.26 h1:vbRDOrIdi4J6Qa0lPLhS5KJXQckq4KH42gXh8ZDv
 go.lumeweb.com/configmanager v0.3.26/go.mod h1:VzOWphzkjbdlDSsJ02S+tty3EVzPEa+OVPD1Qghw6b0=
 go.lumeweb.com/configmanager v0.3.27 h1:kvXG4czsGrfrHdm3KrdxdrFEkiZTKrmbaVlaBThy51w=
 go.lumeweb.com/configmanager v0.3.27/go.mod h1:Ue00RHdX6xlfmGe7VD950J8CzJuwt9vxNBD1DNWtwss=
+go.lumeweb.com/configmanager v0.3.28 h1:KI2aZqPLkDfk+4IEr2wGuk1XkDaKC4Rj8x+nMG81M9U=
+go.lumeweb.com/configmanager v0.3.28/go.mod h1:RALN4cn+GAtr+wMJnovY5eKQf5G1+XZl+ZUtk1ie9Co=
 go.lumeweb.com/event/v2 v2.1.0 h1:pVWRzrHAkjhXa+owzhDTtaxBHbnxrsIpDHFZwEUxKoY=
 go.lumeweb.com/event/v2 v2.1.0/go.mod h1:e1Ss7iATIrP1b2Ojwbp1wdF0VTuxFXHdI7szkAG40AI=
 go.lumeweb.com/gswagger v0.20.10 h1:B2GYZZPeqR4kh9x/hI6VgInTpz0pX6RKJcAYGGF3OVo=
