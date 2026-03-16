@@ -162,6 +162,18 @@ func (m *ManagerDefault) setConfigPaths(configFile string) {
 	m.configDir = filepath.Dir(configFile)
 }
 
+// ConfigDir returns the path to the configuration directory
+// This overrides the embedded configmanager.Manager's ConfigDir() method
+func (m *ManagerDefault) ConfigDir() string {
+	return m.configDir
+}
+
+// ConfigFile returns the path to the configuration file
+// This overrides the embedded configmanager.Manager's ConfigFile() method
+func (m *ManagerDefault) ConfigFile() string {
+	return m.configFile
+}
+
 var _ Manager = (*ManagerDefault)(nil)
 
 // ManagerConfig holds dependencies and options required to construct a Manager, including the ConfigManager for
