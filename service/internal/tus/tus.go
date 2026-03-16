@@ -419,6 +419,9 @@ func (t *TusHandlerDefault) worker() {
 			}
 		}
 	}()
+
+	// Wait for shutdown signal
+	<-workerCtx.Done()
 }
 
 // Shutdown gracefully terminates the worker goroutines
