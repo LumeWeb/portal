@@ -55,9 +55,7 @@ require (
 	go.lumeweb.com/configmanager v0.3.28
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
-	go.lumeweb.com/portal-middleware v0.3.6
-	go.lumeweb.com/portal-plugin-core v0.0.0-20260109024150-b4ac33cb7c47
-	go.lumeweb.com/portal-plugin-dashboard v0.2.7-0.20260312042836-d9dfa043a80d
+	go.lumeweb.com/portal-middleware v0.3.7
 	go.lumeweb.com/portal-router v0.6.13
 	go.opentelemetry.io/contrib/bridges/otelzap v0.17.0
 	go.opentelemetry.io/otel v1.42.0
@@ -155,7 +153,6 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/ClickHouse/ch-go v0.71.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0 // indirect
@@ -182,7 +179,6 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-chi/chi/v5 v5.2.2 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -190,9 +186,6 @@ require (
 	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/gorilla/mux v1.8.2-0.20240619235004-db9d1d0073d2 // indirect
-	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/gotd/contrib v0.21.1 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/hbollon/go-edlib v1.7.0 // indirect
@@ -204,15 +197,10 @@ require (
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/klauspost/reedsolomon v1.13.2 // indirect
-	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
-	github.com/kolesa-team/go-webp v1.0.5 // indirect
-	github.com/markbates/going v1.0.3 // indirect
-	github.com/markbates/goth v1.82.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.34 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
-	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
@@ -221,15 +209,11 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/sethvargo/go-password v0.3.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.8 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.8 // indirect
 	go.lumeweb.com/gswagger v0.20.10 // indirect
-	go.lumeweb.com/web/go/portal-dashboard v0.0.0-20260123053442-479cd558a2fc // indirect
-	go.lumeweb.com/web/go/portal-plugin-core v0.0.0-20251002232245-a7ec646aadd4 // indirect
-	go.lumeweb.com/web/go/portal-plugin-dashboard v0.0.0-20260123053442-479cd558a2fc // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.67.0 // indirect
 	go.opentelemetry.io/contrib/processors/minsev v0.15.0 // indirect
@@ -249,10 +233,8 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/image v0.34.0 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
