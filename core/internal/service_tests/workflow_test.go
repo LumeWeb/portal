@@ -160,10 +160,11 @@ func TestSingleStepWorkflowCompletion(t *testing.T) {
 		err = workflowService.CompleteWorkflowStep(context.Background(), req.ID)
 		assert.NoError(tb, err)
 
-		// Verify workflow is completed and cleaned up
+		// Verify workflow is completed (requests remain in database with completed status)
 		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
-		assert.Error(tb, err) // Should be deleted
-		assert.Nil(tb, updatedReq)
+		assert.NoError(tb, err)
+		assert.NotNil(tb, updatedReq)
+		assert.Equal(tb, models.RequestStatusCompleted, updatedReq.Status)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
@@ -665,11 +666,11 @@ func TestWorkflowCleanup(t *testing.T) {
 		err = workflowService.CompleteWorkflowStep(context.Background(), req3.ID)
 		assert.NoError(tb, err)
 
-		// Verify all requests are cleaned up
+		// Verify all requests remain in database with completed status
 		var count int64
-		err = ctx.DB().Model(&models.Request{}).Where("id IN (?, ?, ?)", req1.ID, req2.ID, req3.ID).Count(&count).Error
+		err = ctx.DB().Model(&models.Request{}).Where("id IN (?, ?, ?) AND status = ?", req1.ID, req2.ID, req3.ID, models.RequestStatusCompleted).Count(&count).Error
 		require.NoError(tb, err)
-		assert.Equal(tb, int64(0), count)
+		assert.Equal(tb, int64(3), count)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),

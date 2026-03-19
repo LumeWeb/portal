@@ -1078,41 +1078,6 @@ func (w *WorkflowCoordinatorDefault) CleanupWorkflow(ctx context.Context, reques
 		workflowMetrics.WorkflowsFailed.WithLabelValues(metadata.WorkflowName, protocol, workflowMetrics.LabelFailureBehaviorFail).Inc()
 	}
 
-	// Iterate through all requests in the workflow
-	currentReqID := requestID
-	for {
-		// Delete the request through RequestService which handles cleanup
-		err = w.requestSvc.DeleteRequest(ctx, currentReqID)
-		if err != nil {
-			w.Logger().Warn("Failed to delete request during cleanup",
-				zap.Uint("requestID", currentReqID),
-				zap.Error(err))
-		}
-
-		// Get the request to check for previous IDs
-		req, err := w.requestSvc.GetRequestWithDeleted(ctx, currentReqID)
-		if err != nil {
-			break // Stop if we can't get the request
-		}
-
-		// Parse metadata to find the previous request
-		metadata, err = w.parseWorkflowMetadata(req.Metadata)
-		if err != nil {
-			w.Logger().Warn("Failed to parse metadata during cleanup",
-				zap.Uint("requestID", currentReqID),
-				zap.Error(err))
-			break
-		}
-
-		// Move to the previous request
-		currentReqID = metadata.PrevRequestID
-
-		// If there is no previous request, we are done
-		if currentReqID == 0 {
-			break
-		}
-	}
-
 	return nil
 }
 
