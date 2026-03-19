@@ -139,7 +139,7 @@ require (
 	go.sia.tech/jape v0.14.1 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	google.golang.org/grpc v1.79.2 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/postgres v1.6.0 // indirect
