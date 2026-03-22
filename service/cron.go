@@ -44,7 +44,6 @@ type CronServiceDefault struct {
 	coordinator        core.CronCoordinator
 	jobFactory         core.CronJobFactory
 	scheduleRegistry   core.CronScheduleRegistry
-	logger             *core.Logger
 	stateMachine       core.CronJobStateMachine
 	stopHeartbeat      chan struct{}
 	heartbeatTicker    *time.Ticker
@@ -112,7 +111,7 @@ func (c *CronServiceDefault) loadAndValidateJobs(ctx context.Context) error {
 	if cleaned, err := c.monitor.CleanupOrphanedJobs(ctx); err != nil {
 		return fmt.Errorf("failed to validate existing jobs: %w", err)
 	} else if cleaned > 0 {
-		c.logger.Info("Cleaned up orphaned jobs", zap.Int("count", cleaned))
+		c.Logger().Info("Cleaned up orphaned jobs", zap.Int("count", cleaned))
 	}
 
 	return nil
@@ -146,7 +145,6 @@ func NewTestingCronService(
 		scheduleRegistry: scheduleRegistry,
 		stateMachine:     stateMachine,
 	}
-	cs.logger = ctx.ServiceLogger(cs)
 	if cs.scheduleRegistry == nil {
 		cs.scheduleRegistry = cron.NewScheduleRegistry()
 	}
@@ -191,7 +189,7 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 	for _, service := range c.entities {
 		err := service.RegisterTasks(ctx, c)
 		if err != nil {
-			c.logger.Fatal("Failed to register tasks for service", zap.Error(err))
+			c.Logger().Fatal("Failed to register tasks for service", zap.Error(err))
 		}
 	}
 
@@ -201,7 +199,7 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 		if core.PluginHasCron(plugin) {
 			err := c.RegisterPluginJobs(ctx, plugin)
 			if err != nil {
-				c.logger.Fatal("Failed to register plugin cron jobs",
+				c.Logger().Fatal("Failed to register plugin cron jobs",
 					zap.String("plugin", plugin.ID),
 					zap.Error(err))
 			}
@@ -215,7 +213,7 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 	for _, service := range c.entities {
 		err := service.ScheduleJobs(ctx, c)
 		if err != nil {
-			c.logger.Error("Failed to schedule jobs for service", zap.Error(err))
+			c.Logger().Error("Failed to schedule jobs for service", zap.Error(err))
 			return err
 		}
 	}
@@ -404,7 +402,7 @@ func (c *CronServiceDefault) RegisterJob(ctx context.Context, job core.CronJob, 
 			return fmt.Errorf("failed to schedule job: %w", err)
 		}
 	} else {
-		c.logger.Warn("Coordinator not initialized, job will be scheduled on next startup",
+		c.Logger().Warn("Coordinator not initialized, job will be scheduled on next startup",
 			zap.String("jobID", job.ID().String()))
 	}
 
@@ -491,7 +489,7 @@ func (c *CronServiceDefault) loadJobsFromDB(ctx context.Context) error {
 
 		// Delegate all job scheduling to coordinator
 		if err := c.coordinator.EnqueueJob(ctx, jobID); err != nil {
-			c.logger.Error("Failed to schedule job from database",
+			c.Logger().Error("Failed to schedule job from database",
 				zap.String("jobID", jobID.String()),
 				zap.Error(err))
 			continue
