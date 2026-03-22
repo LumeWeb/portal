@@ -195,6 +195,19 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 		}
 	}
 
+	// Register plugin cron jobs
+	plugins := core.GetPlugins()
+	for _, plugin := range plugins {
+		if core.PluginHasCron(plugin) {
+			err := c.RegisterPluginJobs(ctx, plugin)
+			if err != nil {
+				c.logger.Fatal("Failed to register plugin cron jobs",
+					zap.String("plugin", plugin.ID),
+					zap.Error(err))
+			}
+		}
+	}
+
 	if err := c.loadAndValidateJobs(ctx); err != nil {
 		return err
 	}
