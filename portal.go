@@ -186,7 +186,7 @@ func (p *PortalImpl) Init() error {
 	}
 	ctxOpts = append(ctxOpts, opts...)
 
-	opts = p.initCron()
+	opts = p.initCron(ctx)
 	ctxOpts = append(ctxOpts, opts...)
 
 	ctxOpts = append(ctxOpts, svcOpts...)
@@ -643,17 +643,28 @@ func (p *PortalImpl) initAPIs(ctx core.Context) (ctxOpts []core.ContextBuilderOp
 	return ctxOpts, nil
 }
 
-func (p *PortalImpl) initCron() (ctxOpts []core.ContextBuilderOption) {
-	/*	for _, plugin := range core.GetPlugins() {
-		if core.PluginHasCron(plugin) {
-			cronFactory := plugin.Cron()
-			if cronFactory == nil {
-				continue
-			}
-
-			ctxOpts = append(ctxOpts, core.ContextWithCron(cronFactory))
+func (p *PortalImpl) initCron(ctx core.Context) (ctxOpts []core.ContextBuilderOption) {
+	ctxOpts = append(ctxOpts, core.ContextWithStartupFunc(func(ctx core.Context) error {
+		cronSvc := core.GetServiceOptional[core.CronService](ctx, core.CRON_SERVICE)
+		if cronSvc == nil {
+			ctx.Logger().Error("Cron service not found")
+			return errors.New("cron service not found")
 		}
-	}*/
+
+		plugins := core.GetPlugins()
+
+		for _, plugin := range plugins {
+			if core.PluginHasCron(plugin) {
+				err := cronSvc.RegisterPluginJobs(ctx.GetContext(), plugin)
+				if err != nil {
+					ctx.Logger().Error("Error registering plugin cron jobs", zap.String("plugin", plugin.ID), zap.Error(err))
+					return err
+				}
+			}
+		}
+
+		return nil
+	}))
 
 	return ctxOpts
 }
