@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	customDNSAddr atomic.Value
-	dnsClient     = &dns.Client{Timeout: 5 * time.Second}
+	customDNSAddr             atomic.Value
+	dnsClient                 = &dns.Client{Timeout: 5 * time.Second}
+	originalDefaultResolver   *net.Resolver
 )
 
 func queryDNS(ctx context.Context, qtype uint16, name string) (*dns.Msg, error) {
@@ -91,7 +92,7 @@ func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
 		return mxRecords[i].Pref < mxRecords[j].Pref
 	})
 
-	return lookupOrFallback(r, mxRecords, net.DefaultResolver.LookupMX, ctx, name)
+	return lookupOrFallback(r, mxRecords, originalDefaultResolver.LookupMX, ctx, name)
 }
 
 func customLookupTXT(ctx context.Context, name string) ([]string, error) {
@@ -113,7 +114,7 @@ func customLookupTXT(ctx context.Context, name string) ([]string, error) {
 		}
 	}
 
-	return net.DefaultResolver.LookupTXT(ctx, name)
+	return originalDefaultResolver.LookupTXT(ctx, name)
 }
 
 func customLookupCNAME(ctx context.Context, host string) (string, error) {
@@ -133,7 +134,7 @@ func customLookupCNAME(ctx context.Context, host string) (string, error) {
 		}
 	}
 
-	return net.DefaultResolver.LookupCNAME(ctx, host)
+	return originalDefaultResolver.LookupCNAME(ctx, host)
 }
 
 func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
@@ -149,7 +150,7 @@ func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
 		return nil
 	}, true)
 
-	return lookupOrFallback(r, nsRecords, net.DefaultResolver.LookupNS, ctx, name)
+	return lookupOrFallback(r, nsRecords, originalDefaultResolver.LookupNS, ctx, name)
 }
 
 func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
@@ -198,7 +199,7 @@ func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
 		}
 	}
 
-	return net.DefaultResolver.LookupAddr(ctx, addr)
+	return originalDefaultResolver.LookupAddr(ctx, addr)
 }
 
 func customLookupSRV(ctx context.Context, service, proto, name string) (string, []*net.SRV, error) {
@@ -235,7 +236,7 @@ func customLookupSRV(ctx context.Context, service, proto, name string) (string, 
 		if r != nil && isNXDomain(r) {
 			return "", nil, &net.DNSError{Name: name, Err: "no such host", IsNotFound: true}
 		}
-		return net.DefaultResolver.LookupSRV(ctx, service, proto, name)
+		return originalDefaultResolver.LookupSRV(ctx, service, proto, name)
 	}
 	return "", srvRecords, nil
 }
@@ -286,7 +287,7 @@ func customLookupHost(ctx context.Context, host string) ([]string, error) {
 		if isNXDomainResult {
 			return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 		}
-		return net.DefaultResolver.LookupHost(ctx, host)
+		return originalDefaultResolver.LookupHost(ctx, host)
 	}
 
 	addrs := make([]string, len(aRecords))
@@ -322,7 +323,7 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if isNXDomain(r) {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return net.DefaultResolver.LookupIP(ctx, network, host)
+			return originalDefaultResolver.LookupIP(ctx, network, host)
 		}
 		return ips, nil
 
@@ -350,7 +351,7 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if isNXDomain(r) {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return net.DefaultResolver.LookupIP(ctx, network, host)
+			return originalDefaultResolver.LookupIP(ctx, network, host)
 		}
 		return ips, nil
 
@@ -395,12 +396,12 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if hasNXDomain {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return net.DefaultResolver.LookupIP(ctx, network, host)
+			return originalDefaultResolver.LookupIP(ctx, network, host)
 		}
 		return ips, nil
 
 	default:
-		return net.DefaultResolver.LookupIP(ctx, network, host)
+		return originalDefaultResolver.LookupIP(ctx, network, host)
 	}
 }
 
@@ -412,6 +413,9 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 	if logger != nil {
 		logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
 	}
+
+	// Save the original default resolver before replacing it
+	originalDefaultResolver = net.DefaultResolver
 
 	customDNSAddr.Store(dnsResolver)
 
