@@ -17,9 +17,8 @@ import (
 )
 
 var (
-	customDNSAddr             atomic.Value
-	dnsClient                 = &dns.Client{Timeout: 5 * time.Second}
-	originalDefaultResolver   *net.Resolver
+	customDNSAddr atomic.Value
+	dnsClient     = &dns.Client{Timeout: 5 * time.Second}
 )
 
 func queryDNS(ctx context.Context, qtype uint16, name string) (*dns.Msg, error) {
@@ -60,7 +59,10 @@ func lookupOrFallback[T any](r *dns.Msg, results T, fallback func(context.Contex
 
 	resultsSlice := reflect.ValueOf(results)
 	if resultsSlice.Kind() == reflect.Slice && resultsSlice.Len() == 0 {
-		return fallback(ctx, name)
+		if r != nil && r.Rcode != dns.RcodeNameError {
+			return zero, &net.DNSError{Name: name, Err: "DNS query returned no results"}
+		}
+		return zero, &net.DNSError{Name: name, Err: "no such host", IsNotFound: true}
 	}
 
 	if r != nil && r.Rcode == dns.RcodeNameError {
@@ -92,7 +94,8 @@ func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
 		return mxRecords[i].Pref < mxRecords[j].Pref
 	})
 
-	return lookupOrFallback(r, mxRecords, originalDefaultResolver.LookupMX, ctx, name)
+	// Use local lookupOrFallback which no longer calls default resolver
+	return lookupOrFallback(r, mxRecords, nil, ctx, name)
 }
 
 func customLookupTXT(ctx context.Context, name string) ([]string, error) {
@@ -114,7 +117,7 @@ func customLookupTXT(ctx context.Context, name string) ([]string, error) {
 		}
 	}
 
-	return originalDefaultResolver.LookupTXT(ctx, name)
+	return nil, &net.DNSError{Name: name, Err: "DNS query returned no results"}
 }
 
 func customLookupCNAME(ctx context.Context, host string) (string, error) {
@@ -134,7 +137,7 @@ func customLookupCNAME(ctx context.Context, host string) (string, error) {
 		}
 	}
 
-	return originalDefaultResolver.LookupCNAME(ctx, host)
+	return "", &net.DNSError{Name: host, Err: "DNS query returned no results"}
 }
 
 func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
@@ -150,7 +153,8 @@ func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
 		return nil
 	}, true)
 
-	return lookupOrFallback(r, nsRecords, originalDefaultResolver.LookupNS, ctx, name)
+	// Use local lookupOrFallback which no longer calls default resolver
+	return lookupOrFallback(r, nsRecords, nil, ctx, name)
 }
 
 func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
@@ -199,7 +203,7 @@ func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
 		}
 	}
 
-	return originalDefaultResolver.LookupAddr(ctx, addr)
+	return nil, &net.DNSError{Name: addr, Err: "DNS query returned no results"}
 }
 
 func customLookupSRV(ctx context.Context, service, proto, name string) (string, []*net.SRV, error) {
@@ -236,7 +240,7 @@ func customLookupSRV(ctx context.Context, service, proto, name string) (string, 
 		if r != nil && isNXDomain(r) {
 			return "", nil, &net.DNSError{Name: name, Err: "no such host", IsNotFound: true}
 		}
-		return originalDefaultResolver.LookupSRV(ctx, service, proto, name)
+		return "", nil, &net.DNSError{Name: name, Err: "DNS query returned no results"}
 	}
 	return "", srvRecords, nil
 }
@@ -287,7 +291,7 @@ func customLookupHost(ctx context.Context, host string) ([]string, error) {
 		if isNXDomainResult {
 			return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 		}
-		return originalDefaultResolver.LookupHost(ctx, host)
+		return nil, &net.DNSError{Name: host, Err: "DNS query returned no results"}
 	}
 
 	addrs := make([]string, len(aRecords))
@@ -323,7 +327,7 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if isNXDomain(r) {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return originalDefaultResolver.LookupIP(ctx, network, host)
+			return nil, &net.DNSError{Name: host, Err: "DNS query returned no results"}
 		}
 		return ips, nil
 
@@ -351,7 +355,7 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if isNXDomain(r) {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return originalDefaultResolver.LookupIP(ctx, network, host)
+			return nil, &net.DNSError{Name: host, Err: "DNS query returned no results"}
 		}
 		return ips, nil
 
@@ -396,12 +400,12 @@ func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error)
 			if hasNXDomain {
 				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
 			}
-			return originalDefaultResolver.LookupIP(ctx, network, host)
+			return nil, &net.DNSError{Name: host, Err: "DNS query returned no results"}
 		}
 		return ips, nil
 
 	default:
-		return originalDefaultResolver.LookupIP(ctx, network, host)
+		return nil, &net.DNSError{Name: host, Err: "DNS query returned no results"}
 	}
 }
 
@@ -413,9 +417,6 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 	if logger != nil {
 		logger.Info("Setting custom DNS resolver", zap.String("dns_resolver", dnsResolver))
 	}
-
-	// Save the original default resolver before replacing it
-	originalDefaultResolver = net.DefaultResolver
 
 	customDNSAddr.Store(dnsResolver)
 
