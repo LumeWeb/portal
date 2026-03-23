@@ -2,6 +2,7 @@ package dns
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"reflect"
 	"sort"
@@ -30,7 +31,7 @@ func queryDNS(ctx context.Context, qtype uint16, name string) (*dns.Msg, error) 
 	m.SetQuestion(dns.Fqdn(name), qtype)
 	m.RecursionDesired = true
 
-	r, _, err := dnsClient.Exchange(m, addr)
+	r, _, err := dnsClient.ExchangeContext(ctx, m, addr)
 	return r, err
 }
 
@@ -127,9 +128,12 @@ func customLookupCNAME(ctx context.Context, host string) (string, error) {
 				return c.Target, nil
 			}
 		}
+		if isNXDomain(r) {
+			return "", &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+		}
 	}
 
-	return "", nil
+	return net.DefaultResolver.LookupCNAME(ctx, host)
 }
 
 func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
@@ -159,6 +163,17 @@ func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
 			qname += parts[i] + "."
 		}
 		qname += "in-addr.arpa"
+	} else {
+		// IPv6 reverse lookup: convert to ip6.arpa format
+		ip := net.ParseIP(addr)
+		if ip != nil {
+			ip = ip.To16()
+			qname = ""
+			for i := len(ip) - 1; i >= 0; i-- {
+				qname += fmt.Sprintf("%x.%x.", ip[i]&0xf, ip[i]>>4)
+			}
+			qname += "ip6.arpa"
+		}
 	}
 
 	r, err := queryDNS(ctx, dns.TypePTR, qname)
@@ -282,48 +297,111 @@ func customLookupHost(ctx context.Context, host string) ([]string, error) {
 }
 
 func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error) {
-	var qtype uint16
 	switch network {
-	case "ip", "ip4":
-		qtype = dns.TypeA
-	case "ip6":
-		qtype = dns.TypeAAAA
-	default:
-		return net.DefaultResolver.LookupIP(ctx, network, host)
-	}
+	case "ip4":
+		// IPv4 only
+		r, err := queryDNS(ctx, dns.TypeA, host)
+		if err != nil {
+			return nil, err
+		}
 
-	r, err := queryDNS(ctx, qtype, host)
-	if err != nil {
-		return nil, err
-	}
-
-	ipPtrs := parseDNSRecords(r, func(rr dns.RR) *net.IP {
-		if network == "ip4" || network == "ip" {
+		ipPtrs := parseDNSRecords(r, func(rr dns.RR) *net.IP {
 			if a, ok := rr.(*dns.A); ok {
 				ip := net.IP(a.A)
 				return &ip
 			}
-		} else if network == "ip6" {
+			return nil
+		}, true)
+
+		ips := make([]net.IP, len(ipPtrs))
+		for i, ptr := range ipPtrs {
+			ips[i] = *ptr
+		}
+
+		if len(ips) == 0 {
+			if isNXDomain(r) {
+				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+			}
+			return net.DefaultResolver.LookupIP(ctx, network, host)
+		}
+		return ips, nil
+
+	case "ip6":
+		// IPv6 only
+		r, err := queryDNS(ctx, dns.TypeAAAA, host)
+		if err != nil {
+			return nil, err
+		}
+
+		ipPtrs := parseDNSRecords(r, func(rr dns.RR) *net.IP {
 			if aaaa, ok := rr.(*dns.AAAA); ok {
 				ip := net.IP(aaaa.AAAA)
 				return &ip
 			}
-		}
-		return nil
-	}, true)
+			return nil
+		}, true)
 
-	ips := make([]net.IP, len(ipPtrs))
-	for i, ptr := range ipPtrs {
-		ips[i] = *ptr
-	}
-
-	if len(ips) == 0 {
-		if isNXDomain(r) {
-			return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+		ips := make([]net.IP, len(ipPtrs))
+		for i, ptr := range ipPtrs {
+			ips[i] = *ptr
 		}
+
+		if len(ips) == 0 {
+			if isNXDomain(r) {
+				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+			}
+			return net.DefaultResolver.LookupIP(ctx, network, host)
+		}
+		return ips, nil
+
+	case "ip":
+		// Both IPv4 and IPv6
+		var ips []net.IP
+
+		// Query A records (IPv4)
+		rA, err := queryDNS(ctx, dns.TypeA, host)
+		if err == nil && rA != nil {
+			aRecordPtrs := parseDNSRecords(rA, func(rr dns.RR) *net.IP {
+				if a, ok := rr.(*dns.A); ok {
+					ip := net.IP(a.A)
+					return &ip
+				}
+				return nil
+			}, false)
+
+			for _, ptr := range aRecordPtrs {
+				ips = append(ips, *ptr)
+			}
+		}
+
+		// Query AAAA records (IPv6)
+		rAAAA, err := queryDNS(ctx, dns.TypeAAAA, host)
+		if err == nil && rAAAA != nil {
+			aaaaRecordPtrs := parseDNSRecords(rAAAA, func(rr dns.RR) *net.IP {
+				if aaaa, ok := rr.(*dns.AAAA); ok {
+					ip := net.IP(aaaa.AAAA)
+					return &ip
+				}
+				return nil
+			}, false)
+
+			for _, ptr := range aaaaRecordPtrs {
+				ips = append(ips, *ptr)
+			}
+		}
+
+		if len(ips) == 0 {
+			hasNXDomain := (rA != nil && isNXDomain(rA)) || (rAAAA != nil && isNXDomain(rAAAA))
+			if hasNXDomain {
+				return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+			}
+			return net.DefaultResolver.LookupIP(ctx, network, host)
+		}
+		return ips, nil
+
+	default:
 		return net.DefaultResolver.LookupIP(ctx, network, host)
 	}
-	return ips, nil
 }
 
 func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
