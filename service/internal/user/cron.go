@@ -27,7 +27,6 @@ func NewProcessAccountDeletionRequestsJob() *ProcessAccountDeletionRequestsJob {
 				Type: core.CronScheduleTypeDaily,
 			},
 			nil, // No arguments needed
-			"", // jobType computed from origin and sourceID
 		),
 	}
 }

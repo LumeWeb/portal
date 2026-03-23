@@ -242,7 +242,6 @@ func (c *CronServiceDefault) registerMaintenanceJobs(ctx context.Context) error 
 				"Dead Job Check",
 				nil,
 				nil,
-				"", // jobType computed from origin and sourceID
 			),
 		}, nil
 	}, &core.CronScheduleDefinition{
@@ -262,7 +261,6 @@ func (c *CronServiceDefault) registerMaintenanceJobs(ctx context.Context) error 
 				"Cleanup Job",
 				nil,
 				nil,
-				"", // jobType computed from origin and sourceID
 			),
 		}, nil
 	}, &core.CronScheduleDefinition{

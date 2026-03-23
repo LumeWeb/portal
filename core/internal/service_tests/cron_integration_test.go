@@ -44,7 +44,6 @@ func newSimpleTestJob(origin string, sourceId string, schedule *core.CronSchedul
 			"Integration Test Job",
 			schedule,
 			map[string]interface{}{"test": "value"},
-			"", // jobType computed from origin and sourceID
 		),
 		runCallback: runCallback,
 	}

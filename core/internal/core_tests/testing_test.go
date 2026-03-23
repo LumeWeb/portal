@@ -116,7 +116,6 @@ func newTestPluginInfoWithComponent(t *testing.T, id string, componentType strin
 							AtTime:   time.Now().Add(time.Hour),
 						},
 						nil,
-						"", // jobType computed from origin and sourceID
 					), nil
 				},
 				Schedule: &CronScheduleDefinition{

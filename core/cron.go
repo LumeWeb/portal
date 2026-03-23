@@ -251,6 +251,20 @@ func IsPluginCronJob(jobType string) bool {
 }
 
 // BaseCronJob provides common implementation for CronJob interface.
+// CronJobOption represents an optional configuration for BaseCronJob.
+// CronJobOption represents an optional configuration for BaseCronJob.
+// Use WithExplicitJobType() to provide an explicit job type instead of computing one.
+type CronJobOption func(*BaseCronJob)
+
+// WithExplicitJobType sets an explicit job type for the cron job.
+// This is useful for plugin jobs that need to override the computed type.
+// When not used, the jobType defaults to GetCronJobIdentifier(origin, sourceID).
+func WithExplicitJobType(jobType string) CronJobOption {
+	return func(b *BaseCronJob) {
+		b.jobType = jobType
+	}
+}
+
 type BaseCronJob struct {
 	id                 uuid.UUID
 	origin             string
@@ -258,7 +272,7 @@ type BaseCronJob struct {
 	displayName        string
 	scheduleDefinition *CronScheduleDefinition
 	args               any
-	jobType            string // Explicit job type identifier for Type() computation
+	jobType            string
 	job                gocron.Job
 	done               <-chan struct{}
 }
@@ -276,25 +290,26 @@ func (b *BaseCronJob) SetJob(job gocron.Job) {
 }
 
 // NewBaseCronJob creates a new BaseCronJob instance.
-// If jobType is not provided (empty string), it is computed from origin and sourceID.
-func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName string, scheduleDef *CronScheduleDefinition, args any, jobType string) *BaseCronJob {
-	// Compute jobType if not provided, otherwise use explicit value
-	actualJobType := jobType
-	if actualJobType == "" {
-		actualJobType = GetCronJobIdentifier(origin, sourceID)
-	}
-
-	return &BaseCronJob{
+// The jobType defaults to being computed from origin and sourceID.
+// Use WithExplicitJobType() option to override this behavior.
+func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName string, scheduleDef *CronScheduleDefinition, args any, opts ...CronJobOption) *BaseCronJob {
+	b := &BaseCronJob{
 		id:                 id,
 		origin:             origin,
 		sourceID:           sourceID,
 		displayName:        displayName,
 		scheduleDefinition: scheduleDef,
 		args:               args,
-		jobType:            actualJobType,
+		jobType:            GetCronJobIdentifier(origin, sourceID), // Default: compute from origin and sourceID
 		job:                nil,
 		done:               nil,
 	}
+
+	for _, opt := range opts {
+		opt(b)
+	}
+
+	return b
 }
 
 // Done returns a channel that will be closed when the job completes execution.
@@ -370,8 +385,8 @@ func GetCronJobIdentifier(origin string, sourceID string) string {
 }
 
 // Type returns the full job type identifier.
-// If jobType was explicitly provided during construction, that value is used.
-// Otherwise, it is computed from origin and sourceID.
+// Returns the stored jobType value, which may be explicitly set via WithExplicitJobType()
+// or computed from origin and sourceID by default.
 func (b *BaseCronJob) Type() string {
 	return b.jobType
 }
