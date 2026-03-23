@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 	"reflect"
+	"sort"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -13,43 +15,315 @@ import (
 	"go.uber.org/zap"
 )
 
-var customDNSAddr atomic.Value // stores string
+var (
+	customDNSAddr atomic.Value
+	dnsClient     = &dns.Client{Timeout: 5 * time.Second}
+)
 
-func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
+func queryDNS(ctx context.Context, qtype uint16, name string) (*dns.Msg, error) {
 	addr, _ := customDNSAddr.Load().(string)
 	if addr == "" {
-		return net.DefaultResolver.LookupMX(ctx, name)
+		return nil, nil
 	}
 
-	c := &dns.Client{Timeout: 5 * time.Second}
 	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(name), dns.TypeMX)
+	m.SetQuestion(dns.Fqdn(name), qtype)
 	m.RecursionDesired = true
 
-	r, _, err := c.Exchange(m, addr)
+	r, _, err := dnsClient.Exchange(m, addr)
+	return r, err
+}
+
+func parseDNSRecords[T any](r *dns.Msg, extract func(dns.RR) *T, isNXDOMAIN bool) []*T {
+	if r == nil {
+		return nil
+	}
+
+	var results []*T
+	for _, ans := range r.Answer {
+		if extracted := extract(ans); extracted != nil {
+			results = append(results, extracted)
+		}
+	}
+
+	if len(results) == 0 && isNXDOMAIN && r.Rcode == dns.RcodeNameError {
+		return nil
+	}
+
+	return results
+}
+
+func lookupOrFallback[T any](r *dns.Msg, results T, fallback func(context.Context, string) (T, error), ctx context.Context, name string) (T, error) {
+	var zero T
+
+	resultsSlice := reflect.ValueOf(results)
+	if resultsSlice.Kind() == reflect.Slice && resultsSlice.Len() == 0 {
+		return fallback(ctx, name)
+	}
+
+	if r != nil && r.Rcode == dns.RcodeNameError {
+		return zero, &net.DNSError{Name: name, Err: "no such host", IsNotFound: true}
+	}
+
+	return results, nil
+}
+
+func isNXDomain(r *dns.Msg) bool {
+	return r != nil && r.Rcode == dns.RcodeNameError
+}
+
+func customLookupMX(ctx context.Context, name string) ([]*net.MX, error) {
+	r, err := queryDNS(ctx, dns.TypeMX, name)
 	if err != nil {
 		return nil, err
 	}
 
-	var mxRecords []*net.MX
-	for _, ans := range r.Answer {
-		if mx, ok := ans.(*dns.MX); ok {
-			mxRecords = append(mxRecords, &net.MX{
-				Host: mx.Mx,
-				Pref: uint16(mx.Preference),
-			})
+	mxRecords := parseDNSRecords(r, func(rr dns.RR) *net.MX {
+		if mx, ok := rr.(*dns.MX); ok {
+			return &net.MX{Host: mx.Mx, Pref: uint16(mx.Preference)}
+		}
+		return nil
+	}, true)
+
+	// Sort MX records by preference (lower preference value = higher priority)
+	sort.Slice(mxRecords, func(i, j int) bool {
+		return mxRecords[i].Pref < mxRecords[j].Pref
+	})
+
+	return lookupOrFallback(r, mxRecords, net.DefaultResolver.LookupMX, ctx, name)
+}
+
+func customLookupTXT(ctx context.Context, name string) ([]string, error) {
+	r, err := queryDNS(ctx, dns.TypeTXT, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if r != nil {
+		var txts []string
+		for _, ans := range r.Answer {
+			if txt, ok := ans.(*dns.TXT); ok {
+				txts = append(txts, strings.Join(txt.Txt, ""))
+			}
+		}
+
+		if len(txts) > 0 {
+			return txts, nil
 		}
 	}
 
-	if len(mxRecords) == 0 {
-		return nil, &net.DNSError{
-			Name:       name,
-			Err:        "no such host",
-			IsNotFound: true,
+	return net.DefaultResolver.LookupTXT(ctx, name)
+}
+
+func customLookupCNAME(ctx context.Context, host string) (string, error) {
+	r, err := queryDNS(ctx, dns.TypeCNAME, host)
+	if err != nil {
+		return "", err
+	}
+
+	if r != nil {
+		for _, ans := range r.Answer {
+			if c, ok := ans.(*dns.CNAME); ok {
+				return c.Target, nil
+			}
 		}
 	}
 
-	return mxRecords, nil
+	return "", nil
+}
+
+func customLookupNS(ctx context.Context, name string) ([]*net.NS, error) {
+	r, err := queryDNS(ctx, dns.TypeNS, name)
+	if err != nil {
+		return nil, err
+	}
+
+	nsRecords := parseDNSRecords(r, func(rr dns.RR) *net.NS {
+		if ns, ok := rr.(*dns.NS); ok {
+			return &net.NS{Host: ns.Ns}
+		}
+		return nil
+	}, true)
+
+	return lookupOrFallback(r, nsRecords, net.DefaultResolver.LookupNS, ctx, name)
+}
+
+func customLookupAddr(ctx context.Context, addr string) ([]string, error) {
+	addr = strings.TrimSuffix(addr, ".")
+
+	qname := addr
+	if !strings.Contains(addr, ":") {
+		parts := strings.Split(addr, ".")
+		qname = ""
+		for i := len(parts) - 1; i >= 0; i-- {
+			qname += parts[i] + "."
+		}
+		qname += "in-addr.arpa"
+	}
+
+	r, err := queryDNS(ctx, dns.TypePTR, qname)
+	if err != nil {
+		return nil, err
+	}
+
+	if r != nil {
+		var names []string
+		for _, ans := range r.Answer {
+			if ptr, ok := ans.(*dns.PTR); ok {
+				names = append(names, ptr.Ptr)
+			}
+		}
+
+		if len(names) > 0 {
+			return names, nil
+		}
+
+		if isNXDomain(r) {
+			return nil, &net.DNSError{Name: addr, Err: "no such host", IsNotFound: true}
+		}
+	}
+
+	return net.DefaultResolver.LookupAddr(ctx, addr)
+}
+
+func customLookupSRV(ctx context.Context, service, proto, name string) (string, []*net.SRV, error) {
+	qname := "_" + service + "._" + proto + "." + dns.Fqdn(name)
+	r, err := queryDNS(ctx, dns.TypeSRV, qname)
+	if err != nil {
+		return "", nil, err
+	}
+
+	srvRecords := parseDNSRecords(r, func(rr dns.RR) *net.SRV {
+		if srv, ok := rr.(*dns.SRV); ok {
+			return &net.SRV{
+				Target:   srv.Target,
+				Port:     uint16(srv.Port),
+				Priority: uint16(srv.Priority),
+				Weight:   uint16(srv.Weight),
+			}
+		}
+		return nil
+	}, true)
+
+	// Sort SRV records by priority (lower = higher priority) then by weight (higher = higher priority within same priority)
+	sort.Slice(srvRecords, func(i, j int) bool {
+		pi := srvRecords[i].Priority
+		pj := srvRecords[j].Priority
+		if pi != pj {
+			return pi < pj
+		}
+		// Higher weight first
+		return srvRecords[i].Weight > srvRecords[j].Weight
+	})
+
+	if len(srvRecords) == 0 {
+		if r != nil && isNXDomain(r) {
+			return "", nil, &net.DNSError{Name: name, Err: "no such host", IsNotFound: true}
+		}
+		return net.DefaultResolver.LookupSRV(ctx, service, proto, name)
+	}
+	return "", srvRecords, nil
+}
+
+func customLookupHost(ctx context.Context, host string) ([]string, error) {
+	rA, err := queryDNS(ctx, dns.TypeA, host)
+	if err != nil {
+		return nil, err
+	}
+
+	var aRecords []net.IP
+	if rA != nil {
+		aRecordPtrs := parseDNSRecords(rA, func(rr dns.RR) *net.IP {
+			if a, ok := rr.(*dns.A); ok {
+				ip := net.IP(a.A)
+				return &ip
+			}
+			return nil
+		}, false)
+
+		for _, ptr := range aRecordPtrs {
+			aRecords = append(aRecords, *ptr)
+		}
+	}
+
+	isNXDomainResult := isNXDomain(rA)
+
+	rAAAA, err := queryDNS(ctx, dns.TypeAAAA, host)
+	if err == nil && rAAAA != nil {
+		aaaaRecordPtrs := parseDNSRecords(rAAAA, func(rr dns.RR) *net.IP {
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				ip := net.IP(aaaa.AAAA)
+				return &ip
+			}
+			return nil
+		}, false)
+
+		for _, ptr := range aaaaRecordPtrs {
+			aRecords = append(aRecords, *ptr)
+		}
+		
+		if isNXDomain(rAAAA) {
+			isNXDomainResult = true
+		}
+	}
+
+	if len(aRecords) == 0 {
+		if isNXDomainResult {
+			return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+		}
+		return net.DefaultResolver.LookupHost(ctx, host)
+	}
+
+	addrs := make([]string, len(aRecords))
+	for i, ip := range aRecords {
+		addrs[i] = ip.String()
+	}
+	return addrs, nil
+}
+
+func customLookupIP(ctx context.Context, network, host string) ([]net.IP, error) {
+	var qtype uint16
+	switch network {
+	case "ip", "ip4":
+		qtype = dns.TypeA
+	case "ip6":
+		qtype = dns.TypeAAAA
+	default:
+		return net.DefaultResolver.LookupIP(ctx, network, host)
+	}
+
+	r, err := queryDNS(ctx, qtype, host)
+	if err != nil {
+		return nil, err
+	}
+
+	ipPtrs := parseDNSRecords(r, func(rr dns.RR) *net.IP {
+		if network == "ip4" || network == "ip" {
+			if a, ok := rr.(*dns.A); ok {
+				ip := net.IP(a.A)
+				return &ip
+			}
+		} else if network == "ip6" {
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				ip := net.IP(aaaa.AAAA)
+				return &ip
+			}
+		}
+		return nil
+	}, true)
+
+	ips := make([]net.IP, len(ipPtrs))
+	for i, ptr := range ipPtrs {
+		ips[i] = *ptr
+	}
+
+	if len(ips) == 0 {
+		if isNXDomain(r) {
+			return nil, &net.DNSError{Name: host, Err: "no such host", IsNotFound: true}
+		}
+		return net.DefaultResolver.LookupIP(ctx, network, host)
+	}
+	return ips, nil
 }
 
 func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
@@ -74,8 +348,30 @@ func SetupDNSResolver(dnsResolver string, logger *core.Logger) {
 	net.DefaultResolver = customResolver
 
 	resolverType := reflect.TypeOf(customResolver)
+
 	monkey.PatchInstanceMethod(resolverType, "LookupMX", func(r *net.Resolver, ctx context.Context, name string) ([]*net.MX, error) {
 		return customLookupMX(ctx, name)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupTXT", func(r *net.Resolver, ctx context.Context, name string) ([]string, error) {
+		return customLookupTXT(ctx, name)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupCNAME", func(r *net.Resolver, ctx context.Context, host string) (string, error) {
+		return customLookupCNAME(ctx, host)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupNS", func(r *net.Resolver, ctx context.Context, name string) ([]*net.NS, error) {
+		return customLookupNS(ctx, name)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupAddr", func(r *net.Resolver, ctx context.Context, addr string) ([]string, error) {
+		return customLookupAddr(ctx, addr)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupSRV", func(r *net.Resolver, ctx context.Context, service, proto, name string) (string, []*net.SRV, error) {
+		return customLookupSRV(ctx, service, proto, name)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupHost", func(r *net.Resolver, ctx context.Context, host string) ([]string, error) {
+		return customLookupHost(ctx, host)
+	})
+	monkey.PatchInstanceMethod(resolverType, "LookupIP", func(r *net.Resolver, ctx context.Context, network, host string) ([]net.IP, error) {
+		return customLookupIP(ctx, network, host)
 	})
 }
 
