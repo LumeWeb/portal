@@ -258,6 +258,7 @@ type BaseCronJob struct {
 	displayName        string
 	scheduleDefinition *CronScheduleDefinition
 	args               any
+	jobType            string // Explicit job type identifier for Type() computation
 	job                gocron.Job
 	done               <-chan struct{}
 }
@@ -275,7 +276,14 @@ func (b *BaseCronJob) SetJob(job gocron.Job) {
 }
 
 // NewBaseCronJob creates a new BaseCronJob instance.
-func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName string, scheduleDef *CronScheduleDefinition, args any) *BaseCronJob {
+// If jobType is not provided (empty string), it is computed from origin and sourceID.
+func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName string, scheduleDef *CronScheduleDefinition, args any, jobType string) *BaseCronJob {
+	// Compute jobType if not provided, otherwise use explicit value
+	actualJobType := jobType
+	if actualJobType == "" {
+		actualJobType = GetCronJobIdentifier(origin, sourceID)
+	}
+
 	return &BaseCronJob{
 		id:                 id,
 		origin:             origin,
@@ -283,6 +291,7 @@ func NewBaseCronJob(id uuid.UUID, origin string, sourceID string, displayName st
 		displayName:        displayName,
 		scheduleDefinition: scheduleDef,
 		args:               args,
+		jobType:            actualJobType,
 		job:                nil,
 		done:               nil,
 	}
@@ -360,9 +369,11 @@ func GetCronJobIdentifier(origin string, sourceID string) string {
 	}
 }
 
-// Type returns the full job type identifier based on origin and source.
+// Type returns the full job type identifier.
+// If jobType was explicitly provided during construction, that value is used.
+// Otherwise, it is computed from origin and sourceID.
 func (b *BaseCronJob) Type() string {
-	return GetCronJobIdentifier(b.origin, b.sourceID)
+	return b.jobType
 }
 
 // CronJob defines the interface for a cron job.

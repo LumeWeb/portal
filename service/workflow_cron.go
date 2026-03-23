@@ -26,6 +26,7 @@ func newWorkflowStepExecutorJob() *workflowStepExecutorJob {
 			"Workflow Step Executor",
 			core.NewCronScheduleDefinition(core.CronScheduleTypeOnce),
 			nil,
+			"", // jobType computed from origin and sourceID
 		),
 	}
 }
