@@ -104,7 +104,7 @@ func WithAPIExtension(extFactory core.APIExtensionFactory) TestContextBuilderOpt
 		tb := ctx.T()
 
 		// Create mock API for the target using the testing package's NewMockAPI
-		mockAPI := NewMockAPI(tb, targetAPI)
+		mockAPI := NewMockAPI(tb, targetAPI).WithSubdomain(targetAPI)
 
 		// Register the mock API using existing API registration mechanism
 		apiRegOpt := WithAPI(targetAPI, func() (core.API, []core.ContextBuilderOption, error) {
