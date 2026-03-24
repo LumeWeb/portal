@@ -581,7 +581,7 @@ func (p *PortalImpl) registerAPIExtensions(ctx core.Context) (ctxOpts []core.Con
 						zap.String("plugin", plugin.ID),
 						zap.String("target", ext.TargetAPI()))
 					core.RegisterAPIExtension(ext)
-					ctxOpts = append(ctxOpts, core.ContextWithStartupComponent(ext))
+					ctxOptions = append(ctxOptions, core.ContextWithStartupComponent(ext))
 
 					return core.ProcessCtxOptions(ctx, ctxOptions...)
 				})
