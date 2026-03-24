@@ -408,21 +408,21 @@ func ContextWithStartupComponent(component Component) ContextBuilderOption {
 
 			// Wire up the tracer and logger based on component type
 			switch c := component.(type) {
-			case Service:
-				tracedCtx := startupCtx.WithServiceTracer(c.ID())
-				component.SetLogger(startupCtx.ServiceLogger(c))
-				component.SetContext(tracedCtx)
-			case Protocol:
-				tracedCtx := startupCtx.WithProtocolTracer(c.Name())
-				component.SetLogger(startupCtx.ProtocolLogger(c))
+			case APIExtension:
+				tracedCtx := startupCtx.WithAPIExtensionTracer(c.TargetAPI() + "-" + component.ID())
+				component.SetLogger(startupCtx.Logger())
 				component.SetContext(tracedCtx)
 			case API:
 				tracedCtx := startupCtx.WithAPITracer(c.Name())
 				component.SetLogger(startupCtx.APILogger(c))
 				component.SetContext(tracedCtx)
-			case APIExtension:
-				tracedCtx := startupCtx.WithAPIExtensionTracer(c.TargetAPI() + "-" + component.ID())
-				component.SetLogger(startupCtx.Logger())
+			case Protocol:
+				tracedCtx := startupCtx.WithProtocolTracer(c.Name())
+				component.SetLogger(startupCtx.ProtocolLogger(c))
+				component.SetContext(tracedCtx)
+			case Service:
+				tracedCtx := startupCtx.WithServiceTracer(c.ID())
+				component.SetLogger(startupCtx.ServiceLogger(c))
 				component.SetContext(tracedCtx)
 			default:
 				tracedCtx := startupCtx.WithTracerSubsystem(component.ID())
