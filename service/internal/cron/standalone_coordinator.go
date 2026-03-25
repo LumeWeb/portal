@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +19,20 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+// StackFrame represents a single frame in a call stack
+type StackFrame struct {
+	Function string `json:"function"`
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+}
+
+// PanicInfo represents structured information about a panic
+type PanicInfo struct {
+	Message    string       `json:"message"`
+	RecoverVal any          `json:"recoverVal"`
+	Stack      []StackFrame `json:"stack,omitempty"`
+}
 
 var _ core.CronCoordinator = (*StandaloneCoordinator)(nil)
 
@@ -333,10 +349,35 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 
 	// Define the after job runs with panic event listener
 	afterJobRunsWithPanic := func(jobID uuid.UUID, jobName string, recoverData any) {
-		s.logger.Error("Job runs with panic",
+		// Capture structured panic info
+		panicInfo := captureStructuredPanic(recoverData)
+		
+		// Build custom zap fields for structured output
+		fields := []zap.Field{
 			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName),
-			zap.Any("recoverData", recoverData))
+			zap.Any("panicValue", panicInfo.RecoverVal),
+			zap.String("panicMessage", panicInfo.Message),
+		}
+		
+		// Add stack frames if available
+		if len(panicInfo.Stack) > 0 {
+			// Log first few frames as structured fields
+			for i, frame := range panicInfo.Stack {
+				if i >= 5 { // Limit to top 5 frames to avoid log bloat
+					break
+				}
+				fields = append(fields, 
+					zap.String(fmt.Sprintf("frame%d", i), fmt.Sprintf("%s:%d (%s)", frame.File, frame.Line, frame.Function)))
+			}
+			
+			// If there are more frames, indicate it
+			if len(panicInfo.Stack) > 5 {
+				fields = append(fields, zap.Int("additionalFrames", len(panicInfo.Stack)-5))
+			}
+		}
+		
+		s.logger.Error("Task panicked", fields...)
 
 		s.failureMu.Lock()
 		// Increment failure count
@@ -606,4 +647,66 @@ func (s *StandaloneCoordinator) JobContext(ctx context.Context, jobID uuid.UUID)
 	s.jobCtxMu.RLock()
 	defer s.jobCtxMu.RUnlock()
 	return s.jobContexts[jobID]
+}
+
+// isInternalPath checks if a function path is internal framework code
+func isInternalPath(function string) bool {
+	internalPrefixes := []string{
+		"github.com/go-co-op/gocron/",
+		"go.lumeweb.com/portal/service/internal/cron.",
+		"runtime.",
+		"reflect.",
+	}
+
+	for _, prefix := range internalPrefixes {
+		if strings.HasPrefix(function, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// captureStructuredPanic captures structured panic information using Go's runtime API.
+// Returns PanicInfo with the panic value and filtered stack frames.
+func captureStructuredPanic(recoverData any) *PanicInfo {
+	info := &PanicInfo{
+		RecoverVal: recoverData,
+	}
+
+	// Format the panic message
+	if err, ok := recoverData.(error); ok {
+		info.Message = err.Error()
+	} else {
+		info.Message = fmt.Sprintf("%v", recoverData)
+	}
+
+	// Capture up to 64 stack frames
+	pcs := make([]uintptr, 64)
+	n := runtime.Callers(2, pcs) // skip 2 frames: runtime.Callers and this function
+	
+	if n == 0 {
+		return info
+	}
+
+	frames := runtime.CallersFrames(pcs[:n])
+	
+	// Collect non-internal frames
+	for {
+		frame, more := frames.Next()
+		
+		// Skip internal frames
+		if !isInternalPath(frame.Function) {
+			info.Stack = append(info.Stack, StackFrame{
+				Function: frame.Function,
+				File:     frame.File,
+				Line:     frame.Line,
+			})
+		}
+		
+		if !more {
+			break
+		}
+	}
+
+	return info
 }
