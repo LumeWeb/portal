@@ -328,10 +328,28 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 
 	// Define the after job runs with error event listener
 	afterJobRunsWithError := func(jobID uuid.UUID, jobName string, err error) {
-		s.logger.Error("Job execution failed",
+		fields := []zap.Field{
 			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName),
-			zap.Error(err))
+			zap.Error(err),
+		}
+
+		// Check if this error is from a recovered panic
+		// gocron wraps panics as: "gocron: panic recovered from <panic value>"
+		errStr := err.Error()
+		panicPrefix := "gocron: panic recovered from "
+		if strings.HasPrefix(errStr, panicPrefix) {
+			// Extract the panic value
+			panicValue := strings.TrimPrefix(errStr, panicPrefix)
+			
+			// Capture structured panic info using the panic value
+			panicInfo := captureStructuredPanic(panicValue)
+			
+			// Add structured panic info to the error log
+			fields = append(fields, buildPanicFields(panicInfo)...)
+		}
+		
+		s.logger.Error("Job execution failed", fields...)
 
 		s.failureMu.Lock()
 		// Increment failure count
@@ -352,30 +370,12 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 		// Capture structured panic info
 		panicInfo := captureStructuredPanic(recoverData)
 		
-		// Build custom zap fields for structured output
+		// Build zap fields including job info and panic details
 		fields := []zap.Field{
 			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName),
-			zap.Any("panicValue", panicInfo.RecoverVal),
-			zap.String("panicMessage", panicInfo.Message),
 		}
-		
-		// Add stack frames if available
-		if len(panicInfo.Stack) > 0 {
-			// Log first few frames as structured fields
-			for i, frame := range panicInfo.Stack {
-				if i >= 5 { // Limit to top 5 frames to avoid log bloat
-					break
-				}
-				fields = append(fields, 
-					zap.String(fmt.Sprintf("frame%d", i), fmt.Sprintf("%s:%d (%s)", frame.File, frame.Line, frame.Function)))
-			}
-			
-			// If there are more frames, indicate it
-			if len(panicInfo.Stack) > 5 {
-				fields = append(fields, zap.Int("additionalFrames", len(panicInfo.Stack)-5))
-			}
-		}
+		fields = append(fields, buildPanicFields(panicInfo)...)
 		
 		s.logger.Error("Task panicked", fields...)
 
@@ -664,6 +664,32 @@ func isInternalPath(function string) bool {
 		}
 	}
 	return false
+}
+
+// buildPanicFields builds structured zap fields from panic information.
+// Returns fields for panic value, message, and filtered stack frames.
+func buildPanicFields(panicInfo *PanicInfo) []zap.Field {
+	fields := []zap.Field{
+		zap.Any("panicValue", panicInfo.RecoverVal),
+		zap.String("panicMessage", panicInfo.Message),
+	}
+	
+	// Add stack frames if available
+	if len(panicInfo.Stack) > 0 {
+		for i, frame := range panicInfo.Stack {
+			if i >= 5 {
+				break
+			}
+			fields = append(fields,
+				zap.String(fmt.Sprintf("frame%d", i), fmt.Sprintf("%s:%d (%s)", frame.File, frame.Line, frame.Function)))
+		}
+		
+		if len(panicInfo.Stack) > 5 {
+			fields = append(fields, zap.Int("additionalFrames", len(panicInfo.Stack)-5))
+		}
+	}
+	
+	return fields
 }
 
 // captureStructuredPanic captures structured panic information using Go's runtime API.
