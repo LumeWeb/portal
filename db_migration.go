@@ -2,12 +2,15 @@ package portal
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io/fs"
 	"reflect"
 	"strings"
 	"unicode"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -21,6 +24,217 @@ const GOOSE_TABLE_NAME_FORMAT = "goose_%s_version"
 
 // GOOSE_CORE_TABLE_NAME is the goose version table for core migrations.
 const GOOSE_CORE_TABLE_NAME = "goose_db_version"
+
+// logMySQLError extracts and logs MySQL-specific error details
+func logMySQLError(logger *core.Logger, plugin string, err error) bool {
+	var mysqlErr *mysql.MySQLError
+	if !errors.As(err, &mysqlErr) {
+		return false
+	}
+
+	logger.Error("MySQL driver error detected",
+		zap.String("plugin", plugin),
+		zap.Uint16("mysql_error_number", mysqlErr.Number),
+		zap.String("mysql_sql_state", string(mysqlErr.SQLState[:])),
+		zap.String("mysql_error_message", mysqlErr.Message),
+	)
+
+	// Provide a summary of common MySQL error codes
+	var errorSummary string
+	switch mysqlErr.Number {
+	case 1062:
+		errorSummary = "Duplicate entry - unique constraint violation"
+	case 1045:
+		errorSummary = "Access denied - authentication failed"
+	case 1049:
+		errorSummary = "Unknown database"
+	case 1050:
+		errorSummary = "Table already exists"
+	case 1054:
+		errorSummary = "Unknown column"
+	case 1146:
+		errorSummary = "Table doesn't exist"
+	case 1213:
+		errorSummary = "Deadlock found"
+	case 1205:
+		errorSummary = "Lock wait timeout exceeded"
+	case 1366:
+		errorSummary = "Incorrect string value"
+	case 1292:
+		errorSummary = "Truncated incorrect value"
+	case 1064:
+		errorSummary = "Syntax error or unrecognized SQL token"
+	default:
+		errorSummary = fmt.Sprintf("Error code %d", mysqlErr.Number)
+	}
+
+	logger.Error("MySQL error summary",
+		zap.String("plugin", plugin),
+		zap.Uint16("mysql_error_number", mysqlErr.Number),
+		zap.String("error_summary", errorSummary),
+	)
+
+	return true
+}
+
+// logSQLiteError extracts and logs SQLite-specific error details
+func logSQLiteError(logger *core.Logger, plugin string, err error) bool {
+	var sqliteErr *sqlite3.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+
+	fields := []zap.Field{
+		zap.String("plugin", plugin),
+		zap.Int("sqlite_error_code", int(sqliteErr.Code)),
+		zap.String("sqlite_error_message", sqliteErr.Error()),
+	}
+
+	// Include extended error code if available
+	if sqliteErr.ExtendedCode != 0 {
+		fields = append(fields, zap.Int("sqlite_extended_error_code", int(sqliteErr.ExtendedCode)))
+	}
+
+	// Include system errno if available
+	if sqliteErr.SystemErrno != 0 {
+		fields = append(fields, zap.Int("system_errno", int(sqliteErr.SystemErrno)))
+	}
+
+	logger.Error("SQLite driver error detected", fields...)
+
+	// Provide a summary of common SQLite error codes
+	var errorSummary string
+	switch sqliteErr.Code {
+	case 1: // SQLITE_ERROR
+		errorSummary = "SQL error or missing database"
+	case 5: // SQLITE_BUSY
+		errorSummary = "Database file is locked"
+	case 6: // SQLITE_LOCKED
+		errorSummary = "Table in the database is locked"
+	case 7: // SQLITE_NOMEM
+		errorSummary = "malloc() failed"
+	case 14: // SQLITE_CANTOPEN
+		errorSummary = "Unable to open database file"
+	case 19: // SQLITE_CONSTRAINT
+		errorSummary = "Constraint violation"
+	case 20: // SQLITE_MISMATCH
+		errorSummary = "Data type mismatch"
+	case 21: // SQLITE_MISUSE
+		errorSummary = "Library used incorrectly"
+	default:
+		errorSummary = fmt.Sprintf("Error code %d", sqliteErr.Code)
+	}
+
+	logger.Error("SQLite error summary",
+		zap.String("plugin", plugin),
+		zap.Int("sqlite_error_code", int(sqliteErr.Code)),
+		zap.String("error_summary", errorSummary),
+	)
+
+	return true
+}
+
+// extractSQLQuery attempts to extract the SQL query from goose error messages
+func extractSQLQuery(errorMsg string) string {
+	// Goose error format typically: "failed to execute SQL query \"...QUERY...\" : ERROR"
+	// or similar variations with escape sequences
+	start := strings.Index(errorMsg, "\"")
+	if start == -1 {
+		return ""
+	}
+
+	// Find matching closing quote, counting escaped quotes
+	queryStart := start + 1
+	quoteCount := 0
+	for i := queryStart; i < len(errorMsg); i++ {
+		if errorMsg[i] == '\\' && i+1 < len(errorMsg) {
+			// Skip escaped characters
+			i++
+		} else if errorMsg[i] == '"' {
+			if quoteCount == 0 {
+				// Found closing quote
+				sqlQuery := errorMsg[queryStart:i]
+				// Truncate very long queries for display
+				const maxQueryLength = 500
+				if len(sqlQuery) > maxQueryLength {
+					sqlQuery = sqlQuery[:maxQueryLength] + fmt.Sprintf("... (truncated, total length: %d)", len(sqlQuery))
+				}
+				return sqlQuery
+			}
+			quoteCount--
+		}
+	}
+	return ""
+}
+
+// logMigrationError unwraps and inspects migration errors to extract and display
+// full database-specific error details including error codes, messages, and SQL queries.
+// It supports both MySQL and SQLite databases.
+func logMigrationError(logger *core.Logger, dbType, plugin string, err error) {
+	// Log the basic error first
+	logger.Error("Migration failed",
+		zap.String("plugin", plugin),
+		zap.String("db_type", dbType),
+		zap.Error(err),
+	)
+
+	// Try to extract database-specific error information
+	detected := false
+	switch {
+	case dbType == "mysql":
+		detected = logMySQLError(logger, plugin, err)
+	case dbType == "sqlite" || dbType == "sqlitememory":
+		detected = logSQLiteError(logger, plugin, err)
+	}
+
+	// If no specific driver error found, walk the error chain
+	if !detected {
+		unwrapped := errors.Unwrap(err)
+		depth := 0
+		for unwrapped != nil && depth < 5 {
+			logger.Debug("Underlying error in chain",
+				zap.String("plugin", plugin),
+				zap.Int("depth", depth),
+				zap.String("error_type", fmt.Sprintf("%T", unwrapped)),
+				zap.String("error_message", unwrapped.Error()),
+			)
+
+			// Try to extract database-specific errors from the chain
+			switch {
+			case dbType == "mysql":
+				if logMySQLError(logger, plugin, unwrapped) {
+					detected = true
+					break
+				}
+			case dbType == "sqlite" || dbType == "sqlitememory":
+				if logSQLiteError(logger, plugin, unwrapped) {
+					detected = true
+					break
+				}
+			}
+
+			unwrapped = errors.Unwrap(unwrapped)
+			if detected {
+				break
+			}
+			depth++
+		}
+	}
+
+	// Try to extract SQL query from the error message
+	errorMsg := err.Error()
+	if strings.Contains(errorMsg, "failed to execute SQL query") {
+		sqlQuery := extractSQLQuery(errorMsg)
+		if sqlQuery != "" {
+			logger.Error("Failed SQL query",
+				zap.String("plugin", plugin),
+				zap.String("sql_query", sqlQuery),
+			)
+		}
+	}
+}
+
+
 
 type MigrationManager struct {
 	ctx    core.Context
@@ -148,7 +362,7 @@ func (m *MigrationManager) runPluginMigrations(sqlDb *sql.DB, dbType string) err
 
 		m.logger.Debug("Running plugin migrations", zap.String("plugin", plugin))
 		if err := goose.RunContext(m.ctx.GetContext(), "up", sqlDb, "."); err != nil {
-			m.logger.Error("Failed to run migrations for plugin", zap.String("plugin", plugin), zap.Error(err))
+			logMigrationError(m.logger, dbType, plugin, err)
 			return fmt.Errorf("failed to run migrations for plugin %s: %w", plugin, err)
 		}
 
