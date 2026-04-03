@@ -59,10 +59,10 @@ require (
 	go.lumeweb.com/portal-middleware v0.3.7
 	go.lumeweb.com/portal-router v0.6.13
 	go.opentelemetry.io/contrib/bridges/otelzap v0.17.0
-	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/log v0.18.0
+	go.opentelemetry.io/otel v1.43.0
+	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/sdk v1.42.0
-	go.opentelemetry.io/otel/trace v1.42.0
+	go.opentelemetry.io/otel/trace v1.43.0
 	go.sia.tech/core v0.19.1-0.20251215141429-887336e35dd9
 	go.sia.tech/coreutils v0.21.1
 	go.sia.tech/renterd/v2 v2.9.0
@@ -222,7 +222,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.42.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.42.0 // indirect
-	go.opentelemetry.io/otel/metric v1.42.0 // indirect
+	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.18.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.42.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
