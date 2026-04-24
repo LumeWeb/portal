@@ -63,7 +63,7 @@ require (
 	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
-	go.sia.tech/core v0.19.2-0.20260421131916-3a5d3f254fd9
+	go.sia.tech/core v0.20.0
 	go.sia.tech/coreutils v0.21.3-0.20260421140827-cfc04c84419e
 	go.sia.tech/renterd/v2 v2.9.1
 	go.uber.org/mock v0.6.0
@@ -134,7 +134,6 @@ require (
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.lumeweb.com/queryutil v0.3.16
 	go.sia.tech/jape v0.14.1 // indirect
