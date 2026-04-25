@@ -75,6 +75,8 @@ github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7Oputl
 github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
 github.com/Oudwins/zog v0.22.1 h1:sNO4Esh9PQgUX9R8ELuPhUO121qZ8039wnW1A1bnU7A=
 github.com/Oudwins/zog v0.22.1/go.mod h1:c4ADJ2zNkJp37ZViNy1o3ZZoeMvO7UQVO7BaPtRoocg=
+github.com/Oudwins/zog v0.22.2 h1:neSFVFsn7cd4azB9+2hK1sn1By5UZGc8o28vNWJhUIE=
+github.com/Oudwins/zog v0.22.2/go.mod h1:c4ADJ2zNkJp37ZViNy1o3ZZoeMvO7UQVO7BaPtRoocg=
 github.com/adjust/rmq/v5 v5.2.0 h1:ENPC+3i8N/LAvAfHpEpTMVl7q8zmwh4nl+hhxkao6KE=
 github.com/adjust/rmq/v5 v5.2.0/go.mod h1:FfA6MzYJHeLbuATsNYaZYZaISyxxADDXQLN9QBroFCw=
 github.com/alecthomas/kingpin/v2 v2.3.1/go.mod h1:oYL5vtsvEHZGHxU7DMp32Dvx+qL+ptGn6lWaot2vCNE=
