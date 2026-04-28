@@ -67,7 +67,7 @@ require (
 	go.sia.tech/coreutils v0.21.3
 	go.sia.tech/renterd/v2 v2.9.1
 	go.uber.org/mock v0.6.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	go.uber.org/zap/exp v0.3.0
 	golang.org/x/crypto v0.50.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
