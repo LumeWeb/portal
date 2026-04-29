@@ -23,7 +23,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.21.1
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-kiss/monkey v0.0.0-20240508030602-d03795257a64
-	github.com/go-sql-driver/mysql v1.9.3
+	github.com/go-sql-driver/mysql v1.10.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.14.0
