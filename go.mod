@@ -52,7 +52,7 @@ require (
 	github.com/uptrace/uptrace-go v1.43.0
 	github.com/urfave/cli/v3 v3.8.0
 	github.com/wneessen/go-mail v0.7.2
-	go.etcd.io/etcd/client/v3 v3.6.10
+	go.etcd.io/etcd/client/v3 v3.6.11
 	go.lumeweb.com/configmanager v0.3.28
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
@@ -210,8 +210,8 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.10 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.10 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.11 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.11 // indirect
 	go.lumeweb.com/gswagger v0.20.11 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.68.0 // indirect
