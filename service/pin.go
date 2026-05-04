@@ -265,6 +265,33 @@ func (p *PinServiceDefault) UploadPinnedByUser(ctx context.Context, hash core.St
 	)
 }
 
+func (p *PinServiceDefault) GetAllPinsByHash(ctx context.Context, hash core.StorageHash) ([]*models.Pin, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetAllPinsByHash")
+	defer span.End()
+
+	return core.MetricTrackResult(
+		pinMetrics.PinDuration.WithLabelValues(pinMetrics.LabelOpListHash),
+		pinMetrics.PinFailed.WithLabelValues(pinMetrics.LabelOpListHash),
+		func() ([]*models.Pin, error) {
+			var pins []*models.Pin
+			err := db.RetryableComponentTransaction(p, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.WithContext(ctx).Model(&models.Pin{}).
+					Joins("JOIN uploads ON uploads.id = pins.upload_id").
+					Where("uploads.hash = ?", hash.Multihash()).
+					Preload("Upload").
+					Find(&pins)
+			})
+
+			if err != nil {
+				return nil, err
+			}
+
+			pinMetrics.PinsListed.WithLabelValues(pinMetrics.LabelOpListHash).Inc()
+			return pins, nil
+		},
+	)
+}
+
 func (p *PinServiceDefault) GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error) {
 	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPinsByUploadID")
 	defer span.End()

@@ -33,6 +33,7 @@ const (
 	LabelOpUpdateData    = "update_data"
 	LabelOpListAccount   = "list_account"
 	LabelOpListUpload    = "list_upload"
+	LabelOpListHash      = "list_hash"
 	LabelOpCheckGlobal   = "check_global"
 	LabelOpCheckUser     = "check_user"
 	LabelOpUnknown       = "unknown"
