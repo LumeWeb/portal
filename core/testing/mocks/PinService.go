@@ -578,6 +578,74 @@ func (_c *MockPinService_DeletePinByHash_Call) RunAndReturn(run func(ctx context
 	return _c
 }
 
+// GetAllPinsByHash provides a mock function for the type MockPinService
+func (_mock *MockPinService) GetAllPinsByHash(ctx context.Context, hash core.StorageHash) ([]*models.Pin, error) {
+	ret := _mock.Called(ctx, hash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAllPinsByHash")
+	}
+
+	var r0 []*models.Pin
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) ([]*models.Pin, error)); ok {
+		return returnFunc(ctx, hash)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, core.StorageHash) []*models.Pin); ok {
+		r0 = returnFunc(ctx, hash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*models.Pin)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, core.StorageHash) error); ok {
+		r1 = returnFunc(ctx, hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockPinService_GetAllPinsByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAllPinsByHash'
+type MockPinService_GetAllPinsByHash_Call struct {
+	*mock.Call
+}
+
+// GetAllPinsByHash is a helper method to define mock.On call
+//   - ctx context.Context
+//   - hash core.StorageHash
+func (_e *MockPinService_Expecter) GetAllPinsByHash(ctx interface{}, hash interface{}) *MockPinService_GetAllPinsByHash_Call {
+	return &MockPinService_GetAllPinsByHash_Call{Call: _e.mock.On("GetAllPinsByHash", ctx, hash)}
+}
+
+func (_c *MockPinService_GetAllPinsByHash_Call) Run(run func(ctx context.Context, hash core.StorageHash)) *MockPinService_GetAllPinsByHash_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 core.StorageHash
+		if args[1] != nil {
+			arg1 = args[1].(core.StorageHash)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockPinService_GetAllPinsByHash_Call) Return(pins []*models.Pin, err error) *MockPinService_GetAllPinsByHash_Call {
+	_c.Call.Return(pins, err)
+	return _c
+}
+
+func (_c *MockPinService_GetAllPinsByHash_Call) RunAndReturn(run func(ctx context.Context, hash core.StorageHash) ([]*models.Pin, error)) *MockPinService_GetAllPinsByHash_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPin provides a mock function for the type MockPinService
 func (_mock *MockPinService) GetPin(ctx context.Context, id uint) (*models.Pin, error) {
 	ret := _mock.Called(ctx, id)

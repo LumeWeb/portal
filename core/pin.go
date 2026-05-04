@@ -44,6 +44,9 @@ type PinService interface {
 	// UploadPinnedByUser checks if the upload with the given hash is pinned by the specified user.
 	UploadPinnedByUser(ctx context.Context, hash StorageHash, userId uint) (bool, error)
 
+	// GetAllPinsByHash retrieves all pins for a given hash across all users.
+	GetAllPinsByHash(ctx context.Context, hash StorageHash) ([]*models.Pin, error)
+
 	// GetPinsByUploadID retrieves the list of pins for the given upload ID.
 	GetPinsByUploadID(ctx context.Context, uploadID uint) ([]*models.Pin, error)
 
