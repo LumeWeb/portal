@@ -745,6 +745,8 @@ go.lumeweb.com/event/v2 v2.1.0 h1:pVWRzrHAkjhXa+owzhDTtaxBHbnxrsIpDHFZwEUxKoY=
 go.lumeweb.com/event/v2 v2.1.0/go.mod h1:e1Ss7iATIrP1b2Ojwbp1wdF0VTuxFXHdI7szkAG40AI=
 go.lumeweb.com/gswagger v0.20.11 h1:GvcntUiNRWzGCMckSIcm99ApEJfzSMVUyl7sz+ZIx/k=
 go.lumeweb.com/gswagger v0.20.11/go.mod h1:qz+9/8qstYy7WJ48VZJW/0FonlExw/Igv7vWGgp5uoU=
+go.lumeweb.com/gswagger v0.20.12 h1:FNSrDAeMQVAGIogzJ4SQX+X8U/FMeWQ80yxdyfsM2/M=
+go.lumeweb.com/gswagger v0.20.12/go.mod h1:qz+9/8qstYy7WJ48VZJW/0FonlExw/Igv7vWGgp5uoU=
 go.lumeweb.com/httputil v0.5.4 h1:RQpwAaCgeqSLXwbDXaH3HwiiqUgZP0NLxl4GDZqLD0o=
 go.lumeweb.com/httputil v0.5.4/go.mod h1:ZFu9oig/XKT30LBskWrU6iyMnq5zdi3rkyplWKzA6lw=
 go.lumeweb.com/portal-middleware v0.3.7 h1:kq4SZq4T/uhauqHehw2JaTbNJpPpE8/EQAC3R737H7c=
@@ -753,6 +755,8 @@ go.lumeweb.com/portal-router v0.6.14 h1:aeTMngHkaxfRwlJy2icH6d4hMxXNGeIdyaAq4a6l
 go.lumeweb.com/portal-router v0.6.14/go.mod h1:lupvi1L4sJ4HLtwW7/bfOOqUBPcwm6ks9CwDZSZsnuU=
 go.lumeweb.com/portal-router v0.6.15 h1:i0k5NGrXNaUhqKl6+3v1mrxMJL6xHq+2vatt6/H+1Bs=
 go.lumeweb.com/portal-router v0.6.15/go.mod h1:lupvi1L4sJ4HLtwW7/bfOOqUBPcwm6ks9CwDZSZsnuU=
+go.lumeweb.com/portal-router v0.6.16 h1:/2HZfXCpVfTTWNBmVfrCCLtYVm6vpXUD5aAKjPPQQig=
+go.lumeweb.com/portal-router v0.6.16/go.mod h1:hl51sHDKcgw8yxJ6RraYBOI1Vnufq33FhKwfKiqCkVg=
 go.lumeweb.com/queryutil v0.3.16 h1:4ShUZdaov+jBRWTkABaa8j1QnDSUv1AtVDJd6IbPO3Y=
 go.lumeweb.com/queryutil v0.3.16/go.mod h1:nLkIuXzugX8Ln24wsAbfTafvNmaTHLJhIUKWC1693G4=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
