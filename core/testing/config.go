@@ -237,7 +237,8 @@ func flattenConfigMap(cfg config.Defaults) map[string]any {
 	return flattenAndSnakeCase(structMap)
 }
 
-// ApplyConfig flattens a config struct and applies all values to the test context.
+// ApplyConfig flattens a config struct and applies all values to the test context
+// atomically, then validates the complete configuration once.
 // It converts the config struct to a flattened map using flattenConfigMap,
 // then filters out nil values and keys that match defaults (unchanged values).
 // Additionally, it uses a heuristic to filter out empty values where the default is non-empty,
@@ -274,16 +275,29 @@ func ApplyConfig(ctx TestContext, prefix string, cfg config.Defaults) error {
 		return false
 	})
 
+	// Build the full-keyed updates map for atomic application
+	updates := make(map[string]any, len(flatConfig))
 	for key, value := range flatConfig {
 		fullKey := key
 		if prefix != "" {
 			fullKey = strings.TrimSuffix(prefix, configKeySeparator) + configKeySeparator + key
 		}
-		if err := setConfigValue(ctx, fullKey, value); err != nil {
-			return err
-		}
+		updates[fullKey] = value
 	}
-	return nil
+
+	if len(updates) == 0 {
+		return nil
+	}
+
+	tctx, ok := ctx.(*testContext)
+	if !ok {
+		return fmt.Errorf("test context is not a *testContext instance")
+	}
+	if tctx.cfg == nil {
+		return fmt.Errorf("no config manager on test context")
+	}
+
+	return tctx.cfg.BulkSetAtomic(ctx, updates)
 }
 
 // envVarName converts a config key to an environment variable name
