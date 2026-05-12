@@ -64,7 +64,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
 	go.sia.tech/core v0.21.0
-	go.sia.tech/coreutils v0.21.3
+	go.sia.tech/coreutils v0.22.0
 	go.sia.tech/renterd/v2 v2.9.1
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
@@ -204,7 +204,7 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
