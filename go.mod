@@ -51,7 +51,7 @@ require (
 	github.com/tus/tusd/v2 v2.9.2
 	github.com/uptrace/uptrace-go v1.43.0
 	github.com/urfave/cli/v3 v3.9.0
-	github.com/wneessen/go-mail v0.7.2
+	github.com/wneessen/go-mail v0.7.3
 	go.etcd.io/etcd/client/v3 v3.6.11
 	go.lumeweb.com/configmanager v0.3.28
 	go.lumeweb.com/event/v2 v2.1.0
