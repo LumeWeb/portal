@@ -5,7 +5,10 @@ import (
 	"go.lumeweb.com/portal/core"
 )
 
-// Metric name constants for cron service metrics
+// LabelJobType is the Prometheus label key used to partition cron metrics by job type.
+const LabelJobType = "job_type"
+
+// Metric name constants for cron service metrics.
 const (
 	MetricJobsCompleted           = "jobs_completed_total"
 	MetricJobsFailed              = "jobs_failed_total"
@@ -18,12 +21,14 @@ const (
 	MetricSchedulerUp             = "up"
 )
 
-// Global metric instances (created once, reused everywhere)
+// Global metric instances (created once, reused everywhere).
+// JobsCompleted, JobsFailed, JobExecutionDuration, and JobSchedulingDelay
+// are partitioned by the job_type label for per-job-type granularity.
 var (
-	JobsCompleted           prometheus.Counter
-	JobsFailed              prometheus.Counter
-	JobExecutionDuration    prometheus.Histogram
-	JobSchedulingDelay      prometheus.Histogram
+	JobsCompleted           *prometheus.CounterVec
+	JobsFailed              *prometheus.CounterVec
+	JobExecutionDuration    *prometheus.HistogramVec
+	JobSchedulingDelay      *prometheus.HistogramVec
 	JobsRunning             prometheus.Gauge
 	JobsRegistered          prometheus.Counter
 	JobsUnregistered        prometheus.Counter
@@ -34,28 +39,28 @@ var (
 // init initializes all cron metrics.
 // Called automatically when the package is imported.
 func init() {
-	JobsCompleted = prometheus.NewCounter(prometheus.CounterOpts{
+	JobsCompleted = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      MetricJobsCompleted,
 		Subsystem: core.CRON_SERVICE,
 		Help:      "Total number of cron jobs that completed successfully",
-	})
-	JobsFailed = prometheus.NewCounter(prometheus.CounterOpts{
+	}, []string{LabelJobType})
+	JobsFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      MetricJobsFailed,
 		Subsystem: core.CRON_SERVICE,
 		Help:      "Total number of cron job failures",
-	})
-	JobExecutionDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{LabelJobType})
+	JobExecutionDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      MetricJobExecutionDuration,
 		Subsystem: core.CRON_SERVICE,
 		Help:      "Time spent executing cron jobs",
 		Buckets:   []float64{0.1, 0.5, 1, 5, 10, 30, 60, 120, 300},
-	})
-	JobSchedulingDelay = prometheus.NewHistogram(prometheus.HistogramOpts{
+	}, []string{LabelJobType})
+	JobSchedulingDelay = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      MetricJobSchedulingDelay,
 		Subsystem: core.CRON_SERVICE,
 		Help:      "Delay between scheduled and actual start time of cron jobs",
 		Buckets:   []float64{0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30},
-	})
+	}, []string{LabelJobType})
 	JobsRunning = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      MetricJobsRunning,
 		Subsystem: core.CRON_SERVICE,
