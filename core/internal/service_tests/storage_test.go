@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
-	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
 	"go.sia.tech/renterd/v2/api"
@@ -64,10 +63,10 @@ func TestStorageService_DownloadObject(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Setup mock services
-		uploadService := core.GetService[*coreMocks.MockUploadService](ctx, core.UPLOAD_SERVICE)
+		uploadService := coreTesting.GetMockUploadService(ctx)
 		uploadService.EXPECT().GetUpload(mock.Anything, mockStorageHash).Return(upload, nil)
 
-		renterService := core.GetService[*coreMocks.MockRenterService](ctx, core.RENTER_SERVICE)
+		renterService := coreTesting.GetMockRenterService(ctx)
 		renterService.EXPECT().GetObject(
 			mock.Anything,
 			mockProtocol.Name(),
@@ -95,7 +94,7 @@ func TestStorageService_DeleteObject(t *testing.T) {
 		mockStorageHash := coreTesting.NewMockStorageHash()
 
 		// Setup mock RenterService
-		renterService := core.GetService[*coreMocks.MockRenterService](ctx, core.RENTER_SERVICE)
+		renterService := coreTesting.GetMockRenterService(ctx)
 		renterService.EXPECT().DeleteObject(mock.Anything, mockProtocol.Name(), mockStorageHash.String()).Return(nil)
 
 		// Call DeleteObject

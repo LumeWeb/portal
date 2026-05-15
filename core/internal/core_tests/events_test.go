@@ -1,12 +1,14 @@
 package core_tests
 
 import (
+	"context"
+	"sync"
+	"testing"
+
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
-	"sync"
-	"testing"
 )
 
 func TestNewEvent(t *testing.T) {
@@ -15,23 +17,38 @@ func TestNewEvent(t *testing.T) {
 		Age  int
 	}
 
-	// Test with empty name
 	data := TestData{Name: "Test", Age: 42}
-	evt := core.NewEvent("", &data)
+	evt := core.NewEvent("", &data, context.Background())
 
 	assert.NotNil(t, evt)
-	assert.Equal(t, data, evt.Data) // Should match original data
+	assert.Equal(t, data, evt.Data)
 	assert.NotNil(t, evt.BasicEvent)
+}
 
-	// Verify basic functionality by setting/getting a value
-	evt.Set("Name", "Updated")
-	assert.Equal(t, "Updated", evt.Data.Name) // Check event copy was updated
-	assert.Equal(t, "Test", data.Name)        // Original data should remain unchanged
+func TestNewEvent_WithName(t *testing.T) {
+	type TestData struct {
+		Name string
+		Age  int
+	}
 
-	// Test with name
-	evt = core.NewEvent("test.event", &data)
+	data := TestData{Name: "Test", Age: 42}
+	evt := core.NewEvent("test.event", &data, context.Background())
+
 	assert.Equal(t, "test.event", evt.BasicEvent.Name())
-	assert.Equal(t, data, evt.Data) // Should match original data
+	assert.Equal(t, data, evt.Data)
+}
+
+func TestNewEvent_NilContext(t *testing.T) {
+	type TestData struct {
+		Name string
+	}
+
+	data := TestData{Name: "Test"}
+	evt := core.NewEvent("test.event", &data, nil)
+
+	assert.NotNil(t, evt)
+	assert.Equal(t, data, evt.Data)
+	assert.Nil(t, evt.Context())
 }
 
 func TestCoreEvent_Set(t *testing.T) {
@@ -40,20 +57,12 @@ func TestCoreEvent_Set(t *testing.T) {
 		Count int
 	}
 
-	// Test data
-	data := &TestData{
-		Name:  "test",
-		Count: 5,
-	}
+	data := &TestData{Name: "test", Count: 5}
+	evt := core.NewEvent("", data, context.Background())
 
-	// Create event
-	evt := core.NewEvent("", data)
-
-	// Test setting tagged field
 	evt.Set("name", "updated")
 	assert.Equal(t, "updated", evt.Data.Name)
 
-	// Test setting untagged field
 	evt.Set("Count", 10)
 	assert.Equal(t, 10, evt.Data.Count)
 }
@@ -64,16 +73,9 @@ func TestCoreEvent_SetData(t *testing.T) {
 		Count int
 	}
 
-	// Test data
-	data := &TestData{
-		Name:  "test",
-		Count: 5,
-	}
+	data := &TestData{Name: "test", Count: 5}
+	evt := core.NewEvent("", data, context.Background())
 
-	// Create event
-	evt := core.NewEvent("", data)
-
-	// Test SetData
 	newData := core.EventData{
 		"name":  "new",
 		"Count": 10,
@@ -92,20 +94,11 @@ func TestCoreEvent_SyncToMap(t *testing.T) {
 		Flag  bool
 	}
 
-	// Test data
-	data := &TestData{
-		Name:  "test",
-		Count: 5,
-		Flag:  true,
-	}
+	data := &TestData{Name: "test", Count: 5, Flag: true}
+	evt := core.NewEvent("", data, context.Background())
 
-	// Create event
-	evt := core.NewEvent("", data)
-
-	// Sync to map
 	evt.SyncToMap()
 
-	// Verify map values
 	assert.Equal(t, "test", evt.Get("name"))
 	assert.Equal(t, 5, evt.Get("Count"))
 	assert.Equal(t, true, evt.Get("Flag"))
@@ -118,39 +111,56 @@ func TestCoreEvent_SyncFromMap(t *testing.T) {
 		Flag  bool
 	}
 
-	// Test data
-	data := &TestData{
-		Name:  "test",
-		Count: 5,
-		Flag:  true,
-	}
+	data := &TestData{Name: "test", Count: 5, Flag: true}
+	evt := core.NewEvent("", data, context.Background())
 
-	// Create event
-	evt := core.NewEvent("", data)
-
-	// Modify map directly
 	evt.Set("name", "updated")
 	evt.Set("Count", 10)
 	evt.Set("Flag", false)
 
-	// Sync from map
 	evt.SyncFromMap()
 
-	// Verify struct values
 	assert.Equal(t, "updated", evt.Data.Name)
 	assert.Equal(t, 10, evt.Data.Count)
 	assert.Equal(t, false, evt.Data.Flag)
 }
 
+func TestCoreEvent_NonStructValue(t *testing.T) {
+	data := "hello"
+	evt := core.NewEvent("", &data, context.Background())
+
+	evt.SyncToMap()
+	assert.Equal(t, "hello", evt.Get(core.ValueKey))
+
+	evt.Set(core.ValueKey, "world")
+	evt.SyncFromMap()
+	assert.Equal(t, "world", evt.Data)
+}
+
+func TestCoreEvent_Context(t *testing.T) {
+	type TestData struct {
+		Name string
+	}
+
+	data := TestData{Name: "test"}
+	ctx := context.Background()
+	evt := core.NewEvent("test.event", &data, ctx)
+
+	assert.Equal(t, ctx, evt.Context())
+
+	newCtx := context.WithValue(ctx, "key", "value")
+	evt.SetContext(newCtx)
+	assert.Equal(t, newCtx, evt.Context())
+	assert.Equal(t, "value", evt.Context().Value("key"))
+}
+
 func TestWithInterceptor(t *testing.T) {
-	// Setup interceptor
 	var interceptorCalled bool
 	interceptor := func(e *core.CoreEvent[string]) {
 		interceptorCalled = true
 		e.Data = "intercepted"
 	}
 
-	// Setup handler
 	var handlerCalled bool
 	handler := func(e *core.CoreEvent[string]) error {
 		handlerCalled = true
@@ -158,20 +168,37 @@ func TestWithInterceptor(t *testing.T) {
 		return nil
 	}
 
-	// Wrap handler
 	wrapped := core.WithInterceptor(handler, interceptor)
 
-	// Call wrapped handler
 	err := wrapped(&core.CoreEvent[string]{Data: "original"})
 
-	// Verify
 	assert.NoError(t, err)
 	assert.True(t, interceptorCalled)
 	assert.True(t, handlerCalled)
 }
 
+func TestWithInterceptor_Multiple(t *testing.T) {
+	var order []string
+	interceptor1 := func(e *core.CoreEvent[string]) {
+		order = append(order, "first")
+	}
+	interceptor2 := func(e *core.CoreEvent[string]) {
+		order = append(order, "second")
+	}
+
+	handler := func(e *core.CoreEvent[string]) error {
+		order = append(order, "handler")
+		return nil
+	}
+
+	wrapped := core.WithInterceptor(handler, interceptor1, interceptor2)
+	err := wrapped(&core.CoreEvent[string]{Data: "test"})
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"first", "second", "handler"}, order)
+}
+
 // withTestListener creates a test listener that uses a wait group and tracks if it was called
-// If returnErr is true, the handler will return an error
 func withTestListener[P any](t *testing.T, ctx core.Context, eventName string, expectedData P, returnErr bool) (wg *sync.WaitGroup, called *bool) {
 	var w sync.WaitGroup
 	var handlerCalled bool
@@ -191,18 +218,14 @@ func withTestListener[P any](t *testing.T, ctx core.Context, eventName string, e
 }
 
 func TestFire(t *testing.T) {
-	// Create test context
 	ctx, err := coreTesting.NewTestContext(t)
 	assert.NoError(t, err)
 
-	// Setup listener
 	wg, called := withTestListener(t, ctx, "test.event", "test data", false)
 
-	// Fire event
 	err = core.FireByValue[string](ctx, "test.event", "test data")
 	assert.NoError(t, err)
 
-	// Wait and verify
 	wg.Wait()
 	assert.True(t, *called)
 }
@@ -213,30 +236,21 @@ func TestFire_WithStruct(t *testing.T) {
 		Count int    `event:"count"`
 	}
 
-	// Create test context
 	ctx, err := coreTesting.NewTestContext(t)
 	assert.NoError(t, err)
 
-	// Setup expected payload
-	expected := TestPayload{
-		Name:  "struct test",
-		Count: 42,
-	}
+	expected := TestPayload{Name: "struct test", Count: 42}
 
-	// Setup listener
 	wg, called := withTestListener(t, ctx, "test.struct", expected, false)
 
-	// Fire event with struct payload
 	err = core.Fire(ctx, "test.struct", &expected)
 	assert.NoError(t, err)
 
-	// Wait and verify
 	wg.Wait()
 	assert.True(t, *called)
 }
 
 func TestMustFire(t *testing.T) {
-	// Create test context
 	ctx, err := coreTesting.NewTestContext(t)
 	assert.NoError(t, err)
 
@@ -257,27 +271,21 @@ func TestMustFire(t *testing.T) {
 }
 
 func TestFireAsync(t *testing.T) {
-	// Create test context
 	ctx, err := coreTesting.NewTestContext(t)
 	assert.NoError(t, err)
 
-	// Setup listener
 	wg, called := withTestListener(t, ctx, "test.event", "test data", false)
 
-	// Fire event
 	core.FireAsync(ctx, "test.event", lo.ToPtr("test data"))
 
-	// Wait and verify
 	wg.Wait()
 	assert.True(t, *called)
 }
 
 func TestListen(t *testing.T) {
-	// Create test context
 	ctx, err := coreTesting.NewTestContext(t)
 	assert.NoError(t, err)
 
-	// Setup handler
 	var handlerCalled bool
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -288,18 +296,14 @@ func TestListen(t *testing.T) {
 		return nil
 	}
 
-	// Listen to event
 	core.Listen(ctx, "test.event", handler)
 
-	// Fire event
 	err = core.Fire(ctx, "test.event", lo.ToPtr("test data"))
 	if err != nil {
 		t.Error(err)
 	}
 
-	// Wait for event to be handled
 	wg.Wait()
 
-	// Verify
 	assert.True(t, handlerCalled)
 }

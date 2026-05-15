@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
-	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
 
@@ -26,10 +25,10 @@ func TestPasswordResetService_SendPasswordReset(t *testing.T) {
 
 		passwordResetService.(*service.PasswordResetServiceDefault).SetSubdomain("sub.portal.com")
 
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, userService)
 
-		mailerService := core.GetService[*coreMocks.MockMailerService](ctx, core.MAILER_SERVICE)
+		mailerService := coreTesting.GetMockMailerService(ctx)
 		require.NotNil(tb, mailerService)
 
 		// Create a test user
@@ -109,7 +108,7 @@ func TestPasswordResetService_ResetPassword(t *testing.T) {
 		passwordResetService := core.GetService[core.PasswordResetService](ctx, core.PASSWORD_RESET_SERVICE)
 		require.NotNil(tb, passwordResetService)
 
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, userService)
 
 		// 1. Create a test user

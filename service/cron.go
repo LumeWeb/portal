@@ -28,6 +28,13 @@ var (
 	NewDefaultCronMonitor    = cron.NewDefaultCronMonitor
 	NewStandaloneCoordinator = cron.NewStandaloneCoordinator
 	NewCoordinatorOptions    = cron.NewCoordinatorOptions
+	NewCoordinatorFromContext = cron.NewCoordinatorFromContext
+	NewJobCreator             = cron.NewJobCreator
+
+	// ErrCronJobNotFound is returned when a cron job cannot be found.
+	ErrCronJobNotFound = cron.ErrCronJobNotFound
+	// ErrCronJobVersionConflict is returned when a state transition fails due to optimistic locking.
+	ErrCronJobVersionConflict = cron.ErrCronJobVersionConflict
 )
 
 func init() {
@@ -140,10 +147,14 @@ func NewTestingCronService(
 	monitor core.CronMonitor,
 ) core.CronService {
 	cs := &CronServiceDefault{
+		BaseComponent:    core.NewBaseComponent(ctx),
 		coordinator:      coordinator,
 		jobFactory:       jobFactory,
 		scheduleRegistry: scheduleRegistry,
 		stateMachine:     stateMachine,
+	}
+	if db != nil {
+		cs.SetDB(db)
 	}
 	if cs.scheduleRegistry == nil {
 		cs.scheduleRegistry = cron.NewScheduleRegistry()
@@ -318,6 +329,10 @@ func (c *CronServiceDefault) RegisterEntity(service core.Cronable) {
 
 func (c *CronServiceDefault) Coordinator() core.CronCoordinator {
 	return c.coordinator
+}
+
+func (c *CronServiceDefault) SetCoordinator(coordinator core.CronCoordinator) {
+	c.coordinator = coordinator
 }
 
 func (c *CronServiceDefault) RegisterJob(ctx context.Context, job core.CronJob, retryPolicy *core.RetryPolicy) error {

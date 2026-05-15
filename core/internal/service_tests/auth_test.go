@@ -1,10 +1,10 @@
 package service_tests
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
-	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/service"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ import (
 func TestAuthService_LoginPassword(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, authService)
 
 		// Create test user with properly hashed password
@@ -34,21 +34,21 @@ func TestAuthService_LoginPassword(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Setup mock expectations
-		userService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
 		// Test valid login
-		token, loggedInUser, err := authService.LoginPassword("test@example.com", "password", "127.0.0.1", false)
+		token, loggedInUser, err := authService.LoginPassword(context.Background(), "test@example.com", "password", "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 		assert.Equal(tb, user.ID, loggedInUser.ID)
 
 		// Test invalid password
-		_, _, err = authService.LoginPassword("test@example.com", "wrongpassword", "127.0.0.1", false)
+		_, _, err = authService.LoginPassword(context.Background(), "test@example.com", "wrongpassword", "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// Test non-existent user
-		_, _, err = authService.LoginPassword("nonexistent@example.com", "password", "127.0.0.1", false)
+		_, _, err = authService.LoginPassword(context.Background(), "nonexistent@example.com", "password", "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -56,8 +56,8 @@ func TestAuthService_LoginPassword(t *testing.T) {
 func TestAuthService_LoginOTP(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
-		otpService := core.GetService[*coreMocks.MockOTPService](ctx, core.OTP_SERVICE)
-		//userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		otpService := coreTesting.GetMockOTPService(ctx)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, authService)
 		require.NotNil(tb, otpService)
 
@@ -74,8 +74,10 @@ func TestAuthService_LoginOTP(t *testing.T) {
 		validCode := "123456"
 		invalidCode := "000000"
 
-		otpService.EXPECT().OTPVerify(uint(0x1), validCode).Return(true, nil)
-		otpService.EXPECT().OTPVerify(uint(0x1), invalidCode).Return(false, nil)
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
+		otpService.EXPECT().OTPVerify(mock.Anything, user.ID, validCode).Return(true, nil)
+		otpService.EXPECT().OTPVerify(mock.Anything, user.ID, invalidCode).Return(false, nil)
 
 		// Test valid OTP login
 		token, err := authService.LoginOTP(context.Background(), user.ID, validCode, false)
@@ -106,11 +108,11 @@ func TestAuthService_ValidLoginByUserObj(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid password
-		valid := authService.ValidLoginByUserObj(nil, user, "password")
+		valid := authService.ValidLoginByUserObj(context.Background(), user, "password")
 		assert.True(tb, valid)
 
 		// Test invalid password
-		valid = authService.ValidLoginByUserObj(nil, user, "wrongpassword")
+		valid = authService.ValidLoginByUserObj(context.Background(), user, "wrongpassword")
 		assert.False(tb, valid)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -133,18 +135,18 @@ func TestAuthService_ValidLoginByUserID(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid login
-		valid, fetchedUser, err := authService.ValidLoginByUserID(nil, user.ID, "password")
+		valid, fetchedUser, err := authService.ValidLoginByUserID(context.Background(), user.ID, "password")
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
 
 		// Test invalid password
-		valid, _, err = authService.ValidLoginByUserID(nil, user.ID, "wrongpassword")
+		valid, _, err = authService.ValidLoginByUserID(context.Background(), user.ID, "wrongpassword")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 
 		// Test non-existent user
-		_, _, err = authService.ValidLoginByUserID(nil, 999999, "password")
+		_, _, err = authService.ValidLoginByUserID(context.Background(), 999999, "password")
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -152,7 +154,7 @@ func TestAuthService_ValidLoginByUserID(t *testing.T) {
 func TestAuthService_LoginPubkey(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, authService)
 
 		// Create test user with public key
@@ -175,16 +177,16 @@ func TestAuthService_LoginPubkey(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Setup mock expectations
-		userService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
 		// Test valid pubkey login
-		token, err := authService.LoginPubkey(nil, "test-public-key", "127.0.0.1", false)
+		token, err := authService.LoginPubkey(context.Background(), "test-public-key", "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid pubkey
-		_, err = authService.LoginPubkey(nil, "invalid-key", "127.0.0.1", false)
+		_, err = authService.LoginPubkey(context.Background(), "invalid-key", "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -192,7 +194,7 @@ func TestAuthService_LoginPubkey(t *testing.T) {
 func TestAuthService_LoginID(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, authService)
 
 		// Create test user with properly hashed password
@@ -208,16 +210,16 @@ func TestAuthService_LoginID(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Setup mock expectations
-		userService.EXPECT().IsAccountPendingDeletion(user.ID).Return(false, nil)
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
 		// Test valid ID login
-		token, err := authService.LoginID(nil, user.ID, "127.0.0.1", false)
+		token, err := authService.LoginID(context.Background(), user.ID, "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid ID
-		_, err = authService.LoginID(nil, 999999, "127.0.0.1", false)
+		_, err = authService.LoginID(context.Background(), 999999, "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -240,18 +242,18 @@ func TestAuthService_ValidLoginByEmail(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Test valid login
-		valid, fetchedUser, err := authService.ValidLoginByEmail(nil, "emailvalid@example.com", "password")
+		valid, fetchedUser, err := authService.ValidLoginByEmail(context.Background(), "emailvalid@example.com", "password")
 		assert.NoError(tb, err)
 		assert.True(tb, valid)
 		assert.Equal(tb, user.ID, fetchedUser.ID)
 
 		// Test invalid password
-		valid, _, err = authService.ValidLoginByEmail(nil, "emailvalid@example.com", "wrongpassword")
+		valid, _, err = authService.ValidLoginByEmail(context.Background(), "emailvalid@example.com", "wrongpassword")
 		assert.NoError(tb, err)
 		assert.False(tb, valid)
 
 		// Test non-existent email
-		_, _, err = authService.ValidLoginByEmail(nil, "nonexistent@example.com", "password")
+		_, _, err = authService.ValidLoginByEmail(context.Background(), "nonexistent@example.com", "password")
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }

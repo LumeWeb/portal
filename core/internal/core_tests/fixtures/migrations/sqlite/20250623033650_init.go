@@ -15,7 +15,7 @@ func upInit(_ context.Context, tx *sql.Tx) error {
 	_, err := tx.Exec(`
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE test_table (id INTEGER PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY);
 -- +goose StatementEnd
 `)
 	if err != nil {

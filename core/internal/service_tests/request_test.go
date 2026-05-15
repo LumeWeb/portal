@@ -24,6 +24,12 @@ func TestRequestServiceDefault_CreateRequest(t *testing.T) {
 		protocol := "test"
 		// Create test protocol that implements ProtocolPinHandler
 		testProto := coreTesting.NewMockProtocol(t, protocol)
+
+		// Register a test operation handler so ValidateRequest/FindOperationHandler succeeds
+		testOpHandler := coreTesting.NewMockOperationHandler(tb)
+		testOp := core.NewOperation("test.operation", core.OpTypeStore, testOpHandler)
+		testProto.WithOperation(testOp)
+
 		core.RegisterProtocol(protocol, testProto)
 
 		// Define a test request
@@ -119,6 +125,13 @@ func TestRequestServiceDefault_CompleteRequest(t *testing.T) {
 		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
 		require.NotNil(tb, requestService)
 
+		protocol := "test"
+		testProto := coreTesting.NewMockProtocol(t, protocol)
+		testOpHandler := coreTesting.NewMockOperationHandler(tb)
+		testOp := core.NewOperation("test.operation", core.OpTypeStore, testOpHandler)
+		testProto.WithOperation(testOp)
+		core.RegisterProtocol(protocol, testProto)
+
 		// 1. Create a test request
 		req := &models.Request{
 			Operation: "test.operation",
@@ -177,6 +190,12 @@ func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
 
 		// Create test protocol that implements ProtocolPinHandler
 		testProto := coreTesting.NewMockProtocol(t, protocol)
+		testOpHandler := coreTesting.NewMockOperationHandler(tb)
+		testOpHandler.WithGetStatus(func(ctx context.Context, req *models.Request) (*core.RequestStatus, error) {
+			return &core.RequestStatus{State: req.Status}, nil
+		})
+		testOp := core.NewOperation("test.operation", core.OpTypeStore, testOpHandler)
+		testProto.WithOperation(testOp)
 		core.RegisterProtocol(protocol, testProto)
 
 		// 1. Create a test request
@@ -192,7 +211,7 @@ func TestRequestServiceDefault_GetRequestStatus(t *testing.T) {
 		status, err := requestService.GetRequestStatus(context.Background(), req.ID, true)
 		require.NoError(tb, err)
 		assert.NotNil(tb, status)
-		assert.Equal(tb, string(req.Status), status.State)
+		assert.Equal(tb, req.Status, status.State)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService))
 }

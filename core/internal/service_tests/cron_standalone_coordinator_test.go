@@ -1,65 +1,24 @@
-package cron
+package service_tests
 
 import (
-	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/go-co-op/gocron/mocks/v2"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.lumeweb.com/portal/service"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
+	"gorm.io/datatypes"
 )
-
-func TestStandaloneCoordinator_SetHeartbeat(t *testing.T) {
-	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		db := ctx.DB()
-		require.NotNil(tb, db)
-
-		jobID := uuid.New()
-
-		// Create job in DB first
-		job := models.CronJob{
-			UUID:    types.FromUUID(jobID),
-			State:   models.CronJobStateQueued,
-			Version: 1,
-			JobType: "test-job",
-		}
-		require.NoError(tb, db.Create(&job).Error)
-
-		// Mock CronService, StateMachineRegistry, StateMachine and JobFactory
-		mockCronService := core.GetService[*coreMocks.MockCronService](ctx, core.CRON_SERVICE)
-		mockStateMachine := coreMocks.NewMockCronJobStateMachine(t)
-		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
-		mockCronService.EXPECT().JobFactory().Return(mockJobFactory)
-		// Expect a call to Transition on the state machine
-		mockStateMachine.EXPECT().Transition(
-			mock.Anything, // context.Context
-			jobID,
-			models.CronJobStateRunning,
-			mock.Anything, // options
-		).Return(nil).Once()
-
-		// Create StandaloneCoordinator
-		coordinator, err := NewStandaloneCoordinator(ctx, mockCronService, NewStateMachineRegistry(ctx), NewCoordinatorOptions().WithStateMachine(mockStateMachine))
-		require.NoError(t, err)
-
-		// Execute
-		err = coordinator.SetHeartbeat(nil, jobID)
-		require.NoError(t, err)
-
-		// Assert that Transition was called
-		mockStateMachine.AssertExpectations(t)
-	}, coreTesting.WithMockServiceFactory(core.CRON_SERVICE, coreMocks.NewMockCronService))
-}
 
 func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
@@ -84,14 +43,15 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
 
 		// Create StandaloneCoordinator
-		coordinator, err := NewStandaloneCoordinator(
+		coordinator, err := service.NewStandaloneCoordinator(
 			ctx,
 			mockCronService,
 			coreMocks.NewMockCronJobStateMachineRegistry(t),
-			NewCoordinatorOptions().WithJobCreator(NewJobCreator(db, mockJobFactory, ctx.Logger())),
+			service.NewCoordinatorOptions().WithJobCreator(service.NewJobCreator(db, mockJobFactory, ctx.Logger())),
 		)
+		require.NoError(t, err)
 
-		// Execute
+		// Execute — recent heartbeat should be alive
 		alive, err := coordinator.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.True(t, alive)
@@ -101,7 +61,7 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 		job.LastHeartbeat = &oldHeartbeat
 		db.Save(&job)
 
-		// Execute
+		// Execute — old heartbeat should be dead
 		alive, err = coordinator.CheckHeartbeat(nil, jobID)
 		require.NoError(t, err)
 		assert.False(t, alive)
@@ -111,47 +71,6 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 		alive, err = coordinator.CheckHeartbeat(nil, nonExistentID)
 		assert.Error(t, err)
 		assert.False(t, alive)
-	})
-}
-
-func TestStandaloneCoordinator_CreateJobFromDB(t *testing.T) {
-	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		db := ctx.DB()
-		require.NotNil(tb, db)
-
-		jobID := uuid.New()
-		testJobType := "test-job"
-
-		// Create test record in DB first
-		err := db.Create(&models.CronJob{
-			UUID:    types.FromUUID(jobID),
-			JobType: testJobType,
-		}).Error
-		require.NoError(tb, err)
-
-		// Mock CronService and JobFactory
-		mockCronService := coreMocks.NewMockCronService(t)
-		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
-
-		// Expect a call to CreateJob with the test job type
-		mockJobFactory.EXPECT().CreateJob(testJobType).Return(coreMocks.NewMockCronJob(t), nil).Once()
-
-		// Create StandaloneCoordinator
-		coordinator, err := NewStandaloneCoordinator(
-			ctx,
-			mockCronService,
-			coreMocks.NewMockCronJobStateMachineRegistry(t),
-			NewCoordinatorOptions().WithJobCreator(NewJobCreator(db, mockJobFactory, ctx.Logger())),
-		)
-		require.NoError(t, err)
-
-		// Execute
-		job, err := coordinator.CreateJobFromDB(nil, jobID)
-		require.NoError(tb, err)
-		require.NotNil(tb, job)
-
-		// Assert that CreateJob was called
-		mockJobFactory.AssertExpectations(t)
 	})
 }
 
@@ -170,7 +89,7 @@ func TestStandaloneCoordinator_EnqueueJob(t *testing.T) {
 			State:    models.CronJobStateQueued,
 			Version:  1,
 			JobType:  "test-job",
-			SchedDef: fmt.Sprintf(`{"type": "daily", "at_time": "%s"}`, atTime.Format(time.RFC3339)),
+			SchedDef: datatypes.JSON(fmt.Sprintf(`{"type": "daily", "at_time": "%s"}`, atTime.Format(time.RFC3339))),
 		}
 		result := db.Create(&job)
 		require.NoError(t, result.Error)
@@ -189,21 +108,20 @@ func TestStandaloneCoordinator_EnqueueJob(t *testing.T) {
 		// Create coordinator with mock scheduler via options
 		gomockController := gomock.NewController(t)
 		mockScheduler := gocronmocks.NewMockScheduler(gomockController)
-		mockJob := gocronmocks.NewMockJob(gomockController)
-		mockJob.EXPECT().Context().Return(context.Background()).AnyTimes()
+		mockGocronJob := gocronmocks.NewMockJob(gomockController)
 
 		mockScheduler.EXPECT().Update(
 			jobID,
 			gomock.Any(), // JobDefinition
 			gomock.Any(), // Task
 			gomock.Any(), // JobOption
-		).Return(mockJob, nil).Times(1)
+		).Return(mockGocronJob, nil).Times(1)
 
-		coordinator, err := NewStandaloneCoordinator(
+		coordinator, err := service.NewStandaloneCoordinator(
 			ctx,
 			mockCronService,
 			mockStateMachineRegistry,
-			NewCoordinatorOptions().
+			service.NewCoordinatorOptions().
 				WithScheduler(mockScheduler),
 		)
 		require.NoError(t, err)

@@ -42,4 +42,6 @@ Thumbs.db
 .nx/cache
 pnpm-lock.yaml
 .aider*
+.sisyphus/
+*.test
 etc

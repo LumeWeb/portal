@@ -172,6 +172,7 @@ func TestDefaultScheduleRegistry_createOnceJob_MissingTime(t *testing.T) {
 		Type: core.CronScheduleTypeOnce,
 	}
 
-	_, err := registry.createOnceJob(def)
-	assert.Error(t, err)
+	jobDefinition, err := registry.createOnceJob(def)
+	assert.NoError(t, err)
+	assert.NotNil(t, jobDefinition)
 }

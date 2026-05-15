@@ -34,11 +34,12 @@ import (
 )
 
 var (
-	// ErrJobNotFound is returned when a job cannot be found
-	ErrJobNotFound = errors.New("job not found")
+	// ErrCronJobNotFound is returned when a cron job cannot be found in the database.
+	ErrCronJobNotFound = errors.New("cron job not found")
 
-	// ErrVersionMismatch is returned when a job's version doesn't match during update
-	ErrVersionMismatch = errors.New("job version mismatch - concurrent modification detected")
+	// ErrCronJobVersionConflict is returned when a state transition fails due to
+	// optimistic locking — another process modified the job between read and write.
+	ErrCronJobVersionConflict = errors.New("cron job version conflict - concurrent modification detected")
 
 	// stateToEvent maps each target state to the event name that triggers it.
 	// This allows looking up the FSM event name needed to reach a desired state.
