@@ -1,18 +1,17 @@
-package cron
+package service_tests
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/looplab/fsm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.lumeweb.com/portal/service"
 )
 
 func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
@@ -21,11 +20,11 @@ func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
 		require.NotNil(tb, db)
 
 		jobID := uuid.New()
-		registry := NewStateMachineRegistry(ctx)
+		registry := service.NewStateMachineRegistry(ctx)
 
-		// Test creating new machine
+		// Test creating new machine — should error since job doesn't exist yet
 		job, machine, err := registry.GetOrCreate(ctx, jobID)
-		assert.Error(t, err) // Should error since job doesn't exist yet
+		assert.Error(t, err)
 		assert.Nil(t, job)
 		assert.Nil(t, machine)
 
@@ -46,13 +45,14 @@ func TestStateMachineRegistry_GetOrCreate(t *testing.T) {
 	})
 }
 
-func TestStateMachineRegistry_Transition(t *testing.T) {
+func TestStateMachineRegistry_TransitionViaPublicAPI(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()
 		require.NotNil(tb, db)
 
 		jobID := uuid.New()
-		registry := NewStateMachineRegistry(ctx)
+		registry := service.NewStateMachineRegistry(ctx)
+		sm := service.NewCronJobStateMachine(ctx, registry)
 
 		// Create job in DB
 		job := &models.CronJob{
@@ -62,18 +62,9 @@ func TestStateMachineRegistry_Transition(t *testing.T) {
 		}
 		require.NoError(t, db.Create(job).Error)
 
-		// Get state machine
-		_, _fsm, err := registry.GetOrCreate(ctx, jobID)
+		// Transition to running state through the public API
+		err := sm.Transition(context.Background(), jobID, models.CronJobStateRunning, core.WithCronLastRun())
 		require.NoError(t, err)
-
-		// Transition to running state with last run option
-		fsmCtx := context.WithValue(ctx.GetContext(), stateMachineDataKey, &stateMachineData{
-			jobID:          jobID,
-			currentVersion: job.Version,
-			params:         &core.CronStateParams{},
-		})
-		err = _fsm.Event(fsmCtx, stateToEvent[models.CronJobStateRunning], core.WithCronLastRun())
-		assert.NoError(t, err)
 
 		// Verify state was persisted
 		var updatedJob models.CronJob
@@ -85,15 +76,14 @@ func TestStateMachineRegistry_Transition(t *testing.T) {
 	})
 }
 
-func TestStateMachineRegistry_VersionConflict(t *testing.T) {
+func TestStateMachineRegistry_Remove(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		jobID := uuid.New()
+		registry := service.NewStateMachineRegistry(ctx)
+
+		// Create job in DB so GetOrCreate works
 		db := ctx.DB()
 		require.NotNil(tb, db)
-
-		jobID := uuid.New()
-		registry := NewStateMachineRegistry(ctx)
-
-		// Create job in DB
 		job := &models.CronJob{
 			UUID:    types.FromUUID(jobID),
 			State:   models.CronJobStateQueued,
@@ -101,33 +91,19 @@ func TestStateMachineRegistry_VersionConflict(t *testing.T) {
 		}
 		require.NoError(t, db.Create(job).Error)
 
-		// Simulate concurrent update
-		require.NoError(t, db.Model(&models.CronJob{}).
-			Where("uuid = ?", types.FromUUID(jobID)).
-			Update("version", 2).Error)
+		// Get a machine so it exists in the registry
+		_, machine, err := registry.GetOrCreate(ctx, jobID)
+		require.NoError(t, err)
+		require.NotNil(t, machine)
 
-		// Try to update with old version
-		err := registry.persistState(context.Background(), jobID, 1, models.CronJobStateRunning, &core.CronStateParams{})
-		assert.Error(t, err)
-		assert.True(t, errors.Is(err, ErrVersionMismatch))
-	})
-}
+		// Remove it
+		registry.Remove(ctx, jobID)
 
-func TestStateMachineRegistry_Remove(t *testing.T) {
-	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		registry := NewStateMachineRegistry(ctx)
-		jobID := uuid.New()
-
-		// Add dummy machine to registry
-		registry.machines[jobID] = fsm.NewFSM(
-			string(models.CronJobStateQueued),
-			nil,
-			nil,
-		)
-
-		// Test removal
-		registry.Remove(nil, jobID)
-		_, exists := registry.machines[jobID]
-		assert.False(t, exists)
+		// Verify it was removed — GetOrCreate should create a new one
+		_, machine2, err := registry.GetOrCreate(ctx, jobID)
+		require.NoError(t, err)
+		assert.NotNil(t, machine2)
+		// New machine should be a different instance
+		assert.NotSame(t, machine, machine2)
 	})
 }

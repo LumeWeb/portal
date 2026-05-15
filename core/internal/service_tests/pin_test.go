@@ -177,7 +177,12 @@ func TestPinService_UploadPinnedByUser(t *testing.T) {
 		require.NoError(tb, err)
 
 		mockHash := coreMocks.NewMockStorageHash(t)
-		mockHash.On("Multihash").Return(upload.Hash)
+		mockHash.On("Multihash").Return(upload.Hash).Maybe()
+		mockHash.On("String").Return("testhash5").Maybe()
+
+		// Setup mock expectation for GetUpload
+		uploadService := coreTesting.GetMockUploadService(ctx)
+		uploadService.EXPECT().GetUpload(mock.Anything, mock.Anything).Return(upload, nil).Maybe()
 
 		pinned, err := svc.UploadPinnedByUser(context.Background(), mockHash, userID)
 		require.NoError(tb, err)

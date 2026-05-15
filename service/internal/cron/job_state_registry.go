@@ -110,7 +110,7 @@ func (r *DefaultStateMachineRegistry) persistState(ctx context.Context, jobID uu
 			if err := r.handleVersionConflict(ctx, jobID); err != nil {
 				_ = tx.AddError(fmt.Errorf("version conflict: %w", err))
 			} else {
-				_ = tx.AddError(ErrVersionMismatch)
+				_ = tx.AddError(ErrCronJobVersionConflict)
 			}
 		}
 
@@ -133,7 +133,7 @@ func (r *DefaultStateMachineRegistry) handleVersionConflict(ctx context.Context,
 		return fmt.Errorf("failed to check job existence: %w", err)
 	}
 	if !exists {
-		return ErrJobNotFound
+		return ErrCronJobNotFound
 	}
 	return nil
 }

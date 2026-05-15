@@ -90,25 +90,33 @@ func TestContentScannerService_Integration(t *testing.T) {
 		results, err := contentScannerService.ScanContent(context.Background(), testStorageHash)
 		assert.NoError(tb, err)
 		assert.Len(tb, results, 2)
-		assert.Equal(tb, "test_scanner2", results[0].ScannerID)
-		assert.True(tb, results[0].Passed)
-		assert.Equal(tb, "test_scanner1", results[1].ScannerID)
-		assert.True(tb, results[1].Passed)
+		// Check both scanner IDs are present (order depends on DB created_at resolution)
+		resultIDs := make(map[string]bool)
+		for _, r := range results {
+			resultIDs[r.ScannerID] = true
+			assert.True(tb, r.Passed)
+		}
+		assert.True(tb, resultIDs["test_scanner1"])
+		assert.True(tb, resultIDs["test_scanner2"])
 
 		// 5. Test GetScanResults
 		scanResults, err := contentScannerService.GetScanResults(context.Background(), testStorageHash)
 		assert.NoError(tb, err)
 		assert.Len(tb, scanResults, 2)
-		assert.Equal(tb, "test_scanner2", scanResults[0].ScannerID)
-		assert.True(tb, scanResults[0].Passed)
-		assert.Equal(tb, "test_scanner1", scanResults[1].ScannerID)
-		assert.True(tb, scanResults[1].Passed)
+		// Check both scanner IDs are present (order depends on DB created_at resolution)
+		scanResultIDs := make(map[string]bool)
+		for _, r := range scanResults {
+			scanResultIDs[r.ScannerID] = true
+			assert.True(tb, r.Passed)
+		}
+		assert.True(tb, scanResultIDs["test_scanner1"])
+		assert.True(tb, scanResultIDs["test_scanner2"])
 
 		// 6. Test GetScanResultById
 		scanResult, err := contentScannerService.GetScanResultById(context.Background(), uint(scanResults[0].ID))
 		assert.NoError(tb, err)
 		assert.NotNil(tb, scanResult)
-		assert.Equal(tb, "test_scanner2", scanResult.ScannerID)
+		assert.Contains(tb, []string{"test_scanner1", "test_scanner2"}, scanResult.ScannerID)
 		assert.True(tb, scanResult.Passed)
 
 		// 7. Register a scanner with a duplicate ID

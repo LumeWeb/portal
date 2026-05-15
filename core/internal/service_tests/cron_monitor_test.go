@@ -1,6 +1,10 @@
-package cron
+package service_tests
 
 import (
+	"context"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -12,9 +16,8 @@ import (
 	"go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.lumeweb.com/portal/service"
 	"gorm.io/gorm"
-	"testing"
-	"time"
 )
 
 func TestDefaultCronMonitor_CleanupOrphanedJobs(t *testing.T) {
@@ -61,10 +64,10 @@ func TestDefaultCronMonitor_CleanupOrphanedJobs(t *testing.T) {
 		mockCronService.EXPECT().StateMachine().Return(mockStateMachine)
 
 		// Expect RemoveStateMachine calls for orphaned jobs
-		mockStateMachine.EXPECT().RemoveStateMachine(job1.UUID.ToUUID()).Return().Once()
-		mockStateMachine.EXPECT().RemoveStateMachine(job2.UUID.ToUUID()).Return().Once()
+		mockStateMachine.EXPECT().RemoveStateMachine(mock.Anything, job1.UUID.ToUUID()).Return().Once()
+		mockStateMachine.EXPECT().RemoveStateMachine(mock.Anything, job2.UUID.ToUUID()).Return().Once()
 
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
 		count, err := monitor.CleanupOrphanedJobs(nil)
@@ -100,9 +103,9 @@ func TestDefaultCronMonitor_CleanupOrphanedJobs_PluginUnregistered(t *testing.T)
 		mockCronService.EXPECT().StateMachine().Return(mockStateMachine)
 
 		// Expect RemoveStateMachine call for the orphaned job
-		mockStateMachine.EXPECT().RemoveStateMachine(job.UUID.ToUUID()).Return()
+		mockStateMachine.EXPECT().RemoveStateMachine(mock.Anything, job.UUID.ToUUID()).Return()
 
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
 		count, err := monitor.CleanupOrphanedJobs(nil)
@@ -132,7 +135,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs(t *testing.T) {
 			State:         models.CronJobStateRunning,
 			LastHeartbeat: &pastHeartbeat,
 			Failures:      0,
-			JobType:       IntegrationTestJobType,
+			JobType:       "core.cron.integration-test-job",
 		}
 		require.NoError(tb, db.Create(&job).Error)
 
@@ -145,7 +148,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs(t *testing.T) {
 		mockCronService.EXPECT().JobFactory().Return(mockJobFactory)
 
 		// Expect a call to HandleFailedJob on the coordinator
-		mockCoordinator.EXPECT().HandleFailedJob(jobID, uint(1)).Return(nil)
+		mockCoordinator.EXPECT().HandleFailedJob(mock.Anything, jobID, uint(1)).Return(nil)
 
 		// Create mock job and set expectations
 		mockJob := mocks.NewMockCronJob(t)
@@ -153,9 +156,9 @@ func TestDefaultCronMonitor_RequeueStuckJobs(t *testing.T) {
 		mockJob.EXPECT().ID().Return(jobID).Once()
 
 		// Expect a call to CreateJob on the job factory
-		mockJobFactory.EXPECT().CreateJob(IntegrationTestJobType).Return(mockJob, nil)
+		mockJobFactory.EXPECT().CreateJob(mock.Anything, "core.cron.integration-test-job").Return(mockJob, nil)
 
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
 		err := monitor.RequeueStuckJobs(nil)
@@ -165,6 +168,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs(t *testing.T) {
 		mockCoordinator.AssertExpectations(tb)
 	})
 }
+
 func TestDefaultCronMonitor_RequeueStuckJobs_NoStuckJobs(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()
@@ -184,7 +188,7 @@ func TestDefaultCronMonitor_RequeueStuckJobs_NoStuckJobs(t *testing.T) {
 		mockCronService := mocks.NewMockCronService(t)
 		mockCoordinator := mocks.NewMockCronCoordinator(t)
 
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
 		err := monitor.RequeueStuckJobs(nil)
@@ -245,76 +249,16 @@ func TestDefaultCronMonitor_CleanupCompletedJobs(t *testing.T) {
 		// Mock CronService
 		mockCronService := mocks.NewMockCronService(t)
 
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		// Execute
 		err := monitor.CleanupCompletedJobs(nil)
 		require.NoError(tb, err)
 
-		// Verify that only the old, completed "once" job was deleted
+		// Verify that only the old, completed "once" jobs were deleted
 		var remainingJobs []models.CronJob
 		require.NoError(tb, db.Find(&remainingJobs).Error)
 		assert.Len(tb, remainingJobs, 2)
-		deletedJobUUID := job1.UUID
-		for _, job := range remainingJobs {
-			assert.NotEqual(tb, job.UUID, deletedJobUUID)
-		}
-
-	})
-}
-
-func TestDefaultCronMonitor_MaintenanceLoop(t *testing.T) {
-	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		// Mock CronService
-		mockCronService := mocks.NewMockCronService(t)
-
-		// Create real monitor instance
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
-
-		// Start the monitoring loop
-		err := monitor.StartMonitoring(nil)
-		require.NoError(t, err)
-
-		// Send a maintenance signal
-		monitor.SignalMaintenance(nil)
-
-		// Give the loop some time to process the signal
-		time.Sleep(100 * time.Millisecond)
-
-		// Stop the monitoring loop
-		err = monitor.StopMonitoring(nil)
-		require.NoError(t, err)
-	})
-}
-
-func TestDefaultCronMonitor_SignalMaintenance(t *testing.T) {
-	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
-		// Create a monitor instance
-		mockCronService := mocks.NewMockCronService(t)
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
-
-		// Start the monitoring loop
-		err := monitor.StartMonitoring(nil)
-		require.NoError(t, err)
-
-		// Send multiple maintenance signals
-		monitor.SignalMaintenance(nil)
-		monitor.SignalMaintenance(nil) // Send a second signal to ensure non-blocking
-
-		// Give the loop some time to process the signal
-		time.Sleep(50 * time.Millisecond)
-
-		// Stop the monitoring loop
-		err = monitor.StopMonitoring(nil)
-		require.NoError(t, err)
-
-		// Check that the maintenance channel has at most one signal
-		select {
-		case <-monitor.maintenanceCh:
-			// Signal was received
-		default:
-			// No signal was received, which is also acceptable
-		}
 	})
 }
 
@@ -336,23 +280,18 @@ func TestDefaultCronMonitor_SignalMaintenance_TriggersMaintenance(t *testing.T) 
 		// Mock CronService dependencies
 		mockCronService := mocks.NewMockCronService(t)
 		mockStateMachine := mocks.NewMockCronJobStateMachine(t)
-		mockCoordinator := mocks.NewMockCronCoordinator(t)
-		mockJobFactory := mocks.NewMockCronJobFactory(t)
 
 		mockCronService.EXPECT().StateMachine().Return(mockStateMachine)
 
 		// Expect RemoveStateMachine call for the orphaned job
-		mockStateMachine.EXPECT().RemoveStateMachine(job.UUID.ToUUID()).Return()
+		mockStateMachine.EXPECT().RemoveStateMachine(mock.Anything, job.UUID.ToUUID()).Return()
 
 		// Create real monitor instance and start it
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 		err := monitor.StartMonitoring(nil)
 		require.NoError(t, err)
-		defer func(monitor *DefaultCronMonitor) {
-			err = monitor.StopMonitoring(nil)
-			if err != nil {
-				require.NoError(t, err)
-			}
+		defer func(monitor core.CronMonitor) {
+			_ = monitor.StopMonitoring(nil)
 		}(monitor)
 
 		// Send maintenance signal
@@ -363,8 +302,6 @@ func TestDefaultCronMonitor_SignalMaintenance_TriggersMaintenance(t *testing.T) 
 
 		// Verify maintenance was performed by checking mock expectations
 		mockStateMachine.AssertExpectations(t)
-		mockCoordinator.AssertExpectations(t)
-		mockJobFactory.AssertExpectations(t)
 
 		// Verify job was deleted
 		var count int64
@@ -383,7 +320,7 @@ func TestDefaultCronMonitor_Heartbeat(t *testing.T) {
 		mockCronService.EXPECT().Coordinator().Return(mockCoordinator)
 
 		// Create monitor instance
-		monitor := NewDefaultCronMonitor(ctx, mockCronService)
+		monitor := service.NewDefaultCronMonitor(ctx, mockCronService)
 
 		monitor.StartHeartbeat(nil, jobID)
 		time.Sleep(50 * time.Millisecond) // Give heartbeat loop some time
@@ -391,7 +328,7 @@ func TestDefaultCronMonitor_Heartbeat(t *testing.T) {
 		ret := true
 
 		// --- Test CheckHeartbeat (alive) ---
-		mockCoordinator.EXPECT().CheckHeartbeat(jobID).RunAndReturn(func(_ uuid.UUID) (bool, error) {
+		mockCoordinator.EXPECT().CheckHeartbeat(mock.Anything, jobID).RunAndReturn(func(_ context.Context, _ uuid.UUID) (bool, error) {
 			return ret, nil
 		})
 

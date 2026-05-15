@@ -10,6 +10,7 @@ import (
 	"gorm.io/datatypes"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
@@ -39,7 +40,7 @@ func TestContentScannerService_ScanContent(t *testing.T) {
 		mockScanner.EXPECT().ID().Return("test_scanner").Maybe()
 		mockScanner.EXPECT().Name().Return("Test Scanner").Maybe()
 		mockScanner.EXPECT().Priority().Return(1).Maybe()
-		mockScanner.EXPECT().ScanContent(context.Background(), mockStorageHash).Return(&core.ScanResult{
+		mockScanner.EXPECT().ScanContent(mock.Anything, mockStorageHash).Return(&core.ScanResult{
 			ScannerID: "test_scanner",
 			Passed:    true,
 			Reason:    "",
@@ -124,7 +125,7 @@ func TestContentScannerService_GetScanResults(t *testing.T) {
 		mockScanner.EXPECT().Name().Return("Test Scanner").Maybe()
 		mockScanner.EXPECT().Priority().Return(1).Maybe()
 		mockStorageHash.EXPECT().String().Return("test_hash").Maybe()
-		mockScanner.EXPECT().ScanContent(context.Background(), mockStorageHash).Return(&core.ScanResult{
+		mockScanner.EXPECT().ScanContent(mock.Anything, mockStorageHash).Return(&core.ScanResult{
 			ScannerID: "test_scanner",
 			Passed:    true,
 			Reason:    "",

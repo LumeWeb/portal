@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.7
 	github.com/aws/aws-sdk-go-v2/config v1.32.17
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.16
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.101.0
 	github.com/aws/smithy-go v1.25.1
 	github.com/casbin/casbin/v3 v3.10.0
 	github.com/casbin/gorm-adapter/v3 v3.41.0
@@ -19,8 +19,8 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gammazero/workerpool v1.2.1
-	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260420205010-8e553c021ccd
-	github.com/go-co-op/gocron/v2 v2.21.1
+	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260512155149-629cfc547b82
+	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-kiss/monkey v0.0.0-20240508030602-d03795257a64
 	github.com/go-sql-driver/mysql v1.10.0
@@ -50,27 +50,27 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tus/tusd/v2 v2.9.2
 	github.com/uptrace/uptrace-go v1.43.0
-	github.com/urfave/cli/v3 v3.8.0
-	github.com/wneessen/go-mail v0.7.2
+	github.com/urfave/cli/v3 v3.9.0
+	github.com/wneessen/go-mail v0.7.3
 	go.etcd.io/etcd/client/v3 v3.6.11
 	go.lumeweb.com/configmanager v0.3.28
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.7
-	go.lumeweb.com/portal-router v0.6.15
+	go.lumeweb.com/portal-router v0.6.16
 	go.opentelemetry.io/contrib/bridges/otelzap v0.18.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/log v0.19.0
 	go.opentelemetry.io/otel/sdk v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
-	go.sia.tech/core v0.20.0
-	go.sia.tech/coreutils v0.21.3
+	go.sia.tech/core v0.21.0
+	go.sia.tech/coreutils v0.22.0
 	go.sia.tech/renterd/v2 v2.9.1
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
 	go.uber.org/zap/exp v0.3.0
-	golang.org/x/crypto v0.50.0
-	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
+	golang.org/x/crypto v0.51.0
+	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/datatypes v1.2.7
 	gorm.io/driver/mysql v1.6.0
@@ -204,7 +204,7 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
@@ -212,7 +212,7 @@ require (
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.11 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.11 // indirect
-	go.lumeweb.com/gswagger v0.20.11 // indirect
+	go.lumeweb.com/gswagger v0.20.12 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.68.0 // indirect
 	go.opentelemetry.io/contrib/processors/minsev v0.16.0 // indirect
@@ -233,11 +233,11 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/mod v0.35.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
 	gorm.io/driver/clickhouse v0.7.0 // indirect

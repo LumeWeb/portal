@@ -430,6 +430,12 @@ func GetMockTUSService(ctx core.Context) *mocks.MockTUSService {
 	return getMock[mocks.MockTUSService](ctx, core.TUS_SERVICE)
 }
 
+// GetMockUploadService returns the mock upload service from the context for testing
+// Panics if the upload service is not a mock
+func GetMockUploadService(ctx core.Context) *mocks.MockUploadService {
+	return getMock[mocks.MockUploadService](ctx, core.UPLOAD_SERVICE)
+}
+
 // GetMockUserService returns the mock user service from the context for testing
 // Panics if the user service is not a mock
 func GetMockUserService(ctx core.Context) *MockUserService {

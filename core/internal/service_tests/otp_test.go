@@ -1,6 +1,7 @@
 package service_tests
 
 import (
+	"context"
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/service"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
-	coreMocks "go.lumeweb.com/portal/core/testing/mocks"
 	"go.lumeweb.com/portal/db/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -22,7 +22,7 @@ func TestOTPService_OTPGeneration(t *testing.T) {
 		otpService := core.GetService[core.OTPService](ctx, core.OTP_SERVICE)
 		require.NotNil(tb, otpService)
 
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, userService)
 
 		// Create test user
@@ -37,8 +37,8 @@ func TestOTPService_OTPGeneration(t *testing.T) {
 		require.NoError(tb, ctx.DB().Create(user).Error)
 
 		// Setup mock expectations for OTP generation
-		userService.EXPECT().AccountExists(user.ID).Return(true, user, nil).Once()
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Once()
+		userService.EXPECT().AccountExists(mock.Anything, user.ID).Return(true, user, nil).Once()
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil).Once()
 
 		// Generate OTP secret
 		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
@@ -64,12 +64,12 @@ func TestOTPService_OTPVerification(t *testing.T) {
 		}
 		require.NoError(tb, ctx.DB().Create(user).Error)
 
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, userService)
 
 		// Setup mock expectations for OTP verification
-		userService.EXPECT().AccountExists(user.ID).Return(true, user, nil).Times(3)
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil).Once()
+		userService.EXPECT().AccountExists(mock.Anything, user.ID).Return(true, user, nil).Times(3)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil).Once()
 
 		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
 		require.NoError(tb, err)
@@ -94,7 +94,7 @@ func TestOTPService_OTPVerification(t *testing.T) {
 func TestOTPService_OTPLifecycle(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		otpService := core.GetService[core.OTPService](ctx, core.OTP_SERVICE)
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, otpService)
 
 		// Create test user
@@ -109,8 +109,8 @@ func TestOTPService_OTPLifecycle(t *testing.T) {
 		require.NoError(tb, ctx.DB().Create(user).Error)
 
 		// Setup mock expectations for OTP lifecycle
-		userService.EXPECT().AccountExists(user.ID).Return(true, user, nil)
-		userService.EXPECT().UpdateAccountInfo(user.ID, mock.Anything).Return(nil)
+		userService.EXPECT().AccountExists(mock.Anything, user.ID).Return(true, user, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
 		// Generate OTP secret
 		secret, err := otpService.OTPGenerate(context.Background(), user.ID)
@@ -135,12 +135,12 @@ func TestOTPService_ErrorCases(t *testing.T) {
 		otpService := core.GetService[core.OTPService](ctx, core.OTP_SERVICE)
 		require.NotNil(tb, otpService)
 
-		userService := core.GetService[*coreMocks.MockUserService](ctx, core.USER_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, userService)
 
 		// Setup mock expectations for invalid user cases
 		invalidUserID := uint(999999)
-		userService.EXPECT().AccountExists(invalidUserID).Return(false, nil, nil).Times(4)
+		userService.EXPECT().AccountExists(mock.Anything, invalidUserID).Return(false, nil, nil).Times(4)
 
 		// Invalid user
 		_, err := otpService.OTPGenerate(context.Background(), invalidUserID)

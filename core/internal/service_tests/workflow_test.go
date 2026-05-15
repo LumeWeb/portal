@@ -3,7 +3,7 @@ package service_tests
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/multiformats/go-multihash"
@@ -262,11 +262,11 @@ func TestMultiStepWorkflowTransition(t *testing.T) {
 		err = workflowService.CompleteWorkflowStep(context.Background(), req3.ID)
 		assert.NoError(tb, err)
 
-		// Verify all requests are cleaned up
+		// Verify all requests remain in database with completed status (not deleted)
 		var count int64
-		err = ctx.DB().Model(&models.Request{}).Where("id IN (?, ?, ?)", req1.ID, req2.ID, req3.ID).Count(&count).Error
+		err = ctx.DB().Model(&models.Request{}).Where("id IN (?, ?, ?) AND status = ?", req1.ID, req2.ID, req3.ID, models.RequestStatusCompleted).Count(&count).Error
 		require.NoError(tb, err)
-		assert.Equal(tb, int64(0), count)
+		assert.Equal(tb, int64(3), count)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
@@ -305,7 +305,7 @@ func TestFailWorkflowBehavior(t *testing.T) {
 		require.NotNil(tb, req)
 
 		// Fail the workflow step
-		err = workflowService.FailWorkflowStep(context.Background(), req.ID, fmt.Errorf(failureReason))
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New(failureReason))
 		assert.NoError(tb, err)
 
 		// Verify request is marked as failed
@@ -356,7 +356,7 @@ func TestContinueWorkflowBehavior(t *testing.T) {
 		require.NotNil(tb, req1)
 
 		// Fail first step with ContinueWorkflow behavior
-		err = workflowService.FailWorkflowStep(context.Background(), req1.ID, fmt.Errorf(failureReason))
+		err = workflowService.FailWorkflowStep(context.Background(), req1.ID, errors.New(failureReason))
 		assert.NoError(tb, err)
 
 		// Verify first request is marked as failed
@@ -414,15 +414,16 @@ func TestRetryStepBehavior(t *testing.T) {
 		require.NoError(tb, err)
 		require.NotNil(tb, req)
 
-		// Fail step with RetryStep behavior
-		err = workflowService.FailWorkflowStep(context.Background(), req.ID, fmt.Errorf(failureReason))
-		assert.NoError(tb, err)
+		// Fail step with RetryStep behavior (returns a retried error)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New(failureReason))
+		assert.Error(tb, err)
+		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
 
-		// Verify request status is reset to pending for retry
+		// Verify request status is reset to processing for retry (scheduleRetry resets to pending then re-executes)
 		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
 		assert.NoError(tb, err)
-		assert.Equal(tb, models.RequestStatusPending, updatedReq.Status)
-		assert.Equal(tb, failureReason, updatedReq.StatusMessage)
+		assert.Equal(tb, models.RequestStatusProcessing, updatedReq.Status)
+		assert.Equal(tb, "Currently being processed", updatedReq.StatusMessage)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
@@ -1362,6 +1363,6 @@ func withTestProtocol(operationNames ...string) coreTesting.TestContextBuilderOp
 				protocol.WithOperation(op)
 			}
 		}),
-		coreTesting.WithProtocolConfig("test", coreTesting.NewMockConfigEntry()),
+		coreTesting.WithCustomProtocolConfig("test", coreTesting.NewConfigBuilder()),
 	)
 }

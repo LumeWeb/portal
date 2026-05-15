@@ -43,7 +43,7 @@ func TestHTTPService_apiMetaHandler_Integration(t *testing.T) {
 			WebBundles: []*core.WebBundle{
 				core.NewWebBundle(
 					testWebBundleFS,
-					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+					core.WithWebBundlePrefix("http/testdata/web_bundle"),
 				),
 			},
 		})
@@ -70,7 +70,7 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_Integration(t *testing.
 			WebBundles: []*core.WebBundle{
 				core.NewWebBundle(
 					testWebBundleFS,
-					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+					core.WithWebBundlePrefix("http/testdata/web_bundle"),
 				),
 			},
 		}
@@ -127,7 +127,7 @@ func TestHTTPService_apiPluginWebBundleFileServerHandler_ServeManifest_Integrati
 			WebBundles: []*core.WebBundle{
 				core.NewWebBundle(
 					testWebBundleFS,
-					core.WithWebBundlePrefix("internal/http/testdata/web_bundle"),
+					core.WithWebBundlePrefix("http/testdata/web_bundle"),
 				),
 			},
 		}

@@ -1,6 +1,7 @@
 package service_tests
 
 import (
+	"context"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
@@ -194,7 +195,8 @@ func TestUserService_UpdateAccountEmail(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidLogin)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestUserService_UpdateAccountPassword(t *testing.T) {
@@ -231,7 +233,8 @@ func TestUserService_UpdateAccountPassword(t *testing.T) {
 		assert.Error(tb, err)
 		assert.Equal(tb, core.AsAccountError(err).Key, core.ErrKeyInvalidPassword)
 
-	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService),
+		coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
 func TestUserService_DeleteAccount(t *testing.T) {

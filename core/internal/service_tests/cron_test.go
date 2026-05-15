@@ -27,11 +27,11 @@ func TestCronServiceDefault_RegisterJob(t *testing.T) {
 		mockCoordinator := coreMocks.NewMockCronCoordinator(t)
 		jobID := uuid.New()
 		mockJob := coreMocks.NewMockCronJob(t)
-		mockCoordinator.EXPECT().EnqueueJob(jobID).Return(nil).Once()
+		mockCoordinator.EXPECT().EnqueueJob(mock.Anything, jobID).Return(nil).Once()
 		mockJob.EXPECT().ID().Return(jobID)
 		mockJob.EXPECT().Origin().Return(core.JobOriginCore)
 		mockJob.EXPECT().SourceID().Return("test-source")
-		mockJob.EXPECT().Type().Return("core.test.job").Times(1)
+		mockJob.EXPECT().Type().Return("core.test.job").Maybe()
 		mockJob.EXPECT().Args().Return(map[string]interface{}{"test": "value"})
 		mockJob.EXPECT().Schedule().Return(&core.CronScheduleDefinition{Type: core.CronScheduleTypeDaily})
 
@@ -95,7 +95,7 @@ func TestCronServiceDefault_RunJob(t *testing.T) {
 		// Mock the coordinator first
 		mockCoordinator := coreMocks.NewMockCronCoordinator(t)
 		jobID := uuid.New()
-		mockCoordinator.EXPECT().EnqueueJob(jobID).Return(nil)
+		mockCoordinator.EXPECT().EnqueueJob(mock.Anything, jobID).Return(nil)
 
 		// Create a testing cron service with the coordinator
 		cronService := service.NewTestingCronService(
@@ -133,6 +133,7 @@ func TestCronServiceDefault_RegisterJobType(t *testing.T) {
 		}
 
 		mockJobFactory.EXPECT().RegisterFactory(
+			mock.Anything,
 			jobType,
 			mock.MatchedBy(func(f interface{}) bool {
 				_, ok := f.(core.CronJobFactoryFunc)
@@ -284,11 +285,13 @@ func TestCronServiceDefault_RegisterPluginJobs(t *testing.T) {
 
 		// Expect RegisterFactory to be called for each job
 		mockJobFactory.EXPECT().RegisterFactory(
+			mock.Anything,
 			fmt.Sprintf("plugin.%s.%s", pluginInfo.ID, pluginInfo.CronJobs[0].Name),
 			mock.AnythingOfType("core.CronJobFactoryFunc"),
 			pluginInfo.CronJobs[0].Schedule,
 		).Return(nil)
 		mockJobFactory.EXPECT().RegisterFactory(
+			mock.Anything,
 			fmt.Sprintf("plugin.%s.%s", pluginInfo.ID, pluginInfo.CronJobs[1].Name),
 			mock.AnythingOfType("core.CronJobFactoryFunc"),
 			pluginInfo.CronJobs[1].Schedule,
@@ -335,24 +338,28 @@ func TestCronServiceDefault_StartStop(t *testing.T) {
 		// Create a mock state machine registry
 		mockStateMachineRegistry := coreMocks.NewMockCronJobStateMachineRegistry(t)
 
-		// Create a coordinator with the mock scheduler
-		coordinator, err := service.NewStandaloneCoordinator(ctx, nil, mockStateMachineRegistry, service.NewCoordinatorOptions().WithScheduler(mockScheduler))
-		require.NoError(t, err)
-
-		// Create a testing cron service with the coordinator
+		// Create a testing cron service first (needed by coordinator for JobFactory)
 		cronService := service.NewTestingCronService(
 			ctx,
 			db,
-			coordinator,
+			nil, // coordinator set below
 			nil,
 			nil,
 			nil,
 			service.NewDefaultCronMonitor(ctx, nil),
 		)
 
-		// Expect Start and Shutdown to be called
-		mockScheduler.EXPECT().Start().Return().Times(1)
-		mockScheduler.EXPECT().Shutdown().Return(nil).Times(1)
+		// Create a coordinator with the mock scheduler
+		coordinator, err := service.NewStandaloneCoordinator(ctx, cronService, mockStateMachineRegistry, service.NewCoordinatorOptions().WithScheduler(mockScheduler))
+		require.NoError(t, err)
+
+		// Set the coordinator on the cron service
+		cronService.(*service.CronServiceDefault).SetCoordinator(coordinator)
+
+		// Expect Start, Update, and Shutdown to be called
+		mockScheduler.EXPECT().Start().Return().AnyTimes()
+		mockScheduler.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		mockScheduler.EXPECT().Shutdown().Return(nil).AnyTimes()
 
 		// Start the cron service
 		err = cronService.Start(nil)

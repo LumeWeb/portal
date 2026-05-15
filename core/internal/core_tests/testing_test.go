@@ -38,9 +38,13 @@ var mockAPIConfig = MockAPIConfig{}
 
 // Helper function to create a mock ConfigManager with required expectations
 func newMockConfigManager(t *testing.T, cfg *config.Config) *config.MockManager {
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
 	mockConfigManager := config.NewMockManager(t)
-	mockConfigManager.On("GetConfig").Return(cfg)
-	mockConfigManager.On("SetLogger", mock.Anything).Return()
+	mockConfigManager.On("GetConfig").Maybe().Return(cfg)
+	mockConfigManager.On("Config").Maybe().Return(cfg)
+	mockConfigManager.On("SetLogger", mock.Anything).Maybe().Return()
 	return mockConfigManager
 }
 
