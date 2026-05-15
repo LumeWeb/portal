@@ -262,7 +262,7 @@ func TestTUSUploadReader_MultipartRangeHandling(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, int64(len(tc.expected)), n)
 			assert.Equal(t, tc.expected, buf.Bytes())
-			defer require.NoError(t, reader.Close())
+			defer func() { require.NoError(t, reader.Close()) }()
 		})
 	}
 }
@@ -317,10 +317,10 @@ func TestTUSUploadReader_SeekOperations(t *testing.T) {
 
 	buf = make([]byte, 20)
 	n, err = reader.Read(buf)
-	assert.NoError(t, err)
+	assert.Equal(t, io.EOF, err)
 	assert.Equal(t, 15, n)
 	assert.Equal(t, testData[len(testData)-15:], buf[:n])
-	defer require.NoError(t, reader.Close())
+	defer func() { require.NoError(t, reader.Close()) }()
 }
 
 func TestTUSUploadReader_BufferTruncation(t *testing.T) {
@@ -375,6 +375,135 @@ func TestTUSUploadReader_BufferTruncation(t *testing.T) {
 
 	// Close reader manually at the end
 	require.NoError(t, reader.Close())
+}
+
+func TestTUSUploadReader_ReadAt(t *testing.T) {
+	_, store, _, _, serverURL := setupTUSServer(t)
+	ctx := context.Background()
+
+	testData := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+
+	uploadURL := uploadWithTusClient(t, serverURL, testData, store)
+	upload, err := getUploadFromStore(store, uploadURL)
+	require.NoError(t, err)
+
+	info, err := upload.GetInfo(ctx)
+	require.NoError(t, err)
+
+	reader, err := NewTUSUploadReader(ctx, &core.Logger{Logger: zap.NewNop()}, upload, info, 0)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	buf := make([]byte, 10)
+
+	t.Run("read from beginning", func(t *testing.T) {
+		n, err := reader.ReadAt(buf, 0)
+		assert.NoError(t, err)
+		assert.Equal(t, 10, n)
+		assert.Equal(t, []byte("0123456789"), buf)
+	})
+
+	t.Run("read from middle", func(t *testing.T) {
+		n, err := reader.ReadAt(buf, 10)
+		assert.NoError(t, err)
+		assert.Equal(t, 10, n)
+		assert.Equal(t, []byte("ABCDEFGHIJ"), buf)
+	})
+
+	t.Run("read near end with EOF", func(t *testing.T) {
+		off := int64(len(testData) - 5)
+		smallBuf := make([]byte, 10)
+		n, err := reader.ReadAt(smallBuf, off)
+		assert.Equal(t, io.EOF, err)
+		assert.Equal(t, 5, n)
+		assert.Equal(t, testData[off:], smallBuf[:n])
+	})
+
+	t.Run("read at exact end returns EOF", func(t *testing.T) {
+		smallBuf := make([]byte, 1)
+		_, err := reader.ReadAt(smallBuf, int64(len(testData)))
+		assert.Equal(t, io.EOF, err)
+	})
+
+	t.Run("does not affect position", func(t *testing.T) {
+		pos, err := reader.Seek(20, io.SeekStart)
+		require.NoError(t, err)
+		require.Equal(t, int64(20), pos)
+
+		smallBuf := make([]byte, 5)
+		_, _ = reader.ReadAt(smallBuf, 0)
+		assert.Equal(t, []byte("01234"), smallBuf)
+
+		pos, err = reader.Seek(0, io.SeekCurrent)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(20), pos, "ReadAt must not change position")
+	})
+}
+
+func TestTUSUploadReader_ReadAt_Concurrent(t *testing.T) {
+	_, store, _, _, serverURL := setupTUSServer(t)
+	ctx := context.Background()
+
+	testData := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	uploadURL := uploadWithTusClient(t, serverURL, testData, store)
+	upload, err := getUploadFromStore(store, uploadURL)
+	require.NoError(t, err)
+
+	info, err := upload.GetInfo(ctx)
+	require.NoError(t, err)
+
+	reader, err := NewTUSUploadReader(ctx, &core.Logger{Logger: zap.NewNop()}, upload, info, 0)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	type result struct {
+		off   int64
+		data  []byte
+		err   error
+		n     int
+	}
+
+	offsets := []int64{0, 10, 26, 50}
+	ch := make(chan result, len(offsets))
+
+	for _, off := range offsets {
+		go func(off int64) {
+			buf := make([]byte, 10)
+			n, err := reader.ReadAt(buf, off)
+			ch <- result{off: off, data: buf[:n], err: err, n: n}
+		}(off)
+	}
+
+	for range offsets {
+		res := <-ch
+		assert.NoError(t, res.err, "offset %d", res.off)
+		assert.Equal(t, 10, res.n, "offset %d", res.off)
+		assert.Equal(t, testData[res.off:res.off+10], res.data, "offset %d", res.off)
+	}
+}
+
+func TestTUSUploadReader_ReadAt_AfterClose(t *testing.T) {
+	_, store, _, _, serverURL := setupTUSServer(t)
+	ctx := context.Background()
+
+	testData := []byte("0123456789ABCDEF")
+
+	uploadURL := uploadWithTusClient(t, serverURL, testData, store)
+	upload, err := getUploadFromStore(store, uploadURL)
+	require.NoError(t, err)
+
+	info, err := upload.GetInfo(ctx)
+	require.NoError(t, err)
+
+	reader, err := NewTUSUploadReader(ctx, &core.Logger{Logger: zap.NewNop()}, upload, info, 0)
+	require.NoError(t, err)
+
+	require.NoError(t, reader.Close())
+
+	buf := make([]byte, 10)
+	_, err = reader.ReadAt(buf, 0)
+	assert.Equal(t, io.EOF, err)
 }
 
 func TestTUSUploadReader_LargeFileRanges(t *testing.T) {
@@ -432,7 +561,7 @@ func TestTUSUploadReader_LargeFileRanges(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, 500, n)
 			assert.Equal(t, tr.expected, buf)
-			defer require.NoError(t, reader.Close())
+			defer func() { require.NoError(t, reader.Close()) }()
 		})
 	}
 }

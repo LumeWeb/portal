@@ -13,8 +13,9 @@ import (
 	"go.lumeweb.com/portal/core"
 )
 
-// TUSUploadReader wraps a TUS upload reader to provide io.ReadSeekCloser functionality
-// using the modern ContentServerDataStore approach for S3-backed uploads
+// TUSUploadReader wraps a TUS upload reader to provide io.ReadSeekCloser and
+// io.ReaderAt functionality using the ContentServerDataStore approach for
+// S3-backed uploads
 type TUSUploadReader struct {
 	mu             sync.RWMutex
 	ctx            context.Context
@@ -72,7 +73,6 @@ func NewTUSUploadReader(
 
 // Read implements io.Reader using the modern ContentServerDataStore approach
 func (r *TUSUploadReader) Read(p []byte) (n int, err error) {
-	// Check for context cancellation
 	select {
 	case <-r.ctx.Done():
 		return 0, r.ctx.Err()
@@ -86,63 +86,136 @@ func (r *TUSUploadReader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// Calculate remaining bytes from current position to end
 	remainingBytes := r.info.Size - r.position
 	if remainingBytes <= 0 {
 		return 0, io.EOF
 	}
 
-	// Don't read more than we have space for
 	maxRead := int64(len(p))
 	if remainingBytes < maxRead {
 		maxRead = remainingBytes
 	}
 
-	// Calculate range for this read request (maxRead is already constrained by remainingBytes)
 	rangeEnd := r.position + maxRead - 1
 
-	// Create HTTP request for range
+	result, err := r.serveRange(r.position, rangeEnd)
+	if err != nil {
+		return 0, err
+	}
+
+	data := result.data
+	if result.statusCode == http.StatusOK {
+		if r.position >= int64(len(data)) {
+			return 0, io.EOF
+		}
+		end := int64(len(data))
+		if r.position+maxRead < end {
+			end = r.position + maxRead
+		}
+		data = data[r.position:end]
+	}
+
+	copied := min(len(data), len(p))
+	copy(p[:copied], data[:copied])
+	r.position += int64(copied)
+
+	if r.position >= r.info.Size {
+		return copied, io.EOF
+	}
+
+	return copied, nil
+}
+
+// ReadAt implements io.ReaderAt — reads from offset without affecting position.
+// Safe for concurrent use from multiple goroutines.
+func (r *TUSUploadReader) ReadAt(p []byte, off int64) (n int, err error) {
+	select {
+	case <-r.ctx.Done():
+		return 0, r.ctx.Err()
+	default:
+	}
+
+	r.mu.RLock()
+	closed := r.closed
+	size := r.info.Size
+	r.mu.RUnlock()
+
+	if closed {
+		return 0, io.EOF
+	}
+
+	if off < 0 {
+		return 0, fmt.Errorf("negative offset: %d", off)
+	}
+
+	if off >= size {
+		return 0, io.EOF
+	}
+
+	remainingBytes := size - off
+	maxRead := int64(len(p))
+	if remainingBytes < maxRead {
+		maxRead = remainingBytes
+	}
+
+	rangeEnd := off + maxRead - 1
+
+	result, err := r.serveRange(off, rangeEnd)
+	if err != nil {
+		return 0, err
+	}
+
+	data := result.data
+	if result.statusCode == http.StatusOK {
+		if off >= int64(len(data)) {
+			return 0, io.EOF
+		}
+		end := int64(len(data))
+		if off+maxRead < end {
+			end = off + maxRead
+		}
+		data = data[off:end]
+	}
+
+	copied := min(len(data), len(p))
+	copy(p[:copied], data[:copied])
+
+	if off+int64(copied) >= size {
+		return copied, io.EOF
+	}
+
+	return copied, nil
+}
+
+// serveRangeResult holds the data and status from a ServeContent call.
+type serveRangeResult struct {
+	data       []byte
+	statusCode int
+}
+
+// serveRange fetches bytes [start, end] via ServeContent. Must not be called
+// while holding r.mu (Read holds the write lock; ReadAt does not hold it).
+func (r *TUSUploadReader) serveRange(start, end int64) (*serveRangeResult, error) {
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set range header
-	rangeHeader := fmt.Sprintf("bytes=%d-%d", r.position, rangeEnd)
-	req.Header.Set("Range", rangeHeader)
+	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
-	// Create response recorder to capture the response
 	recorder := newResponseRecorder()
 
-	// Use ServeContent to get the data
-	err = r.servableUpload.ServeContent(r.ctx, recorder, req)
-	if err != nil {
-		return 0, fmt.Errorf("failed to serve content: %w", err)
+	if err := r.servableUpload.ServeContent(r.ctx, recorder, req); err != nil {
+		return nil, fmt.Errorf("failed to serve content: %w", err)
 	}
 
-	// Handle partial content responses
-	if recorder.statusCode == http.StatusPartialContent || recorder.statusCode == http.StatusOK {
-		data := recorder.buffer.Bytes()
-
-		// Calculate how many bytes will actually be copied
-		copied := min(len(data), len(p))
-		copy(p[:copied], data[:copied])
-
-		// Advance position only by bytes actually copied
-		r.position += int64(copied)
-		n = copied
-
-		// Check for EOF after position update
-		if recorder.statusCode == http.StatusOK && r.position >= r.info.Size {
-			return n, io.EOF
-		}
-
-		return n, nil
-	} else if recorder.statusCode == http.StatusRequestedRangeNotSatisfiable {
-		// Range not satisfiable - this means we tried to read beyond the file
-		return 0, io.EOF
-	} else {
-		return 0, fmt.Errorf("unexpected status code: %d", recorder.statusCode)
+	switch recorder.statusCode {
+	case http.StatusPartialContent, http.StatusOK:
+		return &serveRangeResult{data: recorder.buffer.Bytes(), statusCode: recorder.statusCode}, nil
+	case http.StatusRequestedRangeNotSatisfiable:
+		return nil, io.EOF
+	default:
+		return nil, fmt.Errorf("unexpected status code: %d", recorder.statusCode)
 	}
 }
 
