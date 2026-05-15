@@ -74,6 +74,62 @@ func TestStandaloneCoordinator_CheckHeartbeat(t *testing.T) {
 	})
 }
 
+func TestStandaloneCoordinator_SetHeartbeat_BypassesFSM(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(t, db)
+
+		jobID := uuid.New()
+		beforeSet := time.Now().Add(-1 * time.Minute)
+
+		// Create a Running job with a stale heartbeat and known version
+		job := models.CronJob{
+			UUID:          types.FromUUID(jobID),
+			State:         models.CronJobStateRunning,
+			Version:       3,
+			LastHeartbeat: &beforeSet,
+		}
+		result := db.Create(&job)
+		require.NoError(t, result.Error)
+
+		// Create coordinator — the FSM must NOT be called.
+		// No mock state machine is wired; if SetHeartbeat goes through the FSM
+		// path, it would nil-dereference or call an unmocked method.
+		mockCronService := coreMocks.NewMockCronService(t)
+		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
+		mockCronService.EXPECT().JobFactory().Return(mockJobFactory).Maybe()
+
+		coordinator, err := service.NewStandaloneCoordinator(
+			ctx,
+			mockCronService,
+			coreMocks.NewMockCronJobStateMachineRegistry(t),
+			service.NewCoordinatorOptions(),
+		)
+		require.NoError(t, err)
+
+		// Execute
+		err = coordinator.SetHeartbeat(nil, jobID)
+		require.NoError(t, err)
+
+		// Reload from DB and assert:
+		// 1. last_heartbeat was updated
+		// 2. state was NOT changed (still Running, not re-transitioned)
+		// 3. version was NOT bumped (FSM was bypassed)
+		var updated models.CronJob
+		result = db.First(&updated, "uuid = ?", types.FromUUID(jobID))
+		require.NoError(t, result.Error)
+
+		assert.Equal(t, models.CronJobStateRunning, updated.State,
+			"state must not change on heartbeat")
+		assert.Equal(t, int64(3), updated.Version,
+			"version must not be bumped on heartbeat")
+		assert.NotNil(t, updated.LastHeartbeat,
+			"last_heartbeat must be set")
+		assert.True(t, updated.LastHeartbeat.After(beforeSet),
+			"last_heartbeat must be updated to a more recent time")
+	})
+}
+
 func TestStandaloneCoordinator_EnqueueJob(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()
