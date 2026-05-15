@@ -21,15 +21,15 @@ import (
 var _ core.CronService = (*CronServiceDefault)(nil)
 
 var (
-	NewJobFactory            = cron.NewJobFactory
-	NewScheduleRegistry      = cron.NewScheduleRegistry
-	NewCronJobStateMachine   = cron.NewCronJobStateMachine
-	NewStateMachineRegistry  = cron.NewStateMachineRegistry
-	NewDefaultCronMonitor    = cron.NewDefaultCronMonitor
-	NewStandaloneCoordinator = cron.NewStandaloneCoordinator
-	NewCoordinatorOptions    = cron.NewCoordinatorOptions
-	NewCoordinatorFromContext = cron.NewCoordinatorFromContext
-	NewJobCreator             = cron.NewJobCreator
+	NewJobFactory              = cron.NewJobFactory
+	NewScheduleRegistry        = cron.NewScheduleRegistry
+	NewCronJobStateMachine     = cron.NewCronJobStateMachine
+	NewStateMachineRegistry    = cron.NewStateMachineRegistry
+	NewDefaultCronMonitor      = cron.NewDefaultCronMonitor
+	NewStandaloneCoordinator   = cron.NewStandaloneCoordinator
+	NewCoordinatorOptions      = cron.NewCoordinatorOptions
+	NewCoordinatorFromContext  = cron.NewCoordinatorFromContext
+	NewJobCreator              = cron.NewJobCreator
 
 	// ErrCronJobNotFound is returned when a cron job cannot be found.
 	ErrCronJobNotFound = cron.ErrCronJobNotFound

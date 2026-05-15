@@ -136,7 +136,16 @@ func (s *StandaloneCoordinator) SetHeartbeat(ctx context.Context, jobID uuid.UUI
 	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.SetHeartbeat")
 	defer span.End()
 
-	return s.stateMachine.Transition(ctx, jobID, models.CronJobStateRunning, core.WithCronHeartbeat())
+	// Heartbeat is not a state transition — it's a timestamp update while remaining
+	// in Running state. Going through the FSM would require Running→Running which
+	// is invalid, and would bump the version on every 30s tick. Direct DB update
+	// of last_heartbeat only.
+	now := time.Now()
+	return db.RetryableTransaction(ctx, s.db, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&models.CronJob{}).
+			Where("uuid = ?", types.FromUUID(jobID)).
+			Update("last_heartbeat", now)
+	})
 }
 
 func (s *StandaloneCoordinator) CheckHeartbeat(ctx context.Context, jobID uuid.UUID) (bool, error) {
@@ -502,16 +511,16 @@ func (s *StandaloneCoordinator) SetupJob(ctx context.Context, jobID uuid.UUID) e
 	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.SetupJob")
 	defer span.End()
 
-	// Get current job state for defensive logging
+	// Get current job state
 	dbJob, err := s.getJobRecord(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get job record: %w", err)
 	}
 
+	// Already completed — nothing to set up. This can happen when the job's
+	// Run() method transitions to Completed before the beforeJobRuns callback fires.
 	if dbJob.State == models.CronJobStateCompleted {
-		s.logger.Debug("SetupJob called on completed job - this should not happen normally",
-			zap.String("jobID", jobID.String()),
-			zap.String("currentState", string(dbJob.State)))
+		return nil
 	}
 
 	// Validate retry policy early to catch configuration errors before job execution
@@ -561,16 +570,16 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.CleanupJob")
 	defer span.End()
 
-	// Get current job state for defensive logging
+	// Get current job state
 	dbJob, err := s.getJobRecord(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to get job record: %w", err)
 	}
 
+	// Already completed — nothing to clean up. This can happen when the job's
+	// Run() method transitions to Completed before the afterJobRuns callback fires.
 	if dbJob.State == models.CronJobStateCompleted {
-		s.logger.Debug("CleanupJob called on already completed job - this should not happen normally",
-			zap.String("jobID", jobID.String()),
-			zap.String("currentState", string(dbJob.State)))
+		return nil
 	}
 
 	s.cronService.Monitor().StopHeartbeat(ctx, jobID)
