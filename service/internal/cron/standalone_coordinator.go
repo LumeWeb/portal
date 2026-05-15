@@ -576,13 +576,15 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 		return fmt.Errorf("failed to get job record: %w", err)
 	}
 
-	// Already completed — nothing to clean up. This can happen when the job's
+	// Always stop the heartbeat first — it may have been started by SetupJob
+	// before the job completed, and the goroutine will leak if not stopped.
+	s.cronService.Monitor().StopHeartbeat(ctx, jobID)
+
+	// Already completed — nothing else to clean up. This can happen when the job's
 	// Run() method transitions to Completed before the afterJobRuns callback fires.
 	if dbJob.State == models.CronJobStateCompleted {
 		return nil
 	}
-
-	s.cronService.Monitor().StopHeartbeat(ctx, jobID)
 	s.cancelJobContext(jobID)
 
 	// Reset failure count on successful completion
