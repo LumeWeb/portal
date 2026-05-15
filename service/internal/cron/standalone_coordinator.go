@@ -626,17 +626,21 @@ func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID)
 	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob")
 	defer span.End()
 
-	// Get job instance
 	job, err := s.CreateJobFromDB(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("failed to create job instance: %w", err)
 	}
 
-	// Execute the job logic
 	if job == nil {
 		return fmt.Errorf("failed to execute job: job instance is nil")
 	}
-	return job.Run(s.ctx, ctx)
+
+	// Create a per-job-type OTel span so each execution is traceable by job type
+	// (e.g. "cron.core.pin-checker") in addition to the generic coordinator span.
+	jobCtx, jobSpan := core.TraceMethod(ctx, "cron."+job.Type())
+	defer jobSpan.End()
+
+	return job.Run(s.ctx, jobCtx)
 }
 
 func (s *StandaloneCoordinator) Jobs() []gocron.Job {

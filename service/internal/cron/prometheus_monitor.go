@@ -12,7 +12,7 @@ import (
 type PrometheusMonitor struct{}
 
 // NewPrometheusMonitor creates a new PrometheusMonitor.
-// Metrics are initialized and registered externally via InitMetrics() and GetCollectors().
+// Metrics are initialized and registered externally via GetCollectors().
 func NewPrometheusMonitor() *PrometheusMonitor {
 	return &PrometheusMonitor{}
 }
@@ -48,40 +48,38 @@ func (p *PrometheusMonitor) JobStarted(_ gocron.Job) {
 	JobsRunning.Inc()
 }
 
-// JobRunning is called when a job is running.
-// This is called periodically while the job executes.
+// JobRunning is called periodically while a job executes.
 func (p *PrometheusMonitor) JobRunning(_ gocron.Job) {
 }
 
 // JobFailed is called when a job fails to complete successfully.
-func (p *PrometheusMonitor) JobFailed(_ gocron.Job, err error) {
+func (p *PrometheusMonitor) JobFailed(job gocron.Job, _ error) {
 	JobsRunning.Dec()
-	JobsFailed.Inc()
+	JobsFailed.WithLabelValues(job.Name()).Inc()
 }
 
 // JobCompleted is called when a job has completed running successfully.
-func (p *PrometheusMonitor) JobCompleted(_ gocron.Job) {
+func (p *PrometheusMonitor) JobCompleted(job gocron.Job) {
 	JobsRunning.Dec()
-	JobsCompleted.Inc()
+	JobsCompleted.WithLabelValues(job.Name()).Inc()
 }
 
 // JobExecutionTime is called after a job completes (success or failure)
 // with the time it took to execute.
-func (p *PrometheusMonitor) JobExecutionTime(_ gocron.Job, duration time.Duration) {
-	JobExecutionDuration.Observe(duration.Seconds())
+func (p *PrometheusMonitor) JobExecutionTime(job gocron.Job, duration time.Duration) {
+	JobExecutionDuration.WithLabelValues(job.Name()).Observe(duration.Seconds())
 }
 
 // JobSchedulingDelay is called when a job starts running, providing both
 // the scheduled time and actual start time.
-func (p *PrometheusMonitor) JobSchedulingDelay(_ gocron.Job, scheduledTime time.Time, actualStartTime time.Time) {
+func (p *PrometheusMonitor) JobSchedulingDelay(job gocron.Job, scheduledTime time.Time, actualStartTime time.Time) {
 	if delay := actualStartTime.Sub(scheduledTime); delay > 0 {
-		JobSchedulingDelay.Observe(delay.Seconds())
+		JobSchedulingDelay.WithLabelValues(job.Name()).Observe(delay.Seconds())
 	}
 }
 
 // ConcurrencyLimitReached is called when a job cannot start immediately
 // due to concurrency limits (singleton or limit mode).
-// limitType will be "singleton" or "limit".
 func (p *PrometheusMonitor) ConcurrencyLimitReached(_ string, _ gocron.Job) {
 	ConcurrencyLimitReached.Inc()
 }
