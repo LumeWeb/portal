@@ -662,8 +662,11 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 		workflowMetrics.WorkflowDuration.WithLabelValues(workflowMetrics.LabelOperationGetStatus),
 		workflowMetrics.WorkflowsFailed.WithLabelValues(workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelFailureBehaviorFail),
 		func() (*core.WorkflowStatus, error) {
-			// Get request
-			req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
+			// Follow NextRequestID chain to find the latest step
+			latestID := w.findLatestRequest(ctx, requestID)
+
+			// Get request for the latest step
+			req, err := w.requestSvc.GetRequestWithDeleted(ctx, latestID)
 			if err != nil {
 				return nil, err
 			}
@@ -674,8 +677,8 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 				return nil, err
 			}
 
-			// Get detailed request status
-			reqStatus, err := w.requestSvc.GetRequestStatus(ctx, requestID, true)
+			// Get detailed request status for the latest step
+			reqStatus, err := w.requestSvc.GetRequestStatus(ctx, latestID, true)
 			if err != nil {
 				return nil, err
 			}
@@ -848,8 +851,11 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.GetWorkflowStepInfo")
 	defer span.End()
 
+	// Follow NextRequestID chain to find the latest step
+	latestID := w.findLatestRequest(ctx, requestID)
+
 	// Get current request
-	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
+	req, err := w.requestSvc.GetRequestWithDeleted(ctx, latestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
@@ -1292,8 +1298,11 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowInstance(ctx context.Context, us
 	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.GetWorkflowInstance")
 	defer span.End()
 
+	// Follow NextRequestID chain to find the latest step
+	latestID := w.findLatestRequest(ctx, requestID)
+
 	// First verify the request exists and belongs to the user
-	req, err := w.requestSvc.GetRequestWithDeleted(ctx, requestID)
+	req, err := w.requestSvc.GetRequestWithDeleted(ctx, latestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get request: %w", err)
 	}
@@ -1352,6 +1361,31 @@ func (w *WorkflowCoordinatorDefault) getStepIndex(stepID string, workflowName st
 	}
 
 	return -1
+}
+
+// findLatestRequest follows the NextRequestID chain forward to find the latest (current) request ID
+func (w *WorkflowCoordinatorDefault) findLatestRequest(ctx context.Context, requestID uint) uint {
+	latestID := requestID
+
+	for {
+		req, err := w.requestSvc.GetRequestWithDeleted(ctx, latestID)
+		if err != nil || req == nil {
+			break
+		}
+
+		var meta WorkflowMetadata
+		if err := json.Unmarshal(req.Metadata, &meta); err != nil {
+			break
+		}
+
+		if meta.NextRequestID == 0 {
+			break
+		}
+
+		latestID = meta.NextRequestID
+	}
+
+	return latestID
 }
 
 // findWorkflowChainRoot follows the PrevRequestID chain backwards to find the root request ID
