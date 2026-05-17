@@ -63,10 +63,15 @@ func (wt *WorkflowTest) AssertMetadataValue(requestID uint, key string, expected
 }
 
 // NewOperationWorkflow creates and registers a simple workflow with a single operation.
+// If the workflow is already registered, it skips registration and reuses the existing one.
 func (wt *WorkflowTest) NewOperationWorkflow(operationName string) string {
-	workflowName := fmt.Sprintf("test-workflow-%s", operationName) // Unique name
+	workflowName := fmt.Sprintf("test-workflow-%s", operationName)
+	_, err := wt.workflowSvc.GetWorkflow(workflowName)
+	if err == nil {
+		return workflowName
+	}
 	steps := []core.OperationStep{{Operation: operationName, FailureBehavior: core.FailWorkflow, Foreground: true}}
-	wt.RegisterWorkflow(workflowName, steps, false) // Don't auto-trigger
+	wt.RegisterWorkflow(workflowName, steps, false)
 	return workflowName
 }
 
