@@ -1366,3 +1366,78 @@ func withTestProtocol(operationNames ...string) coreTesting.TestContextBuilderOp
 		coreTesting.WithCustomProtocolConfig("test", coreTesting.NewConfigBuilder()),
 	)
 }
+
+// Test 21: GetWorkflowStatus follows NextRequestID chain
+func TestGetWorkflowStatusFollowsChain(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		workflowName := "chainTestWorkflow"
+		operationName1 := "test.operation.chain1"
+		operationName2 := "test.operation.chain2"
+		operationName3 := "test.operation.chain3"
+
+		steps := []core.OperationStep{
+			{Operation: operationName1, Foreground: true},
+			{Operation: operationName2, Foreground: true},
+			{Operation: operationName3, Foreground: true},
+		}
+
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		userID := uint(456)
+		req1, err := workflowService.StartWorkflow(context.Background(), workflowName,
+			core.WithWorkflowUserID(userID),
+			core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req1)
+
+		// Execute and complete step 1
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req1.ID)
+		require.NoError(tb, err)
+		err = workflowService.CompleteWorkflowStep(context.Background(), req1.ID)
+		require.NoError(tb, err)
+
+		// Find step 2 request
+		var req2 models.Request
+		err = ctx.DB().Model(&models.Request{}).Where("operation = ? AND status = ?", operationName2, models.RequestStatusProcessing).First(&req2).Error
+		require.NoError(tb, err)
+
+		// BUG FIX TEST: GetWorkflowStatus with the ORIGINAL request ID (step 1)
+		// should follow the chain and return step 2's status, not Completed
+		status, err := workflowService.GetWorkflowStatus(context.Background(), req1.ID)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 1, status.CurrentStep, "should follow chain to step 2 (index 1)")
+		assert.Equal(tb, models.RequestStatusProcessing, status.Status, "should report step 2's status, not Completed")
+		assert.Equal(tb, req2.ID, status.CurrentStepID, "should report step 2's request ID")
+
+		// Execute and complete step 2
+		err = workflowService.ExecuteWorkflowStep(context.Background(), req2.ID)
+		require.NoError(tb, err)
+		err = workflowService.CompleteWorkflowStep(context.Background(), req2.ID)
+		require.NoError(tb, err)
+
+		// Find step 3 request
+		var req3 models.Request
+		err = ctx.DB().Model(&models.Request{}).Where("operation = ? AND status = ?", operationName3, models.RequestStatusProcessing).First(&req3).Error
+		require.NoError(tb, err)
+
+		// GetWorkflowStatus with original request ID should follow chain to step 3
+		status, err = workflowService.GetWorkflowStatus(context.Background(), req1.ID)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 2, status.CurrentStep, "should follow chain to step 3 (index 2)")
+		assert.Equal(tb, req3.ID, status.CurrentStepID, "should report step 3's request ID")
+
+		// GetWorkflowInstance with original request ID should also follow the chain
+		instance, err := workflowService.GetWorkflowInstance(context.Background(), userID, req1.ID)
+		assert.NoError(tb, err)
+		assert.Equal(tb, req3.ID, instance.Request.ID, "instance should reference step 3 request")
+		assert.Equal(tb, 2, instance.Status.CurrentStep, "instance status should be step 3")
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		withTestProtocol("test.operation.chain1", "test.operation.chain2", "test.operation.chain3"),
+	)
+}
