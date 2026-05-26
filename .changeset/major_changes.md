@@ -1,0 +1,5 @@
+---
+default: major
+---
+
+# Major changes
