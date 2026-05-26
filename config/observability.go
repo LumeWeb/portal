@@ -23,6 +23,8 @@ var (
 	_ Defaults             = (*TracingConfig)(nil)
 	_ ConfigSchemaProvider = (*MetricsConfig)(nil)
 	_ Defaults             = (*MetricsConfig)(nil)
+	_ ConfigSchemaProvider = (*MetricsBasicAuthConfig)(nil)
+	_ Defaults             = (*MetricsBasicAuthConfig)(nil)
 	_ ConfigSchemaProvider = (*LoggingConfig)(nil)
 	_ Defaults             = (*LoggingConfig)(nil)
 )
@@ -78,6 +80,27 @@ type MetricsConfig struct {
 	Enabled         bool   `config:"enabled"`
 	Path            string `config:"path"`
 	RefreshInterval uint   `config:"refresh_interval"`
+	BasicAuth       MetricsBasicAuthConfig `config:"basic_auth"`
+}
+
+type MetricsBasicAuthConfig struct {
+	Password string `config:"password"`
+}
+
+func (m MetricsBasicAuthConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Password": z.String(),
+	})
+}
+
+func (m MetricsBasicAuthConfig) Defaults() map[string]any {
+	return map[string]any{
+		"Password": "",
+	}
+}
+
+func (m MetricsBasicAuthConfig) IsEnabled() bool {
+	return m.Password != ""
 }
 
 func (m MetricsConfig) Schema() z.ZogSchema {

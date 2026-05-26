@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	router "go.lumeweb.com/portal-router"
+	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/core/web_manifest"
 	ihttp "go.lumeweb.com/portal/service/internal/http"
@@ -271,7 +273,7 @@ func (h *HTTPServiceDefault) Init() error {
 	// Register metrics endpoints if observability is enabled
 	if ocfg.IsMetricsEnabled() {
 		metricsPath := ocfg.Metrics.Path
-		if err := h.registerMetricsEndpoints(metricsPath); err != nil {
+		if err := h.registerMetricsEndpoints(metricsPath, ocfg.Metrics); err != nil {
 			return fmt.Errorf("failed to register metrics endpoints: %w", err)
 		}
 	}
@@ -779,16 +781,20 @@ func stripPackageName(name string) string {
 }
 
 // registerMetricsEndpoints registers the core metrics endpoint and per-vhost metrics endpoints
-func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error {
+func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string, metricsCfg config.MetricsConfig) error {
+	metricsAuth := metricsBasicAuthMiddleware(metricsCfg)
 
-	// Register core metrics endpoint on the root router
-	router.GetRouter(h.Router()).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.CoreMetricsRegistry()}), echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
-		Registerer: core.CoreMetricsRegistry(),
-	}))
+	coreMiddleware := []echo.MiddlewareFunc{
+		echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
+			Registerer: core.CoreMetricsRegistry(),
+		}),
+	}
+	coreMiddleware = append(coreMiddleware, metricsAuth...)
+
+	router.GetRouter(h.Router()).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.CoreMetricsRegistry()}), coreMiddleware...)
 
 	h.Logger().Info("Registered core metrics endpoint", zap.String("path", metricsPath))
 
-	// Register per-vhost metrics endpoints for each API
 	for _, api := range core.GetAPIs() {
 		apiName := api.Name()
 		domain := h.getAPIDomain(api)
@@ -799,10 +805,15 @@ func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error 
 			continue
 		}
 
-		router.GetRouter(hostRouter).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.PluginMetricsRegistry(apiName)}), echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
-			Subsystem:  api.ID(),
-			Registerer: core.PluginMetricsRegistry(apiName),
-		}))
+		apiMiddleware := []echo.MiddlewareFunc{
+			echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
+				Subsystem:  api.ID(),
+				Registerer: core.PluginMetricsRegistry(apiName),
+			}),
+		}
+		apiMiddleware = append(apiMiddleware, metricsAuth...)
+
+		router.GetRouter(hostRouter).GET(metricsPath, echoprometheus.NewHandlerWithConfig(echoprometheus.HandlerConfig{Gatherer: core.PluginMetricsRegistry(apiName)}), apiMiddleware...)
 
 		h.Logger().Info("Registered API metrics endpoint",
 			zap.String("api", apiName),
@@ -811,4 +822,15 @@ func (h *HTTPServiceDefault) registerMetricsEndpoints(metricsPath string) error 
 	}
 
 	return nil
+}
+
+func metricsBasicAuthMiddleware(metricsCfg config.MetricsConfig) []echo.MiddlewareFunc {
+	if !metricsCfg.BasicAuth.IsEnabled() {
+		return nil
+	}
+	return []echo.MiddlewareFunc{
+		echoMiddleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+			return subtle.ConstantTimeCompare([]byte(password), []byte(metricsCfg.BasicAuth.Password)) == 1, nil
+		}),
+	}
 }
