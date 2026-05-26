@@ -1,5 +1,379 @@
 # [0.1.0-develop.3](https://git.lumeweb.com/LumeWeb/portal/compare/v0.1.0-develop.2...v0.1.0-develop.3) (2023-09-09)
 
+## 0.5.0 (2026-05-26)
+
+### Breaking Changes
+
+- Major changes
+
+### Features
+
+- implement migration system using dbmate
+- add comprehensive testing utilities for core package
+- add support for API extensions
+- implement mockery-based mocks for core services
+- add logger methods to the Context interface
+- support benchmarks in test context
+- add ParseStorageHash helper
+- add NewStorageHashFromRawMultihash helper to simplify CID conversion when we have no other data
+- add GetScanResultById to ContentScannerService
+- add composite WorkflowService interface
+- add RegisteredScanners to ContentScannerService
+- implement modular hash parsing system
+- add GetServiceConfig, GetAPIConfig, GetProtocolConfig generics helpers
+- Add web bundle support and refactor API routing
+- migrate from gorilla/mux to echo framework
+- add schema mapping support for API types
+- add JSON tags to AccountError struct and update dependencies
+- add InitContext, ProcessStartupFuncs, ProcessExitFuncs
+- add GetMockConfig helper for testing
+- add RegisterEvents testing helper for event registration
+- add mock access service and default test context options
+- enhance mock HTTP service and test context with router support
+- add config manager support to MockHTTPService
+- add FromUUID helper to convert raw UUID to BinaryUUID
+- enhance test database utilities and context management
+- add test utilities and environment setup helpers
+- add test helpers WithDBAndOptions, WithDBNoMigrationsAndOptions, WithOptions
+- improve documentation and add mock service factory support
+- add config mocking helpers and documentation
+- enhance test coverage and mock generation
+- add reset functions and improve testing capabilities
+- globally solve CORS for root and plugin apis
+- add WithSQLitePluginMigrations test helper
+- add boot complete event control to test context
+- add WithMockUploadService option function
+- implement strongly-typed event system
+- refactor config manager and validation
+- refactor config management and migration system
+- complete architectural overhaul of cron service
+- enhance service implementations and add comprehensive testing
+- add mock protocol support and refactor protocol registration
+- add ConfigBuilder for flexible test configuration
+- add CombineOptions for TestContextBuilder
+- add retry policy support and workflow cron integration
+- enhance workflow execution and request handling
+- add NewScanOperation helper function
+- enhance workflow options with koanf configuration
+- add OperationHelper interface and default implementation
+- add Protocol support to OperationHelper
+- add StorageHash method to OperationHelper interface
+- add core testing utilities for operations, requests and workflows
+- add Context getter to OperationHelper interface
+- add Logger method to OperationHelper interface
+- add StructuredWorkflowData method to OperationHelper
+- add StartWorkflow method to OperationHelper
+- add workflow data update methods and caching
+- add request conversion and foreground execution
+- add S3 mock support and helper functions
+- add operation name helper functions
+- add workflows support to Protocol interface
+- add autoTriggerFirstStep to workflow registration
+- add helper methods for workflow testing
+- add workflow enable/disable functionality
+- add tracking for configured plugins and services
+- add options pattern for download operations
+- add enhanced MockRenterService implementation
+- add status message to request status updates
+- add reader passthrough functionality
+- add Bytes() method to StorageHash interface
+- add TUS upload operation support
+- add methods for temporary upload paths and update S3 handling
+- add NewError wrapper for global error registry
+- add cron service support and fix initialization
+- enhance workflow instance querying and filtering
+- enhance job validation and refactor core logic
+- add WithUnregisterPlugin test helper
+- add WithUnregisterService test context option
+- add workflow support to plugins and operation caching
+- add S3 upload, download and delete operations
+- add S3Exists method to check object existence
+- add dynamic global path registration
+- add environment variable configuration helpers
+- add HTTP service support to test framework
+- add Port() method to HTTPService interface and implementations
+- add WithPlugins option for registering multiple test plugins
+- add secure config property
+- add error namespace import/export functionality
+- support cron component in DefaultTestContextOptions
+- add WithCronService helper function
+- add EmptyUUID preset
+- add BinaryUUID Equals and Empty
+- add comprehensive boot and init event system
+- add workflow instance management and enhance testing infrastructure
+- add message field to workflow status
+- add RegisterGlobalPath method to MockHTTPService
+- add PreFinishResponse callback and CID generation
+- add distinct filter listing functionality
+- add human-readable display names for operations and statuses
+- add DisplayName() to Protocol interface
+- add support for post upload operations
+- add PostUploadOperationName function
+- add support for firing boot events and handling function options in test context
+- add custom name support to operations
+- add CompleteWorkflowStep helper method
+- extract upload retrieval logic and add metadata getter
+- add configurable S3 temporary upload ID
+- add S3TemporaryUploadExists method
+- add support for configuring mock services with Config() expectation
+- add upload completed event and handler
+- add optional service retrieval and execution helpers
+- add quota exceeded error definitions and checker
+- add user ID to download completed event
+- add GetPinByHash method to PinService interface and implementation
+- refactor test context initialization and option processing
+- add JWT helper and mock services for authentication testing
+- enhance mock auth service with JWT helper and improve mock expectations
+- enhance S3 operations with ReadSeekCloser support
+- add input validation and context cancellation to S3Reader
+- implement ReadSeekCloser for TUS reading
+- enhance config handling and mock plugin capabilities
+- migrate method signatures to context.Context and add instrumentation
+- implement context extraction and tracing for events and refactor otel helpers
+- replace OTLP exporter with uptrace-go
+- sanitize binary UUIDs in SQL traces to prevent UTF-8 errors
+- add workflow configuration helpers for DRY plugin development
+- add real-time progress tracking for upload hashing operations
+- add DetachContext for long-running workflows
+- add progress tracking framework for operations
+- add JSONSchema method to BinaryUUID for swagger generation
+- add debug logging for email operations
+- add logging for config creation failures
+- add DNS resolver override support
+- add custom DNS resolver support for mail client
+- add custom DNS resolver port support
+- add TLS policy configuration support
+- validate auth_type against SMTPAuthType constants
+- add E2E preset for integration tests
+- refactor lookup methods with generic helpers
+- enhance panic handling with structured stack trace capture
+- Add operation tracking fields to upload/download events
+- add GetAllPinsByHash to PinService
+- add io.ReaderAt support to TUSUploadReader
+- add per-job-type metrics and OTel tracing
+- add optional basic auth to metrics endpoint
+
+### Fixes
+
+- BaseEndpoint must have a protocol
+- don't act in cluster mode if sia cluster setting is false
+- BuildInfo API needs to return the instance variables not the global
+- always merge in config to m.config
+- improve handling of build info such as commits or time
+- handle plugin.Version being nil
+- Remove duplicate event recorder implementation from testing.go
+- Remove duplicate event recorder implementation
+- cleanup imports
+- wrong casing for NewLogger
+- add missing registration for ContentScannerService and add type check
+- add missing String method to MockStorageHash and add type check
+- StorageHashDefault.String needs to call Multihash B58String, not String as String is an alias to HexString
+- move WORKFLOW_SERVICE to core
+- fix WORKFLOW_SERVICE namespace
+- ContentScannerServiceDefault GetScanResults/GetScanResultById needs to return []*core.ScanResult
+- APIExtensions needs to pass the Context
+- handle new api extension structure
+- assign Files field before applying options
+- defer file close in getProcessedManifest
+- Correct inverted bounds check for web bundle index
+- Sanitize paths in bundle file system to prevent traversal
+- add security validation for web bundle paths and plugin IDs
+- Use f.size instead of non-existent f.content in Seek
+- improve file handling in BundleFileSystem
+- remove duplicate manifest route and update middleware dependency
+- Replace deprecated filepath.HasPrefix with strings.HasPrefix
+- add nil check for web bundle in file server handler
+- update portal-router and gswagger dependencies
+- bad routing variables
+- malformed bundle routing paths
+- improve path handling and security in web bundle FS
+- correct event type and context option wrapping in RegisterEvents
+- need to use core.GetEvents()
+- cleanup MockHTTPService by removing unused imports and generalizing test interface
+- ensure mock HTTP service includes router
+- update MockHTTPService to use config.Manager interface
+- correct UUID handling in CronJob model and add tests
+- move TestingShutdown to testing.go as ShutdownTestContext
+- relax MockServiceFactory type constraint and add service validation
+- add mutex to serialize test execution
+- reset event registry before registering
+- clean up test context option handling
+- Use Unlock after Lock in ClearTestCaseContextOptions
+- Correctly register service in testing helper
+- ensure DB migrations properly enable mock DB
+- configure mock HTTP service to return test context router
+- update dependencies and improve type naming
+- preserve package-level DB flags in ResetAllState
+- reorganize imports and fix plugin registration
+- remove unused fields from requests table schema
+- missing fmt import
+- add autoTriggerFirstStep parameter to RegisterWorkflow
+- remove indexes for columns that no longer exist
+- correct metadata JSON handling and type usage
+- add mock expectations for config manager getters
+- properly load namespaces in mock config manager
+- correct plugin configuration key formats
+- WorkflowTest.AssertOperationStatusProgress should take a float
+- add Bytes() method to MockStorageHash
+- wrong s3 config keys paths
+- update TUSDefaultUploadCreatedHandler wrapper arguments
+- add protocol parameter to TUS handler methods
+- simplify TUS handler and remove unused import
+- fix workflow handling in TUS upload completion
+- ensure proper status propagation in request lifecycle
+- move cron service initialization to proper location
+- improve argument handling and type safety
+- use go-base32 for multibase encoding/decoding
+- move RegisterServicesFromPlugins call earlier in BootEnvironment
+- ensure ConfigurePluginServices runs before ProcessStartupFuncs
+- bypass service dependency checks in ConfigurePluginServices
+- fix context initialization flow
+- event inner types arent passed as a pointer
+- plugin workflow registration must come after setup
+- change fatal errors to non-fatal in config getters
+- correct context processing in PortalImpl.Init()
+- cant use ctx Fire as it looses type info
+- we can't do a read lock inside a read lock
+- remove duplicate imports
+- enhance database constraint violation error handling
+- add schedule_type column to MySQL cron_jobs table definition
+- remove unused variables and update mock provider type
+- update mocks
+- fix WithEnvConfigOrDefault arguments
+- fix WithEnvConfigOrDefault arguments
+- only call coordinator close if cron is enabled
+- add delay before port config update and ensure HTTP service wait
+- add nil check
+- correct return type in RegisterService error cases
+- remove service registration from WithPlugins to use RegisterServicesFromPlugins
+- Add nil check for API extension in RegisterAPIExtensions
+- use exported core functions in WithErrorNamespaces
+- standardize on BootCompleted naming in event system
+- update boot complete event constants in testing context
+- correct event package reference in BootEnvironment
+- correct API domain resolution logic
+- resolve undefined size variable in TUS upload error logging
+- imports
+- standardize host/port handling in test API routes
+- add port config when using mock HTTP service
+- correct handler type assertion and add DisplayName mocks
+- implement DisplayName in MockProtocol
+- automatically advance workflow step after successful execution
+- use local state variable in CleanupJob
+- only remove one-shot jobs from scheduler after completion
+- update request hash and CID type correctly
+- prevent duplicate step completion and handle continue-on-failure behavior
+- continue workflow execution on step failure
+- handle nil upload in getUploadByIdentifier
+- prevent path traversal in upload IDs
+- improve upload ID validation error message
+- set upload ID after saving existing upload
+- handle errors when restoring error namespaces
+- add error handling to service configuration
+- Ensure configuration is loaded before startup functions
+- WithMockS3 needs to use GetRealConfig
+- handle missing On() support and validate serviceConfig length in mock setup
+- use temporary directory path in test config
+- remove duplicate source registration
+- handle service type mismatches in optional lookup and callback execution
+- handle nil error in FailWorkflowStep
+- prevent duplicate startup function execution
+- correct mock storage service initialization error message
+- correct mock storage service variable naming
+- simplify mock workflow option count
+- use higher-layer workflow mock in test context
+- enhance S3 reader seek and read behavior
+- prevent negative discard bytes in S3 reader seek
+- handle errors from S3Reader creation
+- preserve original error for logging and retry decisions
+- simplify TUS upload reader logic
+- properly manage startup functions during migration setup
+- correct type assignment check in mock plugin builder
+- add type assertion check for mock service instances
+- correct mock service config return value
+- improve default value comparison logic
+- Use event context for service calls
+- improve error handling in account deletion job
+- simplify DSN validation and logging setup
+- improve OTEL log level handling
+- reuse existing logger's OTEL level filter for consistency
+- improve OTEL level filter management
+- improve S3 upload error handling and tracking
+- improve error handling in S3 multipart upload
+- correct GORM transaction handling in S3 multipart upload
+- handle upload errors correctly in S3 multipart upload
+- simplify S3 multipart upload error handling
+- handle S3 upload cleanup error gracefully
+- properly wire up service with ContextWithStartupComponent
+- resolve multiple issues in testing utilities
+- add testify mock import to API extension test helper
+- fix missing dot separator in ApplyConfig full key generation
+- handle empty prefix in ApplyConfig to avoid leading dot
+- change GetMockWorkflowService to return high-level wrapper type
+- prepend ContextWithStartupComponent in RegisterService for proper wiring
+- ensure ContextWithStartupComponent is applied to API extensions
+- update SetPath calls to use string slice syntax
+- initialize OperationFinder during startup
+- remove unused import and variable in HashProgressReader
+- add nil check before incrementing error counter in MetricTrackResult
+- use service context instead of canceled hook context and round progress percentage
+- update mapstructure to upstream v2.5.0
+- fix progress tracking and prevent runtime panics
+- improve status reporting for active operations
+- preserve terminal states in status state management
+- create temporary logger for config errors
+- disable config validation for config-env command
+- validate CONFIG_PATHS as directories and update defaults
+- prevent malformed FQDN when mock API returns empty subdomain
+- prevent nil pointer dereference when config manager is not set
+- make registration more resilient to email failures
+- fallback to next path when config creation fails
+- properly format IPv6 addresses and respect network parameter
+- address PR review feedback
+- move DNS resolver setup after config init
+- address PR review feedback
+- implement custom DNS resolution with monkey-patching
+- address race conditions, resource leaks, and test flakiness
+- address PR review feedback
+- handle empty TLS policy and extract shared constants
+- remove ToUpper conversion on auth_type comparison
+- add 'none' alias for SMTP auth type
+- use keyMatch2 matcher for dynamic route patterns
+- add custom key matcher for Echo's colon syntax
+- address PR review feedback
+- register keyMatchEcho before enforcer is used
+- apply service config to regular services in MockPluginBuilder
+- strip plugin name prefix from service IDs
+- use dot separator in StripPluginNamePrefix
+- correct mailer service factory return type
+- move renter mock to first position ensure storage service dependency
+- add mock S3 service after renter for safe testing
+- resolve mock helper footgun causing ignored test expectations
+- detach context in long-running workflows
+- separate lifecycle management from operation context
+- block worker to prevent immediate shutdown
+- override ConfigDir and ConfigFile methods to return ManagerDefault paths
+- wire plugin cron job registration into boot sequence
+- move plugin cron registration to CronService Start()
+- use c.Logger() instead of c.logger to avoid nil pointer
+- add explicit jobType field to BaseCronJob
+- use functional options pattern for BaseCronJob constructor
+- fix context cancellation, IPv6 lookups, and fallback behavior
+- prevent infinite recursion in custom DNS lookup functions
+- remove default resolver fallbacks to prevent infinite recursion
+- set subdomain on mockAPI in WithAPIExtension
+- reorder component type switch cases
+- correct variable name in registerAPIExtensions causing panics
+- display structured panic info in error logs
+- enhance migration error logging with database-specific details
+- apply config values atomically before validation in ApplyConfig
+- resolve all runtime test failures and break cron import cycle
+- fix SetHeartbeat race and handle completed jobs gracefully
+- stop heartbeat before Completed early return in CleanupJob
+- follow NextRequestID chain in GetWorkflowStatus/Instance/StepInfo
+- make StartOperationWorkflow idempotent by reusing registered workflows
+- use constant-time comparison for metrics basic auth
+
 ## 0.3.2
 
 ### Patch Changes
