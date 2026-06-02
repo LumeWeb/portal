@@ -24,6 +24,8 @@ var (
 
 func init() {
 	coreRegistry = prometheus.NewRegistry()
+	coreRegistry.MustRegister(prometheus.NewGoCollector())
+	coreRegistry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 }
 
 // CoreMetricsRegistry returns the global core prometheus registry
