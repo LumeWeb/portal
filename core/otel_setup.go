@@ -1,14 +1,33 @@
 package core
 
 import (
-	"os"
+	"context"
 
 	"github.com/uptrace/uptrace-go/uptrace"
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.34.0"
 )
+
+func detectResourceAttributes(ctx context.Context) []attribute.KeyValue {
+	res, err := resource.New(ctx,
+		resource.WithContainer(),
+		resource.WithProcess(),
+		resource.WithOS(),
+		resource.WithHost(),
+	)
+	if err != nil && res == nil {
+		return nil
+	}
+
+	var attrs []attribute.KeyValue
+	for iter := res.Iter(); iter.Next(); {
+		attrs = append(attrs, iter.Attribute())
+	}
+	return attrs
+}
 
 // ContextWithTelemetry sets up the OpenTelemetry pipeline based on observability config.
 func ContextWithTelemetry() ContextBuilderOption {
@@ -33,8 +52,8 @@ func ContextWithTelemetry() ContextBuilderOption {
 				uptrace.WithServiceVersion(build.GetInfo().Version),
 			}
 
-			if hostname, err := os.Hostname(); err == nil {
-				options = append(options, uptrace.WithResourceAttributes(semconv.HostName(hostname)))
+			if extraAttrs := detectResourceAttributes(ctx); len(extraAttrs) > 0 {
+				options = append(options, uptrace.WithResourceAttributes(extraAttrs...))
 			}
 
 			// Configure logging if enabled
