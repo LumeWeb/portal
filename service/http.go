@@ -18,6 +18,7 @@ import (
 	"go.lumeweb.com/portal-middleware/cors"
 	"go.lumeweb.com/portal-middleware/swagger"
 	"go.lumeweb.com/portal/build"
+	otelecho "go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 
 	"io"
 	"net"
@@ -144,6 +145,12 @@ func (h *HTTPServiceDefault) Init() error {
 			return err
 		},
 	}))
+
+	ocfg := h.Config().Config().Core.Observability
+	if ocfg.IsTracingEnabled() {
+		h.router.Use(otelecho.Middleware(ocfg.ServiceName))
+	}
+
 	h.srv.Addr = ":" + strconv.FormatUint(uint64(h.Config().Config().Core.Port), 10)
 	for _, api := range core.GetAPIs() {
 		domain := h.getAPIDomain(api)
@@ -169,6 +176,10 @@ func (h *HTTPServiceDefault) Init() error {
 		hostRouter, err := h.Router().Host(domain)
 		if err != nil {
 			return fmt.Errorf("failed to create host router for API %s: %w", api.Name(), err)
+		}
+
+		if ocfg.IsTracingEnabled() {
+			hostRouter.Use(otelecho.Middleware(ocfg.ServiceName))
 		}
 
 		if apiInfo != nil {
@@ -267,8 +278,6 @@ func (h *HTTPServiceDefault) Init() error {
 	if err != nil {
 		return err
 	}
-
-	ocfg := h.Config().Config().Core.Observability
 
 	// Register metrics endpoints if observability is enabled
 	if ocfg.IsMetricsEnabled() {
