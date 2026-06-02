@@ -817,3 +817,62 @@ func TestDatabaseConfigValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigCaching(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "config_cache_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	configFile := filepath.Join(tempDir, CoreConfigFile)
+	err = os.WriteFile(configFile, []byte(`
+domain: "cached.example.com"
+portal_name: "cache_test"
+port: 8080
+`), 0644)
+	require.NoError(t, err)
+
+	m, err := NewManager(WithConfigPaths([]string{tempDir}))
+	require.NoError(t, err)
+
+	err = m.ConfigureProtocol("test_plugin", newTestProtocolConfig())
+	require.NoError(t, err)
+
+	err = m.Init()
+	require.NoError(t, err)
+
+	cfg1 := m.Config()
+	require.NotNil(t, cfg1)
+	assert.Equal(t, "cached.example.com", cfg1.Core.Domain)
+
+	cfg2 := m.Config()
+	assert.Same(t, cfg1, cfg2, "Config() should return the same cached pointer")
+}
+
+func TestConfigCacheInvalidation(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "config_invalidate_test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	configFile := filepath.Join(tempDir, CoreConfigFile)
+	err = os.WriteFile(configFile, []byte(`
+domain: "before.example.com"
+portal_name: "invalidate_test"
+`), 0644)
+	require.NoError(t, err)
+
+	m, err := NewManager(WithConfigPaths([]string{tempDir}))
+	require.NoError(t, err)
+
+	err = m.Init()
+	require.NoError(t, err)
+
+	cfg1 := m.Config()
+	require.NotNil(t, cfg1)
+	assert.Equal(t, "before.example.com", cfg1.Core.Domain)
+
+	m.invalidateConfig()
+
+	cfg2 := m.Config()
+	assert.NotSame(t, cfg1, cfg2, "After invalidation, Config() should return a new pointer")
+	assert.Equal(t, "before.example.com", cfg2.Core.Domain)
+}

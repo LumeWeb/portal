@@ -142,6 +142,12 @@ type ManagerDefault struct {
 	configuredProtocols map[string]bool
 	configuredServices  map[string]map[string]bool // plugin -> services
 	lock                sync.RWMutex
+
+	// Cached config — rebuilt lazily on first access after invalidation.
+	// SubscribeCallback in NewManager() sets cachedConfig to nil on any
+	// config change via Set/Load, so the next Config() call rebuilds it.
+	cachedConfig   *Config
+	cachedConfigMu sync.RWMutex
 }
 
 func newManagerDefault(cm configmanager.Manager) *ManagerDefault {
@@ -316,6 +322,10 @@ func NewManager(opts ...ManagerOption) (*ManagerDefault, error) {
 		return nil, fmt.Errorf("failed to register config: %w", err)
 	}
 
+	m.Manager.Subscribe("**", func(_, _ string, _ any) {
+		m.invalidateConfig()
+	})
+
 	return m, nil
 }
 
@@ -386,6 +396,27 @@ func (m *ManagerDefault) EnableSync(opts ...configmanager.ConfigOption) error {
 }
 
 func (m *ManagerDefault) Config() *Config {
+	m.cachedConfigMu.RLock()
+	if m.cachedConfig != nil {
+		cfg := m.cachedConfig
+		m.cachedConfigMu.RUnlock()
+		return cfg
+	}
+	m.cachedConfigMu.RUnlock()
+
+	m.cachedConfigMu.Lock()
+	defer m.cachedConfigMu.Unlock()
+
+	if m.cachedConfig != nil {
+		return m.cachedConfig
+	}
+
+	cfg := m.buildConfig()
+	m.cachedConfig = cfg
+	return cfg
+}
+
+func (m *ManagerDefault) buildConfig() *Config {
 	cfg := &Config{
 		Core:   CoreConfig{},
 		Plugin: make(map[string]PluginEntity),
@@ -456,6 +487,12 @@ func (m *ManagerDefault) Config() *Config {
 	}
 
 	return cfg
+}
+
+func (m *ManagerDefault) invalidateConfig() {
+	m.cachedConfigMu.Lock()
+	m.cachedConfig = nil
+	m.cachedConfigMu.Unlock()
 }
 
 func (m *ManagerDefault) getPluginConfigFile(pluginName, subDir string, configType string) (string, error) {
