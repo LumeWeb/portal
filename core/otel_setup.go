@@ -18,7 +18,7 @@ func detectResourceAttributes(ctx context.Context) []attribute.KeyValue {
 		resource.WithOS(),
 		resource.WithHost(),
 	)
-	if err != nil {
+	if err != nil && res == nil {
 		return nil
 	}
 
