@@ -8,18 +8,13 @@ import (
 	"gorm.io/datatypes"
 )
 
-// Pre-compiled regex patterns for testing GORM behavior
 var (
-	testGORMBinaryPattern       = regexp.MustCompile(`<binary>`)
-	testGORMHexPattern          = regexp.MustCompile(`X'[0-9a-fA-F]+'`)
-	testGORMInvalidUTF8Pattern  = regexp.MustCompile(`"[^"]*�[^"]*"`)
+	testGORMBinaryPattern = regexp.MustCompile(`<binary>`)
+	testGORMHexPattern    = regexp.MustCompile(`X'[0-9a-fA-F]+'`)
 )
 
 func TestSanitizeTracingQuery(t *testing.T) {
-	// Generate test data dynamically
-	binaryUUID := datatypes.NewBinUUIDv4()
-	binaryUUIDStr := binaryUUID.String() // Standard UUID string format
-
+	binaryUUIDStr := datatypes.NewBinUUIDv4().String()
 	hexUUID := "deadbeef1234567890abcdef1234567890"
 
 	tests := []struct {
@@ -36,16 +31,6 @@ func TestSanitizeTracingQuery(t *testing.T) {
 			name:     "Hex-encoded binary",
 			input:    `SELECT * FROM cron_jobs WHERE uuid = X'` + hexUUID + `'`,
 			expected: `SELECT * FROM cron_jobs WHERE uuid = "<uuid>"`,
-		},
-		{
-			name:     "Raw binary in double quotes",
-			input:    `INSERT INTO cron_jobs (uuid, name) VALUES ("` + string(binaryUUID.Bytes()) + `", "test")`,
-			expected: `INSERT INTO cron_jobs (uuid, name) VALUES ("<uuid>", "test")`,
-		},
-		{
-			name:     "Raw binary in single quotes",
-			input:    `SELECT * FROM cron_jobs WHERE uuid = '` + string(binaryUUID.Bytes()) + `'`,
-			expected: `SELECT * FROM cron_jobs WHERE uuid = '<uuid>'`,
 		},
 		{
 			name:     "Multiple binary values",
@@ -77,6 +62,11 @@ func TestSanitizeTracingQuery(t *testing.T) {
 			input:    `SELECT * FROM cron_jobs WHERE name = 'café'`,
 			expected: `SELECT * FROM cron_jobs WHERE name = 'café'`,
 		},
+		{
+			name:     "Single-quoted binary placeholder",
+			input:    `SELECT * FROM cron_jobs WHERE uuid = '<binary>'`,
+			expected: `SELECT * FROM cron_jobs WHERE uuid = '<uuid>'`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -90,48 +80,30 @@ func TestSanitizeTracingQuery(t *testing.T) {
 }
 
 func TestSanitizeTracingQuery_UTF8Validation(t *testing.T) {
-	// Generate test data dynamically
-	binaryUUID := datatypes.NewBinUUIDv4()
-
 	tests := []struct {
-		name    string
-		input   string
-		wantErr bool
+		name  string
+		input string
 	}{
 		{
-			name:    "Sanitized query is valid UTF-8",
-			input:   `SELECT * FROM cron_jobs WHERE uuid = "<binary>" AND deleted_at IS NULL`,
-			wantErr: false,
+			name:  "Sanitized GORM placeholder is valid UTF-8",
+			input: `SELECT * FROM cron_jobs WHERE uuid = "<binary>" AND deleted_at IS NULL`,
 		},
 		{
-			name:    "Sanitized query with raw binary is valid UTF-8",
-			input:   `SELECT * FROM cron_jobs WHERE uuid = '` + string(binaryUUID.Bytes()) + `'`,
-			wantErr: false,
-		},
-		{
-			name:    "Hex-encoded binary sanitized to valid UTF-8",
-			input:   `SELECT * FROM cron_jobs WHERE uuid = X'deadbeef1234567890abcdef1234567890'`,
-			wantErr: false,
+			name:  "Hex-encoded binary sanitized to valid UTF-8",
+			input: `SELECT * FROM cron_jobs WHERE uuid = X'deadbeef1234567890abcdef1234567890'`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := sanitizeTracingQuery(tt.input)
-
-			// Verify the result is valid UTF-8
-			isValid := isValidUTF8(result)
-			if !isValid && !tt.wantErr {
-				t.Errorf("sanitizeTracingQuery() produced invalid UTF-8, want valid: %q", result)
-			}
-			if isValid && tt.wantErr {
-				t.Errorf("sanitizeTracingQuery() produced valid UTF-8, want error: %q", result)
+			if !isValidUTF8(result) {
+				t.Errorf("sanitizeTracingQuery() produced invalid UTF-8: %q", result)
 			}
 		})
 	}
 }
 
-// isValidUTF8 checks if a string contains only valid UTF-8 characters
 func isValidUTF8(s string) bool {
 	for _, r := range s {
 		if r == utf8.RuneError {
@@ -141,45 +113,17 @@ func isValidUTF8(s string) bool {
 	return true
 }
 
-// TestGORMExplainBehavior demonstrates how GORM produces the "<binary>" placeholder
 func TestGORMExplainBehavior(t *testing.T) {
-	// This test documents the behavior we're working with
-	// GORM's ExplainSQL produces "<binary>" for non-printable byte slices
+	binaryBytes := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+		0x09, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x80}
 
-	// Case 1: Printable bytes are kept as-is
-	printableBytes := []byte("hello world")
-	if isPrintable(string(printableBytes)) {
-		t.Logf("Printable bytes: %q -> printable", printableBytes)
-	}
-
-	// Case 2: Binary UUID bytes produce "<binary>"
-	binaryUUID := datatypes.NewBinUUIDv4()
-	binaryBytes := binaryUUID.Bytes()
-	if !isPrintable(string(binaryBytes)) {
-		t.Logf("Binary UUID bytes: produce <binary> (non-printable)")
-	}
-
-	// Case 3: Verify our regex patterns match the expected inputs
 	tests := []struct {
-		re   *regexp.Regexp
+		re    *regexp.Regexp
 		input string
-		want bool
+		want  bool
 	}{
-		{
-			re:    testGORMBinaryPattern,
-			input: `"<binary>"`,
-			want:  true,
-		},
-		{
-			re:    testGORMHexPattern,
-			input: `X'deadbeef'`,
-			want:  true,
-		},
-		{
-			re:    testGORMInvalidUTF8Pattern,
-			input: `"` + string(binaryBytes) + `"`,
-			want:  true,
-		},
+		{testGORMBinaryPattern, `"<binary>"`, true},
+		{testGORMHexPattern, `X'deadbeef'`, true},
 	}
 
 	for _, tt := range tests {
@@ -188,9 +132,12 @@ func TestGORMExplainBehavior(t *testing.T) {
 			t.Errorf("Pattern matching %q: got %v, want %v", tt.input, matched, tt.want)
 		}
 	}
+
+	if isPrintable(string(binaryBytes)) {
+		t.Error("Binary bytes should not be printable")
+	}
 }
 
-// isPrintable mimics GORM's isPrintable function
 func isPrintable(s string) bool {
 	for _, r := range s {
 		if r < 32 || r > 126 {

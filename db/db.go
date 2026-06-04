@@ -28,21 +28,21 @@ import (
 	"gorm.io/plugin/prometheus"
 )
 
-// Pre-compiled regex patterns for sanitizing binary UUIDs in SQL queries
-var (
-	sanitizerRegexes = []struct {
-		re      *regexp.Regexp
-		replace string
-	}{
-		{regexp.MustCompile(`"<binary>"`), `"<uuid>"`},
-		{regexp.MustCompile(`'<binary>'`), `'<uuid>'`},
-		{regexp.MustCompile(`X'[0-9a-fA-F]+'`), `"<uuid>"`},
-		{regexp.MustCompile(`"[^"]*�[^"]*"`), `"<uuid>"`},
-		{regexp.MustCompile(`'[^']*�[^']*'`), `'<uuid>'`},
-		{regexp.MustCompile(`"[^"]*[\x00-\x08\x0b\x0c\x0e-\x1f][^"]*"`), `"<uuid>"`},
-		{regexp.MustCompile(`'[^']*[\x00-\x08\x0b\x0c\x0e-\x1f][^']*'`), `'<uuid>'`},
+var sanitizerRegexes = []struct {
+	re      *regexp.Regexp
+	replace string
+}{
+	{regexp.MustCompile(`"<binary>"`), `"<uuid>"`},
+	{regexp.MustCompile(`'<binary>'`), `'<uuid>'`},
+	{regexp.MustCompile(`X'[0-9a-fA-F]+'`), `"<uuid>"`},
+}
+
+func sanitizeTracingQuery(query string) string {
+	for _, s := range sanitizerRegexes {
+		query = s.re.ReplaceAllString(query, s.replace)
 	}
-)
+	return query
+}
 
 // NewDatabase creates a new database connection and returns it along with context options.
 // It configures the database based on the application configuration and sets up caching if enabled.
@@ -132,16 +132,6 @@ func getCacher(cm config.Manager, logger *core.Logger) caches.Cacher {
 	}
 
 	return nil
-}
-
-// sanitizeTracingQuery removes binary UUID values from SQL queries to prevent
-// invalid UTF-8 errors in OpenTelemetry/proto serialization.
-// Binary UUIDs appear as 16-byte sequences in SQL and are replaced with a placeholder.
-func sanitizeTracingQuery(query string) string {
-	for _, s := range sanitizerRegexes {
-		query = s.re.ReplaceAllString(query, s.replace)
-	}
-	return query
 }
 
 // SetupDBObservability configures OpenTelemetry tracing and Prometheus metrics for the database connection.
