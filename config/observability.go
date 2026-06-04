@@ -1,7 +1,7 @@
 package config
 
 import (
-	"net/url"
+	"net"
 
 	z "github.com/Oudwins/zog"
 )
@@ -50,8 +50,8 @@ func (o OTLPConfig) Schema() z.ZogSchema {
 		}
 
 		if c.Endpoint != "" {
-			if _, err := url.Parse(c.Endpoint); err != nil {
-				ctx.AddIssue(ctx.Issue().SetMessage("endpoint format is invalid"))
+			if _, _, err := net.SplitHostPort(c.Endpoint); err != nil {
+				ctx.AddIssue(ctx.Issue().SetMessage("endpoint must be in host:port format"))
 				return false
 			}
 		}
