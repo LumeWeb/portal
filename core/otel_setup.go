@@ -2,97 +2,144 @@ package core
 
 import (
 	"context"
+	"errors"
 
-	"github.com/uptrace/uptrace-go/uptrace"
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
-	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
-func detectResourceAttributes(ctx context.Context) []attribute.KeyValue {
-	res, err := resource.New(ctx,
+func buildResource(ctx context.Context, cfg config.ObservabilityConfig) (*resource.Resource, error) {
+	opts := []resource.Option{
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(cfg.ServiceName),
+			semconv.ServiceVersionKey.String(build.GetInfo().Version),
+		),
 		resource.WithContainer(),
 		resource.WithProcess(),
 		resource.WithOS(),
 		resource.WithHost(),
-	)
-	if err != nil && res == nil {
-		return nil
 	}
 
-	var attrs []attribute.KeyValue
-	for iter := res.Iter(); iter.Next(); {
-		attrs = append(attrs, iter.Attribute())
-	}
-	return attrs
+	return resource.New(ctx, opts...)
 }
 
-// ContextWithTelemetry sets up the OpenTelemetry pipeline based on observability config.
+func buildTraceExporterOptions(cfg config.OTLPConfig) []otlptracegrpc.Option {
+	opts := []otlptracegrpc.Option{
+		otlptracegrpc.WithEndpoint(cfg.Endpoint),
+	}
+
+	if cfg.AuthToken != "" {
+		opts = append(opts, otlptracegrpc.WithHeaders(map[string]string{
+			"Authorization": "Bearer " + cfg.AuthToken,
+		}))
+	}
+
+	if cfg.Insecure {
+		opts = append(opts, otlptracegrpc.WithInsecure())
+	}
+
+	return opts
+}
+
+func buildLogExporterOptions(cfg config.OTLPConfig) []otlploggrpc.Option {
+	opts := []otlploggrpc.Option{
+		otlploggrpc.WithEndpoint(cfg.Endpoint),
+	}
+
+	if cfg.AuthToken != "" {
+		opts = append(opts, otlploggrpc.WithHeaders(map[string]string{
+			"Authorization": "Bearer " + cfg.AuthToken,
+		}))
+	}
+
+	if cfg.Insecure {
+		opts = append(opts, otlploggrpc.WithInsecure())
+	}
+
+	return opts
+}
+
+func buildSampler(cfg config.TracingConfig) sdktrace.Sampler {
+	switch cfg.Sampler {
+	case config.SamplerAlways:
+		return sdktrace.AlwaysSample()
+	case config.SamplerNever:
+		return sdktrace.NeverSample()
+	case config.SamplerTraceIDRatio:
+		return sdktrace.TraceIDRatioBased(cfg.SamplerRatio)
+	default:
+		return sdktrace.AlwaysSample()
+	}
+}
+
 func ContextWithTelemetry() ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(func(ctx Context) error {
 			cfg := ctx.Config().Config().Core.Observability
 
-			// Skip all setup if observability is disabled
 			if !cfg.Enabled {
 				return nil
 			}
 
-			// Validate DSN format
-			if cfg.DSN == "" {
+			if cfg.OTLP.Endpoint == "" {
 				return nil
 			}
 
-			// Build uptrace configuration options
-			options := []uptrace.Option{
-				uptrace.WithDSN(cfg.DSN),
-				uptrace.WithServiceName(cfg.ServiceName),
-				uptrace.WithServiceVersion(build.GetInfo().Version),
+			res, err := buildResource(ctx.GetContext(), cfg)
+			if err != nil {
+				return err
 			}
 
-			if extraAttrs := detectResourceAttributes(ctx); len(extraAttrs) > 0 {
-				options = append(options, uptrace.WithResourceAttributes(extraAttrs...))
-			}
+			var tp *sdktrace.TracerProvider
+			var lp *sdklog.LoggerProvider
 
-			// Configure logging if enabled
-			if cfg.Logging.Enabled {
-				options = append(options, uptrace.WithLoggingEnabled(true))
-			}
-
-			// Configure tracing if enabled
-			var tracingOptions []uptrace.TracingOption
-			if cfg.Tracing.Enabled {
-				tracingOptions = append(tracingOptions, uptrace.WithTracingEnabled(true))
-
-				// Configure sampler
-				var sampler trace.Sampler
-				switch cfg.Tracing.Sampler {
-				case config.SamplerAlways:
-					sampler = trace.AlwaysSample()
-				case config.SamplerNever:
-					sampler = trace.NeverSample()
-				case config.SamplerTraceIDRatio:
-					sampler = trace.TraceIDRatioBased(cfg.Tracing.SamplerRatio)
-				default:
-					sampler = trace.AlwaysSample()
+			if cfg.IsTracingEnabled() {
+				traceExporter, err := otlptracegrpc.New(ctx.GetContext(), buildTraceExporterOptions(cfg.OTLP)...)
+				if err != nil {
+					return err
 				}
-				tracingOptions = append(tracingOptions, uptrace.WithTraceSampler(sampler))
+
+				tp = sdktrace.NewTracerProvider(
+					sdktrace.WithResource(res),
+					sdktrace.WithBatcher(traceExporter),
+					sdktrace.WithSampler(buildSampler(cfg.Tracing)),
+				)
+				otel.SetTracerProvider(tp)
 			} else {
-				tracingOptions = append(tracingOptions, uptrace.WithTracingEnabled(false))
+				tp = sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
+				otel.SetTracerProvider(tp)
 			}
 
-			// Append tracing options
-			for _, opt := range tracingOptions {
-				options = append(options, opt)
-			}
+			if cfg.IsLoggingEnabled() {
+				logExporter, err := otlploggrpc.New(ctx.GetContext(), buildLogExporterOptions(cfg.OTLP)...)
+				if err != nil {
+					return errors.Join(err, tp.Shutdown(context.Background()))
+				}
 
-			// Configure OpenTelemetry using uptrace-go
-			uptrace.ConfigureOpentelemetry(options...)
+				lp = sdklog.NewLoggerProvider(
+					sdklog.WithResource(res),
+					sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
+				)
+				global.SetLoggerProvider(lp)
+			}
 
 			ctx.OnExit(func(exitCtx Context) error {
-				return uptrace.Shutdown(exitCtx.GetContext())
+				var errs []error
+				if tp != nil {
+					errs = append(errs, tp.Shutdown(exitCtx.GetContext()))
+				}
+				if lp != nil {
+					errs = append(errs, lp.Shutdown(exitCtx.GetContext()))
+				}
+				return errors.Join(errs...)
 			})
 
 			return nil

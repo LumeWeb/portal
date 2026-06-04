@@ -1,8 +1,9 @@
 package config
 
 import (
+	"net/url"
+
 	z "github.com/Oudwins/zog"
-	"github.com/uptrace/uptrace-go/uptrace"
 )
 
 const (
@@ -17,6 +18,8 @@ const (
 )
 
 var (
+	_ ConfigSchemaProvider = (*OTLPConfig)(nil)
+	_ Defaults             = (*OTLPConfig)(nil)
 	_ ConfigSchemaProvider = (*ObservabilityConfig)(nil)
 	_ Defaults             = (*ObservabilityConfig)(nil)
 	_ ConfigSchemaProvider = (*TracingConfig)(nil)
@@ -29,10 +32,46 @@ var (
 	_ Defaults             = (*LoggingConfig)(nil)
 )
 
+type OTLPConfig struct {
+	Endpoint  string `config:"endpoint"`
+	AuthToken string `config:"auth_token"`
+	Insecure  bool   `config:"insecure"`
+}
+
+func (o OTLPConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Endpoint":  z.String(),
+		"AuthToken": z.String(),
+		"Insecure":  z.Bool(),
+	}).TestFunc(func(data any, ctx z.Ctx) bool {
+		c, ok := data.(*OTLPConfig)
+		if !ok {
+			return true
+		}
+
+		if c.Endpoint != "" {
+			if _, err := url.Parse(c.Endpoint); err != nil {
+				ctx.AddIssue(ctx.Issue().SetMessage("endpoint format is invalid"))
+				return false
+			}
+		}
+
+		return true
+	})
+}
+
+func (o OTLPConfig) Defaults() map[string]any {
+	return map[string]any{
+		"Endpoint":  "",
+		"AuthToken": "",
+		"Insecure":  false,
+	}
+}
+
 type ObservabilityConfig struct {
 	Enabled     bool          `config:"enabled"`
 	ServiceName string        `config:"service_name"`
-	DSN         string        `config:"dsn"`
+	OTLP        OTLPConfig    `config:"otlp"`
 	Tracing     TracingConfig `config:"tracing"`
 	Metrics     MetricsConfig `config:"metrics"`
 	Logging     LoggingConfig `config:"logging"`
@@ -144,21 +183,16 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 	return z.Struct(z.Shape{
 		"Enabled":     z.Bool(),
 		"ServiceName": z.String(),
-		"DSN":         z.String(),
+		"OTLP":        o.OTLP.Schema(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*ObservabilityConfig)
 		if !ok {
 			return true
 		}
 
-		// Validate DSN format if provided (contains secrets)
-		if c.DSN != "" {
-			// Use uptrace's ParseDSN to validate format without exposing values
-			_, err := uptrace.ParseDSN(c.DSN)
-			if err != nil {
-				ctx.AddIssue(ctx.Issue().SetMessage("DSN format is invalid"))
-				return false
-			}
+		if c.Enabled && c.OTLP.Endpoint == "" {
+			ctx.AddIssue(ctx.Issue().SetMessage("otlp.endpoint is required when observability is enabled"))
+			return false
 		}
 
 		return true
@@ -168,7 +202,6 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 func (o ObservabilityConfig) Defaults() map[string]any {
 	return map[string]any{
 		"Enabled":     false,
-		"DSN":         "",
 		"ServiceName": DefaultServiceName,
 	}
 }

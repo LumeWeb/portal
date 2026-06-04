@@ -155,7 +155,7 @@ func SetupDBObservability(ctx core.Context) error {
 	// Setup OpenTelemetry tracing if enabled
 	if observabilityCfg.IsTracingEnabled() {
 		// Add a query formatter to sanitize binary UUID values from traces
-		// This prevents invalid UTF-8 errors when uptrace serializes query strings as protobuf
+		// This prevents invalid UTF-8 errors when OTLP serializes query strings as protobuf
 		if err := db.Use(tracing.NewPlugin(
 			tracing.WithoutMetrics(),
 			tracing.WithQueryFormatter(sanitizeTracingQuery),
