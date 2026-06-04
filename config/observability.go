@@ -50,9 +50,13 @@ func (o OTLPConfig) Schema() z.ZogSchema {
 		}
 
 		if c.Endpoint != "" {
-			if _, _, err := net.SplitHostPort(c.Endpoint); err != nil {
-				ctx.AddIssue(ctx.Issue().SetMessage("endpoint must be in host:port format"))
-				return false
+			endpoint := c.Endpoint
+			if _, _, err := net.SplitHostPort(endpoint); err != nil {
+				endpoint = endpoint + ":4317"
+				if _, _, err2 := net.SplitHostPort(endpoint); err2 != nil {
+					ctx.AddIssue(ctx.Issue().SetMessage("endpoint format is invalid"))
+					return false
+				}
 			}
 		}
 
