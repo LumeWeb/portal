@@ -28,7 +28,11 @@ func buildResource(ctx context.Context, cfg config.ObservabilityConfig) (*resour
 		resource.WithHost(),
 	}
 
-	return resource.New(ctx, opts...)
+	res, err := resource.New(ctx, opts...)
+	if err != nil && res != nil {
+		return res, nil
+	}
+	return res, err
 }
 
 func buildTraceExporterOptions(cfg config.OTLPConfig) []otlptracegrpc.Option {
