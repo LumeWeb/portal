@@ -776,6 +776,8 @@ go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d h1:Ns9kd1Rwzw7t0
 go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d/go.mod h1:92Uoe3l++MlthCm+koNi0tcUCX3anayogF0Pa/sp24k=
 go.sia.tech/core v0.21.0 h1:BtZPT/UGPj5YjDmIA31fmZIm+fmqw/X4yshskr3cOwQ=
 go.sia.tech/core v0.21.0/go.mod h1:b39iLfen0vRV3dkq1eSeBHDcaLFf89YPh2/TyBDY31Y=
+go.sia.tech/core v0.21.1 h1:IZY7KvX52IMP6SBrlMp7i38f18Q4k9IJYkuVlZLxvQQ=
+go.sia.tech/core v0.21.1/go.mod h1:HUIelqenk1TTkDpYnsN6vgAFzNLxW/ueNYxvZCvoIBs=
 go.sia.tech/coreutils v0.22.0 h1:JNohN27L8fLNQDLeLyQtsmVv7Sm3CmBPUxKUtQkJhWI=
 go.sia.tech/coreutils v0.22.0/go.mod h1:lpHJn8sS+4JkWxG8ZC2fPCdg11+u0pK8h8ae+WEovnQ=
 go.sia.tech/coreutils v0.22.1-0.20260513143633-9856f6e895bd h1:cI/BcGqCVSwEy8AJVBp9gCudHzAS7O4Ln70nfhqSBgU=
@@ -786,6 +788,8 @@ go.sia.tech/mux v1.5.0 h1:6bQeO5y4AQPcf+UYHjhxpaNX+2V2wI5LIl0BbAg2YDA=
 go.sia.tech/mux v1.5.0/go.mod h1:1/SlgVsLOUsca5tXxAEEwl+Ohm4B8te2YdRhpRGaUZw=
 go.sia.tech/mux v1.5.1 h1:EiXDfnSMJk3U42tWqLdRZUDMaccjHDqtqxC9os24cDo=
 go.sia.tech/mux v1.5.1/go.mod h1:cIAdOVD8fDHA61ZYvRop4IdW54nW95tj9KzoTJSE9Gc=
+go.sia.tech/mux v1.5.2 h1:MU07hUSZJJNo+ulN/7Gb5/3KBLaxXgunb63fIhxFy+o=
+go.sia.tech/mux v1.5.2/go.mod h1:MW00TmBIJY4CrdOwKohBaGalbBf27/Zcf2S5YVIEMn8=
 go.sia.tech/renterd/v2 v2.9.1 h1:UgMc2jhF6UyUPw0onEy+JA1yev02SHFFzvzrqWwl47g=
 go.sia.tech/renterd/v2 v2.9.1/go.mod h1:mk0EIflFDI7213k0Lk6Z6j/QwVe+UsHqmYls9+PLLQA=
 go.sia.tech/renterd/v2 v2.9.2 h1:nj2Ax2Vq/e9kjJec6e3HRXefW9eNSZogpaQeOlSnNwc=
