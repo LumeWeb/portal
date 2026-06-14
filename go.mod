@@ -49,7 +49,7 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tus/tusd/v2 v2.9.2
-	github.com/urfave/cli/v3 v3.9.1
+	github.com/urfave/cli/v3 v3.10.0
 	github.com/wneessen/go-mail v0.7.3
 	go.etcd.io/etcd/client/v3 v3.6.12
 	go.lumeweb.com/configmanager v0.3.28
