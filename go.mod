@@ -36,7 +36,7 @@ require (
 	github.com/knadh/koanf/providers/structs v1.0.0
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/labstack/echo-contrib v0.17.4
-	github.com/labstack/echo/v4 v4.15.2
+	github.com/labstack/echo/v4 v4.15.3
 	github.com/looplab/fsm v1.0.3
 	github.com/mattn/go-sqlite3 v1.14.45
 	github.com/miekg/dns v1.1.72
