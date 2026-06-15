@@ -800,6 +800,8 @@ go.sia.tech/coreutils v0.22.1-0.20260513143633-9856f6e895bd h1:cI/BcGqCVSwEy8AJV
 go.sia.tech/coreutils v0.22.1-0.20260513143633-9856f6e895bd/go.mod h1:kt6e38C3eGm4tyq751RKzmyP4QLaIAgzCa/Gz9A/fOU=
 go.sia.tech/coreutils v0.22.1-0.20260611105323-e83fb77d9c2a h1:iCBrPenFnB6vY20OvhScPlRK7XIGwwY429HImVzsMXg=
 go.sia.tech/coreutils v0.22.1-0.20260611105323-e83fb77d9c2a/go.mod h1:gULltmwO/EmzwS3YQWBAwPsD22C5SYGhPNdZDOGxkYM=
+go.sia.tech/coreutils v0.22.1-0.20260615155226-bd52908a7e4a h1:rMJNnGjAE28KyfZ4DGbkP5jQ4lqhEHpR/et631G4v/0=
+go.sia.tech/coreutils v0.22.1-0.20260615155226-bd52908a7e4a/go.mod h1:gULltmwO/EmzwS3YQWBAwPsD22C5SYGhPNdZDOGxkYM=
 go.sia.tech/jape v0.14.1 h1:3QWpOzAxxcaECuv2Mc6tbkFh+olLnyUxxP5SfwgI/qY=
 go.sia.tech/jape v0.14.1/go.mod h1:BEygF1DcgdWBenPa75iJ1b91FuxzLmKBxpglmx+C9BY=
 go.sia.tech/mux v1.5.0 h1:6bQeO5y4AQPcf+UYHjhxpaNX+2V2wI5LIl0BbAg2YDA=
