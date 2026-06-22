@@ -67,7 +67,7 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.20.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.sia.tech/core v0.21.1
-	go.sia.tech/coreutils v0.22.1-0.20260615155226-bd52908a7e4a
+	go.sia.tech/coreutils v0.22.1-0.20260622122506-0586f15d91ad
 	go.sia.tech/renterd/v2 v2.9.2
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
