@@ -450,7 +450,7 @@ func (p *PortalImpl) registerMetrics(ctx core.Context) error {
 	// Register metrics for all core and plugin services
 	for _, svcInfo := range core.GetServices() {
 		if err := core.RegisterServiceMetrics(svcInfo.ID, svcInfo.Metrics); err != nil {
-			ctx.Logger().Warn("Failed to register service metrics",
+			ctx.Logger().Error("Failed to register service metrics",
 				zap.String("service", svcInfo.ID),
 				zap.Error(err))
 		}
@@ -459,7 +459,7 @@ func (p *PortalImpl) registerMetrics(ctx core.Context) error {
 	// Register metrics for all plugins
 	for _, plugin := range core.GetPlugins() {
 		if err := core.RegisterPluginMetrics(plugin.ID, plugin.Metrics); err != nil {
-			ctx.Logger().Warn("Failed to register plugin metrics",
+			ctx.Logger().Error("Failed to register plugin metrics",
 				zap.String("plugin", plugin.ID),
 				zap.Error(err))
 		}

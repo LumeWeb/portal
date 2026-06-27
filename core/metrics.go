@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -202,21 +203,27 @@ func RegisterServiceMetrics(serviceID string, metrics []prometheus.Collector) er
 
 	if IsCoreService(serviceID) || pluginID == "" {
 		// Register with core registry
+		var errs []error
 		for _, metric := range metrics {
 			if err := RegisterCoreCollector(metric); err != nil {
-				return fmt.Errorf("failed to register core metric %T: %w", metric, err)
+				if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+					errs = append(errs, fmt.Errorf("failed to register core metric %T: %w", metric, err))
+				}
 			}
 		}
-		return nil
+		return errors.Join(errs...)
 	}
 
 	// Register with plugin registry
+	var errs []error
 	for _, metric := range metrics {
 		if err := RegisterPluginCollector(pluginID, metric); err != nil {
-			return fmt.Errorf("failed to register plugin %s metric %T: %w", pluginID, metric, err)
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				errs = append(errs, fmt.Errorf("failed to register plugin %s metric %T: %w", pluginID, metric, err))
+			}
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // RegisterPluginMetrics registers a plugin's metrics with the plugin's registry
@@ -225,12 +232,18 @@ func RegisterPluginMetrics(pluginID string, metrics []prometheus.Collector) erro
 		return nil
 	}
 
+	var errs []error
 	for _, metric := range metrics {
 		if err := RegisterPluginCollector(pluginID, metric); err != nil {
-			return fmt.Errorf("failed to register plugin %s metric %T: %w", pluginID, metric, err)
+			if _, ok := err.(prometheus.AlreadyRegisteredError); ok {
+				// Same metric registered twice - skip silently, this is benign
+				continue
+			}
+			// Real conflict (different help/labels for same name) - collect error but continue
+			errs = append(errs, fmt.Errorf("failed to register plugin %s metric %T: %w", pluginID, metric, err))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // MetricTrack tracks duration and errors for single-return functions.
