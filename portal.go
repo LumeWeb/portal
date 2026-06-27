@@ -581,6 +581,24 @@ func (p *PortalImpl) registerAPIExtensions(ctx core.Context) (ctxOpts []core.Con
 						zap.String("plugin", plugin.ID),
 						zap.String("target", ext.TargetAPI()))
 					core.RegisterAPIExtension(ext)
+
+					// If the extension declares metrics, register them into the
+					// target API's plugin registry so they are served on that
+					// API's /metrics endpoint.
+					if metricsExt, ok := ext.(core.APIExtensionMetrics); ok {
+						targetAPI := ext.TargetAPI()
+						if err := core.RegisterPluginMetrics(targetAPI, metricsExt.Metrics()); err != nil {
+							ctx.Logger().Error("Failed to register API extension metrics",
+								zap.String("plugin", plugin.ID),
+								zap.String("target_api", targetAPI),
+								zap.Error(err))
+						} else {
+							ctx.Logger().Info("Registered API extension metrics",
+								zap.String("plugin", plugin.ID),
+								zap.String("target_api", targetAPI))
+						}
+					}
+
 					ctxOptions = append(ctxOptions, core.ContextWithStartupComponent(ext))
 
 					return core.ProcessCtxOptions(ctx, ctxOptions...)

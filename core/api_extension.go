@@ -1,6 +1,7 @@
 package core
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"go.lumeweb.com/portal-router"
 	"sync"
 )
@@ -15,6 +16,15 @@ type APIExtension interface {
 
 	// Configure is called after the main API routes are registered
 	Configure(router router.Router, accessSvc AccessService) error
+}
+
+// APIExtensionMetrics is an optional interface that API extensions can implement
+// to declare metrics that should be registered on the target API's subdomain.
+// When implemented, these metrics are registered into PluginMetricsRegistry(TargetAPI())
+// and served on that API's /metrics endpoint.
+type APIExtensionMetrics interface {
+	APIExtension
+	Metrics() []prometheus.Collector
 }
 
 var (
