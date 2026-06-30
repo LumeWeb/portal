@@ -715,6 +715,8 @@ go.lumeweb.com/portal-router v0.7.1 h1:pmsayLnmM9AQt6mHSidq/f7UmkuUHFDAf/O0K4VqR
 go.lumeweb.com/portal-router v0.7.1/go.mod h1:hl51sHDKcgw8yxJ6RraYBOI1Vnufq33FhKwfKiqCkVg=
 go.lumeweb.com/queryutil v0.3.16 h1:4ShUZdaov+jBRWTkABaa8j1QnDSUv1AtVDJd6IbPO3Y=
 go.lumeweb.com/queryutil v0.3.16/go.mod h1:nLkIuXzugX8Ln24wsAbfTafvNmaTHLJhIUKWC1693G4=
+go.lumeweb.com/queryutil v0.3.17 h1:rbMj1ZpG1KL1UUvMYS9+JYdjOcUW6YAfXjy0J2XPWYI=
+go.lumeweb.com/queryutil v0.3.17/go.mod h1:6bcNItUrPwjGAz9pBFPxO509apXcWU8VD1lc+vur/IA=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
