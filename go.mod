@@ -138,7 +138,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.lumeweb.com/queryutil v0.3.16
+	go.lumeweb.com/queryutil v0.3.17
 	go.sia.tech/jape v0.14.1 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
