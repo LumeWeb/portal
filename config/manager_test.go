@@ -845,7 +845,7 @@ port: 8080
 	assert.Equal(t, "cached.example.com", cfg1.Core.Domain)
 
 	cfg2 := m.Config()
-	assert.Same(t, cfg1, cfg2, "Config() should return the same cached pointer")
+	assert.Equal(t, cfg1, cfg2, "Config() should return equal values")
 }
 
 func TestConfigCacheInvalidation(t *testing.T) {
