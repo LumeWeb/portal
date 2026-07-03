@@ -66,8 +66,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/sdk/log v0.20.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	go.sia.tech/core v0.21.1
-	go.sia.tech/coreutils v0.22.1
+	go.sia.tech/core v0.21.3-0.20260703153603-327be4a8d318
+	go.sia.tech/coreutils v0.23.1
 	go.sia.tech/renterd/v2 v2.9.2
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
@@ -232,7 +232,7 @@ require (
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
-	golang.org/x/tools v0.46.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	gorm.io/driver/clickhouse v0.7.0 // indirect

@@ -786,8 +786,12 @@ go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d h1:Ns9kd1Rwzw7t0
 go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d/go.mod h1:92Uoe3l++MlthCm+koNi0tcUCX3anayogF0Pa/sp24k=
 go.sia.tech/core v0.21.1 h1:IZY7KvX52IMP6SBrlMp7i38f18Q4k9IJYkuVlZLxvQQ=
 go.sia.tech/core v0.21.1/go.mod h1:HUIelqenk1TTkDpYnsN6vgAFzNLxW/ueNYxvZCvoIBs=
+go.sia.tech/core v0.21.3-0.20260703153603-327be4a8d318 h1:yI8R1BtDz+1WHB4L3Ju4Sg0jPvgaskJ1f6V+VEoqbX8=
+go.sia.tech/core v0.21.3-0.20260703153603-327be4a8d318/go.mod h1:v0NyAMbZbol7O4OeI8X7QJOPyICIRg72eRCHQUfg9XI=
 go.sia.tech/coreutils v0.22.1 h1:6sAfpixFy4p6P/BvLcDZXmwv9ROE1DwOLJ4wsdAiLqQ=
 go.sia.tech/coreutils v0.22.1/go.mod h1:cdzG9reaePsSAIdi9fI+noOvzJSerHtsj9Xuu8HZdA0=
+go.sia.tech/coreutils v0.23.1 h1:A2R0R6BSvtRAtjmaKu4knGuk/dyOogHNyxDPVif8e1Y=
+go.sia.tech/coreutils v0.23.1/go.mod h1:w+sbd+HlZe9VNga/8zzx9CSPQLQnAI4C+Hl7zFQwOL0=
 go.sia.tech/jape v0.14.1 h1:3QWpOzAxxcaECuv2Mc6tbkFh+olLnyUxxP5SfwgI/qY=
 go.sia.tech/jape v0.14.1/go.mod h1:BEygF1DcgdWBenPa75iJ1b91FuxzLmKBxpglmx+C9BY=
 go.sia.tech/mux v1.5.2 h1:MU07hUSZJJNo+ulN/7Gb5/3KBLaxXgunb63fIhxFy+o=
@@ -1103,6 +1107,8 @@ golang.org/x/tools v0.13.0/go.mod h1:HvlwmtVNQAhOuCjW7xxvovg8wbNq7LwfXh/k7wXUl58
 golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d/go.mod h1:aiJjzUbINMkxbQROHiO6hDPo2LHcIPhhQsa9DLh0yGk=
 golang.org/x/tools v0.46.0 h1:7jTurBkPZu4moS/Uy4OQT1M+QBlsj3wejyZwsT8Z7rk=
 golang.org/x/tools v0.46.0/go.mod h1:FrD85F8l+NWL+9XWBSyVSHO6Ne4jutsfIFba7AWQ5Ys=
+golang.org/x/tools v0.47.0 h1:7Kn5x/d1svx/PzryTsqeoZN4TZwqeH5pGWjefhLi/1Q=
+golang.org/x/tools v0.47.0/go.mod h1:dFHnyTvFWY212G+h7ZY4Vsp/K3U4/7W9TyVaAul8uCA=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
