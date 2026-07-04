@@ -50,7 +50,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tus/tusd/v2 v2.10.0
 	github.com/urfave/cli/v3 v3.10.1
-	github.com/wneessen/go-mail v0.7.3
+	github.com/wneessen/go-mail v0.8.0
 	go.etcd.io/etcd/client/v3 v3.6.13
 	go.lumeweb.com/configmanager v0.3.28
 	go.lumeweb.com/event/v2 v2.1.0
