@@ -15,6 +15,7 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	renterInternal "go.lumeweb.com/portal/service/internal/renter"
 	renterMetrics "go.lumeweb.com/portal/service/internal/renter"
+	"go.opentelemetry.io/otel/attribute"
 	"go.sia.tech/core/types"
 	"go.sia.tech/renterd/v2/api"
 	autoPilotClient "go.sia.tech/renterd/v2/autopilot"
@@ -118,7 +119,8 @@ func (r *RenterDefault) CreateBucketIfNotExists(bucket string) error {
 }
 
 func (r *RenterDefault) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
-	ctx, span := core.TraceMethod(ctx, "RenterDefault.UploadObject")
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.UploadObject",
+		core.WithAttributes(attribute.String("fileName", fileName)))
 	defer span.End()
 
 	return core.MetricTrack(
@@ -219,7 +221,8 @@ func (r *RenterDefault) getWorkerClient() (*workerClient.Client, error) {
 }
 
 func (r *RenterDefault) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
-	ctx, span := core.TraceMethod(ctx, "RenterDefault.GetObject")
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.GetObject",
+		core.WithAttributes(attribute.String("fileName", fileName)))
 	defer span.End()
 
 	return core.MetricTrackResult(
@@ -503,7 +506,8 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 }
 
 func (r *RenterDefault) DeleteObject(ctx context.Context, bucket string, fileName string) error {
-	ctx, span := core.TraceMethod(ctx, "RenterDefault.DeleteObject")
+	ctx, span := core.TraceMethod(ctx, "RenterDefault.DeleteObject",
+		core.WithAttributes(attribute.String("fileName", fileName)))
 	defer span.End()
 
 	return core.MetricTrack(

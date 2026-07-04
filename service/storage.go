@@ -24,6 +24,7 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	storageMetrics "go.lumeweb.com/portal/service/internal/storage"
+	"go.opentelemetry.io/otel/attribute"
 	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -194,7 +195,8 @@ func (rp *readerPool) Close() {
 }
 
 func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*models.Upload, error) {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObject")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObject",
+		core.WithAttributes(attribute.String("hash", request.Hash().String())))
 	defer span.End()
 
 	startTime := time.Now()
@@ -363,14 +365,16 @@ func (s StorageServiceDefault) applyStorageOptions(opts []core.StorageOptionFunc
 }
 
 func (s StorageServiceDefault) DownloadObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, start int64) (io.ReadCloser, error) {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObject")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObject",
+		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
 	return s.DownloadObjectWithOptions(ctx, protocol, objectHash, core.StorageDownloadWithStart(start))
 }
 
 func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc) (io.ReadCloser, error) {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectWithOptions")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectWithOptions",
+		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
 	startTime := time.Now()
@@ -405,7 +409,8 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 }
 
 func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) (io.ReadCloser, error) {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectProof")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DownloadObjectProof",
+		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
 	object, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), api.DownloadObjectOptions{})
@@ -417,7 +422,8 @@ func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol
 }
 
 func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObject")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObject",
+		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
 	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
@@ -426,7 +432,8 @@ func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.S
 }
 
 func (s StorageServiceDefault) DeleteObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObjectProof")
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.DeleteObjectProof",
+		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
 	return core.MetricTrack(storageMetrics.DeleteDuration, storageMetrics.DeleteErrors, func() error {
