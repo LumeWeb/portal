@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	workflowMetrics "go.lumeweb.com/portal/service/internal/workflow"
 	workflowPkg "go.lumeweb.com/portal/service/internal/workflow"
 	"go.lumeweb.com/queryutil"
+
+	"go.opentelemetry.io/otel/trace"
 
 	kjson "github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/rawbytes"
@@ -105,6 +108,43 @@ func (w *WorkflowCoordinatorDefault) getRequestWithWorkflowMetadata(ctx context.
 	return req, metadata, nil
 }
 
+// workflowSpanOpts builds OTEL span options for a workflow step. It creates
+// trace links to the root workflow span and the previous step's span (if
+// different), plus sets workflow attributes for query-based grouping.
+//
+// This is the core of the trace linking strategy: each step gets its own
+// trace, linked to the root via span links. This works across process/node
+// boundaries since all data comes from serialized WorkflowMetadata.
+func workflowSpanOpts(req *models.Request, metadata WorkflowMetadata) []core.SpanOption {
+	var links []trace.Link
+	if metadata.RootTraceParent != "" {
+		links = append(links, core.SpanLinksFromTraceParents(metadata.RootTraceParent)...)
+	}
+	// Link to the previous step's trace too, but only if it's different
+	// from the root (first step's TraceParent == RootTraceParent).
+	if metadata.TraceParent != "" && metadata.TraceParent != metadata.RootTraceParent {
+		links = append(links, core.SpanLinksFromTraceParents(metadata.TraceParent)...)
+	}
+
+	opts := []core.SpanOption{
+		core.WithLinks(links...),
+	}
+	if metadata.WorkflowID != "" || metadata.WorkflowName != "" {
+		var hash string
+		if req != nil {
+			hash = req.Hash.String()
+		}
+		var userID *uint
+		if req != nil {
+			userID = req.UserID
+		}
+		opts = append(opts, core.WithAttributes(
+			core.WorkflowSpanAttributes(metadata.WorkflowID, metadata.WorkflowName, userID, hash)...,
+		))
+	}
+	return opts
+}
+
 // processWorkflowOptions handles workflow options and updates metadata accordingly
 // Returns the processed options and marshaled metadata
 func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.WorkflowOption, metadata *WorkflowMetadata) (core.WorkflowOptions, []byte, error) {
@@ -143,13 +183,23 @@ func (w *WorkflowCoordinatorDefault) processWorkflowOptions(opts []core.Workflow
 
 // WorkflowMetadata stored in request.Metadata JSON field
 type WorkflowMetadata struct {
-	WorkflowName  string         `json:"workflow_name"`
-	CurrentStepID string         `json:"current_step_id"`
-	TotalSteps    int            `json:"total_steps"`
-	NextRequestID uint           `json:"next_request_id,omitempty"`
-	PrevRequestID uint           `json:"prev_request_id,omitempty"`
-	StartedAt     int64          `json:"started_at"`
-	Data          datatypes.JSON `json:"data"`
+	WorkflowName  string `json:"workflow_name"`
+	CurrentStepID string `json:"current_step_id"`
+	TotalSteps    int    `json:"total_steps"`
+	NextRequestID uint   `json:"next_request_id,omitempty"`
+	PrevRequestID uint   `json:"prev_request_id,omitempty"`
+	StartedAt     int64  `json:"started_at"`
+	// TraceParent is the span context of the most recent step. Each step
+	// updates it so the next step links to this step's trace.
+	TraceParent string `json:"trace_parent,omitempty"`
+	// RootTraceParent is the span context of the StartWorkflow call. It
+	// never changes across steps. Every step links to this span context
+	// to form a trace bundle visible in Tempo's linked traces view.
+	RootTraceParent string `json:"root_trace_parent,omitempty"`
+	// WorkflowID is the root request ID as a string. Set once at
+	// StartWorkflow, used as a span attribute for query-based grouping.
+	WorkflowID string         `json:"workflow_id,omitempty"`
+	Data       datatypes.JSON `json:"data"`
 }
 
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
@@ -329,14 +379,22 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 			// First step
 			firstStep := wf.Steps[0]
 
-			// Create and process metadata for first step
+			// Capture trace context for cross-boundary propagation
+			traceParent := core.MarshalTraceParent(ctx)
+
+			// Create and process metadata for first step.
+			// RootTraceParent is set here so it's persisted in the initial
+			// CreateRequest — WorkflowID (which needs createdReq.ID) is
+			// updated post-create as non-fatal observability data.
 			metadata := WorkflowMetadata{
-				WorkflowName:  wf.Name,
-				CurrentStepID: firstStep.ID,
-				TotalSteps:    len(wf.Steps),
-				StartedAt:     time.Now().Unix(),
-				PrevRequestID: 0, // Explicitly initialize
-				NextRequestID: 0, // Explicitly initialize
+				WorkflowName:    wf.Name,
+				CurrentStepID:   firstStep.ID,
+				TotalSteps:      len(wf.Steps),
+				StartedAt:       time.Now().Unix(),
+				PrevRequestID:   0, // Explicitly initialize
+				NextRequestID:   0, // Explicitly initialize
+				TraceParent:     traceParent,
+				RootTraceParent: traceParent,
 			}
 
 			processedOpts, wfMetadataJSON, err := w.processWorkflowOptions(opts, &metadata)
@@ -369,6 +427,20 @@ func (w *WorkflowCoordinatorDefault) StartWorkflow(ctx context.Context, name str
 			createdReq, err := w.requestSvc.CreateRequest(ctx, req, processedOpts.RequestData())
 			if err != nil {
 				return nil, err
+			}
+
+			// Now that we have the root request ID, set WorkflowID for
+			// span attribute-based querying. This is observability-only —
+			// failure is non-fatal since the workflow is already created.
+			metadata.WorkflowID = strconv.FormatUint(uint64(createdReq.ID), 10)
+			metadataJSON, err = json.Marshal(metadata)
+			if err != nil {
+				w.Logger().Warn("failed to marshal workflow trace metadata", zap.Error(err))
+			} else {
+				createdReq.Metadata = datatypes.JSON(metadataJSON)
+				if err := w.requestSvc.UpdateRequest(ctx, createdReq); err != nil {
+					w.Logger().Warn("failed to set workflow trace metadata", zap.Error(err))
+				}
 			}
 
 			// Record workflow started metric
@@ -434,17 +506,33 @@ func (w *WorkflowCoordinatorDefault) parseWorkflowMetadata(metadataJSON datatype
 }
 
 func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
-	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.CompleteWorkflowStep")
+	// Fetch request and metadata once — used for span links/attributes
+	// and reused inside the MetricTrack closure to avoid a second DB round trip.
+	req, metadata, traceErr := w.getRequestWithWorkflowMetadata(ctx, requestID)
+
+	// Create span with links to root + previous step traces, plus workflow
+	// attributes for query-based grouping. Each step is its own trace.
+	var spanOpts []core.SpanOption
+	if traceErr == nil {
+		spanOpts = workflowSpanOpts(req, metadata)
+	}
+	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.CompleteWorkflowStep",
+		spanOpts...,
+	)
 	defer span.End()
 
 	return core.MetricTrack(
 		workflowMetrics.WorkflowDuration.WithLabelValues(workflowMetrics.LabelOperationComplete),
 		workflowMetrics.WorkflowsFailed.WithLabelValues(workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelWorkflowUnknown, workflowMetrics.LabelFailureBehaviorFail),
 		func() error {
-			// Get current request and parse metadata
-			req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
-			if err != nil {
-				return err
+			if traceErr != nil {
+				// Outer fetch failed (possibly transient) before MetricTrack
+				// timing began; retry once so a transient DB error does not
+				// permanently fail this step.
+				req, metadata, traceErr = w.getRequestWithWorkflowMetadata(ctx, requestID)
+				if traceErr != nil {
+					return traceErr
+				}
 			}
 
 			nextMetadata := metadata
@@ -509,6 +597,9 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 			// Update metadata with next request ID and workflow data
 			nextMetadata.PrevRequestID = requestID
 			nextMetadata.CurrentStepID = nextStep.ID
+			// Update trace parent so the next step's spans link to the
+			// same trace, even when dispatched via cron or across nodes.
+			nextMetadata.TraceParent = core.MarshalTraceParent(ctx)
 			// Validate and convert JSON data
 			if len(wfMetadataJSON) == 0 {
 				nextMetadata.Data = datatypes.JSON("{}") // Default to empty JSON object
@@ -574,23 +665,33 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 }
 
 // FailWorkflowStep handles a step failure
-func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, requestID uint, err error) error {
-	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.FailWorkflowStep")
+func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, requestID uint, stepErr error) error {
+	// Fetch request+metadata for span links/attributes. Use defensive
+	// error handling since the caller may already be in an error path.
+	currentReq, traceMetadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+	var spanOpts []core.SpanOption
+	if err == nil {
+		spanOpts = workflowSpanOpts(currentReq, traceMetadata)
+	}
+
+	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.FailWorkflowStep",
+		spanOpts...,
+	)
 	defer span.End()
 
 	// Defensively handle nil error parameter
-	if err == nil {
-		err = ErrUnknownError
+	if stepErr == nil {
+		stepErr = ErrUnknownError
 	}
 
 	// Store the original error for later use
-	originalErr := err
+	originalErr := stepErr
 
 	// Get current request and parse metadata
-	currentReq, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
 		return err
 	}
+	metadata := traceMetadata
 
 	if w.isDisabled(metadata.WorkflowName) {
 		w.Logger().Warn("Attempted to fail step in disabled workflow",
@@ -753,14 +854,19 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 
 // ExecuteWorkflowStep executes the operation handler for a workflow step
 func (w *WorkflowCoordinatorDefault) ExecuteWorkflowStep(ctx context.Context, requestID uint) error {
-	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.ExecuteWorkflowStep")
-	defer span.End()
-
 	// Get current request and parse metadata first to get workflow info for metrics
-	_, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+	req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
 		return err
 	}
+
+	// Create span with links to root + previous step traces, plus workflow
+	// attributes for query-based grouping. Each step is its own trace, linked
+	// to the workflow root — the OTEL pattern for fan-out/async workflows.
+	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.ExecuteWorkflowStep",
+		workflowSpanOpts(req, metadata)...,
+	)
+	defer span.End()
 
 	if w.isDisabled(metadata.WorkflowName) {
 		w.Logger().Warn("Attempted to execute step in disabled workflow",
@@ -1016,11 +1122,15 @@ func (w *WorkflowCoordinatorDefault) ConvertRequestToWorkflow(ctx context.Contex
 	}
 
 	// Create initial metadata
+	traceParent := core.MarshalTraceParent(ctx)
 	metadata := WorkflowMetadata{
-		WorkflowName:  wf.Name,
-		CurrentStepID: wf.Steps[startStep].ID,
-		TotalSteps:    len(wf.Steps),
-		StartedAt:     time.Now().Unix(),
+		WorkflowName:    wf.Name,
+		CurrentStepID:   wf.Steps[startStep].ID,
+		TotalSteps:      len(wf.Steps),
+		StartedAt:       time.Now().Unix(),
+		TraceParent:     traceParent,
+		RootTraceParent: traceParent,
+		WorkflowID:      strconv.FormatUint(uint64(requestID), 10),
 	}
 
 	// Process workflow options and get metadata JSON
@@ -1441,14 +1551,18 @@ func (w *WorkflowCoordinatorDefault) getStepByID(wf *core.WorkflowDefinition, st
 
 // DispatchWorkflowStep runs the current step inline when marked foreground, or schedules it via cron otherwise
 func (w *WorkflowCoordinatorDefault) DispatchWorkflowStep(ctx context.Context, requestID uint) error {
-	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.DispatchWorkflowStep")
-	defer span.End()
-
 	// Get current request and parse metadata
-	_, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
+	req, metadata, err := w.getRequestWithWorkflowMetadata(ctx, requestID)
 	if err != nil {
 		return err
 	}
+
+	// Create span with links to root + previous step traces, plus workflow
+	// attributes for query-based grouping. Each step is its own trace.
+	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.DispatchWorkflowStep",
+		workflowSpanOpts(req, metadata)...,
+	)
+	defer span.End()
 
 	if w.isDisabled(metadata.WorkflowName) {
 		w.Logger().Warn("Attempted to dispatch step in disabled workflow",

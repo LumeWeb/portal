@@ -169,6 +169,7 @@ type SpanConfig struct {
 	Name       string
 	Attributes []attribute.KeyValue
 	Kind       trace.SpanKind
+	Links      []trace.Link
 }
 
 // SpanOption is a function that configures a SpanConfig
@@ -178,6 +179,14 @@ type SpanOption func(*SpanConfig)
 func WithAttributes(attrs ...attribute.KeyValue) SpanOption {
 	return func(c *SpanConfig) {
 		c.Attributes = append(c.Attributes, attrs...)
+	}
+}
+
+// WithLinks adds trace links to the span. Links connect independent traces
+// (e.g., workflow steps) without forcing them into a single trace tree.
+func WithLinks(links ...trace.Link) SpanOption {
+	return func(c *SpanConfig) {
+		c.Links = append(c.Links, links...)
 	}
 }
 
@@ -205,10 +214,14 @@ func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Co
 	}
 
 	tracer := getTracer(ctx)
-	return tracer.Start(ctx, config.Name,
+	spanOpts := []trace.SpanStartOption{
 		trace.WithAttributes(config.Attributes...),
 		trace.WithSpanKind(config.Kind),
-	)
+	}
+	if len(config.Links) > 0 {
+		spanOpts = append(spanOpts, trace.WithLinks(config.Links...))
+	}
+	return tracer.Start(ctx, config.Name, spanOpts...)
 }
 
 // TraceMethod starts a new trace span for a method.
