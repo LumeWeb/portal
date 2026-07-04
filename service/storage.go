@@ -195,8 +195,7 @@ func (rp *readerPool) Close() {
 }
 
 func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.StorageUploadRequest) (*models.Upload, error) {
-	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObject",
-		core.WithAttributes(attribute.String("hash", request.Hash().String())))
+	ctx, span := core.TraceMethod(ctx, "StorageServiceDefault.UploadObject")
 	defer span.End()
 
 	startTime := time.Now()
@@ -227,6 +226,8 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 			return nil, err
 		}
 	}
+
+	span.SetAttributes(attribute.String("hash", hash.String()))
 
 	meta, err := s.metadata.GetUpload(ctx, hash)
 	if err == nil {
