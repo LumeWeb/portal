@@ -89,7 +89,13 @@ type HTTPServiceDefault struct {
 func NewHTTPService() (core.Service, []core.ContextBuilderOption, error) {
 	_http := &HTTPServiceDefault{}
 
-	srv := &http.Server{}
+	protocols := &http.Protocols{}
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
+	srv := &http.Server{
+		Protocols: protocols,
+	}
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
