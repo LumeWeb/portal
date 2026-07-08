@@ -19,7 +19,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gammazero/workerpool v1.2.1
-	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260708173245-c3fa241ceee5
+	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260708211158-fe80573fdf9e
 	github.com/go-co-op/gocron/v2 v2.21.2
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-kiss/monkey v0.0.0-20240508030602-d03795257a64
