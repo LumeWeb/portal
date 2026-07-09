@@ -28,7 +28,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/ipfs/go-cid v0.6.2
-	github.com/johannesboyne/gofakes3 v0.0.0-20260208201424-4c385a1f6a73
+	github.com/johannesboyne/gofakes3 v1.2.0
 	github.com/kenshaw/snaker v0.4.3
 	github.com/knadh/koanf/parsers/json v1.0.0
 	github.com/knadh/koanf/providers/confmap v1.0.0
