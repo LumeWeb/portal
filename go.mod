@@ -20,7 +20,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gammazero/workerpool v1.2.1
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260709183641-10cdd5e5558f
-	github.com/go-co-op/gocron/v2 v2.21.2
+	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/go-gorm/caches/v4 v4.0.5
 	github.com/go-kiss/monkey v0.0.0-20240508030602-d03795257a64
 	github.com/go-sql-driver/mysql v1.10.0
