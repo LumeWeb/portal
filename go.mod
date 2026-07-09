@@ -52,7 +52,7 @@ require (
 	github.com/urfave/cli/v3 v3.10.1
 	github.com/wneessen/go-mail v0.8.0
 	go.etcd.io/etcd/client/v3 v3.7.0
-	go.lumeweb.com/configmanager v0.3.28
+	go.lumeweb.com/configmanager v0.3.29
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.7
@@ -185,7 +185,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gotd/contrib v0.21.1 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
