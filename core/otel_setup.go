@@ -115,6 +115,26 @@ func ContextWithTelemetry() ContextBuilderOption {
 		}
 		otel.SetTracerProvider(tp)
 
+		// lp is set by the startup func if logging is enabled. It's declared
+		// here so the OnExit closure (registered at builder time) can reference
+		// it regardless of whether the startup func reaches the assignment.
+		var lp *sdklog.LoggerProvider
+
+		// Register OnExit at builder time, not inside the startup func.
+		// If the startup func returns early (tracing disabled, no OTLP endpoint),
+		// the TracerProvider still needs to be shut down to release resources
+		// and flush any buffered spans in the DeferredSpanProcessor.
+		ctx.OnExit(func(exitCtx Context) error {
+			var errs []error
+			if tp != nil {
+				errs = append(errs, tp.Shutdown(exitCtx.GetContext()))
+			}
+			if lp != nil {
+				errs = append(errs, lp.Shutdown(exitCtx.GetContext()))
+			}
+			return errors.Join(errs...)
+		})
+
 		ctx.OnStartup(func(ctx Context) error {
 			cfg := ctx.Config().Config().Core.Observability
 
@@ -130,8 +150,6 @@ func ContextWithTelemetry() ContextBuilderOption {
 			if err != nil {
 				return err
 			}
-
-			var lp *sdklog.LoggerProvider
 
 			if cfg.IsTracingEnabled() {
 				traceExporter, err := otlptracegrpc.New(ctx.GetContext(), buildTraceExporterOptions(cfg.OTLP)...)
@@ -159,17 +177,6 @@ func ContextWithTelemetry() ContextBuilderOption {
 				)
 				global.SetLoggerProvider(lp)
 			}
-
-			ctx.OnExit(func(exitCtx Context) error {
-				var errs []error
-				if tp != nil {
-					errs = append(errs, tp.Shutdown(exitCtx.GetContext()))
-				}
-				if lp != nil {
-					errs = append(errs, lp.Shutdown(exitCtx.GetContext()))
-				}
-				return errors.Join(errs...)
-			})
 
 			return nil
 		})
