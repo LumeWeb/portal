@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.lumeweb.com/portal/build"
 	"go.lumeweb.com/portal/config"
@@ -113,7 +114,10 @@ func ContextWithTelemetry() ContextBuilderOption {
 
 				tp = sdktrace.NewTracerProvider(
 					sdktrace.WithResource(res),
-					sdktrace.WithBatcher(traceExporter),
+					sdktrace.WithBatcher(traceExporter,
+						sdktrace.WithBatchTimeout(time.Duration(cfg.Tracing.BatchTimeout)*time.Second),
+						sdktrace.WithMaxExportBatchSize(int(cfg.Tracing.MaxExportBatchSize)),
+					),
 					sdktrace.WithSampler(buildSampler(cfg.Tracing)),
 				)
 				otel.SetTracerProvider(tp)

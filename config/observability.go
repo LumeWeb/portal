@@ -82,9 +82,11 @@ type ObservabilityConfig struct {
 }
 
 type TracingConfig struct {
-	Enabled      bool    `config:"enabled"`
-	Sampler      string  `config:"sampler"`       // always, never, traceidratio
-	SamplerRatio float64 `config:"sampler_ratio"` // 0.0-1.0, only for traceidratio
+	Enabled            bool    `config:"enabled"`
+	Sampler            string  `config:"sampler"`               // always, never, traceidratio
+	SamplerRatio       float64 `config:"sampler_ratio"`         // 0.0-1.0, only for traceidratio
+	BatchTimeout       uint    `config:"batch_timeout"`         // seconds between BSP flushes
+	MaxExportBatchSize uint    `config:"max_export_batch_size"` // max spans per export batch
 }
 
 func (t TracingConfig) Schema() z.ZogSchema {
@@ -95,6 +97,10 @@ func (t TracingConfig) Schema() z.ZogSchema {
 		"SamplerRatio": z.Float64().
 			GTE(0.0, z.Message("sampler_ratio must be >= 0.0")).
 			LTE(1.0, z.Message("sampler_ratio must be <= 1.0")),
+		"BatchTimeout": z.Uint().
+			GT(0, z.Message("batch_timeout must be greater than 0")),
+		"MaxExportBatchSize": z.Uint().
+			GT(0, z.Message("max_export_batch_size must be greater than 0")),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*TracingConfig)
 		if !ok {
@@ -113,16 +119,18 @@ func (t TracingConfig) Schema() z.ZogSchema {
 
 func (t TracingConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled":      true,
-		"Sampler":      SamplerAlways,
-		"SamplerRatio": 1.0,
+		"Enabled":            true,
+		"Sampler":            SamplerAlways,
+		"SamplerRatio":       1.0,
+		"BatchTimeout":       uint(5),
+		"MaxExportBatchSize": uint(512),
 	}
 }
 
 type MetricsConfig struct {
-	Enabled         bool   `config:"enabled"`
-	Path            string `config:"path"`
-	RefreshInterval uint   `config:"refresh_interval"`
+	Enabled         bool                   `config:"enabled"`
+	Path            string                 `config:"path"`
+	RefreshInterval uint                   `config:"refresh_interval"`
 	BasicAuth       MetricsBasicAuthConfig `config:"basic_auth"`
 }
 
