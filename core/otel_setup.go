@@ -92,28 +92,33 @@ func ContextWithTelemetry() ContextBuilderOption {
 		// on a real provider. The OTLP exporter is attached later in the
 		// startup func once config is available; until then, ended spans are
 		// buffered in memory and flushed when the exporter is wired up.
-		cfg := ctx.Config().Config().Core.Observability
-
+		//
+		// Always use AlwaysSample at builder time. Config may not be loaded
+		// yet (NewContext is called before config.Init()), so reading
+		// cfg.Enabled here would get defaults (Enabled=false). If we used
+		// NeverSample based on that, the sampler would be frozen and no
+		// spans would ever be recorded — even after the startup func reads
+		// the real config and attaches an exporter. The sampler is immutable
+		// after TracerProvider creation.
+		//
+		// If tracing is ultimately disabled, the startup func simply doesn't
+		// attach an exporter. Buffered spans are then dropped on Shutdown,
+		// which is the correct behavior.
 		deferred := NewDeferredSpanProcessor()
 
-		var tp *sdktrace.TracerProvider
-		if cfg.Enabled {
-			res, err := buildResource(ctx.GetContext(), cfg)
-			if err != nil {
-				return ctx, err
-			}
-			tp = sdktrace.NewTracerProvider(
-				sdktrace.WithSpanProcessor(deferred),
-				sdktrace.WithResource(res),
-				sdktrace.WithSampler(buildSampler(cfg.Tracing)),
-			)
-		} else {
-			tp = sdktrace.NewTracerProvider(
-				sdktrace.WithSpanProcessor(deferred),
-				sdktrace.WithSampler(sdktrace.NeverSample()),
-			)
-		}
-		otel.SetTracerProvider(tp)
+		// Builder-time TP: used until the startup func replaces it with a
+		// resource-corrected one. AlwaysSample so spans are recorded. No
+		// resource yet (config not loaded).
+		bootTP := sdktrace.NewTracerProvider(
+			sdktrace.WithSpanProcessor(deferred),
+			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		)
+		otel.SetTracerProvider(bootTP)
+
+		// finalTP is the provider that OnExit should shut down. It starts as
+		// bootTP and is replaced by the startup func if a new provider is
+		// created with the correct resource.
+		finalTP := bootTP
 
 		// lp is set by the startup func if logging is enabled. It's declared
 		// here so the OnExit closure (registered at builder time) can reference
@@ -126,9 +131,7 @@ func ContextWithTelemetry() ContextBuilderOption {
 		// and flush any buffered spans in the DeferredSpanProcessor.
 		ctx.OnExit(func(exitCtx Context) error {
 			var errs []error
-			if tp != nil {
-				errs = append(errs, tp.Shutdown(exitCtx.GetContext()))
-			}
+			errs = append(errs, finalTP.Shutdown(exitCtx.GetContext()))
 			if lp != nil {
 				errs = append(errs, lp.Shutdown(exitCtx.GetContext()))
 			}
@@ -152,6 +155,20 @@ func ContextWithTelemetry() ContextBuilderOption {
 			}
 
 			if cfg.IsTracingEnabled() {
+				// Recreate the TracerProvider with the correct resource.
+				// The builder-time TP (bootTP) had no resource because config
+				// wasn't loaded yet. The deferred processor is reused so
+				// buffered boot spans are preserved. bootTP is NOT shut down
+				// (that would shut down the shared deferred processor and lose
+				// buffered spans). It will be GC'd.
+				runtimeTP := sdktrace.NewTracerProvider(
+					sdktrace.WithSpanProcessor(deferred),
+					sdktrace.WithResource(res),
+					sdktrace.WithSampler(buildSampler(cfg.Tracing)),
+				)
+				otel.SetTracerProvider(runtimeTP)
+				finalTP = runtimeTP
+
 				traceExporter, err := otlptracegrpc.New(ctx.GetContext(), buildTraceExporterOptions(cfg.OTLP)...)
 				if err != nil {
 					return err
@@ -168,7 +185,7 @@ func ContextWithTelemetry() ContextBuilderOption {
 			if cfg.IsLoggingEnabled() {
 				logExporter, err := otlploggrpc.New(ctx.GetContext(), buildLogExporterOptions(cfg.OTLP)...)
 				if err != nil {
-					return errors.Join(err, tp.Shutdown(context.Background()))
+					return errors.Join(err, finalTP.Shutdown(context.Background()))
 				}
 
 				lp = sdklog.NewLoggerProvider(
