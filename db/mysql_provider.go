@@ -35,13 +35,31 @@ func (p *MySQLProvider) Connect(logger *core.Logger) (*gorm.DB, error) {
 
 	logger.Debug("Connecting to MySQL", zap.String("dsn", dsn))
 
+	dbConfig := p.cfg.Config().Core.DB
+
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger:  NewLogger(logger.Logger, logger.Level()),
-		NowFunc: func() time.Time { return time.Now().UTC() },
+		Logger:      NewLogger(logger.Logger, logger.Level()),
+		NowFunc:     func() time.Time { return time.Now().UTC() },
+		PrepareStmt: true,
 	})
 
 	if err != nil {
 		return nil, err
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	if dbConfig.MaxOpenConns > 0 {
+		sqlDB.SetMaxOpenConns(dbConfig.MaxOpenConns)
+	}
+	if dbConfig.MaxIdleConns > 0 {
+		sqlDB.SetMaxIdleConns(dbConfig.MaxIdleConns)
+	}
+	if dbConfig.ConnMaxLifetime > 0 {
+		sqlDB.SetConnMaxLifetime(dbConfig.ConnMaxLifetime)
 	}
 
 	p.sqlDB = db

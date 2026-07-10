@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	z "github.com/Oudwins/zog"
 	"go.lumeweb.com/configmanager"
 )
@@ -11,18 +13,21 @@ var (
 )
 
 type DatabaseConfig struct {
-	Type          string       `config:"type"`
-	File          string       `config:"file"`
-	Charset       string       `config:"charset"`
-	Host          string       `config:"host"`
-	Name          string       `config:"name"`
-	Password      string       `config:"password"`
-	Port          int          `config:"port"`
-	Username      string       `config:"username"`
-	Cache         *CacheConfig `config:"cache"`
-	TLSEnabled    bool         `config:"tls_enabled"`
-	TLSSkipVerify bool         `config:"tls_skip_verify"`
-	MetricsPort   uint         `config:"metrics_port"`
+	Type            string        `config:"type"`
+	File            string        `config:"file"`
+	Charset         string        `config:"charset"`
+	Host            string        `config:"host"`
+	Name            string        `config:"name"`
+	Password        string        `config:"password"`
+	Port            int           `config:"port"`
+	Username        string        `config:"username"`
+	Cache           *CacheConfig  `config:"cache"`
+	TLSEnabled      bool          `config:"tls_enabled"`
+	TLSSkipVerify   bool          `config:"tls_skip_verify"`
+	MetricsPort     uint          `config:"metrics_port"`
+	MaxOpenConns    int           `config:"max_open_conns"`
+	MaxIdleConns    int           `config:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `config:"conn_max_lifetime"`
 }
 
 func (d DatabaseConfig) Schema() z.ZogSchema {
@@ -40,6 +45,8 @@ func (d DatabaseConfig) Schema() z.ZogSchema {
 		"TLSSkipVerify": z.Bool(),
 		"MetricsPort": z.Uint().
 			GT(0, z.Message("metrics_port must be greater than 0")),
+		"MaxOpenConns": z.Int().GT(0, z.Message("max_open_conns must be greater than 0")),
+		"MaxIdleConns": z.Int().GT(0, z.Message("max_idle_conns must be greater than 0")),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		d, ok := data.(*DatabaseConfig)
 		if !ok {
@@ -85,10 +92,13 @@ func (d DatabaseConfig) CacheEnabled() bool {
 
 func (d DatabaseConfig) Defaults() map[string]any {
 	def := map[string]any{
-		"Type":        "sqlite",
-		"File":        "portal.db",
-		"Charset":     "utf8mb4",
-		"MetricsPort": uint(9091),
+		"Type":            "sqlite",
+		"File":            "portal.db",
+		"Charset":         "utf8mb4",
+		"MetricsPort":     uint(9091),
+		"MaxOpenConns":    25,
+		"MaxIdleConns":    10,
+		"ConnMaxLifetime": "5m",
 	}
 
 	if d.Type == "mysql" {
