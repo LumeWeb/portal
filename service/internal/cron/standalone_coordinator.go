@@ -16,6 +16,7 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/db/types"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -350,14 +351,14 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 		if strings.HasPrefix(errStr, panicPrefix) {
 			// Extract the panic value
 			panicValue := strings.TrimPrefix(errStr, panicPrefix)
-			
+
 			// Capture structured panic info using the panic value
 			panicInfo := captureStructuredPanic(panicValue)
-			
+
 			// Add structured panic info to the error log
 			fields = append(fields, buildPanicFields(panicInfo)...)
 		}
-		
+
 		s.logger.Error("Job execution failed", fields...)
 
 		s.failureMu.Lock()
@@ -378,14 +379,14 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 	afterJobRunsWithPanic := func(jobID uuid.UUID, jobName string, recoverData any) {
 		// Capture structured panic info
 		panicInfo := captureStructuredPanic(recoverData)
-		
+
 		// Build zap fields including job info and panic details
 		fields := []zap.Field{
 			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName),
 		}
 		fields = append(fields, buildPanicFields(panicInfo)...)
-		
+
 		s.logger.Error("Task panicked", fields...)
 
 		s.failureMu.Lock()
@@ -623,13 +624,16 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 }
 
 func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
-	// Link to the boot trace so scheduled cron jobs (which have no parent
-	// span after boot completes) can be traced back to the portal instance
-	// that started them.
+	// Start a new root trace for each cron job execution. Cron jobs are
+	// triggered by the scheduler (no HTTP parent), so they need their own
+	// root span to act as the trace root for all downstream work. The boot
+	// traceparent is linked (not parented) so the trace can be correlated
+	// back to the portal instance that started the scheduler.
 	var bootOpts []core.SpanOption
 	if bootTP := core.BootTraceParent(); bootTP != "" {
 		bootOpts = append(bootOpts, core.WithLinks(core.SpanLinksFromTraceParents(bootTP)...))
 	}
+	bootOpts = append(bootOpts, core.WithNewRoot(), core.WithSpanKind(trace.SpanKindServer))
 	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob", bootOpts...)
 	defer span.End()
 
@@ -644,12 +648,9 @@ func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID)
 
 	// Create a per-job-type OTel span so each execution is traceable by job type
 	// (e.g. "cron.core.pin-checker") in addition to the generic coordinator span.
-	// Also link to the boot trace for scheduled jobs with no parent span.
-	var jobSpanOpts []core.SpanOption
-	if bootTP := core.BootTraceParent(); bootTP != "" {
-		jobSpanOpts = append(jobSpanOpts, core.WithLinks(core.SpanLinksFromTraceParents(bootTP)...))
-	}
-	jobCtx, jobSpan := core.TraceMethod(ctx, "cron."+job.Type(), jobSpanOpts...)
+	// This is a child of the ExecuteJob root span, so all job work stays in
+	// the same trace.
+	jobCtx, jobSpan := core.TraceMethod(ctx, "cron."+job.Type())
 	defer jobSpan.End()
 
 	return job.Run(s.ctx, jobCtx)
@@ -700,7 +701,7 @@ func buildPanicFields(panicInfo *PanicInfo) []zap.Field {
 		zap.Any("panicValue", panicInfo.RecoverVal),
 		zap.String("panicMessage", panicInfo.Message),
 	}
-	
+
 	// Add stack frames if available
 	if len(panicInfo.Stack) > 0 {
 		for i, frame := range panicInfo.Stack {
@@ -710,12 +711,12 @@ func buildPanicFields(panicInfo *PanicInfo) []zap.Field {
 			fields = append(fields,
 				zap.String(fmt.Sprintf("frame%d", i), fmt.Sprintf("%s:%d (%s)", frame.File, frame.Line, frame.Function)))
 		}
-		
+
 		if len(panicInfo.Stack) > 5 {
 			fields = append(fields, zap.Int("additionalFrames", len(panicInfo.Stack)-5))
 		}
 	}
-	
+
 	return fields
 }
 
@@ -736,17 +737,17 @@ func captureStructuredPanic(recoverData any) *PanicInfo {
 	// Capture up to 64 stack frames
 	pcs := make([]uintptr, 64)
 	n := runtime.Callers(2, pcs) // skip 2 frames: runtime.Callers and this function
-	
+
 	if n == 0 {
 		return info
 	}
 
 	frames := runtime.CallersFrames(pcs[:n])
-	
+
 	// Collect non-internal frames
 	for {
 		frame, more := frames.Next()
-		
+
 		// Skip internal frames
 		if !isInternalPath(frame.Function) {
 			info.Stack = append(info.Stack, StackFrame{
@@ -755,7 +756,7 @@ func captureStructuredPanic(recoverData any) *PanicInfo {
 				Line:     frame.Line,
 			})
 		}
-		
+
 		if !more {
 			break
 		}

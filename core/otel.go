@@ -170,6 +170,7 @@ type SpanConfig struct {
 	Attributes []attribute.KeyValue
 	Kind       trace.SpanKind
 	Links      []trace.Link
+	NewRoot    bool
 }
 
 // SpanOption is a function that configures a SpanConfig
@@ -197,6 +198,16 @@ func WithSpanKind(kind trace.SpanKind) SpanOption {
 	}
 }
 
+// WithNewRoot forces the span to start a new root trace, ignoring any
+// parent span context in ctx. Use for entry points (cron jobs, event
+// handlers) that have no meaningful parent but should have their own
+// trace root.
+func WithNewRoot() SpanOption {
+	return func(c *SpanConfig) {
+		c.NewRoot = true
+	}
+}
+
 // StartSpan creates and starts a new span with the given configuration
 func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Context, trace.Span) {
 	if ctx == nil {
@@ -217,6 +228,9 @@ func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Co
 	spanOpts := []trace.SpanStartOption{
 		trace.WithAttributes(config.Attributes...),
 		trace.WithSpanKind(config.Kind),
+	}
+	if config.NewRoot {
+		spanOpts = append(spanOpts, trace.WithNewRoot())
 	}
 	if len(config.Links) > 0 {
 		spanOpts = append(spanOpts, trace.WithLinks(config.Links...))
