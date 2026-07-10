@@ -87,6 +87,34 @@ func buildSampler(cfg config.TracingConfig) sdktrace.Sampler {
 
 func ContextWithTelemetry() ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
+		// Create a TracerProvider with a DeferredSpanProcessor immediately so
+		// that spans created during early boot (e.g. portal.boot) are captured
+		// on a real provider. The OTLP exporter is attached later in the
+		// startup func once config is available; until then, ended spans are
+		// buffered in memory and flushed when the exporter is wired up.
+		cfg := ctx.Config().Config().Core.Observability
+
+		deferred := NewDeferredSpanProcessor()
+
+		var tp *sdktrace.TracerProvider
+		if cfg.Enabled {
+			res, err := buildResource(ctx.GetContext(), cfg)
+			if err != nil {
+				return ctx, err
+			}
+			tp = sdktrace.NewTracerProvider(
+				sdktrace.WithSpanProcessor(deferred),
+				sdktrace.WithResource(res),
+				sdktrace.WithSampler(buildSampler(cfg.Tracing)),
+			)
+		} else {
+			tp = sdktrace.NewTracerProvider(
+				sdktrace.WithSpanProcessor(deferred),
+				sdktrace.WithSampler(sdktrace.NeverSample()),
+			)
+		}
+		otel.SetTracerProvider(tp)
+
 		ctx.OnStartup(func(ctx Context) error {
 			cfg := ctx.Config().Config().Core.Observability
 
@@ -103,7 +131,6 @@ func ContextWithTelemetry() ContextBuilderOption {
 				return err
 			}
 
-			var tp *sdktrace.TracerProvider
 			var lp *sdklog.LoggerProvider
 
 			if cfg.IsTracingEnabled() {
@@ -112,18 +139,12 @@ func ContextWithTelemetry() ContextBuilderOption {
 					return err
 				}
 
-				tp = sdktrace.NewTracerProvider(
-					sdktrace.WithResource(res),
-					sdktrace.WithBatcher(traceExporter,
-						sdktrace.WithBatchTimeout(time.Duration(cfg.Tracing.BatchTimeout)*time.Second),
-						sdktrace.WithMaxExportBatchSize(int(cfg.Tracing.MaxExportBatchSize)),
-					),
-					sdktrace.WithSampler(buildSampler(cfg.Tracing)),
+				// Attach the real exporter to the deferred processor. This
+				// flushes any buffered spans (including portal.boot) to Tempo.
+				deferred.SetExporter(traceExporter,
+					sdktrace.WithBatchTimeout(time.Duration(cfg.Tracing.BatchTimeout)*time.Second),
+					sdktrace.WithMaxExportBatchSize(int(cfg.Tracing.MaxExportBatchSize)),
 				)
-				otel.SetTracerProvider(tp)
-			} else {
-				tp = sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.NeverSample()))
-				otel.SetTracerProvider(tp)
 			}
 
 			if cfg.IsLoggingEnabled() {
