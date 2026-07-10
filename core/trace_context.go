@@ -119,25 +119,6 @@ func SpanLinksFromTraceParents(traceParents ...string) []trace.Link {
 	return links
 }
 
-// bootTraceParent stores the W3C traceparent of the boot root span.
-// Runtime operations (workflows, cron jobs) can link to this to provide
-// a traceable connection back to the boot that started them, without
-// forcing all runtime spans into the boot trace.
-var bootTraceParent string
-
-// SetBootTraceParent stores the W3C traceparent of the boot root span.
-// Called once during portal startup. Runtime operations can retrieve it
-// via BootTraceParent() to add span links back to the boot trace.
-func SetBootTraceParent(tp string) {
-	bootTraceParent = tp
-}
-
-// BootTraceParent returns the W3C traceparent of the boot root span.
-// Returns empty string if boot hasn't started or tracing is disabled.
-func BootTraceParent() string {
-	return bootTraceParent
-}
-
 // HasTraceParent returns true if the traceparent string is non-empty
 // and appears to contain a valid W3C trace context.
 func HasTraceParent(traceParent string) bool {

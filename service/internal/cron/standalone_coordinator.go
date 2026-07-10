@@ -626,15 +626,9 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
 	// Start a new root trace for each cron job execution. Cron jobs are
 	// triggered by the scheduler (no HTTP parent), so they need their own
-	// root span to act as the trace root for all downstream work. The boot
-	// traceparent is linked (not parented) so the trace can be correlated
-	// back to the portal instance that started the scheduler.
-	var bootOpts []core.SpanOption
-	if bootTP := core.BootTraceParent(); bootTP != "" {
-		bootOpts = append(bootOpts, core.WithLinks(core.SpanLinksFromTraceParents(bootTP)...))
-	}
-	bootOpts = append(bootOpts, core.WithNewRoot(), core.WithSpanKind(trace.SpanKindServer))
-	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob", bootOpts...)
+	// root span to act as the trace root for all downstream work.
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob",
+		core.WithNewRoot(), core.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	job, err := s.CreateJobFromDB(ctx, jobID)
