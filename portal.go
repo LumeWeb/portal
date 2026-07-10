@@ -14,6 +14,7 @@ import (
 	"go.lumeweb.com/portal/event"
 	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -216,7 +217,10 @@ func (p *PortalImpl) Start() error {
 	// server start) become children of this span. The span is ended when
 	// boot completes, so runtime spans are NOT children of this trace —
 	// they link to it via core.BootTraceParent() if needed.
-	bootCtx, bootSpan := core.TraceMethod(ctx.GetContext(), "portal.boot")
+	bootCtx, bootSpan := core.TraceMethod(ctx.GetContext(), "portal.boot",
+		core.WithNewRoot(),
+		core.WithSpanKind(trace.SpanKindServer),
+	)
 	core.SetBootTraceParent(core.MarshalTraceParent(bootCtx))
 	defer bootSpan.End()
 
