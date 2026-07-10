@@ -13,7 +13,7 @@ const (
 	MetricResultsQueried    = "results_queried_total"
 	MetricScannerRegistered = "scanner_registered_total"
 	MetricDuration          = "duration_seconds"
-	MetricOperationFailed   = "failed_total"
+	MetricOperationFailed   = "operation_failed_total"
 )
 
 // Metric label values
