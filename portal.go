@@ -211,6 +211,15 @@ func (p *PortalImpl) Start() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Starting portal")
 
+	// Create a root span for the entire boot sequence. All startup
+	// operations (startup funcs, protocol registration, cron init, HTTP
+	// server start) become children of this span. The span is ended when
+	// boot completes, so runtime spans are NOT children of this trace —
+	// they link to it via core.BootTraceParent() if needed.
+	bootCtx, bootSpan := core.TraceMethod(ctx.GetContext(), "portal.boot")
+	core.SetBootTraceParent(core.MarshalTraceParent(bootCtx))
+	defer bootSpan.End()
+
 	if err := core.Fire(ctx, event.EVENT_BOOT_START, event.NewBootStartEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot start event", zap.Error(err))
 		return err

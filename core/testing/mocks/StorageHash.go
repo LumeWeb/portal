@@ -82,6 +82,50 @@ func (_c *MockStorageHash_Bytes_Call) RunAndReturn(run func() []byte) *MockStora
 	return _c
 }
 
+// CIDString provides a mock function for the type MockStorageHash
+func (_mock *MockStorageHash) CIDString() string {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for CIDString")
+	}
+
+	var r0 string
+	if returnFunc, ok := ret.Get(0).(func() string); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	return r0
+}
+
+// MockStorageHash_CIDString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CIDString'
+type MockStorageHash_CIDString_Call struct {
+	*mock.Call
+}
+
+// CIDString is a helper method to define mock.On call
+func (_e *MockStorageHash_Expecter) CIDString() *MockStorageHash_CIDString_Call {
+	return &MockStorageHash_CIDString_Call{Call: _e.mock.On("CIDString")}
+}
+
+func (_c *MockStorageHash_CIDString_Call) Run(run func()) *MockStorageHash_CIDString_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockStorageHash_CIDString_Call) Return(s string) *MockStorageHash_CIDString_Call {
+	_c.Call.Return(s)
+	return _c
+}
+
+func (_c *MockStorageHash_CIDString_Call) RunAndReturn(run func() string) *MockStorageHash_CIDString_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CIDType provides a mock function for the type MockStorageHash
 func (_mock *MockStorageHash) CIDType() uint64 {
 	ret := _mock.Called()

@@ -125,21 +125,28 @@ func workflowSpanOpts(req *models.Request, metadata WorkflowMetadata) []core.Spa
 	if metadata.TraceParent != "" && metadata.TraceParent != metadata.RootTraceParent {
 		links = append(links, core.SpanLinksFromTraceParents(metadata.TraceParent)...)
 	}
+	// Link to the boot trace so runtime workflow spans can be traced back
+	// to the portal instance that started them.
+	if bootTP := core.BootTraceParent(); bootTP != "" {
+		links = append(links, core.SpanLinksFromTraceParents(bootTP)...)
+	}
 
 	opts := []core.SpanOption{
 		core.WithLinks(links...),
 	}
 	if metadata.WorkflowID != "" || metadata.WorkflowName != "" {
-		var hash string
+		var hashStr string
 		if req != nil {
-			hash = req.Hash.String()
+			if sh := core.NewStorageHashFromMultihash(req.Hash, req.CIDType, nil); sh != nil {
+				hashStr = sh.CIDString()
+			}
 		}
 		var userID *uint
 		if req != nil {
 			userID = req.UserID
 		}
 		opts = append(opts, core.WithAttributes(
-			core.WorkflowSpanAttributes(metadata.WorkflowID, metadata.WorkflowName, userID, hash)...,
+			core.WorkflowSpanAttributes(metadata.WorkflowID, metadata.WorkflowName, userID, hashStr)...,
 		))
 	}
 	return opts
