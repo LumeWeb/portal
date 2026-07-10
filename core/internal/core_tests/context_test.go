@@ -62,7 +62,7 @@ func TestNewContext(t *testing.T) {
 	assert.NotNil(t, ctx.GetContext())
 	assert.Equal(t, 0, ctx.ExitCode())
 	assert.NotEmpty(t, ctx.StartupFuncs()) // Logger and other subsystems may register startup funcs
-	assert.Len(t, ctx.ExitFuncs(), 2)      // Event manager + telemetry shutdown
+	assert.Len(t, ctx.ExitFuncs(), 1)      // Default exit func for event manager
 
 	mockConfigManager.AssertExpectations(t)
 }
@@ -126,7 +126,7 @@ func TestContextWithExitFunc(t *testing.T) {
 	assert.NotNil(t, ctx)
 
 	exitFuncs := ctx.ExitFuncs()
-	assert.Len(t, exitFuncs, 3) // Custom exit + event manager + telemetry shutdown
+	assert.Len(t, exitFuncs, 2) // Includes default event manager exit func
 
 	// Manually call all exit functions for testing
 	for _, f := range exitFuncs {
@@ -319,7 +319,7 @@ func TestOnExit(t *testing.T) {
 
 	ctx.OnExit(exitFunc)
 	exitFuncs := ctx.ExitFuncs()
-	assert.Len(t, exitFuncs, 3) // Custom exit + event manager + telemetry shutdown
+	assert.Len(t, exitFuncs, 2) // Includes default event manager exit func
 
 	// Manually call the exit function for testing
 	for _, f := range exitFuncs {

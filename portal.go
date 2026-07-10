@@ -14,7 +14,6 @@ import (
 	"go.lumeweb.com/portal/event"
 	pkgDNS "go.lumeweb.com/portal/internal/dns"
 	pkgReflect "go.lumeweb.com/portal/internal/reflect"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -211,18 +210,6 @@ func (p *PortalImpl) Init() error {
 func (p *PortalImpl) Start() error {
 	ctx := p.Context()
 	ctx.Logger().Info("Starting portal")
-
-	// Create a root span for the entire boot sequence. All startup
-	// operations (startup funcs, protocol registration, cron init, HTTP
-	// server start) become children of this span. The span is ended when
-	// boot completes, so runtime spans are NOT children of this trace —
-	// they link to it via core.BootTraceParent() if needed.
-	bootCtx, bootSpan := core.TraceMethod(ctx.GetContext(), "portal.boot",
-		core.WithNewRoot(),
-		core.WithSpanKind(trace.SpanKindServer),
-	)
-	core.SetBootTraceParent(core.MarshalTraceParent(bootCtx))
-	defer bootSpan.End()
 
 	if err := core.Fire(ctx, event.EVENT_BOOT_START, event.NewBootStartEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot start event", zap.Error(err))

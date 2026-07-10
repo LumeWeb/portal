@@ -125,11 +125,6 @@ func workflowSpanOpts(req *models.Request, metadata WorkflowMetadata) []core.Spa
 	if metadata.TraceParent != "" && metadata.TraceParent != metadata.RootTraceParent {
 		links = append(links, core.SpanLinksFromTraceParents(metadata.TraceParent)...)
 	}
-	// Link to the boot trace so runtime workflow spans can be traced back
-	// to the portal instance that started them.
-	if bootTP := core.BootTraceParent(); bootTP != "" {
-		links = append(links, core.SpanLinksFromTraceParents(bootTP)...)
-	}
 
 	opts := []core.SpanOption{
 		core.WithLinks(links...),
