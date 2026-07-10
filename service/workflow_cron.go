@@ -50,8 +50,15 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 		return fmt.Errorf("invalid job arguments type, expected uint got %T", j.Args())
 	}
 
+	// eventCtx carries the trace span from ExecuteJob. Use it for all
+	// workflow service calls so spans connect to the cron execution trace.
+	// eventCtx also preserves portal context values (tracer service, etc.)
+	// through DetachContext, so TraceMethod inside workflow methods will
+	// create child spans of the cron job span.
+	execCtx := eventCtx
+
 	// Check if the step can be transitioned
-	canTransition, err := workflowSvc.CanTransition(ctx, args)
+	canTransition, err := workflowSvc.CanTransition(execCtx, args)
 	if err != nil {
 		return fmt.Errorf("failed to check transition status: %w", err)
 	}
@@ -64,7 +71,7 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 	}
 
 	// Execute the workflow step
-	err = workflowSvc.ExecuteWorkflowStep(ctx, args)
+	err = workflowSvc.ExecuteWorkflowStep(execCtx, args)
 	if err != nil {
 		// Check if this was a retried error (which is expected behavior)
 		if core.IsWorkflowErrorType(err, core.ErrKeyWorkflowStepRetried) {
@@ -76,7 +83,7 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 		}
 
 		// Check if step is configured to continue on failure
-		stepInfo, stepErr := workflowSvc.GetWorkflowStepInfo(ctx, args)
+		stepInfo, stepErr := workflowSvc.GetWorkflowStepInfo(execCtx, args)
 		if stepErr != nil {
 			return fmt.Errorf("failed to get workflow step info: %w", stepErr)
 		}
@@ -99,7 +106,7 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 	}
 
 	// Check if the step can still be transitioned (may have been completed by ExecuteWorkflowStep)
-	canTransition, err = workflowSvc.CanTransition(ctx, args)
+	canTransition, err = workflowSvc.CanTransition(execCtx, args)
 	if err != nil {
 		return fmt.Errorf("failed to check transition status after execution: %w", err)
 	}
@@ -107,7 +114,7 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 	// Only complete the step if it's still pending and can be transitioned
 	if canTransition {
 		// If execution was successful (or we're continuing despite failure), advance to the next step
-		err = workflowSvc.CompleteWorkflowStep(ctx, args)
+		err = workflowSvc.CompleteWorkflowStep(execCtx, args)
 		if err != nil {
 			ctx.Logger().Error("Failed to complete workflow step after execution",
 				zap.Uint("requestID", args),

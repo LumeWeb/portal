@@ -21,6 +21,7 @@ type StorageHash interface {
 	CIDType() uint64
 	Type() uint64
 	String() string
+	CIDString() string
 	Bytes() []byte
 }
 
@@ -129,14 +130,24 @@ func (s StorageHashDefault) String() string {
 	return s.Multihash().B58String()
 }
 
-func (s StorageHashDefault) Bytes() []byte {
-	var c cid.Cid
+// CID returns the CID representation of this storage hash.
+func (s StorageHashDefault) CID() cid.Cid {
 	if s.cidType == 0 {
-		c = cid.NewCidV0(s.Multihash())
-	} else {
-		c = cid.NewCidV1(s.cidType, s.Multihash())
+		return cid.NewCidV0(s.Multihash())
 	}
-	return c.Bytes()
+	return cid.NewCidV1(s.cidType, s.Multihash())
+}
+
+// CIDString returns the CIDv1 (or CIDv0 for legacy) string representation
+// of this storage hash. This is the canonical, human-readable identifier
+// for content-addressed data, suitable for use in trace attributes, logs,
+// and cross-referencing with IPFS gateways.
+func (s StorageHashDefault) CIDString() string {
+	return s.CID().String()
+}
+
+func (s StorageHashDefault) Bytes() []byte {
+	return s.CID().Bytes()
 }
 
 func NewStorageHash(hash []byte, typ uint64, cidType uint64, proof []byte) StorageHash {

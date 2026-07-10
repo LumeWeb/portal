@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -204,6 +205,13 @@ func (s *testStorageHash) Type() uint64 {
 
 func (s *testStorageHash) String() string {
 	return string(s.hash)
+}
+
+func (s *testStorageHash) CIDString() string {
+	if s.mh == nil {
+		return ""
+	}
+	return cid.NewCidV0(s.mh).String()
 }
 
 func (s *testStorageHash) Bytes() []byte {

@@ -43,6 +43,16 @@ func (s *MockStorageHash) String() string {
 	return s.MultihashValue.String()
 }
 
+func (s *MockStorageHash) CIDString() string {
+	if s.MultihashValue == nil {
+		return ""
+	}
+	if s.CIDTypeValue == 0 {
+		return cid.NewCidV0(s.MultihashValue).String()
+	}
+	return cid.NewCidV1(s.CIDTypeValue, s.MultihashValue).String()
+}
+
 // Bytes returns the binary representation of the storage hash as a CID (Content Identifier).
 // It handles both CIDv0 (for legacy IPFS hashes) and CIDv1 formats based on CIDTypeValue.
 // Returns nil if MultihashValue is nil to prevent panics during testing.

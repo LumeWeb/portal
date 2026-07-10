@@ -623,7 +623,14 @@ func (s *StandaloneCoordinator) CleanupJob(ctx context.Context, jobID uuid.UUID)
 }
 
 func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID) error {
-	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob")
+	// Link to the boot trace so scheduled cron jobs (which have no parent
+	// span after boot completes) can be traced back to the portal instance
+	// that started them.
+	var bootOpts []core.SpanOption
+	if bootTP := core.BootTraceParent(); bootTP != "" {
+		bootOpts = append(bootOpts, core.WithLinks(core.SpanLinksFromTraceParents(bootTP)...))
+	}
+	ctx, span := core.TraceMethod(ctx, "StandaloneCoordinator.ExecuteJob", bootOpts...)
 	defer span.End()
 
 	job, err := s.CreateJobFromDB(ctx, jobID)
@@ -637,7 +644,12 @@ func (s *StandaloneCoordinator) ExecuteJob(ctx context.Context, jobID uuid.UUID)
 
 	// Create a per-job-type OTel span so each execution is traceable by job type
 	// (e.g. "cron.core.pin-checker") in addition to the generic coordinator span.
-	jobCtx, jobSpan := core.TraceMethod(ctx, "cron."+job.Type())
+	// Also link to the boot trace for scheduled jobs with no parent span.
+	var jobSpanOpts []core.SpanOption
+	if bootTP := core.BootTraceParent(); bootTP != "" {
+		jobSpanOpts = append(jobSpanOpts, core.WithLinks(core.SpanLinksFromTraceParents(bootTP)...))
+	}
+	jobCtx, jobSpan := core.TraceMethod(ctx, "cron."+job.Type(), jobSpanOpts...)
 	defer jobSpan.End()
 
 	return job.Run(s.ctx, jobCtx)
