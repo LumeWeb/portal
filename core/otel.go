@@ -235,7 +235,9 @@ func StartSpan(ctx context.Context, name string, opts ...SpanOption) (context.Co
 	if len(config.Links) > 0 {
 		spanOpts = append(spanOpts, trace.WithLinks(config.Links...))
 	}
-	return tracer.Start(ctx, config.Name, spanOpts...)
+	ctx, span := tracer.Start(ctx, config.Name, spanOpts...)
+	span.SetAttributes(attribute.String("trace.id", span.SpanContext().TraceID().String()))
+	return ctx, span
 }
 
 // TraceMethod starts a new trace span for a method.
