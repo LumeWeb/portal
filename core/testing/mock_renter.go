@@ -13,7 +13,6 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/renterd/v2/api"
 	"gorm.io/gorm"
 )
 
@@ -45,7 +44,7 @@ func NewMockRenterService(t TB) *MockRenterService {
 }
 
 // UploadObject mocks the UploadObject method and stores the uploaded data.
-func (h *MockRenterService) UploadObject(_ context.Context, file io.Reader, bucket string, fileName string) error {
+func (h *MockRenterService) UploadObject(_ context.Context, file io.Reader, bucket string, fileName string, _ []byte) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -62,7 +61,7 @@ func (h *MockRenterService) UploadObject(_ context.Context, file io.Reader, buck
 }
 
 // GetObject mocks the GetObject method and returns the stored data.
-func (h *MockRenterService) GetObject(_ context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+func (h *MockRenterService) GetObject(_ context.Context, bucket string, fileName string, options core.DownloadOptions) (io.ReadCloser, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -72,9 +71,7 @@ func (h *MockRenterService) GetObject(_ context.Context, bucket string, fileName
 		return nil, fmt.Errorf("object not found")
 	}
 
-	return &api.GetObjectResponse{
-		Content: io.NopCloser(bytes.NewReader(data)),
-	}, nil
+	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
 // AssertUploadExists asserts that an upload exists for the given bucket and filename.
@@ -147,22 +144,22 @@ func (h *MockRenterService) UploadObjectMultipart(_ context.Context, params *cor
 }
 
 // UploadExists mocks the UploadExists method.
-func (h *MockRenterService) UploadExists(_ context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error) {
+func (h *MockRenterService) UploadExists(_ context.Context, bucket string, fileName string) (bool, *models.RenterObject, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	key := fmt.Sprintf("%s/%s", bucket, fileName)
 	_, exists := h.uploaded[key]
 
-	return exists, &models.SiaUpload{
-		UploadID: fileName,
-		Bucket:   bucket,
-		Key:      fileName,
+	return exists, &models.RenterObject{
+		SiaObjectID: fileName,
+		Bucket:      bucket,
+		ObjectKey:   fileName,
 	}, nil
 }
 
 // GetObjectMetadata mocks the GetObjectMetadata method.
-func (h *MockRenterService) GetObjectMetadata(_ context.Context, bucket string, fileName string) (*api.Object, error) {
+func (h *MockRenterService) GetObjectMetadata(_ context.Context, bucket string, fileName string) (*core.ObjectMetadata, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -172,18 +169,13 @@ func (h *MockRenterService) GetObjectMetadata(_ context.Context, bucket string, 
 		return nil, fmt.Errorf("object not found")
 	}
 
-	// Create a proper object metadata response based on stored data
-	obj := &api.Object{
-		ObjectMetadata: api.ObjectMetadata{
-			Key:     fileName,
-			Size:    int64(len(data)),
-			ETag:    fmt.Sprintf("%x", md5.Sum(data)),
-			ModTime: api.TimeRFC3339(time.Now()),
-			Bucket:  bucket,
-		},
-	}
-
-	return obj, nil
+	return &core.ObjectMetadata{
+		Bucket:  bucket,
+		Key:     fileName,
+		Size:    int64(len(data)),
+		ETag:    fmt.Sprintf("%x", md5.Sum(data)),
+		ModTime: time.Now(),
+	}, nil
 }
 
 // BucketExists returns whether a bucket has been created
@@ -202,22 +194,6 @@ func (h *MockRenterService) DeleteObjectMetadata(_ context.Context, bucket strin
 	delete(h.uploaded, key)
 
 	return nil
-}
-
-// UpdateGougingSettings mocks the UpdateGougingSettings method.
-func (h *MockRenterService) UpdateGougingSettings(_ context.Context, settings api.GougingSettings) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	return nil
-}
-
-// GougingSettings mocks the GougingSettings method.
-func (h *MockRenterService) GougingSettings(_ context.Context) (api.GougingSettings, error) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	return api.GougingSettings{}, nil
 }
 
 // SlabSize mocks the SlabSize method.

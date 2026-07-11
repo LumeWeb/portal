@@ -12,7 +12,6 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
-	"go.sia.tech/renterd/v2/api"
 	"gorm.io/gorm"
 )
 
@@ -359,26 +358,26 @@ func (_c *MockRenterService_DeleteObjectMetadata_Call) RunAndReturn(run func(ctx
 }
 
 // GetObject provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) GetObject(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error) {
+func (_mock *MockRenterService) GetObject(ctx context.Context, bucket string, fileName string, options core.DownloadOptions) (io.ReadCloser, error) {
 	ret := _mock.Called(ctx, bucket, fileName, options)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetObject")
 	}
 
-	var r0 *api.GetObjectResponse
+	var r0 io.ReadCloser
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, api.DownloadObjectOptions) (*api.GetObjectResponse, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, core.DownloadOptions) (io.ReadCloser, error)); ok {
 		return returnFunc(ctx, bucket, fileName, options)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, api.DownloadObjectOptions) *api.GetObjectResponse); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, core.DownloadOptions) io.ReadCloser); ok {
 		r0 = returnFunc(ctx, bucket, fileName, options)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*api.GetObjectResponse)
+			r0 = ret.Get(0).(io.ReadCloser)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, api.DownloadObjectOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, core.DownloadOptions) error); ok {
 		r1 = returnFunc(ctx, bucket, fileName, options)
 	} else {
 		r1 = ret.Error(1)
@@ -395,12 +394,12 @@ type MockRenterService_GetObject_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-//   - options api.DownloadObjectOptions
+//   - options core.DownloadOptions
 func (_e *MockRenterService_Expecter) GetObject(ctx interface{}, bucket interface{}, fileName interface{}, options interface{}) *MockRenterService_GetObject_Call {
 	return &MockRenterService_GetObject_Call{Call: _e.mock.On("GetObject", ctx, bucket, fileName, options)}
 }
 
-func (_c *MockRenterService_GetObject_Call) Run(run func(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions)) *MockRenterService_GetObject_Call {
+func (_c *MockRenterService_GetObject_Call) Run(run func(ctx context.Context, bucket string, fileName string, options core.DownloadOptions)) *MockRenterService_GetObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -414,9 +413,9 @@ func (_c *MockRenterService_GetObject_Call) Run(run func(ctx context.Context, bu
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
-		var arg3 api.DownloadObjectOptions
+		var arg3 core.DownloadOptions
 		if args[3] != nil {
-			arg3 = args[3].(api.DownloadObjectOptions)
+			arg3 = args[3].(core.DownloadOptions)
 		}
 		run(
 			arg0,
@@ -428,34 +427,34 @@ func (_c *MockRenterService_GetObject_Call) Run(run func(ctx context.Context, bu
 	return _c
 }
 
-func (_c *MockRenterService_GetObject_Call) Return(getObjectResponse *api.GetObjectResponse, err error) *MockRenterService_GetObject_Call {
-	_c.Call.Return(getObjectResponse, err)
+func (_c *MockRenterService_GetObject_Call) Return(readCloser io.ReadCloser, err error) *MockRenterService_GetObject_Call {
+	_c.Call.Return(readCloser, err)
 	return _c
 }
 
-func (_c *MockRenterService_GetObject_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string, options api.DownloadObjectOptions) (*api.GetObjectResponse, error)) *MockRenterService_GetObject_Call {
+func (_c *MockRenterService_GetObject_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string, options core.DownloadOptions) (io.ReadCloser, error)) *MockRenterService_GetObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetObjectMetadata provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*api.Object, error) {
+func (_mock *MockRenterService) GetObjectMetadata(ctx context.Context, bucket string, fileName string) (*core.ObjectMetadata, error) {
 	ret := _mock.Called(ctx, bucket, fileName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetObjectMetadata")
 	}
 
-	var r0 *api.Object
+	var r0 *core.ObjectMetadata
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*api.Object, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*core.ObjectMetadata, error)); ok {
 		return returnFunc(ctx, bucket, fileName)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *api.Object); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *core.ObjectMetadata); ok {
 		r0 = returnFunc(ctx, bucket, fileName)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*api.Object)
+			r0 = ret.Get(0).(*core.ObjectMetadata)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
@@ -502,72 +501,12 @@ func (_c *MockRenterService_GetObjectMetadata_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockRenterService_GetObjectMetadata_Call) Return(object *api.Object, err error) *MockRenterService_GetObjectMetadata_Call {
-	_c.Call.Return(object, err)
+func (_c *MockRenterService_GetObjectMetadata_Call) Return(objectMetadata *core.ObjectMetadata, err error) *MockRenterService_GetObjectMetadata_Call {
+	_c.Call.Return(objectMetadata, err)
 	return _c
 }
 
-func (_c *MockRenterService_GetObjectMetadata_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (*api.Object, error)) *MockRenterService_GetObjectMetadata_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GougingSettings provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) GougingSettings(ctx context.Context) (api.GougingSettings, error) {
-	ret := _mock.Called(ctx)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GougingSettings")
-	}
-
-	var r0 api.GougingSettings
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context) (api.GougingSettings, error)); ok {
-		return returnFunc(ctx)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context) api.GougingSettings); ok {
-		r0 = returnFunc(ctx)
-	} else {
-		r0 = ret.Get(0).(api.GougingSettings)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = returnFunc(ctx)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockRenterService_GougingSettings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GougingSettings'
-type MockRenterService_GougingSettings_Call struct {
-	*mock.Call
-}
-
-// GougingSettings is a helper method to define mock.On call
-//   - ctx context.Context
-func (_e *MockRenterService_Expecter) GougingSettings(ctx interface{}) *MockRenterService_GougingSettings_Call {
-	return &MockRenterService_GougingSettings_Call{Call: _e.mock.On("GougingSettings", ctx)}
-}
-
-func (_c *MockRenterService_GougingSettings_Call) Run(run func(ctx context.Context)) *MockRenterService_GougingSettings_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockRenterService_GougingSettings_Call) Return(gougingSettings api.GougingSettings, err error) *MockRenterService_GougingSettings_Call {
-	_c.Call.Return(gougingSettings, err)
-	return _c
-}
-
-func (_c *MockRenterService_GougingSettings_Call) RunAndReturn(run func(ctx context.Context) (api.GougingSettings, error)) *MockRenterService_GougingSettings_Call {
+func (_c *MockRenterService_GetObjectMetadata_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (*core.ObjectMetadata, error)) *MockRenterService_GetObjectMetadata_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -882,65 +821,8 @@ func (_c *MockRenterService_SlabSize_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
-// UpdateGougingSettings provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) UpdateGougingSettings(ctx context.Context, settings api.GougingSettings) error {
-	ret := _mock.Called(ctx, settings)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateGougingSettings")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, api.GougingSettings) error); ok {
-		r0 = returnFunc(ctx, settings)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockRenterService_UpdateGougingSettings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateGougingSettings'
-type MockRenterService_UpdateGougingSettings_Call struct {
-	*mock.Call
-}
-
-// UpdateGougingSettings is a helper method to define mock.On call
-//   - ctx context.Context
-//   - settings api.GougingSettings
-func (_e *MockRenterService_Expecter) UpdateGougingSettings(ctx interface{}, settings interface{}) *MockRenterService_UpdateGougingSettings_Call {
-	return &MockRenterService_UpdateGougingSettings_Call{Call: _e.mock.On("UpdateGougingSettings", ctx, settings)}
-}
-
-func (_c *MockRenterService_UpdateGougingSettings_Call) Run(run func(ctx context.Context, settings api.GougingSettings)) *MockRenterService_UpdateGougingSettings_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 api.GougingSettings
-		if args[1] != nil {
-			arg1 = args[1].(api.GougingSettings)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockRenterService_UpdateGougingSettings_Call) Return(err error) *MockRenterService_UpdateGougingSettings_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockRenterService_UpdateGougingSettings_Call) RunAndReturn(run func(ctx context.Context, settings api.GougingSettings) error) *MockRenterService_UpdateGougingSettings_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // UploadExists provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error) {
+func (_mock *MockRenterService) UploadExists(ctx context.Context, bucket string, fileName string) (bool, *models.RenterObject, error) {
 	ret := _mock.Called(ctx, bucket, fileName)
 
 	if len(ret) == 0 {
@@ -948,9 +830,9 @@ func (_mock *MockRenterService) UploadExists(ctx context.Context, bucket string,
 	}
 
 	var r0 bool
-	var r1 *models.SiaUpload
+	var r1 *models.RenterObject
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, *models.SiaUpload, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, *models.RenterObject, error)); ok {
 		return returnFunc(ctx, bucket, fileName)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
@@ -958,11 +840,11 @@ func (_mock *MockRenterService) UploadExists(ctx context.Context, bucket string,
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *models.SiaUpload); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *models.RenterObject); ok {
 		r1 = returnFunc(ctx, bucket, fileName)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*models.SiaUpload)
+			r1 = ret.Get(1).(*models.RenterObject)
 		}
 	}
 	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
@@ -1009,27 +891,27 @@ func (_c *MockRenterService_UploadExists_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockRenterService_UploadExists_Call) Return(b bool, siaUpload *models.SiaUpload, err error) *MockRenterService_UploadExists_Call {
-	_c.Call.Return(b, siaUpload, err)
+func (_c *MockRenterService_UploadExists_Call) Return(b bool, renterObject *models.RenterObject, err error) *MockRenterService_UploadExists_Call {
+	_c.Call.Return(b, renterObject, err)
 	return _c
 }
 
-func (_c *MockRenterService_UploadExists_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (bool, *models.SiaUpload, error)) *MockRenterService_UploadExists_Call {
+func (_c *MockRenterService_UploadExists_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (bool, *models.RenterObject, error)) *MockRenterService_UploadExists_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UploadObject provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string) error {
-	ret := _mock.Called(ctx, file, bucket, fileName)
+func (_mock *MockRenterService) UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string, hash []byte) error {
+	ret := _mock.Called(ctx, file, bucket, fileName, hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UploadObject")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, string, string) error); ok {
-		r0 = returnFunc(ctx, file, bucket, fileName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, io.Reader, string, string, []byte) error); ok {
+		r0 = returnFunc(ctx, file, bucket, fileName, hash)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1046,11 +928,12 @@ type MockRenterService_UploadObject_Call struct {
 //   - file io.Reader
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) UploadObject(ctx interface{}, file interface{}, bucket interface{}, fileName interface{}) *MockRenterService_UploadObject_Call {
-	return &MockRenterService_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, file, bucket, fileName)}
+//   - hash []byte
+func (_e *MockRenterService_Expecter) UploadObject(ctx interface{}, file interface{}, bucket interface{}, fileName interface{}, hash interface{}) *MockRenterService_UploadObject_Call {
+	return &MockRenterService_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, file, bucket, fileName, hash)}
 }
 
-func (_c *MockRenterService_UploadObject_Call) Run(run func(ctx context.Context, file io.Reader, bucket string, fileName string)) *MockRenterService_UploadObject_Call {
+func (_c *MockRenterService_UploadObject_Call) Run(run func(ctx context.Context, file io.Reader, bucket string, fileName string, hash []byte)) *MockRenterService_UploadObject_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1068,11 +951,16 @@ func (_c *MockRenterService_UploadObject_Call) Run(run func(ctx context.Context,
 		if args[3] != nil {
 			arg3 = args[3].(string)
 		}
+		var arg4 []byte
+		if args[4] != nil {
+			arg4 = args[4].([]byte)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4,
 		)
 	})
 	return _c
@@ -1083,7 +971,7 @@ func (_c *MockRenterService_UploadObject_Call) Return(err error) *MockRenterServ
 	return _c
 }
 
-func (_c *MockRenterService_UploadObject_Call) RunAndReturn(run func(ctx context.Context, file io.Reader, bucket string, fileName string) error) *MockRenterService_UploadObject_Call {
+func (_c *MockRenterService_UploadObject_Call) RunAndReturn(run func(ctx context.Context, file io.Reader, bucket string, fileName string, hash []byte) error) *MockRenterService_UploadObject_Call {
 	_c.Call.Return(run)
 	return _c
 }
