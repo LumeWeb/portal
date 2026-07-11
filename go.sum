@@ -446,6 +446,8 @@ github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzh
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/klauspost/reedsolomon v1.14.0 h1:5YSZeclzSYg5nl349+GDG/agDtQ6MZiwUYXvVKN1Jx0=
 github.com/klauspost/reedsolomon v1.14.0/go.mod h1:yjqqjgMTQkBUHSG97/rm4zipffCNbCiZcB3kTqr++sQ=
+github.com/klauspost/reedsolomon v1.14.1 h1:swE9kzyWXD/wVG+l5Pe8bWnQ0giIY7D1GjCBKk3kG2U=
+github.com/klauspost/reedsolomon v1.14.1/go.mod h1:yjqqjgMTQkBUHSG97/rm4zipffCNbCiZcB3kTqr++sQ=
 github.com/knadh/koanf/maps v0.1.2 h1:RBfmAW5CnZT+PJ1CVc1QSJKf4Xu9kxfQgYVQSu8hpbo=
 github.com/knadh/koanf/maps v0.1.2/go.mod h1:npD/QZY3V6ghQDdcQzl1W4ICNVTkohC8E73eI2xW4yI=
 github.com/knadh/koanf/parsers/json v1.0.0 h1:1pVR1JhMwbqSg5ICzU+surJmeBbdT4bQm7jjgnA+f8o=
@@ -631,6 +633,8 @@ github.com/quic-go/quic-go v0.60.0 h1:xcQioE8OM66UQLeUMHltK1CCcOu3JbVB4JAQdDQSB+
 github.com/quic-go/quic-go v0.60.0/go.mod h1:wpKpjmPpftl30sL6pFh7REVpjbcCVy4zt2vDyK1TuJk=
 github.com/quic-go/webtransport-go v0.11.0 h1:3afiZq7MHv3gmKCbMwZ8D5M1u0y/1RdONN9KlWp32J0=
 github.com/quic-go/webtransport-go v0.11.0/go.mod h1:SHgEzUFVyj+9WUSuGB1P6Zd351Pww2leWV3SwlTovkA=
+github.com/quic-go/webtransport-go v0.11.1 h1:rrFQMO+7/52ZDJ04fsrjIaWqn6q1z1MYo9iVFq6JtbA=
+github.com/quic-go/webtransport-go v0.11.1/go.mod h1:SHgEzUFVyj+9WUSuGB1P6Zd351Pww2leWV3SwlTovkA=
 github.com/redis/go-redis/v9 v9.21.0 h1:FPBE4hhbAke+TLmcY3WkpbDffJEomdqPn3HYiqAtL9E=
 github.com/redis/go-redis/v9 v9.21.0/go.mod h1:v/M13XI1PVCDcm01VtPFOADfZtHf8YW3baQf57KlIkA=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
@@ -793,10 +797,16 @@ go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d h1:Ns9kd1Rwzw7t0
 go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d/go.mod h1:92Uoe3l++MlthCm+koNi0tcUCX3anayogF0Pa/sp24k=
 go.sia.tech/core v0.21.4 h1:EFbw8tJ2Jo4cqU1e6VNTUUg5WPGaUlpGD5t1RYje59c=
 go.sia.tech/core v0.21.4/go.mod h1:AluTCM6Q+1YAw9nXNz2un4NEh4J8GPySEuYxBdCvlCM=
+go.sia.tech/core v0.21.6 h1:fge57Itz8R9jXegVd63y/jIQHAOLS+X2mEqYnbw1d/k=
+go.sia.tech/core v0.21.6/go.mod h1:UAc637UMThRXG13B2SEc9MCmJSsh7yuF78VfvweXyhE=
 go.sia.tech/coreutils v0.23.2 h1:bRGzYZA7qv/kDu0SQNQSpM+dwRpbJzlHLoW9fUjjeo4=
 go.sia.tech/coreutils v0.23.2/go.mod h1:UOE/4k7hBGZC3teXU8Nc951DIEojRGi5PeRUM8optJw=
+go.sia.tech/coreutils v0.23.5 h1:KrkaV5MgFcsx3Aqma4qymWStTZKRz8JTuRQUl/PBfx0=
+go.sia.tech/coreutils v0.23.5/go.mod h1:DN3dIRWJaS8ITrIuDx/Z6AlPneD2KjxVjIjnMYtl7D4=
 go.sia.tech/indexd v0.2.3 h1:NhFnc/NbfwRqZHCb2Y5gzbc0kUZD5tNuXEevGe/Fw30=
 go.sia.tech/indexd v0.2.3/go.mod h1:04AW/AZEwnLhpMkk0tX3MRw3IZIMHmY2Ez8VgZZdcHE=
+go.sia.tech/indexd v0.4.0 h1:omnE0ittOheSQror1PN6BM16vbBC7PBH19kdg8B5ZUY=
+go.sia.tech/indexd v0.4.0/go.mod h1:hBozyI4EMzGerAxv3YmB3vAG3PByQnaE1UUyJaIFL/w=
 go.sia.tech/jape v0.14.1 h1:3QWpOzAxxcaECuv2Mc6tbkFh+olLnyUxxP5SfwgI/qY=
 go.sia.tech/jape v0.14.1/go.mod h1:BEygF1DcgdWBenPa75iJ1b91FuxzLmKBxpglmx+C9BY=
 go.sia.tech/mux v1.5.2 h1:MU07hUSZJJNo+ulN/7Gb5/3KBLaxXgunb63fIhxFy+o=
