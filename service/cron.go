@@ -289,6 +289,9 @@ func (c *CronServiceDefault) Monitor() core.CronMonitor {
 }
 
 func (c *CronServiceDefault) Stop(context.Context) error {
+	if c.BaseComponent == nil {
+		return nil
+	}
 	if c.Config().Config().Core.Cron.Enabled && c.coordinator != nil {
 		return c.coordinator.Close()
 	}
