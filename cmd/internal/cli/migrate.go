@@ -6,6 +6,7 @@ import (
 
 	"github.com/pterm/pterm"
 	"github.com/urfave/cli/v3"
+	"go.uber.org/zap"
 
 	"go.lumeweb.com/portal"
 	"go.lumeweb.com/portal/config"
@@ -20,12 +21,7 @@ func newMigrateRenterdCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "renterd-url",
-				Usage:    "renterd bus API URL (e.g. http://localhost:9980)",
-				Required: true,
-			},
-			&cli.StringFlag{
-				Name:     "renterd-worker-url",
-				Usage:    "renterd worker API URL (e.g. http://localhost:9981)",
+				Usage:    "renterd API URL (e.g. http://localhost:9980)",
 				Required: true,
 			},
 			&cli.StringFlag{
@@ -44,7 +40,6 @@ func newMigrateRenterdCommand() *cli.Command {
 
 func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	renterdURL := cmd.String("renterd-url")
-	renterdWorkerURL := cmd.String("renterd-worker-url")
 	renterdPassword := cmd.String("renterd-password")
 	dryRun := cmd.Bool("dry-run")
 
@@ -65,6 +60,10 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	portal.NewActivePortal(portalCtx)
 
 	if err := portal.Init(); err != nil {
+		// portal.Shutdown calls os.Exit, which would swallow the error.
+		// Log it, close what we can, then return the error directly.
+		logger.Error("failed to initialize portal", zap.Error(err))
+		portal.Shutdown(portal.ActivePortal(), logger.Logger)
 		return fmt.Errorf("failed to initialize portal: %w", err)
 	}
 	defer portal.Shutdown(portal.ActivePortal(), logger.Logger)
@@ -98,7 +97,7 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Create the renterd client.
-	renterdClient := migrator.NewRenterdClient(renterdURL, renterdWorkerURL, renterdPassword)
+	renterdClient := migrator.NewRenterdClient(renterdURL, renterdPassword)
 
 	// Create the migrator.
 	m := &migrator.Migrator{

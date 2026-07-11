@@ -37,11 +37,11 @@ type Downloader interface {
 // to the indexd-native backend by re-uploading each object through the
 // existing RenterService interface.
 type Migrator struct {
-	Renter  core.RenterService
-	Lister  Lister
+	Renter     core.RenterService
+	Lister     Lister
 	Downloader Downloader
-	Logger  *core.Logger
-	DryRun  bool
+	Logger     *core.Logger
+	DryRun     bool
 }
 
 // Migrate iterates all registered storage protocols, lists objects from
