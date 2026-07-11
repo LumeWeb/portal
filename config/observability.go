@@ -87,6 +87,7 @@ type TracingConfig struct {
 	SamplerRatio       float64 `config:"sampler_ratio"`         // 0.0-1.0, only for traceidratio
 	BatchTimeout       uint    `config:"batch_timeout"`         // seconds between BSP flushes
 	MaxExportBatchSize uint    `config:"max_export_batch_size"` // max spans per export batch
+	MaxQueueSize       uint    `config:"max_queue_size"`        // max spans queued in memory before export
 }
 
 func (t TracingConfig) Schema() z.ZogSchema {
@@ -101,6 +102,8 @@ func (t TracingConfig) Schema() z.ZogSchema {
 			GT(0, z.Message("batch_timeout must be greater than 0")),
 		"MaxExportBatchSize": z.Uint().
 			GT(0, z.Message("max_export_batch_size must be greater than 0")),
+		"MaxQueueSize": z.Uint().
+			GT(0, z.Message("max_queue_size must be greater than 0")),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*TracingConfig)
 		if !ok {
@@ -124,6 +127,7 @@ func (t TracingConfig) Defaults() map[string]any {
 		"SamplerRatio":       1.0,
 		"BatchTimeout":       uint(5),
 		"MaxExportBatchSize": uint(512),
+		"MaxQueueSize":       uint(8192),
 	}
 }
 
