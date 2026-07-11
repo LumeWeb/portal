@@ -317,7 +317,7 @@ func (r *RenterDefault) UploadExists(ctx context.Context, bucket string, fileNam
 	siaUpload.Bucket = bucket
 	siaUpload.Key = fileName
 
-	if err := db.RetryableComponentLock(r, func(db *gorm.DB) *gorm.DB {
+	if err := db.RetryableComponentTransaction(r, ctx, func(db *gorm.DB) *gorm.DB {
 		return db.WithContext(ctx).Model(&models.SiaUpload{}).Where(&siaUpload).First(&siaUpload)
 	}); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -359,7 +359,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 			siaUpload.Bucket = bucket
 			siaUpload.Key = fileName
 
-			err = db.RetryableComponentLock(r, func(db *gorm.DB) *gorm.DB {
+			err = db.RetryableComponentTransaction(r, ctx, func(db *gorm.DB) *gorm.DB {
 				return db.WithContext(ctx).Model(&siaUpload).First(&siaUpload)
 
 			})
@@ -390,7 +390,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 
 				uploadId = upload.UploadID
 				siaUpload.UploadID = uploadId
-				if err = db.RetryableComponentLock(r, func(db *gorm.DB) *gorm.DB {
+				if err = db.RetryableComponentTransaction(r, ctx, func(db *gorm.DB) *gorm.DB {
 					return db.WithContext(ctx).Create(&siaUpload)
 				}); err != nil {
 					return err
@@ -470,7 +470,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 
 				siaUpload.UpdatedAt = time.Now()
 
-				if err = db.RetryableComponentLock(r, func(db *gorm.DB) *gorm.DB {
+				if err = db.RetryableComponentTransaction(r, ctx, func(db *gorm.DB) *gorm.DB {
 					return db.WithContext(ctx).Model(&siaUpload).Save(&siaUpload)
 				}); err != nil {
 					return err
@@ -493,7 +493,7 @@ func (r *RenterDefault) UploadObjectMultipart(ctx context.Context, params *core.
 				return err
 			}
 
-			if err = db.RetryableComponentLock(r, func(db *gorm.DB) *gorm.DB {
+			if err = db.RetryableComponentTransaction(r, ctx, func(db *gorm.DB) *gorm.DB {
 				return db.WithContext(ctx).Delete(&siaUpload)
 			}); err != nil {
 				return err

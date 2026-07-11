@@ -652,7 +652,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 		var totalUploadDuration time.Duration
 		var currentAverageDuration time.Duration
 
-		if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+		if err = db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
 			return tx.Model(&s3Upload).First(&s3Upload)
 		}); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -700,7 +700,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			uploadId = *mu.UploadId
 
 			s3Upload.UploadID = uploadId
-			if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+			if err = db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
 				return tx.Create(&s3Upload)
 			}); err != nil {
 				uploadErr = err
@@ -789,7 +789,7 @@ func (s StorageServiceDefault) S3MultipartUpload(ctx context.Context, data io.Re
 			return false, size, err
 		}
 
-		if err = db.RetryableComponentLock(s, func(tx *gorm.DB) *gorm.DB {
+		if err = db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
 			return tx.Delete(&s3Upload)
 		}); err != nil {
 			s.Logger().Error("failed to delete S3Upload record after successful upload", zap.Error(err), zap.String("bucket", bucket), zap.String("key", key))
