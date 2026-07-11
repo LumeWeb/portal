@@ -10,8 +10,8 @@ import (
 	"github.com/urfave/cli/v3"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
-	"go.uber.org/zap"
 	sdk "go.sia.tech/siastorage"
+	"go.uber.org/zap"
 )
 
 const (
@@ -37,9 +37,9 @@ func newSiaLoginCommand() *cli.Command {
 		Action:    siaLoginAction,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:    "print-env",
-				Usage:   "Print environment variables after successful login",
-				Value:   false,
+				Name:  "print-env",
+				Usage: "Print environment variables after successful login",
+				Value: false,
 			},
 		},
 	}
