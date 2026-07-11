@@ -117,6 +117,7 @@ func ContextWithTelemetry() ContextBuilderOption {
 					sdktrace.WithBatcher(traceExporter,
 						sdktrace.WithBatchTimeout(time.Duration(cfg.Tracing.BatchTimeout)*time.Second),
 						sdktrace.WithMaxExportBatchSize(int(cfg.Tracing.MaxExportBatchSize)),
+						sdktrace.WithMaxQueueSize(int(cfg.Tracing.MaxQueueSize)),
 					),
 					sdktrace.WithSampler(buildSampler(cfg.Tracing)),
 				)
