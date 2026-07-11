@@ -172,6 +172,11 @@ func siaLoginAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to save app key to config: %w", err)
 	}
 
+	// Persist to the config file so values survive restarts.
+	if err := manager.Persist("core.storage.sia"); err != nil {
+		return fmt.Errorf("failed to persist app key to config file: %w", err)
+	}
+
 	// Step 6: Output env vars for container deployments.
 	pterm.Println()
 	pterm.Success.Println("Login successful! The app key has been saved to config.")
