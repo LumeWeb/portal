@@ -3,6 +3,7 @@ package service_tests
 import (
 	"bytes"
 	"context"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -10,7 +11,6 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
-	"go.sia.tech/renterd/v2/api"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,8 +71,8 @@ func TestStorageService_DownloadObject(t *testing.T) {
 			mock.Anything,
 			mockProtocol.Name(),
 			mockStorageHash.String(),
-			mock.AnythingOfType("api.DownloadObjectOptions"),
-		).Return(&api.GetObjectResponse{}, nil)
+			mock.AnythingOfType("core.DownloadOptions"),
+		).Return(io.NopCloser(bytes.NewReader([]byte{})), nil)
 
 		// Call DownloadObject
 		_, err = storageService.DownloadObject(context.Background(), mockProtocol, mockStorageHash, 0)

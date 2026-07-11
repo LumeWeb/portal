@@ -9,7 +9,6 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
-	"strings"
 )
 
 func NewPortalCLI() *cli.Command {
@@ -34,6 +33,14 @@ func NewPortalCLI() *cli.Command {
 				Usage:  "Print all available environment variables for configuration, including active values, and the source config setting",
 				Action: configEnvAction,
 			},
+			{
+				Name:  "sia",
+				Usage: "Manage Sia indexer connection",
+				Commands: []*cli.Command{
+					newSiaLoginCommand(),
+				},
+			},
+			newMigrateRenterdCommand(),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			return portal.StartServer(cmd)
@@ -159,7 +166,7 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 
 	// Convert config keys to environment variables and print them
 	for key, val := range allConfigs {
-		envVar := config.ENV_PREFIX + strings.ToUpper(strings.ReplaceAll(key, ".", config.ENV_SEPARATOR))
+		envVar := config.EnvVarFor(key)
 		fmt.Printf("%s=%s=%v\n", key, envVar, val)
 	}
 

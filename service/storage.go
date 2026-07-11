@@ -25,7 +25,6 @@ import (
 	"go.lumeweb.com/portal/db/models"
 	storageMetrics "go.lumeweb.com/portal/service/internal/storage"
 	"go.opentelemetry.io/otel/attribute"
-	"go.sia.tech/renterd/v2/api"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -275,6 +274,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 		params.FileName = filename
 		params.Bucket = protocolName
 		params.Size = request.Size()
+		params.Hash = hash.Multihash()
 		if err := s.renter.UploadObjectMultipart(ctx, params); err != nil {
 			storageMetrics.UploadErrors.Inc()
 			return uploadMeta, err
@@ -290,7 +290,7 @@ func (s StorageServiceDefault) UploadObject(ctx context.Context, request core.St
 		return nil, err
 	}
 
-	if err := s.renter.UploadObject(ctx, reader, protocolName, filename); err != nil {
+	if err := s.renter.UploadObject(ctx, reader, protocolName, filename, hash.Multihash()); err != nil {
 		storageMetrics.UploadErrors.Inc()
 		return uploadMeta, err
 	}
@@ -341,7 +341,7 @@ func (s StorageServiceDefault) UploadObjectProof(ctx context.Context, protocol c
 		return err
 	}
 
-	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof()), protocolName, s.getProofPath(protocol, proof))
+	return s.renter.UploadObject(ctx, bytes.NewReader(proof.Proof()), protocolName, s.getProofPath(protocol, proof), proof.Multihash())
 }
 
 func (s StorageServiceDefault) getObjectProof(protocol core.StorageProtocol, data io.Reader, size uint64) (core.StorageHash, error) {
@@ -380,7 +380,7 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 
 	startTime := time.Now()
 
-	var partialRange *api.DownloadRange = nil
+	var partialRange *core.DownloadRange = nil
 	options := s.applyStorageOptions(opts)
 
 	if !options.SkipMetadataCheck {
@@ -391,14 +391,14 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 		}
 
 		if options.Start > 0 {
-			partialRange = &api.DownloadRange{
+			partialRange = &core.DownloadRange{
 				Offset: options.Start,
 				Length: int64(upload.Size) - options.Start + 1,
 			}
 		}
 	}
 
-	object, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), api.DownloadObjectOptions{Range: partialRange})
+	content, err := s.renter.GetObject(ctx, protocol.Name(), protocol.EncodeFileName(objectHash), core.DownloadOptions{Range: partialRange})
 	if err != nil {
 		storageMetrics.DownloadErrors.Inc()
 		return nil, err
@@ -406,7 +406,7 @@ func (s StorageServiceDefault) DownloadObjectWithOptions(ctx context.Context, pr
 
 	storageMetrics.DownloadDuration.Observe(time.Since(startTime).Seconds())
 
-	return object.Content, nil
+	return content, nil
 }
 
 func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) (io.ReadCloser, error) {
@@ -414,12 +414,12 @@ func (s StorageServiceDefault) DownloadObjectProof(ctx context.Context, protocol
 		core.WithAttributes(attribute.String("hash", objectHash.String())))
 	defer span.End()
 
-	object, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), api.DownloadObjectOptions{})
+	content, err := s.renter.GetObject(ctx, protocol.Name(), s.getProofPath(protocol, objectHash), core.DownloadOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	return object.Content, nil
+	return content, nil
 }
 
 func (s StorageServiceDefault) DeleteObject(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash) error {

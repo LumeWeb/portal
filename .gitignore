@@ -44,4 +44,5 @@ pnpm-lock.yaml
 .aider*
 .sisyphus/
 *.test
-etc
+etc.worktrees/
+.worktrees/
