@@ -25,7 +25,7 @@ This is an interactive command that will:
   3. Open a connection request with the indexer
   4. Wait for approval (visit the provided URL in a browser)
   5. Register the app key
-  6. Print the environment variables to set for container deployments
+  6. Print the environment variables to set for container deployments (--print-env)
 `
 )
 
@@ -35,6 +35,13 @@ func newSiaLoginCommand() *cli.Command {
 		Usage:     "Register the portal with the Sia indexer",
 		UsageText: siaLoginUsage,
 		Action:    siaLoginAction,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "print-env",
+				Usage:   "Print environment variables after successful login",
+				Value:   false,
+			},
+		},
 	}
 }
 
@@ -173,25 +180,28 @@ func siaLoginAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// Persist to the config file so values survive restarts.
-	if err := manager.Persist("core.storage.sia"); err != nil {
-		return fmt.Errorf("failed to persist app key to config file: %w", err)
+	if err := manager.Persist(); err != nil {
+		return fmt.Errorf("failed to persist config to file: %w", err)
 	}
 
-	// Step 6: Output env vars for container deployments.
 	pterm.Println()
 	pterm.Success.Println("Login successful! The app key has been saved to config.")
-	pterm.Println()
-	pterm.Info.Println("For container deployments, set the following environment variables:")
-	pterm.Println()
 
-	envKey := config.EnvVarFor("core.storage.sia.app_key")
-	envURL := config.EnvVarFor("core.storage.sia.url")
+	// Print env vars for container deployments when requested.
+	if cmd.Bool("print-env") {
+		pterm.Println()
+		pterm.Info.Println("For container deployments, set the following environment variables:")
+		pterm.Println()
 
-	pterm.FgGreen.Printf("  %s=%s\n", envKey, appKeyHex)
-	pterm.FgGreen.Printf("  %s=%s\n", envURL, indexerURL)
+		envKey := config.EnvVarFor("core.storage.sia.app_key")
+		envURL := config.EnvVarFor("core.storage.sia.url")
 
-	pterm.Println()
-	pterm.Info.Println("Or save these to your .env file / docker-compose.yml / k8s secret.")
+		pterm.FgGreen.Printf("  %s=%s\n", envKey, appKeyHex)
+		pterm.FgGreen.Printf("  %s=%s\n", envURL, indexerURL)
+
+		pterm.Println()
+		pterm.Info.Println("Or save these to your .env file / docker-compose.yml / k8s secret.")
+	}
 
 	return nil
 }
