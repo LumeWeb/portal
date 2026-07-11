@@ -56,7 +56,7 @@ require (
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.4
 	go.lumeweb.com/portal-middleware v0.3.7
-	go.lumeweb.com/portal-router v0.7.2
+	go.lumeweb.com/portal-router v0.7.4
 	go.opentelemetry.io/contrib/bridges/otelzap v0.19.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.69.0
 	go.opentelemetry.io/otel v1.44.0
@@ -68,6 +68,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.sia.tech/core v0.21.4
 	go.sia.tech/coreutils v0.23.2
+	go.sia.tech/indexd v0.2.3
 	go.sia.tech/siastorage v0.1.1-0.20260609121956-07a0de07a6e0
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
@@ -233,7 +234,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
-	go.sia.tech/indexd v0.2.3 // indirect
 	go.sia.tech/mux v1.5.2 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
