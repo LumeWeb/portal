@@ -60,13 +60,13 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	portal.NewActivePortal(portalCtx)
 
 	if err := portal.Init(); err != nil {
-		// portal.Shutdown calls os.Exit, which would swallow the error.
-		// Log it, close what we can, then return the error directly.
-		logger.Error("failed to initialize portal", zap.Error(err))
-		portal.Shutdown(portal.ActivePortal(), logger.Logger)
+		// Use Stop (not Shutdown) to avoid os.Exit swallowing the error.
+		if stopErr := portal.Stop(); stopErr != nil {
+			logger.Error("failed to stop portal after init error", zap.Error(stopErr))
+		}
 		return fmt.Errorf("failed to initialize portal: %w", err)
 	}
-	defer portal.Shutdown(portal.ActivePortal(), logger.Logger)
+	defer portal.Stop()
 
 	// Get the RenterService — the migrator uses it directly for uploads.
 	svc := core.GetServiceOptional[core.RenterService](portalCtx, core.RENTER_SERVICE)
