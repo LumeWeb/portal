@@ -60,17 +60,24 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	portal.NewActivePortal(portalCtx)
 
 	if err := portal.Init(); err != nil {
-		// Use Stop (not Shutdown) to avoid os.Exit swallowing the error.
 		if stopErr := portal.Stop(); stopErr != nil {
 			logger.Error("failed to stop portal after init error", zap.Error(stopErr))
 		}
 		return fmt.Errorf("failed to initialize portal: %w", err)
 	}
+
+	// Run startup funcs (wires config/DB into services, runs service init)
+	// without starting HTTP, cron, or mailer.
+	if err := portal.StartComponents(); err != nil {
+		if stopErr := portal.Stop(); stopErr != nil {
+			logger.Error("failed to stop portal after component startup error", zap.Error(stopErr))
+		}
+		return fmt.Errorf("failed to start portal components: %w", err)
+	}
 	defer portal.Stop()
 
-	// Get the RenterService — the migrator uses it directly for uploads.
-	// Use ActivePortal().Context() because Init() creates a new context with
-	// registered services — the original portalCtx is stale.
+	// Use ActivePortal().Context() — StartComponents updates the portal's
+	// context with wired, initialized services. The original portalCtx is stale.
 	svc := core.GetServiceOptional[core.RenterService](portal.ActivePortal().Context(), core.RENTER_SERVICE)
 	if svc == nil {
 		return fmt.Errorf("renter service not found in registry")
