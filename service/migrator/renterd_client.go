@@ -125,14 +125,13 @@ func (c *RenterdClient) ListAllObjects(ctx context.Context, bucket string) ([]Re
 // DownloadObject streams an object's data from the renterd worker.
 // The caller must close the returned ReadCloser.
 //
-// The renterd worker route is GET /api/worker/objects/*key where key is
-// a path parameter for the object key. The bucket is passed as a query param.
+// The renterd worker route is GET /api/worker/object/*key (singular "object").
 func (c *RenterdClient) DownloadObject(ctx context.Context, bucket, key string) (io.ReadCloser, error) {
 	values := url.Values{}
 	values.Set("bucket", bucket)
 
 	escapedKey := objectKeyEscape(key)
-	endpoint := fmt.Sprintf("%s/api/worker/objects/%s?%s", c.baseURL, escapedKey, values.Encode())
+	endpoint := fmt.Sprintf("%s/api/worker/object/%s?%s", c.baseURL, escapedKey, values.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {

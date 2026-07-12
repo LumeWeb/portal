@@ -149,7 +149,7 @@ func TestRenterdClient_ListAllObjects_Pagination(t *testing.T) {
 }
 
 // TestRenterdClient_DownloadObject verifies that the client calls the correct
-// worker endpoint: GET /api/worker/objects/{key}?bucket=...
+// worker endpoint: GET /api/worker/object/{key}?bucket=...
 func TestRenterdClient_DownloadObject(t *testing.T) {
 	var capturedMethod, capturedPath, capturedBucket string
 
@@ -170,7 +170,7 @@ func TestRenterdClient_DownloadObject(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "file contents", string(body))
 	assert.Equal(t, "GET", capturedMethod)
-	assert.Equal(t, "/api/worker/objects/QmTest1", capturedPath)
+	assert.Equal(t, "/api/worker/object/QmTest1", capturedPath)
 	assert.Equal(t, "ipfs", capturedBucket)
 }
 
@@ -192,7 +192,7 @@ func TestRenterdClient_DownloadObject_EscapesKey(t *testing.T) {
 	rc.Close()
 
 	// Leading slash stripped, all slashes and spaces escaped by url.PathEscape
-	assert.Equal(t, "/api/worker/objects/sub%2Fdir%2Ffile%20name.txt", rawPath)
+	assert.Equal(t, "/api/worker/object/sub%2Fdir%2Ffile%20name.txt", rawPath)
 }
 
 // TestRenterdClient_DownloadObject_HTTPError verifies error propagation.
