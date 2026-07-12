@@ -4,6 +4,8 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"io/fs"
 	"log"
 	"math"
@@ -15,17 +17,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/migrations"
-
 	"go.uber.org/zap"
 
 	"github.com/go-gorm/caches/v4"
 	"gorm.io/gorm"
 	"gorm.io/plugin/opentelemetry/tracing"
-	"gorm.io/plugin/prometheus"
 )
 
 var sanitizerRegexes = []struct {
@@ -156,16 +157,129 @@ func SetupDBObservability(ctx core.Context) error {
 
 	// Setup Prometheus metrics if enabled
 	if observabilityCfg.IsMetricsEnabled() {
-		metricsCfg := prometheus.Config{
-			DBName:          dbName,
-			RefreshInterval: uint32(observabilityCfg.Metrics.RefreshInterval),
-			StartServer:     true,
-			HTTPServerPort:  uint32(cfg.Core.DB.MetricsPort),
-		}
-		if err := db.Use(prometheus.New(metricsCfg)); err != nil {
+		if err := setupDBMetrics(ctx, db, dbName, observabilityCfg.Metrics.RefreshInterval); err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// dbStatsCollector wraps GORM DB stats as Prometheus gauges registered on the
+// portal's core metrics registry, exposed through the existing /metrics endpoint.
+type dbStatsCollector struct {
+	maxOpenConnections prometheus.Gauge
+	openConnections    prometheus.Gauge
+	inUse              prometheus.Gauge
+	idle               prometheus.Gauge
+	waitCount          prometheus.Gauge
+	waitDuration       prometheus.Gauge
+	maxIdleClosed      prometheus.Gauge
+	maxLifetimeClosed  prometheus.Gauge
+	maxIdleTimeClosed  prometheus.Gauge
+}
+
+func newDBStatsCollector(dbName string) *dbStatsCollector {
+	labels := prometheus.Labels{"db_name": dbName}
+	return &dbStatsCollector{
+		maxOpenConnections: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_max_open_connections",
+			Help:        "Maximum number of open connections to the database.",
+			ConstLabels: labels,
+		}),
+		openConnections: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_open_connections",
+			Help:        "The number of established connections both in use and idle.",
+			ConstLabels: labels,
+		}),
+		inUse: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_in_use",
+			Help:        "The number of connections currently in use.",
+			ConstLabels: labels,
+		}),
+		idle: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_idle",
+			Help:        "The number of idle connections.",
+			ConstLabels: labels,
+		}),
+		waitCount: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_wait_count",
+			Help:        "The total number of connections waited for.",
+			ConstLabels: labels,
+		}),
+		waitDuration: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_wait_duration",
+			Help:        "The total time blocked waiting for a new connection.",
+			ConstLabels: labels,
+		}),
+		maxIdleClosed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_max_idle_closed",
+			Help:        "The total number of connections closed due to SetMaxIdleConns.",
+			ConstLabels: labels,
+		}),
+		maxLifetimeClosed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_max_lifetime_closed",
+			Help:        "The total number of connections closed due to SetConnMaxLifetime.",
+			ConstLabels: labels,
+		}),
+		maxIdleTimeClosed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name:        "gorm_dbstats_max_idletime_closed",
+			Help:        "The total number of connections closed due to SetConnMaxIdleTime.",
+			ConstLabels: labels,
+		}),
+	}
+}
+
+func (c *dbStatsCollector) collectors() []prometheus.Collector {
+	return []prometheus.Collector{
+		c.maxOpenConnections,
+		c.openConnections,
+		c.inUse,
+		c.idle,
+		c.waitCount,
+		c.waitDuration,
+		c.maxIdleClosed,
+		c.maxLifetimeClosed,
+		c.maxIdleTimeClosed,
+	}
+}
+
+func (c *dbStatsCollector) update(stats sql.DBStats) {
+	c.maxOpenConnections.Set(float64(stats.MaxOpenConnections))
+	c.openConnections.Set(float64(stats.OpenConnections))
+	c.inUse.Set(float64(stats.InUse))
+	c.idle.Set(float64(stats.Idle))
+	c.waitCount.Set(float64(stats.WaitCount))
+	c.waitDuration.Set(float64(stats.WaitDuration.Seconds()))
+	c.maxIdleClosed.Set(float64(stats.MaxIdleClosed))
+	c.maxLifetimeClosed.Set(float64(stats.MaxLifetimeClosed))
+	c.maxIdleTimeClosed.Set(float64(stats.MaxIdleTimeClosed))
+}
+
+// setupDBMetrics registers DB stats gauges on the portal's core metrics registry
+// and starts a background goroutine to refresh them at the configured interval.
+func setupDBMetrics(ctx core.Context, db *gorm.DB, dbName string, refreshInterval uint) error {
+	collector := newDBStatsCollector(dbName)
+	for _, c := range collector.collectors() {
+		if err := core.RegisterCoreCollector(c); err != nil {
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				return fmt.Errorf("failed to register DB stats collector: %w", err)
+			}
+		}
+	}
+
+	go func() {
+		ticker := time.NewTicker(time.Duration(refreshInterval) * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			sqlDB, err := db.DB()
+			if err != nil {
+				ctx.Logger().Error("Failed to get DB for stats collection", zap.Error(err))
+				continue
+			}
+			collector.update(sqlDB.Stats())
+		}
+	}()
 
 	return nil
 }
