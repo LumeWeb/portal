@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS `renter_objects`
     `protocol`      varchar(191) DEFAULT NULL,
     `bucket`        varchar(191) DEFAULT NULL,
     `object_key`    varchar(191) DEFAULT NULL,
-    `hash`          longblob,
     `size`          bigint,
     `sia_object_id` varchar(191) DEFAULT NULL,
     `staging_key`   varchar(191) DEFAULT NULL,

@@ -35,7 +35,6 @@ type RenterObject struct {
 	Protocol    string `gorm:"uniqueIndex:idx_renter_object_key"`
 	Bucket      string
 	ObjectKey   string `gorm:"uniqueIndex:idx_renter_object_key"`
-	Hash        []byte                  // raw multihash bytes (stored for reference, not indexed)
 	Size        int64                    // object size in bytes
 	SiaObjectID string                   // SDK object ID (types.Hash256 hex). Empty = staged.
 	StagingKey  string                   // StagingBackend key. Empty = uploaded.

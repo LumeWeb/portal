@@ -139,7 +139,6 @@ func TestMigratorIntegration_SkipsExisting(t *testing.T) {
 			Protocol:    "sia",
 			Bucket:      "sia",
 			ObjectKey:   "QmExists1",
-			Hash:        []byte("existinghash"),
 			SiaObjectID: "existing-id",
 			SealedData:  datatypes.JSON([]byte("{}")),
 			Size:        int64(len(objData)),

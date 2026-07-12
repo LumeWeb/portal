@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS `renter_objects`
     `protocol`      text,
     `bucket`        text,
     `object_key`    text,
-    `hash`          blob,
     `size`          integer,
     `sia_object_id` text,
     `staging_key`   text,

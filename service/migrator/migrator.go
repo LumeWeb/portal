@@ -141,21 +141,7 @@ func (m *Migrator) migrateObject(ctx context.Context, protocol core.StorageProto
 	}
 	defer rc.Close()
 
-	// Compute hash for the DB record — same as a normal upload would.
-	hash, err := protocol.Hash(rc, uint64(size))
-	if err != nil {
-		return fmt.Errorf("compute storage hash: %w", err)
-	}
-
-	// Hash consumed the reader — re-download for the actual upload.
-	rc.Close()
-	rc, err = m.Downloader.DownloadObject(ctx, bucket, objectKey)
-	if err != nil {
-		return fmt.Errorf("re-download from renterd: %w", err)
-	}
-	defer rc.Close()
-
-	if err := m.Renter.UploadObject(ctx, rc, bucket, objectKey, hash.Bytes()); err != nil {
+	if err := m.Renter.UploadObject(ctx, rc, bucket, objectKey, nil); err != nil {
 		return fmt.Errorf("upload via renter service: %w", err)
 	}
 
