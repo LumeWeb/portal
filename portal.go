@@ -26,6 +26,8 @@ var (
 type Portal interface {
 	Init() error
 	Start() error
+	StartComponents() error
+	StartServers() error
 	Stop() error
 	Context() core.Context
 	Serve() error
@@ -208,8 +210,20 @@ func (p *PortalImpl) Init() error {
 }
 
 func (p *PortalImpl) Start() error {
+	if err := p.StartComponents(); err != nil {
+		return err
+	}
+	return p.StartServers()
+}
+
+// StartComponents runs the first phase of the boot sequence: firing boot
+// start, running startup funcs (which wire config/DB/logger into services
+// and call their init), and firing the completed event. CLI commands that
+// need fully configured services without running the full server call this
+// after Init().
+func (p *PortalImpl) StartComponents() error {
 	ctx := p.Context()
-	ctx.Logger().Info("Starting portal")
+	ctx.Logger().Info("Starting portal components")
 
 	if err := core.Fire(ctx, event.EVENT_BOOT_START, event.NewBootStartEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot start event", zap.Error(err))
@@ -229,6 +243,16 @@ func (p *PortalImpl) Start() error {
 		ctx.Logger().Error("Error firing boot startup funcs completed event", zap.Error(err))
 		return err
 	}
+
+	return nil
+}
+
+// StartServers runs the second phase of the boot sequence: plugin workflows,
+// protocol workflows, protocols, cron, HTTP, mailer, and boot completed.
+// The full server path calls this after StartComponents().
+func (p *PortalImpl) StartServers() error {
+	ctx := p.Context()
+	ctx.Logger().Info("Starting portal servers")
 
 	if err := core.Fire(ctx, event.EVENT_BOOT_PLUGIN_WORKFLOWS, event.NewBootPluginWorkflowsEvent(ctx, ctx.GetContext())); err != nil {
 		ctx.Logger().Error("Error firing boot plugin workflows event", zap.Error(err))
@@ -792,6 +816,14 @@ func NewActivePortal(ctx core.Context) {
 
 func Start() error {
 	return activePortal.Start()
+}
+
+func StartComponents() error {
+	return activePortal.StartComponents()
+}
+
+func StartServers() error {
+	return activePortal.StartServers()
 }
 
 func Init() error {
