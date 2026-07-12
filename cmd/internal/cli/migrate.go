@@ -69,7 +69,9 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	defer portal.Stop()
 
 	// Get the RenterService — the migrator uses it directly for uploads.
-	svc := core.GetServiceOptional[core.RenterService](portalCtx, core.RENTER_SERVICE)
+	// Use ActivePortal().Context() because Init() creates a new context with
+	// registered services — the original portalCtx is stale.
+	svc := core.GetServiceOptional[core.RenterService](portal.ActivePortal().Context(), core.RENTER_SERVICE)
 	if svc == nil {
 		return fmt.Errorf("renter service not found in registry")
 	}
