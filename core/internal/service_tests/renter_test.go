@@ -65,7 +65,6 @@ func TestRenterService_UploadObject_Direct(t *testing.T) {
 		assert.Equal(tb, "testfile.dat", siaObj.ObjectKey)
 		assert.Equal(tb, int64(len(data)), siaObj.Size)
 		assert.NotEmpty(tb, siaObj.SiaObjectID)
-		assert.Equal(t, []byte("hash123"), siaObj.Hash)
 	}, opt)
 }
 
@@ -91,7 +90,6 @@ func TestRenterService_UploadObject_Staged(t *testing.T) {
 		assert.NotEmpty(tb, siaObj.StagingKey)
 		assert.Empty(tb, siaObj.SiaObjectID)
 		assert.Equal(tb, int64(len(data)), siaObj.Size)
-		assert.Equal(t, []byte("hash123"), siaObj.Hash)
 	}, opt)
 }
 
@@ -113,7 +111,6 @@ func TestRenterService_UploadObjectMultipart_Direct(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "large.dat",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash456"),
 		}
 		err := renter.UploadObjectMultipart(context.Background(), params)
 		require.NoError(tb, err)
@@ -124,7 +121,6 @@ func TestRenterService_UploadObjectMultipart_Direct(t *testing.T) {
 		require.NoError(tb, ctx.DB().Where("protocol = ? AND object_key = ?", "sia", "large.dat").First(&siaObj).Error)
 		assert.Equal(tb, models.RenterObjectStatusUploaded, siaObj.Status)
 		assert.Equal(tb, int64(len(data)), siaObj.Size)
-		assert.Equal(t, []byte("hash456"), siaObj.Hash)
 	}, opt)
 }
 
@@ -146,7 +142,6 @@ func TestRenterService_UploadObjectMultipart_Staged(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "tiny.dat",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash789"),
 		}
 		err := renter.UploadObjectMultipart(context.Background(), params)
 		require.NoError(tb, err)
@@ -186,7 +181,6 @@ func TestRenterService_UploadObjectMultipart_UnknownSize(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "unknown.dat",
 			Size:     0,
-			Hash:     []byte("hash000"),
 		}
 		err := renter.UploadObjectMultipart(context.Background(), params)
 		require.NoError(tb, err)
@@ -608,7 +602,6 @@ func TestRenterService_UploadMultipart_PinFailure_OrphanCleanup(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "multipartpinfail.dat",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash"),
 		}
 		err := renter.UploadObjectMultipart(context.Background(), params)
 		require.Error(tb, err)
@@ -771,7 +764,6 @@ func TestRenterService_UploadMultipart_SingleAddCall(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "singleadd.dat",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash"),
 		}
 		err := renter.UploadObjectMultipart(context.Background(), params)
 		require.NoError(tb, err)
@@ -842,7 +834,6 @@ func TestRenterService_UploadObjectMultipart_IdempotentSkip(t *testing.T) {
 			Bucket:   "sia",
 			FileName: "dup-multipart.dat",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash"),
 		}
 
 		// First upload succeeds.
@@ -881,7 +872,6 @@ func TestRenterService_UploadObject_StagedRowIdempotentSkip(t *testing.T) {
 			Bucket:     "ipfs",
 			ObjectKey:  "QmTLjWA9LarYchTA99s9BsJXXaXZ3dVhujEbydKsGwKQVz",
 			StagingKey: "staging/existing",
-			Hash:       []byte("hash"),
 			Size:       13,
 			Status:     models.RenterObjectStatusStaged,
 		}
@@ -917,7 +907,6 @@ func TestRenterService_UploadObjectMultipart_StagedRowIdempotentSkip(t *testing.
 			Bucket:     "ipfs",
 			ObjectKey:  "QmTLjWA9LarYchTA99s9BsJXXaXZ3dVhujEbydKsGwKQVz",
 			StagingKey: "staging/existing-mu",
-			Hash:       []byte("hash"),
 			Size:       13,
 			Status:     models.RenterObjectStatusStaged,
 		}
@@ -931,7 +920,6 @@ func TestRenterService_UploadObjectMultipart_StagedRowIdempotentSkip(t *testing.
 			Bucket:   "ipfs",
 			FileName: "QmTLjWA9LarYchTA99s9BsJXXaXZ3dVhujEbydKsGwKQVz",
 			Size:     uint64(len(data)),
-			Hash:     []byte("hash"),
 		}
 
 		err := renter.UploadObjectMultipart(context.Background(), params)

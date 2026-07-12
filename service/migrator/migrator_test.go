@@ -94,9 +94,6 @@ func TestMigrate_HappyPath(t *testing.T) {
 
 	proto := mocks.NewMockStorageProtocol(t)
 	proto.EXPECT().Name().Return("ipfs").Maybe()
-	proto.EXPECT().Hash(mock.Anything, mock.Anything).RunAndReturn(func(_ io.Reader, _ uint64) (core.StorageHash, error) {
-		return testHash(), nil
-	})
 
 	stats, err := m.Migrate(context.Background(), []core.StorageProtocol{proto})
 	require.NoError(t, err)
@@ -292,9 +289,6 @@ func TestMigrate_StripsLeadingSlash(t *testing.T) {
 
 	proto := mocks.NewMockStorageProtocol(t)
 	proto.EXPECT().Name().Return("ipfs").Maybe()
-	proto.EXPECT().Hash(mock.Anything, mock.Anything).RunAndReturn(func(_ io.Reader, _ uint64) (core.StorageHash, error) {
-		return testHash(), nil
-	})
 
 	stats, err := m.Migrate(context.Background(), []core.StorageProtocol{proto})
 	require.NoError(t, err)
