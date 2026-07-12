@@ -257,4 +257,50 @@ func TestMigrationStats_String(t *testing.T) {
 	assert.Equal(t, "total=10 migrated=7 skipped=2 errors=1", s.String())
 }
 
+// TestMigrate_StripsLeadingSlash verifies that object keys from renterd
+// with a leading slash (e.g. /Qm...) are stripped before being used.
+func TestMigrate_StripsLeadingSlash(t *testing.T) {
+	var capturedKey string
+	lister := &mockLister{
+		objects: map[string][]RenterdObjectMetadata{
+			"ipfs": {
+				{Bucket: "ipfs", Key: "/QmTest1", Size: 5},
+			},
+		},
+	}
+	downloader := &mockDownloader{
+		data: map[string][]byte{
+			"ipfs/QmTest1": []byte("hello"),
+		},
+	}
+	renter := mocks.NewMockRenterService(t)
+	renter.EXPECT().UploadExists(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _, fileName string) (bool, *models.RenterObject, error) {
+		capturedKey = fileName
+		return false, nil, nil
+	})
+	renter.EXPECT().UploadObject(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ io.Reader, _, fileName string, _ []byte) error {
+		capturedKey = fileName
+		return nil
+	})
+
+	m := &Migrator{
+		Renter:     renter,
+		Lister:     lister,
+		Downloader: downloader,
+		Logger:     testLogger(),
+	}
+
+	proto := mocks.NewMockStorageProtocol(t)
+	proto.EXPECT().Name().Return("ipfs").Maybe()
+	proto.EXPECT().Hash(mock.Anything, mock.Anything).RunAndReturn(func(_ io.Reader, _ uint64) (core.StorageHash, error) {
+		return testHash(), nil
+	})
+
+	stats, err := m.Migrate(context.Background(), []core.StorageProtocol{proto})
+	require.NoError(t, err)
+	assert.Equal(t, 1, stats.Total)
+	assert.Equal(t, 1, stats.Migrated)
+	assert.Equal(t, "QmTest1", capturedKey)
+}
+
 // (helper removed — using mock.Anything for io.Reader args)

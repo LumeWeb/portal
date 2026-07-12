@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
@@ -78,7 +79,10 @@ func (m *Migrator) Migrate(ctx context.Context, protocols []core.StorageProtocol
 			}
 
 			stats.Total++
-			objectKey := obj.Key
+			// Renterd keys may have a leading slash (e.g. /Qm...).
+			// Normal uploads use EncodeFileName which has no leading slash.
+			// Strip it so keys match existing objects and DB lookups.
+			objectKey := strings.TrimPrefix(obj.Key, "/")
 
 			if m.DryRun {
 				m.Logger.Info("[dry-run] would migrate object",
