@@ -25,7 +25,7 @@ import (
 
 func init() {
 	core.RegisterService(core.ServiceInfo{
-		ID:       core.RENTER_SERVICE,
+		ID: core.RENTER_SERVICE,
 		Factory: func() (core.Service, []core.ContextBuilderOption, error) {
 			return NewRenterService()
 		},
@@ -71,7 +71,7 @@ func NewRenterService() (*RenterService, []core.ContextBuilderOption, error) {
 
 	opts := core.ContextOptions(
 		core.ContextWithStartupFunc(func(ctx core.Context) error {
-			if err := renter.init(ctx); err != nil {
+			if err := renter.Init(); err != nil {
 				return fmt.Errorf("failed to initialize indexd renter service: %w", err)
 			}
 			return nil
@@ -85,7 +85,8 @@ func (r *RenterService) ID() string {
 	return core.RENTER_SERVICE
 }
 
-func (r *RenterService) init(ctx core.Context) error {
+func (r *RenterService) Init() error {
+	ctx := r.Context()
 	if r.slabSize <= 0 {
 		r.slabSize = int64(proto4.SectorSize)
 	}
@@ -146,22 +147,25 @@ func (r *RenterService) init(ctx core.Context) error {
 		}
 	}
 
-	// Start the background packing loop.
-	r.packingLoopCtx, r.packingLoopCancel = context.WithCancel(ctx.GetContext())
-	r.packingLoopDone = make(chan struct{})
-	packingCfg := indexd.PackingLoopCfg{
-		Component:      r,
-		Logger:         r.Logger(),
-		SDK:            r.sdk,
-		StagingBackend: r.stagingBackend,
-		SlabSize:       r.slabSize,
+	// Start the background packing loop (idempotent — skip if already running).
+	if r.packingLoopCancel == nil {
+		r.packingLoopCtx, r.packingLoopCancel = context.WithCancel(ctx.GetContext())
+		r.packingLoopDone = make(chan struct{})
+		packingCfg := indexd.PackingLoopCfg{
+			Component:      r,
+			Logger:         r.Logger(),
+			SDK:            r.sdk,
+			StagingBackend: r.stagingBackend,
+			SlabSize:       r.slabSize,
+		}
+		go indexd.PackingLoop(r.packingLoopCtx, packingCfg, r.packingLoopDone)
 	}
-	go indexd.PackingLoop(r.packingLoopCtx, packingCfg, r.packingLoopDone)
 
 	// Start the sealed-data refresh loop. This periodically syncs object
 	// events from the indexer to keep sealed_data fresh (slab locations
 	// can change as hosts go up/down). Only run if the SDK is configured.
-	if r.sdkConfigured {
+	// Idempotent — skip if already running.
+	if r.sdkConfigured && r.syncLoopCancel == nil {
 		r.syncLoopCtx, r.syncLoopCancel = context.WithCancel(ctx.GetContext())
 		r.syncLoopDone = make(chan struct{})
 		syncCfg := indexd.SyncLoopCfg{

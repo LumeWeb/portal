@@ -65,22 +65,22 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 		}
 		return fmt.Errorf("failed to initialize portal: %w", err)
 	}
-
-	// Run startup funcs (wires config/DB into services, runs service init)
-	// without starting HTTP, cron, or mailer.
-	if err := portal.StartComponents(); err != nil {
-		if stopErr := portal.Stop(); stopErr != nil {
-			logger.Error("failed to stop portal after component startup error", zap.Error(stopErr))
-		}
-		return fmt.Errorf("failed to start portal components: %w", err)
-	}
 	defer portal.Stop()
 
-	// Use ActivePortal().Context() — StartComponents updates the portal's
-	// context with wired, initialized services. The original portalCtx is stale.
+	// Wire and initialize just the RenterService, without running all
+	// startup funcs (which would open LevelDB, bind Prometheus, etc. —
+	// resources already held by the running server).
 	svc := core.GetServiceOptional[core.RenterService](portal.ActivePortal().Context(), core.RENTER_SERVICE)
 	if svc == nil {
 		return fmt.Errorf("renter service not found in registry")
+	}
+	if err := core.WireService(portal.ActivePortal().Context(), svc); err != nil {
+		return fmt.Errorf("failed to wire renter service: %w", err)
+	}
+	if initSvc, ok := any(svc).(core.ServiceInit); ok {
+		if err := initSvc.Init(); err != nil {
+			return fmt.Errorf("failed to initialize renter service: %w", err)
+		}
 	}
 
 	// Collect all registered protocols that implement StorageProtocol.

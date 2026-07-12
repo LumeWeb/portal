@@ -378,28 +378,39 @@ func findBaseComponentField(componentElem reflect.Value) reflect.Value {
 	return baseComponentField
 }
 
+// ensureBaseComponent initializes the embedded *BaseComponent field on a
+// component if it is nil. Returns false if the component does not embed a
+// BaseComponent (in which case the caller should skip wiring). Used by both
+// ContextWithStartupComponent (during normal boot) and WireService (for CLI
+// commands that wire a single service).
+func ensureBaseComponent(component Component, ctx Context) bool {
+	componentValue := reflect.ValueOf(component)
+	if componentValue.Kind() != reflect.Ptr || componentValue.IsNil() {
+		return false
+	}
+
+	componentElem := componentValue.Elem()
+	if componentElem.Kind() != reflect.Struct {
+		return false
+	}
+
+	baseComponentField := findBaseComponentField(componentElem)
+	if !baseComponentField.IsValid() || !baseComponentField.Type().AssignableTo(reflect.TypeOf((*BaseComponent)(nil))) {
+		return false
+	}
+
+	if baseComponentField.IsNil() {
+		baseComponentField.Set(reflect.ValueOf(NewBaseComponent(ctx)))
+	}
+
+	return true
+}
+
 func ContextWithStartupComponent(component Component) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnStartup(func(startupCtx Context) error {
-			// Initialize nil BaseComponent field if present
-			componentValue := reflect.ValueOf(component)
-			if componentValue.Kind() != reflect.Ptr || componentValue.IsNil() {
+			if !ensureBaseComponent(component, startupCtx) {
 				return nil
-			}
-
-			componentElem := componentValue.Elem()
-			if componentElem.Kind() != reflect.Struct {
-				return nil
-			}
-
-			baseComponentField := findBaseComponentField(componentElem)
-			if !baseComponentField.IsValid() || !baseComponentField.Type().AssignableTo(reflect.TypeOf((*BaseComponent)(nil))) {
-				return nil
-			}
-
-			if baseComponentField.IsNil() {
-				newBaseComponent := NewBaseComponent(startupCtx)
-				baseComponentField.Set(reflect.ValueOf(newBaseComponent))
 			}
 
 			// Wire up the component with database and config
@@ -437,6 +448,25 @@ func ContextWithStartupComponent(component Component) ContextBuilderOption {
 	}
 }
 
+// WireService manually wires a service component with config, DB, logger,
+// and tracer — the same setup that ContextWithStartupComponent's OnStartup
+// callback performs during startStartupFuncs. CLI commands that need a
+// fully configured service without running all startup funcs call this
+// after Init(), followed by the service's Init() if it implements ServiceInit.
+func WireService(ctx Context, service Service) error {
+	if !ensureBaseComponent(service, ctx) {
+		return fmt.Errorf("service %s does not embed BaseComponent", service.ID())
+	}
+
+	service.SetDB(ctx.DB())
+	service.SetConfig(ctx.Config())
+
+	tracedCtx := ctx.WithServiceTracer(service.ID())
+	service.SetLogger(ctx.ServiceLogger(service))
+	service.SetContext(tracedCtx)
+
+	return nil
+}
 func ContextWithExitFunc(f LifecycleFunc) ContextBuilderOption {
 	return func(ctx Context) (Context, error) {
 		ctx.OnExit(f)
