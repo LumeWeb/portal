@@ -66,11 +66,17 @@ func (e *Error) MarshalJSON() ([]byte, error) {
 	}
 
 	reason := string(e.Key)
-	if strings.HasPrefix(reason, "ErrKey") {
-		reason = reason[6:]
-	}
-	if strings.HasPrefix(reason, "Err") {
-		reason = reason[3:]
+	reason = strings.TrimPrefix(reason, "ErrKey")
+	reason = strings.TrimPrefix(reason, "Err")
+	// Convert SCREAMING_SNAKE_CASE to PascalCase
+	if strings.Contains(reason, "_") {
+		parts := strings.Split(reason, "_")
+		for i, p := range parts {
+			if p != "" {
+				parts[i] = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
+			}
+		}
+		reason = strings.Join(parts, "")
 	}
 
 	return json.Marshal(errorResponseBody{

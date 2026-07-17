@@ -35,11 +35,11 @@ func TestError_MarshalJSON(t *testing.T) {
 			},
 		},
 		{
-			name: "no prefix on key",
+			name: "SCREAMING_SNAKE_CASE converted to PascalCase",
 			err:  NewError("test", "FILE_UPLOAD_FAILED", nil),
 			expected: map[string]any{
 				"error": map[string]any{
-					"reason":  "FILE_UPLOAD_FAILED",
+					"reason":  "FileUploadFailed",
 					"details": "File upload failed",
 				},
 			},
