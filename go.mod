@@ -66,7 +66,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/sdk/log v0.20.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	go.sia.tech/core v0.21.6
+	go.sia.tech/core v0.21.7
 	go.sia.tech/coreutils v0.23.5
 	go.sia.tech/indexd v0.4.0
 	go.sia.tech/siastorage v0.1.1-0.20260625190841-49501b7fb81e
@@ -233,7 +233,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
-	go.sia.tech/mux v1.5.2 // indirect
+	go.sia.tech/mux v1.5.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
