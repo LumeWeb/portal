@@ -1,9 +1,11 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	router "go.lumeweb.com/portal-router"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/samber/lo"
@@ -20,6 +22,7 @@ var (
 
 var _ error = (*Error)(nil)
 var _ router.ResponseError = (*Error)(nil)
+var _ json.Marshaler = (*Error)(nil)
 
 // ErrorType is a string type for error keys.
 type ErrorType string
@@ -40,11 +43,11 @@ type ErrorDefinition struct {
 
 // Error is the error object that will be returned.
 type Error struct {
-	Key       ErrorType `json:"error"`     // A unique identifier for the error type
-	Message   string    `json:"message"`   // Human-readable error message
-	Err       error     `json:"-"`         // Underlying error, if any
-	Args      []any     `json:"-"`         // Arguments used to format the error message
-	Namespace string    `json:"namespace"` // The namespace of the error
+	Key       ErrorType // A unique identifier for the error type
+	Message   string    // Human-readable error message
+	Err       error     // Underlying error, if any
+	Args      []any     // Arguments used to format the error message
+	Namespace string    // The namespace of the error
 }
 
 // Error implements the error interface.
@@ -53,6 +56,40 @@ func (e *Error) Error() string {
 		return fmt.Sprintf("%s: %v", e.Message, e.Err)
 	}
 	return e.Message
+}
+
+// MarshalJSON serializes Error into the API error response format:
+// {"error":{"reason":"...","details":"..."}}.
+func (e *Error) MarshalJSON() ([]byte, error) {
+	if e == nil {
+		return json.Marshal(errorResponseBody{Error: errorDetail{Reason: "Unknown"}})
+	}
+
+	reason := string(e.Key)
+	if strings.HasPrefix(reason, "ErrKey") {
+		reason = reason[6:]
+	}
+	if strings.HasPrefix(reason, "Err") {
+		reason = reason[3:]
+	}
+
+	return json.Marshal(errorResponseBody{
+		Error: errorDetail{
+			Reason:  reason,
+			Details: e.Message,
+		},
+	})
+}
+
+// errorDetail is the canonical structured error detail format.
+type errorDetail struct {
+	Reason  string `json:"reason"`
+	Details string `json:"details,omitempty"`
+}
+
+// errorResponseBody wraps errorDetail under the "error" key.
+type errorResponseBody struct {
+	Error errorDetail `json:"error"`
 }
 
 // Unwrap enables errors.Is/As to traverse the underlying cause.
