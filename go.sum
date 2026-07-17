@@ -190,6 +190,8 @@ github.com/glebarez/sqlite v1.11.0 h1:wSG0irqzP6VurnMEpFGer5Li19RpIRi2qvQz++w0GM
 github.com/glebarez/sqlite v1.11.0/go.mod h1:h8/o8j5wiAsqSPoWELDUdJXhjAhsVliSn7bWZjOhrgQ=
 github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260710211738-6b80c414e96f h1:DzVfwhg1Lcz/8ERlEPod+FawHJ1uAiVDCq1TvzV59JU=
 github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260710211738-6b80c414e96f/go.mod h1:vj1T7S+FUsDmY2m8EdkKt6F7IDjCpm1Ok7p4zBd+Z5w=
+github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260717182408-cc444c2a6f2c h1:tkUWtGME6Ksx81U24xTL9Ia5541afEV7FIu/t0yDDVs=
+github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260717182408-cc444c2a6f2c/go.mod h1:vj1T7S+FUsDmY2m8EdkKt6F7IDjCpm1Ok7p4zBd+Z5w=
 github.com/go-co-op/gocron/v2 v2.22.0 h1:uEuH2F7k7VoESb1BYSaffuuV+T0kkpzsC0aXk7/z79I=
 github.com/go-co-op/gocron/v2 v2.22.0/go.mod h1:hiH/U9RMhTi1BBZJmef9s3KC9QwhpBF6PFrvUKaXY9M=
 github.com/go-faster/city v1.0.1 h1:4WAxSZ3V2Ws4QRDrscLEDcibJY8uf41H6AhXDrNDcGw=
