@@ -68,13 +68,13 @@ func (m MailConfig) Schema() z.ZogSchema {
 
 func (m MailConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
-		"host":       "",
-		"auth_type":  string(mail.SMTPAuthPlain),
-		"port":       25,
-		"ssl":        false,
-		"tls_policy": mail.TLSMandatory.String(),
-		"from":       "",
-		"username":   "",
-		"password":   "",
+		"Host":      "",
+		"AuthType":  string(mail.SMTPAuthPlain),
+		"Port":      25,
+		"SSL":       false,
+		"TLSPolicy": mail.TLSMandatory.String(),
+		"From":      "",
+		"Username":  "",
+		"Password":  "",
 	}
 }
