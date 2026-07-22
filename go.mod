@@ -54,7 +54,7 @@ require (
 	github.com/wneessen/go-mail v0.8.1
 	go.lumeweb.com/configmanager v0.3.29
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/httputil v0.5.5
+	go.lumeweb.com/httputil v0.5.6
 	go.lumeweb.com/portal-middleware v0.3.7
 	go.lumeweb.com/portal-router v0.7.6
 	go.opentelemetry.io/contrib/bridges/otelzap v0.19.0
