@@ -348,7 +348,7 @@ func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(ctx context.Contex
 }
 
 // LoginKeyIdentity provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (_mock *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	ret := _mock.Called(ctx, keyType, key, proof, ip, rememberMe)
 
 	if len(ret) == 0 {
@@ -356,8 +356,9 @@ func (_mock *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType stri
 	}
 
 	var r0 string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []byte, string, bool) (string, error)); ok {
+	var r1 *models.User
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []byte, string, bool) (string, *models.User, error)); ok {
 		return returnFunc(ctx, keyType, key, proof, ip, rememberMe)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []byte, string, bool) string); ok {
@@ -365,12 +366,19 @@ func (_mock *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType stri
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []byte, string, bool) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []byte, string, bool) *models.User); ok {
 		r1 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*models.User)
+		}
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, []byte, string, bool) error); ok {
+		r2 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockAuthService_LoginKeyIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginKeyIdentity'
@@ -427,18 +435,18 @@ func (_c *MockAuthService_LoginKeyIdentity_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockAuthService_LoginKeyIdentity_Call) Return(s string, err error) *MockAuthService_LoginKeyIdentity_Call {
-	_c.Call.Return(s, err)
+func (_c *MockAuthService_LoginKeyIdentity_Call) Return(s string, user *models.User, err error) *MockAuthService_LoginKeyIdentity_Call {
+	_c.Call.Return(s, user, err)
 	return _c
 }
 
-func (_c *MockAuthService_LoginKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginKeyIdentity_Call {
+func (_c *MockAuthService_LoginKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error)) *MockAuthService_LoginKeyIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // LoginKeyIdentityWithContext provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (_mock *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	ret := _mock.Called(ctx, keyType, key, proof, ip, rememberMe)
 
 	if len(ret) == 0 {
@@ -446,8 +454,9 @@ func (_mock *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyT
 	}
 
 	var r0 string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(core.Context, string, string, []byte, string, bool) (string, error)); ok {
+	var r1 *models.User
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(core.Context, string, string, []byte, string, bool) (string, *models.User, error)); ok {
 		return returnFunc(ctx, keyType, key, proof, ip, rememberMe)
 	}
 	if returnFunc, ok := ret.Get(0).(func(core.Context, string, string, []byte, string, bool) string); ok {
@@ -455,12 +464,19 @@ func (_mock *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyT
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(core.Context, string, string, []byte, string, bool) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(core.Context, string, string, []byte, string, bool) *models.User); ok {
 		r1 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*models.User)
+		}
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(core.Context, string, string, []byte, string, bool) error); ok {
+		r2 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockAuthService_LoginKeyIdentityWithContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginKeyIdentityWithContext'
@@ -517,12 +533,12 @@ func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) Run(run func(ctx cor
 	return _c
 }
 
-func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) Return(s string, err error) *MockAuthService_LoginKeyIdentityWithContext_Call {
-	_c.Call.Return(s, err)
+func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) Return(s string, user *models.User, err error) *MockAuthService_LoginKeyIdentityWithContext_Call {
+	_c.Call.Return(s, user, err)
 	return _c
 }
 
-func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) RunAndReturn(run func(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginKeyIdentityWithContext_Call {
+func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) RunAndReturn(run func(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error)) *MockAuthService_LoginKeyIdentityWithContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
