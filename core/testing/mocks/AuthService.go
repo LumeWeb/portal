@@ -437,6 +437,96 @@ func (_c *MockAuthService_LoginKeyIdentity_Call) RunAndReturn(run func(ctx conte
 	return _c
 }
 
+// LoginKeyIdentityWithContext provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(ctx, keyType, key, proof, ip, rememberMe)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoginKeyIdentityWithContext")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(core.Context, string, string, []byte, string, bool) (string, error)); ok {
+		return returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	}
+	if returnFunc, ok := ret.Get(0).(func(core.Context, string, string, []byte, string, bool) string); ok {
+		r0 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(core.Context, string, string, []byte, string, bool) error); ok {
+		r1 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthService_LoginKeyIdentityWithContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginKeyIdentityWithContext'
+type MockAuthService_LoginKeyIdentityWithContext_Call struct {
+	*mock.Call
+}
+
+// LoginKeyIdentityWithContext is a helper method to define mock.On call
+//   - ctx core.Context
+//   - keyType string
+//   - key string
+//   - proof []byte
+//   - ip string
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginKeyIdentityWithContext(ctx interface{}, keyType interface{}, key interface{}, proof interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginKeyIdentityWithContext_Call {
+	return &MockAuthService_LoginKeyIdentityWithContext_Call{Call: _e.mock.On("LoginKeyIdentityWithContext", ctx, keyType, key, proof, ip, rememberMe)}
+}
+
+func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) Run(run func(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool)) *MockAuthService_LoginKeyIdentityWithContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 core.Context
+		if args[0] != nil {
+			arg0 = args[0].(core.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []byte
+		if args[3] != nil {
+			arg3 = args[3].([]byte)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) Return(s string, err error) *MockAuthService_LoginKeyIdentityWithContext_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockAuthService_LoginKeyIdentityWithContext_Call) RunAndReturn(run func(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginKeyIdentityWithContext_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LoginOTP provides a mock function for the type MockAuthService
 func (_mock *MockAuthService) LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error) {
 	ret := _mock.Called(ctx, userId, code, rememberMe)

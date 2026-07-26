@@ -1860,6 +1860,59 @@ func (_c *MockContext_WithProtocolTracer_Call) RunAndReturn(run func(protocolNam
 	return _c
 }
 
+// WithRequestContext provides a mock function for the type MockContext
+func (_mock *MockContext) WithRequestContext(ctx context.Context) core.Context {
+	ret := _mock.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithRequestContext")
+	}
+
+	var r0 core.Context
+	if returnFunc, ok := ret.Get(0).(func(context.Context) core.Context); ok {
+		r0 = returnFunc(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(core.Context)
+		}
+	}
+	return r0
+}
+
+// MockContext_WithRequestContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithRequestContext'
+type MockContext_WithRequestContext_Call struct {
+	*mock.Call
+}
+
+// WithRequestContext is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockContext_Expecter) WithRequestContext(ctx interface{}) *MockContext_WithRequestContext_Call {
+	return &MockContext_WithRequestContext_Call{Call: _e.mock.On("WithRequestContext", ctx)}
+}
+
+func (_c *MockContext_WithRequestContext_Call) Run(run func(ctx context.Context)) *MockContext_WithRequestContext_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockContext_WithRequestContext_Call) Return(context1 core.Context) *MockContext_WithRequestContext_Call {
+	_c.Call.Return(context1)
+	return _c
+}
+
+func (_c *MockContext_WithRequestContext_Call) RunAndReturn(run func(ctx context.Context) core.Context) *MockContext_WithRequestContext_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // WithServiceSubcomponent provides a mock function for the type MockContext
 func (_mock *MockContext) WithServiceSubcomponent(serviceName string, subcomponentName string) core.Context {
 	ret := _mock.Called(serviceName, subcomponentName)

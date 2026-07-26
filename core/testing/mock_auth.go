@@ -248,6 +248,15 @@ func (m *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, 
 	return m.generateTestToken(1), nil
 }
 
+// LoginKeyIdentityWithContext implements core.AuthService.
+// Lazily generates default token if no expectation set.
+func (m *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	if HasExpectationForMethod(&m.MockAuthService.Mock, "LoginKeyIdentityWithContext") {
+		return m.MockAuthService.LoginKeyIdentityWithContext(ctx, keyType, key, proof, ip, rememberMe)
+	}
+	return m.generateTestToken(1), nil
+}
+
 // ValidLoginByUserObj implements core.AuthService.
 func (m *MockAuthService) ValidLoginByUserObj(ctx context.Context, user *models.User, password string) bool {
 	return m.validatePasswordHash(user.PasswordHash, password)

@@ -217,7 +217,10 @@ func (h *testKeyIdentityHandler) NormalizeKey(key string) (string, error) { retu
 func (h *testKeyIdentityHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
 	return metadata, nil
 }
-func (h *testKeyIdentityHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+func (h *testKeyIdentityHandler) IssueChallenge(ctx core.Context, key string, metadata json.RawMessage) ([]byte, error) {
+	return []byte("challenge"), nil
+}
+func (h *testKeyIdentityHandler) VerifyProof(ctx core.Context, key string, metadata json.RawMessage, proof []byte) error {
 	return nil
 }
 
@@ -228,7 +231,10 @@ func (h *failingProofHandler) NormalizeKey(key string) (string, error) { return 
 func (h *failingProofHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
 	return metadata, nil
 }
-func (h *failingProofHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+func (h *failingProofHandler) IssueChallenge(ctx core.Context, key string, metadata json.RawMessage) ([]byte, error) {
+	return []byte("challenge"), nil
+}
+func (h *failingProofHandler) VerifyProof(ctx core.Context, key string, metadata json.RawMessage, proof []byte) error {
 	return fmt.Errorf("proof verification failed")
 }
 
@@ -242,7 +248,10 @@ func (h *nilMetadataCapturingHandler) NormalizeKey(key string) (string, error) {
 func (h *nilMetadataCapturingHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
 	return metadata, nil
 }
-func (h *nilMetadataCapturingHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+func (h *nilMetadataCapturingHandler) IssueChallenge(ctx core.Context, key string, metadata json.RawMessage) ([]byte, error) {
+	return []byte("challenge"), nil
+}
+func (h *nilMetadataCapturingHandler) VerifyProof(ctx core.Context, key string, metadata json.RawMessage, proof []byte) error {
 	h.receivedMetadata = metadata
 	return nil
 }

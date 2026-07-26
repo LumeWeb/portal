@@ -41,6 +41,11 @@ type Context interface {
 	SetExitCode(code int)
 	GetContext() context.Context
 
+	// WithRequestContext returns a new Context that wraps the given request
+	// context, preserving request-scoped cancellation, deadlines, and trace
+	// metadata while retaining access to core services, config, DB, and logger.
+	WithRequestContext(ctx context.Context) Context
+
 	// Event helpers
 	Fire(eventName string, payload any) error
 	MustFire(eventName string, payload any)
@@ -256,7 +261,7 @@ func (ctx *DefaultContext) WithLogger(opts ...zap.Field) *Logger {
 
 // Tracer helpers implementation
 func (ctx *DefaultContext) WithTracer(service, subsystem string) Context {
-	return ctx.withNewContext(WithTracerInfo(ctx.Context, service, subsystem))
+	return ctx.WithRequestContext(WithTracerInfo(ctx.Context, service, subsystem))
 }
 
 func (ctx *DefaultContext) WithTracerService(service string) Context {
@@ -271,10 +276,12 @@ func (ctx *DefaultContext) TraceMethod(name string, opts ...SpanOption) (context
 	return TraceMethod(ctx.Context, name, opts...)
 }
 
-// Helper function to create a new DefaultContext with modified context
-func (ctx *DefaultContext) withNewContext(newCtx context.Context) Context {
+// WithRequestContext returns a new Context that wraps the given request
+// context, preserving request-scoped cancellation, deadlines, and trace
+// metadata while retaining access to core services, config, DB, and logger.
+func (ctx *DefaultContext) WithRequestContext(reqCtx context.Context) Context {
 	return &DefaultContext{
-		Context:      newCtx,
+		Context:      reqCtx,
 		services:     ctx.services,
 		cfg:          ctx.cfg,
 		db:           ctx.db,
@@ -289,36 +296,36 @@ func (ctx *DefaultContext) withNewContext(newCtx context.Context) Context {
 
 // Dedicated component tracer helpers implementation
 func (ctx *DefaultContext) WithProtocolTracer(protocolName string) Context {
-	return ctx.withNewContext(WithProtocolTracer(ctx.Context, protocolName))
+	return ctx.WithRequestContext(WithProtocolTracer(ctx.Context, protocolName))
 }
 
 func (ctx *DefaultContext) WithAPITracer(apiName string) Context {
-	return ctx.withNewContext(WithAPITracer(ctx.Context, apiName))
+	return ctx.WithRequestContext(WithAPITracer(ctx.Context, apiName))
 }
 
 func (ctx *DefaultContext) WithAPIExtensionTracer(extensionName string) Context {
-	return ctx.withNewContext(WithAPIExtensionTracer(ctx.Context, extensionName))
+	return ctx.WithRequestContext(WithAPIExtensionTracer(ctx.Context, extensionName))
 }
 
 func (ctx *DefaultContext) WithServiceTracer(serviceName string) Context {
-	return ctx.withNewContext(WithServiceTracer(ctx.Context, serviceName))
+	return ctx.WithRequestContext(WithServiceTracer(ctx.Context, serviceName))
 }
 
 // Subcomponent tracer helpers implementation
 func (ctx *DefaultContext) WithProtocolSubcomponent(protocolName, subcomponentName string) Context {
-	return ctx.withNewContext(WithProtocolSubcomponent(ctx.Context, protocolName, subcomponentName))
+	return ctx.WithRequestContext(WithProtocolSubcomponent(ctx.Context, protocolName, subcomponentName))
 }
 
 func (ctx *DefaultContext) WithAPISubcomponent(apiName, subcomponentName string) Context {
-	return ctx.withNewContext(WithAPISubcomponent(ctx.Context, apiName, subcomponentName))
+	return ctx.WithRequestContext(WithAPISubcomponent(ctx.Context, apiName, subcomponentName))
 }
 
 func (ctx *DefaultContext) WithAPIExtensionSubcomponent(extensionName, subcomponentName string) Context {
-	return ctx.withNewContext(WithAPIExtensionSubcomponent(ctx.Context, extensionName, subcomponentName))
+	return ctx.WithRequestContext(WithAPIExtensionSubcomponent(ctx.Context, extensionName, subcomponentName))
 }
 
 func (ctx *DefaultContext) WithServiceSubcomponent(serviceName, subcomponentName string) Context {
-	return ctx.withNewContext(WithServiceSubcomponent(ctx.Context, serviceName, subcomponentName))
+	return ctx.WithRequestContext(WithServiceSubcomponent(ctx.Context, serviceName, subcomponentName))
 }
 
 // ContextBuilderOption and related functions
