@@ -19,7 +19,7 @@ type User struct {
 	Email              string `gorm:"unique"` // Keep unique for runtime validation
 	PasswordHash       string
 	Role               string
-	PublicKeys         []PublicKey
+	KeyIdentities      []KeyIdentity
 	Uploads            []Upload
 	LastLogin          *time.Time
 	LastLoginIP        string

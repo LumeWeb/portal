@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
+	"strings"
 
 	"go.lumeweb.com/portal/db/models"
 )
@@ -11,6 +13,18 @@ const AUTH_COOKIE_NAME = "auth_token"
 const AUTH_TOKEN_NAME = "auth_token"
 
 const AUTH_SERVICE = "auth"
+
+// AnonEmailFormat is the format string for anonymous user emails generated
+// from wallet addresses or other key identities. The %s is replaced with
+// the lowercased key string (e.g., ETH address).
+// Example: anon_0xabc123...@local.invalid
+const AnonEmailFormat = "anon_%s@local.invalid"
+
+// AnonEmail generates an anonymous email for a key string (e.g., wallet address).
+// The key is lowercased for consistency.
+func AnonEmail(key string) string {
+	return fmt.Sprintf(AnonEmailFormat, strings.ToLower(key))
+}
 
 func GenerateSecurityToken() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -34,9 +48,10 @@ type AuthService interface {
 	// It returns the generated JWT token if successful.
 	LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error)
 
-	// LoginPubkey authenticates a user with the provided public key.
-	// It returns the generated JWT token if successful.
-	LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error)
+	// LoginKeyIdentity authenticates a user with a typed key identity.
+	// keyType is a registry key (e.g., "ethereum").
+	// The key should already be normalized via the type's handler.
+	LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)
 
 	// LoginID authenticates a user with the provided user ID.
 	// It returns the generated JWT token if successful.

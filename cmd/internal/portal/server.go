@@ -27,6 +27,7 @@ func StartServer(cmd *cli.Command) error {
 	}
 
 	core.RegisterServicesFromPlugins()
+	core.RegisterKeyIdentityHandlersFromPlugins()
 	
 	portal.NewActivePortal(ctx)
 

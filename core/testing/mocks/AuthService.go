@@ -347,6 +347,96 @@ func (_c *MockAuthService_LoginID_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
+// LoginKeyIdentity provides a mock function for the type MockAuthService
+func (_mock *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	ret := _mock.Called(ctx, keyType, key, proof, ip, rememberMe)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LoginKeyIdentity")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []byte, string, bool) (string, error)); ok {
+		return returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []byte, string, bool) string); ok {
+		r0 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []byte, string, bool) error); ok {
+		r1 = returnFunc(ctx, keyType, key, proof, ip, rememberMe)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthService_LoginKeyIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginKeyIdentity'
+type MockAuthService_LoginKeyIdentity_Call struct {
+	*mock.Call
+}
+
+// LoginKeyIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - keyType string
+//   - key string
+//   - proof []byte
+//   - ip string
+//   - rememberMe bool
+func (_e *MockAuthService_Expecter) LoginKeyIdentity(ctx interface{}, keyType interface{}, key interface{}, proof interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginKeyIdentity_Call {
+	return &MockAuthService_LoginKeyIdentity_Call{Call: _e.mock.On("LoginKeyIdentity", ctx, keyType, key, proof, ip, rememberMe)}
+}
+
+func (_c *MockAuthService_LoginKeyIdentity_Call) Run(run func(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool)) *MockAuthService_LoginKeyIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []byte
+		if args[3] != nil {
+			arg3 = args[3].([]byte)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthService_LoginKeyIdentity_Call) Return(s string, err error) *MockAuthService_LoginKeyIdentity_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockAuthService_LoginKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginKeyIdentity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LoginOTP provides a mock function for the type MockAuthService
 func (_mock *MockAuthService) LoginOTP(ctx context.Context, userId uint, code string, rememberMe bool) (string, error) {
 	ret := _mock.Called(ctx, userId, code, rememberMe)
@@ -513,84 +603,6 @@ func (_c *MockAuthService_LoginPassword_Call) Return(s string, user *models.User
 }
 
 func (_c *MockAuthService_LoginPassword_Call) RunAndReturn(run func(ctx context.Context, email string, password string, ip string, rememberMe bool) (string, *models.User, error)) *MockAuthService_LoginPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// LoginPubkey provides a mock function for the type MockAuthService
-func (_mock *MockAuthService) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
-	ret := _mock.Called(ctx, pubkey, ip, rememberMe)
-
-	if len(ret) == 0 {
-		panic("no return value specified for LoginPubkey")
-	}
-
-	var r0 string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) (string, error)); ok {
-		return returnFunc(ctx, pubkey, ip, rememberMe)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) string); ok {
-		r0 = returnFunc(ctx, pubkey, ip, rememberMe)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
-		r1 = returnFunc(ctx, pubkey, ip, rememberMe)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockAuthService_LoginPubkey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LoginPubkey'
-type MockAuthService_LoginPubkey_Call struct {
-	*mock.Call
-}
-
-// LoginPubkey is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pubkey string
-//   - ip string
-//   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginPubkey(ctx interface{}, pubkey interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPubkey_Call {
-	return &MockAuthService_LoginPubkey_Call{Call: _e.mock.On("LoginPubkey", ctx, pubkey, ip, rememberMe)}
-}
-
-func (_c *MockAuthService_LoginPubkey_Call) Run(run func(ctx context.Context, pubkey string, ip string, rememberMe bool)) *MockAuthService_LoginPubkey_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 bool
-		if args[3] != nil {
-			arg3 = args[3].(bool)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-		)
-	})
-	return _c
-}
-
-func (_c *MockAuthService_LoginPubkey_Call) Return(s string, err error) *MockAuthService_LoginPubkey_Call {
-	_c.Call.Return(s, err)
-	return _c
-}
-
-func (_c *MockAuthService_LoginPubkey_Call) RunAndReturn(run func(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error)) *MockAuthService_LoginPubkey_Call {
 	_c.Call.Return(run)
 	return _c
 }

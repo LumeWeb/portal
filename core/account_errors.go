@@ -21,7 +21,7 @@ const (
 
 	// Account lookup and existence verification errors
 	ErrKeyUserNotFound      ErrorType = "ErrUserNotFound"
-	ErrKeyPublicKeyNotFound ErrorType = "ErrPublicKeyNotFound"
+	ErrKeyKeyIdentityNotFound ErrorType = "ErrKeyIdentityNotFound"
 
 	// Account deletion errors
 	ErrKeyAccountDeletionRequestAlreadyExists ErrorType = "ErrAccountDeletionRequestAlreadyExists"
@@ -48,9 +48,9 @@ const (
 	ErrKeyOTPEnableFailed     ErrorType = "ErrOTPEnableFailed"
 	ErrKeyOTPDisableFailed    ErrorType = "ErrOTPDisableFailed"
 
-	// Public key management errors
-	ErrKeyAddPublicKeyFailed ErrorType = "ErrAddPublicKeyFailed"
-	ErrKeyPublicKeyExists    ErrorType = "ErrPublicKeyExists"
+	// Key identity management errors
+	ErrKeyAddKeyIdentityFailed ErrorType = "ErrAddKeyIdentityFailed"
+	ErrKeyKeyIdentityExists    ErrorType = "ErrKeyIdentityExists"
 
 	// Pin management errors
 	ErrKeyPinAddFailed        ErrorType = "ErrPinAddFailed"
@@ -102,9 +102,9 @@ var defaultAccountErrorMessages = map[ErrorType]ErrorDefinition{
 		Key:     ErrKeyUserNotFound,
 		Message: "The requested user was not found.",
 	},
-	ErrKeyPublicKeyNotFound: {
-		Key:     ErrKeyPublicKeyNotFound,
-		Message: "The specified public key was not found.",
+	ErrKeyKeyIdentityNotFound: {
+		Key:     ErrKeyKeyIdentityNotFound,
+		Message: "The specified key identity was not found.",
 	},
 	ErrKeyHashingFailed: {
 		Key:     ErrKeyHashingFailed,
@@ -177,14 +177,14 @@ var defaultAccountErrorMessages = map[ErrorType]ErrorDefinition{
 		Message: "Disabling OTP authentication failed.",
 	},
 
-	// Public key management errors
-	ErrKeyAddPublicKeyFailed: {
-		Key:     ErrKeyAddPublicKeyFailed,
-		Message: "Adding the public key to the account failed.",
+	// Key identity management errors
+	ErrKeyAddKeyIdentityFailed: {
+		Key:     ErrKeyAddKeyIdentityFailed,
+		Message: "Adding the key identity to the account failed.",
 	},
-	ErrKeyPublicKeyExists: {
-		Key:     ErrKeyPublicKeyExists,
-		Message: "The public key already exists for this account.",
+	ErrKeyKeyIdentityExists: {
+		Key:     ErrKeyKeyIdentityExists,
+		Message: "The key identity already exists for this account.",
 	},
 
 	// Pin management errors
@@ -237,7 +237,7 @@ var (
 
 		// Account lookup and existence verification errors
 		ErrKeyUserNotFound:      http.StatusNotFound,
-		ErrKeyPublicKeyNotFound: http.StatusNotFound,
+		ErrKeyKeyIdentityNotFound: http.StatusNotFound,
 
 		// Account deletion errors
 		ErrKeyAccountDeletionRequestAlreadyExists: http.StatusConflict,
@@ -264,8 +264,8 @@ var (
 		ErrKeyOTPDisableFailed:    http.StatusInternalServerError,
 
 		// Public key management errors
-		ErrKeyAddPublicKeyFailed: http.StatusInternalServerError,
-		ErrKeyPublicKeyExists:    http.StatusConflict,
+		ErrKeyAddKeyIdentityFailed: http.StatusInternalServerError,
+		ErrKeyKeyIdentityExists:    http.StatusConflict,
 
 		// Pin management errors
 		ErrKeyPinAddFailed:        http.StatusInternalServerError,

@@ -6,6 +6,7 @@ package mocks
 
 import (
 	"context"
+	"encoding/json"
 
 	mock "github.com/stretchr/testify/mock"
 	"go.lumeweb.com/portal/config"
@@ -115,37 +116,39 @@ func (_c *MockUserService_AccountExists_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
-// AddPubkeyToAccount provides a mock function for the type MockUserService
-func (_mock *MockUserService) AddPubkeyToAccount(ctx context.Context, user models.User, pubkey string) error {
-	ret := _mock.Called(ctx, user, pubkey)
+// AddKeyIdentity provides a mock function for the type MockUserService
+func (_mock *MockUserService) AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error {
+	ret := _mock.Called(ctx, user, keyType, key, metadata)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AddPubkeyToAccount")
+		panic("no return value specified for AddKeyIdentity")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, models.User, string) error); ok {
-		r0 = returnFunc(ctx, user, pubkey)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, models.User, string, string, json.RawMessage) error); ok {
+		r0 = returnFunc(ctx, user, keyType, key, metadata)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockUserService_AddPubkeyToAccount_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddPubkeyToAccount'
-type MockUserService_AddPubkeyToAccount_Call struct {
+// MockUserService_AddKeyIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddKeyIdentity'
+type MockUserService_AddKeyIdentity_Call struct {
 	*mock.Call
 }
 
-// AddPubkeyToAccount is a helper method to define mock.On call
+// AddKeyIdentity is a helper method to define mock.On call
 //   - ctx context.Context
 //   - user models.User
-//   - pubkey string
-func (_e *MockUserService_Expecter) AddPubkeyToAccount(ctx interface{}, user interface{}, pubkey interface{}) *MockUserService_AddPubkeyToAccount_Call {
-	return &MockUserService_AddPubkeyToAccount_Call{Call: _e.mock.On("AddPubkeyToAccount", ctx, user, pubkey)}
+//   - keyType string
+//   - key string
+//   - metadata json.RawMessage
+func (_e *MockUserService_Expecter) AddKeyIdentity(ctx interface{}, user interface{}, keyType interface{}, key interface{}, metadata interface{}) *MockUserService_AddKeyIdentity_Call {
+	return &MockUserService_AddKeyIdentity_Call{Call: _e.mock.On("AddKeyIdentity", ctx, user, keyType, key, metadata)}
 }
 
-func (_c *MockUserService_AddPubkeyToAccount_Call) Run(run func(ctx context.Context, user models.User, pubkey string)) *MockUserService_AddPubkeyToAccount_Call {
+func (_c *MockUserService_AddKeyIdentity_Call) Run(run func(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage)) *MockUserService_AddKeyIdentity_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -159,21 +162,31 @@ func (_c *MockUserService_AddPubkeyToAccount_Call) Run(run func(ctx context.Cont
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 json.RawMessage
+		if args[4] != nil {
+			arg4 = args[4].(json.RawMessage)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
+			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *MockUserService_AddPubkeyToAccount_Call) Return(err error) *MockUserService_AddPubkeyToAccount_Call {
+func (_c *MockUserService_AddKeyIdentity_Call) Return(err error) *MockUserService_AddKeyIdentity_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockUserService_AddPubkeyToAccount_Call) RunAndReturn(run func(ctx context.Context, user models.User, pubkey string) error) *MockUserService_AddPubkeyToAccount_Call {
+func (_c *MockUserService_AddKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error) *MockUserService_AddKeyIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -905,6 +918,86 @@ func (_c *MockUserService_IsAccountVerified_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// KeyIdentityExists provides a mock function for the type MockUserService
+func (_mock *MockUserService) KeyIdentityExists(ctx context.Context, keyType string, key string) (bool, *models.KeyIdentity, error) {
+	ret := _mock.Called(ctx, keyType, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for KeyIdentityExists")
+	}
+
+	var r0 bool
+	var r1 *models.KeyIdentity
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, *models.KeyIdentity, error)); ok {
+		return returnFunc(ctx, keyType, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, keyType, key)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *models.KeyIdentity); ok {
+		r1 = returnFunc(ctx, keyType, key)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*models.KeyIdentity)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, keyType, key)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockUserService_KeyIdentityExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'KeyIdentityExists'
+type MockUserService_KeyIdentityExists_Call struct {
+	*mock.Call
+}
+
+// KeyIdentityExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - keyType string
+//   - key string
+func (_e *MockUserService_Expecter) KeyIdentityExists(ctx interface{}, keyType interface{}, key interface{}) *MockUserService_KeyIdentityExists_Call {
+	return &MockUserService_KeyIdentityExists_Call{Call: _e.mock.On("KeyIdentityExists", ctx, keyType, key)}
+}
+
+func (_c *MockUserService_KeyIdentityExists_Call) Run(run func(ctx context.Context, keyType string, key string)) *MockUserService_KeyIdentityExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_KeyIdentityExists_Call) Return(b bool, keyIdentity *models.KeyIdentity, err error) *MockUserService_KeyIdentityExists_Call {
+	_c.Call.Return(b, keyIdentity, err)
+	return _c
+}
+
+func (_c *MockUserService_KeyIdentityExists_Call) RunAndReturn(run func(ctx context.Context, keyType string, key string) (bool, *models.KeyIdentity, error)) *MockUserService_KeyIdentityExists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Logger provides a mock function for the type MockUserService
 func (_mock *MockUserService) Logger() *core.Logger {
 	ret := _mock.Called()
@@ -947,80 +1040,6 @@ func (_c *MockUserService_Logger_Call) Return(logger *core.Logger) *MockUserServ
 }
 
 func (_c *MockUserService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockUserService_Logger_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// PubkeyExists provides a mock function for the type MockUserService
-func (_mock *MockUserService) PubkeyExists(ctx context.Context, pubkey string) (bool, *models.PublicKey, error) {
-	ret := _mock.Called(ctx, pubkey)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PubkeyExists")
-	}
-
-	var r0 bool
-	var r1 *models.PublicKey
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (bool, *models.PublicKey, error)); ok {
-		return returnFunc(ctx, pubkey)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) bool); ok {
-		r0 = returnFunc(ctx, pubkey)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *models.PublicKey); ok {
-		r1 = returnFunc(ctx, pubkey)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*models.PublicKey)
-		}
-	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = returnFunc(ctx, pubkey)
-	} else {
-		r2 = ret.Error(2)
-	}
-	return r0, r1, r2
-}
-
-// MockUserService_PubkeyExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PubkeyExists'
-type MockUserService_PubkeyExists_Call struct {
-	*mock.Call
-}
-
-// PubkeyExists is a helper method to define mock.On call
-//   - ctx context.Context
-//   - pubkey string
-func (_e *MockUserService_Expecter) PubkeyExists(ctx interface{}, pubkey interface{}) *MockUserService_PubkeyExists_Call {
-	return &MockUserService_PubkeyExists_Call{Call: _e.mock.On("PubkeyExists", ctx, pubkey)}
-}
-
-func (_c *MockUserService_PubkeyExists_Call) Run(run func(ctx context.Context, pubkey string)) *MockUserService_PubkeyExists_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUserService_PubkeyExists_Call) Return(b bool, publicKey *models.PublicKey, err error) *MockUserService_PubkeyExists_Call {
-	_c.Call.Return(b, publicKey, err)
-	return _c
-}
-
-func (_c *MockUserService_PubkeyExists_Call) RunAndReturn(run func(ctx context.Context, pubkey string) (bool, *models.PublicKey, error)) *MockUserService_PubkeyExists_Call {
 	_c.Call.Return(run)
 	return _c
 }

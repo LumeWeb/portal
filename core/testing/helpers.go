@@ -177,6 +177,16 @@ func WithSQLitePluginMigrations(pluginID string, migrationsFS fs.FS) TestContext
 	}
 }
 
+// WithKeyIdentityHandler registers a key identity handler for a given type
+// directly in the test context. This is useful for tests that need a handler
+// without registering a full plugin.
+func WithKeyIdentityHandler(keyType string, handler core.KeyIdentityHandler) TestContextBuilderOption {
+	return func(ctx TestContext) (TestContext, error) {
+		core.RegisterKeyIdentity(keyType, handler)
+		return ctx, nil
+	}
+}
+
 // ShutdownTestContext is a helper for tests that calls all registered exit functions
 // and cleans up resources without exiting the process.
 func ShutdownTestContext(ctx TestContext) {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"go.lumeweb.com/portal/service/internal/mailer"
 	"go.lumeweb.com/portal/service/internal/user"
 	userInternal "go.lumeweb.com/portal/service/internal/user"
+	"github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -142,27 +144,41 @@ func (u UserServiceDefault) EmailExists(ctx context.Context, email string) (bool
 	return result.exists, result.user, err
 }
 
-type pubkeyExistsResult struct {
-	exists    bool
-	publicKey *models.PublicKey
+type keyIdentityExistsResult struct {
+	exists       bool
+	keyIdentity  *models.KeyIdentity
 }
 
-func (u UserServiceDefault) PubkeyExists(ctx context.Context, pubkey string) (bool, *models.PublicKey, error) {
-	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.PubkeyExists")
+func (u UserServiceDefault) KeyIdentityExists(ctx context.Context, keyType string, key string) (bool, *models.KeyIdentity, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.KeyIdentityExists")
 	defer span.End()
+
+	// Require a registered handler so keys are always looked up in canonical form
+	handler, ok := core.GetKeyIdentityHandler(keyType)
+	if !ok {
+		return false, nil, core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("no handler registered for key type %q", keyType))
+	}
+	normalized, err := handler.NormalizeKey(key)
+	if err != nil {
+		return false, nil, err
+	}
+	key = normalized
 
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCheckExists),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpCheckExists),
-		func() (*pubkeyExistsResult, error) {
-			publicKey := &models.PublicKey{}
-			exists, model, err := u.Exists(ctx, publicKey, map[string]interface{}{"key": pubkey})
+		func() (*keyIdentityExistsResult, error) {
+			keyIdentity := &models.KeyIdentity{}
+			exists, model, err := u.Exists(ctx, keyIdentity, map[string]interface{}{
+				"type": keyType,
+				"key":  key,
+			})
 			if !exists || err != nil {
 				return nil, err
 			}
-			return &pubkeyExistsResult{
-				exists:    true,
-				publicKey: model.(*models.PublicKey),
+			return &keyIdentityExistsResult{
+				exists:      true,
+				keyIdentity: model.(*models.KeyIdentity),
 			}, nil
 		},
 	)
@@ -173,7 +189,7 @@ func (u UserServiceDefault) PubkeyExists(ctx context.Context, pubkey string) (bo
 	if result == nil {
 		return false, nil, err
 	}
-	return result.exists, result.publicKey, err
+	return result.exists, result.keyIdentity, err
 }
 
 type accountExistsResult struct {
@@ -419,24 +435,53 @@ func (u UserServiceDefault) UpdateAccountInfo(ctx context.Context, userId uint, 
 	)
 }
 
-func (u UserServiceDefault) AddPubkeyToAccount(ctx context.Context, user models.User, pubkey string) error {
-	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.AddPubkeyToAccount")
+func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.AddKeyIdentity")
 	defer span.End()
+
+	// Require a registered handler so keys are always stored in canonical form
+	handler, ok := core.GetKeyIdentityHandler(keyType)
+	if !ok {
+		return core.NewAccountError(core.ErrKeyAddKeyIdentityFailed, fmt.Errorf("no handler registered for key type %q", keyType))
+	}
+	normalized, err := handler.NormalizeKey(key)
+	if err != nil {
+		return err
+	}
+	key = normalized
+
+	// Validate metadata using the type handler
+	// Apply nil default first so handlers never see nil metadata
+	if metadata == nil {
+		metadata = json.RawMessage(`{}`)
+	}
+	validated, err := handler.ValidateMetadata(metadata)
+	if err != nil {
+		return err
+	}
+	metadata = validated
+
+	// Always default to empty JSON if metadata is nil
+	if metadata == nil {
+		metadata = json.RawMessage(`{}`)
+	}
 
 	return core.MetricTrack(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpAddPubkey),
 		userInternal.UserOperationFailed.WithLabelValues(userInternal.LabelOpAddPubkey),
 		func() error {
-			var model models.PublicKey
+			var model models.KeyIdentity
 
-			model.Key = pubkey
+			model.Type = keyType
+			model.Key = key
+			model.Metadata = metadata
 			model.UserID = user.ID
 
 			if err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
-				return tx.Create(&model)
+				return tx.WithContext(ctx).Create(&model)
 			}); err != nil {
 				if u.isDuplicateKeyError(err) {
-					return core.NewAccountError(core.ErrKeyPublicKeyExists, err)
+					return core.NewAccountError(core.ErrKeyKeyIdentityExists, err)
 				}
 
 				if u.isConstraintViolationError(err) {
@@ -768,6 +813,12 @@ func (u UserServiceDefault) isDuplicateKeyError(err error) bool {
 	// MySQL duplicate key error
 	var mysqlErr *mysql.MySQLError
 	if errors.As(err, &mysqlErr) && mysqlErr != nil && mysqlErr.Number == 1062 {
+		return true
+	}
+
+	// SQLite unique constraint violation
+	var sqliteErr sqlite3.Error
+	if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
 		return true
 	}
 

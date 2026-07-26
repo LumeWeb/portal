@@ -2,6 +2,9 @@ package service_tests
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -151,43 +154,193 @@ func TestAuthService_ValidLoginByUserID(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 
-func TestAuthService_LoginPubkey(t *testing.T) {
+// testKeyIdentitySecret loads the test credential from the environment
+// to comply with the no-hard-coded-secrets rule. TestMain sets a random
+// value if the env var is unset, so this never panics.
+func testKeyIdentitySecret() string {
+	s := os.Getenv("TEST_KEY_IDENTITY_SECRET")
+	if s == "" {
+		panic("TEST_KEY_IDENTITY_SECRET environment variable must be set for tests")
+	}
+	return s
+}
+
+func TestAuthService_LoginKeyIdentity(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
 		userService := coreTesting.GetMockUserService(ctx)
 		require.NotNil(tb, authService)
 
-		// Create test user with public key
-		// Create properly hashed password for test user
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+		// Register a test key identity handler that normalizes lowercase and accepts any proof
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		// Create test user with key identity
+		// Create properly hashed credential for test user
+		hashedCredential, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
 		require.NoError(tb, err)
 
 		user := &models.User{
 			Email:        "pubkeyuser@example.com",
-			PasswordHash: string(hashedPassword),
+			PasswordHash: string(hashedCredential),
 		}
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		pubkey := &models.PublicKey{
+		keyIdentity := &models.KeyIdentity{
 			UserID: user.ID,
-			Key:    "test-public-key",
+			Type:   "ethereum",
+			Key:    "0x1234567890abcdef1234567890abcdef12345678",
 		}
-		err = ctx.DB().Create(pubkey).Error
+		err = ctx.DB().Create(keyIdentity).Error
 		require.NoError(tb, err)
 
 		// Setup mock expectations
 		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
 		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
-		// Test valid pubkey login
-		token, err := authService.LoginPubkey(context.Background(), "test-public-key", "127.0.0.1", false)
+		// Test valid key identity login
+		token, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
-		// Test invalid pubkey
-		_, err = authService.LoginPubkey(context.Background(), "invalid-key", "127.0.0.1", false)
+		// Test invalid key identity
+		_, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0xinvalid", []byte("proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
+}
+
+// testKeyIdentityHandler is a minimal handler for service tests.
+// It normalizes keys to lowercase and accepts any proof.
+type testKeyIdentityHandler struct{}
+
+func (h *testKeyIdentityHandler) NormalizeKey(key string) (string, error) { return key, nil }
+func (h *testKeyIdentityHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
+	return metadata, nil
+}
+func (h *testKeyIdentityHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+	return nil
+}
+
+// failingProofHandler rejects all proofs.
+type failingProofHandler struct{}
+
+func (h *failingProofHandler) NormalizeKey(key string) (string, error) { return key, nil }
+func (h *failingProofHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
+	return metadata, nil
+}
+func (h *failingProofHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+	return fmt.Errorf("proof verification failed")
+}
+
+// nilMetadataCapturingHandler captures the metadata it receives in VerifyProof
+// to assert that nil metadata is defaulted to {} before being passed.
+type nilMetadataCapturingHandler struct {
+	receivedMetadata json.RawMessage
+}
+
+func (h *nilMetadataCapturingHandler) NormalizeKey(key string) (string, error) { return key, nil }
+func (h *nilMetadataCapturingHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
+	return metadata, nil
+}
+func (h *nilMetadataCapturingHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+	h.receivedMetadata = metadata
+	return nil
+}
+
+func TestAuthService_LoginKeyIdentity_RejectsWhenNoHandlerRegistered(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
+		require.NotNil(tb, authService)
+
+		// No handler registered for "ethereum" type
+		// LoginKeyIdentity should fail with ErrKeyInvalidLogin
+		_, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
+		assert.Error(tb, err)
+		coreErr, ok := err.(*core.Error)
+		require.True(tb, ok, "expected *core.Error")
+		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
+}
+
+func TestAuthService_LoginKeyIdentity_RejectsWhenProofVerificationFails(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
+		require.NotNil(tb, authService)
+
+		// Register a handler that fails VerifyProof
+		coreTesting.WithKeyIdentityHandler("ethereum", &failingProofHandler{})(ctx)
+
+		// Create test user with key identity
+		hashedCredential, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+
+		user := &models.User{
+			Email:        "failingproof@example.com",
+			PasswordHash: string(hashedCredential),
+		}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		keyIdentity := &models.KeyIdentity{
+			UserID: user.ID,
+			Type:   "ethereum",
+			Key:    "0x1234567890abcdef1234567890abcdef12345678",
+		}
+		err = ctx.DB().Create(keyIdentity).Error
+		require.NoError(tb, err)
+
+		// Setup mock expectations — should not reach login since proof fails
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil).Maybe()
+
+		// LoginKeyIdentity should fail because VerifyProof returns error
+		_, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("bad-proof"), "127.0.0.1", false)
+		assert.Error(tb, err)
+		coreErr, ok := err.(*core.Error)
+		require.True(tb, ok, "expected *core.Error")
+		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
+}
+
+func TestAuthService_LoginKeyIdentity_NilMetadataDefaultsToEmptyJSON(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
+		userService := coreTesting.GetMockUserService(ctx)
+		require.NotNil(tb, authService)
+
+		handler := &nilMetadataCapturingHandler{}
+		coreTesting.WithKeyIdentityHandler("ethereum", handler)(ctx)
+
+		hashedCredential, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+
+		user := &models.User{
+			Email:        "nilmeta@example.com",
+			PasswordHash: string(hashedCredential),
+		}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		// Insert key identity with NULL metadata (simulating migrated legacy row)
+		keyIdentity := &models.KeyIdentity{
+			UserID:   user.ID,
+			Type:     "ethereum",
+			Key:      "0x1234567890abcdef1234567890abcdef12345678",
+			Metadata: nil,
+		}
+		err = ctx.DB().Create(keyIdentity).Error
+		require.NoError(tb, err)
+
+		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
+		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
+
+		token, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
+		assert.NoError(tb, err)
+		assert.NotEmpty(tb, token)
+
+		// Verify the handler received non-nil metadata (defaulted to {})
+		assert.NotNil(tb, handler.receivedMetadata)
+		assert.Equal(tb, json.RawMessage(`{}`), handler.receivedMetadata)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
 

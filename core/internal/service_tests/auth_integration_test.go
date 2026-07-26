@@ -22,6 +22,9 @@ func TestAuthService_Integration(t *testing.T) {
 		authService := core.GetService[core.AuthService](ctx, core.AUTH_SERVICE)
 		require.NotNil(tb, authService)
 
+		// Register test key identity handler for "ed25519" type
+		coreTesting.WithKeyIdentityHandler("ed25519", &testKeyIdentityHandler{})(ctx)
+
 		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
 		require.NotNil(tb, userService)
 
@@ -37,7 +40,7 @@ func TestAuthService_Integration(t *testing.T) {
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		// 2. Create a test user with public key
+		// 2. Create a test user with key identity
 		pubKeyUser := &models.User{
 			Email:        "pubkeyuser@example.com",
 			PasswordHash: string(hashedPassword), // same password for simplicity
@@ -52,12 +55,13 @@ func TestAuthService_Integration(t *testing.T) {
 		// Encode the public key to base64 for storage
 		pubKeyBase64 := base64.StdEncoding.EncodeToString(pubKey)
 
-		// Store the public key in the database
-		publicKey := &models.PublicKey{
+		// Store the key identity in the database
+		keyIdentity := &models.KeyIdentity{
 			UserID: pubKeyUser.ID,
+			Type:   "ed25519",
 			Key:    pubKeyBase64,
 		}
-		err = ctx.DB().Create(publicKey).Error
+		err = ctx.DB().Create(keyIdentity).Error
 		require.NoError(tb, err)
 
 		// 3. Test LoginPassword
@@ -66,8 +70,8 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.NotEmpty(tb, token)
 		assert.Equal(tb, user.ID, loggedInUser.ID)
 
-		// 4. Test LoginPubkey
-		pubkeyToken, err := authService.LoginPubkey(context.Background(), pubKeyBase64, "127.0.0.1", false)
+		// 4. Test LoginKeyIdentity
+		pubkeyToken, err := authService.LoginKeyIdentity(context.Background(), "ed25519", pubKeyBase64, []byte("proof"), "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, pubkeyToken)
 
@@ -80,8 +84,8 @@ func TestAuthService_Integration(t *testing.T) {
 		_, _, err = authService.LoginPassword(context.Background(), "testuser@example.com", "wrongpassword", "127.0.0.1", false)
 		assert.Error(tb, err)
 
-		// 7. Test invalid LoginPubkey
-		_, err = authService.LoginPubkey(context.Background(), "invalidkey", "127.0.0.1", false)
+		// 7. Test invalid LoginKeyIdentity
+		_, err = authService.LoginKeyIdentity(context.Background(), "ed25519", "invalidkey", []byte("proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 8. Test invalid LoginID

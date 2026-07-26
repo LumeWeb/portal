@@ -982,6 +982,7 @@ func BootEnvironment(tb TB, ctx TestContext) error {
 
 	// Phase 3: Plugin Service Registration
 	core.RegisterServicesFromPlugins()
+	core.RegisterKeyIdentityHandlersFromPlugins()
 	newCtx, pluginSvcOpts, err := ConfigurePluginServices(ctx)
 	if err != nil {
 		return fmt.Errorf("plugin service registration failed: %w", err)

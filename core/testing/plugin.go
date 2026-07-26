@@ -742,6 +742,11 @@ func WithPlugins(plugins ...core.PluginInfo) TestContextBuilderOption {
 			}
 			registeredPlugins = append(registeredPlugins, plugin.ID)
 		}
+
+		// Register key identity handlers from all registered plugins
+		// (including those registered above via WithPlugins)
+		core.RegisterKeyIdentityHandlersFromPlugins()
+
 		return ctx, nil
 	}
 }
