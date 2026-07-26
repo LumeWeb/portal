@@ -1,94 +1,113 @@
 package core
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
+
+	"go.lumeweb.com/portal/build"
 )
 
-// mockHandler is a minimal handler for testing the registry.
-type mockHandler struct{}
+// mockHandler is a minimal KeyIdentityHandler for testing.
+type mockHandler struct {
+	challengeFn func(ctx Context, key string, metadata json.RawMessage) ([]byte, error)
+	verifyFn    func(ctx Context, key string, metadata json.RawMessage, proof []byte) error
+}
 
 func (h *mockHandler) NormalizeKey(key string) (string, error) { return key, nil }
 func (h *mockHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
 	return metadata, nil
 }
-func (h *mockHandler) VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error {
+func (h *mockHandler) IssueChallenge(ctx Context, key string, metadata json.RawMessage) ([]byte, error) {
+	if h.challengeFn != nil {
+		return h.challengeFn(ctx, key, metadata)
+	}
+	return []byte("challenge"), nil
+}
+func (h *mockHandler) VerifyProof(ctx Context, key string, metadata json.RawMessage, proof []byte) error {
+	if h.verifyFn != nil {
+		return h.verifyFn(ctx, key, metadata, proof)
+	}
 	return nil
 }
 
 func TestRegisterAndGetKeyIdentityHandler(t *testing.T) {
-	keyType := "test_type"
+	ResetKeyIdentities()
+	defer ResetKeyIdentities()
 
-	// Register
+	keyType := "test_type"
 	RegisterKeyIdentity(keyType, &mockHandler{})
 
-	// Get -- should exist
 	h, ok := GetKeyIdentityHandler(keyType)
 	if !ok {
-		t.Fatal("expected handler to be registered")
+		t.Fatalf("expected handler for %q", keyType)
 	}
 	if h == nil {
-		t.Fatal("handler should not be nil")
+		t.Fatal("handler is nil")
 	}
 
-	// Get nonexistent
 	_, ok = GetKeyIdentityHandler("nonexistent")
 	if ok {
-		t.Fatal("expected handler to not be registered for nonexistent type")
+		t.Fatal("expected no handler for nonexistent type")
 	}
 }
 
 func TestMustGetKeyIdentityHandler_Panics(t *testing.T) {
+	ResetKeyIdentities()
+	defer ResetKeyIdentities()
+
 	defer func() {
 		if r := recover(); r == nil {
-			t.Fatal("expected panic for unregistered type")
+			t.Fatal("expected panic for unregistered handler")
 		}
 	}()
 	MustGetKeyIdentityHandler("definitely_not_registered")
 }
 
 func TestRegisterKeyIdentityHandlersFromPlugins(t *testing.T) {
-	// Register a plugin with a key identity handler
+	ResetState()
+	defer ResetState()
+
 	RegisterPlugin(PluginInfo{
-		ID: "test-plugin-keyidentity",
+		ID:      "test-plugin",
+		Version: build.New("test-version", "", "", "", "", "", ""),
 		KeyIdentityHandlers: []KeyIdentityHandlerRegistration{
 			{Type: "test_plugin_type", Handler: &mockHandler{}},
 		},
 	})
-	defer UnregisterPlugin("test-plugin-keyidentity")
 
 	RegisterKeyIdentityHandlersFromPlugins()
 
 	h, ok := GetKeyIdentityHandler("test_plugin_type")
-	if !ok {
-		t.Fatal("expected handler to be registered from plugin")
-	}
-	if h == nil {
-		t.Fatal("handler should not be nil")
+	if !ok || h == nil {
+		t.Fatalf("expected handler registered for test_plugin_type")
 	}
 }
 
 func TestRegisterKeyIdentityHandlersFromPlugins_DoesNotOverwriteExistingHandler(t *testing.T) {
-	// Manually register a handler first
+	ResetState()
+	defer ResetState()
+
+	// Register a pre-existing handler
 	RegisterKeyIdentity("preexisting_type", &mockHandler{})
 
-	// Register a plugin with a different type — should not touch preexisting
 	RegisterPlugin(PluginInfo{
-		ID: "test-plugin-no-overwrite",
+		ID:      "test-plugin-2",
+		Version: build.New("test-version", "", "", "", "", "", ""),
 		KeyIdentityHandlers: []KeyIdentityHandlerRegistration{
+			{Type: "preexisting_type", Handler: &mockHandler{}},
 			{Type: "plugin_type", Handler: &mockHandler{}},
 		},
 	})
-	defer UnregisterPlugin("test-plugin-no-overwrite")
 
 	RegisterKeyIdentityHandlersFromPlugins()
 
-	// Both should exist
+	// Should still exist
 	_, ok := GetKeyIdentityHandler("preexisting_type")
 	if !ok {
 		t.Fatal("pre-existing handler should still be registered")
 	}
+
+	// Plugin type should also be registered
 	_, ok = GetKeyIdentityHandler("plugin_type")
 	if !ok {
 		t.Fatal("plugin handler should be registered")
@@ -114,6 +133,9 @@ func TestRegisterKeyIdentity_EmptyTypePanics(t *testing.T) {
 }
 
 func TestRegisterKeyIdentityHandlersFromPlugins_SkipsInvalidEntries(t *testing.T) {
+	ResetState()
+	defer ResetState()
+
 	RegisterPlugin(PluginInfo{
 		ID: "test-plugin-invalid-entries",
 		KeyIdentityHandlers: []KeyIdentityHandlerRegistration{
@@ -122,7 +144,6 @@ func TestRegisterKeyIdentityHandlersFromPlugins_SkipsInvalidEntries(t *testing.T
 			{Type: "valid_plugin_type", Handler: &mockHandler{}}, // valid
 		},
 	})
-	defer UnregisterPlugin("test-plugin-invalid-entries")
 
 	RegisterKeyIdentityHandlersFromPlugins()
 

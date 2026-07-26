@@ -9,9 +9,17 @@ import (
 )
 
 // KeyIdentityHandler defines how a specific key type (e.g., "ethereum",
-// "solana") validates and normalizes its keys and metadata.
+// "solana") validates and normalizes its keys and metadata, issues challenges,
+// and verifies proofs of ownership.
+//
 // Handlers are registered by plugins via PluginInfo.KeyIdentityHandlers
-// and looked up by type string.
+// and looked up by type string. All methods that need runtime context
+// receive a core.Context, which embeds context.Context and provides
+// access to config, DB, logger, and registered services.
+//
+// This interface is intentionally minimal so that core can orchestrate
+// a generic challenge → verify → lookup → login flow without knowing
+// the cryptographic details of any specific key type.
 type KeyIdentityHandler interface {
 	// NormalizeKey converts a raw key to its canonical form.
 	// For Ethereum: lowercase the 0x-prefixed address.
@@ -24,10 +32,31 @@ type KeyIdentityHandler interface {
 	// Returns the normalized metadata, or an error if invalid.
 	ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error)
 
+	// IssueChallenge generates a challenge for proving ownership of the
+	// given key. The returned bytes are sent to the client, which must
+	// sign them and return the signature via VerifyProof.
+	//
+	// For Ethereum (CAIP-122/EIP-4361): this generates a nonce and
+	// constructs the SIWE message text for the client to sign.
+	// For WebAuthn: this generates the assertion challenge options.
+	//
+	// The challenge state (nonce, etc.) must be stored by the handler
+	// using ctx (e.g., via ctx.DB() or a registered challenge store service)
+	// so that VerifyProof can validate it.
+	IssueChallenge(ctx Context, key string, metadata json.RawMessage) ([]byte, error)
+
 	// VerifyProof verifies a cryptographic proof of key ownership.
-	// For Ethereum: this is the CAIP-122 signature verification flow.
-	// The proof bytes are protocol-specific (EIP-191 signature, etc.).
-	VerifyProof(ctx context.Context, key string, metadata json.RawMessage, proof []byte) error
+	//
+	// The proof bytes are protocol-specific and must correspond to a
+	// challenge previously issued by IssueChallenge. The handler is
+	// responsible for looking up the stored challenge state via ctx
+	// and performing the cryptographic verification.
+	//
+	// For Ethereum: this is the EIP-191 signature recovery and address
+	// comparison, with nonce/domain validation from the stored challenge.
+	// For WebAuthn: this verifies the assertion signature against the
+	// stored credential.
+	VerifyProof(ctx Context, key string, metadata json.RawMessage, proof []byte) error
 }
 
 var (
@@ -108,3 +137,6 @@ func RegisterKeyIdentityHandlersFromPlugins() {
 		}
 	}
 }
+
+// Ensure context import is used (for godoc examples and future helpers).
+var _ context.Context = (Context)(nil)

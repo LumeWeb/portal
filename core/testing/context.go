@@ -58,6 +58,35 @@ type defaultContext struct {
 	router       router.Router
 }
 
+// WithRequestContext returns a new testContext wrapping the given request
+// context, preserving request-scoped cancellation and trace metadata.
+func (ctx *testContext) WithRequestContext(reqCtx context.Context) core.Context {
+	return ctx.withRequestContext(reqCtx)
+}
+
+func (ctx *testContext) withRequestContext(reqCtx context.Context) *testContext {
+	return &testContext{
+		defaultContext: &defaultContext{
+			Context:      reqCtx,
+			services:     ctx.services,
+			cfg:          ctx.cfg,
+			logger:       ctx.logger,
+			exitFuncs:    ctx.exitFuncs,
+			exitCode:     ctx.exitCode,
+			startupFuncs: ctx.startupFuncs,
+			db:           ctx.db,
+			cancel:       ctx.cancel,
+			event:        ctx.event,
+			router:       ctx.router,
+		},
+		tb:               ctx.tb,
+		cleanupFuncs:     ctx.cleanupFuncs,
+		apiID:            ctx.apiID,
+		fireBootComplete: ctx.fireBootComplete,
+		httpDone:         ctx.httpDone,
+	}
+}
+
 // testContext extends the default context for testing
 type testContext struct {
 	*defaultContext

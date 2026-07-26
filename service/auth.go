@@ -99,7 +99,11 @@ func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code stri
 }
 
 func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
-	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginKeyIdentity")
+	return a.LoginKeyIdentityWithContext(a.Context().WithRequestContext(ctx), keyType, key, proof, ip, rememberMe)
+}
+
+func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	traceCtx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginKeyIdentityWithContext")
 	defer span.End()
 
 	// Require a registered handler — no handler means we can't normalize or verify
@@ -119,7 +123,7 @@ func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string
 	var rowsAffected int64
 
 	err = db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
-		tx = tx.WithContext(ctx).Model(&models.KeyIdentity{}).Preload("User").
+		tx = tx.WithContext(traceCtx).Model(&models.KeyIdentity{}).Preload("User").
 			Where(&models.KeyIdentity{Type: keyType, Key: key}).First(&model)
 		rowsAffected = tx.RowsAffected
 		return tx
@@ -144,7 +148,7 @@ func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string
 
 	user := model.User
 
-	token, err := a.doLogin(ctx, &user, ip, true, rememberMe)
+	token, err := a.doLogin(traceCtx, &user, ip, true, rememberMe)
 
 	if err != nil {
 		return "", err
