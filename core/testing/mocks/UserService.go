@@ -117,16 +117,16 @@ func (_c *MockUserService_AccountExists_Call) RunAndReturn(run func(ctx context.
 }
 
 // AddKeyIdentity provides a mock function for the type MockUserService
-func (_mock *MockUserService) AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error {
-	ret := _mock.Called(ctx, user, keyType, key, metadata)
+func (_mock *MockUserService) AddKeyIdentity(ctx context.Context, userId uint, keyType string, key string, metadata json.RawMessage) error {
+	ret := _mock.Called(ctx, userId, keyType, key, metadata)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddKeyIdentity")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, models.User, string, string, json.RawMessage) error); ok {
-		r0 = returnFunc(ctx, user, keyType, key, metadata)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string, json.RawMessage) error); ok {
+		r0 = returnFunc(ctx, userId, keyType, key, metadata)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -140,23 +140,23 @@ type MockUserService_AddKeyIdentity_Call struct {
 
 // AddKeyIdentity is a helper method to define mock.On call
 //   - ctx context.Context
-//   - user models.User
+//   - userId uint
 //   - keyType string
 //   - key string
 //   - metadata json.RawMessage
-func (_e *MockUserService_Expecter) AddKeyIdentity(ctx interface{}, user interface{}, keyType interface{}, key interface{}, metadata interface{}) *MockUserService_AddKeyIdentity_Call {
-	return &MockUserService_AddKeyIdentity_Call{Call: _e.mock.On("AddKeyIdentity", ctx, user, keyType, key, metadata)}
+func (_e *MockUserService_Expecter) AddKeyIdentity(ctx interface{}, userId interface{}, keyType interface{}, key interface{}, metadata interface{}) *MockUserService_AddKeyIdentity_Call {
+	return &MockUserService_AddKeyIdentity_Call{Call: _e.mock.On("AddKeyIdentity", ctx, userId, keyType, key, metadata)}
 }
 
-func (_c *MockUserService_AddKeyIdentity_Call) Run(run func(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage)) *MockUserService_AddKeyIdentity_Call {
+func (_c *MockUserService_AddKeyIdentity_Call) Run(run func(ctx context.Context, userId uint, keyType string, key string, metadata json.RawMessage)) *MockUserService_AddKeyIdentity_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 models.User
+		var arg1 uint
 		if args[1] != nil {
-			arg1 = args[1].(models.User)
+			arg1 = args[1].(uint)
 		}
 		var arg2 string
 		if args[2] != nil {
@@ -186,7 +186,7 @@ func (_c *MockUserService_AddKeyIdentity_Call) Return(err error) *MockUserServic
 	return _c
 }
 
-func (_c *MockUserService_AddKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error) *MockUserService_AddKeyIdentity_Call {
+func (_c *MockUserService_AddKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, userId uint, keyType string, key string, metadata json.RawMessage) error) *MockUserService_AddKeyIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }

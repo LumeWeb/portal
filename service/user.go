@@ -435,7 +435,7 @@ func (u UserServiceDefault) UpdateAccountInfo(ctx context.Context, userId uint, 
 	)
 }
 
-func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error {
+func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, userId uint, keyType string, key string, metadata json.RawMessage) error {
 	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.AddKeyIdentity")
 	defer span.End()
 
@@ -475,7 +475,7 @@ func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, user models.User
 			model.Type = keyType
 			model.Key = key
 			model.Metadata = metadata
-			model.UserID = user.ID
+			model.UserID = userId
 
 			if err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
 				return tx.WithContext(ctx).Create(&model)

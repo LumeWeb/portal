@@ -357,7 +357,7 @@ func TestUserService_AddKeyIdentity_NilMetadataDefaultsToEmptyJSON(t *testing.T)
 		require.NoError(tb, err)
 
 		// Add key identity with nil metadata
-		err = userService.AddKeyIdentity(context.Background(), *user, "ethereum", "0x1234567890abcdef1234567890abcdef12345678", nil)
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", "0x1234567890abcdef1234567890abcdef12345678", nil)
 		require.NoError(tb, err)
 
 		// Verify the stored metadata is {} not NULL
@@ -387,7 +387,7 @@ func TestUserService_AddKeyIdentity_HandlerValidatesMetadata(t *testing.T) {
 		require.NoError(tb, err)
 
 		// Add key identity with valid metadata
-		err = userService.AddKeyIdentity(context.Background(), *user, "ethereum", "0xabcdef1234567890abcdef1234567890abcdef12", json.RawMessage(`{"chain_id":"eip155:1"}`))
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", "0xabcdef1234567890abcdef1234567890abcdef12", json.RawMessage(`{"chain_id":"eip155:1"}`))
 		require.NoError(tb, err)
 
 		// Verify stored metadata
@@ -415,11 +415,11 @@ func TestUserService_AddKeyIdentity_DuplicateKey(t *testing.T) {
 		require.NoError(tb, err)
 
 		key := "0x9999999999999999999999999999999999999999"
-		err = userService.AddKeyIdentity(context.Background(), *user, "ethereum", key, nil)
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", key, nil)
 		require.NoError(tb, err)
 
 		// Adding same key again should fail with ErrKeyKeyIdentityExists
-		err = userService.AddKeyIdentity(context.Background(), *user, "ethereum", key, nil)
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", key, nil)
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
@@ -442,7 +442,7 @@ func TestUserService_AddKeyIdentity_NoHandlerReturnsAccountError(t *testing.T) {
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		err = userService.AddKeyIdentity(context.Background(), *user, "ethereum", "0x1234567890abcdef1234567890abcdef12345678", nil)
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", "0x1234567890abcdef1234567890abcdef12345678", nil)
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
@@ -461,5 +461,158 @@ func TestUserService_KeyIdentityExists_NoHandlerReturnsAccountError(t *testing.T
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
 		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_RemoveKeyIdentity_Success(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		hashedCredential, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{
+			Email:        "remove-key@example.com",
+			PasswordHash: string(hashedCredential),
+		}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		key := "0xaaaa1111bbbb2222cccc3333dddd4444eeee5555"
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", key, nil)
+		require.NoError(tb, err)
+
+		// Remove the key
+		err = userService.RemoveKeyIdentity(context.Background(), user.ID, "ethereum", key)
+		require.NoError(tb, err)
+
+		// Verify it's gone
+		var count int64
+		ctx.DB().Model(&models.KeyIdentity{}).Where("user_id = ? AND type = ? AND key = ?", user.ID, "ethereum", key).Count(&count)
+		assert.Equal(tb, int64(0), count)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_RemoveKeyIdentity_NotFound(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		hashedCredential, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{
+			Email:        "remove-notfound@example.com",
+			PasswordHash: string(hashedCredential),
+		}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		// Remove a key that doesn't exist
+		err = userService.RemoveKeyIdentity(context.Background(), user.ID, "ethereum", "0x9999888877776666555544443333222211110000")
+		assert.Error(tb, err)
+		coreErr, ok := err.(*core.Error)
+		require.True(tb, ok, "expected *core.Error")
+		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_RemoveKeyIdentity_DoesNotBelongToUser(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		// Create two users
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user1 := &models.User{Email: "rm-user1@example.com", PasswordHash: string(hashedCred)}
+		user2 := &models.User{Email: "rm-user2@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user1).Error
+		require.NoError(tb, err)
+		err = ctx.DB().Create(user2).Error
+		require.NoError(tb, err)
+
+		key := "0xbbbb1111cccc2222dddd3333eeee4444ffff5555"
+		err = userService.AddKeyIdentity(context.Background(), user1.ID, "ethereum", key, nil)
+		require.NoError(tb, err)
+
+		// User 2 tries to remove user 1's key — should fail (not found for user 2)
+		err = userService.RemoveKeyIdentity(context.Background(), user2.ID, "ethereum", key)
+		assert.Error(tb, err)
+		coreErr, ok := err.(*core.Error)
+		require.True(tb, ok, "expected *core.Error")
+		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+
+		// Verify the key still exists for user 1
+		var count int64
+		ctx.DB().Model(&models.KeyIdentity{}).Where("user_id = ? AND key = ?", user1.ID, key).Count(&count)
+		assert.Equal(tb, int64(1), count)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_RemoveKeyIdentity_NoHandlerReturnsAccountError(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "rm-nohandler@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		err = userService.RemoveKeyIdentity(context.Background(), user.ID, "ethereum", "0x1234567890abcdef1234567890abcdef12345678")
+		assert.Error(tb, err)
+		coreErr, ok := err.(*core.Error)
+		require.True(tb, ok, "expected *core.Error")
+		assert.Equal(tb, core.ErrKeyAddKeyIdentityFailed, coreErr.Key)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_ListKeyIdentities_Success(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "list-keys@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		// Add multiple keys
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", "0x1111111111111111111111111111111111111111", nil)
+		require.NoError(tb, err)
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", "0x2222222222222222222222222222222222222222", nil)
+		require.NoError(tb, err)
+
+		// List identities
+		identities, err := userService.ListKeyIdentities(context.Background(), user.ID)
+		require.NoError(tb, err)
+		assert.Len(tb, identities, 2)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+func TestUserService_ListKeyIdentities_Empty(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "list-empty@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		identities, err := userService.ListKeyIdentities(context.Background(), user.ID)
+		require.NoError(tb, err)
+		assert.Empty(tb, identities)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }

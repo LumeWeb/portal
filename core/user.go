@@ -45,7 +45,7 @@ type UserService interface {
 	// keyType is a registry key (e.g., "ethereum", "solana").
 	// metadata is optional type-specific data (chain_id, relays, etc.).
 	// If metadata is nil, it defaults to empty JSON {}.
-	AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error
+	AddKeyIdentity(ctx context.Context, userId uint, keyType string, key string, metadata json.RawMessage) error
 
 	// RemoveKeyIdentity unlinks a key identity from a user account.
 	// Only removes the key if it belongs to the given user.
