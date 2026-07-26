@@ -148,7 +148,7 @@ func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyTyp
 
 	user := model.User
 
-	token, err := a.doLogin(traceCtx, &user, ip, true, rememberMe)
+	token, err := a.doLogin(traceCtx, &user, ip, false, rememberMe)
 
 	if err != nil {
 		return "", nil, err
