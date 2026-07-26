@@ -500,6 +500,53 @@ func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, user models.User
 	)
 }
 
+func (u UserServiceDefault) RemoveKeyIdentity(ctx context.Context, userId uint, keyType string, key string) error {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.RemoveKeyIdentity")
+	defer span.End()
+
+	handler, ok := core.GetKeyIdentityHandler(keyType)
+	if !ok {
+		return core.NewAccountError(core.ErrKeyAddKeyIdentityFailed, fmt.Errorf("no handler registered for key type %q", keyType))
+	}
+	normalized, err := handler.NormalizeKey(key)
+	if err != nil {
+		return err
+	}
+	key = normalized
+
+	var rowsAffected int64
+	err = db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.WithContext(ctx).
+			Where(&models.KeyIdentity{Type: keyType, Key: key, UserID: userId}).
+			Delete(&models.KeyIdentity{})
+		rowsAffected = tx.RowsAffected
+		return tx
+	})
+	if err != nil {
+		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+	if rowsAffected == 0 {
+		return core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("key identity not found for user %d", userId))
+	}
+	return nil
+}
+
+func (u UserServiceDefault) ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error) {
+	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.ListKeyIdentities")
+	defer span.End()
+
+	var identities []models.KeyIdentity
+	err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.WithContext(ctx).
+			Where("user_id = ?", userId).
+			Find(&identities)
+	})
+	if err != nil {
+		return nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+	return identities, nil
+}
+
 func (u UserServiceDefault) Exists(ctx context.Context, model any, conditions map[string]any) (bool, any, error) {
 	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.Exists")
 	defer span.End()

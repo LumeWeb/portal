@@ -47,6 +47,14 @@ type UserService interface {
 	// If metadata is nil, it defaults to empty JSON {}.
 	AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error
 
+	// RemoveKeyIdentity unlinks a key identity from a user account.
+	// Only removes the key if it belongs to the given user.
+	// Returns an error if the key is not found or does not belong to the user.
+	RemoveKeyIdentity(ctx context.Context, userId uint, keyType string, key string) error
+
+	// ListKeyIdentities returns all key identities linked to the given user.
+	ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error)
+
 	// SendEmailVerification sends an email verification email to the user with the given ID.
 	// It returns an error if any.
 	SendEmailVerification(ctx context.Context, userId uint) error

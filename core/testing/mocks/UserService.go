@@ -998,6 +998,74 @@ func (_c *MockUserService_KeyIdentityExists_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// ListKeyIdentities provides a mock function for the type MockUserService
+func (_mock *MockUserService) ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error) {
+	ret := _mock.Called(ctx, userId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListKeyIdentities")
+	}
+
+	var r0 []models.KeyIdentity
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]models.KeyIdentity, error)); ok {
+		return returnFunc(ctx, userId)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []models.KeyIdentity); ok {
+		r0 = returnFunc(ctx, userId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]models.KeyIdentity)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
+		r1 = returnFunc(ctx, userId)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserService_ListKeyIdentities_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListKeyIdentities'
+type MockUserService_ListKeyIdentities_Call struct {
+	*mock.Call
+}
+
+// ListKeyIdentities is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userId uint
+func (_e *MockUserService_Expecter) ListKeyIdentities(ctx interface{}, userId interface{}) *MockUserService_ListKeyIdentities_Call {
+	return &MockUserService_ListKeyIdentities_Call{Call: _e.mock.On("ListKeyIdentities", ctx, userId)}
+}
+
+func (_c *MockUserService_ListKeyIdentities_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_ListKeyIdentities_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_ListKeyIdentities_Call) Return(keyIdentitys []models.KeyIdentity, err error) *MockUserService_ListKeyIdentities_Call {
+	_c.Call.Return(keyIdentitys, err)
+	return _c
+}
+
+func (_c *MockUserService_ListKeyIdentities_Call) RunAndReturn(run func(ctx context.Context, userId uint) ([]models.KeyIdentity, error)) *MockUserService_ListKeyIdentities_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Logger provides a mock function for the type MockUserService
 func (_mock *MockUserService) Logger() *core.Logger {
 	ret := _mock.Called()
@@ -1040,6 +1108,75 @@ func (_c *MockUserService_Logger_Call) Return(logger *core.Logger) *MockUserServ
 }
 
 func (_c *MockUserService_Logger_Call) RunAndReturn(run func() *core.Logger) *MockUserService_Logger_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveKeyIdentity provides a mock function for the type MockUserService
+func (_mock *MockUserService) RemoveKeyIdentity(ctx context.Context, userId uint, keyType string, key string) error {
+	ret := _mock.Called(ctx, userId, keyType, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveKeyIdentity")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, string, string) error); ok {
+		r0 = returnFunc(ctx, userId, keyType, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_RemoveKeyIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveKeyIdentity'
+type MockUserService_RemoveKeyIdentity_Call struct {
+	*mock.Call
+}
+
+// RemoveKeyIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userId uint
+//   - keyType string
+//   - key string
+func (_e *MockUserService_Expecter) RemoveKeyIdentity(ctx interface{}, userId interface{}, keyType interface{}, key interface{}) *MockUserService_RemoveKeyIdentity_Call {
+	return &MockUserService_RemoveKeyIdentity_Call{Call: _e.mock.On("RemoveKeyIdentity", ctx, userId, keyType, key)}
+}
+
+func (_c *MockUserService_RemoveKeyIdentity_Call) Run(run func(ctx context.Context, userId uint, keyType string, key string)) *MockUserService_RemoveKeyIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 uint
+		if args[1] != nil {
+			arg1 = args[1].(uint)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_RemoveKeyIdentity_Call) Return(err error) *MockUserService_RemoveKeyIdentity_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_RemoveKeyIdentity_Call) RunAndReturn(run func(ctx context.Context, userId uint, keyType string, key string) error) *MockUserService_RemoveKeyIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }
