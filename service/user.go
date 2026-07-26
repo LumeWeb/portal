@@ -506,7 +506,7 @@ func (u UserServiceDefault) RemoveKeyIdentity(ctx context.Context, userId uint, 
 
 	handler, ok := core.GetKeyIdentityHandler(keyType)
 	if !ok {
-		return core.NewAccountError(core.ErrKeyAddKeyIdentityFailed, fmt.Errorf("no handler registered for key type %q", keyType))
+		return core.NewAccountError(core.ErrKeyKeyIdentityNotFound, fmt.Errorf("no handler registered for key type %q", keyType))
 	}
 	normalized, err := handler.NormalizeKey(key)
 	if err != nil {
@@ -526,7 +526,7 @@ func (u UserServiceDefault) RemoveKeyIdentity(ctx context.Context, userId uint, 
 		return core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 	if rowsAffected == 0 {
-		return core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("key identity not found for user %d", userId))
+		return core.NewAccountError(core.ErrKeyKeyIdentityNotFound, fmt.Errorf("key identity not found for user %d", userId))
 	}
 	return nil
 }

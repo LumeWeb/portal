@@ -516,7 +516,7 @@ func TestUserService_RemoveKeyIdentity_NotFound(t *testing.T) {
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
-		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+		assert.Equal(tb, core.ErrKeyKeyIdentityNotFound, coreErr.Key)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
@@ -546,7 +546,7 @@ func TestUserService_RemoveKeyIdentity_DoesNotBelongToUser(t *testing.T) {
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
-		assert.Equal(tb, core.ErrKeyInvalidLogin, coreErr.Key)
+		assert.Equal(tb, core.ErrKeyKeyIdentityNotFound, coreErr.Key)
 
 		// Verify the key still exists for user 1
 		var count int64
@@ -570,7 +570,7 @@ func TestUserService_RemoveKeyIdentity_NoHandlerReturnsAccountError(t *testing.T
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
-		assert.Equal(tb, core.ErrKeyAddKeyIdentityFailed, coreErr.Key)
+		assert.Equal(tb, core.ErrKeyKeyIdentityNotFound, coreErr.Key)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
 
