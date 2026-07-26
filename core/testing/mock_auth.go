@@ -109,7 +109,7 @@ func (m *MockAuthService) ExpectLoginOTP(userID uint, otpCode string, token stri
 
 // ExpectLoginKeyIdentity sets up a LoginKeyIdentity expectation with a specific token.
 func (m *MockAuthService) ExpectLoginKeyIdentity(keyType string, key string, token string, err error) {
-	m.EXPECT().LoginKeyIdentity(mock.Anything, keyType, key, mock.Anything, mock.Anything, mock.Anything).Return(token, err)
+	m.EXPECT().LoginKeyIdentity(mock.Anything, keyType, key, mock.Anything, mock.Anything, mock.Anything).Return(token, nil, err)
 }
 
 // RegisterLoginForUser generates a token and sets up expectation - returns token for testing.
@@ -241,20 +241,20 @@ func (m *MockAuthService) LoginOTP(ctx context.Context, userId uint, code string
 
 // LoginKeyIdentity implements core.AuthService.
 // Lazily generates default token if no expectation set.
-func (m *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (m *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	if HasExpectationForMethod(&m.MockAuthService.Mock, "LoginKeyIdentity") {
 		return m.MockAuthService.LoginKeyIdentity(ctx, keyType, key, proof, ip, rememberMe)
 	}
-	return m.generateTestToken(1), nil
+	return m.generateTestToken(1), nil, nil
 }
 
 // LoginKeyIdentityWithContext implements core.AuthService.
 // Lazily generates default token if no expectation set.
-func (m *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (m *MockAuthService) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	if HasExpectationForMethod(&m.MockAuthService.Mock, "LoginKeyIdentityWithContext") {
 		return m.MockAuthService.LoginKeyIdentityWithContext(ctx, keyType, key, proof, ip, rememberMe)
 	}
-	return m.generateTestToken(1), nil
+	return m.generateTestToken(1), nil, nil
 }
 
 // ValidLoginByUserObj implements core.AuthService.

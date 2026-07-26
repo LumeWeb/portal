@@ -71,7 +71,7 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Equal(tb, user.ID, loggedInUser.ID)
 
 		// 4. Test LoginKeyIdentity
-		pubkeyToken, err := authService.LoginKeyIdentity(context.Background(), "ed25519", pubKeyBase64, []byte("proof"), "127.0.0.1", false)
+		pubkeyToken, _, err := authService.LoginKeyIdentity(context.Background(), "ed25519", pubKeyBase64, []byte("proof"), "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, pubkeyToken)
 
@@ -85,7 +85,7 @@ func TestAuthService_Integration(t *testing.T) {
 		assert.Error(tb, err)
 
 		// 7. Test invalid LoginKeyIdentity
-		_, err = authService.LoginKeyIdentity(context.Background(), "ed25519", "invalidkey", []byte("proof"), "127.0.0.1", false)
+		_, _, err = authService.LoginKeyIdentity(context.Background(), "ed25519", "invalidkey", []byte("proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
 
 		// 8. Test invalid LoginID

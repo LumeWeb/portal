@@ -53,12 +53,12 @@ type AuthService interface {
 	// The key should already be normalized via the type's handler.
 	// The proof must correspond to a challenge previously issued by
 	// the handler's IssueChallenge method.
-	LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)
+	LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error)
 
 	// LoginKeyIdentityWithContext is the preferred method for key identity
 	// login, as it passes core.Context to the handler for challenge
 	// verification. LoginKeyIdentity delegates to this.
-	LoginKeyIdentityWithContext(ctx Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error)
+	LoginKeyIdentityWithContext(ctx Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error)
 
 	// LoginID authenticates a user with the provided user ID.
 	// It returns the generated JWT token if successful.

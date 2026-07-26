@@ -98,24 +98,24 @@ func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code stri
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	return a.LoginKeyIdentityWithContext(a.Context().WithRequestContext(ctx), keyType, key, proof, ip, rememberMe)
 }
 
-func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, *models.User, error) {
 	traceCtx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginKeyIdentityWithContext")
 	defer span.End()
 
 	// Require a registered handler — no handler means we can't normalize or verify
 	handler, ok := core.GetKeyIdentityHandler(keyType)
 	if !ok {
-		return "", core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("no handler registered for key type %q", keyType))
+		return "", nil, core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("no handler registered for key type %q", keyType))
 	}
 
 	// Normalize the key before lookup
 	normalized, err := handler.NormalizeKey(key)
 	if err != nil {
-		return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
+		return "", nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 	}
 	key = normalized
 
@@ -131,9 +131,9 @@ func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyTyp
 
 	if rowsAffected == 0 || err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
+			return "", nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
-		return "", dbHelper.HandleDBError(err)
+		return "", nil, dbHelper.HandleDBError(err)
 	}
 
 	// Verify proof of ownership before accepting the key
@@ -143,7 +143,7 @@ func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyTyp
 		metadata = json.RawMessage(`{}`)
 	}
 	if err := handler.VerifyProof(ctx, key, metadata, proof); err != nil {
-		return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
+		return "", nil, core.NewAccountError(core.ErrKeyInvalidLogin, err)
 	}
 
 	user := model.User
@@ -151,10 +151,10 @@ func (a AuthServiceDefault) LoginKeyIdentityWithContext(ctx core.Context, keyTyp
 	token, err := a.doLogin(traceCtx, &user, ip, true, rememberMe)
 
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return token, nil
+	return token, &user, nil
 }
 
 func (a AuthServiceDefault) LoginID(ctx context.Context, id uint, ip string, rememberMe bool) (string, error) {

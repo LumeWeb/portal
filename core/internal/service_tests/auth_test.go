@@ -199,12 +199,12 @@ func TestAuthService_LoginKeyIdentity(t *testing.T) {
 		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
 		// Test valid key identity login
-		token, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
+		token, _, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
 		// Test invalid key identity
-		_, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0xinvalid", []byte("proof"), "127.0.0.1", false)
+		_, _, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0xinvalid", []byte("proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
 	}, coreTesting.WithServiceFactory(core.AUTH_SERVICE, service.NewAuthService))
 }
@@ -263,7 +263,7 @@ func TestAuthService_LoginKeyIdentity_RejectsWhenNoHandlerRegistered(t *testing.
 
 		// No handler registered for "ethereum" type
 		// LoginKeyIdentity should fail with ErrKeyInvalidLogin
-		_, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
+		_, _, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
@@ -303,7 +303,7 @@ func TestAuthService_LoginKeyIdentity_RejectsWhenProofVerificationFails(t *testi
 		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil).Maybe()
 
 		// LoginKeyIdentity should fail because VerifyProof returns error
-		_, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("bad-proof"), "127.0.0.1", false)
+		_, _, err = authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("bad-proof"), "127.0.0.1", false)
 		assert.Error(tb, err)
 		coreErr, ok := err.(*core.Error)
 		require.True(tb, ok, "expected *core.Error")
@@ -343,7 +343,7 @@ func TestAuthService_LoginKeyIdentity_NilMetadataDefaultsToEmptyJSON(t *testing.
 		userService.EXPECT().IsAccountPendingDeletion(mock.Anything, user.ID).Return(false, nil)
 		userService.EXPECT().UpdateAccountInfo(mock.Anything, user.ID, mock.Anything).Return(nil)
 
-		token, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
+		token, _, err := authService.LoginKeyIdentity(context.Background(), "ethereum", "0x1234567890abcdef1234567890abcdef12345678", []byte("proof"), "127.0.0.1", false)
 		assert.NoError(tb, err)
 		assert.NotEmpty(tb, token)
 
