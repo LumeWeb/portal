@@ -182,16 +182,14 @@ func (m *MockUserService) VerifyUserEmailFails(email string) error {
 // AddKeyIdentityForUser adds a key identity to user account with automatic mock setup.
 func (m *MockUserService) AddKeyIdentityForUser(user *models.User, keyType string, key string) error {
 	// Mock of AddKeyIdentity response
-	m.EXPECT().AddKeyIdentity(mock.Anything, *user, keyType, key, mock.Anything).Return(nil)
-
+	m.EXPECT().AddKeyIdentity(mock.Anything, user.ID, keyType, key, mock.Anything).Return(nil)
 	return nil
 }
 
 // AddKeyIdentityForUserFails simulates key identity addition failure with automatic mock setup.
 func (m *MockUserService) AddKeyIdentityForUserFails(user *models.User, keyType string, key string) error {
 	// Mock of AddKeyIdentity response with error
-	m.EXPECT().AddKeyIdentity(mock.Anything, *user, keyType, key, mock.Anything).Return(fmt.Errorf("key already exists"))
-
+	m.EXPECT().AddKeyIdentity(mock.Anything, user.ID, keyType, key, mock.Anything).Return(fmt.Errorf("key already exists"))
 	return fmt.Errorf("key already exists")
 }
 
