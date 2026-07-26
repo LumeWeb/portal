@@ -56,6 +56,7 @@ func migrateRenterdAction(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	core.RegisterServicesFromPlugins()
+	core.RegisterKeyIdentityHandlersFromPlugins()
 
 	portal.NewActivePortal(portalCtx)
 

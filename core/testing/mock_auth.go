@@ -107,9 +107,9 @@ func (m *MockAuthService) ExpectLoginOTP(userID uint, otpCode string, token stri
 	m.EXPECT().LoginOTP(mock.Anything, userID, otpCode, mock.Anything).Return(token, err)
 }
 
-// ExpectLoginPubkey sets up a LoginPubkey expectation with a specific token.
-func (m *MockAuthService) ExpectLoginPubkey(pubkey string, token string, err error) {
-	m.EXPECT().LoginPubkey(mock.Anything, pubkey, mock.Anything, mock.Anything).Return(token, err)
+// ExpectLoginKeyIdentity sets up a LoginKeyIdentity expectation with a specific token.
+func (m *MockAuthService) ExpectLoginKeyIdentity(keyType string, key string, token string, err error) {
+	m.EXPECT().LoginKeyIdentity(mock.Anything, keyType, key, mock.Anything, mock.Anything, mock.Anything).Return(token, err)
 }
 
 // RegisterLoginForUser generates a token and sets up expectation - returns token for testing.
@@ -239,11 +239,11 @@ func (m *MockAuthService) LoginOTP(ctx context.Context, userId uint, code string
 	return m.generateTestToken(userId), nil
 }
 
-// LoginPubkey implements core.AuthService.
+// LoginKeyIdentity implements core.AuthService.
 // Lazily generates default token if no expectation set.
-func (m *MockAuthService) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
-	if HasExpectationForMethod(&m.MockAuthService.Mock, "LoginPubkey") {
-		return m.MockAuthService.LoginPubkey(ctx, pubkey, ip, rememberMe)
+func (m *MockAuthService) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	if HasExpectationForMethod(&m.MockAuthService.Mock, "LoginKeyIdentity") {
+		return m.MockAuthService.LoginKeyIdentity(ctx, keyType, key, proof, ip, rememberMe)
 	}
 	return m.generateTestToken(1), nil
 }

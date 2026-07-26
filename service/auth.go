@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -96,15 +98,29 @@ func (a AuthServiceDefault) LoginOTP(ctx context.Context, userId uint, code stri
 	return token, nil
 }
 
-func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip string, rememberMe bool) (string, error) {
-	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginPubkey")
+func (a AuthServiceDefault) LoginKeyIdentity(ctx context.Context, keyType string, key string, proof []byte, ip string, rememberMe bool) (string, error) {
+	ctx, span := core.TraceMethod(ctx, "AuthServiceDefault.LoginKeyIdentity")
 	defer span.End()
 
-	var model models.PublicKey
+	// Require a registered handler — no handler means we can't normalize or verify
+	handler, ok := core.GetKeyIdentityHandler(keyType)
+	if !ok {
+		return "", core.NewAccountError(core.ErrKeyInvalidLogin, fmt.Errorf("no handler registered for key type %q", keyType))
+	}
+
+	// Normalize the key before lookup
+	normalized, err := handler.NormalizeKey(key)
+	if err != nil {
+		return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
+	}
+	key = normalized
+
+	var model models.KeyIdentity
 	var rowsAffected int64
 
-	err := db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
-		tx = tx.Model(&models.PublicKey{}).Preload("User").Where(&models.PublicKey{Key: pubkey}).First(&model)
+	err = db.RetryableComponentTransaction(a, ctx, func(tx *gorm.DB) *gorm.DB {
+		tx = tx.WithContext(ctx).Model(&models.KeyIdentity{}).Preload("User").
+			Where(&models.KeyIdentity{Type: keyType, Key: key}).First(&model)
 		rowsAffected = tx.RowsAffected
 		return tx
 	})
@@ -114,6 +130,16 @@ func (a AuthServiceDefault) LoginPubkey(ctx context.Context, pubkey string, ip s
 			return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
 		}
 		return "", dbHelper.HandleDBError(err)
+	}
+
+	// Verify proof of ownership before accepting the key
+	// Default nil metadata to empty JSON for migrated legacy rows
+	metadata := model.Metadata
+	if metadata == nil {
+		metadata = json.RawMessage(`{}`)
+	}
+	if err := handler.VerifyProof(ctx, key, metadata, proof); err != nil {
+		return "", core.NewAccountError(core.ErrKeyInvalidLogin, err)
 	}
 
 	user := model.User

@@ -104,6 +104,7 @@ var configEnvAction cli.ActionFunc = func(ctx context.Context, cmd *cli.Command)
 
 	// Register services from plugins (this just registers them, doesn't start them)
 	core.RegisterServicesFromPlugins()
+	core.RegisterKeyIdentityHandlersFromPlugins()
 
 	// Disable validation for config-env command since we may not have all required values
 	manager.DisableValidation()

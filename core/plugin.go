@@ -34,23 +34,24 @@ type PluginCronJob struct {
 }
 
 type PluginInfo struct {
-	ID              string
-	Version         build.BuildInfo
-	Meta            MetaFactory
-	API             APIFactory
-	Protocol        ProtocolFactory
-	Services        ServicesFactory
-	APIExtensions   APIExtensionsFactory
-	Models          []any
-	Migrations      DBMigration
-	Depends         []string
-	CronJobs        []PluginCronJob
-	MailerTemplates MailerTemplates
-	WebBundles      []*WebBundle
-	TargetApps      []string
-	Operations      WorkflowOperationsFactory
-	Workflows       WorkflowFactory
-	Metrics         []prometheus.Collector
+	ID                 string
+	Version            build.BuildInfo
+	Meta               MetaFactory
+	API                APIFactory
+	Protocol           ProtocolFactory
+	Services           ServicesFactory
+	APIExtensions      APIExtensionsFactory
+	Models             []any
+	Migrations         DBMigration
+	Depends            []string
+	CronJobs           []PluginCronJob
+	MailerTemplates    MailerTemplates
+	WebBundles         []*WebBundle
+	TargetApps         []string
+	Operations         WorkflowOperationsFactory
+	Workflows          WorkflowFactory
+	Metrics            []prometheus.Collector
+	KeyIdentityHandlers []KeyIdentityHandlerRegistration
 }
 
 type Configurable interface {
@@ -77,10 +78,20 @@ func RegisterPlugin(info PluginInfo) {
 		panic("plugin ID must not be empty")
 	}
 
+	// Check if any KeyIdentityHandlers are valid (non-nil Handler, non-empty Type)
+	hasKeyIdentityHandler := false
+	for _, h := range info.KeyIdentityHandlers {
+		if h.Handler != nil && h.Type != "" {
+			hasKeyIdentityHandler = true
+			break
+		}
+	}
+
 	hasComponent := info.API != nil || info.Protocol != nil || info.Services != nil ||
-		info.APIExtensions != nil || len(info.WebBundles) > 0 || len(info.CronJobs) > 0
+		info.APIExtensions != nil || len(info.WebBundles) > 0 || len(info.CronJobs) > 0 ||
+		hasKeyIdentityHandler
 	if !hasComponent {
-		panic("plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, or CronJob")
+		panic("plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, CronJob, or KeyIdentityHandler")
 	}
 
 	pluginsMu.Lock()

@@ -44,7 +44,27 @@ func TestRegisterPlugin_MissingComponent(t *testing.T) {
 		// No API, Protocol, Services, APIExtensions, or WebBundles
 	}
 
-	assert.PanicsWithValue(t, "plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, or CronJob", func() {
+	assert.PanicsWithValue(t, "plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, CronJob, or KeyIdentityHandler", func() {
+		core.RegisterPlugin(plugin)
+	})
+}
+
+func TestRegisterPlugin_KeyIdentityHandler_NilHandlerAndEmptyTypeRejected(t *testing.T) {
+	core.ResetState()
+	defer core.ResetState()
+
+	// All entries are invalid: nil handler or empty type
+	plugin := core.PluginInfo{
+		ID:      "invalid-keyidentity-plugin",
+		Version: build.New("test-version", "", "", "", "", "", ""),
+		KeyIdentityHandlers: []core.KeyIdentityHandlerRegistration{
+			{Type: "", Handler: nil},               // both invalid
+			{Type: "valid_type", Handler: nil},     // nil handler
+			{Type: "", Handler: nil},              // empty type
+		},
+	}
+
+	assert.PanicsWithValue(t, "plugin must have at least one of API, Protocol, Service, APIExtension, WebBundle, CronJob, or KeyIdentityHandler", func() {
 		core.RegisterPlugin(plugin)
 	})
 }

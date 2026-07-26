@@ -179,18 +179,18 @@ func (m *MockUserService) VerifyUserEmailFails(email string) error {
 	return fmt.Errorf("verification failed")
 }
 
-// AddPublicKey adds public key to user account with automatic mock setup.
-func (m *MockUserService) AddPublicKey(user *models.User, publicKey string) error {
-	// Mock of AddPubkeyToAccount response
-	m.EXPECT().AddPubkeyToAccount(mock.Anything, *user, publicKey).Return(nil)
+// AddKeyIdentityForUser adds a key identity to user account with automatic mock setup.
+func (m *MockUserService) AddKeyIdentityForUser(user *models.User, keyType string, key string) error {
+	// Mock of AddKeyIdentity response
+	m.EXPECT().AddKeyIdentity(mock.Anything, *user, keyType, key, mock.Anything).Return(nil)
 
 	return nil
 }
 
-// AddPublicKeyFails simulates public key addition failure with automatic mock setup.
-func (m *MockUserService) AddPublicKeyFails(user *models.User, publicKey string) error {
-	// Mock of AddPubkeyToAccount response with error
-	m.EXPECT().AddPubkeyToAccount(mock.Anything, *user, publicKey).Return(fmt.Errorf("key already exists"))
+// AddKeyIdentityForUserFails simulates key identity addition failure with automatic mock setup.
+func (m *MockUserService) AddKeyIdentityForUserFails(user *models.User, keyType string, key string) error {
+	// Mock of AddKeyIdentity response with error
+	m.EXPECT().AddKeyIdentity(mock.Anything, *user, keyType, key, mock.Anything).Return(fmt.Errorf("key already exists"))
 
 	return fmt.Errorf("key already exists")
 }

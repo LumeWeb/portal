@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 
 	"go.lumeweb.com/portal/db/models"
 )
@@ -15,8 +16,9 @@ type UserService interface {
 	// EmailExists checks if an email already exists in the system.
 	EmailExists(ctx context.Context, email string) (bool, *models.User, error)
 
-	// PubkeyExists checks if a public key already exists in the system.
-	PubkeyExists(ctx context.Context, pubkey string) (bool, *models.PublicKey, error)
+	// KeyIdentityExists checks if a key identity of the given type exists.
+	// Returns the KeyIdentity record if found.
+	KeyIdentityExists(ctx context.Context, keyType string, key string) (bool, *models.KeyIdentity, error)
 
 	// AccountExists checks if an account with the given ID exists.
 	AccountExists(ctx context.Context, id uint) (bool, *models.User, error)
@@ -39,8 +41,11 @@ type UserService interface {
 	// UpdateAccountPassword updates the password of the user with the given ID after verifying the old password.
 	UpdateAccountPassword(ctx context.Context, userId uint, password string, newPassword string) error
 
-	// AddPubkeyToAccount adds a public key to the account of the user with the given ID.
-	AddPubkeyToAccount(ctx context.Context, user models.User, pubkey string) error
+	// AddKeyIdentity links a key identity to a user account.
+	// keyType is a registry key (e.g., "ethereum", "solana").
+	// metadata is optional type-specific data (chain_id, relays, etc.).
+	// If metadata is nil, it defaults to empty JSON {}.
+	AddKeyIdentity(ctx context.Context, user models.User, keyType string, key string, metadata json.RawMessage) error
 
 	// SendEmailVerification sends an email verification email to the user with the given ID.
 	// It returns an error if any.
