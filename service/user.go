@@ -13,6 +13,7 @@ import (
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
+	"go.lumeweb.com/queryutil"
 	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	"go.lumeweb.com/portal/service/internal/user"
@@ -531,20 +532,28 @@ func (u UserServiceDefault) RemoveKeyIdentity(ctx context.Context, userId uint, 
 	return nil
 }
 
-func (u UserServiceDefault) ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error) {
+func (u UserServiceDefault) ListKeyIdentities(ctx context.Context, userId uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.KeyIdentity, int64, error) {
 	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.ListKeyIdentities")
 	defer span.End()
 
-	var identities []models.KeyIdentity
-	err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
-		return tx.WithContext(ctx).
-			Where("user_id = ?", userId).
-			Find(&identities)
-	})
-	if err != nil {
-		return nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	var identities []*models.KeyIdentity
+	var total int64
+
+	baseQuery := u.DB().WithContext(ctx).Model(&models.KeyIdentity{}).Where("user_id = ?", userId)
+
+	if err := queryutil.ApplyFilters(baseQuery, filters, nil).Count(&total).Error; err != nil {
+		return nil, 0, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
-	return identities, nil
+
+	query := queryutil.ApplyFilters(baseQuery, filters, nil)
+	query = queryutil.ApplySort(query, sorts)
+	query = queryutil.ApplyPagination(query, pagination)
+
+	if err := query.Find(&identities).Error; err != nil {
+		return nil, 0, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	return identities, total, nil
 }
 
 func (u UserServiceDefault) Exists(ctx context.Context, model any, conditions map[string]any) (bool, any, error) {
