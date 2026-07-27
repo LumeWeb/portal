@@ -3,16 +3,20 @@ package service_tests
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
 	"go.lumeweb.com/queryutil"
+	"go.lumeweb.com/queryutil/filter"
 	"golang.org/x/crypto/bcrypt"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUserService_EmailExists(t *testing.T) {
@@ -615,5 +619,178 @@ func TestUserService_ListKeyIdentities_Empty(t *testing.T) {
 		identities, _, err := userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Empty(tb, identities)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+// lowercasingKeyIdentityHandler normalizes keys to lowercase to test
+// normalization round-trip (add with mixed-case, remove/list with different casing).
+type lowercasingKeyIdentityHandler struct{}
+
+func (h *lowercasingKeyIdentityHandler) NormalizeKey(key string) (string, error) {
+	return strings.ToLower(key), nil
+}
+func (h *lowercasingKeyIdentityHandler) ValidateMetadata(metadata json.RawMessage) (json.RawMessage, error) {
+	return metadata, nil
+}
+func (h *lowercasingKeyIdentityHandler) IssueChallenge(ctx core.Context, key string, metadata json.RawMessage) ([]byte, error) {
+	return []byte("challenge"), nil
+}
+func (h *lowercasingKeyIdentityHandler) VerifyProof(ctx core.Context, key string, metadata json.RawMessage, proof []byte) error {
+	return nil
+}
+
+// TestUserService_KeyIdentity_NormalizationRoundTrip verifies that a key added
+// with mixed-case can be found, listed, and removed with different casing.
+// This tests the normalization contract: storage uses normalized form, all
+// lookups go through NormalizeKey.
+func TestUserService_KeyIdentity_NormalizationRoundTrip(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &lowercasingKeyIdentityHandler{})(ctx)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "norm-rt@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		mixedCaseKey := "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01"
+		expectedNormalized := "0xabcdef0123456789abcdef0123456789abcdef01"
+
+		// Add with mixed case
+		err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", mixedCaseKey, nil)
+		require.NoError(tb, err)
+
+		// KeyIdentityExists with mixed case should find it (service normalizes)
+		exists, _, err := userService.KeyIdentityExists(context.Background(), "ethereum", mixedCaseKey)
+		require.NoError(tb, err)
+		assert.True(tb, exists, "KeyIdentityExists should find key with mixed-case input")
+
+		// KeyIdentityExists with different casing should also find it
+		exists, _, err = userService.KeyIdentityExists(context.Background(), "ethereum", "0xABCDEF0123456789ABCDEF0123456789ABCDEF01")
+		require.NoError(tb, err)
+		assert.True(tb, exists, "KeyIdentityExists should find key with different casing")
+
+		// List should show the normalized form
+		identities, _, err := userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
+		require.NoError(tb, err)
+		require.Len(tb, identities, 1)
+		assert.Equal(tb, expectedNormalized, identities[0].Key, "stored key should be normalized")
+
+		// Remove with different casing should succeed
+		err = userService.RemoveKeyIdentity(context.Background(), user.ID, "ethereum", "0xABCDEF0123456789ABCDEF0123456789ABCDEF01")
+		require.NoError(tb, err, "RemoveKeyIdentity should succeed with different casing")
+
+		// Verify it's gone
+		identities, _, err = userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
+		require.NoError(tb, err)
+		assert.Empty(tb, identities)
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+// TestUserService_AddKeyIdentity_ConcurrentDuplicate verifies that concurrent
+// AddKeyIdentity calls with the same key don't both succeed — the DB unique
+// constraint on (type, key) enforces atomicity, and the loser gets
+// ErrKeyKeyIdentityExists.
+func TestUserService_AddKeyIdentity_ConcurrentDuplicate(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "concurrent@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		key := "0xDeadBeefDeadBeefDeadBeefDeadBeefDeadBeef"
+
+		var wg sync.WaitGroup
+		errs := make([]error, 2)
+		for i := 0; i < 2; i++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				errs[idx] = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", key, nil)
+			}(i)
+		}
+		wg.Wait()
+
+		// Exactly one should succeed, one should fail with ErrKeyKeyIdentityExists
+		var successes, conflicts int
+		for _, e := range errs {
+			if e == nil {
+				successes++
+			} else if coreErr, ok := e.(*core.Error); ok && coreErr.Key == core.ErrKeyKeyIdentityExists {
+				conflicts++
+			} else {
+				tb.Fatalf("unexpected error: %v", e)
+			}
+		}
+		assert.Equal(tb, 1, successes, "exactly one goroutine should succeed")
+		assert.Equal(tb, 1, conflicts, "exactly one goroutine should get conflict error")
+	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
+}
+
+// TestUserService_ListKeyIdentities_Pagination verifies that ListKeyIdentities
+// respects pagination and total count with multiple identities.
+func TestUserService_ListKeyIdentities_Pagination(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		userService := core.GetService[core.UserService](ctx, core.USER_SERVICE)
+		require.NotNil(tb, userService)
+
+		coreTesting.WithKeyIdentityHandler("ethereum", &testKeyIdentityHandler{})(ctx)
+
+		hashedCred, err := bcrypt.GenerateFromPassword([]byte(testKeyIdentitySecret()), bcrypt.DefaultCost)
+		require.NoError(tb, err)
+		user := &models.User{Email: "paginate@example.com", PasswordHash: string(hashedCred)}
+		err = ctx.DB().Create(user).Error
+		require.NoError(tb, err)
+
+		// Add 5 keys
+		for i := 0; i < 5; i++ {
+			key := fmt.Sprintf("0x%040d", i)
+			err = userService.AddKeyIdentity(context.Background(), user.ID, "ethereum", key, nil)
+			require.NoError(tb, err)
+		}
+
+		// Page 1: start 0, pageSize 2
+		pg, err := filter.NewPagination(0, 2)
+		require.NoError(tb, err)
+		identities, total, err := userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, identities, 2, "page 1 should return 2 items")
+		assert.Equal(tb, int64(5), total, "total should be 5")
+
+		// Page 2: start 2, pageSize 2
+		pg, err = filter.NewPagination(2, 2)
+		require.NoError(tb, err)
+		identities, total, err = userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, identities, 2, "page 2 should return 2 items")
+		assert.Equal(tb, int64(5), total, "total should still be 5")
+
+		// Page 3: start 4, pageSize 2 (last page, 1 item)
+		pg, err = filter.NewPagination(4, 2)
+		require.NoError(tb, err)
+		identities, total, err = userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, identities, 1, "page 3 should return 1 item")
+		assert.Equal(tb, int64(5), total, "total should still be 5")
+
+		// Filter by type
+		typeFilter := filter.NewLogicalFilter("type", filter.OpEq, "ethereum")
+		pg, _ = filter.NewPagination(0, 10)
+		identities, total, err = userService.ListKeyIdentities(context.Background(), user.ID,
+			[]queryutil.CrudFilter{typeFilter},
+			nil,
+			pg)
+		require.NoError(tb, err)
+		assert.Len(tb, identities, 5, "filter by type=ethereum should return all 5")
+		assert.Equal(tb, int64(5), total)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
 }
