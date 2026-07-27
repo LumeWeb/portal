@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil"
 )
 
 const USER_SERVICE = "user"
@@ -53,7 +54,7 @@ type UserService interface {
 	RemoveKeyIdentity(ctx context.Context, userId uint, keyType string, key string) error
 
 	// ListKeyIdentities returns all key identities linked to the given user.
-	ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error)
+	ListKeyIdentities(ctx context.Context, userId uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.KeyIdentity, int64, error)
 
 	// SendEmailVerification sends an email verification email to the user with the given ID.
 	// It returns an error if any.

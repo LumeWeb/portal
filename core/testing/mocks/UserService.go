@@ -12,6 +12,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil"
 	"gorm.io/gorm"
 )
 
@@ -999,31 +1000,37 @@ func (_c *MockUserService_KeyIdentityExists_Call) RunAndReturn(run func(ctx cont
 }
 
 // ListKeyIdentities provides a mock function for the type MockUserService
-func (_mock *MockUserService) ListKeyIdentities(ctx context.Context, userId uint) ([]models.KeyIdentity, error) {
-	ret := _mock.Called(ctx, userId)
+func (_mock *MockUserService) ListKeyIdentities(ctx context.Context, userId uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.KeyIdentity, int64, error) {
+	ret := _mock.Called(ctx, userId, filters, sorts, pagination)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListKeyIdentities")
 	}
 
-	var r0 []models.KeyIdentity
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]models.KeyIdentity, error)); ok {
-		return returnFunc(ctx, userId)
+	var r0 []*models.KeyIdentity
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) ([]*models.KeyIdentity, int64, error)); ok {
+		return returnFunc(ctx, userId, filters, sorts, pagination)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []models.KeyIdentity); ok {
-		r0 = returnFunc(ctx, userId)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) []*models.KeyIdentity); ok {
+		r0 = returnFunc(ctx, userId, filters, sorts, pagination)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]models.KeyIdentity)
+			r0 = ret.Get(0).([]*models.KeyIdentity)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, userId)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) int64); ok {
+		r1 = returnFunc(ctx, userId, filters, sorts, pagination)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) error); ok {
+		r2 = returnFunc(ctx, userId, filters, sorts, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockUserService_ListKeyIdentities_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListKeyIdentities'
@@ -1034,11 +1041,14 @@ type MockUserService_ListKeyIdentities_Call struct {
 // ListKeyIdentities is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) ListKeyIdentities(ctx interface{}, userId interface{}) *MockUserService_ListKeyIdentities_Call {
-	return &MockUserService_ListKeyIdentities_Call{Call: _e.mock.On("ListKeyIdentities", ctx, userId)}
+//   - filters []queryutil.CrudFilter
+//   - sorts []queryutil.Sort
+//   - pagination queryutil.Pagination
+func (_e *MockUserService_Expecter) ListKeyIdentities(ctx interface{}, userId interface{}, filters interface{}, sorts interface{}, pagination interface{}) *MockUserService_ListKeyIdentities_Call {
+	return &MockUserService_ListKeyIdentities_Call{Call: _e.mock.On("ListKeyIdentities", ctx, userId, filters, sorts, pagination)}
 }
 
-func (_c *MockUserService_ListKeyIdentities_Call) Run(run func(ctx context.Context, userId uint)) *MockUserService_ListKeyIdentities_Call {
+func (_c *MockUserService_ListKeyIdentities_Call) Run(run func(ctx context.Context, userId uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination)) *MockUserService_ListKeyIdentities_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1048,20 +1058,35 @@ func (_c *MockUserService_ListKeyIdentities_Call) Run(run func(ctx context.Conte
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 []queryutil.CrudFilter
+		if args[2] != nil {
+			arg2 = args[2].([]queryutil.CrudFilter)
+		}
+		var arg3 []queryutil.Sort
+		if args[3] != nil {
+			arg3 = args[3].([]queryutil.Sort)
+		}
+		var arg4 queryutil.Pagination
+		if args[4] != nil {
+			arg4 = args[4].(queryutil.Pagination)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
+			arg3,
+			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *MockUserService_ListKeyIdentities_Call) Return(keyIdentitys []models.KeyIdentity, err error) *MockUserService_ListKeyIdentities_Call {
-	_c.Call.Return(keyIdentitys, err)
+func (_c *MockUserService_ListKeyIdentities_Call) Return(keyIdentitys []*models.KeyIdentity, n int64, err error) *MockUserService_ListKeyIdentities_Call {
+	_c.Call.Return(keyIdentitys, n, err)
 	return _c
 }
 
-func (_c *MockUserService_ListKeyIdentities_Call) RunAndReturn(run func(ctx context.Context, userId uint) ([]models.KeyIdentity, error)) *MockUserService_ListKeyIdentities_Call {
+func (_c *MockUserService_ListKeyIdentities_Call) RunAndReturn(run func(ctx context.Context, userId uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.KeyIdentity, int64, error)) *MockUserService_ListKeyIdentities_Call {
 	_c.Call.Return(run)
 	return _c
 }

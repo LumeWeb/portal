@@ -7,6 +7,7 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
+	"go.lumeweb.com/queryutil"
 	"golang.org/x/crypto/bcrypt"
 	"testing"
 
@@ -594,7 +595,7 @@ func TestUserService_ListKeyIdentities_Success(t *testing.T) {
 		require.NoError(tb, err)
 
 		// List identities
-		identities, err := userService.ListKeyIdentities(context.Background(), user.ID)
+		identities, _, err := userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Len(tb, identities, 2)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
@@ -611,7 +612,7 @@ func TestUserService_ListKeyIdentities_Empty(t *testing.T) {
 		err = ctx.DB().Create(user).Error
 		require.NoError(tb, err)
 
-		identities, err := userService.ListKeyIdentities(context.Background(), user.ID)
+		identities, _, err := userService.ListKeyIdentities(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Empty(tb, identities)
 	}, coreTesting.WithServiceFactory(core.USER_SERVICE, service.NewUserService))
