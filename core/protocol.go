@@ -2,10 +2,12 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
 
+	"github.com/ipfs/go-cid"
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/db/models/data_models"
 	"gorm.io/gorm"
@@ -60,6 +62,41 @@ type ProtocolGetPinHandler interface {
 	PinHandler() ProtocolPinHandler
 }
 
+// ProtocolDAGProvider is an optional interface for protocols that support
+// DAG (directed acyclic graph) traversal of their block graphs.
+// Protocols that don't have DAGs (e.g. simple object stores) simply don't
+// implement this interface.
+type ProtocolDAGProvider interface {
+	Protocol
+
+	// BlockChildren returns the ordered child CIDs of a block.
+	// max limits the number of children returned; nil = no limit.
+	// Returns empty slice for leaf blocks.
+	BlockChildren(ctx context.Context, c cid.Cid, max *int) ([]cid.Cid, error)
+
+	// BlockSize returns the size of a block in bytes.
+	BlockSize(ctx context.Context, c cid.Cid) (uint64, error)
+
+	// ResolveDAG resolves the complete block graph rooted at rootCID in a single
+	// batch operation. Returns all blocks in the DAG with their sizes and parent→child
+	// link relationships. This is the performance-optimized path — one SQL query
+	// (recursive CTE) instead of N per-block round-trips.
+	// Protocols that don't support batch resolution can return ErrDAGNotSupported;
+	// callers fall back to BlockChildren/BlockSize BFS traversal.
+	ResolveDAG(ctx context.Context, rootCID cid.Cid) ([]DAGBlockNode, error)
+}
+
+// DAGBlockNode represents a single block in a resolved DAG.
+type DAGBlockNode struct {
+	CID      cid.Cid
+	Size     uint64
+	Children []cid.Cid // ordered child CIDs (empty for leaves)
+}
+
+// ErrDAGNotSupported is returned by a ProtocolDAGProvider method when the
+// protocol does not support DAG traversal or batch resolution.
+var ErrDAGNotSupported = errors.New("protocol does not support DAG traversal")
+
 type TestingProtocolRequestDataHandler interface {
 	Protocol
 	ProtocolRequestDataHandler
@@ -70,6 +107,13 @@ type TestingProtocolRequestDataHandler interface {
 type TestingProtocolPinHandler interface {
 	Protocol
 	ProtocolPinHandler
+}
+
+// TestingProtocolDAGProvider is a composite interface for testing
+// protocols that support DAG traversal.
+type TestingProtocolDAGProvider interface {
+	Protocol
+	ProtocolDAGProvider
 }
 
 // registerProtocol is a private helper that implements the core registration logic
