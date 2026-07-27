@@ -539,15 +539,14 @@ func (u UserServiceDefault) ListKeyIdentities(ctx context.Context, userId uint, 
 	var identities []*models.KeyIdentity
 	var total int64
 
-	query := u.DB().WithContext(ctx).Model(&models.KeyIdentity{}).Where("user_id = ?", userId)
+	baseQuery := u.DB().WithContext(ctx).Model(&models.KeyIdentity{}).Where("user_id = ?", userId)
 
-	query = queryutil.ApplyFilters(query, filters, nil)
-	query = queryutil.ApplySort(query, sorts)
-
-	if err := query.Count(&total).Error; err != nil {
+	if err := queryutil.ApplyFilters(baseQuery, filters, nil).Count(&total).Error; err != nil {
 		return nil, 0, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
 
+	query := queryutil.ApplyFilters(baseQuery, filters, nil)
+	query = queryutil.ApplySort(query, sorts)
 	query = queryutil.ApplyPagination(query, pagination)
 
 	if err := query.Find(&identities).Error; err != nil {
