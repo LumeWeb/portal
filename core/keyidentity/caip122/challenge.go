@@ -27,6 +27,10 @@ type MemoryChallengeStore struct {
 	maxEntries int
 	stopChan   chan struct{}
 	closeOnce  sync.Once
+
+	// lastInspectedForTest records the number of entries inspected by the
+	// most recent tryEvictExpiredBounded call. Test-only; not used in production logic.
+	lastInspectedForTest int
 }
 
 type memoryChallenge struct {
@@ -53,6 +57,14 @@ func (m *MemoryChallengeStore) SetMaxEntriesForTest(n int) {
 	m.mu.Lock()
 	m.maxEntries = n
 	m.mu.Unlock()
+}
+
+// InspectedCountForTest returns the number of entries inspected by the most
+// recent tryEvictExpiredBounded call. Test-only.
+func (m *MemoryChallengeStore) InspectedCountForTest() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.lastInspectedForTest
 }
 
 // Close stops the background reaper goroutine. Safe to call multiple times.
@@ -112,21 +124,27 @@ func (m *MemoryChallengeStore) Set(ctx context.Context, nonce string, domain str
 	return nil
 }
 
-// tryEvictExpiredBounded samples up to maxSample random entries from the
-// store and evicts any that have expired. Returns true if at least one
-// entry was evicted. Caller must hold m.mu.
+// tryEvictExpiredBounded samples up to maxSample entries from the store
+// and evicts any that have expired. Returns true if at least one entry
+// was evicted. The inspection count is bounded — the loop exits after
+// maxSample iterations regardless of how many were evicted, preventing
+// an O(N) full scan when the store is at capacity with all live entries.
+// Caller must hold m.mu.
 func (m *MemoryChallengeStore) tryEvictExpiredBounded(maxSample int) bool {
 	now := time.Now()
 	evicted := 0
+	inspected := 0
 	for nonce, ch := range m.store {
+		if inspected >= maxSample {
+			break
+		}
+		inspected++
 		if now.After(ch.expiresAt) {
 			delete(m.store, nonce)
 			evicted++
-			if evicted >= maxSample {
-				break
-			}
 		}
 	}
+	m.lastInspectedForTest = inspected
 	return evicted > 0
 }
 
