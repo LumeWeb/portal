@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
@@ -203,4 +204,23 @@ func (m *UploadServiceDefault) GetUploadByID(ctx context.Context, uploadID uint)
 		uploadMetrics.UploadsQueried.WithLabelValues(uploadMetrics.LabelOpGetByID).Inc()
 	}
 	return result, err
+}
+
+func (m *UploadServiceDefault) GetUploadStats(ctx context.Context) ([]core.ProtocolUploadStat, error) {
+	ctx, span := core.TraceMethod(ctx, "UploadServiceDefault.GetUploadStats")
+	defer span.End()
+
+	var stats []core.ProtocolUploadStat
+
+	if err := db.RetryableComponentTransaction(m, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Table("uploads").
+			Select("protocol, COUNT(DISTINCT id) as total_uploads, COALESCE(SUM(size), 0) as total_storage_bytes").
+			Where("deleted_at IS NULL").
+			Group("protocol").
+			Scan(&stats)
+	}); err != nil {
+		return nil, fmt.Errorf("failed to get upload stats: %w", err)
+	}
+
+	return stats, nil
 }

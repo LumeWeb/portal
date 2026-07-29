@@ -197,3 +197,63 @@ func TestUploadService_GetUploadByID(t *testing.T) {
 
 	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
 }
+
+func TestUploadService_GetUploadStats(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		uploadService := core.GetService[core.UploadService](ctx, core.UPLOAD_SERVICE)
+		require.NotNil(tb, uploadService)
+
+		// Empty DB — returns empty slice
+		stats, err := uploadService.GetUploadStats(context.Background())
+		require.NoError(tb, err)
+		assert.Empty(tb, stats)
+
+		// Seed uploads across two protocols
+		uploads := []*models.Upload{
+			{Hash: []byte("hash1"), Protocol: "ipfs", Size: 1024},
+			{Hash: []byte("hash2"), Protocol: "ipfs", Size: 2048},
+			{Hash: []byte("hash3"), Protocol: "sia", Size: 4096},
+			{Hash: []byte("hash4"), Protocol: "sia", Size: 0}, // virtual object
+		}
+		for _, u := range uploads {
+			require.NoError(tb, uploadService.SaveUpload(context.Background(), u))
+		}
+
+		stats, err = uploadService.GetUploadStats(context.Background())
+		require.NoError(tb, err)
+		require.Len(tb, stats, 2)
+
+		// Build a map for deterministic lookup
+		byProtocol := make(map[string]core.ProtocolUploadStat)
+		for _, s := range stats {
+			byProtocol[s.Protocol] = s
+		}
+
+		// IPFS: 2 uploads, 3072 bytes
+		ipfsStat, ok := byProtocol["ipfs"]
+		assert.True(tb, ok)
+		assert.Equal(tb, uint64(2), ipfsStat.TotalUploads)
+		assert.Equal(tb, uint64(3072), ipfsStat.TotalStorageBytes)
+
+		// Sia: 2 uploads, 4096 bytes (Size=0 virtual object contributes 0)
+		siaStat, ok := byProtocol["sia"]
+		assert.True(tb, ok)
+		assert.Equal(tb, uint64(2), siaStat.TotalUploads)
+		assert.Equal(tb, uint64(4096), siaStat.TotalStorageBytes)
+
+		// Soft-delete one IPFS upload and verify it's excluded
+		require.NoError(tb, uploadService.DeleteUpload(context.Background(), &testStorageHash{hash: []byte("hash1")}))
+		stats, err = uploadService.GetUploadStats(context.Background())
+		require.NoError(tb, err)
+		require.Len(tb, stats, 2)
+
+		byProtocol = make(map[string]core.ProtocolUploadStat)
+		for _, s := range stats {
+			byProtocol[s.Protocol] = s
+		}
+		ipfsStat = byProtocol["ipfs"]
+		assert.Equal(tb, uint64(1), ipfsStat.TotalUploads)
+		assert.Equal(tb, uint64(2048), ipfsStat.TotalStorageBytes)
+
+	}, coreTesting.WithServiceFactory(core.UPLOAD_SERVICE, service.NewMetadataService))
+}

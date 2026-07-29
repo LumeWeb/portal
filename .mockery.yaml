@@ -57,6 +57,7 @@ packages:
       PortalMetaBuilder: {}
       Protocol: {}
       ProtocolDAGProvider: {}
+      ProtocolExportAccessController: {}
       ProtocolInit: {}
       ProtocolParser: {}
       ProtocolPinHandler: {}
@@ -80,6 +81,7 @@ packages:
       TestingHashWithProof: {}
       TestingProtocolPinHandler: {}
       TestingProtocolDAGProvider: {}
+      TestingProtocolExportAccessController: {}
       TestingProtocolRequestDataHandler: {}
       TestingTestingHashWithProof: {}
       UploadService: {}

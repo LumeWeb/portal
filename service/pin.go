@@ -729,3 +729,23 @@ func applyProtocolPinFilters(filter core.PinFilter) func(*gorm.DB) *gorm.DB {
 		return db.Order("Pin.created_at DESC")
 	}
 }
+
+func (p *PinServiceDefault) GetPinStats(ctx context.Context) ([]core.ProtocolPinStat, error) {
+	ctx, span := core.TraceMethod(ctx, "PinServiceDefault.GetPinStats")
+	defer span.End()
+
+	var stats []core.ProtocolPinStat
+
+	if err := db.RetryableComponentTransaction(p, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Table("pins p").
+			Joins("JOIN uploads u ON p.upload_id = u.id").
+			Select("u.protocol, COUNT(p.id) as total_pins").
+			Where("u.deleted_at IS NULL").
+			Group("u.protocol").
+			Scan(&stats)
+	}); err != nil {
+		return nil, fmt.Errorf("failed to get pin stats: %w", err)
+	}
+
+	return stats, nil
+}
