@@ -112,6 +112,43 @@ type ProtocolExportAccessController interface {
 // ErrExportDenied is returned when a protocol denies export of a CID.
 var ErrExportDenied = errors.New("export denied by protocol ACL")
 
+// ProtocolStorageStatsProvider is an optional interface for protocols that
+// need to report storage statistics differently from the default Upload-based
+// counting in GetUploadStats. Protocols like Sia have virtual objects (which
+// reference physical slabs) and need to distinguish logical object counts
+// from physical storage unit counts.
+//
+// Protocols that don't implement this interface default to Upload-based stats
+// (COUNT uploads, SUM size) via GetUploadStats.
+type ProtocolStorageStatsProvider interface {
+	Protocol
+
+	// StorageStats returns protocol-specific storage statistics.
+	StorageStats(ctx context.Context) (*ProtocolStorageStats, error)
+}
+
+// ProtocolStorageStats represents storage statistics from a protocol that
+// implements ProtocolStorageStatsProvider.
+type ProtocolStorageStats struct {
+	// ObjectCount is the number of logical objects (CIDs) the protocol tracks.
+	// For Sia: slab pin count (excludes virtual object pins which have Size=0).
+	ObjectCount uint64
+
+	// StorageBytes is the actual data stored (before redundancy).
+	// For Sia: sum of slab DataSize values from SlabMetadata.
+	StorageBytes uint64
+
+	// PhysicalStorageBytes is the actual on-wire storage including redundancy.
+	// For Sia: sum of slab TotalSize values from SlabMetadata.
+	// Zero if not applicable (e.g. protocols without redundancy).
+	PhysicalStorageBytes uint64
+
+	// PhysicalUnitCount is the number of physical storage units.
+	// For Sia: distinct slab count.
+	// Zero if not applicable.
+	PhysicalUnitCount uint64
+}
+
 type TestingProtocolRequestDataHandler interface {
 	Protocol
 	ProtocolRequestDataHandler
@@ -136,6 +173,13 @@ type TestingProtocolDAGProvider interface {
 type TestingProtocolExportAccessController interface {
 	Protocol
 	ProtocolExportAccessController
+}
+
+// TestingProtocolStorageStatsProvider is a composite interface for testing
+// protocols that implement storage stats reporting.
+type TestingProtocolStorageStatsProvider interface {
+	Protocol
+	ProtocolStorageStatsProvider
 }
 
 // registerProtocol is a private helper that implements the core registration logic
