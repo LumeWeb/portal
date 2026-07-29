@@ -10,6 +10,12 @@ import (
 
 const PIN_SERVICE = "pin"
 
+// ProtocolPinStat represents per-protocol aggregate pin counts.
+type ProtocolPinStat struct {
+	Protocol  string
+	TotalPins uint64
+}
+
 type PinService interface {
 	// Model registration methods
 	// RegisterPinModel registers a protocol-specific pin data model for a protocol
@@ -79,6 +85,11 @@ type PinService interface {
 
 	//QueryProtocolData queries for protocol-specific data based on the provided query and filter.
 	QueryProtocolPin(ctx context.Context, protocol string, query any, filter PinFilter) (any, error)
+
+	// GetPinStats returns per-protocol aggregate pin counts.
+	// Joins pins → uploads on upload_id, groups by uploads.protocol.
+	// Soft-deleted uploads are excluded.
+	GetPinStats(ctx context.Context) ([]ProtocolPinStat, error)
 
 	Service
 }

@@ -97,6 +97,21 @@ type DAGBlockNode struct {
 // protocol does not support DAG traversal or batch resolution.
 var ErrDAGNotSupported = errors.New("protocol does not support DAG traversal")
 
+// ProtocolExportAccessController is an optional interface for protocols that
+// need to gate which CIDs can be exported (e.g. private objects, ACL'd content).
+// Protocols that don't implement this interface default to allowing all exports.
+type ProtocolExportAccessController interface {
+	Protocol
+
+	// CanExportCID checks if a single CID's Sia object can be exported.
+	// Returns (true, nil) if export is permitted.
+	// Returns (false, ErrExportDenied) if denied.
+	CanExportCID(ctx context.Context, cidStr string) (bool, error)
+}
+
+// ErrExportDenied is returned when a protocol denies export of a CID.
+var ErrExportDenied = errors.New("export denied by protocol ACL")
+
 type TestingProtocolRequestDataHandler interface {
 	Protocol
 	ProtocolRequestDataHandler
@@ -114,6 +129,13 @@ type TestingProtocolPinHandler interface {
 type TestingProtocolDAGProvider interface {
 	Protocol
 	ProtocolDAGProvider
+}
+
+// TestingProtocolExportAccessController is a composite interface for testing
+// protocols that implement export access control.
+type TestingProtocolExportAccessController interface {
+	Protocol
+	ProtocolExportAccessController
 }
 
 // registerProtocol is a private helper that implements the core registration logic
