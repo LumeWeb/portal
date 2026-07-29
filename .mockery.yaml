@@ -64,6 +64,7 @@ packages:
       ProtocolRequestDataHandler: {}
       ProtocolStart: {}
       ProtocolStop: {}
+      ProtocolStorageStatsProvider: {}
       RenterService: {}
       RequestService: {}
       RoutableAPI: {}
@@ -83,6 +84,7 @@ packages:
       TestingProtocolDAGProvider: {}
       TestingProtocolExportAccessController: {}
       TestingProtocolRequestDataHandler: {}
+      TestingProtocolStorageStatsProvider: {}
       TestingTestingHashWithProof: {}
       UploadService: {}
       UserService: {}
