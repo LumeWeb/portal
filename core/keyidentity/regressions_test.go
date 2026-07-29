@@ -3,6 +3,7 @@ package keyidentity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	stdtesting "testing"
 	"time"
@@ -105,6 +106,55 @@ func TestRegression_Set_EvictsExpiredAtCapacity(t *stdtesting.T) {
 	_, found, _ := store.Get(ctx, "new-nonce")
 	if !found {
 		t.Fatal("new-nonce should be in the store after eviction")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// tryEvictExpiredBounded: inspection count is bounded. When the store is at
+// capacity with all live entries, tryEvictExpiredBounded must exit after
+// maxSample iterations — not scan the entire map. This prevents O(N) scans
+// under the write lock on every Set call.
+// ---------------------------------------------------------------------------
+
+func TestRegression_Set_BoundedInspectionAtCapacity(t *stdtesting.T) {
+	store := caip122.NewMemoryChallengeStore()
+	defer store.Close()
+	// Use a large capacity with a small sample bound so we can verify
+	// the loop exits early.
+	store.SetMaxEntriesForTest(1000)
+
+	ctx := context.Background()
+	// Fill with 1000 live entries.
+	for i := 0; i < 1000; i++ {
+		nonce := fmt.Sprintf("live-nonce-%04d", i)
+		if err := store.Set(ctx, nonce, "localhost", 5*time.Minute); err != nil {
+			t.Fatalf("Set failed for %s: %v", nonce, err)
+		}
+	}
+
+	// The store is at capacity with all live entries. Set must reject
+	// because tryEvictExpiredBounded finds no expired entries to evict.
+	err := store.Set(ctx, "overflow", "localhost", 5*time.Minute)
+
+	if err == nil {
+		t.Fatal("expected capacity-exceeded error; got nil")
+	}
+	if !strings.Contains(err.Error(), "capacity exceeded") {
+		t.Fatalf("expected 'capacity exceeded' error, got: %v", err)
+	}
+	// Directly verify the bound: tryEvictExpiredBounded must have inspected
+	// at most 64 entries (the default maxSample), not all 1000.
+	if inspected := store.InspectedCountForTest(); inspected != 64 {
+		t.Fatalf("expected exactly 64 inspected entries, got %d", inspected)
+	}
+
+	// All 1000 live entries must still be present.
+	for i := 0; i < 1000; i++ {
+		nonce := fmt.Sprintf("live-nonce-%04d", i)
+		_, found, err := store.Get(ctx, nonce)
+		if err != nil || !found {
+			t.Fatalf("live nonce %s was evicted: found=%v err=%v", nonce, found, err)
+		}
 	}
 }
 
