@@ -45,6 +45,35 @@ type ObjectMetadata struct {
 
 type RenterHostFilterMode string
 
+// SharedObject contains all the metadata necessary to retrieve and decrypt
+// an object without additional account context. Each slab includes its own
+// unencrypted EncryptionKey, so a consumer can fetch and decrypt sectors
+// directly from the Sia network using the slab layout and sector roots.
+//
+// DataKey is the object-level data key used to decrypt the slab data after
+// it has been reassembled. It is returned unencrypted so consumers can
+// decrypt the content without access to the indexer or app key.
+type SharedObject struct {
+	Slabs   []SlabSlice `json:"slabs"`
+	DataKey [32]byte    `json:"data_key"`
+}
+
+// SlabSlice represents a slice of a slab that is part of an object.
+type SlabSlice struct {
+	Version       uint8          `json:"version"`
+	EncryptionKey [32]byte       `json:"encryption_key"`
+	MinShards     uint           `json:"min_shards"`
+	Sectors       []PinnedSector `json:"sectors"`
+	Offset        uint32         `json:"offset"`
+	Length        uint32         `json:"length"`
+}
+
+// PinnedSector is a sector that has been pinned to a host.
+type PinnedSector struct {
+	Root    [32]byte `json:"root"`
+	HostKey [32]byte `json:"host_key"`
+}
+
 type RenterService interface {
 	CreateBucketIfNotExists(bucket string) error
 	UploadObject(ctx context.Context, file io.Reader, bucket string, fileName string, hash []byte) error
@@ -55,6 +84,7 @@ type RenterService interface {
 	UploadObjectMultipart(ctx context.Context, params *MultipartUploadParams) error
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	SlabSize(ctx context.Context) (uint64, error)
+	SharedObject(ctx context.Context, bucket string, fileName string) (*SharedObject, error)
 
 	Service
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/samber/lo"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
@@ -17,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	proto4 "go.sia.tech/core/rhp/v4"
 	"go.sia.tech/core/types"
+	"go.sia.tech/indexd/slabs"
 	sdk "go.sia.tech/siastorage"
 	"go.uber.org/zap"
 	"gorm.io/datatypes"
@@ -740,6 +742,66 @@ func (r *RenterService) SlabSize(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 	return uint64(r.slabSize), nil
+}
+
+// SharedObject returns the slabs and unencrypted data key for the object
+// stored at (bucket, fileName). The caller can use the slab layout, sector
+// roots, and data key to retrieve and decrypt the object data directly from
+// the Sia network without contacting the indexer.
+func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error) {
+	_, span := core.TraceMethod(ctx, "RenterService.SharedObject")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("renter.bucket", bucket),
+		attribute.String("renter.objectKey", fileName),
+	)
+
+	if err := r.ensureSDK(); err != nil {
+		return nil, err
+	}
+
+	siaObj, err := r.findSiaObject(ctx, bucket, fileName)
+	if err != nil {
+		return nil, err
+	}
+	if siaObj == nil {
+		return nil, fmt.Errorf("object not found in bucket %q: %s", bucket, fileName)
+	}
+	if siaObj.Status != models.RenterObjectStatusUploaded {
+		return nil, fmt.Errorf("object %q is not uploaded (status: %s)", fileName, siaObj.Status)
+	}
+
+	var sealed sdk.SealedObject
+	if err := json.Unmarshal(siaObj.SealedData, &sealed); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal sealed object: %w", err)
+	}
+
+	obj, err := r.sdk.UnsealObject(sealed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unseal object: %w", err)
+	}
+
+	objSlabs := obj.Slabs()
+	out := &core.SharedObject{
+		DataKey: obj.DataKey(),
+		Slabs: lo.Map(objSlabs, func(s slabs.SlabSlice, _ int) core.SlabSlice {
+			return core.SlabSlice{
+				Version:       s.Version,
+				EncryptionKey: s.EncryptionKey,
+				MinShards:     s.MinShards,
+				Sectors: lo.Map(s.Sectors, func(sec slabs.PinnedSector, _ int) core.PinnedSector {
+					return core.PinnedSector{
+						Root:    sec.Root,
+						HostKey: sec.HostKey,
+					}
+				}),
+				Offset: s.Offset,
+				Length: s.Length,
+			}
+		}),
+	}
+
+	return out, nil
 }
 
 // Stop shuts down the packing loop and waits for it to exit.
