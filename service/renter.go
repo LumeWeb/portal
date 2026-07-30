@@ -783,7 +783,7 @@ func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileNam
 
 	objSlabs := obj.Slabs()
 	out := &core.SharedObject{
-		DataKey: obj.DataKey(),
+		DataKey: obj.UnsafeDataKey(),
 		Slabs: lo.Map(objSlabs, func(s slabs.SlabSlice, _ int) core.SlabSlice {
 			return core.SlabSlice{
 				Version:       s.Version,
