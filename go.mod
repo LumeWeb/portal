@@ -70,7 +70,7 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.20.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	go.sia.tech/core v0.21.7
-	go.sia.tech/coreutils v0.23.6-0.20260717131215-dfd89d065259
+	go.sia.tech/coreutils v0.23.6-0.20260730084356-d53a68fc6403
 	go.sia.tech/indexd v0.4.1
 	go.sia.tech/siastorage v0.1.1-0.20260730113653-4abba8d7d3ea
 	go.uber.org/mock v0.6.0
@@ -219,8 +219,8 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.27 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.60.0 // indirect
-	github.com/quic-go/webtransport-go v0.11.1 // indirect
+	github.com/quic-go/quic-go v0.61.0 // indirect
+	github.com/quic-go/webtransport-go v0.12.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
