@@ -761,6 +761,80 @@ func (_c *MockRenterService_SetLogger_Call) RunAndReturn(run func(logger *core.L
 	return _c
 }
 
+// SharedObject provides a mock function for the type MockRenterService
+func (_mock *MockRenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error) {
+	ret := _mock.Called(ctx, bucket, fileName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SharedObject")
+	}
+
+	var r0 *core.SharedObject
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*core.SharedObject, error)); ok {
+		return returnFunc(ctx, bucket, fileName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *core.SharedObject); ok {
+		r0 = returnFunc(ctx, bucket, fileName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*core.SharedObject)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, bucket, fileName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRenterService_SharedObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SharedObject'
+type MockRenterService_SharedObject_Call struct {
+	*mock.Call
+}
+
+// SharedObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - bucket string
+//   - fileName string
+func (_e *MockRenterService_Expecter) SharedObject(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_SharedObject_Call {
+	return &MockRenterService_SharedObject_Call{Call: _e.mock.On("SharedObject", ctx, bucket, fileName)}
+}
+
+func (_c *MockRenterService_SharedObject_Call) Run(run func(ctx context.Context, bucket string, fileName string)) *MockRenterService_SharedObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRenterService_SharedObject_Call) Return(sharedObject *core.SharedObject, err error) *MockRenterService_SharedObject_Call {
+	_c.Call.Return(sharedObject, err)
+	return _c
+}
+
+func (_c *MockRenterService_SharedObject_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error)) *MockRenterService_SharedObject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SlabSize provides a mock function for the type MockRenterService
 func (_mock *MockRenterService) SlabSize(ctx context.Context) (uint64, error) {
 	ret := _mock.Called(ctx)

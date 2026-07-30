@@ -205,6 +205,10 @@ func (h *MockRenterService) SlabSize(_ context.Context) (uint64, error) {
 	return uint64(4 * 1024 * 1024), nil
 }
 
+func (h *MockRenterService) SharedObject(_ context.Context, _ string, _ string) (*core.SharedObject, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // Config implements core.Component
 func (h *MockRenterService) Config() config.Manager {
 	return h.componentConfig
