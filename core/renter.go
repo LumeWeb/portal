@@ -84,7 +84,7 @@ type RenterService interface {
 	UploadObjectMultipart(ctx context.Context, params *MultipartUploadParams) error
 	DeleteObject(ctx context.Context, bucket string, fileName string) error
 	SlabSize(ctx context.Context) (uint64, error)
-	SharedObject(ctx context.Context, bucket string, fileName string) (*SharedObject, error)
+	SharedObject(ctx context.Context, bucket string, fileName string) (*SharedObject, *models.RenterObject, error)
 
 	Service
 }

@@ -762,7 +762,7 @@ func (_c *MockRenterService_SetLogger_Call) RunAndReturn(run func(logger *core.L
 }
 
 // SharedObject provides a mock function for the type MockRenterService
-func (_mock *MockRenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error) {
+func (_mock *MockRenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, *models.RenterObject, error) {
 	ret := _mock.Called(ctx, bucket, fileName)
 
 	if len(ret) == 0 {
@@ -770,8 +770,9 @@ func (_mock *MockRenterService) SharedObject(ctx context.Context, bucket string,
 	}
 
 	var r0 *core.SharedObject
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*core.SharedObject, error)); ok {
+	var r1 *models.RenterObject
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*core.SharedObject, *models.RenterObject, error)); ok {
 		return returnFunc(ctx, bucket, fileName)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *core.SharedObject); ok {
@@ -781,12 +782,19 @@ func (_mock *MockRenterService) SharedObject(ctx context.Context, bucket string,
 			r0 = ret.Get(0).(*core.SharedObject)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *models.RenterObject); ok {
 		r1 = returnFunc(ctx, bucket, fileName)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*models.RenterObject)
+		}
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, bucket, fileName)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockRenterService_SharedObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SharedObject'
@@ -825,12 +833,12 @@ func (_c *MockRenterService_SharedObject_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockRenterService_SharedObject_Call) Return(sharedObject *core.SharedObject, err error) *MockRenterService_SharedObject_Call {
-	_c.Call.Return(sharedObject, err)
+func (_c *MockRenterService_SharedObject_Call) Return(sharedObject *core.SharedObject, renterObject *models.RenterObject, err error) *MockRenterService_SharedObject_Call {
+	_c.Call.Return(sharedObject, renterObject, err)
 	return _c
 }
 
-func (_c *MockRenterService_SharedObject_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error)) *MockRenterService_SharedObject_Call {
+func (_c *MockRenterService_SharedObject_Call) RunAndReturn(run func(ctx context.Context, bucket string, fileName string) (*core.SharedObject, *models.RenterObject, error)) *MockRenterService_SharedObject_Call {
 	_c.Call.Return(run)
 	return _c
 }

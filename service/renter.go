@@ -748,7 +748,7 @@ func (r *RenterService) SlabSize(ctx context.Context) (uint64, error) {
 // stored at (bucket, fileName). The caller can use the slab layout, sector
 // roots, and data key to retrieve and decrypt the object data directly from
 // the Sia network without contacting the indexer.
-func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, error) {
+func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileName string) (*core.SharedObject, *models.RenterObject, error) {
 	_, span := core.TraceMethod(ctx, "RenterService.SharedObject")
 	defer span.End()
 	span.SetAttributes(
@@ -757,28 +757,28 @@ func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileNam
 	)
 
 	if err := r.ensureSDK(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	siaObj, err := r.findSiaObject(ctx, bucket, fileName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if siaObj == nil {
-		return nil, fmt.Errorf("object not found in bucket %q: %s", bucket, fileName)
+		return nil, nil, core.ErrUploadNotFound
 	}
 	if siaObj.Status != models.RenterObjectStatusUploaded {
-		return nil, fmt.Errorf("object %q is not uploaded (status: %s)", fileName, siaObj.Status)
+		return nil, siaObj, fmt.Errorf("object %q is not uploaded (status: %s)", fileName, siaObj.Status)
 	}
 
 	var sealed sdk.SealedObject
 	if err := json.Unmarshal(siaObj.SealedData, &sealed); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal sealed object: %w", err)
+		return nil, siaObj, fmt.Errorf("failed to unmarshal sealed object: %w", err)
 	}
 
 	obj, err := r.sdk.UnsealObject(sealed)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unseal object: %w", err)
+		return nil, siaObj, fmt.Errorf("failed to unseal object: %w", err)
 	}
 
 	objSlabs := obj.Slabs()
@@ -801,7 +801,7 @@ func (r *RenterService) SharedObject(ctx context.Context, bucket string, fileNam
 		}),
 	}
 
-	return out, nil
+	return out, siaObj, nil
 }
 
 // Stop shuts down the packing loop and waits for it to exit.
