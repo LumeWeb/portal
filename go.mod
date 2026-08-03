@@ -47,7 +47,7 @@ require (
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.3
 	github.com/pterm/pterm v0.12.83
-	github.com/redis/go-redis/v9 v9.21.0
+	github.com/redis/go-redis/v9 v9.22.0
 	github.com/relvacode/iso8601 v1.8.0
 	github.com/samber/lo v1.53.0
 	github.com/spf13/afero v1.15.0
