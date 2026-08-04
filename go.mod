@@ -35,7 +35,7 @@ require (
 	github.com/knadh/koanf/parsers/json v1.0.1
 	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/knadh/koanf/providers/rawbytes v1.0.0
-	github.com/knadh/koanf/providers/structs v1.0.0
+	github.com/knadh/koanf/providers/structs v1.0.1
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/labstack/echo-contrib v0.17.4
 	github.com/labstack/echo/v4 v4.15.4
