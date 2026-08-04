@@ -33,7 +33,7 @@ require (
 	github.com/johannesboyne/gofakes3 v1.2.0
 	github.com/kenshaw/snaker v0.4.3
 	github.com/knadh/koanf/parsers/json v1.0.1
-	github.com/knadh/koanf/providers/confmap v1.0.0
+	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/knadh/koanf/providers/rawbytes v1.0.1
 	github.com/knadh/koanf/providers/structs v1.0.1
 	github.com/knadh/koanf/v2 v2.3.6
