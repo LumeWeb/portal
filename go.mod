@@ -59,7 +59,7 @@ require (
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.7
 	go.lumeweb.com/portal-middleware v0.3.7
-	go.lumeweb.com/portal-router v0.7.6
+	go.lumeweb.com/portal-router v0.7.7
 	go.opentelemetry.io/contrib/bridges/otelzap v0.19.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.69.0
 	go.opentelemetry.io/otel v1.44.0
