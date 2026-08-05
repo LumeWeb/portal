@@ -656,6 +656,8 @@ go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0 h1:qazEJ
 go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0/go.mod h1:fOD2Yefuxixkx3ahVNf0O/PERb6r4OlbxfATVnYvzCo=
 go.opentelemetry.io/otel/log v0.20.0 h1:/5i0vuHxCLWUfChWG41K9wkM0jafruPw9NU1/RCJirs=
 go.opentelemetry.io/otel/log v0.20.0/go.mod h1:wOcMcjsZpG8x7Bak7IhSi/lg8wscV2C1VdrKCLPlt0E=
+go.opentelemetry.io/otel/log v0.21.0 h1:SLsVDGmtyBrdw8/a2Z0bOIxou/+bN4z56GebH7T0LvA=
+go.opentelemetry.io/otel/log v0.21.0/go.mod h1:iReetQrZL9Wyg84cCkOoCmqDHS5RCFfyxC7J+r8fn8g=
 go.opentelemetry.io/otel/log/logtest v0.20.0 h1:+tsZVE15N+RWyN9lUzsRyw7hMZXNMepGu105Eim82/k=
 go.opentelemetry.io/otel/log/logtest v0.20.0/go.mod h1:zS9Ryx9RrEAG2tgapMBSvacwhVSSOGSaSiWWgW3NPlQ=
 go.opentelemetry.io/otel/metric v1.44.0 h1:1w0gILTcHdr3YI+ixLyjemwrVnsMURbTZFrSYCdDdmc=
