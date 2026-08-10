@@ -72,7 +72,7 @@ require (
 	go.sia.tech/core v0.21.7
 	go.sia.tech/coreutils v0.24.0
 	go.sia.tech/indexd v0.4.2
-	go.sia.tech/siastorage v0.1.1-0.20260804083514-3943fdaf4fd6
+	go.sia.tech/siastorage v0.1.1-0.20260810081319-cb839cf474ea
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
 	go.uber.org/zap/exp v0.3.0

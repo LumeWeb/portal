@@ -754,6 +754,8 @@ go.sia.tech/siastorage v0.1.1-0.20260803093037-bdc99fd71dc9 h1:c6a0iCENK7XxgXBTr
 go.sia.tech/siastorage v0.1.1-0.20260803093037-bdc99fd71dc9/go.mod h1:o9tWCYGM4sJMwJTWUxh51fSep89lkmZOV7Q1aOMluec=
 go.sia.tech/siastorage v0.1.1-0.20260804083514-3943fdaf4fd6 h1:n0ZlcFrpOIEhTx0bHdUEqNjz8sTGK9Lz6mgAnWfC5pw=
 go.sia.tech/siastorage v0.1.1-0.20260804083514-3943fdaf4fd6/go.mod h1:o9tWCYGM4sJMwJTWUxh51fSep89lkmZOV7Q1aOMluec=
+go.sia.tech/siastorage v0.1.1-0.20260810081319-cb839cf474ea h1:kIlY2l7bOSSBhXL8rQ7NR9gmPkUL+1J+hiI2Ajcyqlk=
+go.sia.tech/siastorage v0.1.1-0.20260810081319-cb839cf474ea/go.mod h1:8S36C0a8Pjvxa6bmaH5qzKOpWP+jf/YxC3x0xJVepvQ=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.11.0 h1:ZvwS0R+56ePWxUNi+Atn9dWONBPp/AUETXlHW0DxSjE=
 go.uber.org/atomic v1.11.0/go.mod h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0=
