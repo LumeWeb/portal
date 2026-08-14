@@ -271,8 +271,19 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 	}
 
 	// Define the task function
-	// Detach context to avoid cancellation in long-running jobs
-	jobCtx := core.DetachContext(ctx)
+	// Cron execution is a genuine asynchronous boundary. Start from a fresh,
+	// bounded context instead of the incoming request/workflow context graph.
+	// Detaching with context.WithoutCancel would carry the entire arbitrary
+	// context chain (and, on retries, grow it by one layer each attempt).
+	//
+	// ExecuteJob creates its own new root span (WithNewRoot), but SetupJob,
+	// CleanupJob and HandleFailedJob do not, so carry only the OTel span
+	// context (via W3C traceparent) to keep their traces parented while
+	// dropping every other value. context.Background() is never canceled,
+	// preserving the original intent to outlive the scheduling context.
+	jobCtx := context.Background()
+	jobCtx = core.WithTracerInfo(jobCtx, core.DefaultTracerService, "cron")
+	jobCtx = core.ContextWithTraceParent(jobCtx, core.MarshalTraceParent(ctx))
 	taskFunc := func(jobID uuid.UUID) error {
 		return s.ExecuteJob(jobCtx, jobID)
 	}
