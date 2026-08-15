@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/multiformats/go-multihash"
 	"github.com/samber/lo"
@@ -1297,6 +1298,61 @@ func TestListWorkflowInstances(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.list1", "test.operation.list2"),
+	)
+}
+
+// TestListWorkflowInstances_SkipsUnregisteredWorkflow regresses the empty-items
+// + correct-total bug: a request whose metadata.workflow_name references a
+// workflow that is not registered in this coordinator is dropped by
+// buildWorkflowInstance. Such rows must be excluded from BOTH items and the
+// reported total, so items and total can never disagree.
+func TestListWorkflowInstances_SkipsUnregisteredWorkflow(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		workflowName := "listInstancesSkipTestWorkflow"
+		operationName := "test.operation.listskip"
+
+		err := workflowService.RegisterWorkflow(workflowName, []core.OperationStep{
+			{Operation: operationName, Foreground: true},
+		}, false)
+		require.NoError(tb, err)
+
+		userID := uint(123)
+
+		// One valid workflow instance for this user.
+		_, err = workflowService.StartWorkflow(context.Background(), workflowName,
+			core.WithWorkflowUserID(userID),
+			core.WithWorkflowData(map[string]interface{}{"instance": 1}))
+		require.NoError(tb, err)
+
+		// A request whose workflow is NOT registered: it survives the SQL
+		// filter (workflow_name IS NOT NULL) but must be dropped from results.
+		unregisteredMeta, err := json.Marshal(service.WorkflowMetadata{
+			WorkflowName: "does.not.exist",
+			TotalSteps:   1,
+			StartedAt:    time.Now().Unix(),
+		})
+		require.NoError(tb, err)
+
+		usr := userID
+		unreg := models.Request{
+			Operation: operationName,
+			Protocol:  "test",
+			Status:    models.RequestStatusPending,
+			UserID:    &usr,
+			Metadata:  unregisteredMeta,
+		}
+		require.NoError(tb, ctx.DB().Create(&unreg).Error)
+
+		instances, totalCount, err := workflowService.ListWorkflowInstances(context.Background(), userID, nil, nil, queryutil.Pagination{})
+		assert.NoError(tb, err)
+		assert.Len(tb, instances, 1, "unregistered-workflow request must be excluded from items")
+		assert.Equal(tb, int64(1), totalCount, "total must match the returned items (exclude dropped rows)")
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		withTestProtocol("test.operation.listskip"),
 	)
 }
 

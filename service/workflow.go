@@ -1337,17 +1337,27 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 	// Apply sorts
 	sortedQuery := queryutil.ApplySort(filteredQuery, sorts)
 
-	// Apply pagination
-	paginatedQuery := queryutil.ApplyPagination(sortedQuery, pagination)
+	// NOTE: pagination is intentionally NOT applied at the SQL level here.
+	// Rows are post-filtered in Go (a row whose metadata.workflow_name names a
+	// workflow that isn't registered in this coordinator is dropped by
+	// buildWorkflowInstance), so SQL OFFSET/LIMIT would page over rows that may
+	// not survive filtering, yielding inconsistent items vs total. A correct
+	// total for the post-filtered set requires examining every candidate row
+	// (each triggers the per-row buildWorkflowInstance work regardless), so we
+	// fetch the full sorted candidate set — lightweight Request rows bounded by
+	// a single user's workflow history — build the valid instances, then page
+	// over the validated slice and report total as the count of valid ones.
 
-	// Execute query to get filtered, sorted, and paginated requests
+	// Execute query to get filtered and sorted requests.
+	// The context is inherited from the base query's WithContext, and asserted
+	// explicitly here so the query honors request cancellation/timeouts.
 	var requests []*models.Request
-	if err := paginatedQuery.Find(&requests).Error; err != nil {
+	if err := sortedQuery.WithContext(ctx).Find(&requests).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to query requests: %w", err)
 	}
 
 	// Process requests to create workflow instances
-	var workflowInstances []*core.WorkflowInstance
+	workflowInstances := make([]*core.WorkflowInstance, 0, len(requests))
 	for _, req := range requests {
 		var metadata WorkflowMetadata
 		if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
@@ -1373,14 +1383,32 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 		workflowInstances = append(workflowInstances, instance)
 	}
 
-	// Get total count for pagination
-	var totalCount int64
-	countQuery := queryutil.ApplyFilters(baseQuery, allFilters, nil)
-	if err := countQuery.Count(&totalCount).Error; err != nil {
-		return nil, 0, fmt.Errorf("failed to get total count: %w", err)
+	// total reflects the validated set, so items and total can never disagree.
+	totalCount := int64(len(workflowInstances))
+
+	// Apply pagination to the validated slice (Start inclusive, End exclusive,
+	// matching the queryutil _start/_end convention).
+	offset := pagination.Start
+	if offset < 0 {
+		offset = 0
+	}
+	limit := pagination.End - pagination.Start
+	if limit <= 0 {
+		limit = len(workflowInstances)
+	}
+	start := offset
+	if start > len(workflowInstances) {
+		start = len(workflowInstances)
+	}
+	end := offset + limit
+	if end > len(workflowInstances) {
+		end = len(workflowInstances)
+	}
+	if end < start {
+		end = start
 	}
 
-	return workflowInstances, totalCount, nil
+	return workflowInstances[start:end], totalCount, nil
 }
 
 func (w *WorkflowCoordinatorDefault) ListDistinctWorkflowFilters(ctx context.Context, userID uint, additionalFilters []queryutil.CrudFilter) (map[string][]string, error) {
