@@ -1341,13 +1341,18 @@ func (w *WorkflowCoordinatorDefault) ListWorkflowInstances(ctx context.Context, 
 	// Rows are post-filtered in Go (a row whose metadata.workflow_name names a
 	// workflow that isn't registered in this coordinator is dropped by
 	// buildWorkflowInstance), so SQL OFFSET/LIMIT would page over rows that may
-	// not survive filtering, yielding inconsistent items vs total. Instead we
-	// fetch the full sorted set, build valid instances, then paginate over the
-	// validated slice and report total as the count of valid instances.
+	// not survive filtering, yielding inconsistent items vs total. A correct
+	// total for the post-filtered set requires examining every candidate row
+	// (each triggers the per-row buildWorkflowInstance work regardless), so we
+	// fetch the full sorted candidate set — lightweight Request rows bounded by
+	// a single user's workflow history — build the valid instances, then page
+	// over the validated slice and report total as the count of valid ones.
 
-	// Execute query to get filtered and sorted requests
+	// Execute query to get filtered and sorted requests.
+	// The context is inherited from the base query's WithContext, and asserted
+	// explicitly here so the query honors request cancellation/timeouts.
 	var requests []*models.Request
-	if err := sortedQuery.Find(&requests).Error; err != nil {
+	if err := sortedQuery.WithContext(ctx).Find(&requests).Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to query requests: %w", err)
 	}
 
