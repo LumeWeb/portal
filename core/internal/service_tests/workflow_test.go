@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/multiformats/go-multihash"
 	"github.com/samber/lo"
@@ -1508,7 +1509,7 @@ func TestRetryMaxRetriesExceeded(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		coreTesting.WithConfig("core.cron.workflow.max_retries", 2),
-		coreTesting.WithConfig("core.cron.workflow.initial_retry_delay", "1s"),
+		coreTesting.WithConfig("core.cron.workflow.initial_retry_delay", time.Second),
 		coreTesting.WithConfig("core.cron.workflow.retry_backoff_factor", 2.0),
 		withTestProtocol("test.operation.maxretries"),
 	)

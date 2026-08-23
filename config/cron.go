@@ -32,7 +32,7 @@ func (w WorkflowConfig) Schema() z.ZogSchema {
 			Default(5).
 			GTE(0, z.Message("max_retries must be >= 0")),
 		"InitialRetryDelay": z.Int().
-			Default(int(30 * time.Second / time.Millisecond)).
+			Default(int(30 * time.Second)).
 			GTE(0, z.Message("initial_retry_delay must be >= 0")),
 		"RetryBackoffFactor": z.Float64().
 			Default(2.0).
@@ -43,7 +43,7 @@ func (w WorkflowConfig) Schema() z.ZogSchema {
 func (w WorkflowConfig) Defaults() map[string]any {
 	return map[string]any{
 		"max_retries":          5,
-		"initial_retry_delay": "30s",
+		"initial_retry_delay": 30 * time.Second,
 		"retry_backoff_factor": 2.0,
 	}
 }
@@ -64,7 +64,7 @@ func (c CronConfig) Defaults() map[string]any {
 		"queue_limit": 50,
 		"workflow": map[string]any{
 			"max_retries":          5,
-			"initial_retry_delay":  "30s",
+			"initial_retry_delay":  30 * time.Second,
 			"retry_backoff_factor": 2.0,
 		},
 	}
