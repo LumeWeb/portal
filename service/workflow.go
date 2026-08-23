@@ -1508,8 +1508,10 @@ func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestI
 	// Increment retry count
 	metadata.RetryCount++
 
-	// Check against max retries
-	if maxRetries > 0 && metadata.RetryCount > maxRetries {
+	// Check against max retries. Use >= so max_retries=0 fails after the
+	// first attempt (RetryCount=1), preventing unbounded inline recursion
+	// for foreground steps whose operation permanently fails.
+	if metadata.RetryCount >= maxRetries {
 		w.Logger().Error("Workflow step exceeded max retries - failing permanently",
 			zap.String("workflow", metadata.WorkflowName),
 			zap.Uint("requestID", requestID),

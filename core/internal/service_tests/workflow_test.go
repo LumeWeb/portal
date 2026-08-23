@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/multiformats/go-multihash"
 	"github.com/samber/lo"
@@ -430,6 +429,7 @@ func TestRetryStepBehavior(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.retry"),
+		coreTesting.WithConfig("core.cron.workflow.max_retries", 5),
 	)
 }
 
@@ -1475,24 +1475,14 @@ func TestRetryMaxRetriesExceeded(t *testing.T) {
 		require.NoError(tb, err)
 		require.NotNil(tb, req)
 
-		// Call 1: should retry (RetryCount 1 <= maxRetries 2)
+		// Call 1: should retry (RetryCount 1 < maxRetries 2)
 		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 1"))
 		assert.Error(tb, err)
 		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
 
-		// Call 2: should retry (RetryCount 2 <= maxRetries 2)
+		// Call 2: should FAIL PERMANENTLY (RetryCount 2 >= maxRetries 2)
 		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 2"))
 		assert.Error(tb, err)
-		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
-
-		// Call 3: should FAIL PERMANENTLY (RetryCount 3 > maxRetries 2)
-		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 3"))
-		assert.Error(tb, err)
-		// Should NOT be a retried error
-		workflowErr := core.AsWorkflowError(err)
-		if workflowErr != nil {
-			assert.NotEqual(tb, core.ErrKeyWorkflowStepRetried, workflowErr.Key)
-		}
 		assert.Contains(tb, err.Error(), "exceeded maximum retries")
 
 		// Verify request is in Failed status
@@ -1500,16 +1490,16 @@ func TestRetryMaxRetriesExceeded(t *testing.T) {
 		assert.NoError(tb, err)
 		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
 
-		// Verify metadata RetrCount is incremented to 3
+		// Verify metadata RetryCount is incremented to 2
 		var metadata service.WorkflowMetadata
 		err = json.Unmarshal(updatedReq.Metadata, &metadata)
 		assert.NoError(tb, err)
-		assert.Equal(tb, 3, metadata.RetryCount)
+		assert.Equal(tb, 2, metadata.RetryCount)
 
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		coreTesting.WithConfig("core.cron.workflow.max_retries", 2),
-		coreTesting.WithConfig("core.cron.workflow.initial_retry_delay", time.Second),
+		coreTesting.WithConfig("core.cron.workflow.initial_retry_delay", "1s"),
 		coreTesting.WithConfig("core.cron.workflow.retry_backoff_factor", 2.0),
 		withTestProtocol("test.operation.maxretries"),
 	)
