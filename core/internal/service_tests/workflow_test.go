@@ -16,6 +16,7 @@ import (
 	"go.lumeweb.com/portal/service"
 	"go.lumeweb.com/queryutil"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 // Test 1: Workflow Registration Tests
@@ -1439,5 +1440,247 @@ func TestGetWorkflowStatusFollowsChain(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
 		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
 		withTestProtocol("test.operation.chain1", "test.operation.chain2", "test.operation.chain3"),
+	)
+}
+
+// Test 22: Retry Step with Max Retries Exceeded
+// Verifies that a step with RetryStep behavior stops retrying after exceeding
+// the configured max_retries limit and fails permanently.
+func TestRetryMaxRetriesExceeded(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "retryMaxExceededWorkflow"
+		operationName := "test.operation.maxretries"
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName,
+				FailureBehavior: core.RetryStep,
+				Foreground:      true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start workflow
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// Call 1: should retry (RetryCount 1 <= maxRetries 2)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 1"))
+		assert.Error(tb, err)
+		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
+
+		// Call 2: should retry (RetryCount 2 <= maxRetries 2)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 2"))
+		assert.Error(tb, err)
+		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
+
+		// Call 3: should FAIL PERMANENTLY (RetryCount 3 > maxRetries 2)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("failure 3"))
+		assert.Error(tb, err)
+		// Should NOT be a retried error
+		workflowErr := core.AsWorkflowError(err)
+		if workflowErr != nil {
+			assert.NotEqual(tb, core.ErrKeyWorkflowStepRetried, workflowErr.Key)
+		}
+		assert.Contains(tb, err.Error(), "exceeded maximum retries")
+
+		// Verify request is in Failed status
+		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
+		assert.NoError(tb, err)
+		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
+
+		// Verify metadata RetrCount is incremented to 3
+		var metadata service.WorkflowMetadata
+		err = json.Unmarshal(updatedReq.Metadata, &metadata)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 3, metadata.RetryCount)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		coreTesting.WithConfig("core.cron.workflow.max_retries", 2),
+		coreTesting.WithConfig("core.cron.workflow.initial_retry_delay", "1s"),
+		coreTesting.WithConfig("core.cron.workflow.retry_backoff_factor", 2.0),
+		withTestProtocol("test.operation.maxretries"),
+	)
+}
+
+// Test 23: Retry Step with Permanent Error (not-found)
+// Verifies that a step with RetryStep behavior does NOT retry when the error
+// is a permanent/not-found error (e.g., gorm.ErrRecordNotFound).
+func TestRetryPermanentError(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "retryPermanentErrorWorkflow"
+		operationName := "test.operation.permanent"
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName,
+				FailureBehavior: core.RetryStep,
+				Foreground:      true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start workflow
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// Fail step with a permanent (not-found) error
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, gorm.ErrRecordNotFound)
+
+		// Should NOT return a retried error — should return nil (skip retry)
+		assert.NoError(tb, err)
+
+		// Verify request is in Failed status (set by FailRequest at top of FailWorkflowStep)
+		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
+		assert.NoError(tb, err)
+		assert.Equal(tb, models.RequestStatusFailed, updatedReq.Status)
+
+		// Verify metadata RetryCount is still 0 (never incremented because permanent error skips retry)
+		var metadata service.WorkflowMetadata
+		err = json.Unmarshal(updatedReq.Metadata, &metadata)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 0, metadata.RetryCount)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		coreTesting.WithConfig("core.cron.workflow.max_retries", 5),
+		withTestProtocol("test.operation.permanent"),
+	)
+}
+
+// Test 24: Retry Count Incremented in Metadata
+// Verifies that RetryCount in WorkflowMetadata is incremented after each retry.
+func TestRetryCountIncremented(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "retryCountIncrementedWorkflow"
+		operationName := "test.operation.count"
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName,
+				FailureBehavior: core.RetryStep,
+				Foreground:      true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start workflow
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// Fail step once — should retry and increment RetryCount to 1
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("trigger retry"))
+		assert.Error(tb, err)
+		assert.Equal(tb, core.ErrKeyWorkflowStepRetried, core.AsWorkflowError(err).Key)
+
+		// Verify metadata RetryCount is 1
+		updatedReq, err := requestService.GetRequest(context.Background(), req.ID)
+		assert.NoError(tb, err)
+
+		var metadata service.WorkflowMetadata
+		err = json.Unmarshal(updatedReq.Metadata, &metadata)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 1, metadata.RetryCount)
+
+		// Verify status is correct (re-executed as foreground → Processing)
+		assert.Equal(tb, models.RequestStatusProcessing, updatedReq.Status)
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		coreTesting.WithConfig("core.cron.workflow.max_retries", 5),
+		withTestProtocol("test.operation.count"),
+	)
+}
+
+// Test 25: Retry Count Reset on Step Completion
+// Verifies that RetryCount is reset to 0 when a step succeeds and the workflow
+// advances to the next step.
+func TestRetryCountResetOnCompletion(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		workflowService := core.GetService[core.WorkflowService](ctx, core.WORKFLOW_SERVICE)
+		require.NotNil(tb, workflowService)
+
+		requestService := core.GetService[core.RequestService](ctx, core.REQUEST_SERVICE)
+		require.NotNil(tb, requestService)
+
+		workflowName := "retryCountResetWorkflow"
+		operationName1 := "test.operation.reset1"
+		operationName2 := "test.operation.reset2"
+
+		steps := []core.OperationStep{
+			{
+				Operation:       operationName1,
+				FailureBehavior: core.RetryStep,
+				Foreground:      true,
+			},
+			{
+				Operation:  operationName2,
+				Foreground: true,
+			},
+		}
+
+		// Register workflow
+		err := workflowService.RegisterWorkflow(workflowName, steps, false)
+		require.NoError(tb, err)
+
+		// Start workflow
+		req, err := workflowService.StartWorkflow(context.Background(), workflowName, core.WithWorkflowData(map[string]interface{}{"test": "data"}))
+		require.NoError(tb, err)
+		require.NotNil(tb, req)
+
+		// Execute and fail step 1 (increments RetryCount to 1, then re-executes)
+		err = workflowService.FailWorkflowStep(context.Background(), req.ID, errors.New("trigger retry"))
+		assert.Error(tb, err)
+
+		// Now complete step 1 (should reset RetryCount to 0 for next step)
+		err = workflowService.CompleteWorkflowStep(context.Background(), req.ID)
+		assert.NoError(tb, err)
+
+		// Find step 2 request
+		var req2 models.Request
+		err = ctx.DB().Model(&models.Request{}).Where("operation = ? AND status = ?", operationName2, models.RequestStatusProcessing).First(&req2).Error
+		require.NoError(tb, err)
+
+		// Verify step 2's metadata has RetryCount = 0
+		var metadata service.WorkflowMetadata
+		err = json.Unmarshal(req2.Metadata, &metadata)
+		assert.NoError(tb, err)
+		assert.Equal(tb, 0, metadata.RetryCount, "RetryCount should be reset to 0 for the next step")
+
+	}, coreTesting.WithServiceFactory(core.REQUEST_SERVICE, service.NewRequestService),
+		coreTesting.WithServiceFactory(core.WORKFLOW_SERVICE, service.NewWorkflowCoordinator),
+		coreTesting.WithConfig("core.cron.workflow.max_retries", 5),
+		withTestProtocol("test.operation.reset1", "test.operation.reset2"),
 	)
 }

@@ -347,6 +347,11 @@ func (b *BaseCronJob) GetScheduledDefinition() *CronScheduleDefinition {
 	return b.scheduleDefinition
 }
 
+// SetScheduledDefinition sets the schedule definition for the job.
+func (b *BaseCronJob) SetScheduledDefinition(schedDef *CronScheduleDefinition) {
+	b.scheduleDefinition = schedDef
+}
+
 // Args returns the arguments for the job.
 func (b *BaseCronJob) Args() any {
 	return b.args
@@ -433,6 +438,9 @@ type CronJob interface {
 	Done() <-chan struct{}
 	// SetDone sets the done channel for the job
 	SetDone(done <-chan struct{})
+
+	// SetScheduledDefinition sets the schedule definition for the job.
+	SetScheduledDefinition(schedDef *CronScheduleDefinition)
 }
 
 const (

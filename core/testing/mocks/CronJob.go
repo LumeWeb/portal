@@ -535,6 +535,46 @@ func (_c *MockCronJob_SetJob_Call) RunAndReturn(run func(job gocron.Job)) *MockC
 	return _c
 }
 
+// SetScheduledDefinition provides a mock function for the type MockCronJob
+func (_mock *MockCronJob) SetScheduledDefinition(schedDef *core.CronScheduleDefinition) {
+	_mock.Called(schedDef)
+	return
+}
+
+// MockCronJob_SetScheduledDefinition_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetScheduledDefinition'
+type MockCronJob_SetScheduledDefinition_Call struct {
+	*mock.Call
+}
+
+// SetScheduledDefinition is a helper method to define mock.On call
+//   - schedDef *core.CronScheduleDefinition
+func (_e *MockCronJob_Expecter) SetScheduledDefinition(schedDef interface{}) *MockCronJob_SetScheduledDefinition_Call {
+	return &MockCronJob_SetScheduledDefinition_Call{Call: _e.mock.On("SetScheduledDefinition", schedDef)}
+}
+
+func (_c *MockCronJob_SetScheduledDefinition_Call) Run(run func(schedDef *core.CronScheduleDefinition)) *MockCronJob_SetScheduledDefinition_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 *core.CronScheduleDefinition
+		if args[0] != nil {
+			arg0 = args[0].(*core.CronScheduleDefinition)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *MockCronJob_SetScheduledDefinition_Call) Return() *MockCronJob_SetScheduledDefinition_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockCronJob_SetScheduledDefinition_Call) RunAndReturn(run func(schedDef *core.CronScheduleDefinition)) *MockCronJob_SetScheduledDefinition_Call {
+	_c.Run(run)
+	return _c
+}
+
 // SourceID provides a mock function for the type MockCronJob
 func (_mock *MockCronJob) SourceID() string {
 	ret := _mock.Called()

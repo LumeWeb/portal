@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -38,6 +39,28 @@ var (
 	// ErrUnknownError is used when a nil error is passed to FailWorkflowStep
 	ErrUnknownError = errors.New("unknown error")
 )
+
+// isPermanentError checks if the error indicates a permanent condition
+// that will never succeed on retry (e.g. record not found, resource deleted).
+// Retrying such errors creates infinite loops since the underlying resource
+// will never appear.
+func isPermanentError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// gorm.ErrRecordNotFound covers all "no pin found with request ID" type errors
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+	// Check if it's a core Error with a NotFound HTTP status code
+	// (e.g. workflow step not found, pin not found)
+	if coreErr, ok := err.(*core.Error); ok {
+		if coreErr.HttpStatus() == http.StatusNotFound {
+			return true
+		}
+	}
+	return false
+}
 
 // NewWorkflowError creates a new workflow error
 func NewWorkflowError(key core.WorkflowErrorType, err error) *core.Error {
@@ -191,6 +214,9 @@ type WorkflowMetadata struct {
 	NextRequestID uint   `json:"next_request_id,omitempty"`
 	PrevRequestID uint   `json:"prev_request_id,omitempty"`
 	StartedAt     int64  `json:"started_at"`
+	// RetryCount tracks how many times the current step has been retried.
+	// Reset to 0 when the step succeeds and the workflow advances.
+	RetryCount int `json:"retry_count,omitempty"`
 	// TraceParent is the span context of the most recent step. Each step
 	// updates it so the next step links to this step's trace.
 	TraceParent string `json:"trace_parent,omitempty"`
@@ -599,6 +625,8 @@ func (w *WorkflowCoordinatorDefault) CompleteWorkflowStep(ctx context.Context, r
 			// Update metadata with next request ID and workflow data
 			nextMetadata.PrevRequestID = requestID
 			nextMetadata.CurrentStepID = nextStep.ID
+			// Reset retry count for the next step
+			nextMetadata.RetryCount = 0
 			// Update trace parent so the next step's spans link to the
 			// same trace, even when dispatched via cron or across nodes.
 			nextMetadata.TraceParent = core.MarshalTraceParent(ctx)
@@ -735,6 +763,15 @@ func (w *WorkflowCoordinatorDefault) FailWorkflowStep(ctx context.Context, reque
 		// Check if the failure is a quota error - if so, do not retry
 		if core.IsQuotaExceededError(originalErr) {
 			w.Logger().Info("Skipping retry due to quota exceeded error",
+				zap.String("workflow", metadata.WorkflowName),
+				zap.Uint("requestID", requestID),
+				zap.Error(originalErr))
+			return nil
+		}
+
+		// Check if the failure is a permanent/not-found error - if so, do not retry
+		if isPermanentError(originalErr) {
+			w.Logger().Info("Skipping retry due to permanent (not-found) error",
 				zap.String("workflow", metadata.WorkflowName),
 				zap.Uint("requestID", requestID),
 				zap.Error(originalErr))
@@ -995,7 +1032,13 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 
 // dispatchToCron registers a background step for async execution via cron
 func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, requestID uint) error {
-	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.dispatchToCron")
+	return w.dispatchToCronWithDelay(ctx, requestID, 0)
+}
+
+// dispatchToCronWithDelay registers a background step for async execution via cron
+// with the specified delay before the first execution.
+func (w *WorkflowCoordinatorDefault) dispatchToCronWithDelay(ctx context.Context, requestID uint, delay time.Duration) error {
+	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.dispatchToCronWithDelay")
 	defer span.End()
 
 	// Create and register the workflow step executor job
@@ -1005,6 +1048,14 @@ func (w *WorkflowCoordinatorDefault) dispatchToCron(ctx context.Context, request
 	}
 
 	job.SetArgs(requestID)
+
+	// Override the schedule definition with a delayed start time if specified
+	if delay > 0 {
+		job.SetScheduledDefinition(
+			core.NewCronScheduleDefinition(core.CronScheduleTypeOnce).
+				WithAtTime(time.Now().Add(delay)),
+		)
+	}
 
 	if err = w.cronService.RegisterJob(ctx, job, noRetryPolicy); err != nil {
 		return fmt.Errorf("failed to register workflow step job: %w", err)
@@ -1436,27 +1487,109 @@ func (w *WorkflowCoordinatorDefault) scheduleRetry(ctx context.Context, requestI
 	ctx, span := core.TraceMethod(ctx, "WorkflowCoordinatorDefault.scheduleRetry")
 	defer span.End()
 
+	// Get workflow retry config
+	wfConfig := w.Config().Config().Core.Cron.Workflow
+	maxRetries := wfConfig.MaxRetries
+	initialDelay := wfConfig.InitialRetryDelay
+	backoffFactor := wfConfig.RetryBackoffFactor
+
 	// Get current request
 	req, err := w.requestSvc.GetRequest(ctx, requestID)
 	if err != nil {
 		return err
 	}
 
-	// Reset status to pending to allow retry
+	// Parse current metadata
+	var metadata WorkflowMetadata
+	if err := json.Unmarshal(req.Metadata, &metadata); err != nil {
+		return fmt.Errorf("failed to parse workflow metadata: %w", err)
+	}
+
+	// Increment retry count
+	metadata.RetryCount++
+
+	// Check against max retries
+	if maxRetries > 0 && metadata.RetryCount > maxRetries {
+		w.Logger().Error("Workflow step exceeded max retries - failing permanently",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID),
+			zap.Int("retryCount", metadata.RetryCount),
+			zap.Int("maxRetries", maxRetries))
+
+		// Persist the final RetryCount in metadata
+		metadataJSON, jsonErr := json.Marshal(metadata)
+		if jsonErr == nil {
+			_ = db.RetryableComponentTransaction(w, ctx, func(tx *gorm.DB) *gorm.DB {
+				return tx.Model(&models.Request{}).
+					Where("id = ?", req.ID).
+					Update("metadata", metadataJSON)
+			})
+		}
+
+		// The request was already marked as Failed by FailWorkflowStep.
+		// Update the status message to reflect the permanent failure.
+		failMsg := fmt.Sprintf("step exceeded maximum retries (%d)", maxRetries)
+		_ = w.requestSvc.FailRequest(ctx, req.ID, failMsg)
+
+		// Return a non-nil error so FailWorkflowStep does not wrap
+		// the return in ErrKeyWorkflowStepRetried.
+		return fmt.Errorf("step exceeded maximum retries (%d)", maxRetries)
+	}
+
+	// Calculate backoff delay for this retry attempt
+	delay := initialDelay * time.Duration(math.Pow(backoffFactor, float64(metadata.RetryCount-1)))
+
+	// Marshal updated metadata with incremented retry count
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal workflow metadata: %w", err)
+	}
+
+	// Reset status to pending and persist updated retry count
 	err = db.RetryableComponentTransaction(w, ctx, func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&models.Request{}).
 			Where("id = ?", req.ID).
 			Updates(map[string]interface{}{
 				"status":         models.RequestStatusPending,
 				"status_message": nil,
+				"metadata":       metadataJSON,
 			})
 	})
 	if err != nil {
 		return err
 	}
 
-	// Use DispatchWorkflowStep to retry according to step's configuration
-	return w.DispatchWorkflowStep(ctx, requestID)
+	// Determine whether to re-execute inline (foreground) or dispatch to
+	// cron with backoff (background). Foreground steps re-execute inline to
+	// preserve existing behavior; background steps get the calculated delay.
+	wf, err := w.GetWorkflow(metadata.WorkflowName)
+	if err != nil {
+		return err
+	}
+
+	currentStep, err := w.getStepByID(wf, metadata.CurrentStepID)
+	if err != nil {
+		return err
+	}
+
+	if currentStep.Foreground {
+		// Foreground: re-execute inline (no delay) via DispatchWorkflowStep
+		w.Logger().Info("Retrying workflow step (foreground)",
+			zap.String("workflow", metadata.WorkflowName),
+			zap.Uint("requestID", requestID),
+			zap.Int("retryCount", metadata.RetryCount),
+			zap.Int("maxRetries", maxRetries))
+		return w.DispatchWorkflowStep(ctx, requestID)
+	}
+
+	// Background: dispatch to cron with calculated backoff delay
+	w.Logger().Info("Scheduling workflow step retry with backoff",
+		zap.String("workflow", metadata.WorkflowName),
+		zap.Uint("requestID", requestID),
+		zap.Int("retryCount", metadata.RetryCount),
+		zap.Int("maxRetries", maxRetries),
+		zap.Duration("delay", delay))
+	return w.dispatchToCronWithDelay(ctx, requestID, delay)
 }
 
 // getStepIndex finds the index of a step by its ID in a workflow
