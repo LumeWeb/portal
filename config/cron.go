@@ -31,15 +31,10 @@ func (w WorkflowConfig) Schema() z.ZogSchema {
 		"MaxRetries": z.Int().
 			Default(5).
 			GTE(0, z.Message("max_retries must be >= 0")),
-		"InitialRetryDelay": z.String().
-			Default("30s").
-			TestFunc(func(v *string, ctx z.Ctx) bool {
-				if _, err := time.ParseDuration(*v); err != nil {
-					ctx.AddIssue(ctx.Issue().SetMessage("initial_retry_delay must be a valid duration"))
-					return false
-				}
-				return true
-			}),
+		// InitialRetryDelay is time.Duration; mapstructure's
+		// StringToTimeDurationHookFunc handles string→Duration conversion,
+		// so no zog schema entry is needed (same pattern as
+		// DatabaseConfig.ConnMaxLifetime).
 		"RetryBackoffFactor": z.Float64().
 			Default(2.0).
 			GTE(1.0, z.Message("retry_backoff_factor must be >= 1.0")),
