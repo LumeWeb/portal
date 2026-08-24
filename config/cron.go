@@ -43,9 +43,9 @@ func (w WorkflowConfig) Schema() z.ZogSchema {
 
 func (w WorkflowConfig) Defaults() map[string]any {
 	return map[string]any{
-		"max_retries":          5,
-		"initial_retry_delay": "30s",
-		"retry_backoff_factor": 2.0,
+		"MaxRetries":         5,
+		"InitialRetryDelay":  "30s",
+		"RetryBackoffFactor": 2.0,
 	}
 }
 
@@ -61,12 +61,12 @@ func (c CronConfig) Schema() z.ZogSchema {
 
 func (c CronConfig) Defaults() map[string]any {
 	return map[string]any{
-		"enabled":   true,
-		"queue_limit": 50,
-		"workflow": map[string]any{
-			"max_retries":          5,
-			"initial_retry_delay":  "30s",
-			"retry_backoff_factor": 2.0,
+		"Enabled":  true,
+		"MaxQueue": 50,
+		"Workflow": map[string]any{
+			"MaxRetries":         5,
+			"InitialRetryDelay":  "30s",
+			"RetryBackoffFactor": 2.0,
 		},
 	}
 }
