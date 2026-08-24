@@ -67,6 +67,7 @@ func TestDefaultScheduleRegistry_GetRegisteredTypes(t *testing.T) {
 	assert.Contains(t, types, core.CronScheduleTypeMonthly)
 	assert.Contains(t, types, core.CronScheduleTypeCron)
 	assert.Contains(t, types, core.CronScheduleTypeOnce)
+	assert.Contains(t, types, core.CronScheduleTypeDuration)
 }
 
 func TestDefaultScheduleRegistry_Validate(t *testing.T) {
@@ -173,6 +174,18 @@ func TestDefaultScheduleRegistry_createOnceJob_MissingTime(t *testing.T) {
 	}
 
 	jobDefinition, err := registry.createOnceJob(def)
+	assert.NoError(t, err)
+	assert.NotNil(t, jobDefinition)
+}
+
+func TestDefaultScheduleRegistry_createDurationJob(t *testing.T) {
+	registry := NewScheduleRegistry()
+	def := core.CronScheduleDefinition{
+		Type:     core.CronScheduleTypeDuration,
+		Interval: 30,
+	}
+
+	jobDefinition, err := registry.createDurationJob(def)
 	assert.NoError(t, err)
 	assert.NotNil(t, jobDefinition)
 }

@@ -190,3 +190,114 @@ func TestStandaloneCoordinator_EnqueueJob(t *testing.T) {
 		mockScheduleRegistry.AssertExpectations(t)
 	})
 }
+
+func TestStandaloneCoordinator_HandleFailedJob_ResetsToQueuedOnRetry(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		jobID := uuid.New()
+
+		// A Running job with no retry policy. maxFailures defaults to 5, so
+		// a failure count of 1 is NOT permanent and should be requeued.
+		job := models.CronJob{
+			UUID:    types.FromUUID(jobID),
+			State:   models.CronJobStateRunning,
+			Version: 1,
+			JobType: "test-job",
+		}
+		require.NoError(tb, db.Create(&job).Error)
+
+		// Real state machine backed by the real DB so the full
+		// Running -> Failed -> Queued lifecycle is exercised.
+		realSM := service.NewCronJobStateMachine(ctx, service.NewStateMachineRegistry(ctx))
+
+		mockCronService := coreMocks.NewMockCronService(t)
+		mockMonitor := coreMocks.NewMockCronMonitor(t)
+		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
+		mockScheduleRegistry := coreMocks.NewMockCronScheduleRegistry(t)
+
+		mockCronService.EXPECT().Monitor().Return(mockMonitor)
+		mockMonitor.EXPECT().StopHeartbeat(mock.Anything, jobID).Return().Once()
+		mockCronService.EXPECT().StateMachine().Return(realSM).Times(2) // Failed, then Queued
+		mockCronService.EXPECT().JobFactory().Return(mockJobFactory).Maybe()
+		mockCronService.EXPECT().ScheduleRegistry().Return(mockScheduleRegistry).Maybe()
+		mockScheduleRegistry.EXPECT().Create(mock.Anything).Return(gocron.DurationJob(time.Second), nil).Once()
+
+		// Mock the gocron scheduler so EnqueueJob doesn't really schedule.
+		gomockController := gomock.NewController(t)
+		mockScheduler := gocronmocks.NewMockScheduler(gomockController)
+		mockGocronJob := gocronmocks.NewMockJob(gomockController)
+		mockScheduler.EXPECT().Update(
+			jobID,
+			gomock.Any(), // JobDefinition
+			gomock.Any(), // Task
+			gomock.Any(), // JobOption
+		).Return(mockGocronJob, nil).Times(1)
+
+		coordinator, err := service.NewStandaloneCoordinator(
+			ctx,
+			mockCronService,
+			coreMocks.NewMockCronJobStateMachineRegistry(t),
+			service.NewCoordinatorOptions().
+				WithScheduler(mockScheduler),
+		)
+		require.NoError(t, err)
+
+		// Execute — non-permanent failure, should requeue and reset to Queued
+		err = coordinator.HandleFailedJob(nil, jobID, 1)
+		require.NoError(t, err)
+
+		// The requeued job must be back in Queued so SetupJob/CleanupJob can
+		// cycle it through Running -> Completed on the next execution.
+		var updated models.CronJob
+		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
+		assert.Equal(t, models.CronJobStateQueued, updated.State,
+			"non-permanent retry must reset the job to Queued for clean lifecycle cycling")
+	})
+}
+
+func TestStandaloneCoordinator_HandleFailedJob_PermanentFailureStaysFailed(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		jobID := uuid.New()
+
+		job := models.CronJob{
+			UUID:    types.FromUUID(jobID),
+			State:   models.CronJobStateRunning,
+			Version: 1,
+			JobType: "test-job",
+		}
+		require.NoError(tb, db.Create(&job).Error)
+
+		realSM := service.NewCronJobStateMachine(ctx, service.NewStateMachineRegistry(ctx))
+
+		mockCronService := coreMocks.NewMockCronService(t)
+		mockMonitor := coreMocks.NewMockCronMonitor(t)
+		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
+		mockCronService.EXPECT().Monitor().Return(mockMonitor)
+		mockMonitor.EXPECT().StopHeartbeat(mock.Anything, jobID).Return().Once()
+		mockCronService.EXPECT().JobFactory().Return(mockJobFactory).Maybe()
+		// Only one transition: Running -> Failed. No requeue happens.
+		mockCronService.EXPECT().StateMachine().Return(realSM).Once()
+
+		coordinator, err := service.NewStandaloneCoordinator(
+			ctx,
+			mockCronService,
+			coreMocks.NewMockCronJobStateMachineRegistry(t),
+			service.NewCoordinatorOptions(),
+		)
+		require.NoError(t, err)
+
+		// failures (5) >= maxFailures (5 default) -> permanent
+		err = coordinator.HandleFailedJob(nil, jobID, 5)
+		require.NoError(t, err)
+
+		var updated models.CronJob
+		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
+		assert.Equal(t, models.CronJobStateFailed, updated.State,
+			"permanent failure must leave the job in Failed state")
+	})
+}

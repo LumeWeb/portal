@@ -21,15 +21,15 @@ import (
 var _ core.CronService = (*CronServiceDefault)(nil)
 
 var (
-	NewJobFactory              = cron.NewJobFactory
-	NewScheduleRegistry        = cron.NewScheduleRegistry
-	NewCronJobStateMachine     = cron.NewCronJobStateMachine
-	NewStateMachineRegistry    = cron.NewStateMachineRegistry
-	NewDefaultCronMonitor      = cron.NewDefaultCronMonitor
-	NewStandaloneCoordinator   = cron.NewStandaloneCoordinator
-	NewCoordinatorOptions      = cron.NewCoordinatorOptions
-	NewCoordinatorFromContext  = cron.NewCoordinatorFromContext
-	NewJobCreator              = cron.NewJobCreator
+	NewJobFactory             = cron.NewJobFactory
+	NewScheduleRegistry       = cron.NewScheduleRegistry
+	NewCronJobStateMachine    = cron.NewCronJobStateMachine
+	NewStateMachineRegistry   = cron.NewStateMachineRegistry
+	NewDefaultCronMonitor     = cron.NewDefaultCronMonitor
+	NewStandaloneCoordinator  = cron.NewStandaloneCoordinator
+	NewCoordinatorOptions     = cron.NewCoordinatorOptions
+	NewCoordinatorFromContext = cron.NewCoordinatorFromContext
+	NewJobCreator             = cron.NewJobCreator
 
 	// ErrCronJobNotFound is returned when a cron job cannot be found.
 	ErrCronJobNotFound = cron.ErrCronJobNotFound
@@ -236,6 +236,16 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 		}
 	}
 
+	// Recover jobs that were left in the Running state by a crash on the
+	// previous boot. loadJobsFromDB only re-registers Queued jobs, so without
+	// this sweep stuck Running jobs would sit until the next DeadJobCheckJob.
+	// Run it asynchronously so startup is not blocked on the DB sweep.
+	go func() {
+		if err := c.monitor.RequeueStuckJobs(context.Background()); err != nil {
+			c.Logger().Error("Startup stuck job recovery failed", zap.Error(err))
+		}
+	}()
+
 	return nil
 }
 
@@ -256,7 +266,8 @@ func (c *CronServiceDefault) registerMaintenanceJobs(ctx context.Context) error 
 			),
 		}, nil
 	}, &core.CronScheduleDefinition{
-		Type: core.CronScheduleTypeDaily,
+		Type:     core.CronScheduleTypeDuration,
+		Interval: c.Config().Config().Core.Cron.DeadJobCheckIntervalMinutes,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to register dead job check job: %w", err)
