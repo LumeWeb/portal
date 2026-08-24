@@ -21,9 +21,10 @@ type WorkflowConfig struct {
 }
 
 type CronConfig struct {
-	Enabled  bool           `config:"enabled"`
-	MaxQueue uint           `config:"queue_limit"`
-	Workflow WorkflowConfig `config:"workflow"`
+	Enabled                     bool           `config:"enabled"`
+	MaxQueue                    uint           `config:"queue_limit"`
+	DeadJobCheckIntervalMinutes uint           `config:"dead_job_check_interval_minutes"`
+	Workflow                    WorkflowConfig `config:"workflow"`
 }
 
 func (w WorkflowConfig) Schema() z.ZogSchema {
@@ -56,13 +57,17 @@ func (c CronConfig) Schema() z.ZogSchema {
 		"MaxQueue": z.Int().
 			Default(50).
 			GT(0, z.Message("queue limit must be greater than 0")),
+		"DeadJobCheckIntervalMinutes": z.Int().
+			Default(30).
+			GT(0, z.Message("dead_job_check_interval_minutes must be greater than 0")),
 	})
 }
 
 func (c CronConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled":  true,
-		"MaxQueue": 50,
+		"Enabled":                     true,
+		"MaxQueue":                    50,
+		"DeadJobCheckIntervalMinutes": 30,
 		"Workflow": map[string]any{
 			"MaxRetries":         5,
 			"InitialRetryDelay":  "30s",

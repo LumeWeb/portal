@@ -178,6 +178,15 @@ func (r *DefaultScheduleRegistry) createHourlyJob(def core.CronScheduleDefinitio
 	return gocron.DurationJob(time.Duration(interval) * time.Hour), nil
 }
 
+// createDurationJob creates a job that runs every Interval minutes.
+func (r *DefaultScheduleRegistry) createDurationJob(def core.CronScheduleDefinition) (gocron.JobDefinition, error) {
+	interval := uint(30)
+	if def.Interval > 0 {
+		interval = def.Interval
+	}
+	return gocron.DurationJob(time.Duration(interval) * time.Minute), nil
+}
+
 func (r *DefaultScheduleRegistry) createOnceJob(def core.CronScheduleDefinition) (gocron.JobDefinition, error) {
 	if def.AtTime.IsZero() {
 		def.AtTime = time.Now().Add(10 * time.Second)
@@ -194,4 +203,5 @@ func (r *DefaultScheduleRegistry) registerBuiltinTypes() {
 	r.Register(core.CronScheduleTypeHourly, r.createHourlyJob)
 	r.Register(core.CronScheduleTypeCron, r.createCronJob)
 	r.Register(core.CronScheduleTypeOnce, r.createOnceJob)
+	r.Register(core.CronScheduleTypeDuration, r.createDurationJob)
 }

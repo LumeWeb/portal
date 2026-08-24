@@ -374,6 +374,32 @@ func TestCronServiceDefault_StartStop(t *testing.T) {
 	})
 }
 
+func TestCronServiceDefault_StartWithCronDisabledSkipsRecoveryAndScheduler(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		_, cfgErr := coreTesting.WithConfig("core.cron.enabled", false)(ctx)
+		require.NoError(t, cfgErr)
+
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		coord := coreMocks.NewMockCronCoordinator(tb)
+		monitor := coreMocks.NewMockCronMonitor(tb)
+
+		// Maintenance-job registration still enqueues jobs even when the
+		// scheduler is disabled, so allow EnqueueJob/Jobs.
+		coord.EXPECT().Jobs().Return(nil).Maybe()
+		coord.EXPECT().EnqueueJob(mock.Anything, mock.Anything).Return(nil).Maybe()
+		monitor.EXPECT().CleanupOrphanedJobs(mock.Anything).Return(0, nil).Maybe()
+		// coordinator.Start() and monitor.RequeueStuckJobs() must NOT be
+		// called when cron is disabled. If either is invoked, the testify mock
+		// fails the test.
+
+		cronService := service.NewTestingCronService(ctx, db, coord, nil, nil, nil, monitor)
+		err := cronService.Start(nil)
+		require.NoError(t, err)
+	})
+}
+
 func TestCronServiceDefault_Monitor(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()
@@ -395,5 +421,32 @@ func TestCronServiceDefault_Monitor(t *testing.T) {
 		retrievedMonitor := cronService.Monitor()
 		assert.NotNil(t, retrievedMonitor)
 		assert.Equal(t, monitor, retrievedMonitor)
+	})
+}
+
+func TestCronJobStateMachine_QueuedToFailedRollback(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		jobID := uuid.New()
+		job := models.CronJob{
+			UUID:    types.FromUUID(jobID),
+			State:   models.CronJobStateQueued,
+			Version: 1,
+			JobType: "test-job",
+		}
+		require.NoError(tb, db.Create(&job).Error)
+
+		sm := service.NewCronJobStateMachine(ctx, service.NewStateMachineRegistry(ctx))
+
+		// Queued -> Failed must succeed (rollback path in HandleFailedJob).
+		err := sm.Transition(nil, jobID, models.CronJobStateFailed, core.WithCronFailures(1))
+		require.NoError(t, err)
+
+		var updated models.CronJob
+		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
+		assert.Equal(t, models.CronJobStateFailed, updated.State)
+		assert.Equal(t, uint(1), updated.Failures)
 	})
 }

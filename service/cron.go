@@ -21,15 +21,15 @@ import (
 var _ core.CronService = (*CronServiceDefault)(nil)
 
 var (
-	NewJobFactory              = cron.NewJobFactory
-	NewScheduleRegistry        = cron.NewScheduleRegistry
-	NewCronJobStateMachine     = cron.NewCronJobStateMachine
-	NewStateMachineRegistry    = cron.NewStateMachineRegistry
-	NewDefaultCronMonitor      = cron.NewDefaultCronMonitor
-	NewStandaloneCoordinator   = cron.NewStandaloneCoordinator
-	NewCoordinatorOptions      = cron.NewCoordinatorOptions
-	NewCoordinatorFromContext  = cron.NewCoordinatorFromContext
-	NewJobCreator              = cron.NewJobCreator
+	NewJobFactory             = cron.NewJobFactory
+	NewScheduleRegistry       = cron.NewScheduleRegistry
+	NewCronJobStateMachine    = cron.NewCronJobStateMachine
+	NewStateMachineRegistry   = cron.NewStateMachineRegistry
+	NewDefaultCronMonitor     = cron.NewDefaultCronMonitor
+	NewStandaloneCoordinator  = cron.NewStandaloneCoordinator
+	NewCoordinatorOptions     = cron.NewCoordinatorOptions
+	NewCoordinatorFromContext = cron.NewCoordinatorFromContext
+	NewJobCreator             = cron.NewJobCreator
 
 	// ErrCronJobNotFound is returned when a cron job cannot be found.
 	ErrCronJobNotFound = cron.ErrCronJobNotFound
@@ -234,6 +234,18 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
+		// Recover jobs that were left in the Running state by a crash on the
+		// previous boot. loadJobsFromDB only re-registers Queued jobs, so
+		// without this sweep stuck Running jobs would sit until the next
+		// DeadJobCheckJob. Run it asynchronously so startup is not blocked on
+		// the DB sweep, and only when cron is enabled so we never mutate cron
+		// state for a disabled subsystem.
+		go func() {
+			if err := c.monitor.RequeueStuckJobs(context.Background()); err != nil {
+				c.Logger().Error("Startup stuck job recovery failed", zap.Error(err))
+			}
+		}()
 	}
 
 	return nil
@@ -244,44 +256,201 @@ func (c *CronServiceDefault) registerMaintenanceJobs(ctx context.Context) error 
 	defer span.End()
 
 	// Register dead job check job using the pre-registered schedule
-	err := c.RegisterJobType(ctx, core.GetCronJobIdentifier(core.JobOriginCore, cron.DeadJobCheckJobType), func() (core.CronJob, error) {
-		return &cron.DeadJobCheckJob{
-			BaseCronJob: core.NewBaseCronJob(
-				uuid.New(),
-				core.JobOriginCore,
-				cron.DeadJobCheckJobType,
-				"Dead Job Check",
-				nil,
-				nil,
-			),
-		}, nil
-	}, &core.CronScheduleDefinition{
-		Type: core.CronScheduleTypeDaily,
-	})
+	err := c.registerCoreMaintenanceJob(
+		ctx,
+		core.GetCronJobIdentifier(core.JobOriginCore, cron.DeadJobCheckJobType),
+		func() (core.CronJob, error) {
+			return &cron.DeadJobCheckJob{
+				BaseCronJob: core.NewBaseCronJob(
+					uuid.New(),
+					core.JobOriginCore,
+					cron.DeadJobCheckJobType,
+					"Dead Job Check",
+					nil,
+					nil,
+				),
+			}, nil
+		},
+		&core.CronScheduleDefinition{
+			Type:     core.CronScheduleTypeDuration,
+			Interval: c.Config().Config().Core.Cron.DeadJobCheckIntervalMinutes,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to register dead job check job: %w", err)
 	}
 
 	// Register cleanup job using the pre-registered schedule
-	err = c.RegisterJobType(ctx, core.GetCronJobIdentifier(core.JobOriginCore, cron.CleanupJobType), func() (core.CronJob, error) {
-		return &cron.CleanupJob{
-			BaseCronJob: core.NewBaseCronJob(
-				uuid.New(),
-				core.JobOriginCore,
-				cron.CleanupJobType,
-				"Cleanup Job",
-				nil,
-				nil,
-			),
-		}, nil
-	}, &core.CronScheduleDefinition{
-		Type: core.CronScheduleTypeDaily,
-	})
+	err = c.registerCoreMaintenanceJob(
+		ctx,
+		core.GetCronJobIdentifier(core.JobOriginCore, cron.CleanupJobType),
+		func() (core.CronJob, error) {
+			return &cron.CleanupJob{
+				BaseCronJob: core.NewBaseCronJob(
+					uuid.New(),
+					core.JobOriginCore,
+					cron.CleanupJobType,
+					"Cleanup Job",
+					nil,
+					nil,
+				),
+			}, nil
+		},
+		&core.CronScheduleDefinition{
+			Type: core.CronScheduleTypeDaily,
+		},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to register cleanup job: %w", err)
 	}
 
 	return nil
+}
+
+// registerCoreMaintenanceJob idempotently registers a core maintenance job
+// (e.g. DeadJobCheck, Cleanup) keyed by its job type.
+//
+// Previously maintenance jobs were registered with a fresh random UUID on every
+// boot, which accumulated duplicate DB records (all State=Queued) and scheduled
+// them all. This makes registration reconciling: it reuses the eldest persisted
+// record as the canonical "active" job, force-updates its schedule to match the
+// configured definition if it drifted, cleans up any accumulated duplicates, and
+// reschedules the canonical job through the coordinator.
+func (c *CronServiceDefault) registerCoreMaintenanceJob(
+	ctx context.Context,
+	jobType string,
+	factory core.CronJobFactoryFunc,
+	schedule *core.CronScheduleDefinition,
+) error {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.registerCoreMaintenanceJob")
+	defer span.End()
+
+	// Register the job factory so the job can be materialized on demand.
+	if err := c.jobFactory.RegisterFactory(ctx, jobType, factory, schedule); err != nil {
+		return fmt.Errorf("failed to register job factory for %s: %w", jobType, err)
+	}
+
+	// Find any existing persisted jobs of this type.
+	var existing []models.CronJob
+	if err := c.DB().
+		Where(&models.CronJob{JobType: jobType}).
+		Order("id asc").
+		Find(&existing).Error; err != nil {
+		return fmt.Errorf("failed to query existing %s jobs: %w", jobType, err)
+	}
+
+	if len(existing) == 0 {
+		// No persisted job yet - create one through the normal path.
+		job, err := factory()
+		if err != nil {
+			return fmt.Errorf("failed to create %s job: %w", jobType, err)
+		}
+		var retryPolicy *core.RetryPolicy
+		if schedule != nil {
+			retryPolicy = schedule.RetryPolicy
+		}
+		return c.RegisterJob(ctx, job, retryPolicy)
+	}
+
+	// Reconcile: keep the eldest record as the canonical "active" job and update
+	// its schedule in the database if it differs from the configured one.
+	canonical := existing[0]
+	canonicalID := canonical.UUID.ToUUID()
+	changed, err := c.reconcileMaintenanceSchedule(ctx, &canonical, schedule, jobType)
+	if err != nil {
+		return err
+	}
+
+	// Remove duplicate records that accumulated from previous boots.
+	for _, dup := range existing[1:] {
+		dupID := dup.UUID.ToUUID()
+		if err := c.coordinator.RemoveJob(dupID); err != nil {
+			c.Logger().Warn("Failed to remove duplicate job from scheduler",
+				zap.String("jobType", jobType),
+				zap.String("jobID", dupID.String()),
+				zap.Error(err))
+		}
+		if err := c.DB().Where("uuid = ?", dup.UUID).Delete(&models.CronJob{}).Error; err != nil {
+			c.Logger().Warn("Failed to delete duplicate job record",
+				zap.String("jobType", jobType),
+				zap.String("jobID", dupID.String()),
+				zap.Error(err))
+		} else {
+			c.Logger().Info("Removed duplicate maintenance job",
+				zap.String("jobType", jobType),
+				zap.String("jobID", dupID.String()))
+		}
+	}
+
+	// (Re)schedule the canonical job. EnqueueJob upserts the gocron job keyed by
+	// ID and reads the latest SchedDef from the DB, so this applies the new
+	// schedule immediately.
+	if err := c.coordinator.EnqueueJob(ctx, canonicalID); err != nil {
+		return fmt.Errorf("failed to (re)schedule %s job: %w", jobType, err)
+	}
+
+	if changed {
+		c.Logger().Info("Updated cron job schedule to match configuration",
+			zap.String("jobType", jobType),
+			zap.String("jobID", canonicalID.String()))
+	}
+
+	return nil
+}
+
+// reconcileMaintenanceSchedule updates a persisted job's SchedDef to match the
+// desired configured schedule if it differs. It returns true when a change was
+// written.
+func (c *CronServiceDefault) reconcileMaintenanceSchedule(
+	ctx context.Context,
+	dbJob *models.CronJob,
+	desired *core.CronScheduleDefinition,
+	jobType string,
+) (bool, error) {
+	ctx, span := core.TraceMethod(ctx, "CronServiceDefault.reconcileMaintenanceSchedule")
+	defer span.End()
+
+	if len(dbJob.SchedDef) > 0 {
+		var current core.CronScheduleDefinition
+		if err := json.Unmarshal([]byte(dbJob.SchedDef), &current); err != nil {
+			return false, fmt.Errorf("failed to unmarshal existing schedule for %s: %w", jobType, err)
+		}
+		if cronSchedulesEqual(&current, desired) {
+			return false, nil
+		}
+	} else if desired == nil {
+		return false, nil
+	}
+
+	desiredBytes, err := json.Marshal(desired)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal desired schedule for %s: %w", jobType, err)
+	}
+
+	if err := c.DB().Model(&models.CronJob{}).
+		Where("uuid = ?", dbJob.UUID).
+		Updates(map[string]any{
+			"sched_def":     datatypes.JSON(desiredBytes),
+			"schedule_type": string(desired.Type),
+		}).Error; err != nil {
+		return false, fmt.Errorf("failed to update schedule for %s: %w", jobType, err)
+	}
+
+	return true, nil
+}
+
+// cronSchedulesEqual reports whether two schedule definitions are semantically
+// equivalent for the purposes of reconciliation.
+func cronSchedulesEqual(a, b *core.CronScheduleDefinition) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Type == b.Type &&
+		a.Interval == b.Interval &&
+		a.AtTime.Equal(b.AtTime) &&
+		a.DayOfWeek == b.DayOfWeek &&
+		a.DayOfMonth == b.DayOfMonth &&
+		a.CronExpression == b.CronExpression
 }
 
 func (c *CronServiceDefault) Monitor() core.CronMonitor {

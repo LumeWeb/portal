@@ -32,6 +32,8 @@ const (
 	CronScheduleTypeCron CronScheduleType = "cron"
 	// CronScheduleTypeOnce indicates a job should run only once.
 	CronScheduleTypeOnce CronScheduleType = "once"
+	// CronScheduleTypeDuration indicates a job should run on a fixed duration interval (in minutes).
+	CronScheduleTypeDuration CronScheduleType = "duration"
 )
 
 // Cronable is an interface for entities that can register and schedule cron jobs.

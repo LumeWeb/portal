@@ -486,8 +486,31 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		return nil
 	}
 
-	// Requeue the job for retry
+	// Reset the job to Queued before scheduling so that SetupJob (called by
+	// gocron's BeforeJobRuns) sees Queued and can transition to Running. If
+	// we EnqueueJob first, the scheduler can fire while the DB state is still
+	// Failed — SetupJob skips the Queued->Running transition and the job
+	// runs with stale state, never reaching Completed.
+	if err := s.cronService.StateMachine().Transition(
+		ctx,
+		jobID,
+		models.CronJobStateQueued,
+		core.WithCronFailures(int(failures)),
+	); err != nil {
+		return fmt.Errorf("failed to reset job to queued state for retry: %w", err)
+	}
+
+	// Requeue the job for retry. If EnqueueJob fails, roll back to Failed so
+	// the job is not left Queued-but-unscheduled (which RequeueStuckJobs does
+	// not recover). loadJobsFromDB on next boot will re-register Queued jobs,
+	// and a Failed job will be picked up by the next HandleFailedJob cycle.
 	if err := s.EnqueueJob(ctx, jobID); err != nil {
+		_ = s.cronService.StateMachine().Transition(
+			ctx,
+			jobID,
+			models.CronJobStateFailed,
+			core.WithCronFailures(int(failures)),
+		)
 		return fmt.Errorf("failed to requeue job: %w", err)
 	}
 
