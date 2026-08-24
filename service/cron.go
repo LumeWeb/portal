@@ -234,17 +234,19 @@ func (c *CronServiceDefault) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-	}
 
-	// Recover jobs that were left in the Running state by a crash on the
-	// previous boot. loadJobsFromDB only re-registers Queued jobs, so without
-	// this sweep stuck Running jobs would sit until the next DeadJobCheckJob.
-	// Run it asynchronously so startup is not blocked on the DB sweep.
-	go func() {
-		if err := c.monitor.RequeueStuckJobs(context.Background()); err != nil {
-			c.Logger().Error("Startup stuck job recovery failed", zap.Error(err))
-		}
-	}()
+		// Recover jobs that were left in the Running state by a crash on the
+		// previous boot. loadJobsFromDB only re-registers Queued jobs, so
+		// without this sweep stuck Running jobs would sit until the next
+		// DeadJobCheckJob. Run it asynchronously so startup is not blocked on
+		// the DB sweep, and only when cron is enabled so we never mutate cron
+		// state for a disabled subsystem.
+		go func() {
+			if err := c.monitor.RequeueStuckJobs(context.Background()); err != nil {
+				c.Logger().Error("Startup stuck job recovery failed", zap.Error(err))
+			}
+		}()
+	}
 
 	return nil
 }

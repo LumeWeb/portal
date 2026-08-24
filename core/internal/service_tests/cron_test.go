@@ -374,6 +374,32 @@ func TestCronServiceDefault_StartStop(t *testing.T) {
 	})
 }
 
+func TestCronServiceDefault_StartWithCronDisabledSkipsRecoveryAndScheduler(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		_, cfgErr := coreTesting.WithConfig("core.cron.enabled", false)(ctx)
+		require.NoError(t, cfgErr)
+
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		coord := coreMocks.NewMockCronCoordinator(tb)
+		monitor := coreMocks.NewMockCronMonitor(tb)
+
+		// Maintenance-job registration still enqueues jobs even when the
+		// scheduler is disabled, so allow EnqueueJob/Jobs.
+		coord.EXPECT().Jobs().Return(nil).Maybe()
+		coord.EXPECT().EnqueueJob(mock.Anything, mock.Anything).Return(nil).Maybe()
+		monitor.EXPECT().CleanupOrphanedJobs(mock.Anything).Return(0, nil).Maybe()
+		// coordinator.Start() and monitor.RequeueStuckJobs() must NOT be
+		// called when cron is disabled. If either is invoked, the testify mock
+		// fails the test.
+
+		cronService := service.NewTestingCronService(ctx, db, coord, nil, nil, nil, monitor)
+		err := cronService.Start(nil)
+		require.NoError(t, err)
+	})
+}
+
 func TestCronServiceDefault_Monitor(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()

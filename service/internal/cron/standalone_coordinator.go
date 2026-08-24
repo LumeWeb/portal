@@ -486,7 +486,16 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		return nil
 	}
 
-	// Reset the job to Queued before requeueing. SetupJob only cycles
+	// Requeue the job for retry first so the job is registered with the
+	// scheduler before we flip its state. If EnqueueJob fails the job stays in
+	// Failed (its current state) and will be retried again later, rather than
+	// being left Queued but never registered with the scheduler (which no
+	// DeadJobCheck/RequeueStuckJobs sweep would recover).
+	if err := s.EnqueueJob(ctx, jobID); err != nil {
+		return fmt.Errorf("failed to requeue job: %w", err)
+	}
+
+	// Reset the job to Queued after scheduling. SetupJob only cycles
 	// Queued -> Running and CleanupJob only cycles Running -> Completed, so
 	// if we left the job in Failed the retry would execute business logic but
 	// never return to a completed state. Failed -> Queued is a valid FSM
@@ -498,11 +507,6 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		core.WithCronFailures(int(failures)),
 	); err != nil {
 		return fmt.Errorf("failed to reset job to queued state for retry: %w", err)
-	}
-
-	// Requeue the job for retry
-	if err := s.EnqueueJob(ctx, jobID); err != nil {
-		return fmt.Errorf("failed to requeue job: %w", err)
 	}
 
 	return nil

@@ -265,6 +265,67 @@ func TestStandaloneCoordinator_HandleFailedJob_ResetsToQueuedOnRetry(t *testing.
 	})
 }
 
+func TestStandaloneCoordinator_HandleFailedJob_RequeueFailureKeepsFailed(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		jobID := uuid.New()
+		job := models.CronJob{
+			UUID:    types.FromUUID(jobID),
+			State:   models.CronJobStateRunning,
+			Version: 1,
+			JobType: "test-job",
+		}
+		require.NoError(tb, db.Create(&job).Error)
+
+		realSM := service.NewCronJobStateMachine(ctx, service.NewStateMachineRegistry(ctx))
+
+		mockCronService := coreMocks.NewMockCronService(t)
+		mockMonitor := coreMocks.NewMockCronMonitor(t)
+		mockJobFactory := coreMocks.NewMockCronJobFactory(t)
+		mockScheduleRegistry := coreMocks.NewMockCronScheduleRegistry(t)
+
+		mockCronService.EXPECT().Monitor().Return(mockMonitor)
+		mockMonitor.EXPECT().StopHeartbeat(mock.Anything, jobID).Return().Once()
+		// Requeue happens before the Failed -> Queued transition, so if
+		// EnqueueJob fails only the Running -> Failed transition occurs.
+		mockCronService.EXPECT().StateMachine().Return(realSM).Once()
+		mockCronService.EXPECT().JobFactory().Return(mockJobFactory).Maybe()
+		mockCronService.EXPECT().ScheduleRegistry().Return(mockScheduleRegistry).Maybe()
+		mockScheduleRegistry.EXPECT().Create(mock.Anything).Return(gocron.DurationJob(time.Second), nil).Once()
+
+		// Simulate a scheduler failure during requeue.
+		gomockController := gomock.NewController(t)
+		mockScheduler := gocronmocks.NewMockScheduler(gomockController)
+		mockScheduler.EXPECT().Update(
+			jobID,
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).Return(nil, fmt.Errorf("scheduler unavailable")).Times(1)
+
+		coordinator, err := service.NewStandaloneCoordinator(
+			ctx,
+			mockCronService,
+			coreMocks.NewMockCronJobStateMachineRegistry(t),
+			service.NewCoordinatorOptions().WithScheduler(mockScheduler),
+		)
+		require.NoError(t, err)
+
+		err = coordinator.HandleFailedJob(nil, jobID, 1)
+		require.Error(t, err)
+
+		// Requeue failed, so the job must NOT have been flipped to Queued
+		// without being registered with the scheduler. It stays Failed and can
+		// be retried later.
+		var updated models.CronJob
+		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
+		assert.Equal(t, models.CronJobStateFailed, updated.State,
+			"job must remain Failed when requeue fails, not be left stuck in Queued")
+	})
+}
+
 func TestStandaloneCoordinator_HandleFailedJob_PermanentFailureStaysFailed(t *testing.T) {
 	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
 		db := ctx.DB()
