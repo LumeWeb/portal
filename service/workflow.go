@@ -207,11 +207,13 @@ type WorkflowMetadata struct {
 // WorkflowCoordinatorDefault implements the WorkflowCoordinator interface
 type WorkflowCoordinatorDefault struct {
 	*core.BaseComponent
-	requestSvc  core.RequestService
-	cronService core.CronService
-	workflows   map[string]*core.WorkflowDefinition
-	disabled    map[string]bool
-	workflowsMu sync.RWMutex
+	requestSvc      core.RequestService
+	cronService     core.CronService
+	workflows       map[string]*core.WorkflowDefinition
+	disabled        map[string]bool
+	workflowsMu     sync.RWMutex
+	strandedMu      sync.Mutex          // guards strandedWarned
+	strandedWarned  map[string]struct{} // dedup keys for warned stranded requests
 }
 
 func (w *WorkflowCoordinatorDefault) RegisterTasks(ctx context.Context, cron core.CronService) error {
@@ -238,8 +240,9 @@ func (w *WorkflowCoordinatorDefault) ScheduleJobs(ctx context.Context, cron core
 // NewWorkflowCoordinator creates a new workflow coordinator
 func NewWorkflowCoordinator() (core.Service, []core.ContextBuilderOption, error) {
 	coordinator := &WorkflowCoordinatorDefault{
-		workflows: make(map[string]*core.WorkflowDefinition),
-		disabled:  make(map[string]bool),
+		workflows:      make(map[string]*core.WorkflowDefinition),
+		disabled:       make(map[string]bool),
+		strandedWarned: make(map[string]struct{}),
 	}
 
 	opts := core.ContextOptions(
@@ -786,7 +789,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 				return nil, err
 			}
 
-			currentStepIndex, err := w.getCurrentStepIndex(metadata)
+			currentStepIndex, effectiveTotalSteps, err := w.getCurrentStepIndex(metadata, req.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -801,7 +804,7 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStatus(ctx context.Context, requ
 			status := &core.WorkflowStatus{
 				WorkflowName:  metadata.WorkflowName,
 				CurrentStep:   currentStepIndex,
-				TotalSteps:    metadata.TotalSteps,
+				TotalSteps:    effectiveTotalSteps,
 				Status:        reqStatus.State,
 				CurrentStepID: req.ID,
 				StartedAt:     time.Unix(metadata.StartedAt, 0),
@@ -981,6 +984,20 @@ func (w *WorkflowCoordinatorDefault) GetWorkflowStepInfo(ctx context.Context, re
 
 	currentStepIndex, err := w.getStepIndexAndStep(wf, metadata.CurrentStepID)
 	if err != nil {
+		// The step ID no longer exists in the workflow definition, likely
+		// because the workflow was refactored. Return a synthetic step info
+		// using the request's own data so listing/status queries don't break.
+		if core.IsWorkflowErrorType(err, core.ErrKeyWorkflowStepNotFound) {
+			w.warnStrandedStep(metadata.WorkflowName, metadata.CurrentStepID, req.ID)
+			return &core.WorkflowStepInfo{
+				Operation: req.Operation,
+				// FailureBehavior intentionally left at its zero value
+				// (FailWorkflow) when the removed step's original behavior
+				// cannot be recovered from request metadata, rather than
+				// fabricating RetryStep semantics.
+				Status: req.Status,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -1541,6 +1558,28 @@ func (w *WorkflowCoordinatorDefault) getStepIndexAndStep(wf *core.WorkflowDefini
 	return currentStepIndex, nil
 }
 
+// warnStrandedStep emits a WARN log the first time a given (workflow, stepID, requestID)
+// combination is encountered. Subsequent calls for the same key are silently skipped,
+// preventing log flooding from repeated status polls on stranded requests.
+func (w *WorkflowCoordinatorDefault) warnStrandedStep(workflowName, stepID string, requestID uint) {
+	w.strandedMu.Lock()
+	defer w.strandedMu.Unlock()
+
+	if len(w.strandedWarned) > 10000 {
+		w.strandedWarned = make(map[string]struct{})
+	}
+
+	key := fmt.Sprintf("%s/%s/%d", workflowName, stepID, requestID)
+	if _, alreadyWarned := w.strandedWarned[key]; alreadyWarned {
+		return
+	}
+	w.strandedWarned[key] = struct{}{}
+	w.Logger().Warn("Step ID not found in workflow definition, treating as completed",
+		zap.String("workflow", workflowName),
+		zap.String("stepID", stepID),
+		zap.Uint("requestID", requestID))
+}
+
 // getStepByID finds a step by its ID in a workflow definition
 func (w *WorkflowCoordinatorDefault) getStepByID(wf *core.WorkflowDefinition, stepID string) (core.OperationStep, error) {
 	currentStepIndex, err := w.getStepIndexAndStep(wf, stepID)
@@ -1592,11 +1631,11 @@ func (w *WorkflowCoordinatorDefault) DispatchWorkflowStep(ctx context.Context, r
 }
 
 // getCurrentStepIndex gets the current step index from workflow metadata
-func (w *WorkflowCoordinatorDefault) getCurrentStepIndex(metadata WorkflowMetadata) (int, error) {
+func (w *WorkflowCoordinatorDefault) getCurrentStepIndex(metadata WorkflowMetadata, requestID uint) (int, int, error) {
 	// Get workflow definition
 	wf, err := w.GetWorkflow(metadata.WorkflowName)
 	if err != nil {
-		return -1, err
+		return -1, 0, err
 	}
 
 	// Get current step index
@@ -1605,8 +1644,45 @@ func (w *WorkflowCoordinatorDefault) getCurrentStepIndex(metadata WorkflowMetada
 	})
 
 	if !found {
-		return -1, core.NewWorkflowError(core.ErrKeyWorkflowStepNotFound, fmt.Errorf("current step ID '%s' not found in workflow", metadata.CurrentStepID))
+		// The step ID no longer exists in the workflow definition, likely
+		// because the workflow was refactored and this step was removed or
+		// moved to a separate workflow. Treat the request as completed
+		// (index = TotalSteps) so status/listing queries don't error and
+		// progress renders as 100%. Use metadata.TotalSteps (not len(wf.Steps))
+		// because the workflow may have been refactored with a different
+		// number of steps, and TotalSteps is what the caller uses for
+		// status.TotalSteps and progress calculation. Fall back to len(wf.Steps)
+		// if TotalSteps was never populated (e.g. older metadata).
+		w.warnStrandedStep(metadata.WorkflowName, metadata.CurrentStepID, requestID)
+		total := metadata.TotalSteps
+		if total <= 0 {
+			total = len(wf.Steps)
+		}
+		if total < 1 {
+			// Workflow was refactored so all steps moved out (len==0) and
+			// metadata.TotalSteps was never populated. Use 1 as a floor so
+			// CurrentStep (total-1) is never negative.
+			total = 1
+		}
+		// Return total-1 as the step index (0-based, last step) and total as
+		// the effective total steps. This keeps CurrentStep within [0, TotalSteps-1]
+		// for consumers that treat it as a 0-based index, and lets
+		// CalculateProgress render the request's real status instead of masking
+		// it as 100% completed.
+		return total - 1, total, nil
 	}
 
-	return currentStepIndex, nil
+	return currentStepIndex, metadata.TotalSteps, nil
+}
+
+// EmptyStepsForTesting sets a workflow's Steps to an empty slice. This is
+// only for testing the defensive guard in getCurrentStepIndex when a
+// workflow has been fully refactored (all steps removed). It bypasses
+// RegisterWorkflow's validation which rejects 0-step workflows.
+func (w *WorkflowCoordinatorDefault) EmptyStepsForTesting(name string) {
+	w.workflowsMu.Lock()
+	defer w.workflowsMu.Unlock()
+	if wf, ok := w.workflows[name]; ok {
+		wf.Steps = []core.OperationStep{}
+	}
 }
