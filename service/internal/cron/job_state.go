@@ -10,6 +10,7 @@ package cron
 //   Queued -> Running (via "run" event)
 //   Running -> Completed (via "complete" event)
 //   Running -> Failed (via "fail" event)
+//   Queued -> Failed (via "fail" event, rollback from failed requeue)
 //   Completed -> Queued (via "reset" event)
 //   Failed -> Queued (via "reset" event)
 //
@@ -65,7 +66,8 @@ var (
 			string(models.CronJobStateRunning), // Only Running can go to Completed
 		},
 		models.CronJobStateFailed: {
-			string(models.CronJobStateRunning), // Only Running can go to Failed
+			string(models.CronJobStateRunning), // Running can fail
+			string(models.CronJobStateQueued),  // Queued can be rolled back to Failed
 		},
 		models.CronJobStateQueued: {
 			string(models.CronJobStateCompleted), // Completed can reset to Queued

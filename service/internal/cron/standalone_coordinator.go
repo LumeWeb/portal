@@ -486,20 +486,11 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		return nil
 	}
 
-	// Requeue the job for retry first so the job is registered with the
-	// scheduler before we flip its state. If EnqueueJob fails the job stays in
-	// Failed (its current state) and will be retried again later, rather than
-	// being left Queued but never registered with the scheduler (which no
-	// DeadJobCheck/RequeueStuckJobs sweep would recover).
-	if err := s.EnqueueJob(ctx, jobID); err != nil {
-		return fmt.Errorf("failed to requeue job: %w", err)
-	}
-
-	// Reset the job to Queued after scheduling. SetupJob only cycles
-	// Queued -> Running and CleanupJob only cycles Running -> Completed, so
-	// if we left the job in Failed the retry would execute business logic but
-	// never return to a completed state. Failed -> Queued is a valid FSM
-	// transition that restores the normal lifecycle.
+	// Reset the job to Queued before scheduling so that SetupJob (called by
+	// gocron's BeforeJobRuns) sees Queued and can transition to Running. If
+	// we EnqueueJob first, the scheduler can fire while the DB state is still
+	// Failed — SetupJob skips the Queued->Running transition and the job
+	// runs with stale state, never reaching Completed.
 	if err := s.cronService.StateMachine().Transition(
 		ctx,
 		jobID,
@@ -507,6 +498,20 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		core.WithCronFailures(int(failures)),
 	); err != nil {
 		return fmt.Errorf("failed to reset job to queued state for retry: %w", err)
+	}
+
+	// Requeue the job for retry. If EnqueueJob fails, roll back to Failed so
+	// the job is not left Queued-but-unscheduled (which RequeueStuckJobs does
+	// not recover). loadJobsFromDB on next boot will re-register Queued jobs,
+	// and a Failed job will be picked up by the next HandleFailedJob cycle.
+	if err := s.EnqueueJob(ctx, jobID); err != nil {
+		_ = s.cronService.StateMachine().Transition(
+			ctx,
+			jobID,
+			models.CronJobStateFailed,
+			core.WithCronFailures(int(failures)),
+		)
+		return fmt.Errorf("failed to requeue job: %w", err)
 	}
 
 	return nil

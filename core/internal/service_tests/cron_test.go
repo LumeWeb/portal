@@ -423,3 +423,30 @@ func TestCronServiceDefault_Monitor(t *testing.T) {
 		assert.Equal(t, monitor, retrievedMonitor)
 	})
 }
+
+func TestCronJobStateMachine_QueuedToFailedRollback(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		db := ctx.DB()
+		require.NotNil(tb, db)
+
+		jobID := uuid.New()
+		job := models.CronJob{
+			UUID:    types.FromUUID(jobID),
+			State:   models.CronJobStateQueued,
+			Version: 1,
+			JobType: "test-job",
+		}
+		require.NoError(tb, db.Create(&job).Error)
+
+		sm := service.NewCronJobStateMachine(ctx, service.NewStateMachineRegistry(ctx))
+
+		// Queued -> Failed must succeed (rollback path in HandleFailedJob).
+		err := sm.Transition(nil, jobID, models.CronJobStateFailed, core.WithCronFailures(1))
+		require.NoError(t, err)
+
+		var updated models.CronJob
+		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
+		assert.Equal(t, models.CronJobStateFailed, updated.State)
+		assert.Equal(t, uint(1), updated.Failures)
+	})
+}

@@ -288,9 +288,9 @@ func TestStandaloneCoordinator_HandleFailedJob_RequeueFailureKeepsFailed(t *test
 
 		mockCronService.EXPECT().Monitor().Return(mockMonitor)
 		mockMonitor.EXPECT().StopHeartbeat(mock.Anything, jobID).Return().Once()
-		// Requeue happens before the Failed -> Queued transition, so if
-		// EnqueueJob fails only the Running -> Failed transition occurs.
-		mockCronService.EXPECT().StateMachine().Return(realSM).Once()
+		// Transition ordering: Running -> Failed, then Failed -> Queued,
+		// then EnqueueJob (fails), then rollback Queued -> Failed.
+		mockCronService.EXPECT().StateMachine().Return(realSM).Times(3)
 		mockCronService.EXPECT().JobFactory().Return(mockJobFactory).Maybe()
 		mockCronService.EXPECT().ScheduleRegistry().Return(mockScheduleRegistry).Maybe()
 		mockScheduleRegistry.EXPECT().Create(mock.Anything).Return(gocron.DurationJob(time.Second), nil).Once()
