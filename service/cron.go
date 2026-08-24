@@ -345,7 +345,11 @@ func (c *CronServiceDefault) registerCoreMaintenanceJob(
 		if err != nil {
 			return fmt.Errorf("failed to create %s job: %w", jobType, err)
 		}
-		return c.RegisterJob(ctx, job, schedule.RetryPolicy)
+		var retryPolicy *core.RetryPolicy
+		if schedule != nil {
+			retryPolicy = schedule.RetryPolicy
+		}
+		return c.RegisterJob(ctx, job, retryPolicy)
 	}
 
 	// Reconcile: keep the eldest record as the canonical "active" job and update
@@ -443,6 +447,7 @@ func cronSchedulesEqual(a, b *core.CronScheduleDefinition) bool {
 	}
 	return a.Type == b.Type &&
 		a.Interval == b.Interval &&
+		a.AtTime.Equal(b.AtTime) &&
 		a.DayOfWeek == b.DayOfWeek &&
 		a.DayOfMonth == b.DayOfMonth &&
 		a.CronExpression == b.CronExpression
