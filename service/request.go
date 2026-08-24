@@ -568,6 +568,9 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 
 	// Don't complete if already completed or failed
 	if req.Status == models.RequestStatusCompleted || req.Status == models.RequestStatusFailed {
+		r.Logger().Debug("CompleteRequest skipped: request already terminal",
+			zap.Uint("requestID", id),
+			zap.String("currentStatus", string(req.Status)))
 		return nil
 	}
 
@@ -620,6 +623,11 @@ func (r *RequestServiceDefault) CompleteRequest(ctx context.Context, id uint) er
 			if protocol != requestMetrics.LabelProtocolUnknown {
 				requestMetrics.RequestsByProtocol.WithLabelValues(protocol).Inc()
 			}
+
+			r.Logger().Debug("request completed successfully",
+				zap.Uint("requestID", id),
+				zap.String("protocol", protocol),
+				zap.String("operation", operation))
 
 			return nil
 		},

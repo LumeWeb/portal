@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
 	"go.lumeweb.com/portal/db/models"
+	"go.uber.org/zap"
 )
 
 // Default implementation
@@ -595,6 +596,15 @@ func (h *OperationHelperDefault) GetStatusFromWorkflowData(requestID uint, req *
 		// If progress is > 0, the operation is definitely processing
 		// Preserve terminal states (Failed/Completed) regardless of progress
 		if progress.ProgressPercent > 0 && status.State != models.RequestStatusCompleted && status.State != models.RequestStatusFailed {
+			// Log status forcing — this is the mechanism that keeps operations
+			// stuck in "Processing" when CompleteRequest is never called.
+			// At debug level to avoid noise in normal operation, but
+			// invaluable for diagnosing stuck operations.
+			h.Logger().Debug("forcing status to Processing due to progress > 0",
+				zap.Uint("requestID", requestID),
+				zap.Float64("progressPercent", progress.ProgressPercent),
+				zap.String("dbStatus", string(req.Status)),
+				zap.String("forcedStatus", string(models.RequestStatusProcessing)))
 			status.State = models.RequestStatusProcessing
 		}
 	} else {

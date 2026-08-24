@@ -342,6 +342,7 @@ func (s *StandaloneCoordinator) EnqueueJob(ctx context.Context, jobID uuid.UUID)
 			zap.String("jobID", jobID.String()),
 			zap.String("jobName", jobName),
 			zap.Error(err),
+			zap.NamedError("ctxErr", jobCtx.Err()),
 		}
 
 		// Check if this error is from a recovered panic
