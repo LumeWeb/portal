@@ -495,6 +495,7 @@ func (s *StandaloneCoordinator) HandleFailedJob(ctx context.Context, jobID uuid.
 		ctx,
 		jobID,
 		models.CronJobStateQueued,
+		core.WithCronFailures(int(failures)),
 	); err != nil {
 		return fmt.Errorf("failed to reset job to queued state for retry: %w", err)
 	}

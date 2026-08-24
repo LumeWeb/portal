@@ -254,6 +254,14 @@ func TestStandaloneCoordinator_HandleFailedJob_ResetsToQueuedOnRetry(t *testing.
 		require.NoError(tb, db.First(&updated, "uuid = ?", types.FromUUID(jobID)).Error)
 		assert.Equal(t, models.CronJobStateQueued, updated.State,
 			"non-permanent retry must reset the job to Queued for clean lifecycle cycling")
+
+		// The accumulated failure count must be preserved through the
+		// Failed -> Queued transition. RequeueStuckJobs uses the DB failures
+		// column as its source of truth, so zeroing it here would let
+		// dead-job-detected retries loop forever without ever hitting the
+		// permanent-failure threshold.
+		assert.Equal(t, uint(1), updated.Failures,
+			"retry must preserve the accumulated failure count")
 	})
 }
 
