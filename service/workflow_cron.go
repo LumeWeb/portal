@@ -70,6 +70,10 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 		return nil
 	}
 
+	ctx.Logger().Debug("workflow step execution started",
+		zap.Uint("requestID", args),
+		zap.NamedError("ctxErr", execCtx.Err()))
+
 	// Execute the workflow step
 	err = workflowSvc.ExecuteWorkflowStep(execCtx, args)
 	if err != nil {
@@ -105,6 +109,11 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 		}
 	}
 
+	ctx.Logger().Debug("workflow step execution completed",
+		zap.Uint("requestID", args),
+		zap.NamedError("execErr", err),
+		zap.NamedError("ctxErr", execCtx.Err()))
+
 	// Check if the step can still be transitioned (may have been completed by ExecuteWorkflowStep)
 	canTransition, err = workflowSvc.CanTransition(execCtx, args)
 	if err != nil {
@@ -113,6 +122,8 @@ func (j *workflowStepExecutorJob) Run(ctx core.Context, eventCtx context.Context
 
 	// Only complete the step if it's still pending and can be transitioned
 	if canTransition {
+		ctx.Logger().Debug("completing workflow step",
+			zap.Uint("requestID", args))
 		// If execution was successful (or we're continuing despite failure), advance to the next step
 		err = workflowSvc.CompleteWorkflowStep(execCtx, args)
 		if err != nil {
