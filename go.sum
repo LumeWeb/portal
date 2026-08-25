@@ -16,6 +16,8 @@ github.com/Acconut/go-httptest-recorder v1.0.0 h1:TAv2dfnqp/l+SUvIaMAUK4GeN4+wqb
 github.com/Acconut/go-httptest-recorder v1.0.0/go.mod h1:CwQyhTH1kq/gLyWiRieo7c0uokpu3PXeyF/nZjUNtmM=
 github.com/AfterShip/email-verifier v1.4.2-0.20260825040326-1dc12107b4cf h1:l8baFri72M/d4VWZnvLPLzNcW6wS3/gPgpULOy2968E=
 github.com/AfterShip/email-verifier v1.4.2-0.20260825040326-1dc12107b4cf/go.mod h1:bwT1uAY0L/TOedg4XcpxemqNQiVZVTTX9hz6lTNEaEE=
+github.com/AfterShip/email-verifier v1.4.2-0.20260825092651-bed8025cb56f h1:5AMMDI+uK2Cg/+LfgPlps8WPXvOCcNxQE2M6UN6EaNQ=
+github.com/AfterShip/email-verifier v1.4.2-0.20260825092651-bed8025cb56f/go.mod h1:bwT1uAY0L/TOedg4XcpxemqNQiVZVTTX9hz6lTNEaEE=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.0/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1/go.mod h1:a6xsAQUZg+VsS3TJ05SRp524Hs4pZ/AeFSr5ENf0Yjo=

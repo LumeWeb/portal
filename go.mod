@@ -3,7 +3,7 @@ module go.lumeweb.com/portal // v0.5.0
 go 1.26.0
 
 require (
-	github.com/AfterShip/email-verifier v1.4.2-0.20260825040326-1dc12107b4cf
+	github.com/AfterShip/email-verifier v1.4.2-0.20260825092651-bed8025cb56f
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/Oudwins/zog v0.22.2
 	github.com/adjust/rmq/v5 v5.2.0
