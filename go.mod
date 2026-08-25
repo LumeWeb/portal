@@ -57,7 +57,7 @@ require (
 	github.com/wneessen/go-mail v0.8.1
 	go.lumeweb.com/configmanager v0.3.29
 	go.lumeweb.com/event/v2 v2.1.0
-	go.lumeweb.com/httputil v0.5.7
+	go.lumeweb.com/httputil v0.5.8
 	go.lumeweb.com/portal-middleware v0.3.7
 	go.lumeweb.com/portal-router v0.7.7
 	go.opentelemetry.io/contrib/bridges/otelzap v0.20.0
@@ -244,7 +244,6 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/mod v0.39.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
