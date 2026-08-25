@@ -3,7 +3,7 @@ module go.lumeweb.com/portal // v0.5.0
 go 1.26.0
 
 require (
-	github.com/AfterShip/email-verifier v1.4.1
+	github.com/AfterShip/email-verifier v1.4.2-0.20260825040326-1dc12107b4cf
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/Oudwins/zog v0.22.2
 	github.com/adjust/rmq/v5 v5.2.0
@@ -23,7 +23,6 @@ require (
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260717182408-cc444c2a6f2c
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/go-gorm/caches/v4 v4.0.5
-	github.com/go-kiss/monkey v0.0.0-20240508030602-d03795257a64
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
@@ -41,7 +40,6 @@ require (
 	github.com/labstack/echo/v4 v4.15.4
 	github.com/looplab/fsm v1.0.3
 	github.com/mattn/go-sqlite3 v1.14.50
-	github.com/miekg/dns v1.1.73
 	github.com/multiformats/go-multibase v0.3.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/pquerna/otp v1.5.0
@@ -196,7 +194,6 @@ require (
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/hbollon/go-edlib v1.7.0 // indirect
-	github.com/huandu/go-tls v1.0.1 // indirect
 	github.com/hyperledger-firefly/common v1.6.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -243,7 +240,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/arch v0.24.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect

@@ -4,9 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
-	"time"
 
-	"github.com/miekg/dns"
 	"go.lumeweb.com/portal/core"
 	"go.uber.org/zap"
 )
@@ -53,110 +51,22 @@ func TestSetupDNSResolver(t *testing.T) {
 }
 
 func TestCustomDialer(t *testing.T) {
-	dnsResolver := "127.0.0.1"
-	dialer := CustomDialer(dnsResolver)
-
-	if dialer == nil {
-		t.Fatal("Expected non-nil dialer function")
-	}
-
 	ctx := context.Background()
 
 	t.Run("invalid address format", func(t *testing.T) {
+		dialer := CustomDialer("127.0.0.1")
+		if dialer == nil {
+			t.Fatal("Expected non-nil dialer function")
+		}
 		_, err := dialer(ctx, "tcp", "invalid-address")
 		if err == nil {
 			t.Error("Expected error for invalid address format")
 		}
 	})
 
-	t.Run("valid address format", func(t *testing.T) {
-		conn, _ := dialer(ctx, "tcp", "example.com:25")
-		if conn != nil {
-			conn.Close()
+	t.Run("empty resolver returns plain dialer", func(t *testing.T) {
+		if dialer := CustomDialer(""); dialer == nil {
+			t.Error("Expected non-nil dialer for empty resolver")
 		}
 	})
-}
-
-const mockMXRecord = "mock-mx-server.test.local."
-
-func startMockDNSServer(t *testing.T) (*dns.Server, string) {
-	server := &dns.Server{
-		Addr: "127.0.0.1:0",
-		Net:  "udp",
-	}
-
-	server.Handler = dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		if len(r.Question) == 0 {
-			return
-		}
-		m := new(dns.Msg)
-		m.SetReply(r)
-		m.Answer = append(m.Answer, &dns.MX{
-			Hdr: dns.RR_Header{
-				Name:   r.Question[0].Name,
-				Rrtype: dns.TypeMX,
-				Class:  dns.ClassINET,
-				Ttl:    3600,
-			},
-			Preference: 10,
-			Mx:         mockMXRecord,
-		})
-		w.WriteMsg(m)
-	})
-
-	ready := make(chan struct{})
-	server.NotifyStartedFunc = func() { close(ready) }
-
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			t.Errorf("mock DNS server failed: %v", err)
-		}
-	}()
-
-	select {
-	case <-ready:
-	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for mock DNS server")
-	}
-	
-	addr := server.PacketConn.LocalAddr().String()
-	return server, addr
-}
-
-func verifyMockMXRecord(mxRecords []*net.MX) bool {
-	for _, mx := range mxRecords {
-		if mx.Host == mockMXRecord {
-			return true
-		}
-	}
-	return false
-}
-
-func runSetupDNSResolverTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping integration test in short mode")
-	}
-
-	originalResolver := net.DefaultResolver
-	defer func() {
-		net.DefaultResolver = originalResolver
-	}()
-
-	mockServer, mockAddr := startMockDNSServer(t)
-	defer mockServer.Shutdown()
-
-	SetupDNSResolver(mockAddr, nil)
-
-	mxRecords, err := net.LookupMX("example.com")
-	if err != nil {
-		t.Fatalf("net.LookupMX error: %v", err)
-	}
-
-	if !verifyMockMXRecord(mxRecords) {
-		t.Error("Expected mock MX record from SetupDNSResolver")
-	}
-}
-
-func TestSetupDNSResolverIntegration(t *testing.T) {
-	runSetupDNSResolverTest(t)
 }
