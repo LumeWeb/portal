@@ -136,6 +136,20 @@ func TestNewErrorFormatVerbFallback(t *testing.T) {
 		assert.Equal(t, "%s and %s", e.Message)
 	})
 
+	t.Run("escaped percent with multiple verbs is left untouched", func(t *testing.T) {
+		RegisterNamespace("pctverb")
+		MustRegisterDefaultErrorMessages("pctverb", map[ErrorType]ErrorDefinition{
+			"MIXED": {Key: "MIXED", Message: "Progress: %d%% and %s"},
+		})
+		MustRegisterErrorCodes("pctverb", map[ErrorType]int{"MIXED": 400})
+
+		e := NewError("pctverb", "MIXED", errors.New("detail"))
+		// %% must NOT collapse here because the template has consuming verbs
+		// that can't be filled — collapsing would produce "Progress: %d% and %s"
+		// which is worse than leaving the original template intact.
+		assert.Equal(t, "Progress: %d%% and %s", e.Message)
+	})
+
 	t.Run("escaped percent plus one verb bridges the single verb", func(t *testing.T) {
 		RegisterNamespace("verbpct")
 		MustRegisterDefaultErrorMessages("verbpct", map[ErrorType]ErrorDefinition{
