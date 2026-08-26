@@ -111,4 +111,59 @@ func TestNewErrorFormatVerbFallback(t *testing.T) {
 		e := NewError("format", "INVALID_REQUEST", nil)
 		assert.Equal(t, "Invalid request parameter: %s", e.Message)
 	})
+
+	t.Run("literal percent is not bridged as a verb", func(t *testing.T) {
+		RegisterNamespace("pct")
+		MustRegisterDefaultErrorMessages("pct", map[ErrorType]ErrorDefinition{
+			"PROGRESS": {Key: "PROGRESS", Message: "Processing 50%% complete"},
+		})
+		MustRegisterErrorCodes("pct", map[ErrorType]int{"PROGRESS": 500})
+
+		e := NewError("pct", "PROGRESS", errors.New("any detail"))
+		assert.Equal(t, "Processing 50%% complete", e.Message)
+	})
+
+	t.Run("template with multiple verbs is not bridged", func(t *testing.T) {
+		RegisterNamespace("multi")
+		MustRegisterDefaultErrorMessages("multi", map[ErrorType]ErrorDefinition{
+			"PAIR": {Key: "PAIR", Message: "%s and %s"},
+		})
+		MustRegisterErrorCodes("multi", map[ErrorType]int{"PAIR": 400})
+
+		e := NewError("multi", "PAIR", errors.New("one detail"))
+		assert.Equal(t, "%s and %s", e.Message)
+	})
+
+	t.Run("escaped percent plus one verb bridges the single verb", func(t *testing.T) {
+		RegisterNamespace("verbpct")
+		MustRegisterDefaultErrorMessages("verbpct", map[ErrorType]ErrorDefinition{
+			"VERB_PCT": {Key: "VERB_PCT", Message: "Progress at 50%%: %s"},
+		})
+		MustRegisterErrorCodes("verbpct", map[ErrorType]int{"VERB_PCT": 400})
+
+		e := NewError("verbpct", "VERB_PCT", errors.New("done"))
+		assert.Equal(t, "Progress at 50%: done", e.Message)
+	})
+}
+
+func TestCountFormattedVerbs(t *testing.T) {
+	cases := []struct {
+		in   string
+		want int
+	}{
+		{"no verbs", 0},
+		{"plain %% literal", 0},
+		{"%s", 1},
+		{"prefix %s suffix", 1},
+		{"%s and %s", 2},
+		{"Progress at 50%%: %s", 1},
+		{"%d items", 1},
+		{"%-10s", 1},
+		{"%.2f", 1},
+		{"%[2]v", 1},
+		{"trailing %", 0},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, countFormattedVerbs(c.in), "countFormattedVerbs(%q)", c.in)
+	}
 }
