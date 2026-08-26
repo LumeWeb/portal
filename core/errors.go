@@ -323,6 +323,11 @@ func (r *ErrorRegistry) NewError(namespace string, key ErrorType, err error, arg
 	message := def.Message
 	if len(args) > 0 {
 		message = fmt.Sprintf(def.Message, args...) // Format the message
+	} else if err != nil && strings.Contains(def.Message, "%") {
+		// Convention: callers pass the descriptive detail via err. Bridge it into
+		// any format verb so the template reads e.g.
+		// "Invalid request parameter: a domain is required...".
+		message = fmt.Sprintf(def.Message, err.Error())
 	}
 
 	return &Error{
