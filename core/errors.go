@@ -321,8 +321,21 @@ func (r *ErrorRegistry) NewError(namespace string, key ErrorType, err error, arg
 	}
 
 	message := def.Message
-	if len(args) > 0 {
+	switch {
+	case len(args) > 0:
 		message = fmt.Sprintf(def.Message, args...) // Format the message
+	case err != nil && countFormattedVerbs(def.Message) == 1:
+		// Convention: callers pass the descriptive detail via err. Bridge it into
+		// the single format verb so the template reads e.g.
+		// "Invalid request parameter: a domain is required...".
+		// Only bridge when the template resolves to exactly one verb so literal
+		// percent signs and multi-verb templates are left untouched.
+		message = fmt.Sprintf(def.Message, err.Error())
+	case countFormattedVerbs(def.Message) == 0 && strings.Contains(def.Message, "%%"):
+		// Collapse escaped literal percents (%% -> %). Injecting err here is
+		// intentionally avoided: with no verb to consume it, the argument would
+		// render as a %!(EXTRA ...) marker.
+		message = strings.ReplaceAll(def.Message, "%%", "%")
 	}
 
 	return &Error{
@@ -443,4 +456,51 @@ func NewError(namespace string, key ErrorType, err error, args ...any) *Error {
 	errorRegistryMu.RLock()
 	defer errorRegistryMu.RUnlock()
 	return errorRegistry.NewError(namespace, key, err, args...)
+}
+
+// countFormattedVerbs returns the number of format verbs (directives that
+// consume an argument) in s. A literal percent sign ("%%") is not a verb, and
+// malformed trailing "%" without a verb is ignored.
+func countFormattedVerbs(s string) int {
+	count := 0
+	for i := 0; i < len(s); {
+		if s[i] != '%' {
+			i++
+			continue
+		}
+		i++ // consume '%'
+		if i < len(s) && s[i] == '%' {
+			i++ // literal percent, not a verb
+			continue
+		}
+		// Skip flags.
+		for i < len(s) && strings.ContainsRune("#0+- ", rune(s[i])) {
+			i++
+		}
+		// Skip width (digits or '*').
+		for i < len(s) && (s[i] == '*' || (s[i] >= '0' && s[i] <= '9')) {
+			i++
+		}
+		// Skip precision ('.' followed by digits or '*').
+		if i < len(s) && s[i] == '.' {
+			i++
+			for i < len(s) && (s[i] == '*' || (s[i] >= '0' && s[i] <= '9')) {
+				i++
+			}
+		}
+		// Skip argument index '[n]'.
+		if i < len(s) && s[i] == '[' {
+			for i < len(s) && s[i] != ']' {
+				i++
+			}
+			if i < len(s) {
+				i++ // consume ']'
+			}
+		}
+		if i < len(s) {
+			count++
+			i++
+		}
+	}
+	return count
 }
