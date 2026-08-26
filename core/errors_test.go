@@ -112,7 +112,7 @@ func TestNewErrorFormatVerbFallback(t *testing.T) {
 		assert.Equal(t, "Invalid request parameter: %s", e.Message)
 	})
 
-	t.Run("literal percent is not bridged as a verb", func(t *testing.T) {
+	t.Run("escaped percent collapses without injecting err", func(t *testing.T) {
 		RegisterNamespace("pct")
 		MustRegisterDefaultErrorMessages("pct", map[ErrorType]ErrorDefinition{
 			"PROGRESS": {Key: "PROGRESS", Message: "Processing 50%% complete"},
@@ -120,7 +120,9 @@ func TestNewErrorFormatVerbFallback(t *testing.T) {
 		MustRegisterErrorCodes("pct", map[ErrorType]int{"PROGRESS": 500})
 
 		e := NewError("pct", "PROGRESS", errors.New("any detail"))
-		assert.Equal(t, "Processing 50%% complete", e.Message)
+		// %% collapses to % and err is NOT injected (no verb to consume it),
+		// so no %!(EXTRA ...) marker appears.
+		assert.Equal(t, "Processing 50% complete", e.Message)
 	})
 
 	t.Run("template with multiple verbs is not bridged", func(t *testing.T) {

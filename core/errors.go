@@ -321,15 +321,21 @@ func (r *ErrorRegistry) NewError(namespace string, key ErrorType, err error, arg
 	}
 
 	message := def.Message
-	if len(args) > 0 {
+	switch {
+	case len(args) > 0:
 		message = fmt.Sprintf(def.Message, args...) // Format the message
-	} else if err != nil && countFormattedVerbs(def.Message) == 1 {
+	case err != nil && countFormattedVerbs(def.Message) == 1:
 		// Convention: callers pass the descriptive detail via err. Bridge it into
 		// the single format verb so the template reads e.g.
 		// "Invalid request parameter: a domain is required...".
 		// Only bridge when the template resolves to exactly one verb so literal
 		// percent signs and multi-verb templates are left untouched.
 		message = fmt.Sprintf(def.Message, err.Error())
+	case strings.Contains(def.Message, "%%"):
+		// Collapse escaped literal percents (%% -> %). Injecting err here is
+		// intentionally avoided: with no verb to consume it, the argument would
+		// render as a %!(EXTRA ...) marker.
+		message = strings.ReplaceAll(def.Message, "%%", "%")
 	}
 
 	return &Error{
