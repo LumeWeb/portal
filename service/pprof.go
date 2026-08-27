@@ -3,6 +3,7 @@ package service
 import (
 	"archive/zip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -171,21 +172,27 @@ func dumpProfiles(ctx context.Context, log *core.Logger, cfg config.DebugConfig)
 	}
 	window := time.Duration(secs) * time.Second
 
-	// Time-windowed CPU profile and execution trace.
-	captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("cpu-%s.pprof", createdAt)), window,
+	// Time-windowed CPU profile and execution trace. Abort the whole dump if
+	// the context is cancelled so a truncated capture is never packaged and
+	// reported as a successful full dump.
+	if err := captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("cpu-%s.pprof", createdAt)), window,
 		func(w io.Writer) (captureStopper, error) {
 			if err := pprof.StartCPUProfile(w); err != nil {
 				return nil, err
 			}
 			return pprof.StopCPUProfile, nil
-		})
-	captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("trace-%s.out", createdAt)), window,
+		}); isCancelled(err) {
+		return err
+	}
+	if err := captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("trace-%s.out", createdAt)), window,
 		func(w io.Writer) (captureStopper, error) {
 			if err := trace.Start(w); err != nil {
 				return nil, err
 			}
 			return trace.Stop, nil
-		})
+		}); isCancelled(err) {
+		return err
+	}
 
 	// Static profile snapshots.
 	for _, name := range []string{"heap", "allocs", "goroutine", "threadcreate", "block", "mutex"} {
@@ -217,14 +224,14 @@ type CaptureStarter func(w io.Writer) (stop captureStopper, err error)
 
 // captureWindow writes a time-windowed sample (CPU profile or execution
 // trace) to the given file. begin starts the capture and must return a stop
-// function; the capture runs for the full window before being stopped, or
-// ends early if ctx is cancelled.
-func captureWindow(ctx context.Context, log *core.Logger, path string, window time.Duration, begin CaptureStarter) {
+// function; the capture runs for the full window before being stopped, or is
+// cut short with ctx.Err() if ctx is cancelled.
+func captureWindow(ctx context.Context, log *core.Logger, path string, window time.Duration, begin CaptureStarter) error {
 	f, err := os.Create(path)
 	if err != nil {
 		log.Error("failed to create capture file",
 			zap.String("file", path), zap.Error(err))
-		return
+		return err
 	}
 	defer f.Close()
 
@@ -232,14 +239,23 @@ func captureWindow(ctx context.Context, log *core.Logger, path string, window ti
 	if err != nil {
 		log.Error("failed to start capture",
 			zap.String("file", path), zap.Error(err))
-		return
+		return err
 	}
 
 	select {
 	case <-ctx.Done():
+		stop()
+		return ctx.Err()
 	case <-time.After(window):
 	}
 	stop()
+	return nil
+}
+
+// isCancelled reports whether err indicates context cancellation or a
+// deadline, as opposed to a best-effort capture setup failure.
+func isCancelled(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // writeProfile writes a single named runtime profile to a directory.

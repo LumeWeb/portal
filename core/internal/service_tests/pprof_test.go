@@ -40,6 +40,26 @@ func TestPprofDebugService_DumpProfilesCreatesZip(t *testing.T) {
 	}, coreTesting.WithServiceFactory(core.PPROF_SERVICE, service.NewPprofDebugService))
 }
 
+// TestPprofDebugService_DumpProfilesCancelledNoZip verifies that a cancelled
+// context aborts the dump instead of packaging a truncated capture as success.
+func TestPprofDebugService_DumpProfilesCancelledNoZip(t *testing.T) {
+	coreTesting.RunTestCase(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		svc := core.GetService[core.PprofDebugService](ctx, core.PPROF_SERVICE)
+		require.NotNil(tb, svc)
+
+		out := tb.TempDir()
+		cfg := config.DebugConfig{Enabled: true, OutputDir: out, ProfileSeconds: 1}
+
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		err := svc.DumpProfiles(cancelled, cfg)
+		require.Error(tb, err)
+		assert.ErrorIs(tb, err, context.Canceled)
+		assert.Empty(tb, findZip(tb, out), "no zip expected when dump is cancelled")
+	}, coreTesting.WithServiceFactory(core.PPROF_SERVICE, service.NewPprofDebugService))
+}
+
 // TestPprofDebugService_WatcherTriggersDump verifies the end-to-end flow: when
 // the file watcher detects the landmark file it dumps the pprof data and
 // consumes the landmark so a new file re-arms the watcher.
