@@ -30,6 +30,8 @@ var (
 	_ Defaults             = (*MetricsBasicAuthConfig)(nil)
 	_ ConfigSchemaProvider = (*LoggingConfig)(nil)
 	_ Defaults             = (*LoggingConfig)(nil)
+	_ ConfigSchemaProvider = (*DebugConfig)(nil)
+	_ Defaults             = (*DebugConfig)(nil)
 )
 
 type OTLPConfig struct {
@@ -79,6 +81,41 @@ type ObservabilityConfig struct {
 	Tracing     TracingConfig `config:"tracing"`
 	Metrics     MetricsConfig `config:"metrics"`
 	Logging     LoggingConfig `config:"logging"`
+	Debug       DebugConfig   `config:"debug"`
+}
+
+// DebugConfig controls the file-watcher based pprof dump feature. When
+// enabled, the process watches WatchPath for a new file named LandmarkFile
+// and, on detection, captures a full set of runtime pprof profiles and an
+// execution trace into OutputDir. It is a fallback access point for the
+// admin pprof debug tooling that bypasses the HTTP layer entirely.
+type DebugConfig struct {
+	Enabled        bool   `config:"enabled"`
+	WatchPath      string `config:"watch_path"`
+	LandmarkFile   string `config:"landmark_file"`
+	OutputDir      string `config:"output_dir"`
+	ProfileSeconds int    `config:"profile_seconds"`
+}
+
+func (d DebugConfig) Schema() z.ZogSchema {
+	return z.Struct(z.Shape{
+		"Enabled":      z.Bool(),
+		"WatchPath":    z.String(),
+		"LandmarkFile": z.String(),
+		"OutputDir":    z.String(),
+		"ProfileSeconds": z.Int().
+			GT(0, z.Message("profile_seconds must be greater than 0")),
+	})
+}
+
+func (d DebugConfig) Defaults() map[string]any {
+	return map[string]any{
+		"Enabled":        false,
+		"WatchPath":      "",
+		"LandmarkFile":   "portal.pprof",
+		"OutputDir":      "",
+		"ProfileSeconds": 30,
+	}
 }
 
 type TracingConfig struct {
@@ -200,6 +237,7 @@ func (o ObservabilityConfig) Schema() z.ZogSchema {
 		"Enabled":     z.Bool(),
 		"ServiceName": z.String(),
 		"OTLP":        o.OTLP.Schema(),
+		"Debug":       o.Debug.Schema(),
 	}).TestFunc(func(data any, ctx z.Ctx) bool {
 		c, ok := data.(*ObservabilityConfig)
 		if !ok {
