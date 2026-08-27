@@ -57,6 +57,11 @@ func TestPprofDebugService_DumpProfilesCancelledNoZip(t *testing.T) {
 		require.Error(tb, err)
 		assert.ErrorIs(tb, err, context.Canceled)
 		assert.Empty(tb, findZip(tb, out), "no zip expected when dump is cancelled")
+
+		// No partial staging dir should leak behind on the cancelled path.
+		leftovers, derr := filepath.Glob(filepath.Join(out, "portal-pprof-*"))
+		require.NoError(tb, derr)
+		assert.Empty(tb, leftovers, "no partial staging dir expected when dump is cancelled")
 	}, coreTesting.WithServiceFactory(core.PPROF_SERVICE, service.NewPprofDebugService))
 }
 

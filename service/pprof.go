@@ -157,10 +157,16 @@ func dumpProfiles(ctx context.Context, log *core.Logger, cfg config.DebugConfig)
 	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
 		return err
 	}
+	// Remove the staging dir on every return path (including a cancelled
+	// dump) so a partial capture never leaks into the output directory.
+	defer os.RemoveAll(stagingDir)
 
 	// Capture all mutex and blocking events rather than a statistical sample.
-	// These are process-global, so reset them once the dump completes so the
-	// sustained overhead is not carried for the process lifetime.
+	// These are process-global switches, so reset them once the dump completes
+	// to avoid carrying sustained overhead for the process lifetime. Note: Go
+	// exposes no reset API for the block/mutex accumulators, so consecutive
+	// dumps may carry forward previously-reported contention events; this is
+	// accepted for an opt-in debug fallback.
 	runtime.SetMutexProfileFraction(1)
 	runtime.SetBlockProfileRate(1)
 	defer runtime.SetMutexProfileFraction(0)
@@ -204,10 +210,6 @@ func dumpProfiles(ctx context.Context, log *core.Logger, cfg config.DebugConfig)
 	if err := zipDir(stagingDir, zipPath); err != nil {
 		log.Error("failed to zip pprof data", zap.Error(err))
 		return err
-	}
-	if err := os.RemoveAll(stagingDir); err != nil {
-		log.Warn("failed to remove staging directory",
-			zap.String("path", stagingDir), zap.Error(err))
 	}
 
 	log.Info("pprof data dumped",
