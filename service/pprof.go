@@ -64,7 +64,7 @@ func (p *PprofDebugServiceDefault) ID() string {
 // DumpProfiles captures a full set of pprof profiles and an execution trace,
 // packaged into a single zip file in cfg.OutputDir.
 func (p *PprofDebugServiceDefault) DumpProfiles(ctx context.Context, cfg config.DebugConfig) error {
-	return dumpProfiles(p.Context(), cfg)
+	return dumpProfiles(ctx, p.Logger(), cfg)
 }
 
 // start launches the fsnotify watcher when the debug feature is enabled.
@@ -145,7 +145,7 @@ func (p *PprofDebugServiceDefault) trigger(cfg config.DebugConfig) {
 // the CPU and execution trace for ProfileSeconds, writes the static profiles
 // to a per-dump directory, then packages everything into a single zip file
 // which is the sole artifact left in the output directory.
-func dumpProfiles(ctx core.Context, cfg config.DebugConfig) error {
+func dumpProfiles(ctx context.Context, log *core.Logger, cfg config.DebugConfig) error {
 	dir := resolveOutputDir(cfg)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
@@ -158,8 +158,12 @@ func dumpProfiles(ctx core.Context, cfg config.DebugConfig) error {
 	}
 
 	// Capture all mutex and blocking events rather than a statistical sample.
+	// These are process-global, so reset them once the dump completes so the
+	// sustained overhead is not carried for the process lifetime.
 	runtime.SetMutexProfileFraction(1)
 	runtime.SetBlockProfileRate(1)
+	defer runtime.SetMutexProfileFraction(0)
+	defer runtime.SetBlockProfileRate(0)
 
 	secs := cfg.ProfileSeconds
 	if secs <= 0 {
@@ -168,14 +172,14 @@ func dumpProfiles(ctx core.Context, cfg config.DebugConfig) error {
 	window := time.Duration(secs) * time.Second
 
 	// Time-windowed CPU profile and execution trace.
-	captureWindow(ctx, filepath.Join(stagingDir, fmt.Sprintf("cpu-%s.pprof", createdAt)), window,
+	captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("cpu-%s.pprof", createdAt)), window,
 		func(w io.Writer) (captureStopper, error) {
 			if err := pprof.StartCPUProfile(w); err != nil {
 				return nil, err
 			}
 			return pprof.StopCPUProfile, nil
 		})
-	captureWindow(ctx, filepath.Join(stagingDir, fmt.Sprintf("trace-%s.out", createdAt)), window,
+	captureWindow(ctx, log, filepath.Join(stagingDir, fmt.Sprintf("trace-%s.out", createdAt)), window,
 		func(w io.Writer) (captureStopper, error) {
 			if err := trace.Start(w); err != nil {
 				return nil, err
@@ -185,21 +189,21 @@ func dumpProfiles(ctx core.Context, cfg config.DebugConfig) error {
 
 	// Static profile snapshots.
 	for _, name := range []string{"heap", "allocs", "goroutine", "threadcreate", "block", "mutex"} {
-		writeProfile(ctx, stagingDir, name, createdAt)
+		writeProfile(log, stagingDir, name, createdAt)
 	}
 
 	// Package the staged files into a single zip and remove the loose files.
 	zipPath := filepath.Join(dir, "portal-pprof-"+createdAt+".zip")
 	if err := zipDir(stagingDir, zipPath); err != nil {
-		ctx.Logger().Error("failed to zip pprof data", zap.Error(err))
+		log.Error("failed to zip pprof data", zap.Error(err))
 		return err
 	}
 	if err := os.RemoveAll(stagingDir); err != nil {
-		ctx.Logger().Warn("failed to remove staging directory",
+		log.Warn("failed to remove staging directory",
 			zap.String("path", stagingDir), zap.Error(err))
 	}
 
-	ctx.Logger().Info("pprof data dumped",
+	log.Info("pprof data dumped",
 		zap.String("zip_path", zipPath))
 	return nil
 }
@@ -213,11 +217,12 @@ type CaptureStarter func(w io.Writer) (stop captureStopper, err error)
 
 // captureWindow writes a time-windowed sample (CPU profile or execution
 // trace) to the given file. begin starts the capture and must return a stop
-// function; the capture runs for the full window before being stopped.
-func captureWindow(ctx core.Context, path string, window time.Duration, begin CaptureStarter) {
+// function; the capture runs for the full window before being stopped, or
+// ends early if ctx is cancelled.
+func captureWindow(ctx context.Context, log *core.Logger, path string, window time.Duration, begin CaptureStarter) {
 	f, err := os.Create(path)
 	if err != nil {
-		ctx.Logger().Error("failed to create capture file",
+		log.Error("failed to create capture file",
 			zap.String("file", path), zap.Error(err))
 		return
 	}
@@ -225,34 +230,37 @@ func captureWindow(ctx core.Context, path string, window time.Duration, begin Ca
 
 	stop, err := begin(f)
 	if err != nil {
-		ctx.Logger().Error("failed to start capture",
+		log.Error("failed to start capture",
 			zap.String("file", path), zap.Error(err))
 		return
 	}
 
-	time.Sleep(window)
+	select {
+	case <-ctx.Done():
+	case <-time.After(window):
+	}
 	stop()
 }
 
 // writeProfile writes a single named runtime profile to a directory.
-func writeProfile(ctx core.Context, dir, name, createdAt string) {
+func writeProfile(log *core.Logger, dir, name, createdAt string) {
 	profile := pprof.Lookup(name)
 	if profile == nil {
-		ctx.Logger().Debug("profile not available, skipping",
+		log.Debug("profile not available, skipping",
 			zap.String("profile", name))
 		return
 	}
 
 	f, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%s.pprof", name, createdAt)))
 	if err != nil {
-		ctx.Logger().Error("failed to create profile file",
+		log.Error("failed to create profile file",
 			zap.String("profile", name), zap.Error(err))
 		return
 	}
 	defer f.Close()
 
 	if err := profile.WriteTo(f, 0); err != nil {
-		ctx.Logger().Error("failed to write profile",
+		log.Error("failed to write profile",
 			zap.String("profile", name), zap.Error(err))
 	}
 }
