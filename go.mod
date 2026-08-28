@@ -70,7 +70,7 @@ require (
 	go.sia.tech/core v0.21.7
 	go.sia.tech/coreutils v0.24.0
 	go.sia.tech/indexd v0.4.4
-	go.sia.tech/siastorage v0.2.0
+	go.sia.tech/siastorage v0.2.1
 	go.uber.org/mock v0.6.0
 	go.uber.org/zap v1.28.0
 	go.uber.org/zap/exp v0.3.0
@@ -201,7 +201,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/klauspost/reedsolomon v1.14.1 // indirect
+	github.com/klauspost/reedsolomon v1.14.2 // indirect
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.20 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
