@@ -53,7 +53,7 @@ require (
 	github.com/tus/tusd/v2 v2.10.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/wneessen/go-mail v0.8.1
-	go.lumeweb.com/configmanager v0.3.29
+	go.lumeweb.com/configmanager v0.3.30
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.8
 	go.lumeweb.com/portal-middleware v0.3.7
