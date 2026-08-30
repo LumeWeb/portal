@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.lumeweb.com/oauth"
@@ -39,22 +40,37 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 			http := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
 
 			ocfg := ctx.Config().Config().Core.OAuth
+			if !ocfg.Enabled {
+				return nil
+			}
 
 			issuer := ocfg.Issuer
 			if issuer == "" {
 				issuer = http.APISubdomain("account", true)
 			}
+			if issuer == "" {
+				return fmt.Errorf("oauth: issuer is empty; set oauth.issuer or register the 'account' API")
+			}
 
 			cfg := oauth.Config{Issuer: issuer}
-			if tokenTTL, err := time.ParseDuration(ocfg.TokenTTL); err == nil {
-				cfg.TokenTTL = tokenTTL
+
+			tokenTTL, err := time.ParseDuration(ocfg.TokenTTL)
+			if err != nil {
+				return fmt.Errorf("oauth: invalid token_ttl %q: %w", ocfg.TokenTTL, err)
 			}
-			if refreshTTL, err := time.ParseDuration(ocfg.RefreshTTL); err == nil {
-				cfg.RefreshTTL = refreshTTL
+			cfg.TokenTTL = tokenTTL
+
+			refreshTTL, err := time.ParseDuration(ocfg.RefreshTTL)
+			if err != nil {
+				return fmt.Errorf("oauth: invalid refresh_ttl %q: %w", ocfg.RefreshTTL, err)
 			}
-			if codeTTL, err := time.ParseDuration(ocfg.CodeTTL); err == nil {
-				cfg.CodeTTL = codeTTL
+			cfg.RefreshTTL = refreshTTL
+
+			codeTTL, err := time.ParseDuration(ocfg.CodeTTL)
+			if err != nil {
+				return fmt.Errorf("oauth: invalid code_ttl %q: %w", ocfg.CodeTTL, err)
 			}
+			cfg.CodeTTL = codeTTL
 
 			storage, err := oautgorm.New(ctx.DB(), cfg)
 			if err != nil {
