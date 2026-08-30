@@ -54,21 +54,21 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 
 			cfg := oauth.Config{Issuer: issuer}
 
-			tokenTTL, err := time.ParseDuration(ocfg.TokenTTL)
+			tokenTTL, err := parseTTL("token_ttl", ocfg.TokenTTL)
 			if err != nil {
-				return fmt.Errorf("oauth: invalid token_ttl %q: %w", ocfg.TokenTTL, err)
+				return err
 			}
 			cfg.TokenTTL = tokenTTL
 
-			refreshTTL, err := time.ParseDuration(ocfg.RefreshTTL)
+			refreshTTL, err := parseTTL("refresh_ttl", ocfg.RefreshTTL)
 			if err != nil {
-				return fmt.Errorf("oauth: invalid refresh_ttl %q: %w", ocfg.RefreshTTL, err)
+				return err
 			}
 			cfg.RefreshTTL = refreshTTL
 
-			codeTTL, err := time.ParseDuration(ocfg.CodeTTL)
+			codeTTL, err := parseTTL("code_ttl", ocfg.CodeTTL)
 			if err != nil {
-				return fmt.Errorf("oauth: invalid code_ttl %q: %w", ocfg.CodeTTL, err)
+				return err
 			}
 			cfg.CodeTTL = codeTTL
 
@@ -88,6 +88,21 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 
 func (s *OAuthProviderServiceDefault) ID() string {
 	return core.OAUTH_PROVIDER_SERVICE
+}
+
+// parseTTL parses a time.ParseDuration string from config. Empty values are
+// allowed and yield a zero duration so the oauth library applies its built-in
+// defaults; non-empty but malformed values fail startup rather than silently
+// zeroing the token lifetime.
+func parseTTL(name, value string) (time.Duration, error) {
+	if value == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("oauth: invalid %s %q: %w", name, value, err)
+	}
+	return d, nil
 }
 
 func (s *OAuthProviderServiceDefault) RegisterClient(ctx context.Context, reg oauth.ClientRegistration) (*oauth.Client, error) {
