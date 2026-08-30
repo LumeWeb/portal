@@ -33,6 +33,7 @@ type CoreConfig struct {
 	Account         AccountConfig        `config:"account"`
 	Observability   ObservabilityConfig  `config:"observability"`
 	DNSResolver     string               `config:"dns_resolver"`
+	OAuth           OAuthConfig          `config:"oauth"`
 }
 
 func (c CoreConfig) Schema() z.ZogSchema {
