@@ -12,7 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
-var ErrResourceNotRegistered = errors.New("oauth: resource not registered")
+var (
+	// ErrResourceNotRegistered is returned when a protected resource has not
+	// been registered with the AS.
+	ErrResourceNotRegistered = errors.New("oauth: resource not registered")
+	// ErrOAuthDisabled is returned when the OAuth provider is called while
+	// it is disabled (oauth.enabled is false) and the AS has not been
+	// initialized.
+	ErrOAuthDisabled = errors.New("oauth: oauth provider is disabled")
+)
 
 var _ core.OAuthProviderService = (*OAuthProviderServiceDefault)(nil)
 
@@ -105,59 +113,106 @@ func parseTTL(name, value string) (time.Duration, error) {
 	return d, nil
 }
 
+// authServer returns the initialized authorization server. When the OAuth
+// provider is disabled (oauth.enabled is false), the server is never created
+// and this returns ErrOAuthDisabled so callers fail cleanly instead of
+// dereferencing a nil server.
+func (s *OAuthProviderServiceDefault) authServer() (*oauth.AuthorizationServer, error) {
+	if s.as == nil {
+		return nil, ErrOAuthDisabled
+	}
+	return s.as, nil
+}
+
 func (s *OAuthProviderServiceDefault) RegisterClient(ctx context.Context, reg oauth.ClientRegistration) (*oauth.Client, error) {
 	ctx, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.RegisterClient")
 	defer span.End()
-	return s.as.RegisterClient(reg)
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	return as.RegisterClient(reg)
 }
 
 func (s *OAuthProviderServiceDefault) ValidateAuthorizeRequest(ctx context.Context, req oauth.AuthorizeRequest) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.ValidateAuthorizeRequest")
 	defer span.End()
-	return s.as.ValidateAuthorizeRequest(req)
+	as, err := s.authServer()
+	if err != nil {
+		return err
+	}
+	return as.ValidateAuthorizeRequest(req)
 }
 
 func (s *OAuthProviderServiceDefault) IssueAuthorizationCode(ctx context.Context, req oauth.AuthorizeRequest, userID uint) (string, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.IssueAuthorizationCode")
 	defer span.End()
-	return s.as.IssueAuthorizationCode(req, userID)
+	as, err := s.authServer()
+	if err != nil {
+		return "", err
+	}
+	return as.IssueAuthorizationCode(req, userID)
 }
 
 func (s *OAuthProviderServiceDefault) ExchangeCode(ctx context.Context, req oauth.TokenRequest) (*oauth.TokenResponse, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.ExchangeCode")
 	defer span.End()
-	return s.as.ExchangeCode(req)
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	return as.ExchangeCode(req)
 }
 
 func (s *OAuthProviderServiceDefault) RefreshToken(ctx context.Context, req oauth.TokenRequest) (*oauth.TokenResponse, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.RefreshToken")
 	defer span.End()
-	return s.as.RefreshToken(req)
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	return as.RefreshToken(req)
 }
 
 func (s *OAuthProviderServiceDefault) ValidateAccessToken(ctx context.Context, token string) (uint, time.Time, bool) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.ValidateAccessToken")
 	defer span.End()
-	return s.as.ValidateAccessToken(token)
+	as, err := s.authServer()
+	if err != nil {
+		return 0, time.Time{}, false
+	}
+	return as.ValidateAccessToken(token)
 }
 
 func (s *OAuthProviderServiceDefault) RevokeToken(ctx context.Context, token string) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.RevokeToken")
 	defer span.End()
-	return s.as.RevokeToken(token)
+	as, err := s.authServer()
+	if err != nil {
+		return err
+	}
+	return as.RevokeToken(token)
 }
 
 func (s *OAuthProviderServiceDefault) Metadata(ctx context.Context) (*oauth.ASMetadata, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.Metadata")
 	defer span.End()
-	meta := oauth.BuildASMetadata(s.as.Config())
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	meta := oauth.BuildASMetadata(as.Config())
 	return &meta, nil
 }
 
 func (s *OAuthProviderServiceDefault) RegisterResource(ctx context.Context, reg core.OAuthProtectedResource) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.RegisterResource")
 	defer span.End()
-	s.as.RegisterResource(oauth.Resource{
+	as, err := s.authServer()
+	if err != nil {
+		return err
+	}
+	as.RegisterResource(oauth.Resource{
 		ResourceURL: reg.ResourceURL,
 		Scopes:      reg.Scopes,
 		DisplayName: reg.DisplayName,
@@ -168,14 +223,22 @@ func (s *OAuthProviderServiceDefault) RegisterResource(ctx context.Context, reg 
 func (s *OAuthProviderServiceDefault) UnregisterResource(ctx context.Context, resourceURL string) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.UnregisterResource")
 	defer span.End()
-	s.as.UnregisterResource(resourceURL)
+	as, err := s.authServer()
+	if err != nil {
+		return err
+	}
+	as.UnregisterResource(resourceURL)
 	return nil
 }
 
 func (s *OAuthProviderServiceDefault) GetResource(ctx context.Context, resourceURL string) (*core.OAuthProtectedResource, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.GetResource")
 	defer span.End()
-	reg, ok := s.as.GetResource(resourceURL)
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	reg, ok := as.GetResource(resourceURL)
 	if !ok {
 		return nil, nil
 	}
@@ -189,11 +252,15 @@ func (s *OAuthProviderServiceDefault) GetResource(ctx context.Context, resourceU
 func (s *OAuthProviderServiceDefault) ProtectedResourceMetadata(ctx context.Context, resourceURL string) (*oauth.ProtectedResourceMetadata, error) {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.ProtectedResourceMetadata")
 	defer span.End()
-	reg, ok := s.as.GetResource(resourceURL)
+	as, err := s.authServer()
+	if err != nil {
+		return nil, err
+	}
+	reg, ok := as.GetResource(resourceURL)
 	if !ok {
 		return nil, ErrResourceNotRegistered
 	}
-	issuer := s.as.Config().Issuer
+	issuer := as.Config().Issuer
 	meta := oauth.BuildProtectedResourceMetadataFromResource(reg, issuer)
 	return &meta, nil
 }
@@ -201,5 +268,9 @@ func (s *OAuthProviderServiceDefault) ProtectedResourceMetadata(ctx context.Cont
 func (s *OAuthProviderServiceDefault) Reap(ctx context.Context) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.Reap")
 	defer span.End()
-	return s.as.Reap()
+	as, err := s.authServer()
+	if err != nil {
+		return err
+	}
+	return as.Reap()
 }
