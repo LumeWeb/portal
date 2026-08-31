@@ -57,7 +57,10 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 				issuer = http.APISubdomain("account", true)
 			}
 			if issuer == "" {
-				return fmt.Errorf("oauth: issuer is empty; set oauth.issuer or register the 'account' API")
+				// Degrade gracefully when the issuer cannot be auto-detected so a
+				// default-enabled (unconfigured) deployment does not abort boot.
+				ctx.Logger().Warn("oauth: issuer is empty; skipping oauth provider. Set oauth.issuer or register the 'account' API")
+				return nil
 			}
 
 			cfg := oauth.Config{Issuer: issuer}
