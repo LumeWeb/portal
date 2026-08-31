@@ -42,7 +42,33 @@ const (
 	webBundleSubPath       = "/%s/bundle/%s/"
 	webBundleBasePath      = webBundleApiBasePath + webBundleSubPath
 	webBundleManifestRoute = webBundleBasePath + defaultManifestPath
+
+	// apiCatalogPath is the RFC 9727 well-known URI for API discovery. It is
+	// served from the root of every hostname the portal publishes APIs on.
+	apiCatalogPath = "/.well-known/api-catalog"
+	// apiCatalogMediaType is the linkset JSON format used by RFC 9727 (RFC 9584).
+	apiCatalogMediaType = "application/linkset+json"
+	// openAPIMediaType is the service-description media type. It matches the
+	// OpenAPI 3.0 spec version served by the gswagger stack (defaultOpenapiVersion).
+	openAPIMediaType = "application/vnd.oai.openapi+json;version=3.0"
 )
+
+// apiCatalogLink is a single link relation in an api-catalog linkset entry.
+type apiCatalogLink struct {
+	Href string `json:"href"`
+	Type string `json:"type"`
+}
+
+// apiCatalogEntry is one anchor (API base URI) and its link relations.
+type apiCatalogEntry struct {
+	Anchor      string           `json:"anchor"`
+	ServiceDesc []apiCatalogLink `json:"service-desc"`
+}
+
+// apiCatalog is the RFC 9727 discovery document served at /.well-known/api-catalog.
+type apiCatalog struct {
+	Linkset []apiCatalogEntry `json:"linkset"`
+}
 
 var (
 	pluginIDRegex    = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`)
@@ -82,6 +108,7 @@ type HTTPServiceDefault struct {
 	fsCache       sync.Map // Cache for bundle filesystems
 	globalPaths   []string
 	globalPathsMu sync.RWMutex
+	apiCatalog    []byte // Precomputed RFC 9727 catalog; immutable after Init
 	wg            sync.WaitGroup
 	stopOnce      sync.Once
 }
@@ -142,6 +169,9 @@ func (h *HTTPServiceDefault) Init() error {
 		return fmt.Errorf("failed to register global path: %w", err)
 	}
 	if err := h.RegisterGlobalPath("/swagger"); err != nil {
+		return fmt.Errorf("failed to register global path: %w", err)
+	}
+	if err := h.RegisterGlobalPath(apiCatalogPath); err != nil {
 		return fmt.Errorf("failed to register global path: %w", err)
 	}
 
@@ -227,6 +257,17 @@ func (h *HTTPServiceDefault) Init() error {
 			}
 		}
 	}
+
+	// Build the RFC 9727 API catalog once. The set of APIs and plugins is fixed
+	// after boot, so the catalog is computed a single time and served thereafter.
+	if err := h.buildAPICatalog(); err != nil {
+		return fmt.Errorf("failed to build api catalog: %w", err)
+	}
+
+	// Serve the RFC 9727 API catalog on every hostname. Registering it as a
+	// global path makes the root router handle it regardless of the Host header.
+	router.GetRouter(h.Router()).GET(apiCatalogPath, h.apiCatalogHandler,
+		echo.WrapMiddleware(cors.NewWithDefaults(core.CORSConfig{})))
 
 	rootApi, err := h.Router().Group("/api")
 	if err != nil {
@@ -354,6 +395,70 @@ func (h *HTTPServiceDefault) apiMetaHandler(e echo.Context) error {
 	_ = ctx.Encode(metaBuilder.Build())
 
 	return nil
+}
+
+// rootDomainURL returns the scheme-qualified URL for the portal's root domain,
+// which hosts the core meta API and shares its hostname with APIs that define
+// no subdomain of their own.
+func (h *HTTPServiceDefault) rootDomainURL() string {
+	protocol := "http"
+	if h.Config().Config().Core.Secure {
+		protocol = "https"
+	}
+	return fmt.Sprintf("%s://%s", protocol, h.Config().Config().Core.Domain)
+}
+
+// buildAPICatalog precomputes the RFC 9727 API discovery catalog into
+// h.apiCatalog. It lists every published API (each hostname that exposes an
+// OpenAPI spec) so autonomous clients can discover the portal's API surface
+// without prior knowledge. The set of APIs and plugins is fixed after boot, so
+// the catalog is built once during Init and served thereafter without
+// recomputation.
+func (h *HTTPServiceDefault) buildAPICatalog() error {
+	var entries []apiCatalogEntry
+
+	// Root domain entry: the core meta API and any APIs without their own subdomain.
+	rootURL := h.rootDomainURL()
+	entries = append(entries, apiCatalogEntry{
+		Anchor: rootURL,
+		ServiceDesc: []apiCatalogLink{
+			{Href: rootURL + "/swagger.json", Type: openAPIMediaType},
+		},
+	})
+
+	// One entry per API that generates and exposes its own OpenAPI spec.
+	for _, api := range core.GetAPIList() {
+		if api.OpenAPIInfo() == nil {
+			continue // no spec generated for this API
+		}
+		if strings.TrimSpace(api.Subdomain()) == "" {
+			continue // hosts on the root domain, already covered above
+		}
+		anchor := h.APISubdomain(api.Name(), true)
+		if anchor == "" {
+			continue
+		}
+		entries = append(entries, apiCatalogEntry{
+			Anchor: anchor,
+			ServiceDesc: []apiCatalogLink{
+				{Href: anchor + "/swagger.json", Type: openAPIMediaType},
+			},
+		})
+	}
+
+	data, err := json.Marshal(apiCatalog{Linkset: entries})
+	if err != nil {
+		return err
+	}
+	h.apiCatalog = data
+	return nil
+}
+
+// apiCatalogHandler serves the precomputed RFC 9727 discovery catalog at
+// /.well-known/api-catalog. The same document is returned regardless of which
+// hostname it is requested from.
+func (h *HTTPServiceDefault) apiCatalogHandler(c echo.Context) error {
+	return c.Blob(http.StatusOK, apiCatalogMediaType, h.apiCatalog)
 }
 
 func (h *HTTPServiceDefault) generateWebBundleURI(pluginID string, bundleIndex int) string {

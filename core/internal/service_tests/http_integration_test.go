@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -257,5 +258,74 @@ func TestHTTPService_APISubdomain_Integration(t *testing.T) {
 		// Test with non-existent API
 		subdomain = httpService.APISubdomain("nonexistent", false)
 		assert.Empty(tb, subdomain)
+	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService))
+}
+
+func TestHTTPService_APICatalog_Integration(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		httpService := core.GetService[core.HTTPService](ctx, core.HTTP_SERVICE)
+		require.NotNil(tb, httpService)
+
+		protocol := "http"
+		if ctx.Config().Config().Core.Secure {
+			protocol = "https"
+		}
+		rootURL := fmt.Sprintf("%s://%s", protocol, ctx.Config().Config().Core.Domain)
+
+		// The catalog is a global path, so it must resolve regardless of the
+		// Host header (root domain and any API subdomain alike).
+		req := httptest.NewRequest(http.MethodGet, "/.well-known/api-catalog", nil)
+		req.Host = "api." + ctx.Config().Config().Core.Domain
+		rec := httptest.NewRecorder()
+		httpService.Router().ServeHTTP(rec, req)
+
+		require.Equal(tb, http.StatusOK, rec.Code)
+		assert.Equal(tb, "application/linkset+json", rec.Header().Get("Content-Type"))
+
+		var catalog struct {
+			Linkset []struct {
+				Anchor      string `json:"anchor"`
+				ServiceDesc []struct {
+					Href string `json:"href"`
+					Type string `json:"type"`
+				} `json:"service-desc"`
+			} `json:"linkset"`
+		}
+		require.NoError(tb, json.Unmarshal(rec.Body.Bytes(), &catalog))
+		require.NotEmpty(tb, catalog.Linkset)
+
+		// The root domain entry must point at the root OpenAPI spec.
+		foundRoot := false
+		for _, entry := range catalog.Linkset {
+			if entry.Anchor != rootURL {
+				continue
+			}
+			foundRoot = true
+			require.NotEmpty(tb, entry.ServiceDesc)
+			assert.Equal(tb, rootURL+"/swagger.json", entry.ServiceDesc[0].Href)
+			assert.Equal(tb, "application/vnd.oai.openapi+json;version=3.0", entry.ServiceDesc[0].Type)
+		}
+		assert.True(tb, foundRoot, "catalog should contain the root domain entry")
+
+		// Follow each service-desc href to ensure it resolves to a live OpenAPI
+		// spec, not a dead/incorrect link. The spec endpoint serves the document
+		// as application/json, so validate the body parses as an OpenAPI doc.
+		for _, entry := range catalog.Linkset {
+			for _, sd := range entry.ServiceDesc {
+				u, parseErr := url.Parse(sd.Href)
+				require.NoError(tb, parseErr)
+				getReq := httptest.NewRequest(http.MethodGet, u.Path, nil)
+				getReq.Host = u.Host
+				getRec := httptest.NewRecorder()
+				httpService.Router().ServeHTTP(getRec, getReq)
+				require.Equal(tb, http.StatusOK, getRec.Code, "href should resolve: %s", sd.Href)
+
+				var spec struct {
+					OpenAPI string `json:"openapi"`
+				}
+				require.NoError(tb, json.Unmarshal(getRec.Body.Bytes(), &spec))
+				assert.Contains(tb, spec.OpenAPI, "3.")
+			}
+		}
 	}, coreTesting.WithServiceFactory(core.HTTP_SERVICE, service.NewHTTPService))
 }
