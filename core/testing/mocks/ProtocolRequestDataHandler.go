@@ -63,7 +63,7 @@ type MockProtocolRequestDataHandler_CompleteProtocolData_Call struct {
 // CompleteProtocolData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockProtocolRequestDataHandler_Expecter) CompleteProtocolData(ctx interface{}, id interface{}) *MockProtocolRequestDataHandler_CompleteProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) CompleteProtocolData(ctx any, id any) *MockProtocolRequestDataHandler_CompleteProtocolData_Call {
 	return &MockProtocolRequestDataHandler_CompleteProtocolData_Call{Call: _e.mock.On("CompleteProtocolData", ctx, id)}
 }
 
@@ -121,7 +121,7 @@ type MockProtocolRequestDataHandler_CreateProtocolData_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockProtocolRequestDataHandler_Expecter) CreateProtocolData(ctx interface{}, id interface{}, data interface{}) *MockProtocolRequestDataHandler_CreateProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) CreateProtocolData(ctx any, id any, data any) *MockProtocolRequestDataHandler_CreateProtocolData_Call {
 	return &MockProtocolRequestDataHandler_CreateProtocolData_Call{Call: _e.mock.On("CreateProtocolData", ctx, id, data)}
 }
 
@@ -183,7 +183,7 @@ type MockProtocolRequestDataHandler_DeleteProtocolData_Call struct {
 // DeleteProtocolData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockProtocolRequestDataHandler_Expecter) DeleteProtocolData(ctx interface{}, id interface{}) *MockProtocolRequestDataHandler_DeleteProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) DeleteProtocolData(ctx any, id any) *MockProtocolRequestDataHandler_DeleteProtocolData_Call {
 	return &MockProtocolRequestDataHandler_DeleteProtocolData_Call{Call: _e.mock.On("DeleteProtocolData", ctx, id)}
 }
 
@@ -252,7 +252,7 @@ type MockProtocolRequestDataHandler_GetProtocolData_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - id uint
-func (_e *MockProtocolRequestDataHandler_Expecter) GetProtocolData(ctx interface{}, tx interface{}, id interface{}) *MockProtocolRequestDataHandler_GetProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) GetProtocolData(ctx any, tx any, id any) *MockProtocolRequestDataHandler_GetProtocolData_Call {
 	return &MockProtocolRequestDataHandler_GetProtocolData_Call{Call: _e.mock.On("GetProtocolData", ctx, tx, id)}
 }
 
@@ -363,7 +363,7 @@ type MockProtocolRequestDataHandler_QueryProtocolData_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - query any
-func (_e *MockProtocolRequestDataHandler_Expecter) QueryProtocolData(ctx interface{}, tx interface{}, query interface{}) *MockProtocolRequestDataHandler_QueryProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) QueryProtocolData(ctx any, tx any, query any) *MockProtocolRequestDataHandler_QueryProtocolData_Call {
 	return &MockProtocolRequestDataHandler_QueryProtocolData_Call{Call: _e.mock.On("QueryProtocolData", ctx, tx, query)}
 }
 
@@ -426,7 +426,7 @@ type MockProtocolRequestDataHandler_UpdateProtocolData_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockProtocolRequestDataHandler_Expecter) UpdateProtocolData(ctx interface{}, id interface{}, data interface{}) *MockProtocolRequestDataHandler_UpdateProtocolData_Call {
+func (_e *MockProtocolRequestDataHandler_Expecter) UpdateProtocolData(ctx any, id any, data any) *MockProtocolRequestDataHandler_UpdateProtocolData_Call {
 	return &MockProtocolRequestDataHandler_UpdateProtocolData_Call{Call: _e.mock.On("UpdateProtocolData", ctx, id, data)}
 }
 

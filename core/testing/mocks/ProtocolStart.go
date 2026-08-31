@@ -60,7 +60,7 @@ type MockProtocolStart_Start_Call struct {
 
 // Start is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockProtocolStart_Expecter) Start(ctx interface{}) *MockProtocolStart_Start_Call {
+func (_e *MockProtocolStart_Expecter) Start(ctx any) *MockProtocolStart_Start_Call {
 	return &MockProtocolStart_Start_Call{Call: _e.mock.On("Start", ctx)}
 }
 

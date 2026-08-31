@@ -72,7 +72,7 @@ type MockCronScheduleRegistry_Create_Call struct {
 
 // Create is a helper method to define mock.On call
 //   - def core.CronScheduleDefinition
-func (_e *MockCronScheduleRegistry_Expecter) Create(def interface{}) *MockCronScheduleRegistry_Create_Call {
+func (_e *MockCronScheduleRegistry_Expecter) Create(def any) *MockCronScheduleRegistry_Create_Call {
 	return &MockCronScheduleRegistry_Create_Call{Call: _e.mock.On("Create", def)}
 }
 
@@ -159,7 +159,7 @@ type MockCronScheduleRegistry_Register_Call struct {
 // Register is a helper method to define mock.On call
 //   - schedType core.CronScheduleType
 //   - factory core.ScheduleFactoryFunc
-func (_e *MockCronScheduleRegistry_Expecter) Register(schedType interface{}, factory interface{}) *MockCronScheduleRegistry_Register_Call {
+func (_e *MockCronScheduleRegistry_Expecter) Register(schedType any, factory any) *MockCronScheduleRegistry_Register_Call {
 	return &MockCronScheduleRegistry_Register_Call{Call: _e.mock.On("Register", schedType, factory)}
 }
 
@@ -215,7 +215,7 @@ type MockCronScheduleRegistry_Validate_Call struct {
 
 // Validate is a helper method to define mock.On call
 //   - def core.CronScheduleDefinition
-func (_e *MockCronScheduleRegistry_Expecter) Validate(def interface{}) *MockCronScheduleRegistry_Validate_Call {
+func (_e *MockCronScheduleRegistry_Expecter) Validate(def any) *MockCronScheduleRegistry_Validate_Call {
 	return &MockCronScheduleRegistry_Validate_Call{Call: _e.mock.On("Validate", def)}
 }
 

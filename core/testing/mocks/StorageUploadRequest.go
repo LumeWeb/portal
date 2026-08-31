@@ -327,7 +327,7 @@ type MockStorageUploadRequest_SetData_Call struct {
 
 // SetData is a helper method to define mock.On call
 //   - readSeeker io.ReadSeeker
-func (_e *MockStorageUploadRequest_Expecter) SetData(readSeeker interface{}) *MockStorageUploadRequest_SetData_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetData(readSeeker any) *MockStorageUploadRequest_SetData_Call {
 	return &MockStorageUploadRequest_SetData_Call{Call: _e.mock.On("SetData", readSeeker)}
 }
 
@@ -367,7 +367,7 @@ type MockStorageUploadRequest_SetHash_Call struct {
 
 // SetHash is a helper method to define mock.On call
 //   - storageHash core.StorageHash
-func (_e *MockStorageUploadRequest_Expecter) SetHash(storageHash interface{}) *MockStorageUploadRequest_SetHash_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetHash(storageHash any) *MockStorageUploadRequest_SetHash_Call {
 	return &MockStorageUploadRequest_SetHash_Call{Call: _e.mock.On("SetHash", storageHash)}
 }
 
@@ -407,7 +407,7 @@ type MockStorageUploadRequest_SetHashTypes_Call struct {
 
 // SetHashTypes is a helper method to define mock.On call
 //   - types []uint64
-func (_e *MockStorageUploadRequest_Expecter) SetHashTypes(types interface{}) *MockStorageUploadRequest_SetHashTypes_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetHashTypes(types any) *MockStorageUploadRequest_SetHashTypes_Call {
 	return &MockStorageUploadRequest_SetHashTypes_Call{Call: _e.mock.On("SetHashTypes", types)}
 }
 
@@ -447,7 +447,7 @@ type MockStorageUploadRequest_SetHashes_Call struct {
 
 // SetHashes is a helper method to define mock.On call
 //   - hashes []core.StorageHash
-func (_e *MockStorageUploadRequest_Expecter) SetHashes(hashes interface{}) *MockStorageUploadRequest_SetHashes_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetHashes(hashes any) *MockStorageUploadRequest_SetHashes_Call {
 	return &MockStorageUploadRequest_SetHashes_Call{Call: _e.mock.On("SetHashes", hashes)}
 }
 
@@ -487,7 +487,7 @@ type MockStorageUploadRequest_SetMuParams_Call struct {
 
 // SetMuParams is a helper method to define mock.On call
 //   - multipartUploadParams *core.MultipartUploadParams
-func (_e *MockStorageUploadRequest_Expecter) SetMuParams(multipartUploadParams interface{}) *MockStorageUploadRequest_SetMuParams_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetMuParams(multipartUploadParams any) *MockStorageUploadRequest_SetMuParams_Call {
 	return &MockStorageUploadRequest_SetMuParams_Call{Call: _e.mock.On("SetMuParams", multipartUploadParams)}
 }
 
@@ -527,7 +527,7 @@ type MockStorageUploadRequest_SetProtocol_Call struct {
 
 // SetProtocol is a helper method to define mock.On call
 //   - storageProtocol core.StorageProtocol
-func (_e *MockStorageUploadRequest_Expecter) SetProtocol(storageProtocol interface{}) *MockStorageUploadRequest_SetProtocol_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetProtocol(storageProtocol any) *MockStorageUploadRequest_SetProtocol_Call {
 	return &MockStorageUploadRequest_SetProtocol_Call{Call: _e.mock.On("SetProtocol", storageProtocol)}
 }
 
@@ -567,7 +567,7 @@ type MockStorageUploadRequest_SetSize_Call struct {
 
 // SetSize is a helper method to define mock.On call
 //   - v uint64
-func (_e *MockStorageUploadRequest_Expecter) SetSize(v interface{}) *MockStorageUploadRequest_SetSize_Call {
+func (_e *MockStorageUploadRequest_Expecter) SetSize(v any) *MockStorageUploadRequest_SetSize_Call {
 	return &MockStorageUploadRequest_SetSize_Call{Call: _e.mock.On("SetSize", v)}
 }
 

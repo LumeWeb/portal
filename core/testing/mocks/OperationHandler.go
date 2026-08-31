@@ -64,7 +64,7 @@ type MockOperationHandler_Cleanup_Call struct {
 // Cleanup is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockOperationHandler_Expecter) Cleanup(ctx interface{}, req interface{}) *MockOperationHandler_Cleanup_Call {
+func (_e *MockOperationHandler_Expecter) Cleanup(ctx any, req any) *MockOperationHandler_Cleanup_Call {
 	return &MockOperationHandler_Cleanup_Call{Call: _e.mock.On("Cleanup", ctx, req)}
 }
 
@@ -121,7 +121,7 @@ type MockOperationHandler_Execute_Call struct {
 // Execute is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockOperationHandler_Expecter) Execute(ctx interface{}, req interface{}) *MockOperationHandler_Execute_Call {
+func (_e *MockOperationHandler_Expecter) Execute(ctx any, req any) *MockOperationHandler_Execute_Call {
 	return &MockOperationHandler_Execute_Call{Call: _e.mock.On("Execute", ctx, req)}
 }
 
@@ -189,7 +189,7 @@ type MockOperationHandler_GetStatus_Call struct {
 // GetStatus is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockOperationHandler_Expecter) GetStatus(ctx interface{}, req interface{}) *MockOperationHandler_GetStatus_Call {
+func (_e *MockOperationHandler_Expecter) GetStatus(ctx any, req any) *MockOperationHandler_GetStatus_Call {
 	return &MockOperationHandler_GetStatus_Call{Call: _e.mock.On("GetStatus", ctx, req)}
 }
 
@@ -246,7 +246,7 @@ type MockOperationHandler_ValidateRequest_Call struct {
 // ValidateRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockOperationHandler_Expecter) ValidateRequest(ctx interface{}, req interface{}) *MockOperationHandler_ValidateRequest_Call {
+func (_e *MockOperationHandler_Expecter) ValidateRequest(ctx any, req any) *MockOperationHandler_ValidateRequest_Call {
 	return &MockOperationHandler_ValidateRequest_Call{Call: _e.mock.On("ValidateRequest", ctx, req)}
 }
 

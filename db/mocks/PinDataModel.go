@@ -139,7 +139,7 @@ type MockPinDataModel_SetPin_Call struct {
 
 // SetPin is a helper method to define mock.On call
 //   - req any
-func (_e *MockPinDataModel_Expecter) SetPin(req interface{}) *MockPinDataModel_SetPin_Call {
+func (_e *MockPinDataModel_Expecter) SetPin(req any) *MockPinDataModel_SetPin_Call {
 	return &MockPinDataModel_SetPin_Call{Call: _e.mock.On("SetPin", req)}
 }
 
@@ -179,7 +179,7 @@ type MockPinDataModel_SetPinID_Call struct {
 
 // SetPinID is a helper method to define mock.On call
 //   - id uint
-func (_e *MockPinDataModel_Expecter) SetPinID(id interface{}) *MockPinDataModel_SetPinID_Call {
+func (_e *MockPinDataModel_Expecter) SetPinID(id any) *MockPinDataModel_SetPinID_Call {
 	return &MockPinDataModel_SetPinID_Call{Call: _e.mock.On("SetPinID", id)}
 }
 

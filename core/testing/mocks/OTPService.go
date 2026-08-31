@@ -293,7 +293,7 @@ type MockOTPService_OTPDisable_Call struct {
 // OTPDisable is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockOTPService_Expecter) OTPDisable(ctx interface{}, userId interface{}) *MockOTPService_OTPDisable_Call {
+func (_e *MockOTPService_Expecter) OTPDisable(ctx any, userId any) *MockOTPService_OTPDisable_Call {
 	return &MockOTPService_OTPDisable_Call{Call: _e.mock.On("OTPDisable", ctx, userId)}
 }
 
@@ -351,7 +351,7 @@ type MockOTPService_OTPEnable_Call struct {
 //   - ctx context.Context
 //   - userId uint
 //   - code string
-func (_e *MockOTPService_Expecter) OTPEnable(ctx interface{}, userId interface{}, code interface{}) *MockOTPService_OTPEnable_Call {
+func (_e *MockOTPService_Expecter) OTPEnable(ctx any, userId any, code any) *MockOTPService_OTPEnable_Call {
 	return &MockOTPService_OTPEnable_Call{Call: _e.mock.On("OTPEnable", ctx, userId, code)}
 }
 
@@ -422,7 +422,7 @@ type MockOTPService_OTPGenerate_Call struct {
 // OTPGenerate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockOTPService_Expecter) OTPGenerate(ctx interface{}, userId interface{}) *MockOTPService_OTPGenerate_Call {
+func (_e *MockOTPService_Expecter) OTPGenerate(ctx any, userId any) *MockOTPService_OTPGenerate_Call {
 	return &MockOTPService_OTPGenerate_Call{Call: _e.mock.On("OTPGenerate", ctx, userId)}
 }
 
@@ -489,7 +489,7 @@ type MockOTPService_OTPVerify_Call struct {
 //   - ctx context.Context
 //   - userId uint
 //   - code string
-func (_e *MockOTPService_Expecter) OTPVerify(ctx interface{}, userId interface{}, code interface{}) *MockOTPService_OTPVerify_Call {
+func (_e *MockOTPService_Expecter) OTPVerify(ctx any, userId any, code any) *MockOTPService_OTPVerify_Call {
 	return &MockOTPService_OTPVerify_Call{Call: _e.mock.On("OTPVerify", ctx, userId, code)}
 }
 
@@ -539,7 +539,7 @@ type MockOTPService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockOTPService_Expecter) SetConfig(cfg interface{}) *MockOTPService_SetConfig_Call {
+func (_e *MockOTPService_Expecter) SetConfig(cfg any) *MockOTPService_SetConfig_Call {
 	return &MockOTPService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -579,7 +579,7 @@ type MockOTPService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockOTPService_Expecter) SetContext(ctx interface{}) *MockOTPService_SetContext_Call {
+func (_e *MockOTPService_Expecter) SetContext(ctx any) *MockOTPService_SetContext_Call {
 	return &MockOTPService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -619,7 +619,7 @@ type MockOTPService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockOTPService_Expecter) SetDB(db interface{}) *MockOTPService_SetDB_Call {
+func (_e *MockOTPService_Expecter) SetDB(db any) *MockOTPService_SetDB_Call {
 	return &MockOTPService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -659,7 +659,7 @@ type MockOTPService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockOTPService_Expecter) SetLogger(logger interface{}) *MockOTPService_SetLogger_Call {
+func (_e *MockOTPService_Expecter) SetLogger(logger any) *MockOTPService_SetLogger_Call {
 	return &MockOTPService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

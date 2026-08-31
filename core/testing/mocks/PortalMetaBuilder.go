@@ -63,7 +63,7 @@ type MockPortalMetaBuilder_AddCoreBuildInfo_Call struct {
 
 // AddCoreBuildInfo is a helper method to define mock.On call
 //   - buildInfo build.Info
-func (_e *MockPortalMetaBuilder_Expecter) AddCoreBuildInfo(buildInfo interface{}) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
+func (_e *MockPortalMetaBuilder_Expecter) AddCoreBuildInfo(buildInfo any) *MockPortalMetaBuilder_AddCoreBuildInfo_Call {
 	return &MockPortalMetaBuilder_AddCoreBuildInfo_Call{Call: _e.mock.On("AddCoreBuildInfo", buildInfo)}
 }
 
@@ -117,7 +117,7 @@ type MockPortalMetaBuilder_AddFeatureFlag_Call struct {
 // AddFeatureFlag is a helper method to define mock.On call
 //   - key string
 //   - value bool
-func (_e *MockPortalMetaBuilder_Expecter) AddFeatureFlag(key interface{}, value interface{}) *MockPortalMetaBuilder_AddFeatureFlag_Call {
+func (_e *MockPortalMetaBuilder_Expecter) AddFeatureFlag(key any, value any) *MockPortalMetaBuilder_AddFeatureFlag_Call {
 	return &MockPortalMetaBuilder_AddFeatureFlag_Call{Call: _e.mock.On("AddFeatureFlag", key, value)}
 }
 
@@ -184,7 +184,7 @@ type MockPortalMetaBuilder_AddPlugin_Call struct {
 
 // AddPlugin is a helper method to define mock.On call
 //   - pluginID string
-func (_e *MockPortalMetaBuilder_Expecter) AddPlugin(pluginID interface{}) *MockPortalMetaBuilder_AddPlugin_Call {
+func (_e *MockPortalMetaBuilder_Expecter) AddPlugin(pluginID any) *MockPortalMetaBuilder_AddPlugin_Call {
 	return &MockPortalMetaBuilder_AddPlugin_Call{Call: _e.mock.On("AddPlugin", pluginID)}
 }
 
@@ -292,7 +292,7 @@ type MockPortalMetaBuilder_Plugin_Call struct {
 
 // Plugin is a helper method to define mock.On call
 //   - pluginID string
-func (_e *MockPortalMetaBuilder_Expecter) Plugin(pluginID interface{}) *MockPortalMetaBuilder_Plugin_Call {
+func (_e *MockPortalMetaBuilder_Expecter) Plugin(pluginID any) *MockPortalMetaBuilder_Plugin_Call {
 	return &MockPortalMetaBuilder_Plugin_Call{Call: _e.mock.On("Plugin", pluginID)}
 }
 

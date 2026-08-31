@@ -85,7 +85,7 @@ type MockUserService_AccountExists_Call struct {
 // AccountExists is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockUserService_Expecter) AccountExists(ctx interface{}, id interface{}) *MockUserService_AccountExists_Call {
+func (_e *MockUserService_Expecter) AccountExists(ctx any, id any) *MockUserService_AccountExists_Call {
 	return &MockUserService_AccountExists_Call{Call: _e.mock.On("AccountExists", ctx, id)}
 }
 
@@ -145,7 +145,7 @@ type MockUserService_AddKeyIdentity_Call struct {
 //   - keyType string
 //   - key string
 //   - metadata json.RawMessage
-func (_e *MockUserService_Expecter) AddKeyIdentity(ctx interface{}, userId interface{}, keyType interface{}, key interface{}, metadata interface{}) *MockUserService_AddKeyIdentity_Call {
+func (_e *MockUserService_Expecter) AddKeyIdentity(ctx any, userId any, keyType any, key any, metadata any) *MockUserService_AddKeyIdentity_Call {
 	return &MockUserService_AddKeyIdentity_Call{Call: _e.mock.On("AddKeyIdentity", ctx, userId, keyType, key, metadata)}
 }
 
@@ -322,7 +322,7 @@ type MockUserService_CreateAccount_Call struct {
 //   - email string
 //   - password string
 //   - verifyEmail bool
-func (_e *MockUserService_Expecter) CreateAccount(ctx interface{}, email interface{}, password interface{}, verifyEmail interface{}) *MockUserService_CreateAccount_Call {
+func (_e *MockUserService_Expecter) CreateAccount(ctx any, email any, password any, verifyEmail any) *MockUserService_CreateAccount_Call {
 	return &MockUserService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, email, password, verifyEmail)}
 }
 
@@ -435,7 +435,7 @@ type MockUserService_DeleteAccount_Call struct {
 // DeleteAccount is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) DeleteAccount(ctx interface{}, userId interface{}) *MockUserService_DeleteAccount_Call {
+func (_e *MockUserService_Expecter) DeleteAccount(ctx any, userId any) *MockUserService_DeleteAccount_Call {
 	return &MockUserService_DeleteAccount_Call{Call: _e.mock.On("DeleteAccount", ctx, userId)}
 }
 
@@ -509,7 +509,7 @@ type MockUserService_EmailExists_Call struct {
 // EmailExists is a helper method to define mock.On call
 //   - ctx context.Context
 //   - email string
-func (_e *MockUserService_Expecter) EmailExists(ctx interface{}, email interface{}) *MockUserService_EmailExists_Call {
+func (_e *MockUserService_Expecter) EmailExists(ctx any, email any) *MockUserService_EmailExists_Call {
 	return &MockUserService_EmailExists_Call{Call: _e.mock.On("EmailExists", ctx, email)}
 }
 
@@ -584,7 +584,7 @@ type MockUserService_Exists_Call struct {
 //   - ctx context.Context
 //   - model any
 //   - conditions map[string]any
-func (_e *MockUserService_Expecter) Exists(ctx interface{}, model interface{}, conditions interface{}) *MockUserService_Exists_Call {
+func (_e *MockUserService_Expecter) Exists(ctx any, model any, conditions any) *MockUserService_Exists_Call {
 	return &MockUserService_Exists_Call{Call: _e.mock.On("Exists", ctx, model, conditions)}
 }
 
@@ -656,7 +656,7 @@ type MockUserService_GetAccountsPendingDeletion_Call struct {
 
 // GetAccountsPendingDeletion is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockUserService_Expecter) GetAccountsPendingDeletion(ctx interface{}) *MockUserService_GetAccountsPendingDeletion_Call {
+func (_e *MockUserService_Expecter) GetAccountsPendingDeletion(ctx any) *MockUserService_GetAccountsPendingDeletion_Call {
 	return &MockUserService_GetAccountsPendingDeletion_Call{Call: _e.mock.On("GetAccountsPendingDeletion", ctx)}
 }
 
@@ -716,7 +716,7 @@ type MockUserService_HashPassword_Call struct {
 
 // HashPassword is a helper method to define mock.On call
 //   - password string
-func (_e *MockUserService_Expecter) HashPassword(password interface{}) *MockUserService_HashPassword_Call {
+func (_e *MockUserService_Expecter) HashPassword(password any) *MockUserService_HashPassword_Call {
 	return &MockUserService_HashPassword_Call{Call: _e.mock.On("HashPassword", password)}
 }
 
@@ -821,7 +821,7 @@ type MockUserService_IsAccountPendingDeletion_Call struct {
 // IsAccountPendingDeletion is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) IsAccountPendingDeletion(ctx interface{}, userId interface{}) *MockUserService_IsAccountPendingDeletion_Call {
+func (_e *MockUserService_Expecter) IsAccountPendingDeletion(ctx any, userId any) *MockUserService_IsAccountPendingDeletion_Call {
 	return &MockUserService_IsAccountPendingDeletion_Call{Call: _e.mock.On("IsAccountPendingDeletion", ctx, userId)}
 }
 
@@ -887,7 +887,7 @@ type MockUserService_IsAccountVerified_Call struct {
 // IsAccountVerified is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) IsAccountVerified(ctx interface{}, userId interface{}) *MockUserService_IsAccountVerified_Call {
+func (_e *MockUserService_Expecter) IsAccountVerified(ctx any, userId any) *MockUserService_IsAccountVerified_Call {
 	return &MockUserService_IsAccountVerified_Call{Call: _e.mock.On("IsAccountVerified", ctx, userId)}
 }
 
@@ -962,7 +962,7 @@ type MockUserService_KeyIdentityExists_Call struct {
 //   - ctx context.Context
 //   - keyType string
 //   - key string
-func (_e *MockUserService_Expecter) KeyIdentityExists(ctx interface{}, keyType interface{}, key interface{}) *MockUserService_KeyIdentityExists_Call {
+func (_e *MockUserService_Expecter) KeyIdentityExists(ctx any, keyType any, key any) *MockUserService_KeyIdentityExists_Call {
 	return &MockUserService_KeyIdentityExists_Call{Call: _e.mock.On("KeyIdentityExists", ctx, keyType, key)}
 }
 
@@ -1044,7 +1044,7 @@ type MockUserService_ListKeyIdentities_Call struct {
 //   - filters []queryutil.CrudFilter
 //   - sorts []queryutil.Sort
 //   - pagination queryutil.Pagination
-func (_e *MockUserService_Expecter) ListKeyIdentities(ctx interface{}, userId interface{}, filters interface{}, sorts interface{}, pagination interface{}) *MockUserService_ListKeyIdentities_Call {
+func (_e *MockUserService_Expecter) ListKeyIdentities(ctx any, userId any, filters any, sorts any, pagination any) *MockUserService_ListKeyIdentities_Call {
 	return &MockUserService_ListKeyIdentities_Call{Call: _e.mock.On("ListKeyIdentities", ctx, userId, filters, sorts, pagination)}
 }
 
@@ -1164,7 +1164,7 @@ type MockUserService_RemoveKeyIdentity_Call struct {
 //   - userId uint
 //   - keyType string
 //   - key string
-func (_e *MockUserService_Expecter) RemoveKeyIdentity(ctx interface{}, userId interface{}, keyType interface{}, key interface{}) *MockUserService_RemoveKeyIdentity_Call {
+func (_e *MockUserService_Expecter) RemoveKeyIdentity(ctx any, userId any, keyType any, key any) *MockUserService_RemoveKeyIdentity_Call {
 	return &MockUserService_RemoveKeyIdentity_Call{Call: _e.mock.On("RemoveKeyIdentity", ctx, userId, keyType, key)}
 }
 
@@ -1232,7 +1232,7 @@ type MockUserService_RequestAccountDeletion_Call struct {
 //   - ctx context.Context
 //   - userId uint
 //   - userIP string
-func (_e *MockUserService_Expecter) RequestAccountDeletion(ctx interface{}, userId interface{}, userIP interface{}) *MockUserService_RequestAccountDeletion_Call {
+func (_e *MockUserService_Expecter) RequestAccountDeletion(ctx any, userId any, userIP any) *MockUserService_RequestAccountDeletion_Call {
 	return &MockUserService_RequestAccountDeletion_Call{Call: _e.mock.On("RequestAccountDeletion", ctx, userId, userIP)}
 }
 
@@ -1294,7 +1294,7 @@ type MockUserService_SendEmailVerification_Call struct {
 // SendEmailVerification is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockUserService_Expecter) SendEmailVerification(ctx interface{}, userId interface{}) *MockUserService_SendEmailVerification_Call {
+func (_e *MockUserService_Expecter) SendEmailVerification(ctx any, userId any) *MockUserService_SendEmailVerification_Call {
 	return &MockUserService_SendEmailVerification_Call{Call: _e.mock.On("SendEmailVerification", ctx, userId)}
 }
 
@@ -1339,7 +1339,7 @@ type MockUserService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockUserService_Expecter) SetConfig(cfg interface{}) *MockUserService_SetConfig_Call {
+func (_e *MockUserService_Expecter) SetConfig(cfg any) *MockUserService_SetConfig_Call {
 	return &MockUserService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -1379,7 +1379,7 @@ type MockUserService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockUserService_Expecter) SetContext(ctx interface{}) *MockUserService_SetContext_Call {
+func (_e *MockUserService_Expecter) SetContext(ctx any) *MockUserService_SetContext_Call {
 	return &MockUserService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -1419,7 +1419,7 @@ type MockUserService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockUserService_Expecter) SetDB(db interface{}) *MockUserService_SetDB_Call {
+func (_e *MockUserService_Expecter) SetDB(db any) *MockUserService_SetDB_Call {
 	return &MockUserService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -1459,7 +1459,7 @@ type MockUserService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockUserService_Expecter) SetLogger(logger interface{}) *MockUserService_SetLogger_Call {
+func (_e *MockUserService_Expecter) SetLogger(logger any) *MockUserService_SetLogger_Call {
 	return &MockUserService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -1513,7 +1513,7 @@ type MockUserService_UpdateAccountEmail_Call struct {
 //   - userId uint
 //   - email string
 //   - password string
-func (_e *MockUserService_Expecter) UpdateAccountEmail(ctx interface{}, userId interface{}, email interface{}, password interface{}) *MockUserService_UpdateAccountEmail_Call {
+func (_e *MockUserService_Expecter) UpdateAccountEmail(ctx any, userId any, email any, password any) *MockUserService_UpdateAccountEmail_Call {
 	return &MockUserService_UpdateAccountEmail_Call{Call: _e.mock.On("UpdateAccountEmail", ctx, userId, email, password)}
 }
 
@@ -1581,7 +1581,7 @@ type MockUserService_UpdateAccountInfo_Call struct {
 //   - ctx context.Context
 //   - userId uint
 //   - info map[string]any
-func (_e *MockUserService_Expecter) UpdateAccountInfo(ctx interface{}, userId interface{}, info interface{}) *MockUserService_UpdateAccountInfo_Call {
+func (_e *MockUserService_Expecter) UpdateAccountInfo(ctx any, userId any, info any) *MockUserService_UpdateAccountInfo_Call {
 	return &MockUserService_UpdateAccountInfo_Call{Call: _e.mock.On("UpdateAccountInfo", ctx, userId, info)}
 }
 
@@ -1645,7 +1645,7 @@ type MockUserService_UpdateAccountName_Call struct {
 //   - userId uint
 //   - firstName string
 //   - lastName string
-func (_e *MockUserService_Expecter) UpdateAccountName(ctx interface{}, userId interface{}, firstName interface{}, lastName interface{}) *MockUserService_UpdateAccountName_Call {
+func (_e *MockUserService_Expecter) UpdateAccountName(ctx any, userId any, firstName any, lastName any) *MockUserService_UpdateAccountName_Call {
 	return &MockUserService_UpdateAccountName_Call{Call: _e.mock.On("UpdateAccountName", ctx, userId, firstName, lastName)}
 }
 
@@ -1714,7 +1714,7 @@ type MockUserService_UpdateAccountPassword_Call struct {
 //   - userId uint
 //   - password string
 //   - newPassword string
-func (_e *MockUserService_Expecter) UpdateAccountPassword(ctx interface{}, userId interface{}, password interface{}, newPassword interface{}) *MockUserService_UpdateAccountPassword_Call {
+func (_e *MockUserService_Expecter) UpdateAccountPassword(ctx any, userId any, password any, newPassword any) *MockUserService_UpdateAccountPassword_Call {
 	return &MockUserService_UpdateAccountPassword_Call{Call: _e.mock.On("UpdateAccountPassword", ctx, userId, password, newPassword)}
 }
 
@@ -1782,7 +1782,7 @@ type MockUserService_VerifyEmail_Call struct {
 //   - ctx context.Context
 //   - email string
 //   - token string
-func (_e *MockUserService_Expecter) VerifyEmail(ctx interface{}, email interface{}, token interface{}) *MockUserService_VerifyEmail_Call {
+func (_e *MockUserService_Expecter) VerifyEmail(ctx any, email any, token any) *MockUserService_VerifyEmail_Call {
 	return &MockUserService_VerifyEmail_Call{Call: _e.mock.On("VerifyEmail", ctx, email, token)}
 }
 

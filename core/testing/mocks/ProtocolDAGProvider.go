@@ -78,7 +78,7 @@ type MockProtocolDAGProvider_BlockChildren_Call struct {
 //   - ctx context.Context
 //   - c cid.Cid
 //   - max *int
-func (_e *MockProtocolDAGProvider_Expecter) BlockChildren(ctx interface{}, c interface{}, max interface{}) *MockProtocolDAGProvider_BlockChildren_Call {
+func (_e *MockProtocolDAGProvider_Expecter) BlockChildren(ctx any, c any, max any) *MockProtocolDAGProvider_BlockChildren_Call {
 	return &MockProtocolDAGProvider_BlockChildren_Call{Call: _e.mock.On("BlockChildren", ctx, c, max)}
 }
 
@@ -149,7 +149,7 @@ type MockProtocolDAGProvider_BlockSize_Call struct {
 // BlockSize is a helper method to define mock.On call
 //   - ctx context.Context
 //   - c cid.Cid
-func (_e *MockProtocolDAGProvider_Expecter) BlockSize(ctx interface{}, c interface{}) *MockProtocolDAGProvider_BlockSize_Call {
+func (_e *MockProtocolDAGProvider_Expecter) BlockSize(ctx any, c any) *MockProtocolDAGProvider_BlockSize_Call {
 	return &MockProtocolDAGProvider_BlockSize_Call{Call: _e.mock.On("BlockSize", ctx, c)}
 }
 
@@ -625,7 +625,7 @@ type MockProtocolDAGProvider_ResolveDAG_Call struct {
 // ResolveDAG is a helper method to define mock.On call
 //   - ctx context.Context
 //   - rootCID cid.Cid
-func (_e *MockProtocolDAGProvider_Expecter) ResolveDAG(ctx interface{}, rootCID interface{}) *MockProtocolDAGProvider_ResolveDAG_Call {
+func (_e *MockProtocolDAGProvider_Expecter) ResolveDAG(ctx any, rootCID any) *MockProtocolDAGProvider_ResolveDAG_Call {
 	return &MockProtocolDAGProvider_ResolveDAG_Call{Call: _e.mock.On("ResolveDAG", ctx, rootCID)}
 }
 
@@ -670,7 +670,7 @@ type MockProtocolDAGProvider_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockProtocolDAGProvider_Expecter) SetConfig(cfg interface{}) *MockProtocolDAGProvider_SetConfig_Call {
+func (_e *MockProtocolDAGProvider_Expecter) SetConfig(cfg any) *MockProtocolDAGProvider_SetConfig_Call {
 	return &MockProtocolDAGProvider_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -710,7 +710,7 @@ type MockProtocolDAGProvider_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockProtocolDAGProvider_Expecter) SetContext(ctx interface{}) *MockProtocolDAGProvider_SetContext_Call {
+func (_e *MockProtocolDAGProvider_Expecter) SetContext(ctx any) *MockProtocolDAGProvider_SetContext_Call {
 	return &MockProtocolDAGProvider_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -750,7 +750,7 @@ type MockProtocolDAGProvider_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockProtocolDAGProvider_Expecter) SetDB(db interface{}) *MockProtocolDAGProvider_SetDB_Call {
+func (_e *MockProtocolDAGProvider_Expecter) SetDB(db any) *MockProtocolDAGProvider_SetDB_Call {
 	return &MockProtocolDAGProvider_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -790,7 +790,7 @@ type MockProtocolDAGProvider_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockProtocolDAGProvider_Expecter) SetLogger(logger interface{}) *MockProtocolDAGProvider_SetLogger_Call {
+func (_e *MockProtocolDAGProvider_Expecter) SetLogger(logger any) *MockProtocolDAGProvider_SetLogger_Call {
 	return &MockProtocolDAGProvider_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

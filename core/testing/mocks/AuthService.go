@@ -305,7 +305,7 @@ type MockAuthService_LoginID_Call struct {
 //   - id uint
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginID(ctx interface{}, id interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginID_Call {
+func (_e *MockAuthService_Expecter) LoginID(ctx any, id any, ip any, rememberMe any) *MockAuthService_LoginID_Call {
 	return &MockAuthService_LoginID_Call{Call: _e.mock.On("LoginID", ctx, id, ip, rememberMe)}
 }
 
@@ -393,7 +393,7 @@ type MockAuthService_LoginKeyIdentity_Call struct {
 //   - proof []byte
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginKeyIdentity(ctx interface{}, keyType interface{}, key interface{}, proof interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginKeyIdentity_Call {
+func (_e *MockAuthService_Expecter) LoginKeyIdentity(ctx any, keyType any, key any, proof any, ip any, rememberMe any) *MockAuthService_LoginKeyIdentity_Call {
 	return &MockAuthService_LoginKeyIdentity_Call{Call: _e.mock.On("LoginKeyIdentity", ctx, keyType, key, proof, ip, rememberMe)}
 }
 
@@ -491,7 +491,7 @@ type MockAuthService_LoginKeyIdentityWithContext_Call struct {
 //   - proof []byte
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginKeyIdentityWithContext(ctx interface{}, keyType interface{}, key interface{}, proof interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginKeyIdentityWithContext_Call {
+func (_e *MockAuthService_Expecter) LoginKeyIdentityWithContext(ctx any, keyType any, key any, proof any, ip any, rememberMe any) *MockAuthService_LoginKeyIdentityWithContext_Call {
 	return &MockAuthService_LoginKeyIdentityWithContext_Call{Call: _e.mock.On("LoginKeyIdentityWithContext", ctx, keyType, key, proof, ip, rememberMe)}
 }
 
@@ -579,7 +579,7 @@ type MockAuthService_LoginOTP_Call struct {
 //   - userId uint
 //   - code string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginOTP(ctx interface{}, userId interface{}, code interface{}, rememberMe interface{}) *MockAuthService_LoginOTP_Call {
+func (_e *MockAuthService_Expecter) LoginOTP(ctx any, userId any, code any, rememberMe any) *MockAuthService_LoginOTP_Call {
 	return &MockAuthService_LoginOTP_Call{Call: _e.mock.On("LoginOTP", ctx, userId, code, rememberMe)}
 }
 
@@ -666,7 +666,7 @@ type MockAuthService_LoginPassword_Call struct {
 //   - password string
 //   - ip string
 //   - rememberMe bool
-func (_e *MockAuthService_Expecter) LoginPassword(ctx interface{}, email interface{}, password interface{}, ip interface{}, rememberMe interface{}) *MockAuthService_LoginPassword_Call {
+func (_e *MockAuthService_Expecter) LoginPassword(ctx any, email any, password any, ip any, rememberMe any) *MockAuthService_LoginPassword_Call {
 	return &MockAuthService_LoginPassword_Call{Call: _e.mock.On("LoginPassword", ctx, email, password, ip, rememberMe)}
 }
 
@@ -726,7 +726,7 @@ type MockAuthService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockAuthService_Expecter) SetConfig(cfg interface{}) *MockAuthService_SetConfig_Call {
+func (_e *MockAuthService_Expecter) SetConfig(cfg any) *MockAuthService_SetConfig_Call {
 	return &MockAuthService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -766,7 +766,7 @@ type MockAuthService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockAuthService_Expecter) SetContext(ctx interface{}) *MockAuthService_SetContext_Call {
+func (_e *MockAuthService_Expecter) SetContext(ctx any) *MockAuthService_SetContext_Call {
 	return &MockAuthService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -806,7 +806,7 @@ type MockAuthService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockAuthService_Expecter) SetDB(db interface{}) *MockAuthService_SetDB_Call {
+func (_e *MockAuthService_Expecter) SetDB(db any) *MockAuthService_SetDB_Call {
 	return &MockAuthService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -846,7 +846,7 @@ type MockAuthService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockAuthService_Expecter) SetLogger(logger interface{}) *MockAuthService_SetLogger_Call {
+func (_e *MockAuthService_Expecter) SetLogger(logger any) *MockAuthService_SetLogger_Call {
 	return &MockAuthService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -916,7 +916,7 @@ type MockAuthService_ValidLoginByEmail_Call struct {
 //   - ctx context.Context
 //   - email string
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByEmail(ctx interface{}, email interface{}, password interface{}) *MockAuthService_ValidLoginByEmail_Call {
+func (_e *MockAuthService_Expecter) ValidLoginByEmail(ctx any, email any, password any) *MockAuthService_ValidLoginByEmail_Call {
 	return &MockAuthService_ValidLoginByEmail_Call{Call: _e.mock.On("ValidLoginByEmail", ctx, email, password)}
 }
 
@@ -996,7 +996,7 @@ type MockAuthService_ValidLoginByUserID_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByUserID(ctx interface{}, id interface{}, password interface{}) *MockAuthService_ValidLoginByUserID_Call {
+func (_e *MockAuthService_Expecter) ValidLoginByUserID(ctx any, id any, password any) *MockAuthService_ValidLoginByUserID_Call {
 	return &MockAuthService_ValidLoginByUserID_Call{Call: _e.mock.On("ValidLoginByUserID", ctx, id, password)}
 }
 
@@ -1059,7 +1059,7 @@ type MockAuthService_ValidLoginByUserObj_Call struct {
 //   - ctx context.Context
 //   - user *models.User
 //   - password string
-func (_e *MockAuthService_Expecter) ValidLoginByUserObj(ctx interface{}, user interface{}, password interface{}) *MockAuthService_ValidLoginByUserObj_Call {
+func (_e *MockAuthService_Expecter) ValidLoginByUserObj(ctx any, user any, password any) *MockAuthService_ValidLoginByUserObj_Call {
 	return &MockAuthService_ValidLoginByUserObj_Call{Call: _e.mock.On("ValidLoginByUserObj", ctx, user, password)}
 }
 

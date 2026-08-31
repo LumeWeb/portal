@@ -184,6 +184,16 @@ func (s *OAuthProviderServiceDefault) ValidateAccessToken(ctx context.Context, t
 	return as.ValidateAccessToken(token)
 }
 
+func (s *OAuthProviderServiceDefault) ValidateAccessTokenInfo(ctx context.Context, token string) (oauth.ValidatedToken, bool) {
+	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.ValidateAccessTokenInfo")
+	defer span.End()
+	as, err := s.authServer()
+	if err != nil {
+		return oauth.ValidatedToken{}, false
+	}
+	return as.ValidateAccessTokenInfo(token)
+}
+
 func (s *OAuthProviderServiceDefault) RevokeToken(ctx context.Context, token string) error {
 	_, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.RevokeToken")
 	defer span.End()

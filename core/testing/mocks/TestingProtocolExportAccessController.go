@@ -74,7 +74,7 @@ type MockTestingProtocolExportAccessController_CanExportCID_Call struct {
 // CanExportCID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - cidStr string
-func (_e *MockTestingProtocolExportAccessController_Expecter) CanExportCID(ctx interface{}, cidStr interface{}) *MockTestingProtocolExportAccessController_CanExportCID_Call {
+func (_e *MockTestingProtocolExportAccessController_Expecter) CanExportCID(ctx any, cidStr any) *MockTestingProtocolExportAccessController_CanExportCID_Call {
 	return &MockTestingProtocolExportAccessController_CanExportCID_Call{Call: _e.mock.On("CanExportCID", ctx, cidStr)}
 }
 
@@ -527,7 +527,7 @@ type MockTestingProtocolExportAccessController_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockTestingProtocolExportAccessController_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolExportAccessController_SetConfig_Call {
+func (_e *MockTestingProtocolExportAccessController_Expecter) SetConfig(cfg any) *MockTestingProtocolExportAccessController_SetConfig_Call {
 	return &MockTestingProtocolExportAccessController_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -567,7 +567,7 @@ type MockTestingProtocolExportAccessController_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockTestingProtocolExportAccessController_Expecter) SetContext(ctx interface{}) *MockTestingProtocolExportAccessController_SetContext_Call {
+func (_e *MockTestingProtocolExportAccessController_Expecter) SetContext(ctx any) *MockTestingProtocolExportAccessController_SetContext_Call {
 	return &MockTestingProtocolExportAccessController_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -607,7 +607,7 @@ type MockTestingProtocolExportAccessController_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockTestingProtocolExportAccessController_Expecter) SetDB(db interface{}) *MockTestingProtocolExportAccessController_SetDB_Call {
+func (_e *MockTestingProtocolExportAccessController_Expecter) SetDB(db any) *MockTestingProtocolExportAccessController_SetDB_Call {
 	return &MockTestingProtocolExportAccessController_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -647,7 +647,7 @@ type MockTestingProtocolExportAccessController_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockTestingProtocolExportAccessController_Expecter) SetLogger(logger interface{}) *MockTestingProtocolExportAccessController_SetLogger_Call {
+func (_e *MockTestingProtocolExportAccessController_Expecter) SetLogger(logger any) *MockTestingProtocolExportAccessController_SetLogger_Call {
 	return &MockTestingProtocolExportAccessController_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

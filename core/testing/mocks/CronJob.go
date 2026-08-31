@@ -337,7 +337,7 @@ type MockCronJob_Run_Call struct {
 // Run is a helper method to define mock.On call
 //   - ctx core.Context
 //   - eventCtx context.Context
-func (_e *MockCronJob_Expecter) Run(ctx interface{}, eventCtx interface{}) *MockCronJob_Run_Call {
+func (_e *MockCronJob_Expecter) Run(ctx any, eventCtx any) *MockCronJob_Run_Call {
 	return &MockCronJob_Run_Call{Call: _e.mock.On("Run", ctx, eventCtx)}
 }
 
@@ -428,7 +428,7 @@ type MockCronJob_SetArgs_Call struct {
 
 // SetArgs is a helper method to define mock.On call
 //   - args any
-func (_e *MockCronJob_Expecter) SetArgs(args interface{}) *MockCronJob_SetArgs_Call {
+func (_e *MockCronJob_Expecter) SetArgs(args any) *MockCronJob_SetArgs_Call {
 	return &MockCronJob_SetArgs_Call{Call: _e.mock.On("SetArgs", args)}
 }
 
@@ -468,7 +468,7 @@ type MockCronJob_SetDone_Call struct {
 
 // SetDone is a helper method to define mock.On call
 //   - done <-chan struct{}
-func (_e *MockCronJob_Expecter) SetDone(done interface{}) *MockCronJob_SetDone_Call {
+func (_e *MockCronJob_Expecter) SetDone(done any) *MockCronJob_SetDone_Call {
 	return &MockCronJob_SetDone_Call{Call: _e.mock.On("SetDone", done)}
 }
 
@@ -508,7 +508,7 @@ type MockCronJob_SetJob_Call struct {
 
 // SetJob is a helper method to define mock.On call
 //   - job gocron.Job
-func (_e *MockCronJob_Expecter) SetJob(job interface{}) *MockCronJob_SetJob_Call {
+func (_e *MockCronJob_Expecter) SetJob(job any) *MockCronJob_SetJob_Call {
 	return &MockCronJob_SetJob_Call{Call: _e.mock.On("SetJob", job)}
 }
 
@@ -548,7 +548,7 @@ type MockCronJob_SetScheduledDefinition_Call struct {
 
 // SetScheduledDefinition is a helper method to define mock.On call
 //   - schedDef *core.CronScheduleDefinition
-func (_e *MockCronJob_Expecter) SetScheduledDefinition(schedDef interface{}) *MockCronJob_SetScheduledDefinition_Call {
+func (_e *MockCronJob_Expecter) SetScheduledDefinition(schedDef any) *MockCronJob_SetScheduledDefinition_Call {
 	return &MockCronJob_SetScheduledDefinition_Call{Call: _e.mock.On("SetScheduledDefinition", schedDef)}
 }
 

@@ -173,7 +173,7 @@ type MockTUSService_CreateUpload_Call struct {
 //   - uploaderID uint
 //   - uploaderIP string
 //   - protocol core.StorageProtocol
-func (_e *MockTUSService_Expecter) CreateUpload(ctx interface{}, hash interface{}, uploadID interface{}, uploaderID interface{}, uploaderIP interface{}, protocol interface{}) *MockTUSService_CreateUpload_Call {
+func (_e *MockTUSService_Expecter) CreateUpload(ctx any, hash any, uploadID any, uploaderID any, uploaderIP any, protocol any) *MockTUSService_CreateUpload_Call {
 	return &MockTUSService_CreateUpload_Call{Call: _e.mock.On("CreateUpload", ctx, hash, uploadID, uploaderID, uploaderIP, protocol)}
 }
 
@@ -297,7 +297,7 @@ type MockTUSService_DeleteUpload_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) DeleteUpload(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_DeleteUpload_Call {
+func (_e *MockTUSService_Expecter) DeleteUpload(ctx any, protocol any, uploadID any) *MockTUSService_DeleteUpload_Call {
 	return &MockTUSService_DeleteUpload_Call{Call: _e.mock.On("DeleteUpload", ctx, protocol, uploadID)}
 }
 
@@ -437,7 +437,7 @@ type MockTUSService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockTUSService_Expecter) SetConfig(cfg interface{}) *MockTUSService_SetConfig_Call {
+func (_e *MockTUSService_Expecter) SetConfig(cfg any) *MockTUSService_SetConfig_Call {
 	return &MockTUSService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -477,7 +477,7 @@ type MockTUSService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockTUSService_Expecter) SetContext(ctx interface{}) *MockTUSService_SetContext_Call {
+func (_e *MockTUSService_Expecter) SetContext(ctx any) *MockTUSService_SetContext_Call {
 	return &MockTUSService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -517,7 +517,7 @@ type MockTUSService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockTUSService_Expecter) SetDB(db interface{}) *MockTUSService_SetDB_Call {
+func (_e *MockTUSService_Expecter) SetDB(db any) *MockTUSService_SetDB_Call {
 	return &MockTUSService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -571,7 +571,7 @@ type MockTUSService_SetHash_Call struct {
 //   - protocol core.StorageProtocol
 //   - uploadID string
 //   - hash core.StorageHash
-func (_e *MockTUSService_Expecter) SetHash(ctx interface{}, protocol interface{}, uploadID interface{}, hash interface{}) *MockTUSService_SetHash_Call {
+func (_e *MockTUSService_Expecter) SetHash(ctx any, protocol any, uploadID any, hash any) *MockTUSService_SetHash_Call {
 	return &MockTUSService_SetHash_Call{Call: _e.mock.On("SetHash", ctx, protocol, uploadID, hash)}
 }
 
@@ -626,7 +626,7 @@ type MockTUSService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockTUSService_Expecter) SetLogger(logger interface{}) *MockTUSService_SetLogger_Call {
+func (_e *MockTUSService_Expecter) SetLogger(logger any) *MockTUSService_SetLogger_Call {
 	return &MockTUSService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -679,7 +679,7 @@ type MockTUSService_UploadCompleted_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadCompleted(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadCompleted_Call {
+func (_e *MockTUSService_Expecter) UploadCompleted(ctx any, protocol any, uploadID any) *MockTUSService_UploadCompleted_Call {
 	return &MockTUSService_UploadCompleted_Call{Call: _e.mock.On("UploadCompleted", ctx, protocol, uploadID)}
 }
 
@@ -753,7 +753,7 @@ type MockTUSService_UploadExists_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - id string
-func (_e *MockTUSService_Expecter) UploadExists(ctx interface{}, protocol interface{}, id interface{}) *MockTUSService_UploadExists_Call {
+func (_e *MockTUSService_Expecter) UploadExists(ctx any, protocol any, id any) *MockTUSService_UploadExists_Call {
 	return &MockTUSService_UploadExists_Call{Call: _e.mock.On("UploadExists", ctx, protocol, id)}
 }
 
@@ -827,7 +827,7 @@ type MockTUSService_UploadHashExists_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - hash core.StorageHash
-func (_e *MockTUSService_Expecter) UploadHashExists(ctx interface{}, protocol interface{}, hash interface{}) *MockTUSService_UploadHashExists_Call {
+func (_e *MockTUSService_Expecter) UploadHashExists(ctx any, protocol any, hash any) *MockTUSService_UploadHashExists_Call {
 	return &MockTUSService_UploadHashExists_Call{Call: _e.mock.On("UploadHashExists", ctx, protocol, hash)}
 }
 
@@ -890,7 +890,7 @@ type MockTUSService_UploadProcessing_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadProcessing(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadProcessing_Call {
+func (_e *MockTUSService_Expecter) UploadProcessing(ctx any, protocol any, uploadID any) *MockTUSService_UploadProcessing_Call {
 	return &MockTUSService_UploadProcessing_Call{Call: _e.mock.On("UploadProcessing", ctx, protocol, uploadID)}
 }
 
@@ -953,7 +953,7 @@ type MockTUSService_UploadProgress_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadID string
-func (_e *MockTUSService_Expecter) UploadProgress(ctx interface{}, protocol interface{}, uploadID interface{}) *MockTUSService_UploadProgress_Call {
+func (_e *MockTUSService_Expecter) UploadProgress(ctx any, protocol any, uploadID any) *MockTUSService_UploadProgress_Call {
 	return &MockTUSService_UploadProgress_Call{Call: _e.mock.On("UploadProgress", ctx, protocol, uploadID)}
 }
 
@@ -1027,7 +1027,7 @@ type MockTUSService_Uploads_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploaderID uint
-func (_e *MockTUSService_Expecter) Uploads(ctx interface{}, protocol interface{}, uploaderID interface{}) *MockTUSService_Uploads_Call {
+func (_e *MockTUSService_Expecter) Uploads(ctx any, protocol any, uploaderID any) *MockTUSService_Uploads_Call {
 	return &MockTUSService_Uploads_Call{Call: _e.mock.On("Uploads", ctx, protocol, uploaderID)}
 }
 

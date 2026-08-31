@@ -279,7 +279,7 @@ type MockMailerService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockMailerService_Expecter) SetConfig(cfg interface{}) *MockMailerService_SetConfig_Call {
+func (_e *MockMailerService_Expecter) SetConfig(cfg any) *MockMailerService_SetConfig_Call {
 	return &MockMailerService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -319,7 +319,7 @@ type MockMailerService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockMailerService_Expecter) SetContext(ctx interface{}) *MockMailerService_SetContext_Call {
+func (_e *MockMailerService_Expecter) SetContext(ctx any) *MockMailerService_SetContext_Call {
 	return &MockMailerService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -359,7 +359,7 @@ type MockMailerService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockMailerService_Expecter) SetDB(db interface{}) *MockMailerService_SetDB_Call {
+func (_e *MockMailerService_Expecter) SetDB(db any) *MockMailerService_SetDB_Call {
 	return &MockMailerService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -399,7 +399,7 @@ type MockMailerService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockMailerService_Expecter) SetLogger(logger interface{}) *MockMailerService_SetLogger_Call {
+func (_e *MockMailerService_Expecter) SetLogger(logger any) *MockMailerService_SetLogger_Call {
 	return &MockMailerService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -451,7 +451,7 @@ type MockMailerService_TemplateRegister_Call struct {
 // TemplateRegister is a helper method to define mock.On call
 //   - name string
 //   - template core.MailerTemplate
-func (_e *MockMailerService_Expecter) TemplateRegister(name interface{}, template interface{}) *MockMailerService_TemplateRegister_Call {
+func (_e *MockMailerService_Expecter) TemplateRegister(name any, template any) *MockMailerService_TemplateRegister_Call {
 	return &MockMailerService_TemplateRegister_Call{Call: _e.mock.On("TemplateRegister", name, template)}
 }
 
@@ -510,7 +510,7 @@ type MockMailerService_TemplateSend_Call struct {
 //   - subjectVars core.MailerTemplateData
 //   - bodyVars core.MailerTemplateData
 //   - to string
-func (_e *MockMailerService_Expecter) TemplateSend(template interface{}, subjectVars interface{}, bodyVars interface{}, to interface{}) *MockMailerService_TemplateSend_Call {
+func (_e *MockMailerService_Expecter) TemplateSend(template any, subjectVars any, bodyVars any, to any) *MockMailerService_TemplateSend_Call {
 	return &MockMailerService_TemplateSend_Call{Call: _e.mock.On("TemplateSend", template, subjectVars, bodyVars, to)}
 }
 

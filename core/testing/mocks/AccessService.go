@@ -66,7 +66,7 @@ type MockAccessService_AssignRoleToUser_Call struct {
 //   - ctx context.Context
 //   - userId uint
 //   - role string
-func (_e *MockAccessService_Expecter) AssignRoleToUser(ctx interface{}, userId interface{}, role interface{}) *MockAccessService_AssignRoleToUser_Call {
+func (_e *MockAccessService_Expecter) AssignRoleToUser(ctx any, userId any, role any) *MockAccessService_AssignRoleToUser_Call {
 	return &MockAccessService_AssignRoleToUser_Call{Call: _e.mock.On("AssignRoleToUser", ctx, userId, role)}
 }
 
@@ -140,7 +140,7 @@ type MockAccessService_CheckAccess_Call struct {
 //   - fqdn string
 //   - path string
 //   - method string
-func (_e *MockAccessService_Expecter) CheckAccess(ctx interface{}, userId interface{}, fqdn interface{}, path interface{}, method interface{}) *MockAccessService_CheckAccess_Call {
+func (_e *MockAccessService_Expecter) CheckAccess(ctx any, userId any, fqdn any, path any, method any) *MockAccessService_CheckAccess_Call {
 	return &MockAccessService_CheckAccess_Call{Call: _e.mock.On("CheckAccess", ctx, userId, fqdn, path, method)}
 }
 
@@ -351,7 +351,7 @@ type MockAccessService_ExportModel_Call struct {
 
 // ExportModel is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockAccessService_Expecter) ExportModel(ctx interface{}) *MockAccessService_ExportModel_Call {
+func (_e *MockAccessService_Expecter) ExportModel(ctx any) *MockAccessService_ExportModel_Call {
 	return &MockAccessService_ExportModel_Call{Call: _e.mock.On("ExportModel", ctx)}
 }
 
@@ -414,7 +414,7 @@ type MockAccessService_ExportUserPolicy_Call struct {
 // ExportUserPolicy is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userId uint
-func (_e *MockAccessService_Expecter) ExportUserPolicy(ctx interface{}, userId interface{}) *MockAccessService_ExportUserPolicy_Call {
+func (_e *MockAccessService_Expecter) ExportUserPolicy(ctx any, userId any) *MockAccessService_ExportUserPolicy_Call {
 	return &MockAccessService_ExportUserPolicy_Call{Call: _e.mock.On("ExportUserPolicy", ctx, userId)}
 }
 
@@ -564,7 +564,7 @@ type MockAccessService_RegisterRoute_Call struct {
 //   - path string
 //   - method string
 //   - role string
-func (_e *MockAccessService_Expecter) RegisterRoute(ctx interface{}, subdomain interface{}, path interface{}, method interface{}, role interface{}) *MockAccessService_RegisterRoute_Call {
+func (_e *MockAccessService_Expecter) RegisterRoute(ctx any, subdomain any, path any, method any, role any) *MockAccessService_RegisterRoute_Call {
 	return &MockAccessService_RegisterRoute_Call{Call: _e.mock.On("RegisterRoute", ctx, subdomain, path, method, role)}
 }
 
@@ -624,7 +624,7 @@ type MockAccessService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockAccessService_Expecter) SetConfig(cfg interface{}) *MockAccessService_SetConfig_Call {
+func (_e *MockAccessService_Expecter) SetConfig(cfg any) *MockAccessService_SetConfig_Call {
 	return &MockAccessService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -664,7 +664,7 @@ type MockAccessService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockAccessService_Expecter) SetContext(ctx interface{}) *MockAccessService_SetContext_Call {
+func (_e *MockAccessService_Expecter) SetContext(ctx any) *MockAccessService_SetContext_Call {
 	return &MockAccessService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -704,7 +704,7 @@ type MockAccessService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockAccessService_Expecter) SetDB(db interface{}) *MockAccessService_SetDB_Call {
+func (_e *MockAccessService_Expecter) SetDB(db any) *MockAccessService_SetDB_Call {
 	return &MockAccessService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -744,7 +744,7 @@ type MockAccessService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockAccessService_Expecter) SetLogger(logger interface{}) *MockAccessService_SetLogger_Call {
+func (_e *MockAccessService_Expecter) SetLogger(logger any) *MockAccessService_SetLogger_Call {
 	return &MockAccessService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

@@ -63,7 +63,7 @@ type MockCronable_RegisterTasks_Call struct {
 // RegisterTasks is a helper method to define mock.On call
 //   - ctx context.Context
 //   - cron core.CronService
-func (_e *MockCronable_Expecter) RegisterTasks(ctx interface{}, cron interface{}) *MockCronable_RegisterTasks_Call {
+func (_e *MockCronable_Expecter) RegisterTasks(ctx any, cron any) *MockCronable_RegisterTasks_Call {
 	return &MockCronable_RegisterTasks_Call{Call: _e.mock.On("RegisterTasks", ctx, cron)}
 }
 
@@ -120,7 +120,7 @@ type MockCronable_ScheduleJobs_Call struct {
 // ScheduleJobs is a helper method to define mock.On call
 //   - ctx context.Context
 //   - cron core.CronService
-func (_e *MockCronable_Expecter) ScheduleJobs(ctx interface{}, cron interface{}) *MockCronable_ScheduleJobs_Call {
+func (_e *MockCronable_Expecter) ScheduleJobs(ctx any, cron any) *MockCronable_ScheduleJobs_Call {
 	return &MockCronable_ScheduleJobs_Call{Call: _e.mock.On("ScheduleJobs", ctx, cron)}
 }
 

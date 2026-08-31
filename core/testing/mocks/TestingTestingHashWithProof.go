@@ -182,7 +182,7 @@ type MockTestingTestingHashWithProof_SetProof_Call struct {
 
 // SetProof is a helper method to define mock.On call
 //   - proof []byte
-func (_e *MockTestingTestingHashWithProof_Expecter) SetProof(proof interface{}) *MockTestingTestingHashWithProof_SetProof_Call {
+func (_e *MockTestingTestingHashWithProof_Expecter) SetProof(proof any) *MockTestingTestingHashWithProof_SetProof_Call {
 	return &MockTestingTestingHashWithProof_SetProof_Call{Call: _e.mock.On("SetProof", proof)}
 }
 
@@ -279,7 +279,7 @@ type MockTestingTestingHashWithProof_Sum_Call struct {
 
 // Sum is a helper method to define mock.On call
 //   - b []byte
-func (_e *MockTestingTestingHashWithProof_Expecter) Sum(b interface{}) *MockTestingTestingHashWithProof_Sum_Call {
+func (_e *MockTestingTestingHashWithProof_Expecter) Sum(b any) *MockTestingTestingHashWithProof_Sum_Call {
 	return &MockTestingTestingHashWithProof_Sum_Call{Call: _e.mock.On("Sum", b)}
 }
 
@@ -392,7 +392,7 @@ type MockTestingTestingHashWithProof_Write_Call struct {
 
 // Write is a helper method to define mock.On call
 //   - p []byte
-func (_e *MockTestingTestingHashWithProof_Expecter) Write(p interface{}) *MockTestingTestingHashWithProof_Write_Call {
+func (_e *MockTestingTestingHashWithProof_Expecter) Write(p any) *MockTestingTestingHashWithProof_Write_Call {
 	return &MockTestingTestingHashWithProof_Write_Call{Call: _e.mock.On("Write", p)}
 }
 

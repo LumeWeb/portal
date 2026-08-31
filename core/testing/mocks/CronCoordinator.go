@@ -74,7 +74,7 @@ type MockCronCoordinator_CheckHeartbeat_Call struct {
 // CheckHeartbeat is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CheckHeartbeat(ctx interface{}, jobID interface{}) *MockCronCoordinator_CheckHeartbeat_Call {
+func (_e *MockCronCoordinator_Expecter) CheckHeartbeat(ctx any, jobID any) *MockCronCoordinator_CheckHeartbeat_Call {
 	return &MockCronCoordinator_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", ctx, jobID)}
 }
 
@@ -131,7 +131,7 @@ type MockCronCoordinator_CleanupJob_Call struct {
 // CleanupJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CleanupJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_CleanupJob_Call {
+func (_e *MockCronCoordinator_Expecter) CleanupJob(ctx any, jobID any) *MockCronCoordinator_CleanupJob_Call {
 	return &MockCronCoordinator_CleanupJob_Call{Call: _e.mock.On("CleanupJob", ctx, jobID)}
 }
 
@@ -243,7 +243,7 @@ type MockCronCoordinator_CreateJobFromDB_Call struct {
 // CreateJobFromDB is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) CreateJobFromDB(ctx interface{}, jobID interface{}) *MockCronCoordinator_CreateJobFromDB_Call {
+func (_e *MockCronCoordinator_Expecter) CreateJobFromDB(ctx any, jobID any) *MockCronCoordinator_CreateJobFromDB_Call {
 	return &MockCronCoordinator_CreateJobFromDB_Call{Call: _e.mock.On("CreateJobFromDB", ctx, jobID)}
 }
 
@@ -300,7 +300,7 @@ type MockCronCoordinator_EnqueueJob_Call struct {
 // EnqueueJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) EnqueueJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_EnqueueJob_Call {
+func (_e *MockCronCoordinator_Expecter) EnqueueJob(ctx any, jobID any) *MockCronCoordinator_EnqueueJob_Call {
 	return &MockCronCoordinator_EnqueueJob_Call{Call: _e.mock.On("EnqueueJob", ctx, jobID)}
 }
 
@@ -357,7 +357,7 @@ type MockCronCoordinator_ExecuteJob_Call struct {
 // ExecuteJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) ExecuteJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_ExecuteJob_Call {
+func (_e *MockCronCoordinator_Expecter) ExecuteJob(ctx any, jobID any) *MockCronCoordinator_ExecuteJob_Call {
 	return &MockCronCoordinator_ExecuteJob_Call{Call: _e.mock.On("ExecuteJob", ctx, jobID)}
 }
 
@@ -415,7 +415,7 @@ type MockCronCoordinator_HandleFailedJob_Call struct {
 //   - ctx context.Context
 //   - jobID uuid.UUID
 //   - failures uint
-func (_e *MockCronCoordinator_Expecter) HandleFailedJob(ctx interface{}, jobID interface{}, failures interface{}) *MockCronCoordinator_HandleFailedJob_Call {
+func (_e *MockCronCoordinator_Expecter) HandleFailedJob(ctx any, jobID any, failures any) *MockCronCoordinator_HandleFailedJob_Call {
 	return &MockCronCoordinator_HandleFailedJob_Call{Call: _e.mock.On("HandleFailedJob", ctx, jobID, failures)}
 }
 
@@ -479,7 +479,7 @@ type MockCronCoordinator_JobContext_Call struct {
 // JobContext is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) JobContext(ctx interface{}, jobID interface{}) *MockCronCoordinator_JobContext_Call {
+func (_e *MockCronCoordinator_Expecter) JobContext(ctx any, jobID any) *MockCronCoordinator_JobContext_Call {
 	return &MockCronCoordinator_JobContext_Call{Call: _e.mock.On("JobContext", ctx, jobID)}
 }
 
@@ -581,7 +581,7 @@ type MockCronCoordinator_RemoveJob_Call struct {
 
 // RemoveJob is a helper method to define mock.On call
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) RemoveJob(jobID interface{}) *MockCronCoordinator_RemoveJob_Call {
+func (_e *MockCronCoordinator_Expecter) RemoveJob(jobID any) *MockCronCoordinator_RemoveJob_Call {
 	return &MockCronCoordinator_RemoveJob_Call{Call: _e.mock.On("RemoveJob", jobID)}
 }
 
@@ -633,7 +633,7 @@ type MockCronCoordinator_SetHeartbeat_Call struct {
 // SetHeartbeat is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) SetHeartbeat(ctx interface{}, jobID interface{}) *MockCronCoordinator_SetHeartbeat_Call {
+func (_e *MockCronCoordinator_Expecter) SetHeartbeat(ctx any, jobID any) *MockCronCoordinator_SetHeartbeat_Call {
 	return &MockCronCoordinator_SetHeartbeat_Call{Call: _e.mock.On("SetHeartbeat", ctx, jobID)}
 }
 
@@ -690,7 +690,7 @@ type MockCronCoordinator_SetupJob_Call struct {
 // SetupJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronCoordinator_Expecter) SetupJob(ctx interface{}, jobID interface{}) *MockCronCoordinator_SetupJob_Call {
+func (_e *MockCronCoordinator_Expecter) SetupJob(ctx any, jobID any) *MockCronCoordinator_SetupJob_Call {
 	return &MockCronCoordinator_SetupJob_Call{Call: _e.mock.On("SetupJob", ctx, jobID)}
 }
 

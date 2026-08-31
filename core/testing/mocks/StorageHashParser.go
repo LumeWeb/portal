@@ -121,7 +121,7 @@ type MockStorageHashParser_TryParse_Call struct {
 
 // TryParse is a helper method to define mock.On call
 //   - s string
-func (_e *MockStorageHashParser_Expecter) TryParse(s interface{}) *MockStorageHashParser_TryParse_Call {
+func (_e *MockStorageHashParser_Expecter) TryParse(s any) *MockStorageHashParser_TryParse_Call {
 	return &MockStorageHashParser_TryParse_Call{Call: _e.mock.On("TryParse", s)}
 }
 

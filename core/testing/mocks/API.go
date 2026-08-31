@@ -154,7 +154,7 @@ type MockAPI_Configure_Call struct {
 // Configure is a helper method to define mock.On call
 //   - router1 router.Router
 //   - accessSvc core.AccessService
-func (_e *MockAPI_Expecter) Configure(router1 interface{}, accessSvc interface{}) *MockAPI_Configure_Call {
+func (_e *MockAPI_Expecter) Configure(router1 any, accessSvc any) *MockAPI_Configure_Call {
 	return &MockAPI_Configure_Call{Call: _e.mock.On("Configure", router1, accessSvc)}
 }
 
@@ -517,7 +517,7 @@ type MockAPI_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockAPI_Expecter) SetConfig(cfg interface{}) *MockAPI_SetConfig_Call {
+func (_e *MockAPI_Expecter) SetConfig(cfg any) *MockAPI_SetConfig_Call {
 	return &MockAPI_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -557,7 +557,7 @@ type MockAPI_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockAPI_Expecter) SetContext(ctx interface{}) *MockAPI_SetContext_Call {
+func (_e *MockAPI_Expecter) SetContext(ctx any) *MockAPI_SetContext_Call {
 	return &MockAPI_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -597,7 +597,7 @@ type MockAPI_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockAPI_Expecter) SetDB(db interface{}) *MockAPI_SetDB_Call {
+func (_e *MockAPI_Expecter) SetDB(db any) *MockAPI_SetDB_Call {
 	return &MockAPI_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -637,7 +637,7 @@ type MockAPI_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockAPI_Expecter) SetLogger(logger interface{}) *MockAPI_SetLogger_Call {
+func (_e *MockAPI_Expecter) SetLogger(logger any) *MockAPI_SetLogger_Call {
 	return &MockAPI_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

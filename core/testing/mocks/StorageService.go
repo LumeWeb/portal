@@ -208,7 +208,7 @@ type MockStorageService_DeleteObject_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - objectHash core.StorageHash
-func (_e *MockStorageService_Expecter) DeleteObject(ctx interface{}, protocol interface{}, objectHash interface{}) *MockStorageService_DeleteObject_Call {
+func (_e *MockStorageService_Expecter) DeleteObject(ctx any, protocol any, objectHash any) *MockStorageService_DeleteObject_Call {
 	return &MockStorageService_DeleteObject_Call{Call: _e.mock.On("DeleteObject", ctx, protocol, objectHash)}
 }
 
@@ -271,7 +271,7 @@ type MockStorageService_DeleteObjectProof_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - objectHash core.StorageHash
-func (_e *MockStorageService_Expecter) DeleteObjectProof(ctx interface{}, protocol interface{}, objectHash interface{}) *MockStorageService_DeleteObjectProof_Call {
+func (_e *MockStorageService_Expecter) DeleteObjectProof(ctx any, protocol any, objectHash any) *MockStorageService_DeleteObjectProof_Call {
 	return &MockStorageService_DeleteObjectProof_Call{Call: _e.mock.On("DeleteObjectProof", ctx, protocol, objectHash)}
 }
 
@@ -346,7 +346,7 @@ type MockStorageService_DownloadObject_Call struct {
 //   - protocol core.StorageProtocol
 //   - objectHash core.StorageHash
 //   - start int64
-func (_e *MockStorageService_Expecter) DownloadObject(ctx interface{}, protocol interface{}, objectHash interface{}, start interface{}) *MockStorageService_DownloadObject_Call {
+func (_e *MockStorageService_Expecter) DownloadObject(ctx any, protocol any, objectHash any, start any) *MockStorageService_DownloadObject_Call {
 	return &MockStorageService_DownloadObject_Call{Call: _e.mock.On("DownloadObject", ctx, protocol, objectHash, start)}
 }
 
@@ -425,7 +425,7 @@ type MockStorageService_DownloadObjectProof_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - objectHash core.StorageHash
-func (_e *MockStorageService_Expecter) DownloadObjectProof(ctx interface{}, protocol interface{}, objectHash interface{}) *MockStorageService_DownloadObjectProof_Call {
+func (_e *MockStorageService_Expecter) DownloadObjectProof(ctx any, protocol any, objectHash any) *MockStorageService_DownloadObjectProof_Call {
 	return &MockStorageService_DownloadObjectProof_Call{Call: _e.mock.On("DownloadObjectProof", ctx, protocol, objectHash)}
 }
 
@@ -465,11 +465,11 @@ func (_c *MockStorageService_DownloadObjectProof_Call) RunAndReturn(run func(ctx
 // DownloadObjectWithOptions provides a mock function for the type MockStorageService
 func (_mock *MockStorageService) DownloadObjectWithOptions(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc) (io.ReadCloser, error) {
 	// core.StorageOptionFunc
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, protocol, objectHash)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -508,9 +508,9 @@ type MockStorageService_DownloadObjectWithOptions_Call struct {
 //   - protocol core.StorageProtocol
 //   - objectHash core.StorageHash
 //   - opts ...core.StorageOptionFunc
-func (_e *MockStorageService_Expecter) DownloadObjectWithOptions(ctx interface{}, protocol interface{}, objectHash interface{}, opts ...interface{}) *MockStorageService_DownloadObjectWithOptions_Call {
+func (_e *MockStorageService_Expecter) DownloadObjectWithOptions(ctx any, protocol any, objectHash any, opts ...any) *MockStorageService_DownloadObjectWithOptions_Call {
 	return &MockStorageService_DownloadObjectWithOptions_Call{Call: _e.mock.On("DownloadObjectWithOptions",
-		append([]interface{}{ctx, protocol, objectHash}, opts...)...)}
+		append([]any{ctx, protocol, objectHash}, opts...)...)}
 }
 
 func (_c *MockStorageService_DownloadObjectWithOptions_Call) Run(run func(ctx context.Context, protocol core.StorageProtocol, objectHash core.StorageHash, opts ...core.StorageOptionFunc)) *MockStorageService_DownloadObjectWithOptions_Call {
@@ -579,7 +579,7 @@ type MockStorageService_GetTemporaryUploadDir_Call struct {
 
 // GetTemporaryUploadDir is a helper method to define mock.On call
 //   - protocol core.StorageProtocol
-func (_e *MockStorageService_Expecter) GetTemporaryUploadDir(protocol interface{}) *MockStorageService_GetTemporaryUploadDir_Call {
+func (_e *MockStorageService_Expecter) GetTemporaryUploadDir(protocol any) *MockStorageService_GetTemporaryUploadDir_Call {
 	return &MockStorageService_GetTemporaryUploadDir_Call{Call: _e.mock.On("GetTemporaryUploadDir", protocol)}
 }
 
@@ -631,7 +631,7 @@ type MockStorageService_GetTemporaryUploadPath_Call struct {
 // GetTemporaryUploadPath is a helper method to define mock.On call
 //   - protocol core.StorageProtocol
 //   - uploadId string
-func (_e *MockStorageService_Expecter) GetTemporaryUploadPath(protocol interface{}, uploadId interface{}) *MockStorageService_GetTemporaryUploadPath_Call {
+func (_e *MockStorageService_Expecter) GetTemporaryUploadPath(protocol any, uploadId any) *MockStorageService_GetTemporaryUploadPath_Call {
 	return &MockStorageService_GetTemporaryUploadPath_Call{Call: _e.mock.On("GetTemporaryUploadPath", protocol, uploadId)}
 }
 
@@ -788,7 +788,7 @@ type MockStorageService_S3Client_Call struct {
 
 // S3Client is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockStorageService_Expecter) S3Client(ctx interface{}) *MockStorageService_S3Client_Call {
+func (_e *MockStorageService_Expecter) S3Client(ctx any) *MockStorageService_S3Client_Call {
 	return &MockStorageService_S3Client_Call{Call: _e.mock.On("S3Client", ctx)}
 }
 
@@ -841,7 +841,7 @@ type MockStorageService_S3Delete_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - key string
-func (_e *MockStorageService_Expecter) S3Delete(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Delete_Call {
+func (_e *MockStorageService_Expecter) S3Delete(ctx any, bucket any, key any) *MockStorageService_S3Delete_Call {
 	return &MockStorageService_S3Delete_Call{Call: _e.mock.On("S3Delete", ctx, bucket, key)}
 }
 
@@ -904,7 +904,7 @@ type MockStorageService_S3DeleteTemporaryUpload_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadId string
-func (_e *MockStorageService_Expecter) S3DeleteTemporaryUpload(ctx interface{}, protocol interface{}, uploadId interface{}) *MockStorageService_S3DeleteTemporaryUpload_Call {
+func (_e *MockStorageService_Expecter) S3DeleteTemporaryUpload(ctx any, protocol any, uploadId any) *MockStorageService_S3DeleteTemporaryUpload_Call {
 	return &MockStorageService_S3DeleteTemporaryUpload_Call{Call: _e.mock.On("S3DeleteTemporaryUpload", ctx, protocol, uploadId)}
 }
 
@@ -978,7 +978,7 @@ type MockStorageService_S3Download_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - key string
-func (_e *MockStorageService_Expecter) S3Download(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Download_Call {
+func (_e *MockStorageService_Expecter) S3Download(ctx any, bucket any, key any) *MockStorageService_S3Download_Call {
 	return &MockStorageService_S3Download_Call{Call: _e.mock.On("S3Download", ctx, bucket, key)}
 }
 
@@ -1050,7 +1050,7 @@ type MockStorageService_S3Exists_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - key string
-func (_e *MockStorageService_Expecter) S3Exists(ctx interface{}, bucket interface{}, key interface{}) *MockStorageService_S3Exists_Call {
+func (_e *MockStorageService_Expecter) S3Exists(ctx any, bucket any, key any) *MockStorageService_S3Exists_Call {
 	return &MockStorageService_S3Exists_Call{Call: _e.mock.On("S3Exists", ctx, bucket, key)}
 }
 
@@ -1124,7 +1124,7 @@ type MockStorageService_S3GetTemporaryUpload_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadId string
-func (_e *MockStorageService_Expecter) S3GetTemporaryUpload(ctx interface{}, protocol interface{}, uploadId interface{}) *MockStorageService_S3GetTemporaryUpload_Call {
+func (_e *MockStorageService_Expecter) S3GetTemporaryUpload(ctx any, protocol any, uploadId any) *MockStorageService_S3GetTemporaryUpload_Call {
 	return &MockStorageService_S3GetTemporaryUpload_Call{Call: _e.mock.On("S3GetTemporaryUpload", ctx, protocol, uploadId)}
 }
 
@@ -1189,7 +1189,7 @@ type MockStorageService_S3MultipartUpload_Call struct {
 //   - bucket string
 //   - key string
 //   - size uint64
-func (_e *MockStorageService_Expecter) S3MultipartUpload(ctx interface{}, data interface{}, bucket interface{}, key interface{}, size interface{}) *MockStorageService_S3MultipartUpload_Call {
+func (_e *MockStorageService_Expecter) S3MultipartUpload(ctx any, data any, bucket any, key any, size any) *MockStorageService_S3MultipartUpload_Call {
 	return &MockStorageService_S3MultipartUpload_Call{Call: _e.mock.On("S3MultipartUpload", ctx, data, bucket, key, size)}
 }
 
@@ -1239,11 +1239,11 @@ func (_c *MockStorageService_S3MultipartUpload_Call) RunAndReturn(run func(ctx c
 // S3TemporaryUpload provides a mock function for the type MockStorageService
 func (_mock *MockStorageService) S3TemporaryUpload(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions)) (string, error) {
 	// func(*core.S3TempUploadOptions)
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, data, size, protocol)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -1281,9 +1281,9 @@ type MockStorageService_S3TemporaryUpload_Call struct {
 //   - size uint64
 //   - protocol core.StorageProtocol
 //   - opts ...func(*core.S3TempUploadOptions)
-func (_e *MockStorageService_Expecter) S3TemporaryUpload(ctx interface{}, data interface{}, size interface{}, protocol interface{}, opts ...interface{}) *MockStorageService_S3TemporaryUpload_Call {
+func (_e *MockStorageService_Expecter) S3TemporaryUpload(ctx any, data any, size any, protocol any, opts ...any) *MockStorageService_S3TemporaryUpload_Call {
 	return &MockStorageService_S3TemporaryUpload_Call{Call: _e.mock.On("S3TemporaryUpload",
-		append([]interface{}{ctx, data, size, protocol}, opts...)...)}
+		append([]any{ctx, data, size, protocol}, opts...)...)}
 }
 
 func (_c *MockStorageService_S3TemporaryUpload_Call) Run(run func(ctx context.Context, data io.ReadCloser, size uint64, protocol core.StorageProtocol, opts ...func(*core.S3TempUploadOptions))) *MockStorageService_S3TemporaryUpload_Call {
@@ -1368,7 +1368,7 @@ type MockStorageService_S3TemporaryUploadExists_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - uploadId string
-func (_e *MockStorageService_Expecter) S3TemporaryUploadExists(ctx interface{}, protocol interface{}, uploadId interface{}) *MockStorageService_S3TemporaryUploadExists_Call {
+func (_e *MockStorageService_Expecter) S3TemporaryUploadExists(ctx any, protocol any, uploadId any) *MockStorageService_S3TemporaryUploadExists_Call {
 	return &MockStorageService_S3TemporaryUploadExists_Call{Call: _e.mock.On("S3TemporaryUploadExists", ctx, protocol, uploadId)}
 }
 
@@ -1432,7 +1432,7 @@ type MockStorageService_S3Upload_Call struct {
 //   - bucket string
 //   - key string
 //   - data io.Reader
-func (_e *MockStorageService_Expecter) S3Upload(ctx interface{}, bucket interface{}, key interface{}, data interface{}) *MockStorageService_S3Upload_Call {
+func (_e *MockStorageService_Expecter) S3Upload(ctx any, bucket any, key any, data any) *MockStorageService_S3Upload_Call {
 	return &MockStorageService_S3Upload_Call{Call: _e.mock.On("S3Upload", ctx, bucket, key, data)}
 }
 
@@ -1487,7 +1487,7 @@ type MockStorageService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockStorageService_Expecter) SetConfig(cfg interface{}) *MockStorageService_SetConfig_Call {
+func (_e *MockStorageService_Expecter) SetConfig(cfg any) *MockStorageService_SetConfig_Call {
 	return &MockStorageService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -1527,7 +1527,7 @@ type MockStorageService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockStorageService_Expecter) SetContext(ctx interface{}) *MockStorageService_SetContext_Call {
+func (_e *MockStorageService_Expecter) SetContext(ctx any) *MockStorageService_SetContext_Call {
 	return &MockStorageService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -1567,7 +1567,7 @@ type MockStorageService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockStorageService_Expecter) SetDB(db interface{}) *MockStorageService_SetDB_Call {
+func (_e *MockStorageService_Expecter) SetDB(db any) *MockStorageService_SetDB_Call {
 	return &MockStorageService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -1607,7 +1607,7 @@ type MockStorageService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockStorageService_Expecter) SetLogger(logger interface{}) *MockStorageService_SetLogger_Call {
+func (_e *MockStorageService_Expecter) SetLogger(logger any) *MockStorageService_SetLogger_Call {
 	return &MockStorageService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -1670,7 +1670,7 @@ type MockStorageService_UploadObject_Call struct {
 // UploadObject is a helper method to define mock.On call
 //   - ctx context.Context
 //   - request core.StorageUploadRequest
-func (_e *MockStorageService_Expecter) UploadObject(ctx interface{}, request interface{}) *MockStorageService_UploadObject_Call {
+func (_e *MockStorageService_Expecter) UploadObject(ctx any, request any) *MockStorageService_UploadObject_Call {
 	return &MockStorageService_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, request)}
 }
 
@@ -1730,7 +1730,7 @@ type MockStorageService_UploadObjectProof_Call struct {
 //   - data io.ReadSeeker
 //   - proof core.StorageHash
 //   - size uint64
-func (_e *MockStorageService_Expecter) UploadObjectProof(ctx interface{}, protocol interface{}, data interface{}, proof interface{}, size interface{}) *MockStorageService_UploadObjectProof_Call {
+func (_e *MockStorageService_Expecter) UploadObjectProof(ctx any, protocol any, data any, proof any, size any) *MockStorageService_UploadObjectProof_Call {
 	return &MockStorageService_UploadObjectProof_Call{Call: _e.mock.On("UploadObjectProof", ctx, protocol, data, proof, size)}
 }
 
@@ -1820,7 +1820,7 @@ type MockStorageService_UploadStatus_Call struct {
 //   - ctx context.Context
 //   - protocol core.StorageProtocol
 //   - objectName string
-func (_e *MockStorageService_Expecter) UploadStatus(ctx interface{}, protocol interface{}, objectName interface{}) *MockStorageService_UploadStatus_Call {
+func (_e *MockStorageService_Expecter) UploadStatus(ctx any, protocol any, objectName any) *MockStorageService_UploadStatus_Call {
 	return &MockStorageService_UploadStatus_Call{Call: _e.mock.On("UploadStatus", ctx, protocol, objectName)}
 }
 

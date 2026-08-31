@@ -52,6 +52,7 @@ CREATE TABLE `oauth_refresh_tokens`
     `client_id`   text NOT NULL,
     `resource`    text,
     `user_id`     integer NOT NULL,
+    `scope`       text,
     `chain_root`  text,
     `expires_at`  datetime NOT NULL,
     `used_at`     datetime,
@@ -74,6 +75,7 @@ CREATE TABLE `oauth_access_tokens`
     `client_id`   text NOT NULL,
     `resource`    text,
     `user_id`     integer NOT NULL,
+    `scope`       text,
     `expires_at`  datetime NOT NULL,
     CONSTRAINT `uni_oauth_access_tokens_token` UNIQUE (`token`),
     CONSTRAINT `fk_oauth_access_tokens_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)

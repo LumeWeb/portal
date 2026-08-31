@@ -60,7 +60,7 @@ type MockProtocolInit_Init_Call struct {
 
 // Init is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockProtocolInit_Expecter) Init(ctx interface{}) *MockProtocolInit_Init_Call {
+func (_e *MockProtocolInit_Expecter) Init(ctx any) *MockProtocolInit_Init_Call {
 	return &MockProtocolInit_Init_Call{Call: _e.mock.On("Init", ctx)}
 }
 

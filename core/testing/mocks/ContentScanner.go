@@ -206,7 +206,7 @@ type MockContentScanner_ScanContent_Call struct {
 // ScanContent is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockContentScanner_Expecter) ScanContent(ctx interface{}, hash interface{}) *MockContentScanner_ScanContent_Call {
+func (_e *MockContentScanner_Expecter) ScanContent(ctx any, hash any) *MockContentScanner_ScanContent_Call {
 	return &MockContentScanner_ScanContent_Call{Call: _e.mock.On("ScanContent", ctx, hash)}
 }
 

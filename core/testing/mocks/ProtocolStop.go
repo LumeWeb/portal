@@ -60,7 +60,7 @@ type MockProtocolStop_Stop_Call struct {
 
 // Stop is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockProtocolStop_Expecter) Stop(ctx interface{}) *MockProtocolStop_Stop_Call {
+func (_e *MockProtocolStop_Expecter) Stop(ctx any) *MockProtocolStop_Stop_Call {
 	return &MockProtocolStop_Stop_Call{Call: _e.mock.On("Stop", ctx)}
 }
 

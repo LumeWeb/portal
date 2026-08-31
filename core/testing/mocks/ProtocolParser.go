@@ -503,7 +503,7 @@ type MockProtocolParser_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockProtocolParser_Expecter) SetConfig(cfg interface{}) *MockProtocolParser_SetConfig_Call {
+func (_e *MockProtocolParser_Expecter) SetConfig(cfg any) *MockProtocolParser_SetConfig_Call {
 	return &MockProtocolParser_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -543,7 +543,7 @@ type MockProtocolParser_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockProtocolParser_Expecter) SetContext(ctx interface{}) *MockProtocolParser_SetContext_Call {
+func (_e *MockProtocolParser_Expecter) SetContext(ctx any) *MockProtocolParser_SetContext_Call {
 	return &MockProtocolParser_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -583,7 +583,7 @@ type MockProtocolParser_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockProtocolParser_Expecter) SetDB(db interface{}) *MockProtocolParser_SetDB_Call {
+func (_e *MockProtocolParser_Expecter) SetDB(db any) *MockProtocolParser_SetDB_Call {
 	return &MockProtocolParser_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -623,7 +623,7 @@ type MockProtocolParser_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockProtocolParser_Expecter) SetLogger(logger interface{}) *MockProtocolParser_SetLogger_Call {
+func (_e *MockProtocolParser_Expecter) SetLogger(logger any) *MockProtocolParser_SetLogger_Call {
 	return &MockProtocolParser_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -691,7 +691,7 @@ type MockProtocolParser_TryParse_Call struct {
 
 // TryParse is a helper method to define mock.On call
 //   - s string
-func (_e *MockProtocolParser_Expecter) TryParse(s interface{}) *MockProtocolParser_TryParse_Call {
+func (_e *MockProtocolParser_Expecter) TryParse(s any) *MockProtocolParser_TryParse_Call {
 	return &MockProtocolParser_TryParse_Call{Call: _e.mock.On("TryParse", s)}
 }
 

@@ -139,7 +139,7 @@ type MockRequestDataModel_SetRequest_Call struct {
 
 // SetRequest is a helper method to define mock.On call
 //   - req any
-func (_e *MockRequestDataModel_Expecter) SetRequest(req interface{}) *MockRequestDataModel_SetRequest_Call {
+func (_e *MockRequestDataModel_Expecter) SetRequest(req any) *MockRequestDataModel_SetRequest_Call {
 	return &MockRequestDataModel_SetRequest_Call{Call: _e.mock.On("SetRequest", req)}
 }
 
@@ -179,7 +179,7 @@ type MockRequestDataModel_SetRequestID_Call struct {
 
 // SetRequestID is a helper method to define mock.On call
 //   - id uint
-func (_e *MockRequestDataModel_Expecter) SetRequestID(id interface{}) *MockRequestDataModel_SetRequestID_Call {
+func (_e *MockRequestDataModel_Expecter) SetRequestID(id any) *MockRequestDataModel_SetRequestID_Call {
 	return &MockRequestDataModel_SetRequestID_Call{Call: _e.mock.On("SetRequestID", id)}
 }
 
