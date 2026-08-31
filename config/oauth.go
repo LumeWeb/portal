@@ -11,8 +11,9 @@ var (
 )
 
 // OAuthConfig configures the OAuth 2.1 authorization-server (IdP) provider.
-// The provider is disabled by default; the API layer enables it. TTL fields
-// are time.ParseDuration-compatible strings.
+// The provider is enabled by default; the API layer gating still honors the
+// enabled flag in case it is disabled. TTL fields are time.ParseDuration-
+// compatible strings.
 type OAuthConfig struct {
 	Enabled    bool   `config:"enabled"`
 	Issuer     string `config:"issuer"`      // Override auto-detected issuer
@@ -36,7 +37,7 @@ func (o OAuthConfig) Schema() z.ZogSchema {
 
 func (o OAuthConfig) Defaults() map[string]any {
 	return map[string]any{
-		"Enabled":    false,
+		"Enabled":    true,
 		"Issuer":     "",
 		"TokenTTL":   "24h",
 		"RefreshTTL": "720h",
