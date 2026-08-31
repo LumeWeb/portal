@@ -48,8 +48,9 @@ const (
 	apiCatalogPath = "/.well-known/api-catalog"
 	// apiCatalogMediaType is the linkset JSON format used by RFC 9727 (RFC 9584).
 	apiCatalogMediaType = "application/linkset+json"
-	// openAPIMediaType is the OpenAPI 3.1 service-description media type.
-	openAPIMediaType = "application/vnd.oai.openapi+json;version=3.1"
+	// openAPIMediaType is the service-description media type. It matches the
+	// OpenAPI 3.0 spec version served by the gswagger stack (defaultOpenapiVersion).
+	openAPIMediaType = "application/vnd.oai.openapi+json;version=3.0"
 )
 
 // apiCatalogLink is a single link relation in an api-catalog linkset entry.
