@@ -72,7 +72,7 @@ type MockCronMonitor_CheckHeartbeat_Call struct {
 // CheckHeartbeat is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) CheckHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_CheckHeartbeat_Call {
+func (_e *MockCronMonitor_Expecter) CheckHeartbeat(ctx any, jobID any) *MockCronMonitor_CheckHeartbeat_Call {
 	return &MockCronMonitor_CheckHeartbeat_Call{Call: _e.mock.On("CheckHeartbeat", ctx, jobID)}
 }
 
@@ -128,7 +128,7 @@ type MockCronMonitor_CleanupCompletedJobs_Call struct {
 
 // CleanupCompletedJobs is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) CleanupCompletedJobs(ctx interface{}) *MockCronMonitor_CleanupCompletedJobs_Call {
+func (_e *MockCronMonitor_Expecter) CleanupCompletedJobs(ctx any) *MockCronMonitor_CleanupCompletedJobs_Call {
 	return &MockCronMonitor_CleanupCompletedJobs_Call{Call: _e.mock.On("CleanupCompletedJobs", ctx)}
 }
 
@@ -188,7 +188,7 @@ type MockCronMonitor_CleanupOrphanedJobs_Call struct {
 
 // CleanupOrphanedJobs is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) CleanupOrphanedJobs(ctx interface{}) *MockCronMonitor_CleanupOrphanedJobs_Call {
+func (_e *MockCronMonitor_Expecter) CleanupOrphanedJobs(ctx any) *MockCronMonitor_CleanupOrphanedJobs_Call {
 	return &MockCronMonitor_CleanupOrphanedJobs_Call{Call: _e.mock.On("CleanupOrphanedJobs", ctx)}
 }
 
@@ -239,7 +239,7 @@ type MockCronMonitor_RequeueStuckJobs_Call struct {
 
 // RequeueStuckJobs is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) RequeueStuckJobs(ctx interface{}) *MockCronMonitor_RequeueStuckJobs_Call {
+func (_e *MockCronMonitor_Expecter) RequeueStuckJobs(ctx any) *MockCronMonitor_RequeueStuckJobs_Call {
 	return &MockCronMonitor_RequeueStuckJobs_Call{Call: _e.mock.On("RequeueStuckJobs", ctx)}
 }
 
@@ -279,7 +279,7 @@ type MockCronMonitor_SignalMaintenance_Call struct {
 
 // SignalMaintenance is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) SignalMaintenance(ctx interface{}) *MockCronMonitor_SignalMaintenance_Call {
+func (_e *MockCronMonitor_Expecter) SignalMaintenance(ctx any) *MockCronMonitor_SignalMaintenance_Call {
 	return &MockCronMonitor_SignalMaintenance_Call{Call: _e.mock.On("SignalMaintenance", ctx)}
 }
 
@@ -320,7 +320,7 @@ type MockCronMonitor_StartHeartbeat_Call struct {
 // StartHeartbeat is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) StartHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_StartHeartbeat_Call {
+func (_e *MockCronMonitor_Expecter) StartHeartbeat(ctx any, jobID any) *MockCronMonitor_StartHeartbeat_Call {
 	return &MockCronMonitor_StartHeartbeat_Call{Call: _e.mock.On("StartHeartbeat", ctx, jobID)}
 }
 
@@ -376,7 +376,7 @@ type MockCronMonitor_StartMonitoring_Call struct {
 
 // StartMonitoring is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) StartMonitoring(ctx interface{}) *MockCronMonitor_StartMonitoring_Call {
+func (_e *MockCronMonitor_Expecter) StartMonitoring(ctx any) *MockCronMonitor_StartMonitoring_Call {
 	return &MockCronMonitor_StartMonitoring_Call{Call: _e.mock.On("StartMonitoring", ctx)}
 }
 
@@ -417,7 +417,7 @@ type MockCronMonitor_StopHeartbeat_Call struct {
 // StopHeartbeat is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronMonitor_Expecter) StopHeartbeat(ctx interface{}, jobID interface{}) *MockCronMonitor_StopHeartbeat_Call {
+func (_e *MockCronMonitor_Expecter) StopHeartbeat(ctx any, jobID any) *MockCronMonitor_StopHeartbeat_Call {
 	return &MockCronMonitor_StopHeartbeat_Call{Call: _e.mock.On("StopHeartbeat", ctx, jobID)}
 }
 
@@ -473,7 +473,7 @@ type MockCronMonitor_StopMonitoring_Call struct {
 
 // StopMonitoring is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronMonitor_Expecter) StopMonitoring(ctx interface{}) *MockCronMonitor_StopMonitoring_Call {
+func (_e *MockCronMonitor_Expecter) StopMonitoring(ctx any) *MockCronMonitor_StopMonitoring_Call {
 	return &MockCronMonitor_StopMonitoring_Call{Call: _e.mock.On("StopMonitoring", ctx)}
 }
 

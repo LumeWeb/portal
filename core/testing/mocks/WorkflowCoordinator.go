@@ -64,7 +64,7 @@ type MockWorkflowCoordinator_CleanupWorkflow_Call struct {
 // CleanupWorkflow is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-func (_e *MockWorkflowCoordinator_Expecter) CleanupWorkflow(ctx interface{}, requestID interface{}) *MockWorkflowCoordinator_CleanupWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) CleanupWorkflow(ctx any, requestID any) *MockWorkflowCoordinator_CleanupWorkflow_Call {
 	return &MockWorkflowCoordinator_CleanupWorkflow_Call{Call: _e.mock.On("CleanupWorkflow", ctx, requestID)}
 }
 
@@ -99,11 +99,11 @@ func (_c *MockWorkflowCoordinator_CleanupWorkflow_Call) RunAndReturn(run func(ct
 // CompleteWorkflowStep provides a mock function for the type MockWorkflowCoordinator
 func (_mock *MockWorkflowCoordinator) CompleteWorkflowStep(ctx context.Context, requestID uint, opts ...core.WorkflowOption) error {
 	// core.WorkflowOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, requestID)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -130,9 +130,9 @@ type MockWorkflowCoordinator_CompleteWorkflowStep_Call struct {
 //   - ctx context.Context
 //   - requestID uint
 //   - opts ...core.WorkflowOption
-func (_e *MockWorkflowCoordinator_Expecter) CompleteWorkflowStep(ctx interface{}, requestID interface{}, opts ...interface{}) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
+func (_e *MockWorkflowCoordinator_Expecter) CompleteWorkflowStep(ctx any, requestID any, opts ...any) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
 	return &MockWorkflowCoordinator_CompleteWorkflowStep_Call{Call: _e.mock.On("CompleteWorkflowStep",
-		append([]interface{}{ctx, requestID}, opts...)...)}
+		append([]any{ctx, requestID}, opts...)...)}
 }
 
 func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) Run(run func(ctx context.Context, requestID uint, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_CompleteWorkflowStep_Call {
@@ -175,11 +175,11 @@ func (_c *MockWorkflowCoordinator_CompleteWorkflowStep_Call) RunAndReturn(run fu
 // ConvertRequestToWorkflow provides a mock function for the type MockWorkflowCoordinator
 func (_mock *MockWorkflowCoordinator) ConvertRequestToWorkflow(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption) error {
 	// core.WorkflowOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, requestID, workflowName, startStep)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -208,9 +208,9 @@ type MockWorkflowCoordinator_ConvertRequestToWorkflow_Call struct {
 //   - workflowName string
 //   - startStep int
 //   - opts ...core.WorkflowOption
-func (_e *MockWorkflowCoordinator_Expecter) ConvertRequestToWorkflow(ctx interface{}, requestID interface{}, workflowName interface{}, startStep interface{}, opts ...interface{}) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) ConvertRequestToWorkflow(ctx any, requestID any, workflowName any, startStep any, opts ...any) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
 	return &MockWorkflowCoordinator_ConvertRequestToWorkflow_Call{Call: _e.mock.On("ConvertRequestToWorkflow",
-		append([]interface{}{ctx, requestID, workflowName, startStep}, opts...)...)}
+		append([]any{ctx, requestID, workflowName, startStep}, opts...)...)}
 }
 
 func (_c *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call) Run(run func(ctx context.Context, requestID uint, workflowName string, startStep int, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_ConvertRequestToWorkflow_Call {
@@ -284,7 +284,7 @@ type MockWorkflowCoordinator_DisableWorkflow_Call struct {
 
 // DisableWorkflow is a helper method to define mock.On call
 //   - name string
-func (_e *MockWorkflowCoordinator_Expecter) DisableWorkflow(name interface{}) *MockWorkflowCoordinator_DisableWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) DisableWorkflow(name any) *MockWorkflowCoordinator_DisableWorkflow_Call {
 	return &MockWorkflowCoordinator_DisableWorkflow_Call{Call: _e.mock.On("DisableWorkflow", name)}
 }
 
@@ -336,7 +336,7 @@ type MockWorkflowCoordinator_DispatchWorkflowStep_Call struct {
 // DispatchWorkflowStep is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-func (_e *MockWorkflowCoordinator_Expecter) DispatchWorkflowStep(ctx interface{}, requestID interface{}) *MockWorkflowCoordinator_DispatchWorkflowStep_Call {
+func (_e *MockWorkflowCoordinator_Expecter) DispatchWorkflowStep(ctx any, requestID any) *MockWorkflowCoordinator_DispatchWorkflowStep_Call {
 	return &MockWorkflowCoordinator_DispatchWorkflowStep_Call{Call: _e.mock.On("DispatchWorkflowStep", ctx, requestID)}
 }
 
@@ -392,7 +392,7 @@ type MockWorkflowCoordinator_EnableWorkflow_Call struct {
 
 // EnableWorkflow is a helper method to define mock.On call
 //   - name string
-func (_e *MockWorkflowCoordinator_Expecter) EnableWorkflow(name interface{}) *MockWorkflowCoordinator_EnableWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) EnableWorkflow(name any) *MockWorkflowCoordinator_EnableWorkflow_Call {
 	return &MockWorkflowCoordinator_EnableWorkflow_Call{Call: _e.mock.On("EnableWorkflow", name)}
 }
 
@@ -445,7 +445,7 @@ type MockWorkflowCoordinator_FailWorkflowStep_Call struct {
 //   - ctx context.Context
 //   - requestID uint
 //   - err error
-func (_e *MockWorkflowCoordinator_Expecter) FailWorkflowStep(ctx interface{}, requestID interface{}, err interface{}) *MockWorkflowCoordinator_FailWorkflowStep_Call {
+func (_e *MockWorkflowCoordinator_Expecter) FailWorkflowStep(ctx any, requestID any, err any) *MockWorkflowCoordinator_FailWorkflowStep_Call {
 	return &MockWorkflowCoordinator_FailWorkflowStep_Call{Call: _e.mock.On("FailWorkflowStep", ctx, requestID, err)}
 }
 
@@ -517,7 +517,7 @@ type MockWorkflowCoordinator_GetWorkflow_Call struct {
 
 // GetWorkflow is a helper method to define mock.On call
 //   - name string
-func (_e *MockWorkflowCoordinator_Expecter) GetWorkflow(name interface{}) *MockWorkflowCoordinator_GetWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) GetWorkflow(name any) *MockWorkflowCoordinator_GetWorkflow_Call {
 	return &MockWorkflowCoordinator_GetWorkflow_Call{Call: _e.mock.On("GetWorkflow", name)}
 }
 
@@ -580,7 +580,7 @@ type MockWorkflowCoordinator_GetWorkflowStatus_Call struct {
 // GetWorkflowStatus is a helper method to define mock.On call
 //   - ctx context.Context
 //   - requestID uint
-func (_e *MockWorkflowCoordinator_Expecter) GetWorkflowStatus(ctx interface{}, requestID interface{}) *MockWorkflowCoordinator_GetWorkflowStatus_Call {
+func (_e *MockWorkflowCoordinator_Expecter) GetWorkflowStatus(ctx any, requestID any) *MockWorkflowCoordinator_GetWorkflowStatus_Call {
 	return &MockWorkflowCoordinator_GetWorkflowStatus_Call{Call: _e.mock.On("GetWorkflowStatus", ctx, requestID)}
 }
 
@@ -684,7 +684,7 @@ type MockWorkflowCoordinator_RegisterWorkflow_Call struct {
 //   - name string
 //   - steps []core.OperationStep
 //   - autoTriggerFirstStep bool
-func (_e *MockWorkflowCoordinator_Expecter) RegisterWorkflow(name interface{}, steps interface{}, autoTriggerFirstStep interface{}) *MockWorkflowCoordinator_RegisterWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) RegisterWorkflow(name any, steps any, autoTriggerFirstStep any) *MockWorkflowCoordinator_RegisterWorkflow_Call {
 	return &MockWorkflowCoordinator_RegisterWorkflow_Call{Call: _e.mock.On("RegisterWorkflow", name, steps, autoTriggerFirstStep)}
 }
 
@@ -724,11 +724,11 @@ func (_c *MockWorkflowCoordinator_RegisterWorkflow_Call) RunAndReturn(run func(n
 // StartWorkflow provides a mock function for the type MockWorkflowCoordinator
 func (_mock *MockWorkflowCoordinator) StartWorkflow(ctx context.Context, name string, opts ...core.WorkflowOption) (*models.Request, error) {
 	// core.WorkflowOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, name)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -766,9 +766,9 @@ type MockWorkflowCoordinator_StartWorkflow_Call struct {
 //   - ctx context.Context
 //   - name string
 //   - opts ...core.WorkflowOption
-func (_e *MockWorkflowCoordinator_Expecter) StartWorkflow(ctx interface{}, name interface{}, opts ...interface{}) *MockWorkflowCoordinator_StartWorkflow_Call {
+func (_e *MockWorkflowCoordinator_Expecter) StartWorkflow(ctx any, name any, opts ...any) *MockWorkflowCoordinator_StartWorkflow_Call {
 	return &MockWorkflowCoordinator_StartWorkflow_Call{Call: _e.mock.On("StartWorkflow",
-		append([]interface{}{ctx, name}, opts...)...)}
+		append([]any{ctx, name}, opts...)...)}
 }
 
 func (_c *MockWorkflowCoordinator_StartWorkflow_Call) Run(run func(ctx context.Context, name string, opts ...core.WorkflowOption)) *MockWorkflowCoordinator_StartWorkflow_Call {

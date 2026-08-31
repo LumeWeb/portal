@@ -182,7 +182,7 @@ type MockTestingHashProofVerifier_Sum_Call struct {
 
 // Sum is a helper method to define mock.On call
 //   - b []byte
-func (_e *MockTestingHashProofVerifier_Expecter) Sum(b interface{}) *MockTestingHashProofVerifier_Sum_Call {
+func (_e *MockTestingHashProofVerifier_Expecter) Sum(b any) *MockTestingHashProofVerifier_Sum_Call {
 	return &MockTestingHashProofVerifier_Sum_Call{Call: _e.mock.On("Sum", b)}
 }
 
@@ -295,7 +295,7 @@ type MockTestingHashProofVerifier_Write_Call struct {
 
 // Write is a helper method to define mock.On call
 //   - p []byte
-func (_e *MockTestingHashProofVerifier_Expecter) Write(p interface{}) *MockTestingHashProofVerifier_Write_Call {
+func (_e *MockTestingHashProofVerifier_Expecter) Write(p any) *MockTestingHashProofVerifier_Write_Call {
 	return &MockTestingHashProofVerifier_Write_Call{Call: _e.mock.On("Write", p)}
 }
 

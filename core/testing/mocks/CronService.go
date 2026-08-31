@@ -267,7 +267,7 @@ type MockCronService_GetActiveJob_Call struct {
 // GetActiveJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronService_Expecter) GetActiveJob(ctx interface{}, jobID interface{}) *MockCronService_GetActiveJob_Call {
+func (_e *MockCronService_Expecter) GetActiveJob(ctx any, jobID any) *MockCronService_GetActiveJob_Call {
 	return &MockCronService_GetActiveJob_Call{Call: _e.mock.On("GetActiveJob", ctx, jobID)}
 }
 
@@ -494,7 +494,7 @@ type MockCronService_RegisterEntity_Call struct {
 
 // RegisterEntity is a helper method to define mock.On call
 //   - entity core.Cronable
-func (_e *MockCronService_Expecter) RegisterEntity(entity interface{}) *MockCronService_RegisterEntity_Call {
+func (_e *MockCronService_Expecter) RegisterEntity(entity any) *MockCronService_RegisterEntity_Call {
 	return &MockCronService_RegisterEntity_Call{Call: _e.mock.On("RegisterEntity", entity)}
 }
 
@@ -547,7 +547,7 @@ type MockCronService_RegisterJob_Call struct {
 //   - ctx context.Context
 //   - job core.CronJob
 //   - retryPolicy *core.RetryPolicy
-func (_e *MockCronService_Expecter) RegisterJob(ctx interface{}, job interface{}, retryPolicy interface{}) *MockCronService_RegisterJob_Call {
+func (_e *MockCronService_Expecter) RegisterJob(ctx any, job any, retryPolicy any) *MockCronService_RegisterJob_Call {
 	return &MockCronService_RegisterJob_Call{Call: _e.mock.On("RegisterJob", ctx, job, retryPolicy)}
 }
 
@@ -611,7 +611,7 @@ type MockCronService_RegisterJobType_Call struct {
 //   - jobType string
 //   - factory core.CronJobFactoryFunc
 //   - defaultSchedule *core.CronScheduleDefinition
-func (_e *MockCronService_Expecter) RegisterJobType(ctx interface{}, jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronService_RegisterJobType_Call {
+func (_e *MockCronService_Expecter) RegisterJobType(ctx any, jobType any, factory any, defaultSchedule any) *MockCronService_RegisterJobType_Call {
 	return &MockCronService_RegisterJobType_Call{Call: _e.mock.On("RegisterJobType", ctx, jobType, factory, defaultSchedule)}
 }
 
@@ -678,7 +678,7 @@ type MockCronService_RegisterPluginJobs_Call struct {
 // RegisterPluginJobs is a helper method to define mock.On call
 //   - ctx context.Context
 //   - plugin core.PluginInfo
-func (_e *MockCronService_Expecter) RegisterPluginJobs(ctx interface{}, plugin interface{}) *MockCronService_RegisterPluginJobs_Call {
+func (_e *MockCronService_Expecter) RegisterPluginJobs(ctx any, plugin any) *MockCronService_RegisterPluginJobs_Call {
 	return &MockCronService_RegisterPluginJobs_Call{Call: _e.mock.On("RegisterPluginJobs", ctx, plugin)}
 }
 
@@ -735,7 +735,7 @@ type MockCronService_RunJob_Call struct {
 // RunJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uuid.UUID
-func (_e *MockCronService_Expecter) RunJob(ctx interface{}, id interface{}) *MockCronService_RunJob_Call {
+func (_e *MockCronService_Expecter) RunJob(ctx any, id any) *MockCronService_RunJob_Call {
 	return &MockCronService_RunJob_Call{Call: _e.mock.On("RunJob", ctx, id)}
 }
 
@@ -826,7 +826,7 @@ type MockCronService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockCronService_Expecter) SetConfig(cfg interface{}) *MockCronService_SetConfig_Call {
+func (_e *MockCronService_Expecter) SetConfig(cfg any) *MockCronService_SetConfig_Call {
 	return &MockCronService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -866,7 +866,7 @@ type MockCronService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockCronService_Expecter) SetContext(ctx interface{}) *MockCronService_SetContext_Call {
+func (_e *MockCronService_Expecter) SetContext(ctx any) *MockCronService_SetContext_Call {
 	return &MockCronService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -906,7 +906,7 @@ type MockCronService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockCronService_Expecter) SetDB(db interface{}) *MockCronService_SetDB_Call {
+func (_e *MockCronService_Expecter) SetDB(db any) *MockCronService_SetDB_Call {
 	return &MockCronService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -946,7 +946,7 @@ type MockCronService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockCronService_Expecter) SetLogger(logger interface{}) *MockCronService_SetLogger_Call {
+func (_e *MockCronService_Expecter) SetLogger(logger any) *MockCronService_SetLogger_Call {
 	return &MockCronService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -997,7 +997,7 @@ type MockCronService_Start_Call struct {
 
 // Start is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronService_Expecter) Start(ctx interface{}) *MockCronService_Start_Call {
+func (_e *MockCronService_Expecter) Start(ctx any) *MockCronService_Start_Call {
 	return &MockCronService_Start_Call{Call: _e.mock.On("Start", ctx)}
 }
 
@@ -1094,7 +1094,7 @@ type MockCronService_Stop_Call struct {
 
 // Stop is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockCronService_Expecter) Stop(ctx interface{}) *MockCronService_Stop_Call {
+func (_e *MockCronService_Expecter) Stop(ctx any) *MockCronService_Stop_Call {
 	return &MockCronService_Stop_Call{Call: _e.mock.On("Stop", ctx)}
 }
 

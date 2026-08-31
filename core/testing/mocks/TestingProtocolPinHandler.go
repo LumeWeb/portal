@@ -159,7 +159,7 @@ type MockTestingProtocolPinHandler_CreateProtocolPin_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockTestingProtocolPinHandler_Expecter) CreateProtocolPin(ctx interface{}, id interface{}, data interface{}) *MockTestingProtocolPinHandler_CreateProtocolPin_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) CreateProtocolPin(ctx any, id any, data any) *MockTestingProtocolPinHandler_CreateProtocolPin_Call {
 	return &MockTestingProtocolPinHandler_CreateProtocolPin_Call{Call: _e.mock.On("CreateProtocolPin", ctx, id, data)}
 }
 
@@ -267,7 +267,7 @@ type MockTestingProtocolPinHandler_DeleteProtocolPin_Call struct {
 // DeleteProtocolPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockTestingProtocolPinHandler_Expecter) DeleteProtocolPin(ctx interface{}, id interface{}) *MockTestingProtocolPinHandler_DeleteProtocolPin_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) DeleteProtocolPin(ctx any, id any) *MockTestingProtocolPinHandler_DeleteProtocolPin_Call {
 	return &MockTestingProtocolPinHandler_DeleteProtocolPin_Call{Call: _e.mock.On("DeleteProtocolPin", ctx, id)}
 }
 
@@ -426,7 +426,7 @@ type MockTestingProtocolPinHandler_GetProtocolPin_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - id uint
-func (_e *MockTestingProtocolPinHandler_Expecter) GetProtocolPin(ctx interface{}, tx interface{}, id interface{}) *MockTestingProtocolPinHandler_GetProtocolPin_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) GetProtocolPin(ctx any, tx any, id any) *MockTestingProtocolPinHandler_GetProtocolPin_Call {
 	return &MockTestingProtocolPinHandler_GetProtocolPin_Call{Call: _e.mock.On("GetProtocolPin", ctx, tx, id)}
 }
 
@@ -716,7 +716,7 @@ type MockTestingProtocolPinHandler_QueryProtocolPin_Call struct {
 // QueryProtocolPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query any
-func (_e *MockTestingProtocolPinHandler_Expecter) QueryProtocolPin(ctx interface{}, query interface{}) *MockTestingProtocolPinHandler_QueryProtocolPin_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) QueryProtocolPin(ctx any, query any) *MockTestingProtocolPinHandler_QueryProtocolPin_Call {
 	return &MockTestingProtocolPinHandler_QueryProtocolPin_Call{Call: _e.mock.On("QueryProtocolPin", ctx, query)}
 }
 
@@ -761,7 +761,7 @@ type MockTestingProtocolPinHandler_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockTestingProtocolPinHandler_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolPinHandler_SetConfig_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) SetConfig(cfg any) *MockTestingProtocolPinHandler_SetConfig_Call {
 	return &MockTestingProtocolPinHandler_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -801,7 +801,7 @@ type MockTestingProtocolPinHandler_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockTestingProtocolPinHandler_Expecter) SetContext(ctx interface{}) *MockTestingProtocolPinHandler_SetContext_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) SetContext(ctx any) *MockTestingProtocolPinHandler_SetContext_Call {
 	return &MockTestingProtocolPinHandler_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -841,7 +841,7 @@ type MockTestingProtocolPinHandler_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockTestingProtocolPinHandler_Expecter) SetDB(db interface{}) *MockTestingProtocolPinHandler_SetDB_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) SetDB(db any) *MockTestingProtocolPinHandler_SetDB_Call {
 	return &MockTestingProtocolPinHandler_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -881,7 +881,7 @@ type MockTestingProtocolPinHandler_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockTestingProtocolPinHandler_Expecter) SetLogger(logger interface{}) *MockTestingProtocolPinHandler_SetLogger_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) SetLogger(logger any) *MockTestingProtocolPinHandler_SetLogger_Call {
 	return &MockTestingProtocolPinHandler_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -934,7 +934,7 @@ type MockTestingProtocolPinHandler_UpdateProtocolPin_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockTestingProtocolPinHandler_Expecter) UpdateProtocolPin(ctx interface{}, id interface{}, data interface{}) *MockTestingProtocolPinHandler_UpdateProtocolPin_Call {
+func (_e *MockTestingProtocolPinHandler_Expecter) UpdateProtocolPin(ctx any, id any, data any) *MockTestingProtocolPinHandler_UpdateProtocolPin_Call {
 	return &MockTestingProtocolPinHandler_UpdateProtocolPin_Call{Call: _e.mock.On("UpdateProtocolPin", ctx, id, data)}
 }
 

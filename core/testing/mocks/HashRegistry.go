@@ -152,7 +152,7 @@ type MockHashRegistry_GetProtocolAlgorithms_Call struct {
 
 // GetProtocolAlgorithms is a helper method to define mock.On call
 //   - protocol string
-func (_e *MockHashRegistry_Expecter) GetProtocolAlgorithms(protocol interface{}) *MockHashRegistry_GetProtocolAlgorithms_Call {
+func (_e *MockHashRegistry_Expecter) GetProtocolAlgorithms(protocol any) *MockHashRegistry_GetProtocolAlgorithms_Call {
 	return &MockHashRegistry_GetProtocolAlgorithms_Call{Call: _e.mock.On("GetProtocolAlgorithms", protocol)}
 }
 
@@ -203,7 +203,7 @@ type MockHashRegistry_RegisterHashAlgorithm_Call struct {
 
 // RegisterHashAlgorithm is a helper method to define mock.On call
 //   - algo core.HashAlgorithm
-func (_e *MockHashRegistry_Expecter) RegisterHashAlgorithm(algo interface{}) *MockHashRegistry_RegisterHashAlgorithm_Call {
+func (_e *MockHashRegistry_Expecter) RegisterHashAlgorithm(algo any) *MockHashRegistry_RegisterHashAlgorithm_Call {
 	return &MockHashRegistry_RegisterHashAlgorithm_Call{Call: _e.mock.On("RegisterHashAlgorithm", algo)}
 }
 

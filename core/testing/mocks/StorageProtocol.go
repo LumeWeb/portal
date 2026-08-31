@@ -62,7 +62,7 @@ type MockStorageProtocol_EncodeFileName_Call struct {
 
 // EncodeFileName is a helper method to define mock.On call
 //   - storageHash core.StorageHash
-func (_e *MockStorageProtocol_Expecter) EncodeFileName(storageHash interface{}) *MockStorageProtocol_EncodeFileName_Call {
+func (_e *MockStorageProtocol_Expecter) EncodeFileName(storageHash any) *MockStorageProtocol_EncodeFileName_Call {
 	return &MockStorageProtocol_EncodeFileName_Call{Call: _e.mock.On("EncodeFileName", storageHash)}
 }
 
@@ -125,7 +125,7 @@ type MockStorageProtocol_Hash_Call struct {
 // Hash is a helper method to define mock.On call
 //   - r io.Reader
 //   - size uint64
-func (_e *MockStorageProtocol_Expecter) Hash(r interface{}, size interface{}) *MockStorageProtocol_Hash_Call {
+func (_e *MockStorageProtocol_Expecter) Hash(r any, size any) *MockStorageProtocol_Hash_Call {
 	return &MockStorageProtocol_Hash_Call{Call: _e.mock.On("Hash", r, size)}
 }
 

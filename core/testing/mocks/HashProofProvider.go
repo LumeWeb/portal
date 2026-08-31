@@ -59,7 +59,7 @@ type MockHashProofProvider_SetProof_Call struct {
 
 // SetProof is a helper method to define mock.On call
 //   - proof []byte
-func (_e *MockHashProofProvider_Expecter) SetProof(proof interface{}) *MockHashProofProvider_SetProof_Call {
+func (_e *MockHashProofProvider_Expecter) SetProof(proof any) *MockHashProofProvider_SetProof_Call {
 	return &MockHashProofProvider_SetProof_Call{Call: _e.mock.On("SetProof", proof)}
 }
 

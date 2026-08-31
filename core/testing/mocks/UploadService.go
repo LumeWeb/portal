@@ -204,7 +204,7 @@ type MockUploadService_DeleteUpload_Call struct {
 // DeleteUpload is a helper method to define mock.On call
 //   - ctx context.Context
 //   - objectHash core.StorageHash
-func (_e *MockUploadService_Expecter) DeleteUpload(ctx interface{}, objectHash interface{}) *MockUploadService_DeleteUpload_Call {
+func (_e *MockUploadService_Expecter) DeleteUpload(ctx any, objectHash any) *MockUploadService_DeleteUpload_Call {
 	return &MockUploadService_DeleteUpload_Call{Call: _e.mock.On("DeleteUpload", ctx, objectHash)}
 }
 
@@ -271,7 +271,7 @@ type MockUploadService_GetAllUploads_Call struct {
 
 // GetAllUploads is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockUploadService_Expecter) GetAllUploads(ctx interface{}) *MockUploadService_GetAllUploads_Call {
+func (_e *MockUploadService_Expecter) GetAllUploads(ctx any) *MockUploadService_GetAllUploads_Call {
 	return &MockUploadService_GetAllUploads_Call{Call: _e.mock.On("GetAllUploads", ctx)}
 }
 
@@ -334,7 +334,7 @@ type MockUploadService_GetUpload_Call struct {
 // GetUpload is a helper method to define mock.On call
 //   - ctx context.Context
 //   - objectHash core.StorageHash
-func (_e *MockUploadService_Expecter) GetUpload(ctx interface{}, objectHash interface{}) *MockUploadService_GetUpload_Call {
+func (_e *MockUploadService_Expecter) GetUpload(ctx any, objectHash any) *MockUploadService_GetUpload_Call {
 	return &MockUploadService_GetUpload_Call{Call: _e.mock.On("GetUpload", ctx, objectHash)}
 }
 
@@ -402,7 +402,7 @@ type MockUploadService_GetUploadByID_Call struct {
 // GetUploadByID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uploadID uint
-func (_e *MockUploadService_Expecter) GetUploadByID(ctx interface{}, uploadID interface{}) *MockUploadService_GetUploadByID_Call {
+func (_e *MockUploadService_Expecter) GetUploadByID(ctx any, uploadID any) *MockUploadService_GetUploadByID_Call {
 	return &MockUploadService_GetUploadByID_Call{Call: _e.mock.On("GetUploadByID", ctx, uploadID)}
 }
 
@@ -469,7 +469,7 @@ type MockUploadService_GetUploadStats_Call struct {
 
 // GetUploadStats is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockUploadService_Expecter) GetUploadStats(ctx interface{}) *MockUploadService_GetUploadStats_Call {
+func (_e *MockUploadService_Expecter) GetUploadStats(ctx any) *MockUploadService_GetUploadStats_Call {
 	return &MockUploadService_GetUploadStats_Call{Call: _e.mock.On("GetUploadStats", ctx)}
 }
 
@@ -611,7 +611,7 @@ type MockUploadService_SaveUpload_Call struct {
 // SaveUpload is a helper method to define mock.On call
 //   - ctx context.Context
 //   - upload *models.Upload
-func (_e *MockUploadService_Expecter) SaveUpload(ctx interface{}, upload interface{}) *MockUploadService_SaveUpload_Call {
+func (_e *MockUploadService_Expecter) SaveUpload(ctx any, upload any) *MockUploadService_SaveUpload_Call {
 	return &MockUploadService_SaveUpload_Call{Call: _e.mock.On("SaveUpload", ctx, upload)}
 }
 
@@ -656,7 +656,7 @@ type MockUploadService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockUploadService_Expecter) SetConfig(cfg interface{}) *MockUploadService_SetConfig_Call {
+func (_e *MockUploadService_Expecter) SetConfig(cfg any) *MockUploadService_SetConfig_Call {
 	return &MockUploadService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -696,7 +696,7 @@ type MockUploadService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockUploadService_Expecter) SetContext(ctx interface{}) *MockUploadService_SetContext_Call {
+func (_e *MockUploadService_Expecter) SetContext(ctx any) *MockUploadService_SetContext_Call {
 	return &MockUploadService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -736,7 +736,7 @@ type MockUploadService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockUploadService_Expecter) SetDB(db interface{}) *MockUploadService_SetDB_Call {
+func (_e *MockUploadService_Expecter) SetDB(db any) *MockUploadService_SetDB_Call {
 	return &MockUploadService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -776,7 +776,7 @@ type MockUploadService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockUploadService_Expecter) SetLogger(logger interface{}) *MockUploadService_SetLogger_Call {
+func (_e *MockUploadService_Expecter) SetLogger(logger any) *MockUploadService_SetLogger_Call {
 	return &MockUploadService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

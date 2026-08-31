@@ -68,7 +68,7 @@ type MockRequestService_CompleteRequest_Call struct {
 // CompleteRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) CompleteRequest(ctx interface{}, id interface{}) *MockRequestService_CompleteRequest_Call {
+func (_e *MockRequestService_Expecter) CompleteRequest(ctx any, id any) *MockRequestService_CompleteRequest_Call {
 	return &MockRequestService_CompleteRequest_Call{Call: _e.mock.On("CompleteRequest", ctx, id)}
 }
 
@@ -137,7 +137,7 @@ type MockRequestService_ComputeRequestStatus_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - keepExisting bool
-func (_e *MockRequestService_Expecter) ComputeRequestStatus(ctx interface{}, id interface{}, keepExisting interface{}) *MockRequestService_ComputeRequestStatus_Call {
+func (_e *MockRequestService_Expecter) ComputeRequestStatus(ctx any, id any, keepExisting any) *MockRequestService_ComputeRequestStatus_Call {
 	return &MockRequestService_ComputeRequestStatus_Call{Call: _e.mock.On("ComputeRequestStatus", ctx, id, keepExisting)}
 }
 
@@ -211,7 +211,7 @@ type MockRequestService_ComputeRequestStatusWithDeleted_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - keepExisting bool
-func (_e *MockRequestService_Expecter) ComputeRequestStatusWithDeleted(ctx interface{}, id interface{}, keepExisting interface{}) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
+func (_e *MockRequestService_Expecter) ComputeRequestStatusWithDeleted(ctx any, id any, keepExisting any) *MockRequestService_ComputeRequestStatusWithDeleted_Call {
 	return &MockRequestService_ComputeRequestStatusWithDeleted_Call{Call: _e.mock.On("ComputeRequestStatusWithDeleted", ctx, id, keepExisting)}
 }
 
@@ -377,7 +377,7 @@ type MockRequestService_CreateRequest_Call struct {
 //   - ctx context.Context
 //   - req *models.Request
 //   - data interface{}
-func (_e *MockRequestService_Expecter) CreateRequest(ctx interface{}, req interface{}, data interface{}) *MockRequestService_CreateRequest_Call {
+func (_e *MockRequestService_Expecter) CreateRequest(ctx any, req any, data any) *MockRequestService_CreateRequest_Call {
 	return &MockRequestService_CreateRequest_Call{Call: _e.mock.On("CreateRequest", ctx, req, data)}
 }
 
@@ -449,7 +449,7 @@ type MockRequestService_CreateRequestModel_Call struct {
 
 // CreateRequestModel is a helper method to define mock.On call
 //   - operation string
-func (_e *MockRequestService_Expecter) CreateRequestModel(operation interface{}) *MockRequestService_CreateRequestModel_Call {
+func (_e *MockRequestService_Expecter) CreateRequestModel(operation any) *MockRequestService_CreateRequestModel_Call {
 	return &MockRequestService_CreateRequestModel_Call{Call: _e.mock.On("CreateRequestModel", operation)}
 }
 
@@ -547,7 +547,7 @@ type MockRequestService_DeleteRequest_Call struct {
 // DeleteRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) DeleteRequest(ctx interface{}, id interface{}) *MockRequestService_DeleteRequest_Call {
+func (_e *MockRequestService_Expecter) DeleteRequest(ctx any, id any) *MockRequestService_DeleteRequest_Call {
 	return &MockRequestService_DeleteRequest_Call{Call: _e.mock.On("DeleteRequest", ctx, id)}
 }
 
@@ -604,7 +604,7 @@ type MockRequestService_ExecuteRequest_Call struct {
 // ExecuteRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) ExecuteRequest(ctx interface{}, id interface{}) *MockRequestService_ExecuteRequest_Call {
+func (_e *MockRequestService_Expecter) ExecuteRequest(ctx any, id any) *MockRequestService_ExecuteRequest_Call {
 	return &MockRequestService_ExecuteRequest_Call{Call: _e.mock.On("ExecuteRequest", ctx, id)}
 }
 
@@ -662,7 +662,7 @@ type MockRequestService_FailRequest_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - reason string
-func (_e *MockRequestService_Expecter) FailRequest(ctx interface{}, id interface{}, reason interface{}) *MockRequestService_FailRequest_Call {
+func (_e *MockRequestService_Expecter) FailRequest(ctx any, id any, reason any) *MockRequestService_FailRequest_Call {
 	return &MockRequestService_FailRequest_Call{Call: _e.mock.On("FailRequest", ctx, id, reason)}
 }
 
@@ -735,7 +735,7 @@ type MockRequestService_GetRequest_Call struct {
 // GetRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) GetRequest(ctx interface{}, id interface{}) *MockRequestService_GetRequest_Call {
+func (_e *MockRequestService_Expecter) GetRequest(ctx any, id any) *MockRequestService_GetRequest_Call {
 	return &MockRequestService_GetRequest_Call{Call: _e.mock.On("GetRequest", ctx, id)}
 }
 
@@ -804,7 +804,7 @@ type MockRequestService_GetRequestByHash_Call struct {
 //   - ctx context.Context
 //   - hash core.StorageHash
 //   - filter core.RequestFilter
-func (_e *MockRequestService_Expecter) GetRequestByHash(ctx interface{}, hash interface{}, filter interface{}) *MockRequestService_GetRequestByHash_Call {
+func (_e *MockRequestService_Expecter) GetRequestByHash(ctx any, hash any, filter any) *MockRequestService_GetRequestByHash_Call {
 	return &MockRequestService_GetRequestByHash_Call{Call: _e.mock.On("GetRequestByHash", ctx, hash, filter)}
 }
 
@@ -877,7 +877,7 @@ type MockRequestService_GetRequestData_Call struct {
 // GetRequestData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockRequestService_Expecter) GetRequestData(ctx interface{}, req interface{}) *MockRequestService_GetRequestData_Call {
+func (_e *MockRequestService_Expecter) GetRequestData(ctx any, req any) *MockRequestService_GetRequestData_Call {
 	return &MockRequestService_GetRequestData_Call{Call: _e.mock.On("GetRequestData", ctx, req)}
 }
 
@@ -944,7 +944,7 @@ type MockRequestService_GetRequestModel_Call struct {
 
 // GetRequestModel is a helper method to define mock.On call
 //   - operation string
-func (_e *MockRequestService_Expecter) GetRequestModel(operation interface{}) *MockRequestService_GetRequestModel_Call {
+func (_e *MockRequestService_Expecter) GetRequestModel(operation any) *MockRequestService_GetRequestModel_Call {
 	return &MockRequestService_GetRequestModel_Call{Call: _e.mock.On("GetRequestModel", operation)}
 }
 
@@ -1008,7 +1008,7 @@ type MockRequestService_GetRequestStatus_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - withDeleted bool
-func (_e *MockRequestService_Expecter) GetRequestStatus(ctx interface{}, id interface{}, withDeleted interface{}) *MockRequestService_GetRequestStatus_Call {
+func (_e *MockRequestService_Expecter) GetRequestStatus(ctx any, id any, withDeleted any) *MockRequestService_GetRequestStatus_Call {
 	return &MockRequestService_GetRequestStatus_Call{Call: _e.mock.On("GetRequestStatus", ctx, id, withDeleted)}
 }
 
@@ -1081,7 +1081,7 @@ type MockRequestService_GetRequestWithDeleted_Call struct {
 // GetRequestWithDeleted is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) GetRequestWithDeleted(ctx interface{}, id interface{}) *MockRequestService_GetRequestWithDeleted_Call {
+func (_e *MockRequestService_Expecter) GetRequestWithDeleted(ctx any, id any) *MockRequestService_GetRequestWithDeleted_Call {
 	return &MockRequestService_GetRequestWithDeleted_Call{Call: _e.mock.On("GetRequestWithDeleted", ctx, id)}
 }
 
@@ -1194,7 +1194,7 @@ type MockRequestService_ListDistinctRequestFilters_Call struct {
 //   - ctx context.Context
 //   - userID uint
 //   - additionalFilters []filter.CrudFilter
-func (_e *MockRequestService_Expecter) ListDistinctRequestFilters(ctx interface{}, userID interface{}, additionalFilters interface{}) *MockRequestService_ListDistinctRequestFilters_Call {
+func (_e *MockRequestService_Expecter) ListDistinctRequestFilters(ctx any, userID any, additionalFilters any) *MockRequestService_ListDistinctRequestFilters_Call {
 	return &MockRequestService_ListDistinctRequestFilters_Call{Call: _e.mock.On("ListDistinctRequestFilters", ctx, userID, additionalFilters)}
 }
 
@@ -1268,7 +1268,7 @@ type MockRequestService_ListRequestsByStatus_Call struct {
 //   - ctx context.Context
 //   - status string
 //   - filter1 core.RequestFilter
-func (_e *MockRequestService_Expecter) ListRequestsByStatus(ctx interface{}, status interface{}, filter1 interface{}) *MockRequestService_ListRequestsByStatus_Call {
+func (_e *MockRequestService_Expecter) ListRequestsByStatus(ctx any, status any, filter1 any) *MockRequestService_ListRequestsByStatus_Call {
 	return &MockRequestService_ListRequestsByStatus_Call{Call: _e.mock.On("ListRequestsByStatus", ctx, status, filter1)}
 }
 
@@ -1342,7 +1342,7 @@ type MockRequestService_ListRequestsByUser_Call struct {
 //   - ctx context.Context
 //   - userID uint
 //   - filter1 core.RequestFilter
-func (_e *MockRequestService_Expecter) ListRequestsByUser(ctx interface{}, userID interface{}, filter1 interface{}) *MockRequestService_ListRequestsByUser_Call {
+func (_e *MockRequestService_Expecter) ListRequestsByUser(ctx any, userID any, filter1 any) *MockRequestService_ListRequestsByUser_Call {
 	return &MockRequestService_ListRequestsByUser_Call{Call: _e.mock.On("ListRequestsByUser", ctx, userID, filter1)}
 }
 
@@ -1462,7 +1462,7 @@ type MockRequestService_QueryRequest_Call struct {
 //   - ctx context.Context
 //   - query any
 //   - filter1 core.RequestFilter
-func (_e *MockRequestService_Expecter) QueryRequest(ctx interface{}, query interface{}, filter1 interface{}) *MockRequestService_QueryRequest_Call {
+func (_e *MockRequestService_Expecter) QueryRequest(ctx any, query any, filter1 any) *MockRequestService_QueryRequest_Call {
 	return &MockRequestService_QueryRequest_Call{Call: _e.mock.On("QueryRequest", ctx, query, filter1)}
 }
 
@@ -1536,7 +1536,7 @@ type MockRequestService_QueryRequestData_Call struct {
 //   - ctx context.Context
 //   - query any
 //   - filter1 core.RequestFilter
-func (_e *MockRequestService_Expecter) QueryRequestData(ctx interface{}, query interface{}, filter1 interface{}) *MockRequestService_QueryRequestData_Call {
+func (_e *MockRequestService_Expecter) QueryRequestData(ctx any, query any, filter1 any) *MockRequestService_QueryRequestData_Call {
 	return &MockRequestService_QueryRequestData_Call{Call: _e.mock.On("QueryRequestData", ctx, query, filter1)}
 }
 
@@ -1587,7 +1587,7 @@ type MockRequestService_RegisterRequestModel_Call struct {
 // RegisterRequestModel is a helper method to define mock.On call
 //   - operation string
 //   - model data_models.RequestDataModel
-func (_e *MockRequestService_Expecter) RegisterRequestModel(operation interface{}, model interface{}) *MockRequestService_RegisterRequestModel_Call {
+func (_e *MockRequestService_Expecter) RegisterRequestModel(operation any, model any) *MockRequestService_RegisterRequestModel_Call {
 	return &MockRequestService_RegisterRequestModel_Call{Call: _e.mock.On("RegisterRequestModel", operation, model)}
 }
 
@@ -1653,7 +1653,7 @@ type MockRequestService_RequestExists_Call struct {
 // RequestExists is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockRequestService_Expecter) RequestExists(ctx interface{}, id interface{}) *MockRequestService_RequestExists_Call {
+func (_e *MockRequestService_Expecter) RequestExists(ctx any, id any) *MockRequestService_RequestExists_Call {
 	return &MockRequestService_RequestExists_Call{Call: _e.mock.On("RequestExists", ctx, id)}
 }
 
@@ -1698,7 +1698,7 @@ type MockRequestService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockRequestService_Expecter) SetConfig(cfg interface{}) *MockRequestService_SetConfig_Call {
+func (_e *MockRequestService_Expecter) SetConfig(cfg any) *MockRequestService_SetConfig_Call {
 	return &MockRequestService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -1738,7 +1738,7 @@ type MockRequestService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockRequestService_Expecter) SetContext(ctx interface{}) *MockRequestService_SetContext_Call {
+func (_e *MockRequestService_Expecter) SetContext(ctx any) *MockRequestService_SetContext_Call {
 	return &MockRequestService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -1778,7 +1778,7 @@ type MockRequestService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockRequestService_Expecter) SetDB(db interface{}) *MockRequestService_SetDB_Call {
+func (_e *MockRequestService_Expecter) SetDB(db any) *MockRequestService_SetDB_Call {
 	return &MockRequestService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -1818,7 +1818,7 @@ type MockRequestService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockRequestService_Expecter) SetLogger(logger interface{}) *MockRequestService_SetLogger_Call {
+func (_e *MockRequestService_Expecter) SetLogger(logger any) *MockRequestService_SetLogger_Call {
 	return &MockRequestService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -1870,7 +1870,7 @@ type MockRequestService_UpdateRequest_Call struct {
 // UpdateRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockRequestService_Expecter) UpdateRequest(ctx interface{}, req interface{}) *MockRequestService_UpdateRequest_Call {
+func (_e *MockRequestService_Expecter) UpdateRequest(ctx any, req any) *MockRequestService_UpdateRequest_Call {
 	return &MockRequestService_UpdateRequest_Call{Call: _e.mock.On("UpdateRequest", ctx, req)}
 }
 
@@ -1928,7 +1928,7 @@ type MockRequestService_UpdateRequestData_Call struct {
 //   - ctx context.Context
 //   - req *models.Request
 //   - data interface{}
-func (_e *MockRequestService_Expecter) UpdateRequestData(ctx interface{}, req interface{}, data interface{}) *MockRequestService_UpdateRequestData_Call {
+func (_e *MockRequestService_Expecter) UpdateRequestData(ctx any, req any, data any) *MockRequestService_UpdateRequestData_Call {
 	return &MockRequestService_UpdateRequestData_Call{Call: _e.mock.On("UpdateRequestData", ctx, req, data)}
 }
 
@@ -1992,7 +1992,7 @@ type MockRequestService_UpdateRequestStatus_Call struct {
 //   - id uint
 //   - status models.RequestStatusType
 //   - message string
-func (_e *MockRequestService_Expecter) UpdateRequestStatus(ctx interface{}, id interface{}, status interface{}, message interface{}) *MockRequestService_UpdateRequestStatus_Call {
+func (_e *MockRequestService_Expecter) UpdateRequestStatus(ctx any, id any, status any, message any) *MockRequestService_UpdateRequestStatus_Call {
 	return &MockRequestService_UpdateRequestStatus_Call{Call: _e.mock.On("UpdateRequestStatus", ctx, id, status, message)}
 }
 
@@ -2059,7 +2059,7 @@ type MockRequestService_ValidateRequest_Call struct {
 // ValidateRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - req *models.Request
-func (_e *MockRequestService_Expecter) ValidateRequest(ctx interface{}, req interface{}) *MockRequestService_ValidateRequest_Call {
+func (_e *MockRequestService_Expecter) ValidateRequest(ctx any, req any) *MockRequestService_ValidateRequest_Call {
 	return &MockRequestService_ValidateRequest_Call{Call: _e.mock.On("ValidateRequest", ctx, req)}
 }
 

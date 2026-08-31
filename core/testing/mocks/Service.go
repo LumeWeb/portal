@@ -279,7 +279,7 @@ type MockService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockService_Expecter) SetConfig(cfg interface{}) *MockService_SetConfig_Call {
+func (_e *MockService_Expecter) SetConfig(cfg any) *MockService_SetConfig_Call {
 	return &MockService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -319,7 +319,7 @@ type MockService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockService_Expecter) SetContext(ctx interface{}) *MockService_SetContext_Call {
+func (_e *MockService_Expecter) SetContext(ctx any) *MockService_SetContext_Call {
 	return &MockService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -359,7 +359,7 @@ type MockService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockService_Expecter) SetDB(db interface{}) *MockService_SetDB_Call {
+func (_e *MockService_Expecter) SetDB(db any) *MockService_SetDB_Call {
 	return &MockService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -399,7 +399,7 @@ type MockService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockService_Expecter) SetLogger(logger interface{}) *MockService_SetLogger_Call {
+func (_e *MockService_Expecter) SetLogger(logger any) *MockService_SetLogger_Call {
 	return &MockService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

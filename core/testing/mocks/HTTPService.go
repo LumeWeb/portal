@@ -64,7 +64,7 @@ type MockHTTPService_APISubdomain_Call struct {
 // APISubdomain is a helper method to define mock.On call
 //   - id string
 //   - proto bool
-func (_e *MockHTTPService_Expecter) APISubdomain(id interface{}, proto interface{}) *MockHTTPService_APISubdomain_Call {
+func (_e *MockHTTPService_Expecter) APISubdomain(id any, proto any) *MockHTTPService_APISubdomain_Call {
 	return &MockHTTPService_APISubdomain_Call{Call: _e.mock.On("APISubdomain", id, proto)}
 }
 
@@ -436,7 +436,7 @@ type MockHTTPService_RegisterGlobalPath_Call struct {
 
 // RegisterGlobalPath is a helper method to define mock.On call
 //   - path string
-func (_e *MockHTTPService_Expecter) RegisterGlobalPath(path interface{}) *MockHTTPService_RegisterGlobalPath_Call {
+func (_e *MockHTTPService_Expecter) RegisterGlobalPath(path any) *MockHTTPService_RegisterGlobalPath_Call {
 	return &MockHTTPService_RegisterGlobalPath_Call{Call: _e.mock.On("RegisterGlobalPath", path)}
 }
 
@@ -566,7 +566,7 @@ type MockHTTPService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockHTTPService_Expecter) SetConfig(cfg interface{}) *MockHTTPService_SetConfig_Call {
+func (_e *MockHTTPService_Expecter) SetConfig(cfg any) *MockHTTPService_SetConfig_Call {
 	return &MockHTTPService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -606,7 +606,7 @@ type MockHTTPService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockHTTPService_Expecter) SetContext(ctx interface{}) *MockHTTPService_SetContext_Call {
+func (_e *MockHTTPService_Expecter) SetContext(ctx any) *MockHTTPService_SetContext_Call {
 	return &MockHTTPService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -646,7 +646,7 @@ type MockHTTPService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockHTTPService_Expecter) SetDB(db interface{}) *MockHTTPService_SetDB_Call {
+func (_e *MockHTTPService_Expecter) SetDB(db any) *MockHTTPService_SetDB_Call {
 	return &MockHTTPService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -686,7 +686,7 @@ type MockHTTPService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockHTTPService_Expecter) SetLogger(logger interface{}) *MockHTTPService_SetLogger_Call {
+func (_e *MockHTTPService_Expecter) SetLogger(logger any) *MockHTTPService_SetLogger_Call {
 	return &MockHTTPService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

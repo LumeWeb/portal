@@ -65,7 +65,7 @@ type MockProtocolPinHandler_CreateProtocolPin_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockProtocolPinHandler_Expecter) CreateProtocolPin(ctx interface{}, id interface{}, data interface{}) *MockProtocolPinHandler_CreateProtocolPin_Call {
+func (_e *MockProtocolPinHandler_Expecter) CreateProtocolPin(ctx any, id any, data any) *MockProtocolPinHandler_CreateProtocolPin_Call {
 	return &MockProtocolPinHandler_CreateProtocolPin_Call{Call: _e.mock.On("CreateProtocolPin", ctx, id, data)}
 }
 
@@ -127,7 +127,7 @@ type MockProtocolPinHandler_DeleteProtocolPin_Call struct {
 // DeleteProtocolPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockProtocolPinHandler_Expecter) DeleteProtocolPin(ctx interface{}, id interface{}) *MockProtocolPinHandler_DeleteProtocolPin_Call {
+func (_e *MockProtocolPinHandler_Expecter) DeleteProtocolPin(ctx any, id any) *MockProtocolPinHandler_DeleteProtocolPin_Call {
 	return &MockProtocolPinHandler_DeleteProtocolPin_Call{Call: _e.mock.On("DeleteProtocolPin", ctx, id)}
 }
 
@@ -196,7 +196,7 @@ type MockProtocolPinHandler_GetProtocolPin_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - id uint
-func (_e *MockProtocolPinHandler_Expecter) GetProtocolPin(ctx interface{}, tx interface{}, id interface{}) *MockProtocolPinHandler_GetProtocolPin_Call {
+func (_e *MockProtocolPinHandler_Expecter) GetProtocolPin(ctx any, tx any, id any) *MockProtocolPinHandler_GetProtocolPin_Call {
 	return &MockProtocolPinHandler_GetProtocolPin_Call{Call: _e.mock.On("GetProtocolPin", ctx, tx, id)}
 }
 
@@ -306,7 +306,7 @@ type MockProtocolPinHandler_QueryProtocolPin_Call struct {
 // QueryProtocolPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query any
-func (_e *MockProtocolPinHandler_Expecter) QueryProtocolPin(ctx interface{}, query interface{}) *MockProtocolPinHandler_QueryProtocolPin_Call {
+func (_e *MockProtocolPinHandler_Expecter) QueryProtocolPin(ctx any, query any) *MockProtocolPinHandler_QueryProtocolPin_Call {
 	return &MockProtocolPinHandler_QueryProtocolPin_Call{Call: _e.mock.On("QueryProtocolPin", ctx, query)}
 }
 
@@ -364,7 +364,7 @@ type MockProtocolPinHandler_UpdateProtocolPin_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockProtocolPinHandler_Expecter) UpdateProtocolPin(ctx interface{}, id interface{}, data interface{}) *MockProtocolPinHandler_UpdateProtocolPin_Call {
+func (_e *MockProtocolPinHandler_Expecter) UpdateProtocolPin(ctx any, id any, data any) *MockProtocolPinHandler_UpdateProtocolPin_Call {
 	return &MockProtocolPinHandler_UpdateProtocolPin_Call{Call: _e.mock.On("UpdateProtocolPin", ctx, id, data)}
 }
 

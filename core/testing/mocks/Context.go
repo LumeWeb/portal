@@ -70,7 +70,7 @@ type MockContext_APILogger_Call struct {
 
 // APILogger is a helper method to define mock.On call
 //   - api core.API
-func (_e *MockContext_Expecter) APILogger(api interface{}) *MockContext_APILogger_Call {
+func (_e *MockContext_Expecter) APILogger(api any) *MockContext_APILogger_Call {
 	return &MockContext_APILogger_Call{Call: _e.mock.On("APILogger", api)}
 }
 
@@ -526,7 +526,7 @@ type MockContext_Fire_Call struct {
 // Fire is a helper method to define mock.On call
 //   - eventName string
 //   - payload any
-func (_e *MockContext_Expecter) Fire(eventName interface{}, payload interface{}) *MockContext_Fire_Call {
+func (_e *MockContext_Expecter) Fire(eventName any, payload any) *MockContext_Fire_Call {
 	return &MockContext_Fire_Call{Call: _e.mock.On("Fire", eventName, payload)}
 }
 
@@ -572,7 +572,7 @@ type MockContext_FireAsync_Call struct {
 // FireAsync is a helper method to define mock.On call
 //   - eventName string
 //   - payload any
-func (_e *MockContext_Expecter) FireAsync(eventName interface{}, payload interface{}) *MockContext_FireAsync_Call {
+func (_e *MockContext_Expecter) FireAsync(eventName any, payload any) *MockContext_FireAsync_Call {
 	return &MockContext_FireAsync_Call{Call: _e.mock.On("FireAsync", eventName, payload)}
 }
 
@@ -710,7 +710,7 @@ type MockContext_MustFire_Call struct {
 // MustFire is a helper method to define mock.On call
 //   - eventName string
 //   - payload any
-func (_e *MockContext_Expecter) MustFire(eventName interface{}, payload interface{}) *MockContext_MustFire_Call {
+func (_e *MockContext_Expecter) MustFire(eventName any, payload any) *MockContext_MustFire_Call {
 	return &MockContext_MustFire_Call{Call: _e.mock.On("MustFire", eventName, payload)}
 }
 
@@ -768,7 +768,7 @@ type MockContext_NamedLogger_Call struct {
 
 // NamedLogger is a helper method to define mock.On call
 //   - name string
-func (_e *MockContext_Expecter) NamedLogger(name interface{}) *MockContext_NamedLogger_Call {
+func (_e *MockContext_Expecter) NamedLogger(name any) *MockContext_NamedLogger_Call {
 	return &MockContext_NamedLogger_Call{Call: _e.mock.On("NamedLogger", name)}
 }
 
@@ -808,7 +808,7 @@ type MockContext_OnExit_Call struct {
 
 // OnExit is a helper method to define mock.On call
 //   - f core.LifecycleFunc
-func (_e *MockContext_Expecter) OnExit(f interface{}) *MockContext_OnExit_Call {
+func (_e *MockContext_Expecter) OnExit(f any) *MockContext_OnExit_Call {
 	return &MockContext_OnExit_Call{Call: _e.mock.On("OnExit", f)}
 }
 
@@ -848,7 +848,7 @@ type MockContext_OnStartup_Call struct {
 
 // OnStartup is a helper method to define mock.On call
 //   - f core.LifecycleFunc
-func (_e *MockContext_Expecter) OnStartup(f interface{}) *MockContext_OnStartup_Call {
+func (_e *MockContext_Expecter) OnStartup(f any) *MockContext_OnStartup_Call {
 	return &MockContext_OnStartup_Call{Call: _e.mock.On("OnStartup", f)}
 }
 
@@ -901,7 +901,7 @@ type MockContext_ProtocolLogger_Call struct {
 
 // ProtocolLogger is a helper method to define mock.On call
 //   - protocol core.Protocol
-func (_e *MockContext_Expecter) ProtocolLogger(protocol interface{}) *MockContext_ProtocolLogger_Call {
+func (_e *MockContext_Expecter) ProtocolLogger(protocol any) *MockContext_ProtocolLogger_Call {
 	return &MockContext_ProtocolLogger_Call{Call: _e.mock.On("ProtocolLogger", protocol)}
 }
 
@@ -941,7 +941,7 @@ type MockContext_ReplaceLogger_Call struct {
 
 // ReplaceLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockContext_Expecter) ReplaceLogger(logger interface{}) *MockContext_ReplaceLogger_Call {
+func (_e *MockContext_Expecter) ReplaceLogger(logger any) *MockContext_ReplaceLogger_Call {
 	return &MockContext_ReplaceLogger_Call{Call: _e.mock.On("ReplaceLogger", logger)}
 }
 
@@ -1027,7 +1027,7 @@ type MockContext_Service_Call struct {
 
 // Service is a helper method to define mock.On call
 //   - id string
-func (_e *MockContext_Expecter) Service(id interface{}) *MockContext_Service_Call {
+func (_e *MockContext_Expecter) Service(id any) *MockContext_Service_Call {
 	return &MockContext_Service_Call{Call: _e.mock.On("Service", id)}
 }
 
@@ -1080,7 +1080,7 @@ type MockContext_ServiceLogger_Call struct {
 
 // ServiceLogger is a helper method to define mock.On call
 //   - service core.Service
-func (_e *MockContext_Expecter) ServiceLogger(service interface{}) *MockContext_ServiceLogger_Call {
+func (_e *MockContext_Expecter) ServiceLogger(service any) *MockContext_ServiceLogger_Call {
 	return &MockContext_ServiceLogger_Call{Call: _e.mock.On("ServiceLogger", service)}
 }
 
@@ -1120,7 +1120,7 @@ type MockContext_SetExitCode_Call struct {
 
 // SetExitCode is a helper method to define mock.On call
 //   - code int
-func (_e *MockContext_Expecter) SetExitCode(code interface{}) *MockContext_SetExitCode_Call {
+func (_e *MockContext_Expecter) SetExitCode(code any) *MockContext_SetExitCode_Call {
 	return &MockContext_SetExitCode_Call{Call: _e.mock.On("SetExitCode", code)}
 }
 
@@ -1196,11 +1196,11 @@ func (_c *MockContext_StartupFuncs_Call) RunAndReturn(run func() []func(core.Con
 // TraceMethod provides a mock function for the type MockContext
 func (_mock *MockContext) TraceMethod(name string, opts ...core.SpanOption) (context.Context, trace.Span) {
 	// core.SpanOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, name)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -1239,9 +1239,9 @@ type MockContext_TraceMethod_Call struct {
 // TraceMethod is a helper method to define mock.On call
 //   - name string
 //   - opts ...core.SpanOption
-func (_e *MockContext_Expecter) TraceMethod(name interface{}, opts ...interface{}) *MockContext_TraceMethod_Call {
+func (_e *MockContext_Expecter) TraceMethod(name any, opts ...any) *MockContext_TraceMethod_Call {
 	return &MockContext_TraceMethod_Call{Call: _e.mock.On("TraceMethod",
-		append([]interface{}{name}, opts...)...)}
+		append([]any{name}, opts...)...)}
 }
 
 func (_c *MockContext_TraceMethod_Call) Run(run func(name string, opts ...core.SpanOption)) *MockContext_TraceMethod_Call {
@@ -1302,7 +1302,7 @@ type MockContext_Value_Call struct {
 
 // Value is a helper method to define mock.On call
 //   - key any
-func (_e *MockContext_Expecter) Value(key interface{}) *MockContext_Value_Call {
+func (_e *MockContext_Expecter) Value(key any) *MockContext_Value_Call {
 	return &MockContext_Value_Call{Call: _e.mock.On("Value", key)}
 }
 
@@ -1356,7 +1356,7 @@ type MockContext_WithAPIExtensionSubcomponent_Call struct {
 // WithAPIExtensionSubcomponent is a helper method to define mock.On call
 //   - extensionName string
 //   - subcomponentName string
-func (_e *MockContext_Expecter) WithAPIExtensionSubcomponent(extensionName interface{}, subcomponentName interface{}) *MockContext_WithAPIExtensionSubcomponent_Call {
+func (_e *MockContext_Expecter) WithAPIExtensionSubcomponent(extensionName any, subcomponentName any) *MockContext_WithAPIExtensionSubcomponent_Call {
 	return &MockContext_WithAPIExtensionSubcomponent_Call{Call: _e.mock.On("WithAPIExtensionSubcomponent", extensionName, subcomponentName)}
 }
 
@@ -1414,7 +1414,7 @@ type MockContext_WithAPIExtensionTracer_Call struct {
 
 // WithAPIExtensionTracer is a helper method to define mock.On call
 //   - extensionName string
-func (_e *MockContext_Expecter) WithAPIExtensionTracer(extensionName interface{}) *MockContext_WithAPIExtensionTracer_Call {
+func (_e *MockContext_Expecter) WithAPIExtensionTracer(extensionName any) *MockContext_WithAPIExtensionTracer_Call {
 	return &MockContext_WithAPIExtensionTracer_Call{Call: _e.mock.On("WithAPIExtensionTracer", extensionName)}
 }
 
@@ -1468,7 +1468,7 @@ type MockContext_WithAPISubcomponent_Call struct {
 // WithAPISubcomponent is a helper method to define mock.On call
 //   - apiName string
 //   - subcomponentName string
-func (_e *MockContext_Expecter) WithAPISubcomponent(apiName interface{}, subcomponentName interface{}) *MockContext_WithAPISubcomponent_Call {
+func (_e *MockContext_Expecter) WithAPISubcomponent(apiName any, subcomponentName any) *MockContext_WithAPISubcomponent_Call {
 	return &MockContext_WithAPISubcomponent_Call{Call: _e.mock.On("WithAPISubcomponent", apiName, subcomponentName)}
 }
 
@@ -1526,7 +1526,7 @@ type MockContext_WithAPITracer_Call struct {
 
 // WithAPITracer is a helper method to define mock.On call
 //   - apiName string
-func (_e *MockContext_Expecter) WithAPITracer(apiName interface{}) *MockContext_WithAPITracer_Call {
+func (_e *MockContext_Expecter) WithAPITracer(apiName any) *MockContext_WithAPITracer_Call {
 	return &MockContext_WithAPITracer_Call{Call: _e.mock.On("WithAPITracer", apiName)}
 }
 
@@ -1556,11 +1556,11 @@ func (_c *MockContext_WithAPITracer_Call) RunAndReturn(run func(apiName string) 
 // WithLogger provides a mock function for the type MockContext
 func (_mock *MockContext) WithLogger(opts ...zap.Field) *core.Logger {
 	// zap.Field
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
 
@@ -1586,9 +1586,9 @@ type MockContext_WithLogger_Call struct {
 
 // WithLogger is a helper method to define mock.On call
 //   - opts ...zap.Field
-func (_e *MockContext_Expecter) WithLogger(opts ...interface{}) *MockContext_WithLogger_Call {
+func (_e *MockContext_Expecter) WithLogger(opts ...any) *MockContext_WithLogger_Call {
 	return &MockContext_WithLogger_Call{Call: _e.mock.On("WithLogger",
-		append([]interface{}{}, opts...)...)}
+		append([]any{}, opts...)...)}
 }
 
 func (_c *MockContext_WithLogger_Call) Run(run func(opts ...zap.Field)) *MockContext_WithLogger_Call {
@@ -1621,11 +1621,11 @@ func (_c *MockContext_WithLogger_Call) RunAndReturn(run func(opts ...zap.Field) 
 // WithLoggerLazy provides a mock function for the type MockContext
 func (_mock *MockContext) WithLoggerLazy(opts ...zap.Field) *core.Logger {
 	// zap.Field
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
 
@@ -1651,9 +1651,9 @@ type MockContext_WithLoggerLazy_Call struct {
 
 // WithLoggerLazy is a helper method to define mock.On call
 //   - opts ...zap.Field
-func (_e *MockContext_Expecter) WithLoggerLazy(opts ...interface{}) *MockContext_WithLoggerLazy_Call {
+func (_e *MockContext_Expecter) WithLoggerLazy(opts ...any) *MockContext_WithLoggerLazy_Call {
 	return &MockContext_WithLoggerLazy_Call{Call: _e.mock.On("WithLoggerLazy",
-		append([]interface{}{}, opts...)...)}
+		append([]any{}, opts...)...)}
 }
 
 func (_c *MockContext_WithLoggerLazy_Call) Run(run func(opts ...zap.Field)) *MockContext_WithLoggerLazy_Call {
@@ -1686,11 +1686,11 @@ func (_c *MockContext_WithLoggerLazy_Call) RunAndReturn(run func(opts ...zap.Fie
 // WithLoggerOptions provides a mock function for the type MockContext
 func (_mock *MockContext) WithLoggerOptions(opts ...zap.Option) *core.Logger {
 	// zap.Option
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
 
@@ -1716,9 +1716,9 @@ type MockContext_WithLoggerOptions_Call struct {
 
 // WithLoggerOptions is a helper method to define mock.On call
 //   - opts ...zap.Option
-func (_e *MockContext_Expecter) WithLoggerOptions(opts ...interface{}) *MockContext_WithLoggerOptions_Call {
+func (_e *MockContext_Expecter) WithLoggerOptions(opts ...any) *MockContext_WithLoggerOptions_Call {
 	return &MockContext_WithLoggerOptions_Call{Call: _e.mock.On("WithLoggerOptions",
-		append([]interface{}{}, opts...)...)}
+		append([]any{}, opts...)...)}
 }
 
 func (_c *MockContext_WithLoggerOptions_Call) Run(run func(opts ...zap.Option)) *MockContext_WithLoggerOptions_Call {
@@ -1775,7 +1775,7 @@ type MockContext_WithProtocolSubcomponent_Call struct {
 // WithProtocolSubcomponent is a helper method to define mock.On call
 //   - protocolName string
 //   - subcomponentName string
-func (_e *MockContext_Expecter) WithProtocolSubcomponent(protocolName interface{}, subcomponentName interface{}) *MockContext_WithProtocolSubcomponent_Call {
+func (_e *MockContext_Expecter) WithProtocolSubcomponent(protocolName any, subcomponentName any) *MockContext_WithProtocolSubcomponent_Call {
 	return &MockContext_WithProtocolSubcomponent_Call{Call: _e.mock.On("WithProtocolSubcomponent", protocolName, subcomponentName)}
 }
 
@@ -1833,7 +1833,7 @@ type MockContext_WithProtocolTracer_Call struct {
 
 // WithProtocolTracer is a helper method to define mock.On call
 //   - protocolName string
-func (_e *MockContext_Expecter) WithProtocolTracer(protocolName interface{}) *MockContext_WithProtocolTracer_Call {
+func (_e *MockContext_Expecter) WithProtocolTracer(protocolName any) *MockContext_WithProtocolTracer_Call {
 	return &MockContext_WithProtocolTracer_Call{Call: _e.mock.On("WithProtocolTracer", protocolName)}
 }
 
@@ -1886,7 +1886,7 @@ type MockContext_WithRequestContext_Call struct {
 
 // WithRequestContext is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockContext_Expecter) WithRequestContext(ctx interface{}) *MockContext_WithRequestContext_Call {
+func (_e *MockContext_Expecter) WithRequestContext(ctx any) *MockContext_WithRequestContext_Call {
 	return &MockContext_WithRequestContext_Call{Call: _e.mock.On("WithRequestContext", ctx)}
 }
 
@@ -1940,7 +1940,7 @@ type MockContext_WithServiceSubcomponent_Call struct {
 // WithServiceSubcomponent is a helper method to define mock.On call
 //   - serviceName string
 //   - subcomponentName string
-func (_e *MockContext_Expecter) WithServiceSubcomponent(serviceName interface{}, subcomponentName interface{}) *MockContext_WithServiceSubcomponent_Call {
+func (_e *MockContext_Expecter) WithServiceSubcomponent(serviceName any, subcomponentName any) *MockContext_WithServiceSubcomponent_Call {
 	return &MockContext_WithServiceSubcomponent_Call{Call: _e.mock.On("WithServiceSubcomponent", serviceName, subcomponentName)}
 }
 
@@ -1998,7 +1998,7 @@ type MockContext_WithServiceTracer_Call struct {
 
 // WithServiceTracer is a helper method to define mock.On call
 //   - serviceName string
-func (_e *MockContext_Expecter) WithServiceTracer(serviceName interface{}) *MockContext_WithServiceTracer_Call {
+func (_e *MockContext_Expecter) WithServiceTracer(serviceName any) *MockContext_WithServiceTracer_Call {
 	return &MockContext_WithServiceTracer_Call{Call: _e.mock.On("WithServiceTracer", serviceName)}
 }
 
@@ -2052,7 +2052,7 @@ type MockContext_WithTracer_Call struct {
 // WithTracer is a helper method to define mock.On call
 //   - service string
 //   - subsystem string
-func (_e *MockContext_Expecter) WithTracer(service interface{}, subsystem interface{}) *MockContext_WithTracer_Call {
+func (_e *MockContext_Expecter) WithTracer(service any, subsystem any) *MockContext_WithTracer_Call {
 	return &MockContext_WithTracer_Call{Call: _e.mock.On("WithTracer", service, subsystem)}
 }
 
@@ -2110,7 +2110,7 @@ type MockContext_WithTracerService_Call struct {
 
 // WithTracerService is a helper method to define mock.On call
 //   - service string
-func (_e *MockContext_Expecter) WithTracerService(service interface{}) *MockContext_WithTracerService_Call {
+func (_e *MockContext_Expecter) WithTracerService(service any) *MockContext_WithTracerService_Call {
 	return &MockContext_WithTracerService_Call{Call: _e.mock.On("WithTracerService", service)}
 }
 
@@ -2163,7 +2163,7 @@ type MockContext_WithTracerSubsystem_Call struct {
 
 // WithTracerSubsystem is a helper method to define mock.On call
 //   - subsystem string
-func (_e *MockContext_Expecter) WithTracerSubsystem(subsystem interface{}) *MockContext_WithTracerSubsystem_Call {
+func (_e *MockContext_Expecter) WithTracerSubsystem(subsystem any) *MockContext_WithTracerSubsystem_Call {
 	return &MockContext_WithTracerSubsystem_Call{Call: _e.mock.On("WithTracerSubsystem", subsystem)}
 }
 

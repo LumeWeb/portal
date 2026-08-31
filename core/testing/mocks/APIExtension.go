@@ -110,7 +110,7 @@ type MockAPIExtension_Configure_Call struct {
 // Configure is a helper method to define mock.On call
 //   - router1 router.Router
 //   - accessSvc core.AccessService
-func (_e *MockAPIExtension_Expecter) Configure(router1 interface{}, accessSvc interface{}) *MockAPIExtension_Configure_Call {
+func (_e *MockAPIExtension_Expecter) Configure(router1 any, accessSvc any) *MockAPIExtension_Configure_Call {
 	return &MockAPIExtension_Configure_Call{Call: _e.mock.On("Configure", router1, accessSvc)}
 }
 
@@ -337,7 +337,7 @@ type MockAPIExtension_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockAPIExtension_Expecter) SetConfig(cfg interface{}) *MockAPIExtension_SetConfig_Call {
+func (_e *MockAPIExtension_Expecter) SetConfig(cfg any) *MockAPIExtension_SetConfig_Call {
 	return &MockAPIExtension_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -377,7 +377,7 @@ type MockAPIExtension_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockAPIExtension_Expecter) SetContext(ctx interface{}) *MockAPIExtension_SetContext_Call {
+func (_e *MockAPIExtension_Expecter) SetContext(ctx any) *MockAPIExtension_SetContext_Call {
 	return &MockAPIExtension_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -417,7 +417,7 @@ type MockAPIExtension_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockAPIExtension_Expecter) SetDB(db interface{}) *MockAPIExtension_SetDB_Call {
+func (_e *MockAPIExtension_Expecter) SetDB(db any) *MockAPIExtension_SetDB_Call {
 	return &MockAPIExtension_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -457,7 +457,7 @@ type MockAPIExtension_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockAPIExtension_Expecter) SetLogger(logger interface{}) *MockAPIExtension_SetLogger_Call {
+func (_e *MockAPIExtension_Expecter) SetLogger(logger any) *MockAPIExtension_SetLogger_Call {
 	return &MockAPIExtension_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

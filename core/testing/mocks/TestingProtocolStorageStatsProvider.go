@@ -461,7 +461,7 @@ type MockTestingProtocolStorageStatsProvider_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolStorageStatsProvider_SetConfig_Call {
+func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetConfig(cfg any) *MockTestingProtocolStorageStatsProvider_SetConfig_Call {
 	return &MockTestingProtocolStorageStatsProvider_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -501,7 +501,7 @@ type MockTestingProtocolStorageStatsProvider_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetContext(ctx interface{}) *MockTestingProtocolStorageStatsProvider_SetContext_Call {
+func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetContext(ctx any) *MockTestingProtocolStorageStatsProvider_SetContext_Call {
 	return &MockTestingProtocolStorageStatsProvider_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -541,7 +541,7 @@ type MockTestingProtocolStorageStatsProvider_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetDB(db interface{}) *MockTestingProtocolStorageStatsProvider_SetDB_Call {
+func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetDB(db any) *MockTestingProtocolStorageStatsProvider_SetDB_Call {
 	return &MockTestingProtocolStorageStatsProvider_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -581,7 +581,7 @@ type MockTestingProtocolStorageStatsProvider_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetLogger(logger interface{}) *MockTestingProtocolStorageStatsProvider_SetLogger_Call {
+func (_e *MockTestingProtocolStorageStatsProvider_Expecter) SetLogger(logger any) *MockTestingProtocolStorageStatsProvider_SetLogger_Call {
 	return &MockTestingProtocolStorageStatsProvider_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -643,7 +643,7 @@ type MockTestingProtocolStorageStatsProvider_StorageStats_Call struct {
 
 // StorageStats is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockTestingProtocolStorageStatsProvider_Expecter) StorageStats(ctx interface{}) *MockTestingProtocolStorageStatsProvider_StorageStats_Call {
+func (_e *MockTestingProtocolStorageStatsProvider_Expecter) StorageStats(ctx any) *MockTestingProtocolStorageStatsProvider_StorageStats_Call {
 	return &MockTestingProtocolStorageStatsProvider_StorageStats_Call{Call: _e.mock.On("StorageStats", ctx)}
 }
 

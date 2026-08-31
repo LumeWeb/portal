@@ -84,7 +84,7 @@ type MockCronJobStateMachineRegistry_GetOrCreate_Call struct {
 // GetOrCreate is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachineRegistry_Expecter) GetOrCreate(ctx interface{}, jobID interface{}) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
+func (_e *MockCronJobStateMachineRegistry_Expecter) GetOrCreate(ctx any, jobID any) *MockCronJobStateMachineRegistry_GetOrCreate_Call {
 	return &MockCronJobStateMachineRegistry_GetOrCreate_Call{Call: _e.mock.On("GetOrCreate", ctx, jobID)}
 }
 
@@ -130,7 +130,7 @@ type MockCronJobStateMachineRegistry_Remove_Call struct {
 // Remove is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachineRegistry_Expecter) Remove(ctx interface{}, jobID interface{}) *MockCronJobStateMachineRegistry_Remove_Call {
+func (_e *MockCronJobStateMachineRegistry_Expecter) Remove(ctx any, jobID any) *MockCronJobStateMachineRegistry_Remove_Call {
 	return &MockCronJobStateMachineRegistry_Remove_Call{Call: _e.mock.On("Remove", ctx, jobID)}
 }
 

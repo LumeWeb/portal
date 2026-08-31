@@ -72,7 +72,7 @@ type MockHashFactory_GetHasher_Call struct {
 
 // GetHasher is a helper method to define mock.On call
 //   - code uint64
-func (_e *MockHashFactory_Expecter) GetHasher(code interface{}) *MockHashFactory_GetHasher_Call {
+func (_e *MockHashFactory_Expecter) GetHasher(code any) *MockHashFactory_GetHasher_Call {
 	return &MockHashFactory_GetHasher_Call{Call: _e.mock.On("GetHasher", code)}
 }
 
@@ -135,7 +135,7 @@ type MockHashFactory_GetVariableHasher_Call struct {
 // GetVariableHasher is a helper method to define mock.On call
 //   - code uint64
 //   - sizeHint int
-func (_e *MockHashFactory_Expecter) GetVariableHasher(code interface{}, sizeHint interface{}) *MockHashFactory_GetVariableHasher_Call {
+func (_e *MockHashFactory_Expecter) GetVariableHasher(code any, sizeHint any) *MockHashFactory_GetVariableHasher_Call {
 	return &MockHashFactory_GetVariableHasher_Call{Call: _e.mock.On("GetVariableHasher", code, sizeHint)}
 }
 

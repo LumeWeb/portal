@@ -296,7 +296,7 @@ type MockPasswordResetService_ResetPassword_Call struct {
 //   - email string
 //   - token string
 //   - password string
-func (_e *MockPasswordResetService_Expecter) ResetPassword(ctx interface{}, email interface{}, token interface{}, password interface{}) *MockPasswordResetService_ResetPassword_Call {
+func (_e *MockPasswordResetService_Expecter) ResetPassword(ctx any, email any, token any, password any) *MockPasswordResetService_ResetPassword_Call {
 	return &MockPasswordResetService_ResetPassword_Call{Call: _e.mock.On("ResetPassword", ctx, email, token, password)}
 }
 
@@ -363,7 +363,7 @@ type MockPasswordResetService_SendPasswordReset_Call struct {
 // SendPasswordReset is a helper method to define mock.On call
 //   - ctx context.Context
 //   - user *models.User
-func (_e *MockPasswordResetService_Expecter) SendPasswordReset(ctx interface{}, user interface{}) *MockPasswordResetService_SendPasswordReset_Call {
+func (_e *MockPasswordResetService_Expecter) SendPasswordReset(ctx any, user any) *MockPasswordResetService_SendPasswordReset_Call {
 	return &MockPasswordResetService_SendPasswordReset_Call{Call: _e.mock.On("SendPasswordReset", ctx, user)}
 }
 
@@ -408,7 +408,7 @@ type MockPasswordResetService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockPasswordResetService_Expecter) SetConfig(cfg interface{}) *MockPasswordResetService_SetConfig_Call {
+func (_e *MockPasswordResetService_Expecter) SetConfig(cfg any) *MockPasswordResetService_SetConfig_Call {
 	return &MockPasswordResetService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -448,7 +448,7 @@ type MockPasswordResetService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockPasswordResetService_Expecter) SetContext(ctx interface{}) *MockPasswordResetService_SetContext_Call {
+func (_e *MockPasswordResetService_Expecter) SetContext(ctx any) *MockPasswordResetService_SetContext_Call {
 	return &MockPasswordResetService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -488,7 +488,7 @@ type MockPasswordResetService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockPasswordResetService_Expecter) SetDB(db interface{}) *MockPasswordResetService_SetDB_Call {
+func (_e *MockPasswordResetService_Expecter) SetDB(db any) *MockPasswordResetService_SetDB_Call {
 	return &MockPasswordResetService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -528,7 +528,7 @@ type MockPasswordResetService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockPasswordResetService_Expecter) SetLogger(logger interface{}) *MockPasswordResetService_SetLogger_Call {
+func (_e *MockPasswordResetService_Expecter) SetLogger(logger any) *MockPasswordResetService_SetLogger_Call {
 	return &MockPasswordResetService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

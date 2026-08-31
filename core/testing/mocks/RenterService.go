@@ -158,7 +158,7 @@ type MockRenterService_CreateBucketIfNotExists_Call struct {
 
 // CreateBucketIfNotExists is a helper method to define mock.On call
 //   - bucket string
-func (_e *MockRenterService_Expecter) CreateBucketIfNotExists(bucket interface{}) *MockRenterService_CreateBucketIfNotExists_Call {
+func (_e *MockRenterService_Expecter) CreateBucketIfNotExists(bucket any) *MockRenterService_CreateBucketIfNotExists_Call {
 	return &MockRenterService_CreateBucketIfNotExists_Call{Call: _e.mock.On("CreateBucketIfNotExists", bucket)}
 }
 
@@ -257,7 +257,7 @@ type MockRenterService_DeleteObject_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) DeleteObject(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_DeleteObject_Call {
+func (_e *MockRenterService_Expecter) DeleteObject(ctx any, bucket any, fileName any) *MockRenterService_DeleteObject_Call {
 	return &MockRenterService_DeleteObject_Call{Call: _e.mock.On("DeleteObject", ctx, bucket, fileName)}
 }
 
@@ -320,7 +320,7 @@ type MockRenterService_DeleteObjectMetadata_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) DeleteObjectMetadata(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_DeleteObjectMetadata_Call {
+func (_e *MockRenterService_Expecter) DeleteObjectMetadata(ctx any, bucket any, fileName any) *MockRenterService_DeleteObjectMetadata_Call {
 	return &MockRenterService_DeleteObjectMetadata_Call{Call: _e.mock.On("DeleteObjectMetadata", ctx, bucket, fileName)}
 }
 
@@ -395,7 +395,7 @@ type MockRenterService_GetObject_Call struct {
 //   - bucket string
 //   - fileName string
 //   - options core.DownloadOptions
-func (_e *MockRenterService_Expecter) GetObject(ctx interface{}, bucket interface{}, fileName interface{}, options interface{}) *MockRenterService_GetObject_Call {
+func (_e *MockRenterService_Expecter) GetObject(ctx any, bucket any, fileName any, options any) *MockRenterService_GetObject_Call {
 	return &MockRenterService_GetObject_Call{Call: _e.mock.On("GetObject", ctx, bucket, fileName, options)}
 }
 
@@ -474,7 +474,7 @@ type MockRenterService_GetObjectMetadata_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) GetObjectMetadata(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_GetObjectMetadata_Call {
+func (_e *MockRenterService_Expecter) GetObjectMetadata(ctx any, bucket any, fileName any) *MockRenterService_GetObjectMetadata_Call {
 	return &MockRenterService_GetObjectMetadata_Call{Call: _e.mock.On("GetObjectMetadata", ctx, bucket, fileName)}
 }
 
@@ -614,7 +614,7 @@ type MockRenterService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockRenterService_Expecter) SetConfig(cfg interface{}) *MockRenterService_SetConfig_Call {
+func (_e *MockRenterService_Expecter) SetConfig(cfg any) *MockRenterService_SetConfig_Call {
 	return &MockRenterService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -654,7 +654,7 @@ type MockRenterService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockRenterService_Expecter) SetContext(ctx interface{}) *MockRenterService_SetContext_Call {
+func (_e *MockRenterService_Expecter) SetContext(ctx any) *MockRenterService_SetContext_Call {
 	return &MockRenterService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -694,7 +694,7 @@ type MockRenterService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockRenterService_Expecter) SetDB(db interface{}) *MockRenterService_SetDB_Call {
+func (_e *MockRenterService_Expecter) SetDB(db any) *MockRenterService_SetDB_Call {
 	return &MockRenterService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -734,7 +734,7 @@ type MockRenterService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockRenterService_Expecter) SetLogger(logger interface{}) *MockRenterService_SetLogger_Call {
+func (_e *MockRenterService_Expecter) SetLogger(logger any) *MockRenterService_SetLogger_Call {
 	return &MockRenterService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -806,7 +806,7 @@ type MockRenterService_SharedObject_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) SharedObject(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_SharedObject_Call {
+func (_e *MockRenterService_Expecter) SharedObject(ctx any, bucket any, fileName any) *MockRenterService_SharedObject_Call {
 	return &MockRenterService_SharedObject_Call{Call: _e.mock.On("SharedObject", ctx, bucket, fileName)}
 }
 
@@ -876,7 +876,7 @@ type MockRenterService_SlabSize_Call struct {
 
 // SlabSize is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockRenterService_Expecter) SlabSize(ctx interface{}) *MockRenterService_SlabSize_Call {
+func (_e *MockRenterService_Expecter) SlabSize(ctx any) *MockRenterService_SlabSize_Call {
 	return &MockRenterService_SlabSize_Call{Call: _e.mock.On("SlabSize", ctx)}
 }
 
@@ -946,7 +946,7 @@ type MockRenterService_UploadExists_Call struct {
 //   - ctx context.Context
 //   - bucket string
 //   - fileName string
-func (_e *MockRenterService_Expecter) UploadExists(ctx interface{}, bucket interface{}, fileName interface{}) *MockRenterService_UploadExists_Call {
+func (_e *MockRenterService_Expecter) UploadExists(ctx any, bucket any, fileName any) *MockRenterService_UploadExists_Call {
 	return &MockRenterService_UploadExists_Call{Call: _e.mock.On("UploadExists", ctx, bucket, fileName)}
 }
 
@@ -1011,7 +1011,7 @@ type MockRenterService_UploadObject_Call struct {
 //   - bucket string
 //   - fileName string
 //   - hash []byte
-func (_e *MockRenterService_Expecter) UploadObject(ctx interface{}, file interface{}, bucket interface{}, fileName interface{}, hash interface{}) *MockRenterService_UploadObject_Call {
+func (_e *MockRenterService_Expecter) UploadObject(ctx any, file any, bucket any, fileName any, hash any) *MockRenterService_UploadObject_Call {
 	return &MockRenterService_UploadObject_Call{Call: _e.mock.On("UploadObject", ctx, file, bucket, fileName, hash)}
 }
 
@@ -1083,7 +1083,7 @@ type MockRenterService_UploadObjectMultipart_Call struct {
 // UploadObjectMultipart is a helper method to define mock.On call
 //   - ctx context.Context
 //   - params *core.MultipartUploadParams
-func (_e *MockRenterService_Expecter) UploadObjectMultipart(ctx interface{}, params interface{}) *MockRenterService_UploadObjectMultipart_Call {
+func (_e *MockRenterService_Expecter) UploadObjectMultipart(ctx any, params any) *MockRenterService_UploadObjectMultipart_Call {
 	return &MockRenterService_UploadObjectMultipart_Call{Call: _e.mock.On("UploadObjectMultipart", ctx, params)}
 }
 

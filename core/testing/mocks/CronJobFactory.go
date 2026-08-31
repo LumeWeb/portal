@@ -74,7 +74,7 @@ type MockCronJobFactory_CreateJob_Call struct {
 // CreateJob is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobType string
-func (_e *MockCronJobFactory_Expecter) CreateJob(ctx interface{}, jobType interface{}) *MockCronJobFactory_CreateJob_Call {
+func (_e *MockCronJobFactory_Expecter) CreateJob(ctx any, jobType any) *MockCronJobFactory_CreateJob_Call {
 	return &MockCronJobFactory_CreateJob_Call{Call: _e.mock.On("CreateJob", ctx, jobType)}
 }
 
@@ -142,7 +142,7 @@ type MockCronJobFactory_GetDefaultSchedule_Call struct {
 // GetDefaultSchedule is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobType string
-func (_e *MockCronJobFactory_Expecter) GetDefaultSchedule(ctx interface{}, jobType interface{}) *MockCronJobFactory_GetDefaultSchedule_Call {
+func (_e *MockCronJobFactory_Expecter) GetDefaultSchedule(ctx any, jobType any) *MockCronJobFactory_GetDefaultSchedule_Call {
 	return &MockCronJobFactory_GetDefaultSchedule_Call{Call: _e.mock.On("GetDefaultSchedule", ctx, jobType)}
 }
 
@@ -201,7 +201,7 @@ type MockCronJobFactory_RegisterFactory_Call struct {
 //   - jobType string
 //   - factory core.CronJobFactoryFunc
 //   - defaultSchedule *core.CronScheduleDefinition
-func (_e *MockCronJobFactory_Expecter) RegisterFactory(ctx interface{}, jobType interface{}, factory interface{}, defaultSchedule interface{}) *MockCronJobFactory_RegisterFactory_Call {
+func (_e *MockCronJobFactory_Expecter) RegisterFactory(ctx any, jobType any, factory any, defaultSchedule any) *MockCronJobFactory_RegisterFactory_Call {
 	return &MockCronJobFactory_RegisterFactory_Call{Call: _e.mock.On("RegisterFactory", ctx, jobType, factory, defaultSchedule)}
 }
 

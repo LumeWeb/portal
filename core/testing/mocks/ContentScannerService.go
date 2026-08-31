@@ -214,7 +214,7 @@ type MockContentScannerService_GetScanResultById_Call struct {
 // GetScanResultById is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockContentScannerService_Expecter) GetScanResultById(ctx interface{}, id interface{}) *MockContentScannerService_GetScanResultById_Call {
+func (_e *MockContentScannerService_Expecter) GetScanResultById(ctx any, id any) *MockContentScannerService_GetScanResultById_Call {
 	return &MockContentScannerService_GetScanResultById_Call{Call: _e.mock.On("GetScanResultById", ctx, id)}
 }
 
@@ -282,7 +282,7 @@ type MockContentScannerService_GetScanResults_Call struct {
 // GetScanResults is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockContentScannerService_Expecter) GetScanResults(ctx interface{}, hash interface{}) *MockContentScannerService_GetScanResults_Call {
+func (_e *MockContentScannerService_Expecter) GetScanResults(ctx any, hash any) *MockContentScannerService_GetScanResults_Call {
 	return &MockContentScannerService_GetScanResults_Call{Call: _e.mock.On("GetScanResults", ctx, hash)}
 }
 
@@ -428,7 +428,7 @@ type MockContentScannerService_RegisterScanner_Call struct {
 
 // RegisterScanner is a helper method to define mock.On call
 //   - scanner core.ContentScanner
-func (_e *MockContentScannerService_Expecter) RegisterScanner(scanner interface{}) *MockContentScannerService_RegisterScanner_Call {
+func (_e *MockContentScannerService_Expecter) RegisterScanner(scanner any) *MockContentScannerService_RegisterScanner_Call {
 	return &MockContentScannerService_RegisterScanner_Call{Call: _e.mock.On("RegisterScanner", scanner)}
 }
 
@@ -537,7 +537,7 @@ type MockContentScannerService_ScanContent_Call struct {
 // ScanContent is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockContentScannerService_Expecter) ScanContent(ctx interface{}, hash interface{}) *MockContentScannerService_ScanContent_Call {
+func (_e *MockContentScannerService_Expecter) ScanContent(ctx any, hash any) *MockContentScannerService_ScanContent_Call {
 	return &MockContentScannerService_ScanContent_Call{Call: _e.mock.On("ScanContent", ctx, hash)}
 }
 
@@ -582,7 +582,7 @@ type MockContentScannerService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockContentScannerService_Expecter) SetConfig(cfg interface{}) *MockContentScannerService_SetConfig_Call {
+func (_e *MockContentScannerService_Expecter) SetConfig(cfg any) *MockContentScannerService_SetConfig_Call {
 	return &MockContentScannerService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -622,7 +622,7 @@ type MockContentScannerService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockContentScannerService_Expecter) SetContext(ctx interface{}) *MockContentScannerService_SetContext_Call {
+func (_e *MockContentScannerService_Expecter) SetContext(ctx any) *MockContentScannerService_SetContext_Call {
 	return &MockContentScannerService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -662,7 +662,7 @@ type MockContentScannerService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockContentScannerService_Expecter) SetDB(db interface{}) *MockContentScannerService_SetDB_Call {
+func (_e *MockContentScannerService_Expecter) SetDB(db any) *MockContentScannerService_SetDB_Call {
 	return &MockContentScannerService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -702,7 +702,7 @@ type MockContentScannerService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockContentScannerService_Expecter) SetLogger(logger interface{}) *MockContentScannerService_SetLogger_Call {
+func (_e *MockContentScannerService_Expecter) SetLogger(logger any) *MockContentScannerService_SetLogger_Call {
 	return &MockContentScannerService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 

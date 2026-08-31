@@ -66,7 +66,7 @@ type MockCronJobStateMachine_IsValidTransition_Call struct {
 //   - ctx context.Context
 //   - current models.CronJobState
 //   - new models.CronJobState
-func (_e *MockCronJobStateMachine_Expecter) IsValidTransition(ctx interface{}, current interface{}, new interface{}) *MockCronJobStateMachine_IsValidTransition_Call {
+func (_e *MockCronJobStateMachine_Expecter) IsValidTransition(ctx any, current any, new any) *MockCronJobStateMachine_IsValidTransition_Call {
 	return &MockCronJobStateMachine_IsValidTransition_Call{Call: _e.mock.On("IsValidTransition", ctx, current, new)}
 }
 
@@ -117,7 +117,7 @@ type MockCronJobStateMachine_RemoveStateMachine_Call struct {
 // RemoveStateMachine is a helper method to define mock.On call
 //   - ctx context.Context
 //   - jobID uuid.UUID
-func (_e *MockCronJobStateMachine_Expecter) RemoveStateMachine(ctx interface{}, jobID interface{}) *MockCronJobStateMachine_RemoveStateMachine_Call {
+func (_e *MockCronJobStateMachine_Expecter) RemoveStateMachine(ctx any, jobID any) *MockCronJobStateMachine_RemoveStateMachine_Call {
 	return &MockCronJobStateMachine_RemoveStateMachine_Call{Call: _e.mock.On("RemoveStateMachine", ctx, jobID)}
 }
 
@@ -152,11 +152,11 @@ func (_c *MockCronJobStateMachine_RemoveStateMachine_Call) RunAndReturn(run func
 // Transition provides a mock function for the type MockCronJobStateMachine
 func (_mock *MockCronJobStateMachine) Transition(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...core.CronStateOption) error {
 	// core.CronStateOption
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, jobID, newState)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -184,9 +184,9 @@ type MockCronJobStateMachine_Transition_Call struct {
 //   - jobID uuid.UUID
 //   - newState models.CronJobState
 //   - opts ...core.CronStateOption
-func (_e *MockCronJobStateMachine_Expecter) Transition(ctx interface{}, jobID interface{}, newState interface{}, opts ...interface{}) *MockCronJobStateMachine_Transition_Call {
+func (_e *MockCronJobStateMachine_Expecter) Transition(ctx any, jobID any, newState any, opts ...any) *MockCronJobStateMachine_Transition_Call {
 	return &MockCronJobStateMachine_Transition_Call{Call: _e.mock.On("Transition",
-		append([]interface{}{ctx, jobID, newState}, opts...)...)}
+		append([]any{ctx, jobID, newState}, opts...)...)}
 }
 
 func (_c *MockCronJobStateMachine_Transition_Call) Run(run func(ctx context.Context, jobID uuid.UUID, newState models.CronJobState, opts ...core.CronStateOption)) *MockCronJobStateMachine_Transition_Call {

@@ -63,7 +63,7 @@ type MockPluginMetaBuilder_AddBuildInfo_Call struct {
 
 // AddBuildInfo is a helper method to define mock.On call
 //   - buildInfo build.Info
-func (_e *MockPluginMetaBuilder_Expecter) AddBuildInfo(buildInfo interface{}) *MockPluginMetaBuilder_AddBuildInfo_Call {
+func (_e *MockPluginMetaBuilder_Expecter) AddBuildInfo(buildInfo any) *MockPluginMetaBuilder_AddBuildInfo_Call {
 	return &MockPluginMetaBuilder_AddBuildInfo_Call{Call: _e.mock.On("AddBuildInfo", buildInfo)}
 }
 
@@ -117,7 +117,7 @@ type MockPluginMetaBuilder_AddMeta_Call struct {
 // AddMeta is a helper method to define mock.On call
 //   - key string
 //   - value any
-func (_e *MockPluginMetaBuilder_Expecter) AddMeta(key interface{}, value interface{}) *MockPluginMetaBuilder_AddMeta_Call {
+func (_e *MockPluginMetaBuilder_Expecter) AddMeta(key any, value any) *MockPluginMetaBuilder_AddMeta_Call {
 	return &MockPluginMetaBuilder_AddMeta_Call{Call: _e.mock.On("AddMeta", key, value)}
 }
 
@@ -175,7 +175,7 @@ type MockPluginMetaBuilder_AddWebBundle_Call struct {
 
 // AddWebBundle is a helper method to define mock.On call
 //   - bundleURI string
-func (_e *MockPluginMetaBuilder_Expecter) AddWebBundle(bundleURI interface{}) *MockPluginMetaBuilder_AddWebBundle_Call {
+func (_e *MockPluginMetaBuilder_Expecter) AddWebBundle(bundleURI any) *MockPluginMetaBuilder_AddWebBundle_Call {
 	return &MockPluginMetaBuilder_AddWebBundle_Call{Call: _e.mock.On("AddWebBundle", bundleURI)}
 }
 

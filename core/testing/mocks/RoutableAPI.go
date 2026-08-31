@@ -62,7 +62,7 @@ type MockRoutableAPI_Can_Call struct {
 // Can is a helper method to define mock.On call
 //   - w http.ResponseWriter
 //   - r *http.Request
-func (_e *MockRoutableAPI_Expecter) Can(w interface{}, r interface{}) *MockRoutableAPI_Can_Call {
+func (_e *MockRoutableAPI_Expecter) Can(w any, r any) *MockRoutableAPI_Can_Call {
 	return &MockRoutableAPI_Can_Call{Call: _e.mock.On("Can", w, r)}
 }
 
@@ -108,7 +108,7 @@ type MockRoutableAPI_Handle_Call struct {
 // Handle is a helper method to define mock.On call
 //   - w http.ResponseWriter
 //   - r *http.Request
-func (_e *MockRoutableAPI_Expecter) Handle(w interface{}, r interface{}) *MockRoutableAPI_Handle_Call {
+func (_e *MockRoutableAPI_Expecter) Handle(w any, r any) *MockRoutableAPI_Handle_Call {
 	return &MockRoutableAPI_Handle_Call{Call: _e.mock.On("Handle", w, r)}
 }
 

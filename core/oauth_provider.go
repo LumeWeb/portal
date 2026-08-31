@@ -61,6 +61,13 @@ type OAuthProviderService interface {
 	// associated user_id and expiry if valid.
 	ValidateAccessToken(ctx context.Context, token string) (userID uint, expiry time.Time, ok bool)
 
+	// ValidateAccessTokenInfo checks whether a bearer token is known and
+	// unexpired, and returns the full validated record. The oauth.ValidatedToken
+	// exposes the RFC 8707 bound resource and the granted scope so a resource
+	// server (e.g. an MCP plugin) can enforce audience binding and scope
+	// requirements, not merely token liveness.
+	ValidateAccessTokenInfo(ctx context.Context, token string) (oauth.ValidatedToken, bool)
+
 	// RevokeToken revokes an access token or an entire refresh token chain
 	// (RFC 7009 §2.1).
 	RevokeToken(ctx context.Context, token string) error

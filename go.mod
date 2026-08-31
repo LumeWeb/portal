@@ -84,7 +84,7 @@ require (
 	gorm.io/plugin/opentelemetry v0.1.16
 )
 
-require go.lumeweb.com/oauth v0.1.2
+require go.lumeweb.com/oauth v0.1.3
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0 // indirect

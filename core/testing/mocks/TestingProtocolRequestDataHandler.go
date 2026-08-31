@@ -65,7 +65,7 @@ type MockTestingProtocolRequestDataHandler_CompleteProtocolData_Call struct {
 // CompleteProtocolData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) CompleteProtocolData(ctx interface{}, id interface{}) *MockTestingProtocolRequestDataHandler_CompleteProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) CompleteProtocolData(ctx any, id any) *MockTestingProtocolRequestDataHandler_CompleteProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_CompleteProtocolData_Call{Call: _e.mock.On("CompleteProtocolData", ctx, id)}
 }
 
@@ -215,7 +215,7 @@ type MockTestingProtocolRequestDataHandler_CreateProtocolData_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) CreateProtocolData(ctx interface{}, id interface{}, data interface{}) *MockTestingProtocolRequestDataHandler_CreateProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) CreateProtocolData(ctx any, id any, data any) *MockTestingProtocolRequestDataHandler_CreateProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_CreateProtocolData_Call{Call: _e.mock.On("CreateProtocolData", ctx, id, data)}
 }
 
@@ -323,7 +323,7 @@ type MockTestingProtocolRequestDataHandler_DeleteProtocolData_Call struct {
 // DeleteProtocolData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) DeleteProtocolData(ctx interface{}, id interface{}) *MockTestingProtocolRequestDataHandler_DeleteProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) DeleteProtocolData(ctx any, id any) *MockTestingProtocolRequestDataHandler_DeleteProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_DeleteProtocolData_Call{Call: _e.mock.On("DeleteProtocolData", ctx, id)}
 }
 
@@ -482,7 +482,7 @@ type MockTestingProtocolRequestDataHandler_GetProtocolData_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - id uint
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) GetProtocolData(ctx interface{}, tx interface{}, id interface{}) *MockTestingProtocolRequestDataHandler_GetProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) GetProtocolData(ctx any, tx any, id any) *MockTestingProtocolRequestDataHandler_GetProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_GetProtocolData_Call{Call: _e.mock.On("GetProtocolData", ctx, tx, id)}
 }
 
@@ -773,7 +773,7 @@ type MockTestingProtocolRequestDataHandler_QueryProtocolData_Call struct {
 //   - ctx context.Context
 //   - tx *gorm.DB
 //   - query any
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) QueryProtocolData(ctx interface{}, tx interface{}, query interface{}) *MockTestingProtocolRequestDataHandler_QueryProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) QueryProtocolData(ctx any, tx any, query any) *MockTestingProtocolRequestDataHandler_QueryProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_QueryProtocolData_Call{Call: _e.mock.On("QueryProtocolData", ctx, tx, query)}
 }
 
@@ -823,7 +823,7 @@ type MockTestingProtocolRequestDataHandler_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetConfig(cfg interface{}) *MockTestingProtocolRequestDataHandler_SetConfig_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetConfig(cfg any) *MockTestingProtocolRequestDataHandler_SetConfig_Call {
 	return &MockTestingProtocolRequestDataHandler_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -863,7 +863,7 @@ type MockTestingProtocolRequestDataHandler_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetContext(ctx interface{}) *MockTestingProtocolRequestDataHandler_SetContext_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetContext(ctx any) *MockTestingProtocolRequestDataHandler_SetContext_Call {
 	return &MockTestingProtocolRequestDataHandler_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -903,7 +903,7 @@ type MockTestingProtocolRequestDataHandler_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetDB(db interface{}) *MockTestingProtocolRequestDataHandler_SetDB_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetDB(db any) *MockTestingProtocolRequestDataHandler_SetDB_Call {
 	return &MockTestingProtocolRequestDataHandler_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -943,7 +943,7 @@ type MockTestingProtocolRequestDataHandler_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetLogger(logger interface{}) *MockTestingProtocolRequestDataHandler_SetLogger_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) SetLogger(logger any) *MockTestingProtocolRequestDataHandler_SetLogger_Call {
 	return &MockTestingProtocolRequestDataHandler_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -996,7 +996,7 @@ type MockTestingProtocolRequestDataHandler_UpdateProtocolData_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - data any
-func (_e *MockTestingProtocolRequestDataHandler_Expecter) UpdateProtocolData(ctx interface{}, id interface{}, data interface{}) *MockTestingProtocolRequestDataHandler_UpdateProtocolData_Call {
+func (_e *MockTestingProtocolRequestDataHandler_Expecter) UpdateProtocolData(ctx any, id any, data any) *MockTestingProtocolRequestDataHandler_UpdateProtocolData_Call {
 	return &MockTestingProtocolRequestDataHandler_UpdateProtocolData_Call{Call: _e.mock.On("UpdateProtocolData", ctx, id, data)}
 }
 

@@ -203,7 +203,7 @@ type MockHashMappingService_DeleteMappings_Call struct {
 // DeleteMappings is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockHashMappingService_Expecter) DeleteMappings(ctx interface{}, hash interface{}) *MockHashMappingService_DeleteMappings_Call {
+func (_e *MockHashMappingService_Expecter) DeleteMappings(ctx any, hash any) *MockHashMappingService_DeleteMappings_Call {
 	return &MockHashMappingService_DeleteMappings_Call{Call: _e.mock.On("DeleteMappings", ctx, hash)}
 }
 
@@ -238,11 +238,11 @@ func (_c *MockHashMappingService_DeleteMappings_Call) RunAndReturn(run func(ctx 
 // GetMappings provides a mock function for the type MockHashMappingService
 func (_mock *MockHashMappingService) GetMappings(ctx context.Context, sourceHash core.StorageHash, protocol ...string) ([]core.StorageHash, error) {
 	// string
-	_va := make([]interface{}, len(protocol))
+	_va := make([]any, len(protocol))
 	for _i := range protocol {
 		_va[_i] = protocol[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, sourceHash)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -280,9 +280,9 @@ type MockHashMappingService_GetMappings_Call struct {
 //   - ctx context.Context
 //   - sourceHash core.StorageHash
 //   - protocol ...string
-func (_e *MockHashMappingService_Expecter) GetMappings(ctx interface{}, sourceHash interface{}, protocol ...interface{}) *MockHashMappingService_GetMappings_Call {
+func (_e *MockHashMappingService_Expecter) GetMappings(ctx any, sourceHash any, protocol ...any) *MockHashMappingService_GetMappings_Call {
 	return &MockHashMappingService_GetMappings_Call{Call: _e.mock.On("GetMappings",
-		append([]interface{}{ctx, sourceHash}, protocol...)...)}
+		append([]any{ctx, sourceHash}, protocol...)...)}
 }
 
 func (_c *MockHashMappingService_GetMappings_Call) Run(run func(ctx context.Context, sourceHash core.StorageHash, protocol ...string)) *MockHashMappingService_GetMappings_Call {
@@ -325,11 +325,11 @@ func (_c *MockHashMappingService_GetMappings_Call) RunAndReturn(run func(ctx con
 // GetReverseMappings provides a mock function for the type MockHashMappingService
 func (_mock *MockHashMappingService) GetReverseMappings(ctx context.Context, targetHash core.StorageHash, protocol ...string) ([]core.StorageHash, error) {
 	// string
-	_va := make([]interface{}, len(protocol))
+	_va := make([]any, len(protocol))
 	for _i := range protocol {
 		_va[_i] = protocol[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, targetHash)
 	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
@@ -367,9 +367,9 @@ type MockHashMappingService_GetReverseMappings_Call struct {
 //   - ctx context.Context
 //   - targetHash core.StorageHash
 //   - protocol ...string
-func (_e *MockHashMappingService_Expecter) GetReverseMappings(ctx interface{}, targetHash interface{}, protocol ...interface{}) *MockHashMappingService_GetReverseMappings_Call {
+func (_e *MockHashMappingService_Expecter) GetReverseMappings(ctx any, targetHash any, protocol ...any) *MockHashMappingService_GetReverseMappings_Call {
 	return &MockHashMappingService_GetReverseMappings_Call{Call: _e.mock.On("GetReverseMappings",
-		append([]interface{}{ctx, targetHash}, protocol...)...)}
+		append([]any{ctx, targetHash}, protocol...)...)}
 }
 
 func (_c *MockHashMappingService_GetReverseMappings_Call) Run(run func(ctx context.Context, targetHash core.StorageHash, protocol ...string)) *MockHashMappingService_GetReverseMappings_Call {
@@ -512,7 +512,7 @@ type MockHashMappingService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockHashMappingService_Expecter) SetConfig(cfg interface{}) *MockHashMappingService_SetConfig_Call {
+func (_e *MockHashMappingService_Expecter) SetConfig(cfg any) *MockHashMappingService_SetConfig_Call {
 	return &MockHashMappingService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -552,7 +552,7 @@ type MockHashMappingService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockHashMappingService_Expecter) SetContext(ctx interface{}) *MockHashMappingService_SetContext_Call {
+func (_e *MockHashMappingService_Expecter) SetContext(ctx any) *MockHashMappingService_SetContext_Call {
 	return &MockHashMappingService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -592,7 +592,7 @@ type MockHashMappingService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockHashMappingService_Expecter) SetDB(db interface{}) *MockHashMappingService_SetDB_Call {
+func (_e *MockHashMappingService_Expecter) SetDB(db any) *MockHashMappingService_SetDB_Call {
 	return &MockHashMappingService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -632,7 +632,7 @@ type MockHashMappingService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockHashMappingService_Expecter) SetLogger(logger interface{}) *MockHashMappingService_SetLogger_Call {
+func (_e *MockHashMappingService_Expecter) SetLogger(logger any) *MockHashMappingService_SetLogger_Call {
 	return &MockHashMappingService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -687,7 +687,7 @@ type MockHashMappingService_StoreMapping_Call struct {
 //   - targetHash core.StorageHash
 //   - protocol string
 //   - metadata map[string]interface{}
-func (_e *MockHashMappingService_Expecter) StoreMapping(ctx interface{}, sourceHash interface{}, targetHash interface{}, protocol interface{}, metadata interface{}) *MockHashMappingService_StoreMapping_Call {
+func (_e *MockHashMappingService_Expecter) StoreMapping(ctx any, sourceHash any, targetHash any, protocol any, metadata any) *MockHashMappingService_StoreMapping_Call {
 	return &MockHashMappingService_StoreMapping_Call{Call: _e.mock.On("StoreMapping", ctx, sourceHash, targetHash, protocol, metadata)}
 }
 

@@ -79,7 +79,7 @@ type MockPinService_AccountPins_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - createdAfter uint64
-func (_e *MockPinService_Expecter) AccountPins(ctx interface{}, id interface{}, createdAfter interface{}) *MockPinService_AccountPins_Call {
+func (_e *MockPinService_Expecter) AccountPins(ctx any, id any, createdAfter any) *MockPinService_AccountPins_Call {
 	return &MockPinService_AccountPins_Call{Call: _e.mock.On("AccountPins", ctx, id, createdAfter)}
 }
 
@@ -152,7 +152,7 @@ type MockPinService_AllAccountPins_Call struct {
 // AllAccountPins is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockPinService_Expecter) AllAccountPins(ctx interface{}, id interface{}) *MockPinService_AllAccountPins_Call {
+func (_e *MockPinService_Expecter) AllAccountPins(ctx any, id any) *MockPinService_AllAccountPins_Call {
 	return &MockPinService_AllAccountPins_Call{Call: _e.mock.On("AllAccountPins", ctx, id)}
 }
 
@@ -313,7 +313,7 @@ type MockPinService_CreatePin_Call struct {
 //   - ctx context.Context
 //   - pin *models.Pin
 //   - protocolData any
-func (_e *MockPinService_Expecter) CreatePin(ctx interface{}, pin interface{}, protocolData interface{}) *MockPinService_CreatePin_Call {
+func (_e *MockPinService_Expecter) CreatePin(ctx any, pin any, protocolData any) *MockPinService_CreatePin_Call {
 	return &MockPinService_CreatePin_Call{Call: _e.mock.On("CreatePin", ctx, pin, protocolData)}
 }
 
@@ -385,7 +385,7 @@ type MockPinService_CreatePinModel_Call struct {
 
 // CreatePinModel is a helper method to define mock.On call
 //   - protocol string
-func (_e *MockPinService_Expecter) CreatePinModel(protocol interface{}) *MockPinService_CreatePinModel_Call {
+func (_e *MockPinService_Expecter) CreatePinModel(protocol any) *MockPinService_CreatePinModel_Call {
 	return &MockPinService_CreatePinModel_Call{Call: _e.mock.On("CreatePinModel", protocol)}
 }
 
@@ -483,7 +483,7 @@ type MockPinService_DeletePin_Call struct {
 // DeletePin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockPinService_Expecter) DeletePin(ctx interface{}, id interface{}) *MockPinService_DeletePin_Call {
+func (_e *MockPinService_Expecter) DeletePin(ctx any, id any) *MockPinService_DeletePin_Call {
 	return &MockPinService_DeletePin_Call{Call: _e.mock.On("DeletePin", ctx, id)}
 }
 
@@ -541,7 +541,7 @@ type MockPinService_DeletePinByHash_Call struct {
 //   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) DeletePinByHash(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_DeletePinByHash_Call {
+func (_e *MockPinService_Expecter) DeletePinByHash(ctx any, hash any, userId any) *MockPinService_DeletePinByHash_Call {
 	return &MockPinService_DeletePinByHash_Call{Call: _e.mock.On("DeletePinByHash", ctx, hash, userId)}
 }
 
@@ -614,7 +614,7 @@ type MockPinService_GetAllPinsByHash_Call struct {
 // GetAllPinsByHash is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockPinService_Expecter) GetAllPinsByHash(ctx interface{}, hash interface{}) *MockPinService_GetAllPinsByHash_Call {
+func (_e *MockPinService_Expecter) GetAllPinsByHash(ctx any, hash any) *MockPinService_GetAllPinsByHash_Call {
 	return &MockPinService_GetAllPinsByHash_Call{Call: _e.mock.On("GetAllPinsByHash", ctx, hash)}
 }
 
@@ -682,7 +682,7 @@ type MockPinService_GetPin_Call struct {
 // GetPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockPinService_Expecter) GetPin(ctx interface{}, id interface{}) *MockPinService_GetPin_Call {
+func (_e *MockPinService_Expecter) GetPin(ctx any, id any) *MockPinService_GetPin_Call {
 	return &MockPinService_GetPin_Call{Call: _e.mock.On("GetPin", ctx, id)}
 }
 
@@ -751,7 +751,7 @@ type MockPinService_GetPinByHash_Call struct {
 //   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) GetPinByHash(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_GetPinByHash_Call {
+func (_e *MockPinService_Expecter) GetPinByHash(ctx any, hash any, userId any) *MockPinService_GetPinByHash_Call {
 	return &MockPinService_GetPinByHash_Call{Call: _e.mock.On("GetPinByHash", ctx, hash, userId)}
 }
 
@@ -824,7 +824,7 @@ type MockPinService_GetPinData_Call struct {
 // GetPinData is a helper method to define mock.On call
 //   - ctx context.Context
 //   - pin *models.Pin
-func (_e *MockPinService_Expecter) GetPinData(ctx interface{}, pin interface{}) *MockPinService_GetPinData_Call {
+func (_e *MockPinService_Expecter) GetPinData(ctx any, pin any) *MockPinService_GetPinData_Call {
 	return &MockPinService_GetPinData_Call{Call: _e.mock.On("GetPinData", ctx, pin)}
 }
 
@@ -891,7 +891,7 @@ type MockPinService_GetPinModel_Call struct {
 
 // GetPinModel is a helper method to define mock.On call
 //   - protocol string
-func (_e *MockPinService_Expecter) GetPinModel(protocol interface{}) *MockPinService_GetPinModel_Call {
+func (_e *MockPinService_Expecter) GetPinModel(protocol any) *MockPinService_GetPinModel_Call {
 	return &MockPinService_GetPinModel_Call{Call: _e.mock.On("GetPinModel", protocol)}
 }
 
@@ -953,7 +953,7 @@ type MockPinService_GetPinStats_Call struct {
 
 // GetPinStats is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockPinService_Expecter) GetPinStats(ctx interface{}) *MockPinService_GetPinStats_Call {
+func (_e *MockPinService_Expecter) GetPinStats(ctx any) *MockPinService_GetPinStats_Call {
 	return &MockPinService_GetPinStats_Call{Call: _e.mock.On("GetPinStats", ctx)}
 }
 
@@ -1016,7 +1016,7 @@ type MockPinService_GetPinsByUploadID_Call struct {
 // GetPinsByUploadID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - uploadID uint
-func (_e *MockPinService_Expecter) GetPinsByUploadID(ctx interface{}, uploadID interface{}) *MockPinService_GetPinsByUploadID_Call {
+func (_e *MockPinService_Expecter) GetPinsByUploadID(ctx any, uploadID any) *MockPinService_GetPinsByUploadID_Call {
 	return &MockPinService_GetPinsByUploadID_Call{Call: _e.mock.On("GetPinsByUploadID", ctx, uploadID)}
 }
 
@@ -1084,7 +1084,7 @@ type MockPinService_GetProtocolPin_Call struct {
 // GetProtocolPin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id uint
-func (_e *MockPinService_Expecter) GetProtocolPin(ctx interface{}, id interface{}) *MockPinService_GetProtocolPin_Call {
+func (_e *MockPinService_Expecter) GetProtocolPin(ctx any, id any) *MockPinService_GetProtocolPin_Call {
 	return &MockPinService_GetProtocolPin_Call{Call: _e.mock.On("GetProtocolPin", ctx, id)}
 }
 
@@ -1233,7 +1233,7 @@ type MockPinService_PinByHash_Call struct {
 //   - hash core.StorageHash
 //   - userId uint
 //   - protocolData any
-func (_e *MockPinService_Expecter) PinByHash(ctx interface{}, hash interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByHash_Call {
+func (_e *MockPinService_Expecter) PinByHash(ctx any, hash any, userId any, protocolData any) *MockPinService_PinByHash_Call {
 	return &MockPinService_PinByHash_Call{Call: _e.mock.On("PinByHash", ctx, hash, userId, protocolData)}
 }
 
@@ -1302,7 +1302,7 @@ type MockPinService_PinByID_Call struct {
 //   - uploadId uint
 //   - userId uint
 //   - protocolData any
-func (_e *MockPinService_Expecter) PinByID(ctx interface{}, uploadId interface{}, userId interface{}, protocolData interface{}) *MockPinService_PinByID_Call {
+func (_e *MockPinService_Expecter) PinByID(ctx any, uploadId any, userId any, protocolData any) *MockPinService_PinByID_Call {
 	return &MockPinService_PinByID_Call{Call: _e.mock.On("PinByID", ctx, uploadId, userId, protocolData)}
 }
 
@@ -1381,7 +1381,7 @@ type MockPinService_QueryPin_Call struct {
 //   - ctx context.Context
 //   - query interface{}
 //   - filter core.PinFilter
-func (_e *MockPinService_Expecter) QueryPin(ctx interface{}, query interface{}, filter interface{}) *MockPinService_QueryPin_Call {
+func (_e *MockPinService_Expecter) QueryPin(ctx any, query any, filter any) *MockPinService_QueryPin_Call {
 	return &MockPinService_QueryPin_Call{Call: _e.mock.On("QueryPin", ctx, query, filter)}
 }
 
@@ -1456,7 +1456,7 @@ type MockPinService_QueryProtocolPin_Call struct {
 //   - protocol string
 //   - query any
 //   - filter core.PinFilter
-func (_e *MockPinService_Expecter) QueryProtocolPin(ctx interface{}, protocol interface{}, query interface{}, filter interface{}) *MockPinService_QueryProtocolPin_Call {
+func (_e *MockPinService_Expecter) QueryProtocolPin(ctx any, protocol any, query any, filter any) *MockPinService_QueryProtocolPin_Call {
 	return &MockPinService_QueryProtocolPin_Call{Call: _e.mock.On("QueryProtocolPin", ctx, protocol, query, filter)}
 }
 
@@ -1512,7 +1512,7 @@ type MockPinService_RegisterPinModel_Call struct {
 // RegisterPinModel is a helper method to define mock.On call
 //   - protocol string
 //   - model data_models.PinDataModel
-func (_e *MockPinService_Expecter) RegisterPinModel(protocol interface{}, model interface{}) *MockPinService_RegisterPinModel_Call {
+func (_e *MockPinService_Expecter) RegisterPinModel(protocol any, model any) *MockPinService_RegisterPinModel_Call {
 	return &MockPinService_RegisterPinModel_Call{Call: _e.mock.On("RegisterPinModel", protocol, model)}
 }
 
@@ -1557,7 +1557,7 @@ type MockPinService_SetConfig_Call struct {
 
 // SetConfig is a helper method to define mock.On call
 //   - cfg config.Manager
-func (_e *MockPinService_Expecter) SetConfig(cfg interface{}) *MockPinService_SetConfig_Call {
+func (_e *MockPinService_Expecter) SetConfig(cfg any) *MockPinService_SetConfig_Call {
 	return &MockPinService_SetConfig_Call{Call: _e.mock.On("SetConfig", cfg)}
 }
 
@@ -1597,7 +1597,7 @@ type MockPinService_SetContext_Call struct {
 
 // SetContext is a helper method to define mock.On call
 //   - ctx core.Context
-func (_e *MockPinService_Expecter) SetContext(ctx interface{}) *MockPinService_SetContext_Call {
+func (_e *MockPinService_Expecter) SetContext(ctx any) *MockPinService_SetContext_Call {
 	return &MockPinService_SetContext_Call{Call: _e.mock.On("SetContext", ctx)}
 }
 
@@ -1637,7 +1637,7 @@ type MockPinService_SetDB_Call struct {
 
 // SetDB is a helper method to define mock.On call
 //   - db *gorm.DB
-func (_e *MockPinService_Expecter) SetDB(db interface{}) *MockPinService_SetDB_Call {
+func (_e *MockPinService_Expecter) SetDB(db any) *MockPinService_SetDB_Call {
 	return &MockPinService_SetDB_Call{Call: _e.mock.On("SetDB", db)}
 }
 
@@ -1677,7 +1677,7 @@ type MockPinService_SetLogger_Call struct {
 
 // SetLogger is a helper method to define mock.On call
 //   - logger *core.Logger
-func (_e *MockPinService_Expecter) SetLogger(logger interface{}) *MockPinService_SetLogger_Call {
+func (_e *MockPinService_Expecter) SetLogger(logger any) *MockPinService_SetLogger_Call {
 	return &MockPinService_SetLogger_Call{Call: _e.mock.On("SetLogger", logger)}
 }
 
@@ -1729,7 +1729,7 @@ type MockPinService_UpdatePin_Call struct {
 // UpdatePin is a helper method to define mock.On call
 //   - ctx context.Context
 //   - pin *models.Pin
-func (_e *MockPinService_Expecter) UpdatePin(ctx interface{}, pin interface{}) *MockPinService_UpdatePin_Call {
+func (_e *MockPinService_Expecter) UpdatePin(ctx any, pin any) *MockPinService_UpdatePin_Call {
 	return &MockPinService_UpdatePin_Call{Call: _e.mock.On("UpdatePin", ctx, pin)}
 }
 
@@ -1787,7 +1787,7 @@ type MockPinService_UpdatePinData_Call struct {
 //   - ctx context.Context
 //   - pin *models.Pin
 //   - data interface{}
-func (_e *MockPinService_Expecter) UpdatePinData(ctx interface{}, pin interface{}, data interface{}) *MockPinService_UpdatePinData_Call {
+func (_e *MockPinService_Expecter) UpdatePinData(ctx any, pin any, data any) *MockPinService_UpdatePinData_Call {
 	return &MockPinService_UpdatePinData_Call{Call: _e.mock.On("UpdatePinData", ctx, pin, data)}
 }
 
@@ -1850,7 +1850,7 @@ type MockPinService_UpdateProtocolPin_Call struct {
 //   - ctx context.Context
 //   - id uint
 //   - protocolData any
-func (_e *MockPinService_Expecter) UpdateProtocolPin(ctx interface{}, id interface{}, protocolData interface{}) *MockPinService_UpdateProtocolPin_Call {
+func (_e *MockPinService_Expecter) UpdateProtocolPin(ctx any, id any, protocolData any) *MockPinService_UpdateProtocolPin_Call {
 	return &MockPinService_UpdateProtocolPin_Call{Call: _e.mock.On("UpdateProtocolPin", ctx, id, protocolData)}
 }
 
@@ -1922,7 +1922,7 @@ type MockPinService_UploadPinnedByUser_Call struct {
 //   - ctx context.Context
 //   - hash core.StorageHash
 //   - userId uint
-func (_e *MockPinService_Expecter) UploadPinnedByUser(ctx interface{}, hash interface{}, userId interface{}) *MockPinService_UploadPinnedByUser_Call {
+func (_e *MockPinService_Expecter) UploadPinnedByUser(ctx any, hash any, userId any) *MockPinService_UploadPinnedByUser_Call {
 	return &MockPinService_UploadPinnedByUser_Call{Call: _e.mock.On("UploadPinnedByUser", ctx, hash, userId)}
 }
 
@@ -1993,7 +1993,7 @@ type MockPinService_UploadPinnedGlobal_Call struct {
 // UploadPinnedGlobal is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hash core.StorageHash
-func (_e *MockPinService_Expecter) UploadPinnedGlobal(ctx interface{}, hash interface{}) *MockPinService_UploadPinnedGlobal_Call {
+func (_e *MockPinService_Expecter) UploadPinnedGlobal(ctx any, hash any) *MockPinService_UploadPinnedGlobal_Call {
 	return &MockPinService_UploadPinnedGlobal_Call{Call: _e.mock.On("UploadPinnedGlobal", ctx, hash)}
 }
 

@@ -48,6 +48,7 @@ packages:
       HashRegistry: {}
       MailerService: {}
       MailerTemplate: {}
+      OAuthProviderService: {}
       OTPService: {}
       Operation: {}
       OperationHandler: {}
