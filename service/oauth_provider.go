@@ -88,8 +88,15 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 				return err
 			}
 
+			// Enable RFC 9291 client-id metadata document resolution (CIMD) so
+			// URL-form client_ids are resolved from their published metadata
+			// document instead of requiring a prior dynamic-client registration.
+			// The resolver's always-on SSRF gate (https-only, globally routable
+			// IP, no redirects) gates every fetch.
+			resolver := oauth.NewCIMDResolver()
+
 			ctx.Logger().Info("OAuth provider initialized", zap.String("issuer", issuer))
-			svc.as = oauth.NewAuthorizationServer(cfg, storage)
+			svc.as = oauth.NewAuthorizationServer(cfg, storage).WithCIMDResolver(resolver)
 			return nil
 		}),
 	)
@@ -214,7 +221,9 @@ func (s *OAuthProviderServiceDefault) Metadata(ctx context.Context) (*oauth.ASMe
 	if err != nil {
 		return nil, err
 	}
-	meta := oauth.BuildASMetadata(as.Config())
+	// Delegate to the AS so CIMD support is advertised
+	// (client_id_metadata_document_supported) when a resolver is wired.
+	meta := as.Metadata()
 	return &meta, nil
 }
 
