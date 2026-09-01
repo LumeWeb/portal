@@ -38,6 +38,13 @@ type OAuthProviderService interface {
 	// client with a server-generated client_id.
 	RegisterClient(ctx context.Context, reg oauth.ClientRegistration) (*oauth.Client, error)
 
+	// GetClientMetadata reads back a previously registered client by its
+	// client_id from durable storage. It is intended for consumers that need
+	// persisted client metadata (e.g. client_name) after the process has
+	// restarted, or across instances. Returns oauth.ErrClientNotFound when no
+	// client is registered with the given client_id.
+	GetClientMetadata(ctx context.Context, clientID string) (*oauth.Client, error)
+
 	// ValidateAuthorizeRequest validates a parsed authorization request per
 	// RFC 6749 §4.1.1 + RFC 7636 §4.3 (PKCE) + RFC 8707 (resource).
 	ValidateAuthorizeRequest(ctx context.Context, req oauth.AuthorizeRequest) error
