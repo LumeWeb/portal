@@ -152,6 +152,10 @@ func (s *OAuthProviderServiceDefault) GetClientMetadata(ctx context.Context, cli
 	if _, err := s.authServer(); err != nil {
 		return nil, err
 	}
+	// Read from durable storage only: preserves the documented storage-read
+	// contract and oauth.ErrClientNotFound semantics, and avoids an unguarded
+	// outbound CIMD fetch. CIMD clients persisted by the library (v0.1.6)
+	// round-trip their client_uri through the store.
 	c, err := s.store.GetClient(clientID)
 	if err != nil {
 		return nil, err
