@@ -37,7 +37,8 @@ func init() {
 // portal's GORM-backed storage and derives its issuer from the HTTP service.
 type OAuthProviderServiceDefault struct {
 	*core.BaseComponent
-	as *oauth.AuthorizationServer
+	as    *oauth.AuthorizationServer
+	store oauth.Storage
 }
 
 func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error) {
@@ -97,6 +98,7 @@ func NewOAuthProviderService() (core.Service, []core.ContextBuilderOption, error
 
 			ctx.Logger().Info("OAuth provider initialized", zap.String("issuer", issuer))
 			svc.as = oauth.NewAuthorizationServer(cfg, storage).WithCIMDResolver(resolver)
+			svc.store = storage
 			return nil
 		}),
 	)
@@ -142,6 +144,19 @@ func (s *OAuthProviderServiceDefault) RegisterClient(ctx context.Context, reg oa
 		return nil, err
 	}
 	return as.RegisterClient(reg)
+}
+
+func (s *OAuthProviderServiceDefault) GetClientMetadata(ctx context.Context, clientID string) (*oauth.Client, error) {
+	ctx, span := core.TraceMethod(ctx, "OAuthProviderServiceDefault.GetClientMetadata")
+	defer span.End()
+	if _, err := s.authServer(); err != nil {
+		return nil, err
+	}
+	c, err := s.store.GetClient(clientID)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 func (s *OAuthProviderServiceDefault) ValidateAuthorizeRequest(ctx context.Context, req oauth.AuthorizeRequest) error {

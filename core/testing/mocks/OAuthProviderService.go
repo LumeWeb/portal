@@ -248,6 +248,74 @@ func (_c *MockOAuthProviderService_ExchangeCode_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// GetClientMetadata provides a mock function for the type MockOAuthProviderService
+func (_mock *MockOAuthProviderService) GetClientMetadata(ctx context.Context, clientID string) (*oauth.Client, error) {
+	ret := _mock.Called(ctx, clientID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientMetadata")
+	}
+
+	var r0 *oauth.Client
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*oauth.Client, error)); ok {
+		return returnFunc(ctx, clientID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *oauth.Client); ok {
+		r0 = returnFunc(ctx, clientID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*oauth.Client)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, clientID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOAuthProviderService_GetClientMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientMetadata'
+type MockOAuthProviderService_GetClientMetadata_Call struct {
+	*mock.Call
+}
+
+// GetClientMetadata is a helper method to define mock.On call
+//   - ctx context.Context
+//   - clientID string
+func (_e *MockOAuthProviderService_Expecter) GetClientMetadata(ctx any, clientID any) *MockOAuthProviderService_GetClientMetadata_Call {
+	return &MockOAuthProviderService_GetClientMetadata_Call{Call: _e.mock.On("GetClientMetadata", ctx, clientID)}
+}
+
+func (_c *MockOAuthProviderService_GetClientMetadata_Call) Run(run func(ctx context.Context, clientID string)) *MockOAuthProviderService_GetClientMetadata_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOAuthProviderService_GetClientMetadata_Call) Return(client *oauth.Client, err error) *MockOAuthProviderService_GetClientMetadata_Call {
+	_c.Call.Return(client, err)
+	return _c
+}
+
+func (_c *MockOAuthProviderService_GetClientMetadata_Call) RunAndReturn(run func(ctx context.Context, clientID string) (*oauth.Client, error)) *MockOAuthProviderService_GetClientMetadata_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetResource provides a mock function for the type MockOAuthProviderService
 func (_mock *MockOAuthProviderService) GetResource(ctx context.Context, resourceURL string) (*core.OAuthProtectedResource, error) {
 	ret := _mock.Called(ctx, resourceURL)
