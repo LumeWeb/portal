@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.lumeweb.com/portal/core"
 	coreTesting "go.lumeweb.com/portal/core/testing"
@@ -233,5 +234,45 @@ func TestSocialAuth_RelinkAfterUnlink(t *testing.T) {
 		require.NoError(tb, err)
 		require.NotNil(tb, acct)
 		assert.Equal(tb, user.ID, acct.UserID)
+	}, socialAuthTestOpts()...)
+}
+
+func TestSocialAuth_LoginOrLink_FirstUserNotAdmin(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		svc := getSocialAuthService(tb, ctx)
+		access := coreTesting.GetMockAccessService(ctx)
+
+		// Fresh empty DB: this is the first account, but a public social login
+		// must never self-appoint as the portal administrator.
+		res, err := svc.LoginOrLink(context.Background(), "google", "admin-uid", "social-admin@example.com", true)
+		require.NoError(tb, err)
+		require.NotNil(tb, res)
+		assert.True(tb, res.Created)
+
+		access.AssertNotCalled(tb, "AssignRoleToUser", mock.Anything, res.User.ID, core.ACCESS_ADMIN_ROLE)
+	}, socialAuthTestOpts()...)
+}
+
+func TestSocialAuth_LoginOrLink_DiscardsUnlinkedAccount(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		svc := getSocialAuthService(tb, ctx)
+
+		// A soft-deleted row keeps (provider, provider_user_id) claimed so the
+		// link INSERT inside LoginOrLink collides with the unique index, forcing
+		// the "created but could not be linked" path.
+		other := &models.User{Email: "other@example.com"}
+		require.NoError(tb, ctx.DB().Create(other).Error)
+		stale := &models.SocialAccount{UserID: other.ID, Provider: "google", ProviderUserID: "g-fail"}
+		require.NoError(tb, ctx.DB().Create(stale).Error)
+		require.NoError(tb, ctx.DB().Delete(stale).Error) // soft delete keeps the unique key
+
+		_, err := svc.LoginOrLink(context.Background(), "google", "g-fail", "discarded@example.com", true)
+		require.Error(tb, err)
+
+		// The account created for the failed link must be deleted (no active
+		// orphan remaining).
+		var count int64
+		require.NoError(tb, ctx.DB().Model(&models.User{}).Where("email = ?", "discarded@example.com").Count(&count).Error)
+		assert.Zero(tb, count)
 	}, socialAuthTestOpts()...)
 }

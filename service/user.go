@@ -233,9 +233,14 @@ func (u UserServiceDefault) HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error) {
+func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool, options ...core.CreateAccountOption) (*models.User, error) {
 	ctx, span := core.TraceMethod(ctx, "UserServiceDefault.CreateAccount")
 	defer span.End()
+
+	opts := core.CreateAccountOptions{BootstrapAdmin: true}
+	for _, opt := range options {
+		opt(&opts)
+	}
 
 	result, err := core.MetricTrackResult(
 		userInternal.UserOperationDuration.WithLabelValues(userInternal.LabelOpCreate),
@@ -285,8 +290,10 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 					return nil, err
 				}
 
-				if err := u.access.AssignRoleToUser(nil, _user.ID, core.ACCESS_ADMIN_ROLE); err != nil {
-					return nil, core.NewAccountError(core.ErrKeyAssigningAdminRoleFailed, err)
+				if opts.BootstrapAdmin {
+					if err := u.access.AssignRoleToUser(nil, _user.ID, core.ACCESS_ADMIN_ROLE); err != nil {
+						return nil, core.NewAccountError(core.ErrKeyAssigningAdminRoleFailed, err)
+					}
 				}
 			} else if verifyEmail {
 				if err := u.SendEmailVerification(ctx, _user.ID); err != nil {

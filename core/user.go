@@ -28,7 +28,7 @@ type UserService interface {
 	HashPassword(password string) (string, error)
 
 	// CreateAccount creates a new user account with the given email and password.
-	CreateAccount(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error)
+	CreateAccount(ctx context.Context, email string, password string, verifyEmail bool, opts ...CreateAccountOption) (*models.User, error)
 
 	// UpdateAccountInfo updates the account information of the user with the given ID.
 	UpdateAccountInfo(ctx context.Context, userId uint, info map[string]any) error
@@ -80,4 +80,24 @@ type UserService interface {
 	GetAccountsPendingDeletion(ctx context.Context) ([]*models.User, error)
 
 	Service
+}
+
+// CreateAccountOption configures UserService.CreateAccount behavior.
+type CreateAccountOption func(*CreateAccountOptions)
+
+// CreateAccountOptions holds the tunables for UserService.CreateAccount.
+type CreateAccountOptions struct {
+	// BootstrapAdmin controls whether the first account in an empty database is
+	// promoted to the portal administrator. Enabled by default.
+	BootstrapAdmin bool
+}
+
+// WithBootstrapAdmin controls whether CreateAccount promotes the first account
+// in an empty database to administrator. Pass false for unauthenticated
+// provisioning paths (e.g. social login) so the first external identity cannot
+// self-appoint as admin.
+func WithBootstrapAdmin(enabled bool) CreateAccountOption {
+	return func(o *CreateAccountOptions) {
+		o.BootstrapAdmin = enabled
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -115,11 +116,25 @@ func (s SocialAuthServiceDefault) LoginOrLink(ctx context.Context, provider, pro
 
 	if err := s.LinkAccount(ctx, user.ID, provider, providerUserID, email); err != nil {
 		// A concurrent request may have linked the same identity in the
-		// meantime; if so, the linked user wins.
+		// meantime; if so, the linked user wins and the account we just created
+		// is discarded.
 		if existing, lookupErr := s.LookupByProvider(ctx, provider, providerUserID); lookupErr == nil && existing != nil {
 			if linked, uErr := s.userForAccount(ctx, existing.UserID); uErr == nil {
+				if delErr := s.userService().DeleteAccount(ctx, user.ID); delErr != nil {
+					s.Logger().Warn("failed to delete redundant social login account",
+						zap.Uint("user_id", user.ID),
+						zap.Error(delErr))
+				}
 				return &core.SocialAuthResult{User: linked, EmailVerified: linked.Verified}, nil
 			}
+		}
+
+		// The link failed on its own: delete the account we just created via
+		// the canonical account lifecycle so it does not linger unlinked.
+		if delErr := s.userService().DeleteAccount(ctx, user.ID); delErr != nil {
+			s.Logger().Warn("failed to delete unlinked social login account",
+				zap.Uint("user_id", user.ID),
+				zap.Error(delErr))
 		}
 		return nil, err
 	}
@@ -225,7 +240,7 @@ func (s SocialAuthServiceDefault) createAccount(ctx context.Context, email strin
 		return nil, core.NewAccountError(core.ErrKeySocialAccountCreationFailed, err)
 	}
 
-	user, err := s.userService().CreateAccount(ctx, email, password, false)
+	user, err := s.userService().CreateAccount(ctx, email, password, false, core.WithBootstrapAdmin(false))
 	if err != nil {
 		if core.IsAccountError(err) {
 			// Preserve typed account errors (e.g. ErrKeyEmailAlreadyExists).

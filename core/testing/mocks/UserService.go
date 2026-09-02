@@ -285,8 +285,16 @@ func (_c *MockUserService_Context_Call) RunAndReturn(run func() core.Context) *M
 }
 
 // CreateAccount provides a mock function for the type MockUserService
-func (_mock *MockUserService) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error) {
-	ret := _mock.Called(ctx, email, password, verifyEmail)
+func (_mock *MockUserService) CreateAccount(ctx context.Context, email string, password string, verifyEmail bool, opts ...core.CreateAccountOption) (*models.User, error) {
+	// core.CreateAccountOption
+	_va := make([]any, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []any
+	_ca = append(_ca, ctx, email, password, verifyEmail)
+	_ca = append(_ca, _va...)
+	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAccount")
@@ -294,18 +302,18 @@ func (_mock *MockUserService) CreateAccount(ctx context.Context, email string, p
 
 	var r0 *models.User
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) (*models.User, error)); ok {
-		return returnFunc(ctx, email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool, ...core.CreateAccountOption) (*models.User, error)); ok {
+		return returnFunc(ctx, email, password, verifyEmail, opts...)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool) *models.User); ok {
-		r0 = returnFunc(ctx, email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool, ...core.CreateAccountOption) *models.User); ok {
+		r0 = returnFunc(ctx, email, password, verifyEmail, opts...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.User)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
-		r1 = returnFunc(ctx, email, password, verifyEmail)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, bool, ...core.CreateAccountOption) error); ok {
+		r1 = returnFunc(ctx, email, password, verifyEmail, opts...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -322,11 +330,13 @@ type MockUserService_CreateAccount_Call struct {
 //   - email string
 //   - password string
 //   - verifyEmail bool
-func (_e *MockUserService_Expecter) CreateAccount(ctx any, email any, password any, verifyEmail any) *MockUserService_CreateAccount_Call {
-	return &MockUserService_CreateAccount_Call{Call: _e.mock.On("CreateAccount", ctx, email, password, verifyEmail)}
+//   - opts ...core.CreateAccountOption
+func (_e *MockUserService_Expecter) CreateAccount(ctx any, email any, password any, verifyEmail any, opts ...any) *MockUserService_CreateAccount_Call {
+	return &MockUserService_CreateAccount_Call{Call: _e.mock.On("CreateAccount",
+		append([]any{ctx, email, password, verifyEmail}, opts...)...)}
 }
 
-func (_c *MockUserService_CreateAccount_Call) Run(run func(ctx context.Context, email string, password string, verifyEmail bool)) *MockUserService_CreateAccount_Call {
+func (_c *MockUserService_CreateAccount_Call) Run(run func(ctx context.Context, email string, password string, verifyEmail bool, opts ...core.CreateAccountOption)) *MockUserService_CreateAccount_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -344,11 +354,20 @@ func (_c *MockUserService_CreateAccount_Call) Run(run func(ctx context.Context, 
 		if args[3] != nil {
 			arg3 = args[3].(bool)
 		}
+		var arg4 []core.CreateAccountOption
+		variadicArgs := make([]core.CreateAccountOption, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(core.CreateAccountOption)
+			}
+		}
+		arg4 = variadicArgs
 		run(
 			arg0,
 			arg1,
 			arg2,
 			arg3,
+			arg4...,
 		)
 	})
 	return _c
@@ -359,7 +378,7 @@ func (_c *MockUserService_CreateAccount_Call) Return(user *models.User, err erro
 	return _c
 }
 
-func (_c *MockUserService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, email string, password string, verifyEmail bool) (*models.User, error)) *MockUserService_CreateAccount_Call {
+func (_c *MockUserService_CreateAccount_Call) RunAndReturn(run func(ctx context.Context, email string, password string, verifyEmail bool, opts ...core.CreateAccountOption) (*models.User, error)) *MockUserService_CreateAccount_Call {
 	_c.Call.Return(run)
 	return _c
 }
