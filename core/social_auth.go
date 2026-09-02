@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil"
 )
 
 const SOCIAL_AUTH_SERVICE = "social_auth"
@@ -46,6 +47,8 @@ type SocialAuthService interface {
 	// ErrSocialAccountNotFound if no such link exists.
 	UnlinkAccount(ctx context.Context, userID uint, provider string) error
 
-	// ListAccounts returns all social identities linked to a user.
-	ListAccounts(ctx context.Context, userID uint) ([]*models.SocialAccount, error)
+	// ListAccounts returns the social identities linked to a user, with
+	// optional filtering, sorting and pagination. It returns the matching
+	// accounts and the total count before pagination.
+	ListAccounts(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.SocialAccount, int64, error)
 }

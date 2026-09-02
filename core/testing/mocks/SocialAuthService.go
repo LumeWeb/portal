@@ -11,6 +11,7 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil"
 	"gorm.io/gorm"
 )
 
@@ -299,31 +300,37 @@ func (_c *MockSocialAuthService_LinkAccount_Call) RunAndReturn(run func(ctx cont
 }
 
 // ListAccounts provides a mock function for the type MockSocialAuthService
-func (_mock *MockSocialAuthService) ListAccounts(ctx context.Context, userID uint) ([]*models.SocialAccount, error) {
-	ret := _mock.Called(ctx, userID)
+func (_mock *MockSocialAuthService) ListAccounts(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.SocialAccount, int64, error) {
+	ret := _mock.Called(ctx, userID, filters, sorts, pagination)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListAccounts")
 	}
 
 	var r0 []*models.SocialAccount
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) ([]*models.SocialAccount, error)); ok {
-		return returnFunc(ctx, userID)
+	var r1 int64
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) ([]*models.SocialAccount, int64, error)); ok {
+		return returnFunc(ctx, userID, filters, sorts, pagination)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) []*models.SocialAccount); ok {
-		r0 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) []*models.SocialAccount); ok {
+		r0 = returnFunc(ctx, userID, filters, sorts, pagination)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*models.SocialAccount)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uint) error); ok {
-		r1 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) int64); ok {
+		r1 = returnFunc(ctx, userID, filters, sorts, pagination)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(int64)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, uint, []queryutil.CrudFilter, []queryutil.Sort, queryutil.Pagination) error); ok {
+		r2 = returnFunc(ctx, userID, filters, sorts, pagination)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockSocialAuthService_ListAccounts_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAccounts'
@@ -334,11 +341,14 @@ type MockSocialAuthService_ListAccounts_Call struct {
 // ListAccounts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID uint
-func (_e *MockSocialAuthService_Expecter) ListAccounts(ctx any, userID any) *MockSocialAuthService_ListAccounts_Call {
-	return &MockSocialAuthService_ListAccounts_Call{Call: _e.mock.On("ListAccounts", ctx, userID)}
+//   - filters []queryutil.CrudFilter
+//   - sorts []queryutil.Sort
+//   - pagination queryutil.Pagination
+func (_e *MockSocialAuthService_Expecter) ListAccounts(ctx any, userID any, filters any, sorts any, pagination any) *MockSocialAuthService_ListAccounts_Call {
+	return &MockSocialAuthService_ListAccounts_Call{Call: _e.mock.On("ListAccounts", ctx, userID, filters, sorts, pagination)}
 }
 
-func (_c *MockSocialAuthService_ListAccounts_Call) Run(run func(ctx context.Context, userID uint)) *MockSocialAuthService_ListAccounts_Call {
+func (_c *MockSocialAuthService_ListAccounts_Call) Run(run func(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination)) *MockSocialAuthService_ListAccounts_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -348,20 +358,35 @@ func (_c *MockSocialAuthService_ListAccounts_Call) Run(run func(ctx context.Cont
 		if args[1] != nil {
 			arg1 = args[1].(uint)
 		}
+		var arg2 []queryutil.CrudFilter
+		if args[2] != nil {
+			arg2 = args[2].([]queryutil.CrudFilter)
+		}
+		var arg3 []queryutil.Sort
+		if args[3] != nil {
+			arg3 = args[3].([]queryutil.Sort)
+		}
+		var arg4 queryutil.Pagination
+		if args[4] != nil {
+			arg4 = args[4].(queryutil.Pagination)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
+			arg3,
+			arg4,
 		)
 	})
 	return _c
 }
 
-func (_c *MockSocialAuthService_ListAccounts_Call) Return(socialAccounts []*models.SocialAccount, err error) *MockSocialAuthService_ListAccounts_Call {
-	_c.Call.Return(socialAccounts, err)
+func (_c *MockSocialAuthService_ListAccounts_Call) Return(socialAccounts []*models.SocialAccount, n int64, err error) *MockSocialAuthService_ListAccounts_Call {
+	_c.Call.Return(socialAccounts, n, err)
 	return _c
 }
 
-func (_c *MockSocialAuthService_ListAccounts_Call) RunAndReturn(run func(ctx context.Context, userID uint) ([]*models.SocialAccount, error)) *MockSocialAuthService_ListAccounts_Call {
+func (_c *MockSocialAuthService_ListAccounts_Call) RunAndReturn(run func(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.SocialAccount, int64, error)) *MockSocialAuthService_ListAccounts_Call {
 	_c.Call.Return(run)
 	return _c
 }
