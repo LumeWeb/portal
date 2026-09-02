@@ -51,6 +51,31 @@ func TestRegisterAndGetKeyIdentityHandler(t *testing.T) {
 	}
 }
 
+func TestListKeyIdentityTypes(t *testing.T) {
+	ResetKeyIdentities()
+	defer ResetKeyIdentities()
+
+	// Empty registry returns empty slice
+	if types := ListKeyIdentityTypes(); len(types) != 0 {
+		t.Fatalf("expected no types, got %v", types)
+	}
+
+	RegisterKeyIdentity("zebra", &mockHandler{})
+	RegisterKeyIdentity("alpha", &mockHandler{})
+	RegisterKeyIdentity("middle", &mockHandler{})
+
+	got := ListKeyIdentityTypes()
+	want := []string{"alpha", "middle", "zebra"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %d types, got %d: %v", len(want), len(got), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected sorted types %v, got %v", want, got)
+		}
+	}
+}
+
 func TestMustGetKeyIdentityHandler_Panics(t *testing.T) {
 	ResetKeyIdentities()
 	defer ResetKeyIdentities()

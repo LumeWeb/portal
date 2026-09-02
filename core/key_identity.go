@@ -88,6 +88,20 @@ func ResetKeyIdentities() {
 	keyIdentityRegistry = make(map[string]KeyIdentityHandler)
 }
 
+// ListKeyIdentityTypes returns the key types currently registered in the
+// key identity registry, sorted lexicographically for deterministic output.
+func ListKeyIdentityTypes() []string {
+	keyIdentityRegistryMu.RLock()
+	defer keyIdentityRegistryMu.RUnlock()
+
+	types := make([]string, 0, len(keyIdentityRegistry))
+	for keyType := range keyIdentityRegistry {
+		types = append(types, keyType)
+	}
+	sort.Strings(types)
+	return types
+}
+
 // GetKeyIdentityHandler retrieves the handler for a key type.
 // Returns (handler, true) if registered, (nil, false) otherwise.
 func GetKeyIdentityHandler(keyType string) (KeyIdentityHandler, bool) {
