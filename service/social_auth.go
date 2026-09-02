@@ -10,6 +10,7 @@ import (
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
+	"go.lumeweb.com/queryutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -203,20 +204,28 @@ func (s SocialAuthServiceDefault) UnlinkAccount(ctx context.Context, userID uint
 	return nil
 }
 
-func (s SocialAuthServiceDefault) ListAccounts(ctx context.Context, userID uint) ([]*models.SocialAccount, error) {
+func (s SocialAuthServiceDefault) ListAccounts(ctx context.Context, userID uint, filters []queryutil.CrudFilter, sorts []queryutil.Sort, pagination queryutil.Pagination) ([]*models.SocialAccount, int64, error) {
 	ctx, span := core.TraceMethod(ctx, "SocialAuthServiceDefault.ListAccounts")
 	defer span.End()
 
 	var accounts []*models.SocialAccount
-	err := db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
-		return tx.Where("user_id = ?", userID).
-			Order("provider ASC").
-			Find(&accounts)
-	})
-	if err != nil {
-		return nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	var total int64
+
+	baseQuery := s.DB().WithContext(ctx).Model(&models.SocialAccount{}).Where("user_id = ?", userID)
+
+	if err := queryutil.ApplyFilters(baseQuery, filters, nil).Count(&total).Error; err != nil {
+		return nil, 0, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
-	return accounts, nil
+
+	query := queryutil.ApplyFilters(baseQuery, filters, nil)
+	query = queryutil.ApplySort(query, sorts)
+	query = queryutil.ApplyPagination(query, pagination)
+
+	if err := query.Find(&accounts).Error; err != nil {
+		return nil, 0, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
+	}
+
+	return accounts, total, nil
 }
 
 // userForAccount loads the portal user linked to a social account.

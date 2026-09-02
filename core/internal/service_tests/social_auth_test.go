@@ -11,6 +11,8 @@ import (
 	coreTesting "go.lumeweb.com/portal/core/testing"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/service"
+	"go.lumeweb.com/queryutil"
+	"go.lumeweb.com/queryutil/filter"
 )
 
 func socialAuthTestOpts() []coreTesting.TestContextBuilderOption {
@@ -147,7 +149,7 @@ func TestSocialAuth_LinkAccount(t *testing.T) {
 		require.Error(tb, err)
 		assert.True(tb, core.IsAccountError(err))
 
-		accounts, err := svc.ListAccounts(context.Background(), user1.ID)
+		accounts, _, err := svc.ListAccounts(context.Background(), user1.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Len(tb, accounts, 1)
 	}, socialAuthTestOpts()...)
@@ -182,15 +184,71 @@ func TestSocialAuth_ListAccounts(t *testing.T) {
 		require.NoError(tb, svc.LinkAccount(context.Background(), user.ID, "google", "g-1", "multi@example.com"))
 		require.NoError(tb, svc.LinkAccount(context.Background(), user.ID, "github", "gh-1", "multi@example.com"))
 
-		accounts, err := svc.ListAccounts(context.Background(), user.ID)
+		accounts, total, err := svc.ListAccounts(context.Background(), user.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Len(tb, accounts, 2)
+		assert.Equal(tb, int64(2), total)
 
 		other := &models.User{Email: "other@example.com"}
 		require.NoError(tb, ctx.DB().Create(other).Error)
-		otherAccounts, err := svc.ListAccounts(context.Background(), other.ID)
+		otherAccounts, total, err := svc.ListAccounts(context.Background(), other.ID, nil, nil, queryutil.Pagination{})
 		require.NoError(tb, err)
 		assert.Empty(tb, otherAccounts)
+		assert.Equal(tb, int64(0), total)
+	}, socialAuthTestOpts()...)
+}
+
+func TestSocialAuth_ListAccountsPagination(t *testing.T) {
+	coreTesting.RunTestCaseWithDB(t, func(tb coreTesting.TB, ctx coreTesting.TestContext) {
+		svc := getSocialAuthService(tb, ctx)
+
+		user := &models.User{Email: "page@example.com"}
+		require.NoError(tb, ctx.DB().Create(user).Error)
+		for _, link := range []struct {
+			provider string
+			uid      string
+		}{
+			{"google", "g-1"},
+			{"github", "gh-1"},
+			{"x", "x-1"},
+		} {
+			require.NoError(tb, svc.LinkAccount(context.Background(), user.ID, link.provider, link.uid, "page@example.com"))
+		}
+
+		// Page 1 of 2: returns 2 items, total is still 3.
+		pg, err := filter.NewPagination(0, 2)
+		require.NoError(tb, err)
+		accounts, total, err := svc.ListAccounts(context.Background(), user.ID, nil, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, accounts, 2)
+		assert.Equal(tb, int64(3), total)
+
+		// Page 2 of 2: returns the remaining item.
+		pg, err = filter.NewPagination(2, 2)
+		require.NoError(tb, err)
+		accounts, total, err = svc.ListAccounts(context.Background(), user.ID, nil, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, accounts, 1)
+		assert.Equal(tb, int64(3), total)
+
+		// Filter by provider.
+		providerFilter := filter.NewLogicalFilter("provider", filter.OpEq, "google")
+		pg, _ = filter.NewPagination(0, 10)
+		accounts, total, err = svc.ListAccounts(context.Background(), user.ID, []queryutil.CrudFilter{providerFilter}, nil, pg)
+		require.NoError(tb, err)
+		assert.Len(tb, accounts, 1)
+		assert.Equal(tb, int64(1), total)
+		assert.Equal(tb, "google", accounts[0].Provider)
+
+		// Sort by provider descending.
+		accounts, _, err = svc.ListAccounts(context.Background(), user.ID, nil,
+			[]queryutil.Sort{filter.Sort{Field: "provider", Order: filter.OrderDesc}},
+			queryutil.Pagination{})
+		require.NoError(tb, err)
+		require.Len(tb, accounts, 3)
+		assert.Equal(tb, "x", accounts[0].Provider)
+		assert.Equal(tb, "google", accounts[1].Provider)
+		assert.Equal(tb, "github", accounts[2].Provider)
 	}, socialAuthTestOpts()...)
 }
 
