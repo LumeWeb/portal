@@ -64,9 +64,10 @@ func (s SocialAuthServiceDefault) LookupByProvider(ctx context.Context, provider
 	defer span.End()
 
 	acct := &models.SocialAccount{}
-	err := s.DB().WithContext(ctx).
-		Where("provider = ? AND provider_user_id = ?", provider, providerUserID).
-		First(acct).Error
+	err := db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("provider = ? AND provider_user_id = ?", provider, providerUserID).
+			First(acct)
+	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -207,10 +208,11 @@ func (s SocialAuthServiceDefault) ListAccounts(ctx context.Context, userID uint)
 	defer span.End()
 
 	var accounts []*models.SocialAccount
-	err := s.DB().WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("provider ASC").
-		Find(&accounts).Error
+	err := db.RetryableComponentTransaction(s, ctx, func(tx *gorm.DB) *gorm.DB {
+		return tx.Where("user_id = ?", userID).
+			Order("provider ASC").
+			Find(&accounts)
+	})
 	if err != nil {
 		return nil, core.NewAccountError(core.ErrKeyDatabaseOperationFailed, err)
 	}
