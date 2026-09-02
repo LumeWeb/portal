@@ -20,7 +20,7 @@ const (
 	ErrKeyAssigningUserRoleFailed  ErrorType = "ErrAssigningUserRoleFailed"
 
 	// Account lookup and existence verification errors
-	ErrKeyUserNotFound      ErrorType = "ErrUserNotFound"
+	ErrKeyUserNotFound        ErrorType = "ErrUserNotFound"
 	ErrKeyKeyIdentityNotFound ErrorType = "ErrKeyIdentityNotFound"
 
 	// Account deletion errors
@@ -51,6 +51,14 @@ const (
 	// Key identity management errors
 	ErrKeyAddKeyIdentityFailed ErrorType = "ErrAddKeyIdentityFailed"
 	ErrKeyKeyIdentityExists    ErrorType = "ErrKeyIdentityExists"
+
+	// Social login errors
+	ErrKeySocialAccountNotFound       ErrorType = "ErrSocialAccountNotFound"
+	ErrKeySocialEmailConflict         ErrorType = "ErrEmailConflict"
+	ErrKeySocialAlreadyLinked         ErrorType = "ErrSocialAlreadyLinked"
+	ErrKeySocialAddFailed             ErrorType = "ErrSocialAddFailed"
+	ErrKeySocialRemoveFailed          ErrorType = "ErrSocialRemoveFailed"
+	ErrKeySocialAccountCreationFailed ErrorType = "ErrSocialAccountCreationFailed"
 
 	// Pin management errors
 	ErrKeyPinAddFailed        ErrorType = "ErrPinAddFailed"
@@ -187,6 +195,32 @@ var defaultAccountErrorMessages = map[ErrorType]ErrorDefinition{
 		Message: "The key identity already exists for this account.",
 	},
 
+	// Social login errors
+	ErrKeySocialAccountNotFound: {
+		Key:     ErrKeySocialAccountNotFound,
+		Message: "The social account link was not found.",
+	},
+	ErrKeySocialEmailConflict: {
+		Key:     ErrKeySocialEmailConflict,
+		Message: "The email address is already associated with an existing account.",
+	},
+	ErrKeySocialAlreadyLinked: {
+		Key:     ErrKeySocialAlreadyLinked,
+		Message: "The social identity is already linked to another account.",
+	},
+	ErrKeySocialAddFailed: {
+		Key:     ErrKeySocialAddFailed,
+		Message: "Failed to link the social account.",
+	},
+	ErrKeySocialRemoveFailed: {
+		Key:     ErrKeySocialRemoveFailed,
+		Message: "Failed to unlink the social account.",
+	},
+	ErrKeySocialAccountCreationFailed: {
+		Key:     ErrKeySocialAccountCreationFailed,
+		Message: "Failed to create the account for social login.",
+	},
+
 	// Pin management errors
 	ErrKeyPinAddFailed: {
 		Key:     ErrKeyPinAddFailed,
@@ -236,7 +270,7 @@ var (
 		ErrKeyAssigningUserRoleFailed:  http.StatusInternalServerError,
 
 		// Account lookup and existence verification errors
-		ErrKeyUserNotFound:      http.StatusNotFound,
+		ErrKeyUserNotFound:        http.StatusNotFound,
 		ErrKeyKeyIdentityNotFound: http.StatusNotFound,
 
 		// Account deletion errors
@@ -266,6 +300,14 @@ var (
 		// Public key management errors
 		ErrKeyAddKeyIdentityFailed: http.StatusInternalServerError,
 		ErrKeyKeyIdentityExists:    http.StatusConflict,
+
+		// Social login errors
+		ErrKeySocialAccountNotFound:       http.StatusNotFound,
+		ErrKeySocialEmailConflict:         http.StatusConflict,
+		ErrKeySocialAlreadyLinked:         http.StatusConflict,
+		ErrKeySocialAddFailed:             http.StatusInternalServerError,
+		ErrKeySocialRemoveFailed:          http.StatusInternalServerError,
+		ErrKeySocialAccountCreationFailed: http.StatusInternalServerError,
 
 		// Pin management errors
 		ErrKeyPinAddFailed:        http.StatusInternalServerError,
