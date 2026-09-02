@@ -8,17 +8,15 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/db"
 	"go.lumeweb.com/portal/db/models"
 	"go.lumeweb.com/portal/event"
-	"go.lumeweb.com/queryutil"
 	dbHelper "go.lumeweb.com/portal/service/internal/db"
 	"go.lumeweb.com/portal/service/internal/mailer"
 	"go.lumeweb.com/portal/service/internal/user"
 	userInternal "go.lumeweb.com/portal/service/internal/user"
-	"github.com/mattn/go-sqlite3"
+	"go.lumeweb.com/queryutil"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -146,8 +144,8 @@ func (u UserServiceDefault) EmailExists(ctx context.Context, email string) (bool
 }
 
 type keyIdentityExistsResult struct {
-	exists       bool
-	keyIdentity  *models.KeyIdentity
+	exists      bool
+	keyIdentity *models.KeyIdentity
 }
 
 func (u UserServiceDefault) KeyIdentityExists(ctx context.Context, keyType string, key string) (bool, *models.KeyIdentity, error) {
@@ -274,7 +272,7 @@ func (u UserServiceDefault) CreateAccount(ctx context.Context, email string, pas
 			})
 
 			if err != nil {
-				if u.isDuplicateKeyError(err) {
+				if db.IsDuplicateKeyError(err) {
 					return nil, core.NewAccountError(core.ErrKeyEmailAlreadyExists, nil)
 				}
 
@@ -481,11 +479,11 @@ func (u UserServiceDefault) AddKeyIdentity(ctx context.Context, userId uint, key
 			if err := db.RetryableComponentTransaction(u, ctx, func(tx *gorm.DB) *gorm.DB {
 				return tx.WithContext(ctx).Create(&model)
 			}); err != nil {
-				if u.isDuplicateKeyError(err) {
+				if db.IsDuplicateKeyError(err) {
 					return core.NewAccountError(core.ErrKeyKeyIdentityExists, err)
 				}
 
-				if u.isConstraintViolationError(err) {
+				if db.IsConstraintViolationError(err) {
 					if errors.Is(err, gorm.ErrForeignKeyViolated) {
 						return core.NewAccountError(core.ErrKeyUserNotFound, err)
 					}
@@ -859,48 +857,4 @@ func (u *UserServiceDefault) GetAccountsPendingDeletion(ctx context.Context) ([]
 			return users, nil
 		},
 	)
-}
-
-func (u UserServiceDefault) isDuplicateKeyError(err error) bool {
-	if errors.Is(err, gorm.ErrDuplicatedKey) {
-		return true
-	}
-
-	// MySQL duplicate key error
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr != nil && mysqlErr.Number == 1062 {
-		return true
-	}
-
-	// SQLite unique constraint violation
-	var sqliteErr sqlite3.Error
-	if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-		return true
-	}
-
-	return false
-}
-
-func (u UserServiceDefault) isConstraintViolationError(err error) bool {
-	if errors.Is(err, gorm.ErrForeignKeyViolated) || errors.Is(err, gorm.ErrCheckConstraintViolated) {
-		return true
-	}
-
-	// MySQL constraint violation errors
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr != nil {
-		// Common MySQL constraint violation error codes
-		switch mysqlErr.Number {
-		case 1452: // Cannot add or update a child row: a foreign key constraint fails
-			return true
-		case 1451: // Cannot delete or update a parent row: a foreign key constraint fails
-			return true
-		case 1264: // Out of range value
-			return true
-		case 1048: // Column cannot be null
-			return true
-		}
-	}
-
-	return false
 }
