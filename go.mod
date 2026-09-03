@@ -23,7 +23,7 @@ require (
 	github.com/go-co-op/gocron/mocks/v2 v2.0.0-20260717182408-cc444c2a6f2c
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/go-gorm/caches/v4 v4.0.5
-	github.com/go-sql-driver/mysql v1.10.0
+	github.com/go-sql-driver/mysql v1.10.1
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/google/uuid v1.6.0
 	github.com/hyperledger-firefly/signer v1.2.1
