@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	emailverifier "github.com/AfterShip/email-verifier"
@@ -32,17 +33,55 @@ type User struct {
 	PasswordResets     []PasswordReset
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-	if u.Email != "" {
-		verify, err := getEmailVerifier().Verify(u.Email)
-		if err != nil {
-			return err
-		}
-		if !verify.Syntax.Valid {
-			return errors.New("email is invalid")
+// reservedTLDs lists TLDs that are guaranteed non-routable (RFC 2606 /
+// RFC 6761 / RFC 6762). Accounts with such emails, like the generated anon
+// wallet accounts, have no mailbox, so the MX lookup performed by the email
+// verifier can never succeed and must be skipped.
+var reservedTLDs = []string{".invalid", ".localhost", ".test", ".example"}
+
+func isReservedDomain(email string) bool {
+	at := strings.LastIndex(email, "@")
+	if at < 0 {
+		return false
+	}
+	domain := strings.ToLower(email[at:])
+	for _, tld := range reservedTLDs {
+		if strings.HasSuffix(domain, tld) {
+			return true
 		}
 	}
+	return false
+}
+
+// verifyUserEmail validates an email address before it is persisted. Real
+// domains get the full verification, which includes a MX lookup; reserved
+// non-routable domains are syntax-checked only, since no mail server can ever
+// exist for them.
+func verifyUserEmail(email string) error {
+	if email == "" {
+		return nil
+	}
+	verifier := getEmailVerifier()
+
+	if isReservedDomain(email) {
+		if !verifier.ParseAddress(email).Valid {
+			return errors.New("email is invalid")
+		}
+		return nil
+	}
+
+	verify, err := verifier.Verify(email)
+	if err != nil {
+		return err
+	}
+	if !verify.Syntax.Valid {
+		return errors.New("email is invalid")
+	}
 	return nil
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	return verifyUserEmail(u.Email)
 }
 
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
@@ -65,14 +104,8 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 		return errors.New("unsupported destination type")
 	}
 
-	if changed && email != "" {
-		verify, err := getEmailVerifier().Verify(email)
-		if err != nil {
-			return err
-		}
-		if !verify.Syntax.Valid {
-			return errors.New("email is invalid")
-		}
+	if changed {
+		return verifyUserEmail(email)
 	}
 
 	return nil
