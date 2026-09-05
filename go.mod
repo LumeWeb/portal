@@ -49,7 +49,7 @@ require (
 	github.com/relvacode/iso8601 v1.8.0
 	github.com/samber/lo v1.53.0
 	github.com/spf13/afero v1.15.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 	github.com/tus/tusd/v2 v2.10.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/wneessen/go-mail v0.8.1
@@ -58,15 +58,15 @@ require (
 	go.lumeweb.com/httputil v0.5.8
 	go.lumeweb.com/portal-middleware v0.3.7
 	go.lumeweb.com/portal-router v0.7.7
-	go.opentelemetry.io/contrib/bridges/otelzap v0.20.0
+	go.opentelemetry.io/contrib/bridges/otelzap v0.20.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.70.0
-	go.opentelemetry.io/otel v1.45.0
+	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.21.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.45.0
-	go.opentelemetry.io/otel/log v0.21.0
+	go.opentelemetry.io/otel/log v0.22.0
 	go.opentelemetry.io/otel/sdk v1.45.0
 	go.opentelemetry.io/otel/sdk/log v0.21.0
-	go.opentelemetry.io/otel/trace v1.45.0
+	go.opentelemetry.io/otel/trace v1.46.0
 	go.sia.tech/core v0.21.7
 	go.sia.tech/coreutils v0.24.0
 	go.sia.tech/indexd v0.4.4
@@ -234,13 +234,13 @@ require (
 	go.lumeweb.com/gswagger v0.20.12 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.45.0 // indirect
-	go.opentelemetry.io/otel/metric v1.45.0 // indirect
+	go.opentelemetry.io/otel/metric v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
 	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
 	go.sia.tech/mux v1.5.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
