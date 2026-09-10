@@ -18,6 +18,8 @@ github.com/AfterShip/email-verifier v1.4.2-0.20260825092651-bed8025cb56f h1:5AMM
 github.com/AfterShip/email-verifier v1.4.2-0.20260825092651-bed8025cb56f/go.mod h1:bwT1uAY0L/TOedg4XcpxemqNQiVZVTTX9hz6lTNEaEE=
 github.com/AfterShip/email-verifier v1.4.2-0.20260826093851-d8462fdd79d9 h1:LM3M2xyoQp34bRkwJdjelSx+3A9WZWTaqQ81iYMQ/R4=
 github.com/AfterShip/email-verifier v1.4.2-0.20260826093851-d8462fdd79d9/go.mod h1:bwT1uAY0L/TOedg4XcpxemqNQiVZVTTX9hz6lTNEaEE=
+github.com/AfterShip/email-verifier v1.4.2-0.20260910061523-951039bc8363 h1:x0xbOeevJkpBZrvpRixwaGsxaJPLK4it6rScg0w0wZg=
+github.com/AfterShip/email-verifier v1.4.2-0.20260910061523-951039bc8363/go.mod h1:0swBUZHxU1t2SYs8FOztJaaNJm0At5eMSjt5pGpjNsA=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.0/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.7.1/go.mod h1:bjGvMhVMb+EEm3VRNQawDMUyMMjo+S5ewNjflkep/0Q=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1/go.mod h1:a6xsAQUZg+VsS3TJ05SRp524Hs4pZ/AeFSr5ENf0Yjo=
