@@ -53,7 +53,7 @@ require (
 	github.com/tus/tusd/v2 v2.10.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/wneessen/go-mail v0.8.1
-	go.lumeweb.com/configmanager v0.3.30
+	go.lumeweb.com/configmanager v0.3.31
 	go.lumeweb.com/event/v2 v2.1.0
 	go.lumeweb.com/httputil v0.5.8
 	go.lumeweb.com/portal-middleware v0.3.7
@@ -92,7 +92,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gammazero/deque v1.2.1 // indirect
 	github.com/getkin/kin-openapi v0.144.0 // indirect
@@ -123,7 +122,6 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/oasdiff/yaml v0.1.1 // indirect
 	github.com/oasdiff/yaml3 v0.0.14 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.3
 	github.com/prometheus/common v0.70.1 // indirect
@@ -191,7 +189,6 @@ require (
 	github.com/go-faster/errors v0.8.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gookit/color v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
