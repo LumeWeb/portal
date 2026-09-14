@@ -599,8 +599,8 @@ go.etcd.io/etcd/client/pkg/v3 v3.7.0 h1:sW9njJzS3vXKcAJjjLQ4nk+avNUJ12Bcijcx8ehU
 go.etcd.io/etcd/client/pkg/v3 v3.7.0/go.mod h1:cnzZGIUzSfjEwLC6UBVsSXlEK1eepS/JUD7wE6PLRT0=
 go.etcd.io/etcd/client/v3 v3.7.0 h1:5MHO37VbPB87VRPKUXEcicjeQWiTSjpPv3Ume8xPx20=
 go.etcd.io/etcd/client/v3 v3.7.0/go.mod h1:DJ382WuwjmbowjPDyaaQ0idWXy4dh91XRhe4FOrb9vM=
-go.lumeweb.com/configmanager v0.3.31 h1:JLrhrYcchJx7/u7Y6EAeP9eyu1JAMogS3k+PQH3sqK0=
-go.lumeweb.com/configmanager v0.3.31/go.mod h1:bInIm5Qtu+FNgAi37UuHZ3bquEMKZ94bAynqu7KR41M=
+go.lumeweb.com/configmanager v0.3.32 h1:ALPB9Y5zUIWtWPQFo/VEYE1/TCgrBizdUnQRWlP7UiU=
+go.lumeweb.com/configmanager v0.3.32/go.mod h1:6m+stNE3rp1pKSC8r+ZMA23TayRsXEJ43c7kCwGT6jw=
 go.lumeweb.com/event/v2 v2.1.0 h1:pVWRzrHAkjhXa+owzhDTtaxBHbnxrsIpDHFZwEUxKoY=
 go.lumeweb.com/event/v2 v2.1.0/go.mod h1:e1Ss7iATIrP1b2Ojwbp1wdF0VTuxFXHdI7szkAG40AI=
 go.lumeweb.com/gswagger v0.20.12 h1:FNSrDAeMQVAGIogzJ4SQX+X8U/FMeWQ80yxdyfsM2/M=
