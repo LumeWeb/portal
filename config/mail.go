@@ -22,14 +22,15 @@ const (
 const SMTPAuthAliasNone = "none"
 
 type MailConfig struct {
-	Host      string                 `config:"host"`
-	Port      int                    `config:"port"`
-	SSL       bool                   `config:"ssl"`
-	TLSPolicy string                 `config:"tls_policy"`
-	AuthType  string                 `config:"auth_type"`
-	Username  string                 `config:"username"`
-	Password  string                 `config:"password"`
-	From      string                 `config:"from"`
+	Host       string `config:"host"`
+	Port       int    `config:"port"`
+	SSL        bool   `config:"ssl"`
+	TLSPolicy  string `config:"tls_policy"`
+	AuthType   string `config:"auth_type"`
+	Username   string `config:"username"`
+	Password   string `config:"password"`
+	From       string `config:"from"`
+	AdminEmail string `config:"admin_email"`
 }
 
 func (m MailConfig) Schema() z.ZogSchema {
@@ -63,18 +64,20 @@ func (m MailConfig) Schema() z.ZogSchema {
 		"ssl": z.Bool(),
 		"tls_policy": z.String().
 			OneOf([]string{TLSPolicyNoTLS, TLSPolicyOpportunistic, TLSPolicyMandatory}, z.Message("tls_policy must be one of: NoTLS, TLSOpportunistic, TLSMandatory")),
+		"admin_email": z.String(),
 	})
 }
 
 func (m MailConfig) Defaults() map[string]interface{} {
 	return map[string]interface{}{
-		"Host":      "",
-		"AuthType":  string(mail.SMTPAuthPlain),
-		"Port":      25,
-		"SSL":       false,
-		"TLSPolicy": mail.TLSMandatory.String(),
-		"From":      "",
-		"Username":  "",
-		"Password":  "",
+		"Host":       "",
+		"AuthType":   string(mail.SMTPAuthPlain),
+		"Port":       25,
+		"SSL":        false,
+		"TLSPolicy":  mail.TLSMandatory.String(),
+		"From":       "",
+		"Username":   "",
+		"Password":   "",
+		"AdminEmail": "",
 	}
 }
